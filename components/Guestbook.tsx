@@ -46,10 +46,23 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
     setSubmitting(true);
     setError(null);
     try {
+      // 1) mint a short-lived capability for this profile's guestbook
+      const capRes = await fetch(`/api/cap/guestbook/${encodeURIComponent(username)}`, {
+        method: "POST",
+      });
+      if (capRes.status === 401) {
+        setError("Please log in to sign the guestbook.");
+        setSubmitting(false);
+        return;
+      }
+      if (!capRes.ok) throw new Error(`cap mint failed: ${capRes.status}`);
+      const { token } = await capRes.json();
+
+      // 2) use the capability in the POST
       const res = await fetch(`/api/guestbook/${encodeURIComponent(username)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg.trim() }),
+        body: JSON.stringify({ message: msg.trim(), cap: token }),
       });
       if (!res.ok) throw new Error(`POST failed: ${res.status}`);
       const data = await res.json();
@@ -61,6 +74,7 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
       setSubmitting(false);
     }
   }
+
 
   return (
     <div className="border border-black bg-white shadow-[4px_4px_0_#000] p-3">

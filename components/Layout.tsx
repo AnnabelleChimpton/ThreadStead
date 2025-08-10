@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import LoginButton from "./LoginButton";
+import LoginStatus from "./LoginStatus";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -12,6 +13,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Link className="underline" href="/">Home</Link>
             <Link className="underline" href="/directory">Directory</Link>
             <LoginButton />
+            <LoginStatus />
           </div>
         </nav>
       </header>

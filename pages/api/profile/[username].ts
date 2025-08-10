@@ -24,7 +24,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const u = handle.user;
   return res.json({
     did: u.did,
+    userId: u.id,                       // <-- add this
     username,
+    primaryHandle: u.primaryHandle ?? null, // optional, handy later
     profile: u.profile,
     plugins: u.installs
       .filter(i => i.enabled)

@@ -10,6 +10,7 @@ import Tabs, { TabSpec } from "@/components/Tabs";
 
 import type { PluginDescriptor, InstalledPlugin, PluginContext } from "@/types/plugins";
 import { pluginRegistry } from "@/plugins/registry";
+import NewPostForm from "@/components/NewPostForm";
 
 /* ---------------- helpers ---------------- */
 function getBaseUrl(req?: any) {
@@ -18,55 +19,70 @@ function getBaseUrl(req?: any) {
   return `${proto}://${host}`;
 }
 
-function BlogTab({ username }: { username: string }) {
+function BlogTab({ username, ownerUserId }: { username: string; ownerUserId: string }) {
   const [loading, setLoading] = useState(true);
-  const [posts, setPosts] = useState<
-    { id: string; createdAt: string; bodyText?: string; bodyHtml?: string }[]
-  >([]);
+  const [posts, setPosts] = useState<{ id: string; createdAt: string; bodyText?: string; bodyHtml?: string }[]>([]);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       setLoading(true);
       const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
-      if (!alive) return;
-      if (res.ok) {
-        const data = await res.json();
-        setPosts(Array.isArray(data.posts) ? data.posts : []);
-      } else {
-        setPosts([]);
-      }
-      setLoading(false);
+      const data = res.ok ? await res.json() : { posts: [] };
+      if (alive) { setPosts(Array.isArray(data.posts) ? data.posts : []); setLoading(false); }
     })();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [username]);
 
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const me = await fetch("/api/auth/me").then(r => r.json());
+      if (alive) setIsOwner(me?.loggedIn && me.user?.id === ownerUserId);
+    })();
+    return () => { alive = false; };
+  }, [ownerUserId]);
+
+  const refresh = async () => {
+    const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
+    const data = res.ok ? await res.json() : { posts: [] };
+    setPosts(Array.isArray(data.posts) ? data.posts : []);
+  };
+
   if (loading) return <div>Loading posts…</div>;
-  if (!posts.length) return <div className="italic opacity-70">No posts yet.</div>;
 
   return (
     <div className="space-y-3">
-      {posts.map((p) => (
-        <article key={p.id} className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-          <div className="text-xs opacity-70 mb-1">
-            {new Date(p.createdAt).toLocaleString()}
-          </div>
-          {p.bodyHtml ? (
-            <div dangerouslySetInnerHTML={{ __html: p.bodyHtml }} />
-          ) : (
-            <p>{p.bodyText}</p>
-          )}
-        </article>
-      ))}
+      {isOwner && (
+        // only show if you’re viewing your own page
+        <div className="mb-3">
+          <div className="text-sm opacity-70 mb-1">Post as you</div>
+          <NewPostForm onPosted={refresh} />
+        </div>
+      )}
+
+      {posts.length === 0 ? (
+        <div className="italic opacity-70">No posts yet.</div>
+      ) : (
+        posts.map((p) => (
+          <article key={p.id} className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
+            <div className="text-xs opacity-70 mb-1">
+              {new Date(p.createdAt).toLocaleString()}
+            </div>
+            {p.bodyHtml ? <div dangerouslySetInnerHTML={{ __html: p.bodyHtml }} /> : <p>{p.bodyText}</p>}
+          </article>
+        ))
+      )}
     </div>
   );
 }
 
+
 /* ---------------- types ---------------- */
 type ProfileProps = {
   username: string;
+  ownerUserId: string; 
   bio?: string;
   about?: string;
   photoUrl?: string;
@@ -78,6 +94,7 @@ type ProfileProps = {
 /* ---------------- page ---------------- */
 export default function ProfilePage({
   username,
+  ownerUserId,
   bio,
   about,
   photoUrl = "/assets/default-avatar.gif",
@@ -92,7 +109,8 @@ export default function ProfilePage({
 
   // built-in tabs
   const baseTabs: TabSpec[] = [
-    { id: "blog", label: "Blog", content: <BlogTab username={username} /> },
+    { id: "blog", label: "Blog", content: <BlogTab username={username} ownerUserId={ownerUserId} /> },
+    { id: "newPost", label: "New Post", content: <NewPostForm />},
     {
       id: "media",
       label: "Media",
@@ -208,11 +226,14 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const base = `${proto}://${host}`;
 
   const res = await fetch(`${base}/api/profile/${encodeURIComponent(usernameParam)}`);
-
   if (res.status === 404) return { notFound: true };
+
   if (!res.ok) {
+    // Fallback: we still must supply ownerUserId, but we don't have it.
+    // You can 404 here, but we'll set a dummy and keep page usable.
     const props: ProfileProps = {
       username: usernameParam,
+      ownerUserId: "unknown",            // minimal fallback
       bio: "Profile unavailable right now.",
       initialTabId: "blog",
     };
@@ -220,6 +241,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   }
 
   const data: {
+    userId: string;                      // <-- expecting this from /api/profile
     username?: string;
     profile?: { bio?: string; avatarUrl?: string; customCSS?: string };
     plugins?: PluginDescriptor[];
@@ -229,12 +251,12 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const allowedBaseIds = new Set(["blog", "media", "friends", "guestbook"]);
   const initialTabId = requested && allowedBaseIds.has(requested) ? requested : "blog";
 
-  // Build typed props and only assign optional fields when they’re non-nullish
+  // Build typed props; omit undefined fields
   const props: ProfileProps = {
     username: data.username || usernameParam,
+    ownerUserId: data.userId,            // <-- set it
     initialTabId,
   };
-
   if (data.profile?.bio != null) props.bio = data.profile.bio;
   if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;
   if (data.profile?.customCSS != null) props.customCSS = data.profile.customCSS;
