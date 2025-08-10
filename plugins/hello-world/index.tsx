@@ -5,11 +5,12 @@ function HelloTab({ username }: { username: string }) {
     <div className="space-y-2">
       <h4 className="font-bold">Hello, {username}!</h4>
       <p>This tab was injected by a <em>plugin</em>.</p>
+      <p className="text-sm opacity-80">Source: plugins/hello-world</p>
     </div>
   );
 }
 
-export const manifest = {
+const manifest = {
   id: "com.example.hello",
   name: "Hello",
   version: "1.0.0",
@@ -19,6 +20,7 @@ export const manifest = {
 
 const mod: TabPluginModule = {
   manifest,
-  default: (ctx) => <HelloTab username={ctx.username} />,
+  default: HelloTab,
 };
+
 export default mod;
