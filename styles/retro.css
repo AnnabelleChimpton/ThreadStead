@@ -1,0 +1,29 @@
+/* Subtle tiled background for the whole page */
+.retro-surface {
+  background:
+    linear-gradient(rgba(255,253,247,0.98), rgba(255,253,247,0.98)),
+    url("/assets/stars-bg.gif");
+  background-repeat: repeat;
+}
+
+/* Fun but usable header text */
+.retro-header-text {
+  text-shadow: 1px 1px #ff66cc;
+  font-family: "Comic Sans MS", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Link styles */
+a {
+  color: #0033cc;
+  text-decoration: underline;
+}
+a:hover {
+  color: #cc0000;
+  background: #ffe08a;
+}
+
+/* Accessibility */
+:focus-visible {
+  outline: 3px solid #ff66cc;
+  outline-offset: 2px;
+}

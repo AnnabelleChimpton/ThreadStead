@@ -1,0 +1,13 @@
+body {
+  background-image: url("/assets/pink-hearts-bg.gif");
+  background-repeat: repeat;
+}
+
+h2 {
+  font-family: "Papyrus", fantasy;
+  color: hotpink;
+}
+
+a {
+  color: lime;
+}
