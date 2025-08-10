@@ -15,11 +15,11 @@ enum Visibility {
 }
 
 model User {
-  id           String   @id @default(cuid())          // internal id
-  did          String   @unique                       // did:key:... (portable identity)
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid()) // internal id
+  did           String   @unique // did:key:... (portable identity)
+  createdAt     DateTime @default(now())
   // human handles (a user can have several; one primary)
-  handles      Handle[]
+  handles       Handle[]
   primaryHandle String?
 
   // storage pointers (future: let users point to their own stores)
@@ -27,19 +27,28 @@ model User {
   sharedBaseUrl  String?
   privateBaseUrl String?
 
-  profile      Profile?
-  posts        Post[]
-  guestbook    GuestbookEntry[] @relation("EntriesToOwner") // entries left on *their* page
-  installs     PluginInstall[]
+  profile   Profile?
+  posts     Post[]
+  guestbook GuestbookEntry[] @relation("EntriesToOwner") // entries left on *their* page
+  installs  PluginInstall[]
+
+  // --- auth & caps ---
+  sessions     Session[]
+  capabilities CapabilityGrant[]
+
+  // --- social graph ---
+  following Follow[] @relation("follows_follower") // I follow others
+  followers Follow[] @relation("follows_followee") // others follow me
 }
 
 model Handle {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  handle     String   // e.g. "alice"
-  host       String   // e.g. "retro.social" or "local"
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle     String // e.g. "alice"
+  host       String // e.g. "retro.social" or "local"
   verifiedAt DateTime?
+
   @@unique([handle, host])
 }
 
@@ -51,8 +60,8 @@ model Profile {
   bio         String?
   avatarUrl   String?
   bannerUrl   String?
-  customCSS   String?    // store sanitized CSS or a pointer
-  blogroll    Json?      // [{label,url}]
+  customCSS   String? // store sanitized CSS or a pointer
+  blogroll    Json? // [{label,url}]
   visibility  Visibility @default(public)
   updatedAt   DateTime   @updatedAt
 }
@@ -65,31 +74,63 @@ model Post {
   updatedAt  DateTime?
   bodyHtml   String?
   bodyText   String?
-  media      Json?      // [{url,mime,width,height}]
+  media      Json? // [{url,mime,width,height}]
   tags       String[]
-  visibility Visibility  @default(public)
+  visibility Visibility @default(public)
   // future: signature, cid
 }
 
 model GuestbookEntry {
   id           String   @id @default(cuid())
-  profileOwner String   // whose page the entry lives on
+  profileOwner String // whose page the entry lives on
   owner        User     @relation("EntriesToOwner", fields: [profileOwner], references: [id], onDelete: Cascade)
-  authorId     String?  // DID owner or null for anonymous (we’ll map DID → user later)
+  authorId     String? // DID owner or null for anonymous (we’ll map DID → user later)
   message      String
   createdAt    DateTime @default(now())
   status       String   @default("visible") // visible|hidden|removed
-  signature    String?  // optional
+  signature    String? // optional
 }
 
 model PluginInstall {
-  id         String   @id @default(cuid())
-  ownerId    String
-  owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  pluginId   String   // "com.example.hello"
-  mode       String   // "trusted" | "iframe"
-  settings   Json?    // plugin-specific config
-  enabled    Boolean  @default(true)
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  pluginId  String // "com.example.hello"
+  mode      String // "trusted" | "iframe"
+  settings  Json? // plugin-specific config
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issuedAt  DateTime @default(now())
+  expiresAt DateTime
+  // store a random secret to bind cookie to server state
+  secret    String   @unique
+}
+
+model CapabilityGrant {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  audience  String // "origin/service" that this token is for (e.g. "retro.local")
+  actions   String[] // ["read:shared","write:post"]
+  resource  String // e.g. "did:.../posts/*"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Follow {
+  followerId String
+  followeeId String
+  follower   User     @relation("follows_follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followee   User     @relation("follows_followee", fields: [followeeId], references: [id], onDelete: Cascade)
+  status     String   @default("accepted") // requested | accepted | blocked
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+
+  @@id([followerId, followeeId])
 }

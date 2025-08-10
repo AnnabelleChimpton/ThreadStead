@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import LoginButton from "./LoginButton";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="space-x-4">
             <Link className="underline" href="/">Home</Link>
             <Link className="underline" href="/directory">Directory</Link>
+            <LoginButton />
           </div>
         </nav>
       </header>
