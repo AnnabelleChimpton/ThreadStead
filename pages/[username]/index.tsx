@@ -1,53 +1,98 @@
-import React from "react";
-import { GetServerSideProps } from "next";
+// pages/[username]/index.tsx
+import React, { useEffect, useState } from "react";
+import type { GetServerSideProps } from "next";
+
 import Layout from "../../components/Layout";
-import Guestbook from "@/components/Guestbook";
 import RetroCard from "@/components/RetroCard";
 import ProfilePhoto from "@/components/ProfilePhoto";
+import Guestbook from "@/components/Guestbook";
 import Tabs, { TabSpec } from "@/components/Tabs";
+
 import type { PluginDescriptor, InstalledPlugin, PluginContext } from "@/types/plugins";
 import { pluginRegistry } from "@/plugins/registry";
 
+/* ---------------- helpers ---------------- */
+function getBaseUrl(req?: any) {
+  const proto = req?.headers?.["x-forwarded-proto"] || "http";
+  const host = req?.headers?.host || "localhost:3000";
+  return `${proto}://${host}`;
+}
+
+function BlogTab({ username }: { username: string }) {
+  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<
+    { id: string; createdAt: string; bodyText?: string; bodyHtml?: string }[]
+  >([]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
+      if (!alive) return;
+      if (res.ok) {
+        const data = await res.json();
+        setPosts(Array.isArray(data.posts) ? data.posts : []);
+      } else {
+        setPosts([]);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [username]);
+
+  if (loading) return <div>Loading posts…</div>;
+  if (!posts.length) return <div className="italic opacity-70">No posts yet.</div>;
+
+  return (
+    <div className="space-y-3">
+      {posts.map((p) => (
+        <article key={p.id} className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
+          <div className="text-xs opacity-70 mb-1">
+            {new Date(p.createdAt).toLocaleString()}
+          </div>
+          {p.bodyHtml ? (
+            <div dangerouslySetInnerHTML={{ __html: p.bodyHtml }} />
+          ) : (
+            <p>{p.bodyText}</p>
+          )}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- types ---------------- */
 type ProfileProps = {
   username: string;
-  bio: string;
-  customCSS?: string;
+  bio?: string;
   about?: string;
   photoUrl?: string;
+  customCSS?: string;
   plugins?: PluginDescriptor[];
-  initialTabId?: string; // <-- add this
+  initialTabId?: string;
 };
 
+/* ---------------- page ---------------- */
 export default function ProfilePage({
   username,
   bio,
-  customCSS,
   about,
   photoUrl = "/assets/default-avatar.gif",
+  customCSS,
   plugins = [],
-  initialTabId
+  initialTabId,
 }: ProfileProps) {
-  // Convert descriptors → runtime-installed plugins (attach loaders from registry)
+  // descriptors (from server) -> runtime plugins (attach loaders via registry)
   const installed: InstalledPlugin[] = plugins.map((d) =>
-    d.mode === "trusted"
-      ? { ...d, load: pluginRegistry[d.id] }
-      : d
+    d.mode === "trusted" ? { ...d, load: pluginRegistry[d.id] } : d
   );
 
-  // --- Built-in tabs ---
+  // built-in tabs
   const baseTabs: TabSpec[] = [
-    {
-      id: "blog",
-      label: "Blog",
-      content: (
-        <div className="space-y-3">
-          <article className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-            <h4 className="font-bold">Hello, Old Web</h4>
-            <p>First post! Loving this retro vibe.</p>
-          </article>
-        </div>
-      ),
-    },
+    { id: "blog", label: "Blog", content: <BlogTab username={username} /> },
     {
       id: "media",
       label: "Media",
@@ -91,11 +136,11 @@ export default function ProfilePage({
     {
       id: "guestbook",
       label: "Guestbook",
-      content: <Guestbook username={username} bio={bio} />,
+      content: <Guestbook username={username} bio={bio || ""} />,
     },
   ];
 
-  // --- Plugin tabs ---
+  // plugin tabs
   const pluginTabs: TabSpec[] = installed.map((p) => {
     if (p.mode === "trusted" && p.load) {
       const LazyPlugin = React.lazy<React.ComponentType<PluginContext>>(() =>
@@ -141,35 +186,59 @@ export default function ProfilePage({
             <ProfilePhoto src={photoUrl} alt={`${username}'s profile photo`} />
             <div>
               <h2 className="text-2xl font-bold mb-2">{username}'s Page</h2>
-              <p className="mb-2">{bio}</p>
+              {bio && <p className="mb-2">{bio}</p>}
               {about && <p className="text-sm opacity-80 whitespace-pre-line">{about}</p>}
             </div>
           </div>
         </RetroCard>
 
-        <Tabs tabs={tabs} initialId={initialTabId}/>
+        <Tabs tabs={tabs} initialId={initialTabId} />
       </Layout>
     </>
   );
 }
 
-// pages/[username]/index.tsx (only showing GSSP + usage)
+/* ---------------- SSR: call /api/profile and omit undefined keys ---------------- */
+export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ params, query, req }) => {
+  const usernameParam = String(params?.username || "");
+  if (!usernameParam) return { notFound: true };
 
-export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ params, query }) => {
-  const username = String(params?.username || "guest");
-  const bio = `Hi, I'm ${username}! Welcome to my retro page.`;
-  const about = "I love old web aesthetics, blogging, and glitter GIFs.\nThis is my personal corner of the web.";
-  const photoUrl = "/assets/default-avatar.gif";
+  const proto = req?.headers?.["x-forwarded-proto"] || "http";
+  const host = req?.headers?.host || "localhost:3000";
+  const base = `${proto}://${host}`;
 
-  const plugins: PluginDescriptor[] = [
-    { id: "com.example.hello", mode: "trusted", label: "Hello" },
-  ];
+  const res = await fetch(`${base}/api/profile/${encodeURIComponent(usernameParam)}`);
 
-  // Decide the initial tab on the server
+  if (res.status === 404) return { notFound: true };
+  if (!res.ok) {
+    const props: ProfileProps = {
+      username: usernameParam,
+      bio: "Profile unavailable right now.",
+      initialTabId: "blog",
+    };
+    return { props };
+  }
+
+  const data: {
+    username?: string;
+    profile?: { bio?: string; avatarUrl?: string; customCSS?: string };
+    plugins?: PluginDescriptor[];
+  } = await res.json();
+
   const requested = typeof query.tab === "string" ? query.tab : undefined;
-  // Build the base tab IDs you support server-side (must match what you render):
   const allowedBaseIds = new Set(["blog", "media", "friends", "guestbook"]);
   const initialTabId = requested && allowedBaseIds.has(requested) ? requested : "blog";
 
-  return { props: { username, bio, about, photoUrl, plugins, initialTabId } as any };
+  // Build typed props and only assign optional fields when they’re non-nullish
+  const props: ProfileProps = {
+    username: data.username || usernameParam,
+    initialTabId,
+  };
+
+  if (data.profile?.bio != null) props.bio = data.profile.bio;
+  if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;
+  if (data.profile?.customCSS != null) props.customCSS = data.profile.customCSS;
+  if (data.plugins != null) props.plugins = data.plugins;
+
+  return { props };
 };

@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Visibility {
+  public
+  followers
+  friends
+  private
+}
+
+model User {
+  id           String   @id @default(cuid())          // internal id
+  did          String   @unique                       // did:key:... (portable identity)
+  createdAt    DateTime @default(now())
+  // human handles (a user can have several; one primary)
+  handles      Handle[]
+  primaryHandle String?
+
+  // storage pointers (future: let users point to their own stores)
+  publicBaseUrl  String?
+  sharedBaseUrl  String?
+  privateBaseUrl String?
+
+  profile      Profile?
+  posts        Post[]
+  guestbook    GuestbookEntry[] @relation("EntriesToOwner") // entries left on *their* page
+  installs     PluginInstall[]
+}
+
+model Handle {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle     String   // e.g. "alice"
+  host       String   // e.g. "retro.social" or "local"
+  verifiedAt DateTime?
+  @@unique([handle, host])
+}
+
+model Profile {
+  id          String     @id @default(cuid())
+  userId      String     @unique
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String?
+  bio         String?
+  avatarUrl   String?
+  bannerUrl   String?
+  customCSS   String?    // store sanitized CSS or a pointer
+  blogroll    Json?      // [{label,url}]
+  visibility  Visibility @default(public)
+  updatedAt   DateTime   @updatedAt
+}
+
+model Post {
+  id         String     @id @default(cuid())
+  authorId   String
+  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime?
+  bodyHtml   String?
+  bodyText   String?
+  media      Json?      // [{url,mime,width,height}]
+  tags       String[]
+  visibility Visibility  @default(public)
+  // future: signature, cid
+}
+
+model GuestbookEntry {
+  id           String   @id @default(cuid())
+  profileOwner String   // whose page the entry lives on
+  owner        User     @relation("EntriesToOwner", fields: [profileOwner], references: [id], onDelete: Cascade)
+  authorId     String?  // DID owner or null for anonymous (we’ll map DID → user later)
+  message      String
+  createdAt    DateTime @default(now())
+  status       String   @default("visible") // visible|hidden|removed
+  signature    String?  // optional
+}
+
+model PluginInstall {
+  id         String   @id @default(cuid())
+  ownerId    String
+  owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  pluginId   String   // "com.example.hello"
+  mode       String   // "trusted" | "iframe"
+  settings   Json?    // plugin-specific config
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
