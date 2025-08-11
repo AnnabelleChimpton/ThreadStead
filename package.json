@@ -15,7 +15,10 @@
   "dependencies": {
     "@noble/ed25519": "^2.3.0",
     "@prisma/client": "^6.13.0",
+    "highlight.js": "^11.11.1",
     "jose": "^6.0.12",
+    "marked": "^16.1.2",
+    "marked-highlight": "^2.2.2",
     "next": "15.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0"

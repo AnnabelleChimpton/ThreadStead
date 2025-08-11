@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient, Visibility } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-server";
 import { requireAction } from "@/lib/capabilities";
-import { cleanHtml } from "@/lib/sanitize";
+import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 
 const db = new PrismaClient();
 
@@ -12,34 +12,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const viewer = await getSessionUser(req);
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
-  const { bodyText, bodyHtml, visibility, cap } = (req.body || {}) as {
+  const { bodyText, bodyHtml, bodyMarkdown, visibility, cap } = (req.body || {}) as {
     bodyText?: string;
     bodyHtml?: string;
+    bodyMarkdown?: string;
     visibility?: Visibility;
     cap?: string;
   };
 
-  if (!cap) return res.status(401).json({ error: "capability required" });
-  const resource = `user:${viewer.id}/posts`;
-  const ok = await requireAction("write:post", (resStr) => resStr === resource)(cap).catch(() => null);
-  if (!ok) return res.status(403).json({ error: "invalid capability" });
+  if (!bodyText && !bodyHtml && !bodyMarkdown) {
+    return res.status(400).json({ error: "bodyText, bodyHtml, or bodyMarkdown required" });
+  }
 
-  if (!bodyText && !bodyHtml) return res.status(400).json({ error: "bodyText or bodyHtml required" });
+    let safeHtml: string | null = null;
+    if (typeof bodyMarkdown === "string") {
+    safeHtml = markdownToSafeHtml(bodyMarkdown);
+    } else if (typeof bodyHtml === "string") {
+    safeHtml = cleanAndNormalizeHtml(bodyHtml);
+    }
+    // bodyText passes through as-is
 
-  const safeHtml = bodyHtml ? cleanHtml(bodyHtml) : null;
-  const vis: Visibility = visibility && ["public","followers","friends","private"].includes(visibility)
-    ? visibility
-    : "public";
+    const vis: Visibility =
+    visibility && ["public","followers","friends","private"].includes(visibility)
+        ? visibility
+        : "public";
 
-  const post = await db.post.create({
+    const post = await db.post.create({
     data: {
-      authorId: viewer.id,
-      bodyText: bodyText ?? null,
-      bodyHtml: safeHtml,
-      visibility: vis,
-      tags: [],
+        authorId: viewer.id,
+        bodyText: bodyText ?? null,
+        bodyHtml: safeHtml,
+        visibility: vis,
+        tags: [],
     },
-  });
+    });
 
   res.status(201).json({ post });
 }

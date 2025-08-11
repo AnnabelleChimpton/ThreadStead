@@ -1,40 +1,93 @@
 // components/NewPostForm.tsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
+import { useHighlight } from "@/lib/useHighlight";
+
+
+type Visibility = "public" | "followers" | "friends" | "private";
+type Mode = "text" | "markdown" | "html";
+type View = "write" | "preview";
 
 type NewPostFormProps = {
   onPosted?: () => void | Promise<void>;
 };
 
-const VIS_OPTS = [
+const VIS_OPTS: { v: Visibility; label: string }[] = [
   { v: "public", label: "Public" },
   { v: "followers", label: "Followers" },
   { v: "friends", label: "Friends" },
   { v: "private", label: "Only Me" },
 ];
 
+const MODES: { v: Mode; label: string }[] = [
+  { v: "text", label: "Plain text" },
+  { v: "markdown", label: "Markdown" },
+  { v: "html", label: "Raw HTML" },
+];
+
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function textToHtml(text: string) {
+  // basic: preserve newlines
+  return `<p>${escapeHtml(text).replace(/\n/g, "<br/>")}</p>`;
+}
+
 export default function NewPostForm({ onPosted }: NewPostFormProps) {
   const [text, setText] = useState("");
-  const [vis, setVis] = useState<string>("public");
+  const [vis, setVis] = useState<Visibility>("public");
+  const [mode, setMode] = useState<Mode>("text");
+  const [view, setView] = useState<View>("write");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const previewHtml = useMemo(() => {
+    if (!text.trim()) return "<p class='opacity-60'>(Nothing to preview)</p>";
+    if (mode === "markdown") return markdownToSafeHtml(text);
+    if (mode === "html") return cleanAndNormalizeHtml(text);
+    return textToHtml(text);
+  }, [text, mode]);
+
+  const previewRef = useHighlight([previewHtml]);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!text.trim()) return;
-    setBusy(true); setErr(null);
+    const body = text.trim();
+    if (!body) return;
+
+    setBusy(true);
+    setErr(null);
+
     try {
+      // 1) Mint a short-lived capability to write posts
       const capRes = await fetch("/api/cap/post", { method: "POST" });
-      if (capRes.status === 401) { setErr("Please log in."); setBusy(false); return; }
+      if (capRes.status === 401) {
+        setErr("Please log in to post.");
+        setBusy(false);
+        return;
+      }
+      if (!capRes.ok) throw new Error(`cap mint failed: ${capRes.status}`);
       const { token } = await capRes.json();
+
+      // 2) Send create request with the chosen mode
+      const payload: Record<string, any> = { visibility: vis, cap: token };
+      if (mode === "markdown") payload.bodyMarkdown = body;
+      else if (mode === "html") payload.bodyHtml = body;
+      else payload.bodyText = body;
 
       const res = await fetch("/api/posts/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bodyText: text.trim(), visibility: vis, cap: token }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(`create failed: ${res.status}`);
 
       setText("");
+      setView("write");
       await onPosted?.();
     } catch (e: any) {
       setErr(e?.message || "Failed to post");
@@ -44,30 +97,94 @@ export default function NewPostForm({ onPosted }: NewPostFormProps) {
   }
 
   return (
-    <form onSubmit={submit} className="border border-black p-3 bg-white shadow-[2px_2px_0_#000] space-y-2">
-      <textarea
-        className="w-full border border-black p-2 bg-white"
-        rows={3}
-        placeholder="What's on your mind?"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        disabled={busy}
-      />
+    <form
+      onSubmit={submit}
+      className="border border-black p-3 bg-white shadow-[2px_2px_0_#000] space-y-3"
+    >
+      {/* Write / Preview toggle */}
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className={`px-2 py-1 border border-black text-xs shadow-[2px_2px_0_#000] ${view === "write" ? "bg-yellow-200" : "bg-white"}`}
+          onClick={() => setView("write")}
+        >
+          Write
+        </button>
+        <button
+          type="button"
+          className={`px-2 py-1 border border-black text-xs shadow-[2px_2px_0_#000] ${view === "preview" ? "bg-yellow-200" : "bg-white"}`}
+          onClick={() => setView("preview")}
+        >
+          Preview
+        </button>
+      </div>
+
+      {view === "write" ? (
+        <textarea
+          className="w-full border border-black p-2 bg-white font-sans"
+          rows={mode === "html" ? 10 : mode === "markdown" ? 8 : 5}
+          placeholder={
+            mode === "markdown"
+              ? "Write Markdown… (e.g., **bold**, _italics_, [link](https://example.com))"
+              : mode === "html"
+              ? "Write sanitized HTML… (<p>, <a>, <ul>, <img> allowed)"
+              : "Write your post…"
+          }
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          disabled={busy}
+        />
+      ) : (
+        <div
+            ref={previewRef}
+            className="border border-black p-3 bg-white min-h-[120px]"
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
+        />
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
         <label className="text-sm">Visibility</label>
         <select
           className="border border-black bg-white px-2 py-1"
           value={vis}
-          onChange={(e) => setVis(e.target.value)}
+          onChange={(e) => setVis(e.target.value as Visibility)}
           disabled={busy}
         >
-          {VIS_OPTS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+          {VIS_OPTS.map((o) => (
+            <option key={o.v} value={o.v}>
+              {o.label}
+            </option>
+          ))}
         </select>
-        <button className="border border-black px-3 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000]" disabled={busy || !text.trim()}>
+
+        <label className="text-sm ml-2">Mode</label>
+        <select
+          className="border border-black bg-white px-2 py-1"
+          value={mode}
+          onChange={(e) => setMode(e.target.value as Mode)}
+          disabled={busy}
+        >
+          {MODES.map((m) => (
+            <option key={m.v} value={m.v}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+
+        <button
+          className="ml-auto border border-black px-3 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000]"
+          disabled={busy || !text.trim()}
+        >
           {busy ? "Posting…" : "Post"}
         </button>
-        {err && <span className="text-red-700 text-sm">{err}</span>}
       </div>
+
+      {mode === "html" && (
+        <div className="text-xs opacity-70">
+          HTML is sanitized: scripts/iframes/styles removed; only safe tags/attrs allowed.
+        </div>
+      )}
+      {err && <div className="text-red-700 text-sm">{err}</div>}
     </form>
   );
 }

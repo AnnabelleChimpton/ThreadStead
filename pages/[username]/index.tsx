@@ -11,8 +11,10 @@ import FollowButton from "@/components/FollowButton";
 import FriendBadge from "@/components/FriendBadge";
 import MutualFriends from "@/components/MutualFriends";
 import type { PluginDescriptor, InstalledPlugin, PluginContext } from "@/types/plugins";
+import PostItem, { Post as PostType } from "@/components/PostItem";
 import { pluginRegistry } from "@/plugins/registry";
 import NewPostForm from "@/components/NewPostForm";
+import Link from "next/link";
 
 /* ---------------- helpers ---------------- */
 function getBaseUrl(req?: any) {
@@ -23,19 +25,16 @@ function getBaseUrl(req?: any) {
 
 function BlogTab({ username, ownerUserId }: { username: string; ownerUserId: string }) {
   const [loading, setLoading] = useState(true);
-  const [posts, setPosts] = useState<{ id: string; createdAt: string; bodyText?: string; bodyHtml?: string }[]>([]);
+  const [posts, setPosts] = useState<PostType[]>([]);
   const [isOwner, setIsOwner] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      setLoading(true);
-      const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
-      const data = res.ok ? await res.json() : { posts: [] };
-      if (alive) { setPosts(Array.isArray(data.posts) ? data.posts : []); setLoading(false); }
-    })();
-    return () => { alive = false; };
-  }, [username]);
+  const refresh = async () => {
+    const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
+    const data = res.ok ? await res.json() : { posts: [] };
+    setPosts(Array.isArray(data.posts) ? data.posts : []);
+  };
+
+  useEffect(() => { setLoading(true); refresh().finally(() => setLoading(false)); }, [username]);
 
   useEffect(() => {
     let alive = true;
@@ -46,34 +45,21 @@ function BlogTab({ username, ownerUserId }: { username: string; ownerUserId: str
     return () => { alive = false; };
   }, [ownerUserId]);
 
-  const refresh = async () => {
-    const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
-    const data = res.ok ? await res.json() : { posts: [] };
-    setPosts(Array.isArray(data.posts) ? data.posts : []);
-  };
-
   if (loading) return <div>Loading posts…</div>;
 
   return (
     <div className="space-y-3">
       {isOwner && (
-        // only show if you’re viewing your own page
         <div className="mb-3">
           <div className="text-sm opacity-70 mb-1">Post as you</div>
           <NewPostForm onPosted={refresh} />
         </div>
       )}
-
       {posts.length === 0 ? (
         <div className="italic opacity-70">No posts yet.</div>
       ) : (
         posts.map((p) => (
-          <article key={p.id} className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-            <div className="text-xs opacity-70 mb-1">
-              {new Date(p.createdAt).toLocaleString()}
-            </div>
-            {p.bodyHtml ? <div dangerouslySetInnerHTML={{ __html: p.bodyHtml }} /> : <p>{p.bodyText}</p>}
-          </article>
+          <PostItem key={p.id} post={p} isOwner={isOwner} onChanged={refresh} />
         ))
       )}
     </div>
@@ -208,9 +194,18 @@ export default function ProfilePage({
             <ProfilePhoto src={photoUrl} alt={`${username}'s profile photo`} />
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-2xl font-bold">{username}'s Page</h2>
+              {bio}
               {relStatus === "friends" && <FriendBadge />}
               <FollowButton username={username} onStatus={setRelStatus} />
               <MutualFriends username={username} />
+              {relStatus === "owner" && (
+              <Link
+                href="/settings/profile"
+                className="border border-black px-3 py-1 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000]"
+              >
+                Edit profile
+              </Link>
+            )}
             </div>
           </div>
         </RetroCard>
