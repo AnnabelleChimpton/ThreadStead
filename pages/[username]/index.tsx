@@ -7,7 +7,9 @@ import RetroCard from "@/components/RetroCard";
 import ProfilePhoto from "@/components/ProfilePhoto";
 import Guestbook from "@/components/Guestbook";
 import Tabs, { TabSpec } from "@/components/Tabs";
-
+import FollowButton from "@/components/FollowButton";
+import FriendBadge from "@/components/FriendBadge";
+import MutualFriends from "@/components/MutualFriends";
 import type { PluginDescriptor, InstalledPlugin, PluginContext } from "@/types/plugins";
 import { pluginRegistry } from "@/plugins/registry";
 import NewPostForm from "@/components/NewPostForm";
@@ -102,6 +104,8 @@ export default function ProfilePage({
   plugins = [],
   initialTabId,
 }: ProfileProps) {
+  const [relStatus, setRelStatus] = React.useState<string>("loading");
+
   // descriptors (from server) -> runtime plugins (attach loaders via registry)
   const installed: InstalledPlugin[] = plugins.map((d) =>
     d.mode === "trusted" ? { ...d, load: pluginRegistry[d.id] } : d
@@ -202,10 +206,11 @@ export default function ProfilePage({
         <RetroCard>
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6">
             <ProfilePhoto src={photoUrl} alt={`${username}'s profile photo`} />
-            <div>
-              <h2 className="text-2xl font-bold mb-2">{username}'s Page</h2>
-              {bio && <p className="mb-2">{bio}</p>}
-              {about && <p className="text-sm opacity-80 whitespace-pre-line">{about}</p>}
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-2xl font-bold">{username}'s Page</h2>
+              {relStatus === "friends" && <FriendBadge />}
+              <FollowButton username={username} onStatus={setRelStatus} />
+              <MutualFriends username={username} />
             </div>
           </div>
         </RetroCard>
