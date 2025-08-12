@@ -1,8 +1,7 @@
-// components/NewPostForm.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
-import { useHighlight } from "@/lib/useHighlight";
-
+import Preview from "@/components/PreviewForm";
+import hljs from "highlight.js"; // Ensure highlight.js is imported
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -10,6 +9,8 @@ type View = "write" | "preview";
 
 type NewPostFormProps = {
   onPosted?: () => void | Promise<void>;
+  postId?: string; // Optional prop to edit an existing post
+  existingPost?: { bodyMarkdown: string; bodyHtml: string; visibility: Visibility }; // Existing post data
 };
 
 const VIS_OPTS: { v: Visibility; label: string }[] = [
@@ -33,13 +34,16 @@ function escapeHtml(s: string) {
 }
 
 function textToHtml(text: string) {
-  // basic: preserve newlines
   return `<p>${escapeHtml(text).replace(/\n/g, "<br/>")}</p>`;
 }
 
-export default function NewPostForm({ onPosted }: NewPostFormProps) {
-  const [text, setText] = useState("");
-  const [vis, setVis] = useState<Visibility>("public");
+export default function NewPostForm({
+  onPosted,
+  postId,
+  existingPost, // Accepting existing post data for editing
+}: NewPostFormProps) {
+  const [text, setText] = useState(existingPost?.bodyMarkdown || "");
+  const [vis, setVis] = useState<Visibility>(existingPost?.visibility || "public");
   const [mode, setMode] = useState<Mode>("text");
   const [view, setView] = useState<View>("write");
   const [busy, setBusy] = useState(false);
@@ -52,7 +56,21 @@ export default function NewPostForm({ onPosted }: NewPostFormProps) {
     return textToHtml(text);
   }, [text, mode]);
 
-  const previewRef = useHighlight([previewHtml]);
+  useEffect(() => {
+    if (existingPost) {
+      setText(existingPost.bodyMarkdown);
+      setVis(existingPost.visibility);
+    }
+
+    // Highlight the content after it's loaded (even for write mode)
+    highlightCodeBlocks();
+  }, [existingPost]);
+
+  const highlightCodeBlocks = () => {
+    // Trigger highlighting for the current content
+    const blocks = document.querySelectorAll("pre code");
+    blocks.forEach((block) => hljs.highlightElement(block as HTMLElement));
+  };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,7 +81,6 @@ export default function NewPostForm({ onPosted }: NewPostFormProps) {
     setErr(null);
 
     try {
-      // 1) Mint a short-lived capability to write posts
       const capRes = await fetch("/api/cap/post", { method: "POST" });
       if (capRes.status === 401) {
         setErr("Please log in to post.");
@@ -73,14 +90,13 @@ export default function NewPostForm({ onPosted }: NewPostFormProps) {
       if (!capRes.ok) throw new Error(`cap mint failed: ${capRes.status}`);
       const { token } = await capRes.json();
 
-      // 2) Send create request with the chosen mode
       const payload: Record<string, any> = { visibility: vis, cap: token };
       if (mode === "markdown") payload.bodyMarkdown = body;
       else if (mode === "html") payload.bodyHtml = body;
       else payload.bodyText = body;
 
-      const res = await fetch("/api/posts/create", {
-        method: "POST",
+      const res = await fetch(postId ? `/api/posts/update/${postId}` : "/api/posts/create", {
+        method: postId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -97,10 +113,7 @@ export default function NewPostForm({ onPosted }: NewPostFormProps) {
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="border border-black p-3 bg-white shadow-[2px_2px_0_#000] space-y-3"
-    >
+    <form onSubmit={submit} className="border border-black p-3 bg-white shadow-[2px_2px_0_#000] space-y-3">
       {/* Write / Preview toggle */}
       <div className="flex items-center gap-2">
         <button
@@ -123,23 +136,13 @@ export default function NewPostForm({ onPosted }: NewPostFormProps) {
         <textarea
           className="w-full border border-black p-2 bg-white font-sans"
           rows={mode === "html" ? 10 : mode === "markdown" ? 8 : 5}
-          placeholder={
-            mode === "markdown"
-              ? "Write Markdown… (e.g., **bold**, _italics_, [link](https://example.com))"
-              : mode === "html"
-              ? "Write sanitized HTML… (<p>, <a>, <ul>, <img> allowed)"
-              : "Write your post…"
-          }
+          placeholder={mode === "markdown" ? "Write Markdown…" : "Write your post…"}
           value={text}
           onChange={(e) => setText(e.target.value)}
           disabled={busy}
         />
       ) : (
-        <div
-            ref={previewRef}
-            className="border border-black p-3 bg-white min-h-[120px]"
-            dangerouslySetInnerHTML={{ __html: previewHtml }}
-        />
+        <Preview content={previewHtml} />
       )}
 
       <div className="flex flex-wrap items-center gap-3">
@@ -179,11 +182,6 @@ export default function NewPostForm({ onPosted }: NewPostFormProps) {
         </button>
       </div>
 
-      {mode === "html" && (
-        <div className="text-xs opacity-70">
-          HTML is sanitized: scripts/iframes/styles removed; only safe tags/attrs allowed.
-        </div>
-      )}
       {err && <div className="text-red-700 text-sm">{err}</div>}
     </form>
   );

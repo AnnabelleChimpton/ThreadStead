@@ -67,16 +67,17 @@ model Profile {
 }
 
 model Post {
-  id         String     @id @default(cuid())
-  authorId   String
-  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime?
-  bodyHtml   String?
-  bodyText   String?
-  media      Json? // [{url,mime,width,height}]
-  tags       String[]
-  visibility Visibility @default(public)
+  id            String     @id @default(cuid())
+  authorId      String
+  author        User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime?
+  bodyHtml      String?
+  bodyText      String?
+  bodyMarkdown  String?
+  media         Json? // [{url,mime,width,height}]
+  tags          String[]
+  visibility    Visibility @default(public)
   // future: signature, cid
 }
 

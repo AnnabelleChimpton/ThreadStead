@@ -15,6 +15,7 @@ import PostItem, { Post as PostType } from "@/components/PostItem";
 import { pluginRegistry } from "@/plugins/registry";
 import NewPostForm from "@/components/NewPostForm";
 import Link from "next/link";
+import hljs from "highlight.js";
 
 /* ---------------- helpers ---------------- */
 function getBaseUrl(req?: any) {
@@ -28,13 +29,28 @@ function BlogTab({ username, ownerUserId }: { username: string; ownerUserId: str
   const [posts, setPosts] = useState<PostType[]>([]);
   const [isOwner, setIsOwner] = useState(false);
 
+  // Function to trigger syntax highlighting
+  const highlightCodeBlocks = () => {
+    const blocks = document.querySelectorAll("pre code");
+    blocks.forEach((block) => {
+      // Apply syntax highlighting
+      hljs.highlightElement(block as HTMLElement);
+    });
+  };
+
   const refresh = async () => {
     const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
     const data = res.ok ? await res.json() : { posts: [] };
     setPosts(Array.isArray(data.posts) ? data.posts : []);
+    
+    // Trigger syntax highlighting for all posts after fetching
+    highlightCodeBlocks();
   };
 
-  useEffect(() => { setLoading(true); refresh().finally(() => setLoading(false)); }, [username]);
+  useEffect(() => {
+    setLoading(true);
+    refresh().finally(() => setLoading(false));
+  }, [username]);
 
   useEffect(() => {
     let alive = true;
@@ -100,7 +116,7 @@ export default function ProfilePage({
   // built-in tabs
   const baseTabs: TabSpec[] = [
     { id: "blog", label: "Blog", content: <BlogTab username={username} ownerUserId={ownerUserId} /> },
-    { id: "newPost", label: "New Post", content: <NewPostForm />},
+    // { id: "newPost", label: "New Post", content: <NewPostForm />},
     {
       id: "media",
       label: "Media",
@@ -183,7 +199,8 @@ export default function ProfilePage({
     return { id: p.id, label: p.label || p.id, content: <div>Plugin unavailable.</div> };
   });
 
-  const tabs: TabSpec[] = [...baseTabs, ...pluginTabs];
+  // const tabs: TabSpec[] = [...baseTabs, ...pluginTabs];
+  const tabs: TabSpec[] = baseTabs;
 
   return (
     <>

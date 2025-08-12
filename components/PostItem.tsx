@@ -1,7 +1,6 @@
-// components/PostItem.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
-import { useHighlight } from "@/lib/useHighlight";
+import hljs from "highlight.js"; // Ensure highlight.js is imported
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -12,6 +11,7 @@ export type Post = {
   createdAt: string; // ISO string from API
   bodyText?: string | null;
   bodyHtml?: string | null;
+  bodyMarkdown?: string | null; // Ensure bodyMarkdown is available for edit
   visibility: Visibility;
 };
 
@@ -28,6 +28,7 @@ function escapeHtml(s: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
+
 function textToHtml(text: string) {
   return `<p>${escapeHtml(text).replace(/\n/g, "<br/>")}</p>`;
 }
@@ -51,6 +52,7 @@ export default function PostItem({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // Convert text to HTML when necessary
   const previewHtml = useMemo(() => {
     if (!text.trim()) return "<p class='opacity-60'>(Nothing to preview)</p>";
     if (mode === "markdown") return markdownToSafeHtml(text);
@@ -58,8 +60,25 @@ export default function PostItem({
     return textToHtml(text);
   }, [text, mode]);
 
-  const viewRef = useHighlight([post.id, post.bodyHtml, post.bodyText]);
-  
+  // Function to apply syntax highlighting
+  const highlightCodeBlocks = () => {
+    if (mode === "text") return; // Do not apply highlighting if in text mode
+
+    const blocks = document.querySelectorAll("pre code");
+    blocks.forEach((block) => {
+      // Remove the highlighted state before applying highlighting again
+      block.removeAttribute("data-highlighted");
+
+      // Apply syntax highlighting
+      hljs.highlightElement(block as HTMLElement);
+    });
+  };
+
+  // UseEffect to apply highlighting whenever the content changes
+  useEffect(() => {
+    highlightCodeBlocks();
+  }, [previewHtml, text, mode]);
+
   async function mintPostCap(): Promise<string> {
     const capRes = await fetch("/api/cap/post", { method: "POST" });
     if (capRes.status === 401) throw new Error("Please log in.");
@@ -88,6 +107,9 @@ export default function PostItem({
       setEditing(false);
       setView("write");
       await onChanged?.();
+      
+      // Force highlight code blocks after saving, just like switching to preview
+      highlightCodeBlocks();
     } catch (e: any) {
       setErr(e?.message || "Failed to save");
     } finally {
@@ -107,7 +129,12 @@ export default function PostItem({
         body: JSON.stringify({ id: post.id, cap: token }),
       });
       if (!res.ok) throw new Error(`delete ${res.status}`);
+      
+      // Notify parent component that the post was removed
       await onChanged?.();
+
+      // Reapply highlighting after deleting and re-rendering
+      highlightCodeBlocks();
     } catch (e: any) {
       setErr(e?.message || "Failed to delete");
     } finally {
@@ -225,7 +252,7 @@ export default function PostItem({
 
       {!editing ? (
         post.bodyHtml ? (
-              <div ref={viewRef} dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
+          <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
         ) : post.bodyText ? (
           <p>{post.bodyText}</p>
         ) : (
