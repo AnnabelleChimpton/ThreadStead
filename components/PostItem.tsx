@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import hljs from "highlight.js"; // Ensure highlight.js is imported
+import CommentList, { CommentWire as CommentWireList } from "./CommentList";
+import NewCommentForm, { CommentWire as CommentWireForm } from "./NewCommentForm";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -51,6 +53,45 @@ export default function PostItem({
   const [vis, setVis] = useState<Visibility>(post.visibility);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsVersion, setCommentsVersion] = useState(0);
+  const [commentCount, setCommentCount] = useState<number | null>(null);
+  const [optimistic, setOptimistic] = useState<CommentWireList[]>([]);
+
+
+  useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    try {
+      const r = await fetch(`/api/comments/count?postId=${encodeURIComponent(post.id)}`);
+      if (!r.ok) return;
+      const data = await r.json();
+      if (!cancelled && typeof data?.count === "number") {
+        setCommentCount(data.count);
+      }
+    } catch {}
+  })();
+  return () => { cancelled = true; };
+}, [post.id]);
+
+  // computed display count (server count + optimistic)
+const displayCount = (commentCount ?? 0) + optimistic.length;
+
+// callbacks
+const handleCommentsLoaded = (count: number) => setCommentCount(count);
+const handleCommentAdded = (c: CommentWireForm) => {
+  // show instantly
+  setOptimistic((arr) => [c, ...arr]);
+  setCommentsOpen(true);
+
+  // optional: kick a background sync next time (or immediately if you prefer)
+  // setCommentsVersion((v) => v + 1);
+};
+
+const hasServerCount = commentCount !== null;
+const countLabel = hasServerCount
+  ? String((commentCount ?? 0) + optimistic.length)
+  : (optimistic.length ? `${optimistic.length}+` : "…");
 
   // Convert text to HTML when necessary
   const previewHtml = useMemo(() => {
@@ -274,6 +315,36 @@ export default function PostItem({
       )}
 
       {err && <div className="text-red-700 text-sm mt-2">{err}</div>}
+
+      {/* --- Comments --- */}
+        <section className="mt-4 border-t border-black pt-3">
+        <button
+            type="button"
+            onClick={() => {
+                setCommentsOpen((o) => !o);
+                if (!commentsOpen && commentCount === null) setCommentsVersion((v) => v + 1);
+            }}
+            className="flex w-full items-center justify-between rounded px-2 py-1 border border-black bg-white shadow-[2px_2px_0_#000] hover:bg-yellow-100 text-sm"
+            aria-expanded={commentsOpen}
+            aria-controls={`comments-${post.id}`}
+            >
+            <span className="font-semibold">Comments</span>
+            <span className="opacity-70">{countLabel}</span>
+        </button>
+
+        {commentsOpen && (
+            <div id={`comments-${post.id}`} className="mt-2 space-y-3">
+            <NewCommentForm postId={post.id} onCommentAdded={handleCommentAdded} />
+            <CommentList
+                postId={post.id}
+                version={commentsVersion}
+                onLoaded={handleCommentsLoaded}
+                optimistic={optimistic}
+            />
+            </div>
+        )}
+        </section>
+
     </article>
   );
 }

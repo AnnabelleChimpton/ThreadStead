@@ -39,6 +39,8 @@ model User {
   // --- social graph ---
   following Follow[] @relation("follows_follower") // I follow others
   followers Follow[] @relation("follows_followee") // others follow me
+
+  comments Comment[] @relation("UserComments")
 }
 
 model Handle {
@@ -67,18 +69,33 @@ model Profile {
 }
 
 model Post {
-  id            String     @id @default(cuid())
-  authorId      String
-  author        User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime?
-  bodyHtml      String?
-  bodyText      String?
-  bodyMarkdown  String?
-  media         Json? // [{url,mime,width,height}]
-  tags          String[]
-  visibility    Visibility @default(public)
+  id           String     @id @default(cuid())
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime?
+  bodyHtml     String?
+  bodyText     String?
+  bodyMarkdown String?
+  media        Json? // [{url,mime,width,height}]
+  tags         String[]
+  visibility   Visibility @default(public)
+  comments     Comment[]  @relation("PostComments")
   // future: signature, cid
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  // Foreign keys
+  postId   String
+  authorId String
+
+  // Forward relations (explicit names + cascade are optional but nice)
+  post   Post @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 model GuestbookEntry {
