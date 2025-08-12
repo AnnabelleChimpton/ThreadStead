@@ -4,12 +4,12 @@ export type CommentWire = {
   id: string;
   content: string;
   createdAt?: string;
-  author?: { handle?: string | null; avatarUrl?: string | null } | null;
+  author?: { id?: string | null; handle?: string | null; avatarUrl?: string | null } | null;
 };
 
 type Props = {
   postId: string;
-  onCommentAdded?: (c: CommentWire) => void; // now passes the new comment up
+  onCommentAdded?: (c: CommentWire) => void;
 };
 
 export default function NewCommentForm({ postId, onCommentAdded }: Props) {
@@ -28,23 +28,11 @@ export default function NewCommentForm({ postId, onCommentAdded }: Props) {
     setError(null);
 
     try {
-      // 1) Mint capability
-      const capRes = await fetch(`/api/cap/comments/${encodeURIComponent(postId)}`, {
-        method: "POST",
-      });
-
-      if (capRes.status === 401) {
-        setError("Please log in to comment.");
-        return;
-      }
-      if (!capRes.ok) {
-        setError(`Couldn’t get permission to post a comment (status ${capRes.status}).`);
-        return;
-      }
-
+      const capRes = await fetch(`/api/cap/comments/${encodeURIComponent(postId)}`, { method: "POST" });
+      if (capRes.status === 401) { setError("Please log in to comment."); return; }
+      if (!capRes.ok) { setError(`Couldn't get permission (status ${capRes.status}).`); return; }
       const { token } = await capRes.json();
 
-      // 2) Post comment with capability
       const res = await fetch(`/api/comments/${encodeURIComponent(postId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,15 +40,11 @@ export default function NewCommentForm({ postId, onCommentAdded }: Props) {
       });
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error || `Failed to post comment (status ${res.status}).`);
-        return;
-      }
+      if (!res.ok) { setError(data?.error || `Failed (status ${res.status}).`); return; }
 
-      // Success — optimistically push to UI
       setContent("");
       if (data?.comment) onCommentAdded?.(data.comment as CommentWire);
-      else onCommentAdded?.({ id: crypto.randomUUID(), content: text }); // fallback, just in case
+      else onCommentAdded?.({ id: crypto.randomUUID(), content: text });
     } catch {
       setError("Network error. Please try again.");
     } finally {

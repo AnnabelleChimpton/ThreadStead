@@ -338,8 +338,12 @@ const countLabel = hasServerCount
             <CommentList
                 postId={post.id}
                 version={commentsVersion}
-                onLoaded={handleCommentsLoaded}
+                onLoaded={(n) => setCommentCount(n)}
                 optimistic={optimistic}
+                canModerate={isOwner}
+                onRemoved={() =>
+                    setCommentCount((n) => (typeof n === "number" ? Math.max(0, n - 1) : n))
+                }
             />
             </div>
         )}

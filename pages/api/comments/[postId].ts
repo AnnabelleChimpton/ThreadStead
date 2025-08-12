@@ -1,3 +1,4 @@
+// pages/api/comments/[postId].ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { requireAction } from "@/lib/capabilities";
@@ -8,16 +9,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const postId = String(req.query.postId || "");
   if (!postId) return res.status(400).json({ error: "postId required" });
 
-  // Ensure post exists and fetch visibility/author for checks if needed
-  const post = await db.post.findUnique({
-    where: { id: postId },
-    select: { id: true, authorId: true, visibility: true },
-  });
+  const post = await db.post.findUnique({ where: { id: postId }, select: { id: true } });
   if (!post) return res.status(404).json({ error: "post not found" });
 
   if (req.method === "GET") {
     const comments = await db.comment.findMany({
-      where: { postId },
+      where: { postId, status: "visible" },
       orderBy: { createdAt: "asc" },
       take: 200,
       include: {
@@ -27,7 +24,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    // map to a lighter shape similar to other endpoints
     const wire = comments.map((c) => ({
       id: c.id,
       content: c.content,
@@ -45,14 +41,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { content, cap } = (req.body || {}) as { content?: string; cap?: string };
     if (!content || !content.trim()) return res.status(400).json({ error: "content required" });
 
-    // Capability must authorize commenting on this post
     try {
       const check = requireAction("write:comment", (resource) => resource === `post:${postId}/comments`);
       const verified = await check(String(cap || ""));
       const authorId = verified.sub!;
 
-      const comment = await db.comment.create({
-        data: { content: content.trim(), postId, authorId },
+      const created = await db.comment.create({
+        data: { content: content.trim(), postId, authorId, status: "visible" },
         include: {
           author: {
             select: { id: true, primaryHandle: true, profile: { select: { avatarUrl: true } } },
@@ -62,17 +57,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res.status(201).json({
         comment: {
-          id: comment.id,
-          content: comment.content,
-          createdAt: comment.createdAt,
+          id: created.id,
+          content: created.content,
+          createdAt: created.createdAt,
           author: {
-            id: comment.author?.id,
-            handle: comment.author?.primaryHandle ?? null,
-            avatarUrl: comment.author?.profile?.avatarUrl ?? null,
+            id: created.author?.id,
+            handle: created.author?.primaryHandle ?? null,
+            avatarUrl: created.author?.profile?.avatarUrl ?? null,
           },
         },
       });
-    } catch (e: any) {
+    } catch {
       return res.status(401).json({ error: "invalid capability" });
     }
   }

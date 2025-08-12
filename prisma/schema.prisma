@@ -84,18 +84,27 @@ model Post {
   // future: signature, cid
 }
 
+// schema.prisma
+enum CommentStatus {
+  visible
+  hidden   // removed by moderator/author
+}
+
 model Comment {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   content   String
-  createdAt DateTime @default(now())
+  createdAt DateTime       @default(now())
 
-  // Foreign keys
-  postId   String
-  authorId String
+  // existing FKs
+  postId    String
+  authorId  String
 
-  // Forward relations (explicit names + cascade are optional but nice)
-  post   Post @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
-  author User @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  // relations (as you already have)
+  post      Post           @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
+  author    User           @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+
+  // NEW
+  status    CommentStatus  @default(visible)
 }
 
 model GuestbookEntry {
