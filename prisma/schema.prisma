@@ -55,17 +55,18 @@ model Handle {
 }
 
 model Profile {
-  id          String     @id @default(cuid())
-  userId      String     @unique
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  displayName String?
-  bio         String?
-  avatarUrl   String?
-  bannerUrl   String?
-  customCSS   String? // store sanitized CSS or a pointer
-  blogroll    Json? // [{label,url}]
-  visibility  Visibility @default(public)
-  updatedAt   DateTime   @updatedAt
+  id              String     @id @default(cuid())
+  userId          String     @unique
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName     String?
+  bio             String?
+  avatarUrl       String?
+  bannerUrl       String?
+  customCSS       String? // store sanitized CSS or a pointer
+  blogroll        Json? // [{label,url,blurb}]
+  featuredFriends Json? // [{id,handle,displayName,avatarUrl}]
+  visibility      Visibility @default(public)
+  updatedAt       DateTime   @updatedAt
 }
 
 model Post {

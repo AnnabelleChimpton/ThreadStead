@@ -11,11 +11,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const me = await getSessionUser(req);
   if (!me) return res.status(401).json({ error: "not logged in" });
 
-  const { displayName, bio, avatarUrl, customCSS, cap } = (req.body || {}) as {
+  const { displayName, bio, avatarUrl, customCSS, blogroll, featuredFriends, cap } = (req.body || {}) as {
     displayName?: string;
     bio?: string;
     avatarUrl?: string;
     customCSS?: string;
+    blogroll?: unknown[];
+    featuredFriends?: unknown[];
     cap?: string;
   };
 
@@ -25,11 +27,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!ok) return res.status(403).json({ error: "invalid capability" });
 
   // Basic trims & constraints
-  const data: any = {};
+  const data: Record<string, unknown> = {};
   if (typeof displayName === "string") data.displayName = displayName.trim().slice(0, 80);
   if (typeof bio === "string") data.bio = bio.trim().slice(0, 1000);
   if (typeof avatarUrl === "string") data.avatarUrl = avatarUrl.trim().slice(0, 500);
   if (typeof customCSS === "string") data.customCSS = cleanCss(customCSS);
+  
+  // Handle blogroll/websites
+  if (Array.isArray(blogroll)) {
+    const sanitizedBlogroll = blogroll
+      .filter(item => 
+        typeof item === 'object' && 
+        item !== null && 
+        typeof (item as Record<string, unknown>).label === 'string' &&
+        typeof (item as Record<string, unknown>).url === 'string'
+      )
+      .slice(0, 10) // Max 10 websites
+      .map(item => {
+        const obj = item as Record<string, unknown>;
+        return {
+          id: String(obj.id || Date.now()),
+          label: String(obj.label).trim().slice(0, 50),
+          url: String(obj.url).trim().slice(0, 500),
+          blurb: String(obj.blurb || "").trim().slice(0, 200)
+        };
+      });
+    data.blogroll = sanitizedBlogroll;
+  }
+
+  // Handle featuredFriends
+  if (Array.isArray(featuredFriends)) {
+    const sanitizedFriends = featuredFriends
+      .filter(item => 
+        typeof item === 'object' && 
+        item !== null && 
+        typeof (item as Record<string, unknown>).id === 'string' &&
+        typeof (item as Record<string, unknown>).handle === 'string'
+      )
+      .slice(0, 8) // Max 8 featured friends
+      .map(item => {
+        const obj = item as Record<string, unknown>;
+        return {
+          id: String(obj.id),
+          handle: String(obj.handle).trim().slice(0, 50),
+          displayName: String(obj.displayName || "").trim().slice(0, 100),
+          avatarUrl: String(obj.avatarUrl || "/assets/default-avatar.gif").trim().slice(0, 500)
+        };
+      });
+    data.featuredFriends = sanitizedFriends;
+  }
 
   // Ensure profile exists
   await db.profile.upsert({

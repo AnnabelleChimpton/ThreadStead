@@ -14,6 +14,10 @@ import type { PluginDescriptor, InstalledPlugin, PluginContext } from "@/types/p
 import PostItem, { Post as PostType } from "@/components/PostItem";
 import { pluginRegistry } from "@/plugins/registry";
 import NewPostForm from "@/components/NewPostForm";
+import WebsiteDisplay from "@/components/WebsiteDisplay";
+import FriendDisplay from "@/components/FriendDisplay";
+import { Website } from "@/components/WebsiteManager";
+import { SelectedFriend } from "@/components/FriendManager";
 import Link from "next/link";
 
 /* ---------------- helpers ---------------- */
@@ -76,6 +80,8 @@ type ProfileProps = {
   photoUrl?: string;
   customCSS?: string;
   plugins?: PluginDescriptor[];
+  websites?: Website[];
+  featuredFriends?: SelectedFriend[];
   initialTabId?: string;
 };
 
@@ -88,6 +94,8 @@ export default function ProfilePage({
   photoUrl = "/assets/default-avatar.gif",
   customCSS,
   plugins = [],
+  websites = [],
+  featuredFriends = [],
   initialTabId,
 }: ProfileProps) {
   const [relStatus, setRelStatus] = React.useState<string>("loading");
@@ -122,22 +130,8 @@ export default function ProfilePage({
       label: "Friends / Websites",
       content: (
         <div className="grid sm:grid-cols-2 gap-3">
-          <div className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-            <h4 className="font-bold mb-2">Friends</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><a href="/alice">alice</a></li>
-              <li><a href="/bob">bob</a></li>
-              <li><a href="/cass">cass</a></li>
-            </ul>
-          </div>
-          <div className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-            <h4 className="font-bold mb-2">Website Recommendations</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><a href="https://example.com" target="_blank" rel="noreferrer">Cool Zines</a></li>
-              <li><a href="https://example.com" target="_blank" rel="noreferrer">GIF Museum</a></li>
-              <li><a href="https://example.com" target="_blank" rel="noreferrer">Blogroll Ring</a></li>
-            </ul>
-          </div>
+          <FriendDisplay friends={featuredFriends} />
+          <WebsiteDisplay websites={websites} />
         </div>
       ),
     },
@@ -244,13 +238,50 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const data: {
     userId: string;                      // <-- expecting this from /api/profile
     username?: string;
-    profile?: { bio?: string; avatarUrl?: string; customCSS?: string };
+    profile?: { bio?: string; avatarUrl?: string; customCSS?: string; blogroll?: unknown[]; featuredFriends?: unknown[] };
     plugins?: PluginDescriptor[];
   } = await res.json();
 
   const requested = typeof query.tab === "string" ? query.tab : undefined;
   const allowedBaseIds = new Set(["blog", "media", "friends", "guestbook"]);
   const initialTabId = requested && allowedBaseIds.has(requested) ? requested : "blog";
+
+  // Convert blogroll to websites
+  const websites: Website[] = [];
+  if (data.profile?.blogroll && Array.isArray(data.profile.blogroll)) {
+    data.profile.blogroll.forEach((item: unknown, index: number) => {
+      if (typeof item === 'object' && item !== null) {
+        const obj = item as Record<string, unknown>;
+        if (typeof obj.label === 'string' && typeof obj.url === 'string') {
+          websites.push({
+            id: String(obj.id || index),
+            label: String(obj.label),
+            url: String(obj.url),
+            blurb: String(obj.blurb || "")
+          });
+        }
+      }
+    });
+  }
+
+  // Convert featuredFriends to SelectedFriend[]
+  const featuredFriends: SelectedFriend[] = [];
+  
+  if (Array.isArray(data.profile?.featuredFriends)) {
+    data.profile.featuredFriends.forEach((item: unknown, index: number) => {
+      if (typeof item === 'object' && item !== null) {
+        const obj = item as Record<string, unknown>;
+        if (typeof obj.id === 'string' && typeof obj.handle === 'string') {
+          featuredFriends.push({
+            id: String(obj.id),
+            handle: String(obj.handle),
+            displayName: String(obj.displayName || obj.handle),
+            avatarUrl: String(obj.avatarUrl || "/assets/default-avatar.gif")
+          });
+        }
+      }
+    });
+  }
 
   // Build typed props; omit undefined fields
   const props: ProfileProps = {
@@ -262,6 +293,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;
   if (data.profile?.customCSS != null) props.customCSS = data.profile.customCSS;
   if (data.plugins != null) props.plugins = data.plugins;
+  if (websites.length > 0) props.websites = websites;
+  if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
 
   return { props };
 };

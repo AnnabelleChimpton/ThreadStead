@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import RetroCard from "@/components/RetroCard";
+import WebsiteManager, { Website } from "@/components/WebsiteManager";
+import FriendManager, { SelectedFriend } from "@/components/FriendManager";
 
 export default function SettingsProfile() {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [customCSS, setCustomCSS] = useState("");
+  const [websites, setWebsites] = useState<Website[]>([]);
+  const [featuredFriends, setFeaturedFriends] = useState<SelectedFriend[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -22,6 +26,52 @@ export default function SettingsProfile() {
       setBio(p.profile?.bio ?? "");
       setAvatarUrl(p.profile?.avatarUrl ?? "");
       setCustomCSS(p.profile?.customCSS ?? "");
+      
+      // Parse blogroll as websites
+      const blogroll = p.profile?.blogroll;
+      if (blogroll && Array.isArray(blogroll)) {
+        const parsedWebsites: Website[] = blogroll.map((item: unknown, index: number) => {
+          if (typeof item === 'object' && item !== null) {
+            const obj = item as Record<string, unknown>;
+            return {
+              id: obj.id as string || index.toString(),
+              label: obj.label as string || "",
+              url: obj.url as string || "",
+              blurb: obj.blurb as string || ""
+            };
+          }
+          return {
+            id: index.toString(),
+            label: "",
+            url: "",
+            blurb: ""
+          };
+        });
+        setWebsites(parsedWebsites);
+      }
+
+      // Parse featuredFriends
+      const featuredFriends = p.profile?.featuredFriends;
+      if (Array.isArray(featuredFriends) && featuredFriends.length > 0) {
+        const parsedFriends: SelectedFriend[] = featuredFriends.map((item: unknown, index: number) => {
+          if (typeof item === 'object' && item !== null) {
+            const obj = item as Record<string, unknown>;
+            return {
+              id: obj.id as string || index.toString(),
+              handle: obj.handle as string || "",
+              displayName: obj.displayName as string || "",
+              avatarUrl: obj.avatarUrl as string || "/assets/default-avatar.gif"
+            };
+          }
+          return {
+            id: index.toString(),
+            handle: "",
+            displayName: "",
+            avatarUrl: "/assets/default-avatar.gif"
+          };
+        });
+        setFeaturedFriends(parsedFriends);
+      }
     })();
   }, []);
 
@@ -33,15 +83,39 @@ export default function SettingsProfile() {
       if (capRes.status === 401) { setMsg("Please log in."); setBusy(false); return; }
       const { token } = await capRes.json();
 
+      // Convert websites back to blogroll format  
+      const blogroll = websites.filter(w => w.label.trim() && w.url.trim()).map(w => ({
+        id: w.id,
+        label: w.label,
+        url: w.url,
+        blurb: w.blurb || ""
+      }));
+
+      // Convert featured friends to stored format
+      const featuredFriendsData = featuredFriends.map(f => ({
+        id: f.id,
+        handle: f.handle,
+        displayName: f.displayName,
+        avatarUrl: f.avatarUrl
+      }));
+
       const res = await fetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName, bio, avatarUrl, customCSS, cap: token }),
+        body: JSON.stringify({ 
+          displayName, 
+          bio, 
+          avatarUrl, 
+          customCSS, 
+          blogroll, 
+          featuredFriends: featuredFriendsData,
+          cap: token 
+        }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setMsg("Saved!");
-    } catch (e: any) {
-      setMsg(e?.message || "Failed to save");
+    } catch (e: unknown) {
+      setMsg((e as Error)?.message || "Failed to save");
     } finally {
       setBusy(false);
     }
@@ -76,6 +150,22 @@ export default function SettingsProfile() {
             <div className="text-xs opacity-70 mt-1">
               We block dangerous rules like <code>@import</code>, <code>expression()</code>, and <code>javascript:</code> URLs.
             </div>
+          </div>
+
+          <div className="border-t border-gray-300 pt-4">
+            <WebsiteManager 
+              websites={websites} 
+              onChange={setWebsites}
+              maxWebsites={10}
+            />
+          </div>
+
+          <div className="border-t border-gray-300 pt-4">
+            <FriendManager 
+              selectedFriends={featuredFriends} 
+              onChange={setFeaturedFriends}
+              maxFriends={8}
+            />
           </div>
 
           <button
