@@ -74,11 +74,7 @@ export default function PostItem({
   return () => { cancelled = true; };
 }, [post.id]);
 
-  // computed display count (server count + optimistic)
-const _displayCount = (commentCount ?? 0) + optimistic.length;
-
-// callbacks
-const _handleCommentsLoaded = (count: number) => setCommentCount(count);
+  // callbacks
 const handleCommentAdded = (c: CommentWireForm) => {
   // show instantly
   setOptimistic((arr) => [c, ...arr]);
@@ -193,7 +189,7 @@ const countLabel = hasServerCount
   }
 
   return (
-    <article className="blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
+    <article id={`post-${post.id.slice(-6)}`} className="blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000]" data-post-id={post.id.slice(-6)}>
       <div className="blog-post-header flex items-center justify-between gap-3 mb-2">
         <div className="blog-post-date text-xs opacity-70">
           {new Date(post.createdAt).toLocaleString()}
@@ -343,6 +339,7 @@ const countLabel = hasServerCount
                 onLoaded={(n) => setCommentCount(n)}
                 optimistic={optimistic}
                 canModerate={isOwner}
+                onCommentAdded={handleCommentAdded}
                 onRemoved={() =>
                     setCommentCount((n) => (typeof n === "number" ? Math.max(0, n - 1) : n))
                 }

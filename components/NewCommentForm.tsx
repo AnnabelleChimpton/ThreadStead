@@ -5,14 +5,17 @@ export type CommentWire = {
   content: string;
   createdAt?: string;
   author?: { id?: string | null; handle?: string | null; avatarUrl?: string | null } | null;
+  parentId?: string | null;
 };
 
 type Props = {
   postId: string;
+  parentId?: string;
   onCommentAdded?: (c: CommentWire) => void;
+  placeholder?: string;
 };
 
-export default function NewCommentForm({ postId, onCommentAdded }: Props) {
+export default function NewCommentForm({ postId, parentId, onCommentAdded, placeholder = "Write a comment…" }: Props) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +39,7 @@ export default function NewCommentForm({ postId, onCommentAdded }: Props) {
       const res = await fetch(`/api/comments/${encodeURIComponent(postId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: text, cap: token }),
+        body: JSON.stringify({ content: text, cap: token, parentId }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -44,7 +47,7 @@ export default function NewCommentForm({ postId, onCommentAdded }: Props) {
 
       setContent("");
       if (data?.comment) onCommentAdded?.(data.comment as CommentWire);
-      else onCommentAdded?.({ id: crypto.randomUUID(), content: text });
+      else onCommentAdded?.({ id: crypto.randomUUID(), content: text, parentId });
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -59,7 +62,7 @@ export default function NewCommentForm({ postId, onCommentAdded }: Props) {
         rows={3}
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Write a comment…"
+        placeholder={placeholder}
         disabled={loading}
       />
       <div className="flex gap-2 items-center">

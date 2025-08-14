@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-server";
+import { createFollowNotification, createFriendNotification, checkForMutualFollow } from "@/lib/notifications";
 
 const db = new PrismaClient();
 
@@ -26,6 +27,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       update: { status: "accepted" },
       create: { followerId: viewer.id, followeeId: authorId, status: "accepted" },
     });
+
+    // Create follow notification
+    try {
+      console.log(`Creating follow notification: ${viewer.id} followed ${authorId}`);
+      await createFollowNotification(authorId, viewer.id);
+
+      // Check if this creates a mutual friendship
+      const isMutual = await checkForMutualFollow(viewer.id, authorId);
+      if (isMutual) {
+        console.log(`Creating mutual friend notifications between ${viewer.id} and ${authorId}`);
+        // Create friend notifications for both users
+        await createFriendNotification(authorId, viewer.id);
+        await createFriendNotification(viewer.id, authorId);
+      }
+    } catch (notificationError) {
+      console.error("Failed to create follow notification:", notificationError);
+      // Don't fail the follow action if notification fails
+    }
+
     return res.status(201).json({ ok: true });
   }
 

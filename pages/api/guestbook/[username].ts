@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { requireAction } from "@/lib/capabilities";
+import { createGuestbookNotification } from "@/lib/notifications";
 const db = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -65,13 +66,16 @@ if (req.method === "POST") {
     .catch(() => null);
   if (!ok) return res.status(403).json({ error: "invalid capability" });
 
-  await db.guestbookEntry.create({
+  const entry = await db.guestbookEntry.create({
     data: {
       profileOwner: ownerHandle.user.id,
       authorId: ok.sub, // the userId from the cap
       message: message.trim(),
     },
   });
+
+  // Create guestbook notification
+  await createGuestbookNotification(ownerHandle.user.id, ok.sub, entry.id);
 
   const entries = await db.guestbookEntry.findMany({
     where: { profileOwner: ownerHandle.user.id, status: "visible" },

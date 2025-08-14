@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
+import CommentList, { CommentWire } from "./CommentList";
+import NewCommentForm from "./NewCommentForm";
 
 export type FeedPostData = {
   id: string;
@@ -26,6 +28,11 @@ type FeedPostProps = {
 };
 
 export default function FeedPost({ post, showActivity = false }: FeedPostProps) {
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsVersion, setCommentsVersion] = useState(0);
+  const [actualCommentCount, setActualCommentCount] = useState<number | null>(null);
+  const [optimistic, setOptimistic] = useState<CommentWire[]>([]);
+
   // Determine the content to display
   const content = React.useMemo(() => {
     if (post.bodyHtml) {
@@ -59,6 +66,17 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
         minute: '2-digit'
       })
     : null;
+
+  const displayCommentCount = actualCommentCount !== null ? actualCommentCount + optimistic.length : post.commentCount;
+  
+  const handleCommentAdded = (c: CommentWire) => {
+    setOptimistic((arr) => [c, ...arr]);
+    setCommentsOpen(true);
+  };
+
+  const handleCommentsLoaded = (count: number) => {
+    setActualCommentCount(count);
+  };
 
   return (
     <article className="bg-thread-paper border border-thread-sage/30 p-6 mb-4 rounded-cozy shadow-cozySm hover:shadow-cozy transition-shadow">
@@ -123,9 +141,17 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
       {/* Footer */}
       <footer className="flex items-center justify-between text-sm border-t border-thread-sage/20 pt-3">
         <div className="flex items-center gap-4">
-          <span className="thread-label">
-            {post.commentCount} {post.commentCount === 1 ? 'comment' : 'comments'}
-          </span>
+          <button
+            onClick={() => {
+              setCommentsOpen(!commentsOpen);
+              if (!commentsOpen && actualCommentCount === null) {
+                setCommentsVersion(v => v + 1);
+              }
+            }}
+            className="thread-label hover:text-thread-sunset transition-colors cursor-pointer"
+          >
+            {displayCommentCount} {displayCommentCount === 1 ? 'comment' : 'comments'}
+          </button>
         </div>
         <div className="flex items-center gap-3">
           {authorLink && (
@@ -138,6 +164,26 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
           )}
         </div>
       </footer>
+
+      {/* Comments Section */}
+      {commentsOpen && (
+        <section className="mt-4 border-t border-thread-sage/20 pt-4">
+          <div className="space-y-4">
+            <NewCommentForm postId={post.id} onCommentAdded={handleCommentAdded} />
+            <CommentList
+              postId={post.id}
+              version={commentsVersion}
+              onLoaded={handleCommentsLoaded}
+              optimistic={optimistic}
+              canModerate={false}
+              onCommentAdded={handleCommentAdded}
+              onRemoved={() => {
+                setActualCommentCount(n => typeof n === "number" ? Math.max(0, n - 1) : n);
+              }}
+            />
+          </div>
+        </section>
+      )}
     </article>
   );
 }

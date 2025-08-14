@@ -42,6 +42,10 @@ model User {
 
   comments Comment[] @relation("UserComments")
   betaKey  BetaKey?
+
+  // notifications
+  notificationsReceived Notification[] @relation("NotificationRecipient")
+  notificationsActedOn  Notification[] @relation("NotificationActor")
 }
 
 model Handle {
@@ -105,7 +109,11 @@ model Comment {
   post      Post           @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
   author    User           @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
 
-  // NEW
+  // NEW: nested comments support
+  parentId  String?
+  parent    Comment?       @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]      @relation("CommentReplies")
+  
   status    CommentStatus  @default(visible)
 }
 
@@ -171,4 +179,39 @@ model BetaKey {
   user      User?     @relation(fields: [usedBy], references: [id])
   createdAt DateTime  @default(now())
   usedAt    DateTime?
+}
+
+enum NotificationType {
+  comment       // someone commented on your post
+  reply         // someone replied to your comment
+  follow        // someone followed you
+  friend        // someone became mutual friend
+  guestbook     // someone signed your guestbook
+}
+
+enum NotificationStatus {
+  unread
+  read
+  dismissed
+}
+
+model Notification {
+  id          String             @id @default(cuid())
+  recipientId String             // who receives this notification
+  recipient   User               @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  
+  actorId     String             // who performed the action
+  actor       User               @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  
+  type        NotificationType
+  status      NotificationStatus @default(unread)
+  
+  // contextual data (JSON for flexibility)
+  data        Json?              // {postId, commentId, etc.}
+  
+  createdAt   DateTime           @default(now())
+  readAt      DateTime?
+  
+  @@index([recipientId, status, createdAt])
+  @@index([recipientId, actorId, type])
 }

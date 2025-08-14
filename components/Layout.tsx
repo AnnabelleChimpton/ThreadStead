@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import LoginStatus from "./LoginStatus";
+import NotificationDropdown from "./NotificationDropdown";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="site-nav-links flex items-center gap-6">
             <Link className="nav-link text-thread-pine hover:text-thread-sunset transition-colors" href="/">Home</Link>
             <Link className="nav-link text-thread-pine hover:text-thread-sunset transition-colors" href="/directory">Directory</Link>
+            <NotificationDropdown className="nav-link" />
             <div className="site-auth">
               <LoginStatus />
             </div>
