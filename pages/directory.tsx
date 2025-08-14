@@ -185,7 +185,7 @@ export default function Directory() {
           {!hasMore && users.length > 0 && (
             <div className="text-center py-6">
               <span className="thread-label">
-                That's everyone in the neighborhood! 🏡
+                That&apos;s everyone in the neighborhood! 🏡
               </span>
             </div>
           )}

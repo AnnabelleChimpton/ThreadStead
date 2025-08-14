@@ -11,12 +11,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const viewer = await getSessionUser(req);
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
-  const { bodyText, bodyHtml, bodyMarkdown, visibility, cap } = (req.body || {}) as {
+  const { bodyText, bodyHtml, bodyMarkdown, visibility } = (req.body || {}) as {
     bodyText?: string;
     bodyHtml?: string;
     bodyMarkdown?: string;
     visibility?: Visibility;
-    cap?: string;
   };
 
   if (!bodyText && !bodyHtml && !bodyMarkdown) {

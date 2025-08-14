@@ -75,10 +75,10 @@ export default function PostItem({
 }, [post.id]);
 
   // computed display count (server count + optimistic)
-const displayCount = (commentCount ?? 0) + optimistic.length;
+const _displayCount = (commentCount ?? 0) + optimistic.length;
 
 // callbacks
-const handleCommentsLoaded = (count: number) => setCommentCount(count);
+const _handleCommentsLoaded = (count: number) => setCommentCount(count);
 const handleCommentAdded = (c: CommentWireForm) => {
   // show instantly
   setOptimistic((arr) => [c, ...arr]);

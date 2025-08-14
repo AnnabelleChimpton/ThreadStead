@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getOrCreateLocalDid, getExistingDid, exportIdentityToken, importIdentityToken, createNewIdentityWithUsername, LocalKeypair } from "@/lib/did-client";
+import { getExistingDid, exportIdentityToken, importIdentityToken, createNewIdentityWithUsername, LocalKeypair } from "@/lib/did-client";
 import UsernameSelector from "./UsernameSelector";
 
 export default function IdentityManager() {

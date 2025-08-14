@@ -1,5 +1,5 @@
 // components/FollowButton.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 
 type Rel = "loading" | "anon" | "owner" | "none" | "following" | "followed_by" | "friends";
 
@@ -11,7 +11,7 @@ export default function FollowButton({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setErr(null);
     const r = await fetch(`/api/rel/${encodeURIComponent(username)}`);
     if (!r.ok) { setErr(`rel ${r.status}`); return; }
@@ -19,9 +19,9 @@ export default function FollowButton({
     const s: Rel = data.status || "none";
     setStatus(s);
     onStatus?.(s);
-  }
+  }, [username, onStatus]);
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [username]);
+  useEffect(() => { refresh(); }, [refresh]);
 
   async function follow() {
     setBusy(true); setErr(null);

@@ -106,7 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Transform and filter users who have local handles
-    let transformedUsers = users
+    const transformedUsers = users
       .filter(user => user.handles.length > 0)
       .map(user => ({
         id: user.id,

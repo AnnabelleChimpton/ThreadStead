@@ -1,12 +1,9 @@
 // pages/me.tsx
-import type { GetServerSideProps } from "next";
-import { PrismaClient } from "@prisma/client";
+import type { GetServerSideProps, NextApiRequest } from "next";
 import { getSessionUser } from "@/lib/auth-server";
 
-const db = new PrismaClient();
-
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-  const user = await getSessionUser(req as any);
+  const user = await getSessionUser(req as NextApiRequest);
   if (!user) {
     return { redirect: { destination: "/", permanent: false } };
   }

@@ -117,7 +117,7 @@ export default function Feed({ type }: FeedProps) {
       {!hasMore && posts.length > 0 && (
         <div className="text-center py-6">
           <span className="thread-label">
-            That's all for now — check back later for more!
+            That&apos;s all for now — check back later for more!
           </span>
         </div>
       )}

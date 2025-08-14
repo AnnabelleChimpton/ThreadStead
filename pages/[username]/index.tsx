@@ -21,11 +21,6 @@ import { SelectedFriend } from "@/components/FriendManager";
 import Link from "next/link";
 
 /* ---------------- helpers ---------------- */
-function getBaseUrl(req?: any) {
-  const proto = req?.headers?.["x-forwarded-proto"] || "http";
-  const host = req?.headers?.host || "localhost:3000";
-  return `${proto}://${host}`;
-}
 
 function BlogTab({ username, ownerUserId }: { username: string; ownerUserId: string }) {
   const [loading, setLoading] = useState(true);
@@ -90,7 +85,7 @@ export default function ProfilePage({
   username,
   ownerUserId,
   bio,
-  about,
+  about: _about,
   photoUrl = "/assets/default-avatar.gif",
   customCSS,
   plugins = [],
@@ -143,7 +138,7 @@ export default function ProfilePage({
   ];
 
   // plugin tabs
-  const pluginTabs: TabSpec[] = installed.map((p) => {
+  const _pluginTabs: TabSpec[] = installed.map((p) => {
     if (p.mode === "trusted" && p.load) {
       const LazyPlugin = React.lazy<React.ComponentType<PluginContext>>(() =>
         p.load!().then((plugin) => ({
