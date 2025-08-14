@@ -103,14 +103,14 @@ export default function IdentityManager() {
   }
 
   return (
-    <div className="border border-black bg-white p-4 shadow-[4px_4px_0_#000] space-y-4">
-      <h3 className="text-lg font-bold border-b border-black pb-2">Identity Manager</h3>
+    <div className="thread-module space-y-6 max-w-2xl">
+      <h3 className="thread-headline text-lg mb-4">Identity Manager</h3>
       
       {/* Current Identity */}
       {currentIdentity && (
-        <div className="space-y-2">
-          <h4 className="font-semibold">Current Identity</h4>
-          <div className="text-sm font-mono bg-gray-100 p-2 border border-gray-300">
+        <div className="space-y-3">
+          <h4 className="thread-label">Current Identity</h4>
+          <div className="text-xs font-mono bg-thread-cream p-4 border border-thread-sage rounded break-all">
             {truncateDid(currentIdentity.did)}
           </div>
         </div>
@@ -118,63 +118,63 @@ export default function IdentityManager() {
 
       {/* Message Display */}
       {message && (
-        <div className={`p-2 border text-sm ${
+        <div className={`p-4 rounded text-sm ${
           message.type === 'success' 
-            ? 'bg-green-100 border-green-400 text-green-800' 
-            : 'bg-red-100 border-red-400 text-red-800'
+            ? 'bg-green-100 border border-green-300 text-green-800' 
+            : 'bg-red-100 border border-red-300 text-red-800'
         }`}>
           {message.text}
         </div>
       )}
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3 justify-start">
+        <button
+          onClick={handleCreateNew}
+          className="thread-button text-sm px-4 py-2"
+        >
+          Create New Identity
+        </button>
+        
         <button
           onClick={handleExport}
-          className="border border-black px-3 py-1 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] text-sm"
+          className="px-4 py-2 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all"
         >
           Export Identity
         </button>
         
         <button
           onClick={() => setShowImport(!showImport)}
-          className="border border-black px-3 py-1 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] text-sm"
+          className="px-4 py-2 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all"
         >
           Import Identity
-        </button>
-        
-        <button
-          onClick={handleCreateNew}
-          className="border border-black px-3 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] text-sm"
-        >
-          Create New Identity
         </button>
       </div>
 
       {/* Export Section */}
       {showExport && (
-        <div className="space-y-2 border border-gray-300 p-3 bg-gray-50">
+        <div className="space-y-4 border border-thread-sage p-5 bg-thread-cream rounded">
           <div className="flex items-center justify-between">
-            <h4 className="font-semibold text-sm">Your Identity Token</h4>
+            <h4 className="thread-label text-base">Your Identity Token</h4>
             <button
               onClick={() => setShowExport(false)}
-              className="text-gray-500 hover:text-black"
+              className="text-thread-sage hover:text-thread-charcoal transition-colors p-1"
             >
               ✕
             </button>
           </div>
-          <p className="text-xs text-gray-600">
+          <p className="text-sm text-thread-sage leading-relaxed">
             Save this token securely. You can use it to restore your identity on another device.
           </p>
           <div className="relative">
             <textarea
               readOnly
               value={exportToken}
-              className="w-full h-20 text-xs font-mono border border-gray-300 p-2 resize-none"
+              className="w-full h-24 text-xs font-mono border border-thread-sage p-3 resize-none bg-thread-paper rounded"
             />
             <button
               onClick={() => copyToClipboard(exportToken)}
-              className="absolute top-1 right-1 px-2 py-1 text-xs bg-white border border-gray-300 hover:bg-gray-100"
+              className="absolute top-2 right-2 px-3 py-1 text-xs bg-thread-paper border border-thread-sage hover:bg-thread-cream rounded shadow-cozySm transition-all"
             >
               Copy
             </button>
@@ -184,31 +184,33 @@ export default function IdentityManager() {
 
       {/* Import Section */}
       {showImport && (
-        <div className="space-y-2 border border-gray-300 p-3 bg-gray-50">
+        <div className="space-y-4 border border-thread-sage p-5 bg-thread-cream rounded">
           <div className="flex items-center justify-between">
-            <h4 className="font-semibold text-sm">Import Identity Token</h4>
+            <h4 className="thread-label text-base">Import Identity Token</h4>
             <button
               onClick={() => setShowImport(false)}
-              className="text-gray-500 hover:text-black"
+              className="text-thread-sage hover:text-thread-charcoal transition-colors p-1"
             >
               ✕
             </button>
           </div>
-          <p className="text-xs text-gray-600">
+          <p className="text-sm text-thread-sage leading-relaxed">
             Paste an identity token to switch to that identity. This will replace your current identity.
           </p>
           <textarea
             value={importToken}
             onChange={(e) => setImportToken(e.target.value)}
             placeholder="Paste identity token here..."
-            className="w-full h-20 text-xs font-mono border border-gray-300 p-2 resize-none"
+            className="w-full h-24 text-xs font-mono border border-thread-sage p-3 resize-none bg-thread-paper rounded"
           />
-          <button
-            onClick={handleImport}
-            className="border border-black px-3 py-1 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] text-sm"
-          >
-            Import & Switch
-          </button>
+          <div className="pt-2">
+            <button
+              onClick={handleImport}
+              className="thread-button text-sm px-4 py-2"
+            >
+              Import & Switch
+            </button>
+          </div>
         </div>
       )}
     </div>

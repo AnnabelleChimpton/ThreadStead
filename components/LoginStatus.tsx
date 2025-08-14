@@ -32,19 +32,15 @@ export default function LoginStatus() {
           <LoginButton />
           <button
             onClick={() => setShowIdentityManager(!showIdentityManager)}
-            className="thread-button text-sm"
+            className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all"
           >
-            Manage Identity
+            Identity
           </button>
         </div>
         {showIdentityManager && <IdentityManager />}
       </div>
     );
   }
-
-  const path = me.user?.primaryHandle
-    ? `/${me.user.primaryHandle.split("@")[0]}`
-    : `/u/${me.user?.id}`; // fallback route if you add one later
 
   return (
     <div className="space-y-4">
@@ -67,7 +63,7 @@ export default function LoginStatus() {
         </button>
         <button
           onClick={() => setShowIdentityManager(!showIdentityManager)}
-          className="thread-button text-sm"
+          className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all"
         >
           Identity
         </button>
