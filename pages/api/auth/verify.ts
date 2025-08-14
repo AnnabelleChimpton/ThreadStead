@@ -15,8 +15,8 @@ function readCookie(req: NextApiRequest, name: string) {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { did, publicKey, signature } = (req.body || {}) as {
-    did?: string; publicKey?: string; signature?: string;
+  const { did, publicKey, signature, betaKey } = (req.body || {}) as {
+    did?: string; publicKey?: string; signature?: string; betaKey?: string;
   };
   if (!did || !publicKey || !signature) return res.status(400).json({ error: "bad body" });
 
@@ -35,10 +35,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   );
   if (!ok) return res.status(401).json({ error: "bad signature" });
 
-  // ...rest unchanged (find/create user, create session cookie)
+  // Check if user exists
   let user = await db.user.findUnique({ where: { did } });
+  
+  // If creating a new user, check beta key requirements
   if (!user) {
-    user = await db.user.create({ data: { did } });
+    const betaEnabled = process.env.BETA_KEYS_ENABLED === "true";
+    
+    if (betaEnabled) {
+      if (!betaKey) {
+        return res.status(400).json({ error: "Beta key required for account creation" });
+      }
+      
+      // Validate and consume the beta key
+      const validBetaKey = await db.betaKey.findUnique({ 
+        where: { key: betaKey } 
+      });
+      
+      if (!validBetaKey) {
+        return res.status(400).json({ error: "Invalid beta key" });
+      }
+      
+      if (validBetaKey.usedBy) {
+        return res.status(400).json({ error: "Beta key has already been used" });
+      }
+      
+      // Create user first
+      user = await db.user.create({ data: { did } });
+      
+      // Mark beta key as used
+      await db.betaKey.update({
+        where: { key: betaKey },
+        data: { 
+          usedBy: user.id,
+          usedAt: new Date()
+        }
+      });
+    } else {
+      // No beta key required, create user normally
+      user = await db.user.create({ data: { did } });
+    }
   }
 
   const secret = crypto.randomUUID().replace(/-/g, "");

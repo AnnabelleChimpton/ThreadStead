@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+    "beta:generate": "tsx scripts/generate-beta-key.ts",
+    "beta:list": "tsx scripts/manage-beta-keys.ts list"
   },
   "dependencies": {
     "@noble/ed25519": "^2.3.0",

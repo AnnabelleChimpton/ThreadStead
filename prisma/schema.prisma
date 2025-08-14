@@ -41,6 +41,7 @@ model User {
   followers Follow[] @relation("follows_followee") // others follow me
 
   comments Comment[] @relation("UserComments")
+  betaKey  BetaKey?
 }
 
 model Handle {
@@ -161,4 +162,13 @@ model Follow {
   createdAt  DateTime @default(now())
 
   @@id([followerId, followeeId])
+}
+
+model BetaKey {
+  id        String    @id @default(cuid())
+  key       String    @unique // the actual beta key string
+  usedBy    String?   @unique // user ID who used this key
+  user      User?     @relation(fields: [usedBy], references: [id])
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
 }

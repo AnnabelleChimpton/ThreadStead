@@ -1,15 +1,35 @@
 import React, { useState } from "react";
-import { getOrCreateLocalDid, signMessage } from "@/lib/did-client";
+import { getExistingDid, signMessage, hasExistingDid } from "@/lib/did-client";
 
-export default function LoginButton() {
+interface LoginButtonProps {
+  onToggleIdentity?: () => void;
+  isIdentityOpen?: boolean;
+}
+
+export default function LoginButton({ onToggleIdentity, isIdentityOpen }: LoginButtonProps) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   async function handleLogin() {
+    // If Identity tab is open, close it
+    if (isIdentityOpen && onToggleIdentity) {
+      onToggleIdentity();
+      return;
+    }
+
+    // Check if DID exists, if not show Identity tab
+    if (!hasExistingDid() && onToggleIdentity) {
+      onToggleIdentity();
+      return;
+    }
+
     try {
       setBusy(true); 
       setErr(null);
-      const kp = await getOrCreateLocalDid();
+      const kp = getExistingDid();
+      if (!kp) {
+        throw new Error("No identity found. Please create or import an identity first.");
+      }
       await performLogin(kp);
     } catch (e: unknown) {
       setErr((e as Error)?.message || "Login failed");

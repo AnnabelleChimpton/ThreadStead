@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import LoginButton from "@/components/LoginButton";
 import IdentityManager from "@/components/IdentityManager";
 import Link from "next/link";
@@ -8,6 +8,7 @@ type Me = { loggedIn: boolean; user?: { id: string; did: string; primaryHandle: 
 export default function LoginStatus() {
   const [me, setMe] = useState<Me>({ loggedIn: false });
   const [showIdentityManager, setShowIdentityManager] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let alive = true;
@@ -19,6 +20,20 @@ export default function LoginStatus() {
     return () => { alive = false; };
   }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowIdentityManager(false);
+      }
+    }
+
+    if (showIdentityManager) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showIdentityManager]);
+
   async function logout() {
     await fetch("/api/auth/logout");
     window.location.reload();
@@ -26,10 +41,13 @@ export default function LoginStatus() {
 
   if (!me.loggedIn) {
     return (
-      <div className="space-y-4">
+      <div className="relative" ref={dropdownRef}>
         <div className="flex items-center gap-3">
           <span className="thread-label">visitor mode</span>
-          <LoginButton />
+          <LoginButton 
+            onToggleIdentity={() => setShowIdentityManager(!showIdentityManager)}
+            isIdentityOpen={showIdentityManager}
+          />
           <button
             onClick={() => setShowIdentityManager(!showIdentityManager)}
             className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all"
@@ -37,13 +55,19 @@ export default function LoginStatus() {
             Identity
           </button>
         </div>
-        {showIdentityManager && <IdentityManager />}
+        {showIdentityManager && (
+          <div className="absolute top-full right-0 mt-2 z-50 bg-thread-paper border border-thread-sage rounded-lg shadow-lg max-w-lg min-w-80 sm:min-w-96">
+            <div className="max-h-96 overflow-y-auto p-4">
+              <IdentityManager />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="relative" ref={dropdownRef}>
       <div className="flex items-center gap-3">
         <div className="text-sm">
           <span className="thread-label">signed in as</span>
@@ -68,7 +92,13 @@ export default function LoginStatus() {
           Identity
         </button>
       </div>
-      {showIdentityManager && <IdentityManager />}
+      {showIdentityManager && (
+        <div className="absolute top-full right-0 mt-2 z-50 bg-thread-paper border border-thread-sage rounded-lg shadow-lg max-w-lg min-w-80 sm:min-w-96">
+          <div className="max-h-96 overflow-y-auto p-4">
+            <IdentityManager />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

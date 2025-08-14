@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getOrCreateLocalDid, exportIdentityToken, importIdentityToken, createNewIdentityWithUsername, LocalKeypair } from "@/lib/did-client";
+import { getOrCreateLocalDid, getExistingDid, exportIdentityToken, importIdentityToken, createNewIdentityWithUsername, LocalKeypair } from "@/lib/did-client";
 import UsernameSelector from "./UsernameSelector";
 
 export default function IdentityManager() {
@@ -11,22 +11,39 @@ export default function IdentityManager() {
   const [showUsernameSelector, setShowUsernameSelector] = useState(false);
   const [isCreatingIdentity, setIsCreatingIdentity] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [betaKey, setBetaKey] = useState<string>("");
+  const [isBetaEnabled, setIsBetaEnabled] = useState<boolean>(false);
 
   useEffect(() => {
     loadCurrentIdentity();
+    checkBetaStatus();
   }, []);
 
   async function loadCurrentIdentity() {
     try {
-      const identity = await getOrCreateLocalDid();
+      const identity = getExistingDid();
       setCurrentIdentity(identity);
     } catch (e) {
       console.error("Failed to load identity:", e);
     }
   }
 
+  async function checkBetaStatus() {
+    try {
+      const response = await fetch('/api/auth/beta-status');
+      const data = await response.json();
+      setIsBetaEnabled(data.enabled);
+    } catch (e) {
+      console.error("Failed to check beta status:", e);
+    }
+  }
+
   async function handleExport() {
     try {
+      if (!currentIdentity) {
+        setMessage({ type: 'error', text: 'No identity to export. Please create or import an identity first.' });
+        return;
+      }
       const token = await exportIdentityToken();
       setExportToken(token);
       setShowExport(true);
@@ -62,8 +79,9 @@ export default function IdentityManager() {
   async function handleUsernameConfirmed(username: string) {
     setIsCreatingIdentity(true);
     try {
-      await createNewIdentityWithUsername(username);
+      await createNewIdentityWithUsername(username, isBetaEnabled ? betaKey : undefined);
       setMessage({ type: 'success', text: `New identity created with username @${username}!` });
+      setBetaKey(""); // Clear beta key after successful use
       // Reload to reflect new identity and redirect to user page
       setTimeout(() => window.location.href = `/${username}`, 1000);
     } catch (e: unknown) {
@@ -103,7 +121,7 @@ export default function IdentityManager() {
   }
 
   return (
-    <div className="thread-module space-y-6 max-w-2xl">
+    <div className="space-y-6">
       <h3 className="thread-headline text-lg mb-4">Identity Manager</h3>
       
       {/* Current Identity */}
@@ -127,28 +145,77 @@ export default function IdentityManager() {
         </div>
       )}
 
+      {/* Beta Key Input (only for new identity creation) */}
+      {isBetaEnabled && (
+        <div className="space-y-3 border-l-4 border-l-thread-sunset border border-thread-sage p-4 bg-thread-cream rounded">
+          <div className="flex items-center gap-2">
+            <span className="text-thread-sunset text-sm">🔑</span>
+            <h4 className="thread-label text-base text-thread-charcoal">Beta Access Required</h4>
+          </div>
+          <p className="text-sm text-thread-sage leading-relaxed">
+            This platform is in beta. A beta key is required to <strong>create new identities</strong>. 
+            <span className="text-thread-charcoal font-medium"> Existing users can login without a beta key.</span>
+          </p>
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-thread-sage">
+              Beta Key for New Account Creation
+            </label>
+            <input
+              type="text"
+              value={betaKey}
+              onChange={(e) => setBetaKey(e.target.value.toUpperCase())}
+              placeholder="BETA-XXXX-XXXX-XXXX"
+              className="w-full px-3 py-2 text-sm border border-thread-sage rounded bg-thread-paper focus:outline-none focus:ring-2 focus:ring-thread-sunset/30 font-mono"
+              style={{ letterSpacing: '0.05em' }}
+            />
+            {betaKey && (
+              <p className="text-xs text-thread-sage">
+                ✓ Beta key entered - you can now create a new identity
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3 justify-start">
-        <button
-          onClick={handleCreateNew}
-          className="thread-button text-sm px-4 py-2"
-        >
-          Create New Identity
-        </button>
+      <div className="space-y-4">
+        <h4 className="thread-label text-base">Identity Actions</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button
+            onClick={handleCreateNew}
+            disabled={isBetaEnabled && !betaKey.trim()}
+            className="thread-button text-sm px-4 py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center"
+            title={isBetaEnabled && !betaKey.trim() ? "Beta key required to create new identity" : "Create a brand new identity with username"}
+          >
+            <span>✨</span>
+            Create New Identity
+          </button>
+          
+          <button
+            onClick={handleExport}
+            disabled={!currentIdentity}
+            className="px-4 py-3 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            title={currentIdentity ? "Export your current identity to backup or transfer to another device" : "No identity to export - create or import one first"}
+          >
+            <span>📤</span>
+            Export Identity
+          </button>
+          
+          <button
+            onClick={() => setShowImport(!showImport)}
+            className="px-4 py-3 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all flex items-center gap-2 justify-center"
+            title="Import an existing identity from another device"
+          >
+            <span>📥</span>
+            Import Identity
+          </button>
+        </div>
         
-        <button
-          onClick={handleExport}
-          className="px-4 py-2 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all"
-        >
-          Export Identity
-        </button>
-        
-        <button
-          onClick={() => setShowImport(!showImport)}
-          className="px-4 py-2 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all"
-        >
-          Import Identity
-        </button>
+        {isBetaEnabled && !betaKey.trim() && (
+          <p className="text-xs text-thread-sage italic">
+            💡 Tip: You can export/import existing identities without a beta key. Beta keys are only needed for creating completely new accounts.
+          </p>
+        )}
       </div>
 
       {/* Export Section */}

@@ -6,6 +6,18 @@ const KEY_STORAGE = "retro_did_keypair_v1";
 
 export type LocalKeypair = { publicKey: string; secretKey: string; did: string };
 
+export function hasExistingDid(): boolean {
+  if (typeof window === "undefined") return false;
+  const existing = localStorage.getItem(KEY_STORAGE);
+  return !!existing;
+}
+
+export function getExistingDid(): LocalKeypair | null {
+  if (typeof window === "undefined") return null;
+  const existing = localStorage.getItem(KEY_STORAGE);
+  return existing ? JSON.parse(existing) : null;
+}
+
 export async function getOrCreateLocalDid(): Promise<LocalKeypair> {
   const existing = typeof window !== "undefined" ? localStorage.getItem(KEY_STORAGE) : null;
   if (existing) return JSON.parse(existing);
@@ -98,21 +110,27 @@ export async function clearCurrentIdentity(): Promise<LocalKeypair> {
 }
 
 // Create new identity, log in, and claim username in one flow
-export async function createNewIdentityWithUsername(username: string): Promise<void> {
+export async function createNewIdentityWithUsername(username: string, betaKey?: string): Promise<void> {
   // Generate new keypair
   const kp = await clearCurrentIdentity();
   
-  // Perform login with new keypair
+  // Perform login with new keypair (include beta key if provided)
   const c = await fetch("/api/auth/challenge").then(r => r.json());
   const sig = await signMessage(kp.secretKey, c.nonce);
   const loginRes = await fetch("/api/auth/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ did: kp.did, publicKey: kp.publicKey, signature: sig }),
+    body: JSON.stringify({ 
+      did: kp.did, 
+      publicKey: kp.publicKey, 
+      signature: sig,
+      betaKey 
+    }),
   });
   
   if (!loginRes.ok) {
-    throw new Error(`Login failed: ${loginRes.status}`);
+    const errorData = await loginRes.json();
+    throw new Error(errorData?.error || `Login failed: ${loginRes.status}`);
   }
 
   // Claim the username
