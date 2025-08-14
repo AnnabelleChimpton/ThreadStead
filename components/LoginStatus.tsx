@@ -28,11 +28,11 @@ export default function LoginStatus() {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <span className="text-sm opacity-70">You're not logged in.</span>
+          <span className="thread-label">visitor mode</span>
           <LoginButton />
           <button
             onClick={() => setShowIdentityManager(!showIdentityManager)}
-            className="border border-black px-3 py-1 bg-gray-200 hover:bg-gray-100 shadow-[2px_2px_0_#000] text-sm"
+            className="thread-button text-sm"
           >
             Manage Identity
           </button>
@@ -49,26 +49,27 @@ export default function LoginStatus() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <span className="text-sm">
-          Signed in as <b>{me.user?.primaryHandle || me.user?.did}</b>
-        </span>
+        <div className="text-sm">
+          <span className="thread-label">signed in as</span>
+          <span className="ml-1 font-medium text-thread-pine">{me.user?.primaryHandle || me.user?.did}</span>
+        </div>
         <Link
           href={"/me"}
-          className="border border-black px-3 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000]"
+          className="thread-button text-sm"
         >
-          My page
+          My Page
         </Link>
         <button
           onClick={logout}
-          className="border border-black px-3 py-1 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000]"
+          className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all"
         >
-          Log out
+          Log Out
         </button>
         <button
           onClick={() => setShowIdentityManager(!showIdentityManager)}
-          className="border border-black px-3 py-1 bg-gray-200 hover:bg-gray-100 shadow-[2px_2px_0_#000] text-sm"
+          className="thread-button text-sm"
         >
-          Manage Identity
+          Identity
         </button>
       </div>
       {showIdentityManager && <IdentityManager />}

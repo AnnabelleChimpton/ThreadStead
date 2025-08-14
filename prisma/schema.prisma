@@ -112,7 +112,7 @@ model GuestbookEntry {
   id           String   @id @default(cuid())
   profileOwner String // whose page the entry lives on
   owner        User     @relation("EntriesToOwner", fields: [profileOwner], references: [id], onDelete: Cascade)
-  authorId     String? // DID owner or null for anonymous (we’ll map DID → user later)
+  authorId     String? // DID owner or null for anonymous (we'll map DID → user later)
   message      String
   createdAt    DateTime @default(now())
   status       String   @default("visible") // visible|hidden|removed

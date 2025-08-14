@@ -75,34 +75,36 @@ export default function LoginButton() {
         <button
           onClick={loginWithCurrent}
           disabled={busy}
-          className="border border-black px-3 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000]"
+          className="thread-button text-sm disabled:opacity-50"
         >
-          {busy ? "Signing…" : "Log in"}
+          {busy ? "Signing…" : "Log In"}
         </button>
         <button
           onClick={() => setShowOptions(!showOptions)}
-          className="border border-black px-2 py-1 bg-gray-200 hover:bg-gray-100 shadow-[2px_2px_0_#000] text-sm"
+          className="px-2 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all"
         >
           ▼
         </button>
-        {err && <span className="text-red-700 text-sm">{err}</span>}
+        {err && <span className="text-thread-sunset text-sm">{err}</span>}
       </div>
 
       {showOptions && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-black shadow-[4px_4px_0_#000] z-10 min-w-[200px]">
+        <div className="absolute top-full left-0 mt-2 thread-module p-0 z-10 min-w-[240px] overflow-hidden">
           <button
             onClick={loginWithCurrent}
             disabled={busy}
-            className="w-full text-left px-3 py-2 hover:bg-yellow-100 border-b border-gray-300"
+            className="w-full text-left px-4 py-3 hover:bg-thread-cream border-b border-thread-sage/20 transition-colors disabled:opacity-50"
           >
-            Log in with current identity
+            <div className="text-sm font-medium">Continue as current user</div>
+            <div className="text-xs text-thread-sage">Use existing identity</div>
           </button>
           <button
             onClick={loginAsNew}
             disabled={busy}
-            className="w-full text-left px-3 py-2 hover:bg-yellow-100"
+            className="w-full text-left px-4 py-3 hover:bg-thread-cream transition-colors disabled:opacity-50"
           >
-            Log in as new user
+            <div className="text-sm font-medium">Create new account</div>
+            <div className="text-xs text-thread-sage">Generate fresh identity</div>
           </button>
         </div>
       )}

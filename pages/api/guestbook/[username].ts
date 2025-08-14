@@ -19,7 +19,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       orderBy: { createdAt: "desc" },
       take: 50,
     });
-    return res.json({ entries });
+    
+    // Get unique author IDs (excluding null values)
+    const authorIds = [...new Set(entries.map(e => e.authorId).filter(Boolean))];
+    
+    // Fetch handles for these authors
+    const authorHandles = await db.handle.findMany({
+      where: { 
+        userId: { in: authorIds as string[] },
+        host: "local"
+      },
+      select: {
+        userId: true,
+        handle: true
+      }
+    });
+    
+    // Create a map of userId -> handle
+    const userHandleMap = new Map(authorHandles.map(h => [h.userId, h.handle]));
+    
+    // Transform entries to include username
+    const transformedEntries = entries.map(entry => ({
+      ...entry,
+      authorUsername: entry.authorId ? userHandleMap.get(entry.authorId) || null : null
+    }));
+    
+    return res.json({ entries: transformedEntries });
   }
 
   // inside handler, replace your POST branch with:
@@ -53,7 +78,32 @@ if (req.method === "POST") {
     orderBy: { createdAt: "desc" },
     take: 50,
   });
-  return res.status(201).json({ entries });
+  
+  // Get unique author IDs (excluding null values)
+  const authorIds = [...new Set(entries.map(e => e.authorId).filter(Boolean))];
+  
+  // Fetch handles for these authors
+  const authorHandles = await db.handle.findMany({
+    where: { 
+      userId: { in: authorIds as string[] },
+      host: "local"
+    },
+    select: {
+      userId: true,
+      handle: true
+    }
+  });
+  
+  // Create a map of userId -> handle
+  const userHandleMap = new Map(authorHandles.map(h => [h.userId, h.handle]));
+  
+  // Transform entries to include username
+  const transformedEntries = entries.map(entry => ({
+    ...entry,
+    authorUsername: entry.authorId ? userHandleMap.get(entry.authorId) || null : null
+  }));
+  
+  return res.status(201).json({ entries: transformedEntries });
 }
 
   res.setHeader("Allow", ["GET", "POST"]);

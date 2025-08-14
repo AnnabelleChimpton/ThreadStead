@@ -52,11 +52,11 @@ export default function FollowButton({
 
   if (status === "loading") return <div className="text-sm opacity-70">…</div>;
   if (status === "owner") return null;
-  if (status === "anon") return <div className="text-sm opacity-70">Log in to follow</div>;
+  if (status === "anon") return <span className="thread-label">log in to follow</span>;
 
   // Decide label & action
   const showFollow = status === "none" || status === "followed_by";
-  const followLabel = status === "followed_by" ? "Follow back" : "Follow";
+  const followLabel = status === "followed_by" ? "Follow Back" : "Follow";
   const showUnfollow = status === "following" || status === "friends";
 
   return (
@@ -65,7 +65,7 @@ export default function FollowButton({
         <button
           onClick={follow}
           disabled={busy}
-          className="border border-black px-3 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000]"
+          className="thread-button text-sm disabled:opacity-50"
           aria-label={followLabel}
         >
           {busy ? "Working…" : followLabel}
@@ -76,7 +76,7 @@ export default function FollowButton({
         <button
           onClick={unfollow}
           disabled={busy}
-          className="border border-black px-3 py-1 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000]"
+          className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all disabled:opacity-50"
           aria-label="Unfollow"
         >
           {busy ? "Working…" : "Unfollow"}

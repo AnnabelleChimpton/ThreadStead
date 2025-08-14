@@ -4,5 +4,9 @@ import "../styles/globals.css";
 
 
 export default function MyApp({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />;
+  return (
+    <div className="thread-surface min-h-screen font-body text-thread-charcoal">
+      <Component {...pageProps} />
+    </div>
+  );
 }

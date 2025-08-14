@@ -5,6 +5,7 @@ type Entry = {
   id: string;
   profileOwner: string;
   authorId: string | null;
+  authorUsername?: string | null;
   message: string;
   createdAt: string;
   status: "visible" | "hidden" | "removed" | string;
@@ -151,88 +152,107 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
   }
 
   return (
-    <div className="border border-black bg-white shadow-[4px_4px_0_#000] p-3">
-      <h3 className="text-xl font-bold mb-2">Guestbook</h3>
-      {bio && <p className="text-sm opacity-70 mb-3">Leave a note for {username}!</p>}
+    <div className="thread-module p-4">
+      <div className="mb-3">
+        <h3 className="thread-headline text-xl font-bold">Guestbook</h3>
+        <span className="thread-label">visitor messages</span>
+      </div>
+      {bio && <p className="text-sm text-thread-sage mb-4">Leave a cozy note for {username}!</p>}
 
-      <form onSubmit={onSubmit} className="mb-4">
-        <label className="block mb-2">
-          <span className="sr-only">Message</span>
+      <div className="thread-divider"></div>
+      
+      <form onSubmit={onSubmit} className="mb-6">
+        <label className="block mb-3">
+          <span className="thread-label block mb-2">your message</span>
           <textarea
-            className="w-full border border-black p-2 bg-white"
+            className="w-full border border-thread-sage p-3 bg-thread-paper rounded-cozy focus:border-thread-pine focus:ring-1 focus:ring-thread-pine resize-none"
             rows={3}
-            placeholder="Say something nice…"
+            placeholder="Share a friendly thought or memory…"
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
             disabled={submitting}
           />
         </label>
         <button
-          className="border border-black px-3 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000]"
+          className="thread-button disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={submitting || !msg.trim()}
         >
-          {submitting ? "Posting…" : "Sign"}
+          {submitting ? "Posting…" : "Sign Guestbook"}
         </button>
       </form>
 
       {loading ? (
-        <div>Loading entries…</div>
+        <div className="text-thread-sage italic">Loading entries…</div>
       ) : error ? (
-        <div className="text-red-700">Error: {error}</div>
+        <div className="text-thread-sunset bg-red-50 border border-red-200 p-3 rounded-cozy">
+          <span className="thread-label">error</span>
+          <p className="mt-1">{error}</p>
+        </div>
       ) : entries.length === 0 ? (
-        <div className="italic opacity-70">No entries yet.</div>
+        <div className="text-thread-sage italic text-center py-6">
+          No entries yet — be the first to sign!
+        </div>
       ) : (
-        <ul className="space-y-3">
-          {entries.map((e) => (
-            <li key={e.id} className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="text-xs opacity-70 mb-1">
-                    {new Date(e.createdAt).toLocaleString()}
-                    {e.authorId ? ` · by ${e.authorId}` : " · by anonymous"}
+        <div className="space-y-4">
+          <span className="thread-label">{entries.length} messages</span>
+          <ul className="space-y-3">
+            {entries.map((e) => (
+              <li key={e.id} className="bg-thread-paper border border-thread-sage/30 p-4 rounded-cozy shadow-cozySm">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="thread-label mb-2">
+                      {new Date(e.createdAt).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit'
+                      })}
+                      {e.authorUsername ? ` · by ${e.authorUsername}` : " · anonymous visitor"}
+                    </div>
+                    <p className="text-thread-charcoal leading-relaxed">{e.message}</p>
                   </div>
-                  <p>{e.message}</p>
+                  {canDeleteEntry(e) && (
+                    <button
+                      onClick={() => handleDeleteClick(e)}
+                      disabled={deletingId === e.id}
+                      className="ml-3 px-2 py-1 text-xs border border-thread-sunset/60 bg-thread-sunset/10 hover:bg-thread-sunset/20 text-thread-sunset rounded shadow-sm disabled:opacity-50 transition-all"
+                      title="Delete this entry"
+                    >
+                      {deletingId === e.id ? "..." : "×"}
+                    </button>
+                  )}
                 </div>
-                {canDeleteEntry(e) && (
-                  <button
-                    onClick={() => handleDeleteClick(e)}
-                    disabled={deletingId === e.id}
-                    className="ml-2 px-2 py-1 text-xs border border-red-600 bg-red-100 hover:bg-red-200 text-red-800 shadow-[1px_1px_0_#000] disabled:opacity-50"
-                    title="Delete this entry"
-                  >
-                    {deletingId === e.id ? "..." : "×"}
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* Confirmation Dialog */}
       {confirmDelete && (
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="bg-white border-2 border-black shadow-[6px_6px_0_#000] p-4 w-80 pointer-events-auto">
-            <h4 className="font-bold mb-2 text-lg">Delete Entry?</h4>
-            <p className="mb-3 text-sm text-gray-700">
+          <div className="thread-module p-5 w-80 pointer-events-auto">
+            <h4 className="thread-headline text-lg mb-2">Delete Entry?</h4>
+            <p className="mb-4 text-sm text-thread-sage">
               This action cannot be undone.
             </p>
-            <div className="bg-yellow-50 border border-yellow-200 p-2 mb-4 text-xs">
+            <div className="bg-thread-cream/50 border border-thread-sage/30 p-3 mb-4 rounded text-xs italic">
               &quot;{confirmDelete.message.length > 80 
                 ? confirmDelete.message.substring(0, 80) + "..." 
                 : confirmDelete.message}&quot;
             </div>
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-3 justify-end">
               <button
                 onClick={cancelDelete}
-                className="px-3 py-1 text-sm border border-black bg-white hover:bg-gray-50 shadow-[2px_2px_0_#000]"
+                className="px-4 py-2 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDeleteEntry}
                 disabled={deletingId === confirmDelete.entryId}
-                className="px-3 py-1 text-sm border border-black bg-red-200 hover:bg-red-300 shadow-[2px_2px_0_#000] disabled:opacity-50"
+                className="px-4 py-2 text-sm border border-thread-sunset bg-thread-sunset/20 hover:bg-thread-sunset/30 text-thread-sunset rounded shadow-cozySm disabled:opacity-50 transition-all"
               >
                 {deletingId === confirmDelete.entryId ? "Deleting..." : "Delete"}
               </button>

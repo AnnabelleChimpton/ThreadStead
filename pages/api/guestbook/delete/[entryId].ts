@@ -56,9 +56,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       take: 50,
     });
 
+    // Get unique author IDs (excluding null values)
+    const authorIds = [...new Set(updatedEntries.map(e => e.authorId).filter(Boolean))];
+    
+    // Fetch handles for these authors
+    const authorHandles = await db.handle.findMany({
+      where: { 
+        userId: { in: authorIds as string[] },
+        host: "local"
+      },
+      select: {
+        userId: true,
+        handle: true
+      }
+    });
+    
+    // Create a map of userId -> handle
+    const userHandleMap = new Map(authorHandles.map(h => [h.userId, h.handle]));
+    
+    // Transform entries to include username
+    const transformedEntries = updatedEntries.map(entry => ({
+      ...entry,
+      authorUsername: entry.authorId ? userHandleMap.get(entry.authorId) || null : null
+    }));
+
     return res.json({ 
       success: true, 
-      entries: updatedEntries,
+      entries: transformedEntries,
       message: "Entry deleted successfully"
     });
 

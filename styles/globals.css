@@ -5,6 +5,31 @@
 
 html, body { height: 100%; }
 body {
-  font-size: 18px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
   line-height: 1.6;
+  color: #2F2F2F;
+  background: #FCFAF7;
+}
+
+/* ThreadStead headline hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  font-family: Georgia, "Times New Roman", serif;
+  color: #2E4B3F;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+h1 { font-size: 2.25rem; line-height: 1.2; }
+h2 { font-size: 1.875rem; line-height: 1.3; }
+h3 { font-size: 1.5rem; line-height: 1.4; }
+h4 { font-size: 1.25rem; line-height: 1.4; }
+
+/* Cozy paragraph spacing */
+p { margin-bottom: 1rem; }
+
+/* Warm selection highlighting */
+::selection {
+  background: rgba(245, 233, 212, 0.7);
+  color: #2E4B3F;
 }

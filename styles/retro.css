@@ -1,29 +1,142 @@
-/* Subtle tiled background for the whole page */
-.retro-surface {
-  background:
-    linear-gradient(rgba(255,253,247,0.98), rgba(255,253,247,0.98)),
-    url("/assets/stars-bg.gif");
-  background-repeat: repeat;
+/* ThreadStead warm paper texture background */
+.thread-surface {
+  background: 
+    linear-gradient(135deg, rgba(245, 233, 212, 0.05) 0%, rgba(245, 233, 212, 0.15) 100%),
+    radial-gradient(circle at 20% 80%, rgba(161, 132, 99, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(46, 75, 63, 0.02) 0%, transparent 50%),
+    #FCFAF7;
 }
 
-/* Fun but usable header text */
-.retro-header-text {
-  text-shadow: 1px 1px #ff66cc;
-  font-family: "Comic Sans MS", ui-sans-serif, system-ui, sans-serif;
+/* Stitched divider pattern */
+.thread-divider {
+  border-top: 2px dashed #A18463;
+  position: relative;
+  margin: 1.5rem 0;
 }
 
-/* Link styles */
+.thread-divider::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0px,
+    transparent 8px,
+    #A18463 8px,
+    #A18463 16px
+  );
+}
+
+/* Cozy headline styling with serif */
+.thread-headline {
+  font-family: Georgia, "Times New Roman", serif;
+  color: #2E4B3F;
+  text-shadow: 0.5px 0.5px 0px rgba(161, 132, 99, 0.3);
+  letter-spacing: -0.02em;
+}
+
+/* Warm, neighborly link styles */
 a {
-  color: #0033cc;
+  color: #2E4B3F;
   text-decoration: underline;
-}
-a:hover {
-  color: #cc0000;
-  background: #ffe08a;
+  text-decoration-color: #A18463;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: all 0.2s ease;
 }
 
-/* Accessibility */
+a:hover {
+  color: #E27D60;
+  background: rgba(245, 233, 212, 0.3);
+  text-decoration-color: #E27D60;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+/* Paper-like module containers */
+.thread-module {
+  background: #FCFAF7;
+  border: 1px solid #A18463;
+  border-radius: 8px;
+  box-shadow: 3px 3px 0 #A18463;
+  position: relative;
+}
+
+/* Micro-labels in monospace */
+.thread-label {
+  font-family: "Menlo", "Monaco", "Consolas", monospace;
+  font-size: 0.75rem;
+  color: #A18463;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Cozy button styling */
+.thread-button {
+  background: #F5E9D4;
+  border: 1px solid #A18463;
+  color: #2E4B3F;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 #A18463;
+  font-family: system-ui, sans-serif;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.thread-button:hover {
+  background: #8EC5E8;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #A18463;
+}
+
+.thread-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Button variants */
+.thread-button-secondary {
+  background: #FCFAF7;
+  border: 1px solid #A18463;
+  color: #2F2F2F;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 #A18463;
+  font-family: system-ui, sans-serif;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.thread-button-secondary:hover {
+  background: #F5E9D4;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #A18463;
+}
+
+/* Enhanced visual rhythm */
+.thread-content {
+  line-height: 1.7;
+}
+
+.thread-content h1 + *, 
+.thread-content h2 + *, 
+.thread-content h3 + * {
+  margin-top: 0.75rem;
+}
+
+.thread-content p + p {
+  margin-top: 1rem;
+}
+
+/* Accessibility with warm focus */
 :focus-visible {
-  outline: 3px solid #ff66cc;
+  outline: 2px solid #4FAF6D;
   outline-offset: 2px;
+  border-radius: 2px;
 }

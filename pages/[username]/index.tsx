@@ -185,22 +185,31 @@ export default function ProfilePage({
       {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
       <Layout>
         <RetroCard>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:gap-6">
             <ProfilePhoto src={photoUrl} alt={`${username}'s profile photo`} />
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-2xl font-bold">{username}'s Page</h2>
-              {bio}
-              {relStatus === "friends" && <FriendBadge />}
-              <FollowButton username={username} onStatus={setRelStatus} />
-              <MutualFriends username={username} />
-              {relStatus === "owner" && (
-              <Link
-                href="/settings/profile"
-                className="border border-black px-3 py-1 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000]"
-              >
-                Edit profile
-              </Link>
-            )}
+            <div className="flex-1">
+              <div className="mb-4">
+                <h2 className="thread-headline text-3xl font-bold text-thread-pine mb-1">{username}</h2>
+                <span className="thread-label">threadstead resident</span>
+              </div>
+              {bio && (
+                <div className="mb-4">
+                  <p className="text-thread-charcoal leading-relaxed">{bio}</p>
+                </div>
+              )}
+              <div className="flex items-center gap-3 flex-wrap">
+                {relStatus === "friends" && <FriendBadge />}
+                <FollowButton username={username} onStatus={setRelStatus} />
+                <MutualFriends username={username} />
+                {relStatus === "owner" && (
+                  <Link
+                    href="/settings/profile"
+                    className="thread-button text-sm"
+                  >
+                    Edit Profile
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         </RetroCard>
