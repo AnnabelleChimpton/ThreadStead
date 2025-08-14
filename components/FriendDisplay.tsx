@@ -17,14 +17,14 @@ export default function FriendDisplay({ friends }: FriendDisplayProps) {
   }
 
   return (
-    <div className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-      <h4 className="font-bold mb-3">Friends</h4>
+    <div className="featured-friends border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
+      <h4 className="section-heading font-bold mb-3">Friends</h4>
       <div className="grid grid-cols-2 gap-3">
         {friends.map((friend) => (
           <Link
             key={friend.id}
             href={`/${friend.handle}`}
-            className="flex items-center gap-2 p-2 border border-gray-300 bg-gray-50 hover:bg-yellow-100 shadow-[1px_1px_0_#000] transition-colors"
+            className="friend-card flex items-center gap-2 p-2 border border-gray-300 bg-gray-50 hover:bg-yellow-100 shadow-[1px_1px_0_#000] transition-colors"
           >
             <img 
               src={friend.avatarUrl}

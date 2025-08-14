@@ -152,7 +152,7 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
   }
 
   return (
-    <div className="thread-module p-4">
+    <div className="guestbook-section thread-module p-4">
       <div className="mb-3">
         <h3 className="thread-headline text-xl font-bold">Guestbook</h3>
         <span className="thread-label">visitor messages</span>
@@ -197,7 +197,7 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
           <span className="thread-label">{entries.length} messages</span>
           <ul className="space-y-3">
             {entries.map((e) => (
-              <li key={e.id} className="bg-thread-paper border border-thread-sage/30 p-4 rounded-cozy shadow-cozySm">
+              <li key={e.id} className="guestbook-entry bg-thread-paper border border-thread-sage/30 p-4 rounded-cozy shadow-cozySm">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="thread-label mb-2">

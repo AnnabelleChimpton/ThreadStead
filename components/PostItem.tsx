@@ -193,25 +193,25 @@ const countLabel = hasServerCount
   }
 
   return (
-    <article className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="text-xs opacity-70">
+    <article className="blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
+      <div className="blog-post-header flex items-center justify-between gap-3 mb-2">
+        <div className="blog-post-date text-xs opacity-70">
           {new Date(post.createdAt).toLocaleString()}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="blog-post-actions flex items-center gap-2">
           {!editing ? (
             isOwner && (
               <>
                 <button
-                  className="border border-black px-2 py-0.5 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] text-xs"
+                  className="profile-button blog-post-edit-button border border-black px-2 py-0.5 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] text-xs"
                   onClick={() => setEditing(true)}
                   disabled={busy}
                 >
                   Edit
                 </button>
                 <button
-                  className="border border-black px-2 py-0.5 bg-white hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs"
+                  className="profile-button blog-post-delete-button border border-black px-2 py-0.5 bg-white hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs"
                   onClick={remove}
                   disabled={busy}
                 >
@@ -291,28 +291,30 @@ const countLabel = hasServerCount
         </div>
       </div>
 
-      {!editing ? (
-        post.bodyHtml ? (
-          <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
-        ) : post.bodyText ? (
-          <p>{post.bodyText}</p>
+      <div className="blog-post-content">
+        {!editing ? (
+          post.bodyHtml ? (
+            <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
+          ) : post.bodyText ? (
+            <p>{post.bodyText}</p>
+          ) : (
+            <div className="italic opacity-70">(No content)</div>
+          )
+        ) : view === "write" ? (
+          <textarea
+            className="blog-post-editor w-full border border-black p-2 bg-white font-sans"
+            rows={mode === "html" ? 10 : mode === "markdown" ? 8 : 5}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={busy}
+          />
         ) : (
-          <div className="italic opacity-70">(No content)</div>
-        )
-      ) : view === "write" ? (
-        <textarea
-          className="w-full border border-black p-2 bg-white font-sans"
-          rows={mode === "html" ? 10 : mode === "markdown" ? 8 : 5}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={busy}
-        />
-      ) : (
-        <div
-          className="border border-black p-3 bg-white min-h-[120px]"
-          dangerouslySetInnerHTML={{ __html: previewHtml }}
-        />
-      )}
+          <div
+            className="blog-post-preview border border-black p-3 bg-white min-h-[120px]"
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
+          />
+        )}
+      </div>
 
       {err && <div className="text-red-700 text-sm mt-2">{err}</div>}
 

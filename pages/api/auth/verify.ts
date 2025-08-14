@@ -47,30 +47,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Beta key required for account creation" });
       }
       
-      // Validate and consume the beta key
-      const validBetaKey = await db.betaKey.findUnique({ 
-        where: { key: betaKey } 
-      });
-      
-      if (!validBetaKey) {
-        return res.status(400).json({ error: "Invalid beta key" });
-      }
-      
-      if (validBetaKey.usedBy) {
-        return res.status(400).json({ error: "Beta key has already been used" });
-      }
-      
-      // Create user first
-      user = await db.user.create({ data: { did } });
-      
-      // Mark beta key as used
-      await db.betaKey.update({
-        where: { key: betaKey },
-        data: { 
-          usedBy: user.id,
-          usedAt: new Date()
+      // Use transaction to prevent race conditions with beta key usage
+      try {
+        user = await db.$transaction(async (tx) => {
+          // Validate and consume the beta key atomically
+          const validBetaKey = await tx.betaKey.findUnique({ 
+            where: { key: betaKey } 
+          });
+          
+          if (!validBetaKey) {
+            throw new Error("Invalid beta key");
+          }
+          
+          if (validBetaKey.usedBy) {
+            throw new Error("Beta key has already been used");
+          }
+          
+          // Create user first
+          const newUser = await tx.user.create({ data: { did } });
+          
+          // Mark beta key as used
+          await tx.betaKey.update({
+            where: { key: betaKey },
+            data: { 
+              usedBy: newUser.id,
+              usedAt: new Date()
+            }
+          });
+          
+          return newUser;
+        });
+      } catch (error: unknown) {
+        const errorMessage = (error as Error).message;
+        if (errorMessage === "Invalid beta key" || errorMessage === "Beta key has already been used") {
+          return res.status(400).json({ error: errorMessage });
         }
-      });
+        // Re-throw unexpected errors
+        throw error;
+      }
     } else {
       // No beta key required, create user normally
       user = await db.user.create({ data: { did } });

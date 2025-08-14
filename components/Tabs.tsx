@@ -33,8 +33,8 @@ export default function Tabs({ tabs, initialId, syncWithUrl = true }: TabsProps)
   );
 
   return (
-    <div className="thread-module p-0 overflow-hidden">
-      <div role="tablist" aria-label="Profile sections" className="flex flex-wrap border-b border-thread-sage/30">
+    <div className="profile-tabs thread-module p-0 overflow-hidden">
+      <div role="tablist" aria-label="Profile sections" className="profile-tab-list flex flex-wrap border-b border-thread-sage/30">
         {tabs.map(t => {
           const selected = t.id === active;
           return (
@@ -46,9 +46,9 @@ export default function Tabs({ tabs, initialId, syncWithUrl = true }: TabsProps)
               id={`tab-${t.id}`}
               onClick={() => setActive(t.id)}
               className={
-                "px-4 py-3 border-r border-thread-sage/20 focus:outline-none transition-all " +
+                "profile-tab-button px-4 py-3 border-r border-thread-sage/20 focus:outline-none transition-all " +
                 (selected 
-                  ? "bg-thread-cream font-medium text-thread-pine" 
+                  ? "active bg-thread-cream font-medium text-thread-pine" 
                   : "bg-thread-paper hover:bg-thread-cream/50 text-thread-sage hover:text-thread-pine")
               }
             >
@@ -61,7 +61,7 @@ export default function Tabs({ tabs, initialId, syncWithUrl = true }: TabsProps)
         role="tabpanel"
         id={`panel-${active}`}
         aria-labelledby={`tab-${active}`}
-        className="p-6"
+        className="profile-tab-panel p-6"
       >
         {activeContent}
       </div>

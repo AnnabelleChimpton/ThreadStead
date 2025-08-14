@@ -3,6 +3,7 @@ import Layout from "@/components/Layout";
 import RetroCard from "@/components/RetroCard";
 import WebsiteManager, { Website } from "@/components/WebsiteManager";
 import FriendManager, { SelectedFriend } from "@/components/FriendManager";
+import CSSEditor from "@/components/CSSEditor";
 
 export default function SettingsProfile() {
   const [displayName, setDisplayName] = useState("");
@@ -143,13 +144,11 @@ export default function SettingsProfile() {
                    value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)} />
           </div>
 
-          <div>
-            <label className="block text-sm mb-1">Custom CSS (sanitized)</label>
-            <textarea className="border border-black p-2 bg-white w-full max-w-3xl font-mono text-xs" rows={10}
-                      value={customCSS} onChange={e => setCustomCSS(e.target.value)} />
-            <div className="text-xs opacity-70 mt-1">
-              We block dangerous rules like <code>@import</code>, <code>expression()</code>, and <code>javascript:</code> URLs.
-            </div>
+          <div className="border-t border-gray-300 pt-4">
+            <CSSEditor 
+              value={customCSS} 
+              onChange={setCustomCSS}
+            />
           </div>
 
           <div className="border-t border-gray-300 pt-4">

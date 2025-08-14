@@ -10,9 +10,7 @@ import Tabs, { TabSpec } from "@/components/Tabs";
 import FollowButton from "@/components/FollowButton";
 import FriendBadge from "@/components/FriendBadge";
 import MutualFriends from "@/components/MutualFriends";
-import type { PluginDescriptor, InstalledPlugin, PluginContext } from "@/types/plugins";
 import PostItem, { Post as PostType } from "@/components/PostItem";
-import { pluginRegistry } from "@/plugins/registry";
 import NewPostForm from "@/components/NewPostForm";
 import WebsiteDisplay from "@/components/WebsiteDisplay";
 import FriendDisplay from "@/components/FriendDisplay";
@@ -47,20 +45,22 @@ function BlogTab({ username, ownerUserId }: { username: string; ownerUserId: str
   if (loading) return <div>Loading posts…</div>;
 
   return (
-    <div className="space-y-3">
+    <div className="profile-tab-content blog-tab-content space-y-3">
       {isOwner && (
-        <div className="mb-3">
+        <div className="new-post-section mb-3">
           <div className="text-sm opacity-70 mb-1">Post as you</div>
           <NewPostForm onPosted={refresh} />
         </div>
       )}
-      {posts.length === 0 ? (
-        <div className="italic opacity-70">No posts yet.</div>
-      ) : (
-        posts.map((p) => (
-          <PostItem key={p.id} post={p} isOwner={isOwner} onChanged={refresh} />
-        ))
-      )}
+      <div className="blog-posts-list">
+        {posts.length === 0 ? (
+          <div className="no-posts-message italic opacity-70">No posts yet.</div>
+        ) : (
+          posts.map((p) => (
+            <PostItem key={p.id} post={p} isOwner={isOwner} onChanged={refresh} />
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -71,10 +71,8 @@ type ProfileProps = {
   username: string;
   ownerUserId: string; 
   bio?: string;
-  about?: string;
   photoUrl?: string;
   customCSS?: string;
-  plugins?: PluginDescriptor[];
   websites?: Website[];
   featuredFriends?: SelectedFriend[];
   initialTabId?: string;
@@ -85,20 +83,13 @@ export default function ProfilePage({
   username,
   ownerUserId,
   bio,
-  about: _about,
   photoUrl = "/assets/default-avatar.gif",
   customCSS,
-  plugins = [],
   websites = [],
   featuredFriends = [],
   initialTabId,
 }: ProfileProps) {
   const [relStatus, setRelStatus] = React.useState<string>("loading");
-
-  // descriptors (from server) -> runtime plugins (attach loaders via registry)
-  const installed: InstalledPlugin[] = plugins.map((d) =>
-    d.mode === "trusted" ? { ...d, load: pluginRegistry[d.id] } : d
-  );
 
   // built-in tabs
   const baseTabs: TabSpec[] = [
@@ -108,15 +99,17 @@ export default function ProfilePage({
       id: "media",
       label: "Media",
       content: (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              className="border border-black bg-white shadow-[2px_2px_0_#000] aspect-square flex items-center justify-center"
-            >
-              <span className="text-sm">img {i}</span>
-            </div>
-          ))}
+        <div className="profile-tab-content media-tab-content">
+          <div className="media-gallery grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="media-item border border-black bg-white shadow-[2px_2px_0_#000] aspect-square flex items-center justify-center"
+              >
+                <span className="text-sm">img {i}</span>
+              </div>
+            ))}
+          </div>
         </div>
       ),
     },
@@ -124,20 +117,27 @@ export default function ProfilePage({
       id: "friends",
       label: "Friends / Websites",
       content: (
-        <div className="grid sm:grid-cols-2 gap-3">
-          <FriendDisplay friends={featuredFriends} />
-          <WebsiteDisplay websites={websites} />
+        <div className="profile-tab-content friends-tab-content">
+          <div className="friends-websites-grid grid sm:grid-cols-2 gap-3">
+            <FriendDisplay friends={featuredFriends} />
+            <WebsiteDisplay websites={websites} />
+          </div>
         </div>
       ),
     },
     {
       id: "guestbook",
       label: "Guestbook",
-      content: <Guestbook username={username} bio={bio || ""} />,
+      content: (
+        <div className="profile-tab-content guestbook-tab-content">
+          <Guestbook username={username} bio={bio || ""} />
+        </div>
+      ),
     },
   ];
 
-  // plugin tabs
+  // plugin tabs (unused currently)
+  /*
   const _pluginTabs: TabSpec[] = installed.map((p) => {
     if (p.mode === "trusted" && p.load) {
       const LazyPlugin = React.lazy<React.ComponentType<PluginContext>>(() =>
@@ -171,6 +171,7 @@ export default function ProfilePage({
     }
     return { id: p.id, label: p.label || p.id, content: <div>Plugin unavailable.</div> };
   });
+  */
 
   // const tabs: TabSpec[] = [...baseTabs, ...pluginTabs];
   const tabs: TabSpec[] = baseTabs;
@@ -178,39 +179,59 @@ export default function ProfilePage({
   return (
     <>
       {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
-      <Layout>
-        <RetroCard>
-          <div className="flex flex-col sm:flex-row sm:items-start sm:gap-6">
-            <ProfilePhoto src={photoUrl} alt={`${username}'s profile photo`} />
-            <div className="flex-1">
-              <div className="mb-4">
-                <h2 className="thread-headline text-3xl font-bold text-thread-pine mb-1">{username}</h2>
-                <span className="thread-label">threadstead resident</span>
-              </div>
-              {bio && (
-                <div className="mb-4">
-                  <p className="text-thread-charcoal leading-relaxed">{bio}</p>
+      <div className="profile-container">
+        <Layout>
+          <div className="profile-content-wrapper">
+            <div className="profile-main-content">
+              <RetroCard>
+                <div className="profile-header">
+                  <div className="profile-header-layout flex flex-col sm:flex-row sm:items-start sm:gap-6">
+                    <div className="profile-photo-section">
+                      <ProfilePhoto src={photoUrl} alt={`${username}'s profile photo`} />
+                    </div>
+                    <div className="profile-info-section flex-1">
+                      <div className="profile-identity mb-4">
+                        <h2 className="profile-display-name thread-headline text-3xl font-bold text-thread-pine mb-1">{username}</h2>
+                        <span className="profile-status thread-label">threadstead resident</span>
+                      </div>
+                      {bio && (
+                        <div className="profile-bio-section mb-4">
+                          <p className="profile-bio text-thread-charcoal leading-relaxed">{bio}</p>
+                        </div>
+                      )}
+                      <div className="profile-actions flex items-center gap-3 flex-wrap">
+                        {relStatus === "friends" && <FriendBadge />}
+                        <FollowButton username={username} onStatus={setRelStatus} />
+                        <MutualFriends username={username} />
+                        {relStatus === "owner" && (
+                          <Link
+                            href="/settings/profile"
+                            className="profile-button edit-profile-button thread-button text-sm"
+                          >
+                            Edit Profile
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div className="flex items-center gap-3 flex-wrap">
-                {relStatus === "friends" && <FriendBadge />}
-                <FollowButton username={username} onStatus={setRelStatus} />
-                <MutualFriends username={username} />
-                {relStatus === "owner" && (
-                  <Link
-                    href="/settings/profile"
-                    className="thread-button text-sm"
-                  >
-                    Edit Profile
-                  </Link>
-                )}
+              </RetroCard>
+
+              <div className="profile-tabs-wrapper">
+                <Tabs tabs={tabs} initialId={initialTabId} />
+              </div>
+            </div>
+            
+            {/* Sidebar for advanced layouts - hidden by default, can be shown via CSS */}
+            <div className="profile-sidebar" style={{ display: 'none' }}>
+              <div className="sidebar-content">
+                <h3 className="sidebar-heading">Quick Info</h3>
+                <p className="sidebar-text">This sidebar is available for advanced CSS customization.</p>
               </div>
             </div>
           </div>
-        </RetroCard>
-
-        <Tabs tabs={tabs} initialId={initialTabId} />
-      </Layout>
+        </Layout>
+      </div>
     </>
   );
 }
@@ -243,7 +264,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     userId: string;                      // <-- expecting this from /api/profile
     username?: string;
     profile?: { bio?: string; avatarUrl?: string; customCSS?: string; blogroll?: unknown[]; featuredFriends?: unknown[] };
-    plugins?: PluginDescriptor[];
   } = await res.json();
 
   const requested = typeof query.tab === "string" ? query.tab : undefined;
@@ -253,12 +273,12 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   // Convert blogroll to websites
   const websites: Website[] = [];
   if (data.profile?.blogroll && Array.isArray(data.profile.blogroll)) {
-    data.profile.blogroll.forEach((item: unknown, index: number) => {
+    data.profile.blogroll.forEach((item: unknown) => {
       if (typeof item === 'object' && item !== null) {
         const obj = item as Record<string, unknown>;
         if (typeof obj.label === 'string' && typeof obj.url === 'string') {
           websites.push({
-            id: String(obj.id || index),
+            id: String(obj.id || `website-${websites.length}`),
             label: String(obj.label),
             url: String(obj.url),
             blurb: String(obj.blurb || "")
@@ -272,7 +292,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const featuredFriends: SelectedFriend[] = [];
   
   if (Array.isArray(data.profile?.featuredFriends)) {
-    data.profile.featuredFriends.forEach((item: unknown, index: number) => {
+    data.profile.featuredFriends.forEach((item: unknown) => {
       if (typeof item === 'object' && item !== null) {
         const obj = item as Record<string, unknown>;
         if (typeof obj.id === 'string' && typeof obj.handle === 'string') {
@@ -296,7 +316,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (data.profile?.bio != null) props.bio = data.profile.bio;
   if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;
   if (data.profile?.customCSS != null) props.customCSS = data.profile.customCSS;
-  if (data.plugins != null) props.plugins = data.plugins;
   if (websites.length > 0) props.websites = websites;
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
 

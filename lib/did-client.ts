@@ -82,12 +82,39 @@ export async function importIdentityToken(token: string): Promise<void> {
       throw new Error("Invalid keypair: failed to validate keys");
     }
 
+    // Logout from current session before switching identity
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      // Log but don't fail - we still want to switch identity even if logout fails
+      console.warn("Failed to logout from current session:", e);
+    }
+
     // Store the imported keypair
     if (typeof window !== "undefined") {
       localStorage.setItem(KEY_STORAGE, JSON.stringify(decoded.keypair));
     }
+
+    // Log in with the imported identity
+    const c = await fetch("/api/auth/challenge").then(r => r.json());
+    const sig = await signMessage(decoded.keypair.secretKey, c.nonce);
+    const loginRes = await fetch("/api/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        did: decoded.keypair.did, 
+        publicKey: decoded.keypair.publicKey, 
+        signature: sig
+        // No betaKey needed for existing users
+      }),
+    });
+    
+    if (!loginRes.ok) {
+      const errorData = await loginRes.json();
+      throw new Error(errorData?.error || `Login failed with imported identity: ${loginRes.status}`);
+    }
   } catch (e: unknown) {
-    if ((e as Error).message.startsWith("Invalid")) {
+    if ((e as Error).message.startsWith("Invalid") || (e as Error).message.includes("Login failed")) {
       throw e;
     }
     throw new Error("Invalid token format");
@@ -96,22 +123,66 @@ export async function importIdentityToken(token: string): Promise<void> {
 
 // Switch to a specific identity (for future multi-identity support)
 export async function switchToIdentity(keypair: LocalKeypair): Promise<void> {
+  // Logout from current session before switching identity
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } catch (e) {
+    // Log but don't fail - we still want to switch identity even if logout fails
+    console.warn("Failed to logout from current session:", e);
+  }
+
   if (typeof window !== "undefined") {
     localStorage.setItem(KEY_STORAGE, JSON.stringify(keypair));
+  }
+
+  // Log in with the switched identity
+  const c = await fetch("/api/auth/challenge").then(r => r.json());
+  const sig = await signMessage(keypair.secretKey, c.nonce);
+  const loginRes = await fetch("/api/auth/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      did: keypair.did, 
+      publicKey: keypair.publicKey, 
+      signature: sig
+      // No betaKey needed for existing users
+    }),
+  });
+  
+  if (!loginRes.ok) {
+    const errorData = await loginRes.json();
+    throw new Error(errorData?.error || `Login failed with switched identity: ${loginRes.status}`);
   }
 }
 
 // Clear current identity and generate a new one
 export async function clearCurrentIdentity(): Promise<LocalKeypair> {
+  // Logout from current session before clearing identity
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } catch (e) {
+    // Log but don't fail - we still want to clear identity even if logout fails
+    console.warn("Failed to logout from current session:", e);
+  }
+
   if (typeof window !== "undefined") {
     localStorage.removeItem(KEY_STORAGE);
   }
   return await getOrCreateLocalDid();
 }
 
+// Manual logout utility function
+export async function logoutCurrentSession(): Promise<void> {
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } catch {
+    throw new Error("Failed to logout from current session");
+  }
+}
+
 // Create new identity, log in, and claim username in one flow
 export async function createNewIdentityWithUsername(username: string, betaKey?: string): Promise<void> {
-  // Generate new keypair
+  // Generate new keypair (this already handles logout)
   const kp = await clearCurrentIdentity();
   
   // Perform login with new keypair (include beta key if provided)

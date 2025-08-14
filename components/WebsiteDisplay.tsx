@@ -17,7 +17,7 @@ export default function WebsiteDisplay({ websites }: WebsiteDisplayProps) {
 
   return (
     <div className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-      <h4 className="font-bold mb-3">Website Recommendations</h4>
+      <h4 className="section-heading font-bold mb-3">Website Recommendations</h4>
       <div className="space-y-3">
         {websites.map((website) => (
           <div key={website.id} className="border-l-4 border-blue-400 pl-3">
@@ -28,7 +28,7 @@ export default function WebsiteDisplay({ websites }: WebsiteDisplayProps) {
                     href={website.url}
                     target="_blank"
                     rel="noopener noreferrer" 
-                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                    className="website-link text-blue-600 hover:text-blue-800 hover:underline"
                   >
                     {website.label}
                   </a>
