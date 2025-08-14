@@ -134,9 +134,106 @@ a:hover {
   margin-top: 1rem;
 }
 
+/* Feed-specific styling */
+.thread-content h1, 
+.thread-content h2, 
+.thread-content h3 {
+  color: #2E4B3F;
+  margin-bottom: 0.5rem;
+}
+
+.thread-content h1 { font-size: 1.5rem; }
+.thread-content h2 { font-size: 1.25rem; }
+.thread-content h3 { font-size: 1.125rem; }
+
+.thread-content blockquote {
+  border-left: 3px solid #A18463;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+  color: #2F2F2F;
+  background: rgba(245, 233, 212, 0.2);
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.thread-content code {
+  background: rgba(161, 132, 99, 0.1);
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  font-family: "Menlo", "Monaco", "Consolas", monospace;
+  font-size: 0.875rem;
+}
+
+.thread-content pre {
+  background: rgba(46, 75, 63, 0.05);
+  border: 1px solid rgba(161, 132, 99, 0.3);
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.thread-content pre code {
+  background: none;
+  padding: 0;
+}
+
 /* Accessibility with warm focus */
 :focus-visible {
   outline: 2px solid #4FAF6D;
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* Directory specific utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Enhanced form styling for directory */
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+select, 
+textarea {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="text"]:focus, 
+input[type="email"]:focus, 
+input[type="password"]:focus, 
+select:focus, 
+textarea:focus {
+  outline: none;
+  border-color: #2E4B3F;
+  box-shadow: 0 0 0 1px #2E4B3F;
+}
+
+/* Grid improvements for directory */
+@media (min-width: 768px) {
+  .directory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+/* Hover animations for user cards */
+.user-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-card:hover {
+  transform: translateY(-2px);
 }
