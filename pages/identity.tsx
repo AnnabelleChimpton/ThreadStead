@@ -11,6 +11,7 @@ import {
   recoverFromSeedPhrase,
   getSeedPhrase,
   generateSeedPhrase,
+  updateIdentityWithSeedPhrase,
   LocalKeypair,
   SeedPhrase
 } from "@/lib/did-client";
@@ -91,12 +92,18 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
 
   async function handleGenerateSeedPhrase() {
     try {
+      setIsLoading(true);
+      // Generate a new seed phrase and upgrade the current identity with it
       const newSeed = await generateSeedPhrase();
+      await updateIdentityWithSeedPhrase(newSeed, true); // Pass true to indicate this is a legacy user
       setSeedPhrase(newSeed);
       setShowSeedPhraseStep(true);
-      setMessage({ type: 'success', text: 'New seed phrase generated! Please save it securely.' });
+      setMessage({ type: 'success', text: 'New recovery seed phrase generated and attached to your account! Please save it securely.' });
+      await loadCurrentIdentity();
     } catch (e: unknown) {
-      setMessage({ type: 'error', text: (e as Error).message || 'Failed to generate seed phrase' });
+      setMessage({ type: 'error', text: (e as Error).message || 'Failed to generate or attach seed phrase' });
+    } finally {
+      setIsLoading(false);
     }
   }
 

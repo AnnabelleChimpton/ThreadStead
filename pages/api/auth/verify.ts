@@ -35,11 +35,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   );
   if (!ok) return res.status(401).json({ error: "bad signature" });
 
-  // Check if user exists
+  // Get the optional legacyDid for migrating legacy users
+  const { legacyDid } = req.body as { legacyDid?: string };
+
+  // Check if user exists under the new DID
   let user = await db.user.findUnique({ where: { did } });
-  
+
+  // If this is a legacy user migration
+  if (legacyDid && !user) {
+    // Look up the legacy user
+    const legacyUser = await db.user.findUnique({ where: { did: legacyDid } });
+    if (!legacyUser) {
+      return res.status(400).json({ error: "Legacy user not found" });
+    }
+
+    // Update the user's DID
+    user = await db.user.update({
+      where: { id: legacyUser.id },
+      data: { did }
+    });
+  }
   // If creating a new user, check beta key requirements
-  if (!user) {
+  else if (!user) {
     const betaEnabled = process.env.BETA_KEYS_ENABLED === "true";
     
     if (betaEnabled) {

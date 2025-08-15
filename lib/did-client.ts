@@ -228,6 +228,61 @@ export function clearSeedPhrase(): void {
   localStorage.removeItem(SEED_STORAGE);
 }
 
+// Update an existing identity with a new seed phrase (for upgrade/attach flow)
+export async function updateIdentityWithSeedPhrase(mnemonic: string, isLegacyUser: boolean = false): Promise<void> {
+  // Validate the seed phrase first
+  if (!bip39.validateMnemonic(mnemonic)) {
+    throw new Error("Invalid seed phrase");
+  }
+
+  // Generate keypair from seed
+  const kp = await createKeypairFromSeedPhrase(mnemonic);
+  
+  // Get existing identity
+  const existing = getExistingDid();
+  if (!existing) {
+    throw new Error("No existing identity found to update");
+  }
+
+  // For non-legacy users, ensure the seed phrase matches their existing DID
+  if (!isLegacyUser && existing.did !== kp.did) {
+    throw new Error("For existing users, seed phrase must match current identity. Cannot update.");
+  }
+
+  // For legacy users, we'll update their identity to the new keypair
+  if (isLegacyUser) {
+    // Store the new keypair and seed phrase
+    if (typeof window !== "undefined") {
+      localStorage.setItem(KEY_STORAGE, JSON.stringify(kp));
+      storeSeedPhrase(mnemonic);
+    }
+
+    // Log in with the new identity
+    const c = await fetch("/api/auth/challenge").then(r => r.json());
+    const sig = await signMessage(kp.secretKey, c.nonce);
+    const loginRes = await fetch("/api/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        did: kp.did, 
+        publicKey: kp.publicKey, 
+        signature: sig,
+        legacyDid: existing.did // Include the legacy DID to link accounts
+      }),
+    });
+    
+    if (!loginRes.ok) {
+      const errorData = await loginRes.json();
+      throw new Error(errorData?.error || `Failed to update legacy identity: ${loginRes.status}`);
+    }
+  } else {
+    // For non-legacy users, just store the seed phrase
+    if (typeof window !== "undefined") {
+      storeSeedPhrase(mnemonic);
+    }
+  }
+}
+
 export async function recoverFromSeedPhrase(mnemonic: string, username?: string): Promise<void> {
   // Validate the seed phrase first
   if (!bip39.validateMnemonic(mnemonic)) {
