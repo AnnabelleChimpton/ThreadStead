@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
+import { SITE_NAME } from "@/lib/site-config";
 const db = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -8,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // assuming local host for now
   const handle = await db.handle.findFirst({
-    where: { handle: username, host: "local" },
+    where: { handle: username, host: SITE_NAME },
     include: {
       user: {
         include: {

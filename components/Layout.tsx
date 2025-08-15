@@ -9,7 +9,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <header className="site-header border-b border-thread-sage bg-thread-cream px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95">
         <nav className="site-navigation mx-auto max-w-5xl flex items-center justify-between">
           <div className="site-branding">
-            <h1 className="site-title thread-headline text-2xl font-bold text-thread-pine">HomePageAgain</h1>
+            <h1 className="site-title thread-headline text-2xl font-bold text-thread-pine">{process.env.NEXT_PUBLIC_SITE_TITLE || "YourSiteHere"}</h1>
             <span className="site-tagline thread-label">@ ThreadStead</span>
           </div>
           <div className="site-nav-links flex items-center gap-6">

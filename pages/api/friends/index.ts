@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-server";
+import { SITE_NAME } from "@/lib/site-config";
 
 const db = new PrismaClient();
 
@@ -45,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           select: { displayName: true, avatarUrl: true }
         },
         handles: {
-          where: { host: "local" },
+          where: { host: SITE_NAME },
           take: 1,
           select: { handle: true }
         },

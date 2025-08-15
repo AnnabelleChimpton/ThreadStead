@@ -1,40 +1,187 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# Retro Social Site Template
 
-## Getting Started
+A fully-featured retro-themed social networking template built with Next.js, featuring user profiles, posts, comments, guestbooks, and customizable CSS styling.
 
-First, run the development server:
+## ✨ Features
+
+- 🎨 **Retro-themed UI** with customizable CSS per user
+- 👤 **User profiles** with avatars, bios, and custom styling
+- 📝 **Posts and comments** with nested threading
+- 📖 **Guestbook system** for profile interactions
+- 🔔 **Real-time notifications** for comments, replies, and follows
+- 🔐 **Decentralized identity** using DID (Decentralized Identifiers)
+- 🎫 **Beta key system** for controlled access
+- 📱 **Responsive design** that works on all devices
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ 
+- PostgreSQL database
+- npm or yarn
+
+### Development Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd retro-social-site
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Run the setup wizard** ⭐
+   ```bash
+   npm run setup
+   ```
+   This interactive wizard will guide you through configuring your site name, user handles, database, and security settings.
+
+4. **Set up the database**
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   npm run seed  # Creates default user (if configured in setup)
+   ```
+
+5. **Generate beta keys (if enabled)**
+   ```bash
+   npm run beta:generate 10
+   ```
+
+6. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+7. **Open [http://localhost:3000](http://localhost:3000)**
+
+### Manual Configuration (Alternative)
+
+If you prefer manual setup instead of the wizard:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
+# Edit .env with your configuration
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🔧 Configuration
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+### Environment Variables
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Copy `.env.example` to `.env` and customize:
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+- `SITE_NAME` - Your site's name (appears in header and user handles)
+- `DATABASE_URL` - PostgreSQL connection string
+- `CAP_JWT_SECRET` - JWT secret for authentication (generate with `openssl rand -base64 32`)
+- `CAP_AUDIENCE` - Your production domain
+- `BETA_KEYS_ENABLED` - Enable/disable beta key requirement
+- `DEFAULT_USER_*` - Customize the default seeded user
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Beta Key Management
 
-## Learn More
+```bash
+npm run beta:generate 5     # Generate 5 beta keys
+npm run beta:list           # List all beta keys
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 🏗️ Production Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+### 1. Prepare Environment
+```bash
+cp .env.example .env
+# Configure all production values in .env
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. Build Application
+```bash
+npm run build
+```
 
-## Deploy on Vercel
+### 3. Database Setup
+```bash
+npx prisma generate
+npx prisma db push
+npm run seed  # Optional: creates default user
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 4. Generate Beta Keys (if enabled)
+```bash
+npm run beta:generate 10
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+### 5. Deploy
+- Deploy to your hosting platform (Vercel, Railway, etc.)
+- Set environment variables in your hosting dashboard
+- Ensure PostgreSQL database is accessible
+
+### Deployment Checklist
+- [ ] Set strong `CAP_JWT_SECRET` (min 32 chars)
+- [ ] Configure production `DATABASE_URL` 
+- [ ] Set `CAP_AUDIENCE` to your domain
+- [ ] Customize `SITE_NAME` and defaults
+- [ ] Generate beta keys if `BETA_KEYS_ENABLED=true`
+- [ ] Test all functionality in production
+
+## 📊 Features Overview
+
+### User System
+- **Decentralized Identity**: Uses DID keys instead of passwords
+- **Profile Customization**: Users can customize their page with CSS
+- **Handle System**: Users get handles like `username@YourSiteHere`
+
+### Content Features  
+- **Posts**: Create, edit, delete posts with markdown support
+- **Comments**: Nested comment threads with notifications
+- **Guestbook**: Visitor messages on user profiles
+
+### Social Features
+- **Following**: Follow other users to see their content
+- **Notifications**: Get notified of interactions
+- **Directory**: Browse all users on the platform
+
+### Admin Features
+- **Beta Keys**: Control who can sign up
+- **Moderation**: Basic content management tools
+
+## 🛠️ Development
+
+### Project Structure
+```
+├── components/          # React components
+├── pages/              # Next.js pages and API routes
+├── lib/                # Utility functions and configurations  
+├── prisma/             # Database schema and migrations
+├── public/             # Static assets
+└── styles/             # Global styles
+```
+
+### Key Technologies
+- **Next.js** - React framework
+- **Prisma** - Database ORM
+- **PostgreSQL** - Database
+- **Tailwind CSS** - Styling
+- **DID/JWT** - Authentication
+
+### Available Scripts
+- `npm run setup` - **Interactive setup wizard** ⭐
+- `npm run dev` - Development server
+- `npm run build` - Production build
+- `npm run lint` - ESLint checking
+- `npm run seed` - Seed database
+- `npm run beta:generate` - Generate beta keys
+- `npm run beta:list` - List beta keys
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).

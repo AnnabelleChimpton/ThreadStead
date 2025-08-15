@@ -106,7 +106,7 @@ export default function NotificationList({
     }
   };
 
-  // Helper function to extract username from handle (e.g., "alice@local" -> "alice")
+  // Helper function to extract username from handle (e.g., "alice@sitename" -> "alice")
   const getUsername = (handle: string | null | undefined): string | null => {
     if (!handle) return null;
     return handle.split('@')[0];
@@ -169,7 +169,7 @@ export default function NotificationList({
       case "reply":
         // For comments and replies, link to the individual post page with comments expanded
         if (notification.data?.postAuthorHandle && notification.data?.postId) {
-          // Extract clean username from handle (e.g., "scooby@local" -> "scooby")
+          // Extract clean username from handle (e.g., "scooby@sitename" -> "scooby")
           const postAuthorUsername = getUsername(notification.data.postAuthorHandle);
           if (postAuthorUsername) {
             // Build URL with query parameters for auto-expanding comments and highlighting

@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { requireAction } from "@/lib/capabilities";
 import { createGuestbookNotification } from "@/lib/notifications";
+import { SITE_NAME } from "@/lib/site-config";
 const db = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -9,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!username) return res.status(400).json({ error: "username required" });
 
   const ownerHandle = await db.handle.findFirst({
-    where: { handle: username, host: "local" },
+    where: { handle: username, host: SITE_NAME },
     include: { user: true },
   });
   if (!ownerHandle) return res.status(404).json({ error: "not found" });
@@ -28,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const authorHandles = await db.handle.findMany({
       where: { 
         userId: { in: authorIds as string[] },
-        host: "local"
+        host: SITE_NAME
       },
       select: {
         userId: true,

@@ -139,7 +139,7 @@ export const getServerSideProps: GetServerSideProps<PostPageProps> = async ({ pa
     }
 
     // Fetch the author's profile for custom CSS and other styling
-    // Use the clean username (strip @local) for the profile API
+    // Use the clean username (strip @sitename) for the profile API
     const authorUsername = post.author?.primaryHandle?.split('@')[0] || username;
     const profileRes = await fetch(`${base}/api/profile/${encodeURIComponent(authorUsername)}`);
     let authorProfile = null;

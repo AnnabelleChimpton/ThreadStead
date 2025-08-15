@@ -187,7 +187,7 @@ export default function UsernameSelector({
                 {getStatusIcon()}
               </div>
             </div>
-            <div className="text-xs text-gray-500 mt-1">@local</div>
+            <div className="text-xs text-gray-500 mt-1">@{process.env.NEXT_PUBLIC_SITE_HANDLE_DOMAIN || "YourSiteHere"}</div>
             <div className="mt-1">{getStatusMessage()}</div>
           </div>
 

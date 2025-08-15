@@ -1,11 +1,12 @@
 {
-  "name": "retro-social-template",
+  "name": "retro-social-site",
   "version": "0.1.0",
   "private": true,
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
+    "setup": "tsx scripts/setup.ts",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",

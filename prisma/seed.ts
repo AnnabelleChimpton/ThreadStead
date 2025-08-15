@@ -4,17 +4,22 @@ const db = new PrismaClient();
 async function main() {
   await db.user.deleteMany();
 
+  const defaultHandle = process.env.SEED_USER_HANDLE || "alice";
+  const siteDomain = process.env.SITE_HANDLE_DOMAIN || "YourSiteHere";
+  const defaultName = process.env.SEED_USER_DISPLAY_NAME || "Alice";
+  const defaultBio = process.env.SEED_USER_BIO || "Hi, I'm Alice! Welcome to my retro page.";
+
   const alice = await db.user.create({
     data: {
       did: "did:key:z6MkAliceDid",
-      primaryHandle: "alice@local",
+      primaryHandle: `${defaultHandle}@${siteDomain}`,
       handles: {
-        create: [{ handle: "alice", host: "local", verifiedAt: new Date() }],
+        create: [{ handle: defaultHandle, host: siteDomain, verifiedAt: new Date() }],
       },
       profile: {
         create: {
-          displayName: "Alice",
-          bio: "Hi, I'm Alice! Welcome to my retro page.",
+          displayName: defaultName,
+          bio: defaultBio,
           avatarUrl: "/assets/default-avatar.gif",
           blogroll: [{ label: "Cool Zines", url: "https://example.com" }],
           visibility: "public",

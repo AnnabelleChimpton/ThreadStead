@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-server";
+import { SITE_NAME } from "@/lib/site-config";
 
 const db = new PrismaClient();
 
@@ -63,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const authorHandles = await db.handle.findMany({
       where: { 
         userId: { in: authorIds as string[] },
-        host: "local"
+        host: SITE_NAME
       },
       select: {
         userId: true,

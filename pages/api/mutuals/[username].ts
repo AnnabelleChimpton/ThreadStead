@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-server";
+import { SITE_NAME } from "@/lib/site-config";
 
 const db = new PrismaClient();
 
@@ -9,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const username = String(req.query.username || "");
 
   const handle = await db.handle.findFirst({
-    where: { handle: username, host: "local" },
+    where: { handle: username, host: SITE_NAME },
     include: { user: true },
   });
   if (!handle) return res.status(404).json({ error: "not found" });
@@ -72,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     include: {
       profile: true,
       handles: {
-        where: { host: "local" },
+        where: { host: SITE_NAME },
         take: 1,
       },
     },

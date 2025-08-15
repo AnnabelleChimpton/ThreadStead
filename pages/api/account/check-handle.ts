@@ -1,9 +1,10 @@
 // pages/api/account/check-handle.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
+import { SITE_NAME } from "@/lib/site-config";
 
 const db = new PrismaClient();
-const HOST = "local";
+const HOST = SITE_NAME;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });

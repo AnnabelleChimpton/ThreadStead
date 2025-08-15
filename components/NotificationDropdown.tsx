@@ -16,7 +16,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Helper function to extract username from handle (e.g., "alice@local" -> "alice")
+  // Helper function to extract username from handle (e.g., "alice@sitename" -> "alice")
   const getUsername = (handle: string | null | undefined): string | null => {
     if (!handle) return null;
     return handle.split('@')[0];
