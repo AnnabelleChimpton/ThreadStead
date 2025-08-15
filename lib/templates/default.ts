@@ -252,6 +252,41 @@ export const DEFAULT_CSS_TEMPLATE = `/* ========================================
   border: 2px solid #000;
 }
 
+/* Profile photo 90s styling */
+.profile-photo-wrapper {
+  position: relative;
+  margin: 2rem auto;
+}
+
+.profile-photo-frame {
+  background: linear-gradient(45deg, #ff69b4, #dda0dd);
+  padding: 8px;
+  border: 3px solid #000;
+  box-shadow: 8px 8px 0px #ff69b4;
+  transform: rotate(-2deg);
+  transition: all 0.3s ease;
+}
+
+.profile-photo-frame:hover {
+  transform: rotate(2deg) scale(1.05);
+  box-shadow: 12px 12px 0px #ff69b4;
+}
+
+.profile-photo-image {
+  border: 2px solid #000;
+  filter: sepia(20%) saturate(120%) hue-rotate(-10deg);
+}
+
+.profile-photo-placeholder {
+  background: #ffff00 !important;
+  color: #000 !important;
+  font-family: 'Comic Neue', cursive !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  border: 2px dashed #000 !important;
+}
+
 /* ===========================================
    📝 BLOG POSTS - CLASSIC WEB STYLE
    =========================================== */
@@ -298,7 +333,7 @@ export const DEFAULT_CSS_TEMPLATE = `/* ========================================
 }
 
 /* ===========================================
-   👥 FRIENDS SECTION - WEBRINGS STYLE
+   👥 FRIENDS & WEBSITES SECTION - WEBRINGS STYLE
    =========================================== */
 
 .featured-friends {
@@ -334,6 +369,67 @@ export const DEFAULT_CSS_TEMPLATE = `/* ========================================
 .friend-card:hover {
   transform: rotate(-2deg);
   box-shadow: 6px 6px 0px #ff69b4;
+}
+
+/* Website recommendations styling */
+.websites-section {
+  background: #e6e6fa;
+  border: 3px solid #000;
+  padding: 1rem;
+  margin: 1rem 0;
+  position: relative;
+}
+
+.websites-section::before {
+  content: 'COOL SITES';
+  position: absolute;
+  top: -15px;
+  left: 20px;
+  background: #4169e1;
+  color: #fff;
+  padding: 5px 15px;
+  border: 2px solid #000;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.website-item {
+  background: #f0f8ff;
+  border: 2px dotted #4169e1;
+  padding: 0.75rem;
+  margin: 0.75rem 0;
+  position: relative;
+}
+
+.website-title {
+  font-weight: bold;
+  color: #000080;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.website-link {
+  color: #0000ee !important;
+  text-decoration: underline !important;
+  font-weight: bold !important;
+}
+
+.website-link:hover {
+  color: #ff0000 !important;
+  background: #ffff00 !important;
+  padding: 2px !important;
+}
+
+.website-blurb {
+  color: #333;
+  font-style: italic;
+  margin: 0.5rem 0;
+}
+
+.website-url {
+  font-family: 'Trebuchet MS', sans-serif;
+  color: #666;
+  font-size: 9px;
 }
 
 /* ===========================================
@@ -430,6 +526,88 @@ export const DEFAULT_CSS_TEMPLATE = `/* ========================================
 }
 
 /* ===========================================
+   💬 COMMENTS - 90s FORUM STYLE
+   =========================================== */
+
+.comment-container {
+  background: #f0f8ff;
+  border: 2px solid #000;
+  margin: 1rem 0;
+  padding: 1rem;
+  box-shadow: 4px 4px 0px #dda0dd;
+  position: relative;
+}
+
+.comment-container::before {
+  content: 'POST';
+  position: absolute;
+  top: -12px;
+  left: 15px;
+  background: #ff69b4;
+  color: #fff;
+  padding: 3px 8px;
+  border: 2px solid #000;
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.comment-author-name {
+  color: #8B0000 !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  font-size: 10px !important;
+  letter-spacing: 1px !important;
+}
+
+.comment-content {
+  background: #fff !important;
+  border: 1px dashed #ff69b4 !important;
+  padding: 1rem !important;
+  margin: 0.75rem 0 !important;
+  font-family: 'Comic Neue', cursive !important;
+  color: #000080 !important;
+  line-height: 1.6 !important;
+}
+
+.comment-button {
+  background: linear-gradient(135deg, #ff69b4, #dda0dd) !important;
+  color: #fff !important;
+  border: 2px solid #000 !important;
+  padding: 6px 12px !important;
+  font-family: 'Comic Neue', cursive !important;
+  font-weight: bold !important;
+  font-size: 10px !important;
+  text-transform: uppercase !important;
+  box-shadow: 3px 3px 0px #000 !important;
+  transition: all 0.2s ease !important;
+}
+
+.comment-button:hover {
+  transform: translate(1px, 1px) !important;
+  box-shadow: 2px 2px 0px #000 !important;
+  background: linear-gradient(135deg, #dda0dd, #ff69b4) !important;
+}
+
+.comment-thread {
+  border-left: 3px solid #ff69b4 !important;
+  margin-left: 2rem !important;
+  padding-left: 1rem !important;
+}
+
+.comment-highlighted {
+  background: #ffffe0 !important;
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5) !important;
+  animation: highlight-pulse 2s ease-in-out infinite !important;
+}
+
+@keyframes highlight-pulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+  50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
+}
+
+/* ===========================================
    📱 MOBILE RESPONSIVENESS (90s STYLE!)
    =========================================== */
 
@@ -441,6 +619,11 @@ export const DEFAULT_CSS_TEMPLATE = `/* ========================================
   .blog-post-card::before {
     right: 10px;
     font-size: 8px;
+  }
+  
+  .comment-thread {
+    margin-left: 1rem !important;
+    padding-left: 0.5rem !important;
   }
 }
 

@@ -63,7 +63,7 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
   return (
     <form onSubmit={submit} className="comment-form flex flex-col gap-2">
       <textarea
-        className="comment-form textarea border border-black md:border-black p-2 md:p-2 bg-white rounded"
+        className="comment-form-textarea border border-black md:border-black p-2 md:p-2 bg-white rounded"
         rows={3}
         value={content}
         onChange={(e) => setContent(e.target.value)}

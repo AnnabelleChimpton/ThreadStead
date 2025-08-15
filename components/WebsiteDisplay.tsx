@@ -16,14 +16,14 @@ export default function WebsiteDisplay({ websites }: WebsiteDisplayProps) {
   }
 
   return (
-    <div className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
+    <div className="websites-section border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
       <h4 className="section-heading font-bold mb-3">Website Recommendations</h4>
-      <div className="space-y-3">
+      <div className="websites-list space-y-3">
         {websites.map((website) => (
-          <div key={website.id} className="border-l-4 border-blue-400 pl-3">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h5 className="font-semibold">
+          <div key={website.id} className="website-item border-l-4 border-blue-400 pl-3">
+            <div className="website-content flex items-start justify-between">
+              <div className="website-info flex-1">
+                <h5 className="website-title font-semibold">
                   <a 
                     href={website.url}
                     target="_blank"
@@ -34,9 +34,9 @@ export default function WebsiteDisplay({ websites }: WebsiteDisplayProps) {
                   </a>
                 </h5>
                 {website.blurb && (
-                  <p className="text-sm text-gray-700 mt-1">{website.blurb}</p>
+                  <p className="website-blurb text-sm text-gray-700 mt-1">{website.blurb}</p>
                 )}
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="website-url text-xs text-gray-500 mt-1">
                   {website.url}
                 </div>
               </div>
