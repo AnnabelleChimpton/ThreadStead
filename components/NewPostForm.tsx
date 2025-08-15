@@ -10,7 +10,7 @@ type View = "write" | "preview";
 type NewPostFormProps = {
   onPosted?: () => void | Promise<void>;
   postId?: string; // Optional prop to edit an existing post
-  existingPost?: { bodyMarkdown: string; bodyHtml: string; visibility: Visibility }; // Existing post data
+  existingPost?: { title?: string; bodyMarkdown: string; bodyHtml: string; visibility: Visibility }; // Existing post data
 };
 
 const VIS_OPTS: { v: Visibility; label: string }[] = [
@@ -42,6 +42,7 @@ export default function NewPostForm({
   postId,
   existingPost, // Accepting existing post data for editing
 }: NewPostFormProps) {
+  const [title, setTitle] = useState(existingPost?.title || "");
   const [text, setText] = useState(existingPost?.bodyMarkdown || "");
   const [vis, setVis] = useState<Visibility>(existingPost?.visibility || "public");
   const [mode, setMode] = useState<Mode>("text");
@@ -58,6 +59,7 @@ export default function NewPostForm({
 
   useEffect(() => {
     if (existingPost) {
+      setTitle(existingPost.title || "");
       setText(existingPost.bodyMarkdown);
       setVis(existingPost.visibility);
     }
@@ -91,6 +93,7 @@ export default function NewPostForm({
       const { token } = await capRes.json();
 
       const payload: Record<string, any> = { visibility: vis, cap: token };
+      if (title.trim()) payload.title = title.trim();
       if (mode === "markdown") payload.bodyMarkdown = body;
       else if (mode === "html") payload.bodyHtml = body;
       else payload.bodyText = body;
@@ -102,6 +105,7 @@ export default function NewPostForm({
       });
       if (!res.ok) throw new Error(`create failed: ${res.status}`);
 
+      setTitle("");
       setText("");
       setView("write");
       await onPosted?.();
@@ -133,16 +137,33 @@ export default function NewPostForm({
       </div>
 
       {view === "write" ? (
-        <textarea
-          className="w-full border border-black p-2 bg-white font-sans"
-          rows={mode === "html" ? 10 : mode === "markdown" ? 8 : 5}
-          placeholder={mode === "markdown" ? "Write Markdown…" : "Write your post…"}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={busy}
-        />
+        <div className="space-y-2">
+          <input
+            type="text"
+            className="w-full border border-black p-2 bg-white font-sans text-lg font-semibold"
+            placeholder="Post title (optional)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={busy}
+          />
+          <textarea
+            className="w-full border border-black p-2 bg-white font-sans"
+            rows={mode === "html" ? 10 : mode === "markdown" ? 8 : 5}
+            placeholder={mode === "markdown" ? "Write Markdown…" : "Write your post…"}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={busy}
+          />
+        </div>
       ) : (
-        <Preview content={previewHtml} />
+        <div className="space-y-2">
+          {title.trim() && (
+            <div className="text-xl font-semibold text-black border-b border-gray-300 pb-2">
+              {title}
+            </div>
+          )}
+          <Preview content={previewHtml} />
+        </div>
       )}
 
       <div className="flex flex-wrap items-center gap-3">

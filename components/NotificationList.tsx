@@ -167,13 +167,17 @@ export default function NotificationList({
     switch (notification.type) {
       case "comment":
       case "reply":
-        // For comments and replies, link to the post on the post author's profile
+        // For comments and replies, link to the individual post page with comments expanded
         if (notification.data?.postAuthorHandle && notification.data?.postId) {
-          const postAuthorUsername = getUsername(notification.data.postAuthorHandle);
-          if (postAuthorUsername) {
-            // Link to post author's profile with post ID fragment
-            return `/${postAuthorUsername}#post-${notification.data.postId.slice(-6)}`;
-          }
+          // Use the full handle for the URL (e.g., "scooby@local" instead of just "scooby")
+          const postAuthorHandle = notification.data.postAuthorHandle;
+          // Build URL with query parameters for auto-expanding comments and highlighting
+          const baseUrl = `/${postAuthorHandle}/post/${notification.data.postId}`;
+          const params = new URLSearchParams({
+            comments: 'open',
+            ...(notification.data.commentId && { highlight: notification.data.commentId })
+          });
+          return `${baseUrl}?${params.toString()}`;
         }
         // Fallback to actor's profile
         return username ? `/${username}` : null;

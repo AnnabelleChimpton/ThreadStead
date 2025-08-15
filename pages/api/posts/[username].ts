@@ -43,6 +43,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     where: { authorId, visibility: { in: Array.from(allowed) as any } },
     orderBy: { createdAt: "desc" },
     take: 20,
+    include: {
+      author: {
+        select: {
+          id: true,
+          primaryHandle: true,
+          profile: {
+            select: {
+              displayName: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   res.json({ posts });

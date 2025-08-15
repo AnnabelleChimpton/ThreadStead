@@ -11,7 +11,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const viewer = await getSessionUser(req);
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
-  const { bodyText, bodyHtml, bodyMarkdown, visibility } = (req.body || {}) as {
+  const { title, bodyText, bodyHtml, bodyMarkdown, visibility } = (req.body || {}) as {
+    title?: string;
     bodyText?: string;
     bodyHtml?: string;
     bodyMarkdown?: string;
@@ -37,6 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const post = await db.post.create({
     data: {
       authorId: viewer.id,
+      title: title ?? null,
       bodyText: bodyText ?? null,
       bodyHtml: safeHtml,
       bodyMarkdown: bodyMarkdown ?? null, // Store raw markdown

@@ -3,6 +3,7 @@ import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import hljs from "highlight.js"; // Ensure highlight.js is imported
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "./NewCommentForm";
+import Link from "next/link";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -10,11 +11,13 @@ type View = "write" | "preview";
 
 export type Post = {
   id: string;
+  title?: string | null;
   createdAt: string; // ISO string from API
   bodyText?: string | null;
   bodyHtml?: string | null;
   bodyMarkdown?: string | null; // Ensure bodyMarkdown is available for edit
   visibility: Visibility;
+  author?: { id: string; primaryHandle?: string; profile?: { displayName?: string } };
 };
 
 const VIS_OPTS: { v: Visibility; label: string }[] = [
@@ -39,21 +42,26 @@ export default function PostItem({
   post,
   isOwner,
   onChanged,
+  highlightCommentId,
+  initialCommentsOpen = false,
 }: {
   post: Post;
   isOwner: boolean;
   onChanged?: () => void | Promise<void>;
+  highlightCommentId?: string | null;
+  initialCommentsOpen?: boolean;
 }) {
   const initialMode: Mode = post.bodyHtml ? "html" : "text";
 
   const [editing, setEditing] = useState(false);
   const [mode, setMode] = useState<Mode>(initialMode);
   const [view, setView] = useState<View>("write");
+  const [title, setTitle] = useState<string>(post.title ?? "");
   const [text, setText] = useState<string>(post.bodyHtml ?? post.bodyText ?? "");
   const [vis, setVis] = useState<Visibility>(post.visibility);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(initialCommentsOpen);
   const [commentsVersion, setCommentsVersion] = useState(0);
   const [commentCount, setCommentCount] = useState<number | null>(null);
   const [optimistic, setOptimistic] = useState<CommentWireList[]>([]);
@@ -130,6 +138,7 @@ const countLabel = hasServerCount
     try {
       const token = await mintPostCap();
       const payload: Record<string, any> = { id: post.id, visibility: vis, cap: token };
+      if (title.trim()) payload.title = title.trim();
       if (mode === "markdown") payload.bodyMarkdown = text;
       else if (mode === "html") payload.bodyHtml = text;
       else payload.bodyText = text;
@@ -182,6 +191,7 @@ const countLabel = hasServerCount
   function cancelEdit() {
     setEditing(false);
     setMode(initialMode);
+    setTitle(post.title ?? "");
     setText(post.bodyHtml ?? post.bodyText ?? "");
     setVis(post.visibility);
     setView("write");
@@ -289,26 +299,59 @@ const countLabel = hasServerCount
 
       <div className="blog-post-content">
         {!editing ? (
-          post.bodyHtml ? (
-            <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
-          ) : post.bodyText ? (
-            <p>{post.bodyText}</p>
-          ) : (
-            <div className="italic opacity-70">(No content)</div>
-          )
+          <>
+            {post.title && (
+              <div className="blog-post-title mb-3">
+                {post.author?.primaryHandle ? (
+                  <Link 
+                    href={`/${post.author.primaryHandle}/post/${post.id}`}
+                    className="text-xl font-semibold text-black hover:text-blue-700 underline-offset-2 hover:underline"
+                  >
+                    {post.title}
+                  </Link>
+                ) : (
+                  <h2 className="text-xl font-semibold text-black">{post.title}</h2>
+                )}
+              </div>
+            )}
+            {post.bodyHtml ? (
+              <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
+            ) : post.bodyText ? (
+              <p>{post.bodyText}</p>
+            ) : (
+              <div className="italic opacity-70">(No content)</div>
+            )}
+          </>
         ) : view === "write" ? (
-          <textarea
-            className="blog-post-editor w-full border border-black p-2 bg-white font-sans"
-            rows={mode === "html" ? 10 : mode === "markdown" ? 8 : 5}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            disabled={busy}
-          />
+          <div className="space-y-2">
+            <input
+              type="text"
+              className="w-full border border-black p-2 bg-white font-sans text-lg font-semibold"
+              placeholder="Post title (optional)"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={busy}
+            />
+            <textarea
+              className="blog-post-editor w-full border border-black p-2 bg-white font-sans"
+              rows={mode === "html" ? 10 : mode === "markdown" ? 8 : 5}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              disabled={busy}
+            />
+          </div>
         ) : (
-          <div
-            className="blog-post-preview border border-black p-3 bg-white min-h-[120px]"
-            dangerouslySetInnerHTML={{ __html: previewHtml }}
-          />
+          <div className="space-y-2">
+            {title.trim() && (
+              <div className="text-xl font-semibold text-black border-b border-gray-300 pb-2">
+                {title}
+              </div>
+            )}
+            <div
+              className="blog-post-preview border border-black p-3 bg-white min-h-[120px]"
+              dangerouslySetInnerHTML={{ __html: previewHtml }}
+            />
+          </div>
         )}
       </div>
 
@@ -343,6 +386,7 @@ const countLabel = hasServerCount
                 onRemoved={() =>
                     setCommentCount((n) => (typeof n === "number" ? Math.max(0, n - 1) : n))
                 }
+                highlightCommentId={highlightCommentId}
             />
             </div>
         )}

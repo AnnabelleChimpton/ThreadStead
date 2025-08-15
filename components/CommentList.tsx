@@ -18,6 +18,7 @@ type CommentListProps = {
   canModerate?: boolean;
   onRemoved?: (id: string) => void;
   onCommentAdded?: (comment: CommentWire) => void;
+  highlightCommentId?: string | null;
 };
 
 export default function CommentList({
@@ -28,6 +29,7 @@ export default function CommentList({
   canModerate = false,
   onRemoved,
   onCommentAdded,
+  highlightCommentId,
 }: CommentListProps) {
   const [serverComments, setServerComments] = useState<CommentWire[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +37,19 @@ export default function CommentList({
   const [removing, setRemoving] = useState<string | null>(null);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+
+  // Auto-scroll to highlighted comment
+  useEffect(() => {
+    if (highlightCommentId && !loading && serverComments.length > 0) {
+      const timer = setTimeout(() => {
+        const element = document.getElementById(`comment-${highlightCommentId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100); // Small delay to ensure DOM is updated
+      return () => clearTimeout(timer);
+    }
+  }, [highlightCommentId, loading, serverComments.length]);
 
    useEffect(() => {
       let cancelled = false;
@@ -141,10 +156,18 @@ export default function CommentList({
     const canDelete = canModerate || (!!viewerId && comment.author?.id === viewerId);
     const maxDepth = 3; // Limit nesting depth
     const isReplying = replyingTo === comment.id;
+    const isHighlighted = highlightCommentId === comment.id;
 
     return (
       <div key={comment.id} className={`${depth > 0 ? 'ml-6 border-l-2 border-thread-sage/20 pl-4' : ''}`}>
-        <div className="rounded-xl border border-white/10 p-3">
+        <div 
+          id={`comment-${comment.id}`}
+          className={`rounded-xl border p-3 transition-all duration-300 ${
+            isHighlighted 
+              ? 'border-yellow-400 bg-yellow-50 shadow-lg ring-2 ring-yellow-200' 
+              : 'border-white/10'
+          }`}
+        >
           <div className="flex items-center gap-2 mb-1">
             {comment.author?.avatarUrl ? (
               <img src={comment.author.avatarUrl} alt="" className="w-6 h-6 rounded-full" loading="lazy" />
