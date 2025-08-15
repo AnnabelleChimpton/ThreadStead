@@ -61,25 +61,25 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-2">
+    <form onSubmit={submit} className="comment-form flex flex-col gap-2">
       <textarea
-        className="border border-black p-2 bg-white rounded"
+        className="comment-form textarea border border-black md:border-black p-2 md:p-2 bg-white rounded"
         rows={3}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={placeholder}
         disabled={loading}
       />
-      <div className="flex gap-2 items-center">
+      <div className="comment-form-actions flex gap-2 items-center">
         <button
           type="submit"
           disabled={disabled}
-          className="border border-black px-3 py-1 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] disabled:opacity-60"
+          className="comment-submit-button border border-black md:border-black px-3 py-1 md:px-3 md:py-1 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] disabled:opacity-60"
           aria-busy={loading}
         >
           {loading ? "Posting…" : "Post Comment"}
         </button>
-        {error && <span className="text-red-700 text-sm">{error}</span>}
+        {error && <span className="comment-error text-red-700 text-sm">{error}</span>}
       </div>
     </form>
   );

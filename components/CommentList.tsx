@@ -175,48 +175,95 @@ export default function CommentList({
     const isReplying = replyingTo === comment.id;
     const isHighlighted = highlightCommentId === comment.id;
 
+    // Dynamic classes for mobile/desktop
+    const threadClass = depth > 0 
+      ? `comment-thread comment-thread-depth-${Math.min(depth, 5)} ml-6 md:ml-6 border-l-2 border-thread-sage/20 pl-4 md:pl-4`
+      : '';
+
     return (
-      <div key={comment.id} className={`${depth > 0 ? 'ml-6 border-l-2 border-thread-sage/20 pl-4' : ''}`}>
+      <div key={comment.id} className={threadClass}>
         <div 
           id={`comment-${comment.id}`}
-          className={`rounded-xl border p-3 transition-all duration-300 ${
+          className={`comment-container rounded-xl border p-3 md:p-3 transition-all duration-300 ${
             isHighlighted 
-              ? 'border-yellow-400 bg-yellow-50 shadow-lg ring-2 ring-yellow-200' 
+              ? 'comment-highlighted border-yellow-400 md:border-yellow-400 bg-yellow-50 md:bg-yellow-50 shadow-lg ring-2 ring-yellow-200' 
               : 'border-white/10'
           }`}
         >
-          <div className="flex items-center gap-2 mb-1">
-            {comment.author?.avatarUrl ? (
-              <img src={comment.author.avatarUrl} alt="" className="w-6 h-6 rounded-full" loading="lazy" />
-            ) : null}
-            <span className="font-semibold">{comment.author?.handle ?? "anon"}</span>
-            <span className="text-xs opacity-70 ml-auto">
-              {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
-            </span>
-            {depth < maxDepth && (
-              <button
-                className="border border-black px-2 py-0.5 bg-white hover:bg-blue-100 shadow-[2px_2px_0_#000] text-xs"
-                onClick={() => setReplyingTo(isReplying ? null : comment.id)}
-              >
-                {isReplying ? "Cancel" : "Reply"}
-              </button>
-            )}
-            {canDelete && (
-              <button
-                className="ml-2 border border-black px-2 py-0.5 bg-white hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs disabled:opacity-50"
-                onClick={() => handleRemove(comment.id)}
-                disabled={removing === comment.id}
-                aria-busy={removing === comment.id}
-                title={comment.author?.id === viewerId ? "Delete your comment" : "Remove comment"}
-              >
-                {removing === comment.id ? "Removing…" : (comment.author?.id === viewerId ? "Delete" : "Remove")}
-              </button>
-            )}
+          {/* Mobile-optimized header */}
+          <div className="comment-header flex md:flex-row items-center md:items-center gap-2 mb-1 md:mb-1">
+            <div className="comment-header-top md:hidden w-full">
+              <div className="comment-author-info">
+                {comment.author?.avatarUrl ? (
+                  <img src={comment.author.avatarUrl} alt="" className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" loading="lazy" />
+                ) : null}
+                <span className="comment-author-name font-semibold text-sm md:text-base">{comment.author?.handle ?? "anon"}</span>
+              </div>
+              <span className="comment-timestamp text-xs opacity-70">
+                {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
+              </span>
+            </div>
+            
+            {/* Desktop header (original layout) */}
+            <div className="hidden md:flex md:items-center md:gap-2 md:w-full">
+              {comment.author?.avatarUrl ? (
+                <img src={comment.author.avatarUrl} alt="" className="w-6 h-6 rounded-full" loading="lazy" />
+              ) : null}
+              <span className="font-semibold">{comment.author?.handle ?? "anon"}</span>
+              <span className="text-xs opacity-70 ml-auto">
+                {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
+              </span>
+              {depth < maxDepth && (
+                <button
+                  className="border border-black px-2 py-0.5 bg-white hover:bg-blue-100 shadow-[2px_2px_0_#000] text-xs"
+                  onClick={() => setReplyingTo(isReplying ? null : comment.id)}
+                >
+                  {isReplying ? "Cancel" : "Reply"}
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  className="ml-2 border border-black px-2 py-0.5 bg-white hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs disabled:opacity-50"
+                  onClick={() => handleRemove(comment.id)}
+                  disabled={removing === comment.id}
+                  aria-busy={removing === comment.id}
+                  title={comment.author?.id === viewerId ? "Delete your comment" : "Remove comment"}
+                >
+                  {removing === comment.id ? "Removing…" : (comment.author?.id === viewerId ? "Delete" : "Remove")}
+                </button>
+              )}
+            </div>
+
+            {/* Mobile action buttons */}
+            <div className="comment-header-bottom md:hidden w-full">
+              <div className="comment-actions">
+                {depth < maxDepth && (
+                  <button
+                    className="comment-button"
+                    onClick={() => setReplyingTo(isReplying ? null : comment.id)}
+                  >
+                    {isReplying ? "Cancel" : "Reply"}
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    className="comment-button comment-button-delete"
+                    onClick={() => handleRemove(comment.id)}
+                    disabled={removing === comment.id}
+                    aria-busy={removing === comment.id}
+                    title={comment.author?.id === viewerId ? "Delete your comment" : "Remove comment"}
+                  >
+                    {removing === comment.id ? "Removing…" : (comment.author?.id === viewerId ? "Delete" : "Remove")}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+
+          <p className="comment-content text-sm md:text-sm leading-relaxed whitespace-pre-wrap">{comment.content}</p>
           
           {isReplying && (
-            <div className="mt-3 pt-3 border-t border-white/10">
+            <div className="comment-form mt-3 pt-3 border-t border-white/10 md:border-white/10">
               <NewCommentForm 
                 postId={postId} 
                 parentId={comment.id}
