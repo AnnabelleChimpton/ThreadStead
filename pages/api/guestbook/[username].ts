@@ -91,7 +91,7 @@ if (req.method === "POST") {
   const authorHandles = await db.handle.findMany({
     where: { 
       userId: { in: authorIds as string[] },
-      host: "local"
+      host: SITE_NAME
     },
     select: {
       userId: true,

@@ -78,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: whereClause,
       include: {
         handles: {
-          where: { host: "local" },
+          where: { host: SITE_NAME },
           take: 1,
           orderBy: { handle: "asc" }
         },
