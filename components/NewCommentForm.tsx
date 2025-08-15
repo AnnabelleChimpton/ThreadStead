@@ -47,7 +47,12 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
 
       setContent("");
       if (data?.comment) onCommentAdded?.(data.comment as CommentWire);
-      else onCommentAdded?.({ id: crypto.randomUUID(), content: text, parentId });
+      else onCommentAdded?.({ 
+        id: crypto.randomUUID(), 
+        content: text, 
+        parentId,
+        createdAt: new Date().toISOString()
+      });
     } catch {
       setError("Network error. Please try again.");
     } finally {

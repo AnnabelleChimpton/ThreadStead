@@ -29,7 +29,7 @@ export default function NotificationsPage({ user }: NotificationsPageProps) {
             <p className="text-thread-sage mb-6">You need to be logged in to view notifications.</p>
             <Link
               href="/auth/login"
-              className="inline-block px-6 py-2 bg-thread-sunset text-white border border-black shadow-[2px_2px_0_#000] hover:shadow-[1px_1px_0_#000] transition-all"
+              className="inline-block px-6 py-2 bg-thread-sunset text-white border border-black shadow-[2px_2px_0_#000] hover:bg-thread-pine transition-colors"
             >
               Log In
             </Link>

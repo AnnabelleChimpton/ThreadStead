@@ -304,7 +304,7 @@ const countLabel = hasServerCount
               <div className="blog-post-title mb-3">
                 {post.author?.primaryHandle ? (
                   <Link 
-                    href={`/${post.author.primaryHandle}/post/${post.id}`}
+                    href={`/${post.author.primaryHandle.split('@')[0]}/post/${post.id}`}
                     className="text-xl font-semibold text-black hover:text-blue-700 underline-offset-2 hover:underline"
                   >
                     {post.title}

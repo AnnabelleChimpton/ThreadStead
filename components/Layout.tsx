@@ -6,7 +6,7 @@ import NotificationDropdown from "./NotificationDropdown";
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="site-layout min-h-screen thread-surface">
-      <header className="site-header border-b border-thread-sage bg-thread-cream px-6 py-4">
+      <header className="site-header border-b border-thread-sage bg-thread-cream px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95">
         <nav className="site-navigation mx-auto max-w-5xl flex items-center justify-between">
           <div className="site-branding">
             <h1 className="site-title thread-headline text-2xl font-bold text-thread-pine">HomePageAgain</h1>

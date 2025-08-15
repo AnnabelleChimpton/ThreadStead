@@ -91,9 +91,17 @@ export default function CommentList({
   const merged = useMemo(() => {
     const seen = new Set<string>();
     const out: CommentWire[] = [];
+    
+    // Add all unique comments from both sources
     for (const c of optimistic) if (c?.id && !seen.has(c.id)) { seen.add(c.id); out.push(c); }
     for (const c of serverComments) if (c?.id && !seen.has(c.id)) { seen.add(c.id); out.push(c); }
-    return out;
+    
+    // Sort by creation time to maintain proper threading order
+    return out.sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeA - timeB;
+    });
   }, [optimistic, serverComments]);
 
   // Build nested comment tree
@@ -113,6 +121,15 @@ export default function CommentList({
         byParent[comment.parentId].push(comment);
       }
     }
+
+    // Sort replies within each parent group by creation time
+    Object.keys(byParent).forEach(parentId => {
+      byParent[parentId].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeA - timeB;
+      });
+    });
 
     // Recursively build tree
     const buildTree = (comments: CommentWire[]): CommentWire[] => {
