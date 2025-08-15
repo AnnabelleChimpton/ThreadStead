@@ -16,7 +16,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
   } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  const handleTemplateSelect = (type: 'full' | 'minimal' | 'dark' | 'advanced' | 'gaming' | 'newspaper' | 'clear') => {
+  const handleTemplateSelect = (type: 'full' | 'minimal' | 'dark' | 'advanced' | 'gaming' | 'newspaper' | 'fantasy' | 'clear') => {
     if (type === 'clear') {
       onChange('');
     } else {
@@ -148,6 +148,14 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
             >
               <div className="font-semibold text-thread-pine">📰 Newspaper</div>
               <div className="text-thread-sage mt-1">Classic print layout</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTemplateSelect('fantasy')}
+              className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
+            >
+              <div className="font-semibold text-thread-pine">🏰 Medieval Fantasy</div>
+              <div className="text-thread-sage mt-1">Tavern & scroll theme</div>
             </button>
             <button
               type="button"

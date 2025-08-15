@@ -23,6 +23,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
 
+      {/* Creative header section - users can style this wildly! */}
+      <div className="site-creative-header"></div>
+
       <main className="site-main mx-auto max-w-5xl px-6 py-8">{children}</main>
 
       <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4">
