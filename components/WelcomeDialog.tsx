@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { exportIdentityToken } from "@/lib/did-client";
+import { exportIdentityToken, getSeedPhrase, generateSeedPhrase, storeSeedPhrase } from "@/lib/did-client";
 
 interface WelcomeDialogProps {
   username: string;
@@ -10,10 +10,23 @@ interface WelcomeDialogProps {
 export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeDialogProps) {
   const [step, setStep] = useState<'welcome' | 'backup' | 'verify'>('welcome');
   const [backupToken, setBackupToken] = useState<string>("");
+  const [seedPhrase, setSeedPhrase] = useState<string>("");
   const [hasBackedUp, setHasBackedUp] = useState(false);
 
   async function handleCreateBackup() {
     try {
+      // First check if we already have a seed phrase
+      const existingSeed = getSeedPhrase();
+      if (existingSeed) {
+        setSeedPhrase(existingSeed.mnemonic);
+      } else {
+        // Generate a new seed phrase and store it
+        const newSeed = await generateSeedPhrase();
+        setSeedPhrase(newSeed);
+        storeSeedPhrase(newSeed);
+      }
+      
+      // Also create the legacy token
       const token = await exportIdentityToken();
       setBackupToken(token);
       setStep('backup');
@@ -23,7 +36,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
   }
 
   function copyToClipboard() {
-    navigator.clipboard.writeText(backupToken).then(() => {
+    navigator.clipboard.writeText(seedPhrase || backupToken).then(() => {
       setHasBackedUp(true);
     }).catch(() => {
       // Fallback for older browsers or clipboard permission issues
@@ -32,7 +45,8 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
   }
 
   function downloadAsFile() {
-    const blob = new Blob([backupToken], { type: 'text/plain' });
+    const content = seedPhrase ? `Recovery Seed Phrase:\n${seedPhrase}\n\nLegacy Backup Token:\n${backupToken}` : backupToken;
+    const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -92,15 +106,15 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
   if (step === 'backup') {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-thread-paper border-2 border-thread-sage rounded-lg max-w-2xl w-full p-6 space-y-4">
+        <div className="bg-thread-paper border-2 border-thread-sage rounded-lg max-w-4xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
           <div className="text-center">
-            <h2 className="thread-headline text-xl mb-2">🔑 Your Identity Backup Key</h2>
+            <h2 className="thread-headline text-xl mb-2">🔑 Your Account Recovery Information</h2>
             <p className="text-thread-sage">
-              Save this backup key securely. You&apos;ll need it to recover your account.
+              Save this information securely. You&apos;ll need it to recover your account if you lose access.
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="bg-thread-cream border border-thread-sage rounded p-4">
               <h3 className="thread-label text-base mb-3 flex items-center gap-2">
                 <span>⚠️</span>
@@ -109,38 +123,66 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
               <ul className="text-sm text-thread-charcoal space-y-2">
                 <li className="flex items-start gap-2">
                   <span className="text-green-600 mt-0.5">✓</span>
+                  <span>Write down your seed phrase on paper and store safely</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>Make multiple copies in different secure locations</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
                   <span>Save to a password manager (recommended)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-0.5">✓</span>
-                  <span>Download and store in a secure location</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600 mt-0.5">✓</span>
-                  <span>Make multiple copies in different places</span>
+                  <span className="text-red-600 mt-0.5">✗</span>
+                  <span>Never share these words with anyone</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-600 mt-0.5">✗</span>
-                  <span>Never share this key with anyone</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-0.5">✗</span>
-                  <span>Don&apos;t store in plain text files or emails</span>
+                  <span>Don&apos;t store in plain text files, emails, or screenshots</span>
                 </li>
               </ul>
             </div>
 
-            <div className="relative">
-              <label className="block text-sm font-medium text-thread-sage mb-2">
-                Your Identity Backup Key:
-              </label>
-              <textarea
-                readOnly
-                value={backupToken}
-                className="w-full h-32 text-xs font-mono border border-thread-sage p-3 resize-none bg-thread-paper rounded"
-                style={{ userSelect: 'all' }}
-              />
-            </div>
+            {seedPhrase && (
+              <div className="bg-gradient-to-r from-thread-cream to-thread-paper border-2 border-thread-sage rounded-lg p-4">
+                <h3 className="thread-label text-base mb-3 flex items-center gap-2">
+                  <span>🔐</span>
+                  Recovery Seed Phrase (Recommended)
+                </h3>
+                <p className="text-sm text-thread-sage mb-3">
+                  These 12 words can restore your account. Keep them safe and in order.
+                </p>
+                <div className="bg-white border border-thread-sage rounded p-4 mb-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {seedPhrase.split(' ').map((word, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-thread-cream rounded border text-sm">
+                        <span className="text-xs text-thread-sage font-medium min-w-[20px]">{index + 1}.</span>
+                        <span className="font-mono font-medium text-thread-charcoal">{word}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {backupToken && (
+              <div className="bg-thread-paper border border-thread-sage rounded p-4">
+                <h3 className="thread-label text-base mb-3 flex items-center gap-2">
+                  <span>📄</span>
+                  Legacy Backup Token
+                </h3>
+                <p className="text-sm text-thread-sage mb-3">
+                  For compatibility with older versions of the app.
+                </p>
+                <textarea
+                  readOnly
+                  value={backupToken}
+                  className="w-full h-20 text-xs font-mono border border-thread-sage p-3 resize-none bg-thread-paper rounded"
+                  style={{ userSelect: 'all' }}
+                />
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button
@@ -148,21 +190,21 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
                 className="flex-1 px-4 py-3 text-sm bg-thread-cream border border-thread-sage hover:bg-thread-sage hover:text-thread-paper rounded transition-all flex items-center justify-center gap-2"
               >
                 <span>📋</span>
-                Copy to Clipboard
+                Copy Seed Phrase
               </button>
               <button
                 onClick={downloadAsFile}
                 className="flex-1 px-4 py-3 text-sm bg-thread-cream border border-thread-sage hover:bg-thread-sage hover:text-thread-paper rounded transition-all flex items-center justify-center gap-2"
               >
                 <span>💾</span>
-                Download File
+                Download Backup
               </button>
             </div>
 
             {hasBackedUp && (
               <div className="text-center">
                 <p className="text-sm text-green-600 font-medium mb-3">
-                  ✓ Great! You&apos;ve saved your backup key.
+                  ✓ Great! You&apos;ve saved your recovery information.
                 </p>
                 <button
                   onClick={onComplete}

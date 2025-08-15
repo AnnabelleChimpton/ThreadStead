@@ -1,10 +1,13 @@
 // lib/did-client.ts
 import * as ed from "@noble/ed25519";
 import { toBase64Url, fromBase64Url } from "@/lib/base64";
+import * as bip39 from "bip39";
 
 const KEY_STORAGE = "retro_did_keypair_v1";
+const SEED_STORAGE = "retro_seed_phrase_v1";
 
 export type LocalKeypair = { publicKey: string; secretKey: string; did: string };
+export type SeedPhrase = { mnemonic: string; created: number };
 
 export function hasExistingDid(): boolean {
   if (typeof window === "undefined") return false;
@@ -180,6 +183,110 @@ export async function logoutCurrentSession(): Promise<void> {
   }
 }
 
+// Seed phrase utilities
+export async function generateSeedPhrase(): Promise<string> {
+  return bip39.generateMnemonic(128); // 12 words
+}
+
+export async function createKeypairFromSeedPhrase(mnemonic: string): Promise<LocalKeypair> {
+  if (!bip39.validateMnemonic(mnemonic)) {
+    throw new Error("Invalid seed phrase");
+  }
+  
+  const seed = await bip39.mnemonicToSeed(mnemonic);
+  // Use the first 32 bytes as our Ed25519 private key
+  const secret = seed.slice(0, 32);
+  const publicKey = await ed.getPublicKeyAsync(secret);
+  
+  const skb64u = toBase64Url(secret);
+  const pkb64u = toBase64Url(publicKey);
+  const did = `did:key:ed25519:${pkb64u}`;
+  
+  return { publicKey: pkb64u, secretKey: skb64u, did };
+}
+
+export function hasSeedPhrase(): boolean {
+  if (typeof window === "undefined") return false;
+  const existing = localStorage.getItem(SEED_STORAGE);
+  return !!existing;
+}
+
+export function getSeedPhrase(): SeedPhrase | null {
+  if (typeof window === "undefined") return null;
+  const existing = localStorage.getItem(SEED_STORAGE);
+  return existing ? JSON.parse(existing) : null;
+}
+
+export function storeSeedPhrase(mnemonic: string): void {
+  if (typeof window === "undefined") return;
+  const seedData: SeedPhrase = { mnemonic, created: Date.now() };
+  localStorage.setItem(SEED_STORAGE, JSON.stringify(seedData));
+}
+
+export function clearSeedPhrase(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(SEED_STORAGE);
+}
+
+export async function recoverFromSeedPhrase(mnemonic: string, username?: string): Promise<void> {
+  // Validate the seed phrase first
+  if (!bip39.validateMnemonic(mnemonic)) {
+    throw new Error("Invalid seed phrase");
+  }
+
+  // Logout from current session
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } catch (e) {
+    console.warn("Failed to logout from current session:", e);
+  }
+
+  // Generate keypair from seed
+  const kp = await createKeypairFromSeedPhrase(mnemonic);
+  
+  // Store the keypair and seed phrase
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEY_STORAGE, JSON.stringify(kp));
+    storeSeedPhrase(mnemonic);
+  }
+
+  // Attempt login (no beta key needed for recovery of existing account)
+  const c = await fetch("/api/auth/challenge").then(r => r.json());
+  const sig = await signMessage(kp.secretKey, c.nonce);
+  const loginRes = await fetch("/api/auth/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      did: kp.did, 
+      publicKey: kp.publicKey, 
+      signature: sig
+      // Explicitly not passing betaKey for recovery
+    }),
+  });
+  
+  if (!loginRes.ok) {
+    const errorData = await loginRes.json();
+    if (errorData?.error === "Beta key required for account creation") {
+      throw new Error("This seed phrase doesn't match any existing account. You can only recover accounts that were previously created with this seed phrase.");
+    }
+    throw new Error(errorData?.error || `Login failed: ${loginRes.status}`);
+  }
+
+  // If username provided, try to claim it (this would only work for new accounts)
+  if (username) {
+    const claimRes = await fetch("/api/account/claim-handle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ handle: username }),
+    });
+
+    if (!claimRes.ok) {
+      const errorData = await claimRes.json();
+      throw new Error(errorData?.error || `Failed to claim username: ${claimRes.status}`);
+    }
+  }
+}
+
 // Create new identity, log in, and claim username in one flow
 export async function createNewIdentityWithUsername(username: string, betaKey?: string): Promise<void> {
   // Generate new keypair (this already handles logout)
@@ -215,4 +322,65 @@ export async function createNewIdentityWithUsername(username: string, betaKey?: 
     const errorData = await claimRes.json();
     throw new Error(errorData?.error || `Failed to claim username: ${claimRes.status}`);
   }
+}
+
+// Enhanced version that also creates a seed phrase
+export async function createNewIdentityWithSeedPhrase(username: string, betaKey?: string): Promise<{ mnemonic: string }> {
+  // Generate seed phrase first
+  const mnemonic = await generateSeedPhrase();
+  
+  // Logout from current session
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } catch (e) {
+    console.warn("Failed to logout from current session:", e);
+  }
+
+  // Clear existing identity
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(KEY_STORAGE);
+    localStorage.removeItem(SEED_STORAGE);
+  }
+
+  // Generate keypair from seed
+  const kp = await createKeypairFromSeedPhrase(mnemonic);
+  
+  // Store both keypair and seed phrase
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEY_STORAGE, JSON.stringify(kp));
+    storeSeedPhrase(mnemonic);
+  }
+
+  // Perform login
+  const c = await fetch("/api/auth/challenge").then(r => r.json());
+  const sig = await signMessage(kp.secretKey, c.nonce);
+  const loginRes = await fetch("/api/auth/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      did: kp.did, 
+      publicKey: kp.publicKey, 
+      signature: sig,
+      betaKey 
+    }),
+  });
+  
+  if (!loginRes.ok) {
+    const errorData = await loginRes.json();
+    throw new Error(errorData?.error || `Login failed: ${loginRes.status}`);
+  }
+
+  // Claim the username
+  const claimRes = await fetch("/api/account/claim-handle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ handle: username }),
+  });
+
+  if (!claimRes.ok) {
+    const errorData = await claimRes.json();
+    throw new Error(errorData?.error || `Failed to claim username: ${claimRes.status}`);
+  }
+
+  return { mnemonic };
 }

@@ -17,9 +17,9 @@ export default function LoginButton({ onToggleIdentity, isIdentityOpen }: LoginB
       return;
     }
 
-    // Check if DID exists, if not show Identity tab
-    if (!hasExistingDid() && onToggleIdentity) {
-      onToggleIdentity();
+    // Check if DID exists, if not redirect to identity page
+    if (!hasExistingDid()) {
+      window.location.href = '/identity';
       return;
     }
 
@@ -28,11 +28,15 @@ export default function LoginButton({ onToggleIdentity, isIdentityOpen }: LoginB
       setErr(null);
       const kp = getExistingDid();
       if (!kp) {
-        throw new Error("No identity found. Please create or import an identity first.");
+        // Redirect to identity page instead of showing error
+        window.location.href = '/identity';
+        return;
       }
       await performLogin(kp);
-    } catch (e: unknown) {
-      setErr((e as Error)?.message || "Login failed");
+    } catch {
+      // If login fails (bad DID, deleted account, etc.), redirect to identity page
+      // instead of showing confusing error messages
+      window.location.href = '/identity';
     } finally {
       setBusy(false);
     }
