@@ -212,11 +212,11 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
                   <li><code>.profile-photo-wrapper</code> - Photo wrapper container</li>
                   <li><code>.profile-photo-frame</code> - Photo frame/border</li>
                   <li><code>.profile-photo-image</code> - Actual profile image</li>
-                  <li><code>.profile-photo-placeholder</code> - "No Photo" placeholder</li>
+                  <li><code>.profile-photo-placeholder</code> - &quot;No Photo&quot; placeholder</li>
                   <li><code>.profile-info-section</code> - Info and bio section</li>
                   <li><code>.profile-identity</code> - Name and status area</li>
                   <li><code>.profile-display-name</code> - User display name/username</li>
-                  <li><code>.profile-status</code> - Status text ("threadstead resident")</li>
+                  <li><code>.profile-status</code> - Status text (&quot;threadstead resident&quot;)</li>
                   <li><code>.profile-bio-section</code> - Bio text section</li>
                   <li><code>.profile-bio</code> - User bio/description text</li>
                   <li><code>.profile-actions</code> - Action buttons area</li>
