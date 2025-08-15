@@ -14,10 +14,16 @@ enum Visibility {
   private
 }
 
+enum UserRole {
+  member
+  admin
+}
+
 model User {
   id            String   @id @default(cuid()) // internal id
   did           String   @unique // did:key:... (portable identity)
   createdAt     DateTime @default(now())
+  role          UserRole @default(member)
   // human handles (a user can have several; one primary)
   handles       Handle[]
   primaryHandle String?
@@ -215,4 +221,15 @@ model Notification {
   
   @@index([recipientId, status, createdAt])
   @@index([recipientId, actorId, type])
+}
+
+model SiteConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([key])
 }

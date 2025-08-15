@@ -1,8 +1,15 @@
 import Layout from "../components/Layout";
 import Tabs, { TabSpec } from "../components/Tabs";
 import Feed from "../components/Feed";
+import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
+import { GetServerSideProps } from "next";
 
-export default function Home() {
+interface HomeProps {
+  siteConfig: SiteConfig;
+}
+
+export default function Home({ siteConfig }: HomeProps) {
+  const config = siteConfig;
   const tabs: TabSpec[] = [
     {
       id: "recent",
@@ -17,13 +24,12 @@ export default function Home() {
   ];
 
   return (
-    <Layout>
+    <Layout siteConfig={siteConfig}>
       <div className="thread-module p-6 mb-6">
         <div className="mb-4">
-          <h1 className="thread-headline text-3xl font-bold mb-2">Welcome to ThreadStead</h1>
+          <h1 className="thread-headline text-3xl font-bold mb-2">{config.welcome_message}</h1>
           <p className="text-thread-sage leading-relaxed">
-            A cozy corner of the web where your threads belong to you. 
-            Discover what your neighbors are sharing and join the conversation.
+            {config.site_description}
           </p>
         </div>
         <div className="thread-divider"></div>
@@ -36,3 +42,13 @@ export default function Home() {
     </Layout>
   );
 }
+
+export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
+  const siteConfig = await getSiteConfig();
+  
+  return {
+    props: {
+      siteConfig,
+    },
+  };
+};

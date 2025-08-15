@@ -176,6 +176,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
               onLoaded={handleCommentsLoaded}
               optimistic={optimistic}
               canModerate={false}
+              isAdmin={false}
               onCommentAdded={handleCommentAdded}
               onRemoved={() => {
                 setActualCommentCount(n => typeof n === "number" ? Math.max(0, n - 1) : n);

@@ -41,12 +41,14 @@ function textToHtml(text: string) {
 export default function PostItem({
   post,
   isOwner,
+  isAdmin = false,
   onChanged,
   highlightCommentId,
   initialCommentsOpen = false,
 }: {
   post: Post;
   isOwner: boolean;
+  isAdmin?: boolean;
   onChanged?: () => void | Promise<void>;
   highlightCommentId?: string | null;
   initialCommentsOpen?: boolean;
@@ -188,6 +190,27 @@ const countLabel = hasServerCount
     }
   }
 
+  async function adminDelete() {
+    if (!confirm("Admin delete this post? This action cannot be undone.")) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/admin/delete-post", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.id }),
+      });
+      if (!res.ok) throw new Error(`admin delete ${res.status}`);
+      
+      // Notify parent component that the post was removed
+      await onChanged?.();
+    } catch (e: any) {
+      setErr(e?.message || "Failed to delete");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function cancelEdit() {
     setEditing(false);
     setMode(initialMode);
@@ -207,24 +230,36 @@ const countLabel = hasServerCount
 
         <div className="blog-post-actions flex items-center gap-2">
           {!editing ? (
-            isOwner && (
-              <>
+            <>
+              {isOwner && (
+                <>
+                  <button
+                    className="profile-button blog-post-edit-button border border-black px-2 py-0.5 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] text-xs"
+                    onClick={() => setEditing(true)}
+                    disabled={busy}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="profile-button blog-post-delete-button border border-black px-2 py-0.5 bg-white hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs"
+                    onClick={remove}
+                    disabled={busy}
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
+              {isAdmin && !isOwner && (
                 <button
-                  className="profile-button blog-post-edit-button border border-black px-2 py-0.5 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] text-xs"
-                  onClick={() => setEditing(true)}
+                  className="profile-button admin-delete-button border border-black px-2 py-0.5 bg-red-200 hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs"
+                  onClick={adminDelete}
                   disabled={busy}
+                  title="Admin: Delete post"
                 >
-                  Edit
+                  🛡️ Delete
                 </button>
-                <button
-                  className="profile-button blog-post-delete-button border border-black px-2 py-0.5 bg-white hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs"
-                  onClick={remove}
-                  disabled={busy}
-                >
-                  Delete
-                </button>
-              </>
-            )
+              )}
+            </>
           ) : (
             <>
               {/* Write / Preview toggle */}
@@ -382,6 +417,7 @@ const countLabel = hasServerCount
                 onLoaded={(n) => setCommentCount(n)}
                 optimistic={optimistic}
                 canModerate={isOwner}
+                isAdmin={isAdmin}
                 onCommentAdded={handleCommentAdded}
                 onRemoved={() =>
                     setCommentCount((n) => (typeof n === "number" ? Math.max(0, n - 1) : n))

@@ -1,5 +1,5 @@
 import type { NextApiRequest } from "next";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserRole } from "@prisma/client";
 const db = new PrismaClient();
 
 export async function getSessionUser(req: NextApiRequest) {
@@ -15,4 +15,16 @@ export async function getSessionUser(req: NextApiRequest) {
   });
   if (!session) return null;
   return session.user;
+}
+
+export async function requireAdmin(req: NextApiRequest) {
+  const user = await getSessionUser(req);
+  if (!user || user.role !== UserRole.admin) {
+    return null;
+  }
+  return user;
+}
+
+export function isAdmin(user: { role: UserRole } | null): boolean {
+  return user?.role === UserRole.admin;
 }

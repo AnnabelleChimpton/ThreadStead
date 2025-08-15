@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { exportIdentityToken, getSeedPhrase, generateSeedPhrase, storeSeedPhrase } from "@/lib/did-client";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 interface WelcomeDialogProps {
   username: string;
@@ -8,6 +9,7 @@ interface WelcomeDialogProps {
 }
 
 export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeDialogProps) {
+  const { config } = useSiteConfig();
   const [step, setStep] = useState<'welcome' | 'backup' | 'verify'>('welcome');
   const [backupToken, setBackupToken] = useState<string>("");
   const [seedPhrase, setSeedPhrase] = useState<string>("");
@@ -63,7 +65,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-thread-paper border-2 border-thread-sage rounded-lg max-w-lg w-full p-6 space-y-4">
           <div className="text-center">
-            <h2 className="thread-headline text-xl mb-2">🎉 Welcome to Retro Social!</h2>
+            <h2 className="thread-headline text-xl mb-2">{config.welcome_dialog_title}</h2>
             <p className="text-thread-sage">
               Your account <span className="font-medium text-thread-pine">@{username}</span> has been created successfully!
             </p>

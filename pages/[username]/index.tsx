@@ -16,6 +16,7 @@ import WebsiteDisplay from "@/components/WebsiteDisplay";
 import FriendDisplay from "@/components/FriendDisplay";
 import { Website } from "@/components/WebsiteManager";
 import { SelectedFriend } from "@/components/FriendManager";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 import Link from "next/link";
 
 /* ---------------- helpers ---------------- */
@@ -24,6 +25,7 @@ function BlogTab({ username, ownerUserId }: { username: string; ownerUserId: str
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<PostType[]>([]);
   const [isOwner, setIsOwner] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const refresh = async () => {
     const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
@@ -37,7 +39,10 @@ function BlogTab({ username, ownerUserId }: { username: string; ownerUserId: str
     let alive = true;
     (async () => {
       const me = await fetch("/api/auth/me").then(r => r.json());
-      if (alive) setIsOwner(me?.loggedIn && me.user?.id === ownerUserId);
+      if (alive) {
+        setIsOwner(me?.loggedIn && me.user?.id === ownerUserId);
+        setIsAdmin(me?.loggedIn && me.user?.role === "admin");
+      }
     })();
     return () => { alive = false; };
   }, [ownerUserId]);
@@ -57,7 +62,7 @@ function BlogTab({ username, ownerUserId }: { username: string; ownerUserId: str
           <div className="no-posts-message italic opacity-70">No posts yet.</div>
         ) : (
           posts.map((p) => (
-            <PostItem key={p.id} post={p} isOwner={isOwner} onChanged={refresh} />
+            <PostItem key={p.id} post={p} isOwner={isOwner} isAdmin={isAdmin} onChanged={refresh} />
           ))
         )}
       </div>
@@ -89,6 +94,7 @@ export default function ProfilePage({
   featuredFriends = [],
   initialTabId,
 }: ProfileProps) {
+  const { config } = useSiteConfig();
   const [relStatus, setRelStatus] = React.useState<string>("loading");
 
   // built-in tabs
@@ -192,7 +198,7 @@ export default function ProfilePage({
                     <div className="profile-info-section flex-1">
                       <div className="profile-identity mb-4">
                         <h2 className="profile-display-name thread-headline text-3xl font-bold text-thread-pine mb-1">{username}</h2>
-                        <span className="profile-status thread-label">threadstead resident</span>
+                        <span className="profile-status thread-label">{config.user_status_text}</span>
                       </div>
                       {bio && (
                         <div className="profile-bio-section mb-4">

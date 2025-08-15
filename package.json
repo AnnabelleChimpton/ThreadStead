@@ -13,7 +13,9 @@
     "lint": "next lint",
     "seed": "prisma db seed",
     "beta:generate": "tsx scripts/generate-beta-key.ts",
-    "beta:list": "tsx scripts/manage-beta-keys.ts list"
+    "beta:list": "tsx scripts/manage-beta-keys.ts list",
+    "migrate-users": "tsx scripts/migrate-legacy-users.ts",
+    "promote-admin": "tsx scripts/promote-to-admin.ts"
   },
   "dependencies": {
     "@noble/ed25519": "^2.3.0",

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Layout from "../components/Layout";
 import UserCard, { DirectoryUser } from "../components/UserCard";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 type SortOption = "recent" | "alphabetical" | "posts";
 
@@ -11,6 +12,7 @@ type DirectoryResponse = {
 };
 
 export default function Directory() {
+  const { config } = useSiteConfig();
   const [users, setUsers] = useState<DirectoryUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +91,7 @@ export default function Directory() {
       {/* Header */}
       <div className="thread-module p-6 mb-6">
         <div className="mb-4">
-          <h1 className="thread-headline text-3xl font-bold mb-2">ThreadStead Directory</h1>
+          <h1 className="thread-headline text-3xl font-bold mb-2">{config.directory_title}</h1>
           <p className="text-thread-sage leading-relaxed">
             Meet your neighbors in this cozy corner of the web. Discover new friends, 
             interesting conversations, and kindred spirits.
@@ -156,7 +158,7 @@ export default function Directory() {
           <p className="text-thread-sage">
             {searchQuery 
               ? `No one matches "${searchQuery}". Try a different search term.`
-              : "No residents have joined ThreadStead yet. Be the first!"}
+              : config.directory_empty_message}
           </p>
         </div>
       ) : (

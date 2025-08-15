@@ -16,6 +16,7 @@ type CommentListProps = {
   onLoaded?: (count: number) => void;
   optimistic?: CommentWire[];
   canModerate?: boolean;
+  isAdmin?: boolean;
   onRemoved?: (id: string) => void;
   onCommentAdded?: (comment: CommentWire) => void;
   highlightCommentId?: string | null;
@@ -27,6 +28,7 @@ export default function CommentList({
   onLoaded,
   optimistic = [],
   canModerate = false,
+  isAdmin = false,
   onRemoved,
   onCommentAdded,
   highlightCommentId,
@@ -147,12 +149,15 @@ export default function CommentList({
     setReplyingTo(null);
   };
 
-  const handleRemove = async (id: string) => {
+  const handleRemove = async (id: string, useAdminEndpoint = false) => {
     setHiddenIds((s) => { const n = new Set(s); n.add(id); return n; });
     setRemoving(id);
     try {
-      const r = await fetch("/api/comments/remove", {
-        method: "POST",
+      const endpoint = useAdminEndpoint ? "/api/admin/delete-comment" : "/api/comments/remove";
+      const method = useAdminEndpoint ? "DELETE" : "POST";
+      
+      const r = await fetch(endpoint, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ commentId: id }),
       });
@@ -170,7 +175,9 @@ export default function CommentList({
   if (commentTree.length === 0) return <div className="text-sm opacity-70 px-1">Be the first to comment.</div>;
 
   const renderComment = (comment: CommentWire, depth = 0): React.ReactNode => {
-    const canDelete = canModerate || (!!viewerId && comment.author?.id === viewerId);
+    const isOwner = !!viewerId && comment.author?.id === viewerId;
+    const canDelete = canModerate || isOwner;
+    const canAdminDelete = isAdmin && !isOwner;
     const maxDepth = 3; // Limit nesting depth
     const isReplying = replyingTo === comment.id;
     const isHighlighted = highlightCommentId === comment.id;
@@ -227,9 +234,20 @@ export default function CommentList({
                   onClick={() => handleRemove(comment.id)}
                   disabled={removing === comment.id}
                   aria-busy={removing === comment.id}
-                  title={comment.author?.id === viewerId ? "Delete your comment" : "Remove comment"}
+                  title={isOwner ? "Delete your comment" : "Remove comment"}
                 >
-                  {removing === comment.id ? "Removing…" : (comment.author?.id === viewerId ? "Delete" : "Remove")}
+                  {removing === comment.id ? "Removing…" : (isOwner ? "Delete" : "Remove")}
+                </button>
+              )}
+              {canAdminDelete && (
+                <button
+                  className="ml-2 border border-black px-2 py-0.5 bg-red-200 hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs disabled:opacity-50"
+                  onClick={() => handleRemove(comment.id, true)}
+                  disabled={removing === comment.id}
+                  aria-busy={removing === comment.id}
+                  title="Admin: Delete comment"
+                >
+                  {removing === comment.id ? "Deleting…" : "🛡️ Delete"}
                 </button>
               )}
             </div>
@@ -251,9 +269,20 @@ export default function CommentList({
                     onClick={() => handleRemove(comment.id)}
                     disabled={removing === comment.id}
                     aria-busy={removing === comment.id}
-                    title={comment.author?.id === viewerId ? "Delete your comment" : "Remove comment"}
+                    title={isOwner ? "Delete your comment" : "Remove comment"}
                   >
-                    {removing === comment.id ? "Removing…" : (comment.author?.id === viewerId ? "Delete" : "Remove")}
+                    {removing === comment.id ? "Removing…" : (isOwner ? "Delete" : "Remove")}
+                  </button>
+                )}
+                {canAdminDelete && (
+                  <button
+                    className="comment-button comment-button-delete bg-red-200"
+                    onClick={() => handleRemove(comment.id, true)}
+                    disabled={removing === comment.id}
+                    aria-busy={removing === comment.id}
+                    title="Admin: Delete comment"
+                  >
+                    {removing === comment.id ? "Deleting…" : "🛡️ Delete"}
                   </button>
                 )}
               </div>

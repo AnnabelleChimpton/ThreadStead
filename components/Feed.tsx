@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import FeedPost, { FeedPostData } from "./FeedPost";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 type FeedType = "recent" | "active";
 
@@ -13,6 +14,7 @@ type FeedResponse = {
 };
 
 export default function Feed({ type }: FeedProps) {
+  const { config } = useSiteConfig();
   const [posts, setPosts] = useState<FeedPostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +87,7 @@ export default function Feed({ type }: FeedProps) {
         <h3 className="thread-headline text-lg mb-2">No posts yet</h3>
         <p className="text-thread-sage">
           {type === "recent" 
-            ? "Be the first to share something on ThreadStead!" 
+            ? config.feed_empty_message
             : "No posts with recent activity found."}
         </p>
       </div>

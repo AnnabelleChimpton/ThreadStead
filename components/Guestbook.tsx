@@ -1,5 +1,6 @@
 // components/Guestbook.tsx
 import React, { useEffect, useState } from "react";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 type Entry = {
   id: string;
@@ -13,14 +14,15 @@ type Entry = {
 };
 
 export default function Guestbook({ username, bio }: { username: string; bio?: string }) {
+  const { config } = useSiteConfig();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<{ id: string; isProfileOwner: boolean } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; isProfileOwner: boolean; isAdmin: boolean } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<{ entryId: string; message: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ entryId: string; message: string; isAdmin?: boolean } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -59,9 +61,11 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
             if (profileRes.ok) {
               const profileData = await profileRes.json();
               const isOwner = userData.user.id === profileData.userId;
+              const isAdmin = userData.user.role === "admin";
               setCurrentUser({
                 id: userData.user.id,
-                isProfileOwner: isOwner
+                isProfileOwner: isOwner,
+                isAdmin: isAdmin
               });
             }
           }
@@ -108,10 +112,11 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
     }
   }
 
-  function handleDeleteClick(entry: Entry) {
+  function handleDeleteClick(entry: Entry, isAdminDelete = false) {
     setConfirmDelete({
       entryId: entry.id,
-      message: entry.message
+      message: entry.message,
+      isAdmin: isAdminDelete
     });
   }
 
@@ -126,17 +131,31 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
     setError(null);
     
     try {
-      const res = await fetch(`/api/guestbook/delete/${confirmDelete.entryId}`, {
-        method: "DELETE"
-      });
+      let res;
+      if (confirmDelete.isAdmin) {
+        res = await fetch("/api/admin/delete-guestbook", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entryId: confirmDelete.entryId })
+        });
+      } else {
+        res = await fetch(`/api/guestbook/delete/${confirmDelete.entryId}`, {
+          method: "DELETE"
+        });
+      }
       
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || `Delete failed: ${res.status}`);
       }
       
-      const data = await res.json();
-      setEntries(Array.isArray(data.entries) ? data.entries : []);
+      // Refresh the entries by refetching
+      const entriesRes = await fetch(`/api/guestbook/${encodeURIComponent(username)}`);
+      if (entriesRes.ok) {
+        const entriesData = await entriesRes.json();
+        setEntries(Array.isArray(entriesData.entries) ? entriesData.entries : []);
+      }
+      
       setConfirmDelete(null);
     } catch (e: unknown) {
       setError((e as Error)?.message || "Failed to delete entry");
@@ -149,6 +168,12 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
     if (!currentUser) return false;
     // Profile owner can delete any entry, or user can delete their own entry
     return currentUser.isProfileOwner || entry.authorId === currentUser.id;
+  }
+
+  function canAdminDeleteEntry(entry: Entry): boolean {
+    if (!currentUser) return false;
+    // Admin can delete entries that aren't their own and they don't own the profile
+    return currentUser.isAdmin && !currentUser.isProfileOwner && entry.authorId !== currentUser.id;
   }
 
   return (
@@ -167,7 +192,7 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
           <textarea
             className="w-full border border-thread-sage p-3 bg-thread-paper rounded-cozy focus:border-thread-pine focus:ring-1 focus:ring-thread-pine resize-none"
             rows={3}
-            placeholder="Share a friendly thought or memory…"
+            placeholder={config.guestbook_prompt}
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
             disabled={submitting}
@@ -212,16 +237,28 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
                     </div>
                     <p className="text-thread-charcoal leading-relaxed">{e.message}</p>
                   </div>
-                  {canDeleteEntry(e) && (
-                    <button
-                      onClick={() => handleDeleteClick(e)}
-                      disabled={deletingId === e.id}
-                      className="ml-3 px-2 py-1 text-xs border border-thread-sunset/60 bg-thread-sunset/10 hover:bg-thread-sunset/20 text-thread-sunset rounded shadow-sm disabled:opacity-50 transition-all"
-                      title="Delete this entry"
-                    >
-                      {deletingId === e.id ? "..." : "×"}
-                    </button>
-                  )}
+                  <div className="flex gap-2">
+                    {canDeleteEntry(e) && (
+                      <button
+                        onClick={() => handleDeleteClick(e)}
+                        disabled={deletingId === e.id}
+                        className="px-2 py-1 text-xs border border-thread-sunset/60 bg-thread-sunset/10 hover:bg-thread-sunset/20 text-thread-sunset rounded shadow-sm disabled:opacity-50 transition-all"
+                        title="Delete this entry"
+                      >
+                        {deletingId === e.id ? "..." : "×"}
+                      </button>
+                    )}
+                    {canAdminDeleteEntry(e) && (
+                      <button
+                        onClick={() => handleDeleteClick(e, true)}
+                        disabled={deletingId === e.id}
+                        className="px-2 py-1 text-xs border border-red-600/60 bg-red-200/50 hover:bg-red-200/80 text-red-700 rounded shadow-sm disabled:opacity-50 transition-all"
+                        title="Admin: Delete this entry"
+                      >
+                        {deletingId === e.id ? "..." : "🛡️×"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </li>
             ))}

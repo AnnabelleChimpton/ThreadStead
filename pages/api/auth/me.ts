@@ -6,6 +6,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!user) return res.status(200).json({ loggedIn: false });
   res.json({
     loggedIn: true,
-    user: { id: user.id, did: user.did, primaryHandle: user.primaryHandle ?? null },
+    user: { 
+      id: user.id, 
+      did: user.did, 
+      role: user.role,
+      primaryHandle: user.primaryHandle ?? null 
+    },
   });
 }

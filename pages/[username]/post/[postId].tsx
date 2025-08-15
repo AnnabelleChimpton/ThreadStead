@@ -17,13 +17,17 @@ type PostPageProps = {
 
 export default function PostPage({ username, post, authorDisplayName, initialCommentsOpen = false, highlightCommentId, customCSS }: PostPageProps) {
   const [isOwner, setIsOwner] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     let alive = true;
     (async () => {
       const me = await fetch("/api/auth/me").then(r => r.json());
-      if (alive) setIsOwner(me?.loggedIn && me.user?.id === post.author?.id);
+      if (alive) {
+        setIsOwner(me?.loggedIn && me.user?.id === post.author?.id);
+        setIsAdmin(me?.loggedIn && me.user?.role === "admin");
+      }
     })();
     return () => { alive = false; };
   }, [post.author?.id]);
@@ -78,7 +82,8 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
                 <div className="profile-tab-content">
                   <PostItem 
                     post={post} 
-                    isOwner={isOwner} 
+                    isOwner={isOwner}
+                    isAdmin={isAdmin}
                     onChanged={() => window.location.reload()}
                     initialCommentsOpen={initialCommentsOpen}
                     highlightCommentId={highlightCommentId}
