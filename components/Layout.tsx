@@ -4,6 +4,7 @@ import LoginStatus from "./LoginStatus";
 import NotificationDropdown from "./NotificationDropdown";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
+import { useIdentitySync } from "@/hooks/useIdentitySync";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,31 +14,64 @@ interface LayoutProps {
 export default function Layout({ children, siteConfig }: LayoutProps) {
   const { config: hookConfig } = useSiteConfig();
   const { pages: navPages } = useNavPages();
+  const { hasMismatch, fixMismatch } = useIdentitySync();
   const config = siteConfig || hookConfig;
   return (
     <div className="site-layout min-h-screen thread-surface">
+      {/* Identity Sync Issue Banner */}
+      {hasMismatch && (
+        <div className="bg-amber-100 border-b border-amber-300 px-6 py-2">
+          <div className="mx-auto max-w-5xl flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-amber-600">⚠️</span>
+              <span className="text-amber-800">
+                Identity sync issue detected. Your browser data needs to be refreshed.
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={fixMismatch}
+                className="px-3 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded"
+              >
+                Fix Now
+              </button>
+              <Link
+                href="/identity"
+                className="px-3 py-1 text-xs bg-amber-200 hover:bg-amber-300 text-amber-800 rounded"
+              >
+                Learn More
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <header className="site-header border-b border-thread-sage bg-thread-cream px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95">
         <nav className="site-navigation mx-auto max-w-5xl flex items-center justify-between">
           <div className="site-branding">
             <h1 className="site-title thread-headline text-2xl font-bold text-thread-pine">{config.site_name}</h1>
             <span className="site-tagline thread-label">{config.site_tagline}</span>
           </div>
-          <div className="site-nav-links flex items-center gap-6">
-            <Link className="nav-link text-thread-pine hover:text-thread-sunset transition-colors" href="/">Home</Link>
-            <Link className="nav-link text-thread-pine hover:text-thread-sunset transition-colors" href="/feed">Feed</Link>
-            <Link className="nav-link text-thread-pine hover:text-thread-sunset transition-colors" href="/directory">Directory</Link>
-            {navPages.map(page => (
-              <Link 
-                key={page.id} 
-                className="nav-link text-thread-pine hover:text-thread-sunset transition-colors" 
-                href={`/page/${page.slug}`}
-              >
-                {page.title}
-              </Link>
-            ))}
-            <NotificationDropdown className="nav-link" />
-            <div className="site-auth">
-              <LoginStatus />
+          <div className="site-nav-container flex items-center gap-8">
+            <div className="site-nav-links flex items-center gap-6">
+              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/">Home</Link>
+              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/feed">Feed</Link>
+              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/directory">Directory</Link>
+              {navPages.map(page => (
+                <Link 
+                  key={page.id} 
+                  className="nav-link text-thread-pine hover:text-thread-sunset font-medium" 
+                  href={`/page/${page.slug}`}
+                >
+                  {page.title}
+                </Link>
+              ))}
+            </div>
+            <div className="site-nav-actions flex items-center gap-4">
+              <NotificationDropdown className="nav-link" />
+              <div className="site-auth">
+                <LoginStatus />
+              </div>
             </div>
           </div>
         </nav>

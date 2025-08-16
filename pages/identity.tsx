@@ -16,12 +16,15 @@ import {
   SeedPhrase
 } from "@/lib/did-client";
 import UsernameSelector from "@/components/UsernameSelector";
+import { useIdentitySync } from "@/hooks/useIdentitySync";
+import Modal from "@/components/Modal";
 
 interface IdentityPageProps {
   initialUser?: { id: string; did: string; primaryHandle: string | null } | null;
 }
 
 export default function IdentityPage({ initialUser }: IdentityPageProps) {
+  const { hasMismatch, fixMismatch } = useIdentitySync();
   const [currentIdentity, setCurrentIdentity] = useState<LocalKeypair | null>(null);
   const [currentSeedPhrase, setCurrentSeedPhrase] = useState<SeedPhrase | null>(null);
   const [exportToken, setExportToken] = useState<string>("");
@@ -194,6 +197,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
     }
   }
 
+
   if (showUsernameSelector) {
     return (
       <Layout>
@@ -340,6 +344,44 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
           </div>
         )}
 
+        {/* Identity Sync Issue Dialog */}
+        {hasMismatch && (
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-6">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div className="flex-1">
+                <h3 className="font-bold text-amber-800 mb-2">Identity Sync Issue Detected</h3>
+                <p className="text-amber-700 mb-4">
+                  We detected that your browser&apos;s local identity data doesn&apos;t match your logged-in account. 
+                  This can happen if your browser data was cleared or you&apos;re on a different device.
+                </p>
+                <div className="bg-amber-100 border border-amber-200 rounded p-3 mb-4">
+                  <p className="text-sm text-amber-800">
+                    <strong>Logged in as:</strong> @{initialUser?.primaryHandle}
+                  </p>
+                  <p className="text-sm text-amber-700">
+                    But your browser doesn&apos;t have the matching identity keys stored locally.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setMessage({ type: 'success', text: 'Clearing local data and redirecting to re-login...' });
+                      setTimeout(fixMismatch, 1000);
+                    }}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-medium transition-colors"
+                  >
+                    Fix This Issue
+                  </button>
+                </div>
+                <p className="text-xs text-amber-600 mt-2">
+                  Fixing this will log you out and ask you to log in again to restore proper access.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Current Identity Status */}
         {currentIdentity && (
           <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
@@ -355,7 +397,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               {initialUser?.primaryHandle && (
                 <div>
                   <label className="text-sm font-medium text-thread-sage block mb-1">Username:</label>
-                  <span className="text-thread-pine font-medium">@{initialUser.primaryHandle}</span>
+                  <span className="text-thread-pine font-medium">{initialUser.primaryHandle}</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
@@ -401,7 +443,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               Recover your account using a 12-word seed phrase. This will replace your current identity.
             </p>
             <button
-              onClick={() => setShowRecovery(!showRecovery)}
+              onClick={() => setShowRecovery(true)}
               disabled={isLoading}
               className="w-full px-4 py-3 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all flex items-center gap-2 justify-center disabled:opacity-50"
             >
@@ -420,7 +462,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               Import an account using an old-style backup token from another device.
             </p>
             <button
-              onClick={() => setShowImport(!showImport)}
+              onClick={() => setShowImport(true)}
               disabled={isLoading}
               className="w-full px-4 py-3 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all flex items-center gap-2 justify-center disabled:opacity-50"
             >
@@ -466,19 +508,15 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
         </div>
 
 
-        {/* Recovery Section */}
-        {showRecovery && (
-          <div className="bg-thread-cream border border-thread-sage rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="thread-label text-lg">🔑 Account Recovery</h3>
-              <button
-                onClick={() => setShowRecovery(false)}
-                className="text-thread-sage hover:text-thread-charcoal transition-colors p-1"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-sm text-thread-sage leading-relaxed mb-4">
+        {/* Recovery Modal */}
+        <Modal
+          isOpen={showRecovery}
+          onClose={() => setShowRecovery(false)}
+          title="🔑 Account Recovery"
+          maxWidth="max-w-3xl"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-thread-sage leading-relaxed">
               Enter your 12-word recovery phrase to restore your account. This will replace your current identity.
             </p>
             <div className="space-y-4">
@@ -500,25 +538,21 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               </div>
             </div>
           </div>
-        )}
+        </Modal>
 
-        {/* Legacy Export Section */}
-        {showExport && (
-          <div className="bg-thread-cream border border-thread-sage rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="thread-label text-lg">📤 Legacy Backup Token</h3>
-              <button
-                onClick={() => setShowExport(false)}
-                className="text-thread-sage hover:text-thread-charcoal transition-colors p-1"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-sm text-thread-sage leading-relaxed mb-4">
+        {/* Legacy Export Modal */}
+        <Modal
+          isOpen={showExport}
+          onClose={() => setShowExport(false)}
+          title="📤 Legacy Backup Token"
+          maxWidth="max-w-3xl"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-thread-sage leading-relaxed">
               This is your legacy backup token. Use this with older versions of the app.
               For new setups, use the seed phrase recovery instead.
             </p>
-            <div className="relative mb-4">
+            <div className="relative">
               <textarea
                 readOnly
                 value={exportToken}
@@ -532,21 +566,17 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               </button>
             </div>
           </div>
-        )}
+        </Modal>
 
-        {/* Legacy Import Section */}
-        {showImport && (
-          <div className="bg-thread-cream border border-thread-sage rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="thread-label text-lg">📥 Import Legacy Token</h3>
-              <button
-                onClick={() => setShowImport(false)}
-                className="text-thread-sage hover:text-thread-charcoal transition-colors p-1"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-sm text-thread-sage leading-relaxed mb-4">
+        {/* Legacy Import Modal */}
+        <Modal
+          isOpen={showImport}
+          onClose={() => setShowImport(false)}
+          title="📥 Import Legacy Token"
+          maxWidth="max-w-3xl"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-thread-sage leading-relaxed">
               Paste a backup token from an older version to switch to that account. This will log you out of your current account.
             </p>
             <div className="space-y-4">
@@ -566,7 +596,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               </button>
             </div>
           </div>
-        )}
+        </Modal>
       </div>
     </Layout>
   );

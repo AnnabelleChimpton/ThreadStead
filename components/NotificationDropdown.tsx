@@ -190,7 +190,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative inline-flex items-center gap-2 p-2 hover:bg-thread-cream rounded transition-colors"
+        className="relative inline-flex items-center gap-2 p-2 hover:bg-thread-cream rounded"
         title={unreadCount !== null ? `${unreadCount} unread notifications` : "Notifications"}
       >
         <span className="text-xl">🔔</span>
@@ -229,7 +229,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-3 border-b border-thread-sage/10 hover:bg-thread-cream cursor-pointer transition-colors ${
+                  className={`p-3 border-b border-thread-sage/10 hover:bg-thread-cream cursor-pointer ${
                     notification.status === "unread" ? "bg-thread-cream/50" : ""
                   }`}
                   onClick={() => {
@@ -280,7 +280,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
             <div className="p-2 border-t border-thread-sage/20 bg-thread-cream">
               <Link
                 href="/notifications"
-                className="block w-full text-center py-2 text-sm text-thread-pine hover:text-thread-sunset transition-colors"
+                className="block w-full text-center py-2 text-sm text-thread-pine hover:text-thread-sunset"
                 onClick={() => setIsOpen(false)}
               >
                 View all notifications
