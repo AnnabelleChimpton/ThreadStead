@@ -173,7 +173,7 @@ export default function NotificationList({
           const postAuthorUsername = getUsername(notification.data.postAuthorHandle);
           if (postAuthorUsername) {
             // Build URL with query parameters for auto-expanding comments and highlighting
-            const baseUrl = `/${postAuthorUsername}/post/${notification.data.postId}`;
+            const baseUrl = `/resident/${postAuthorUsername}/post/${notification.data.postId}`;
             const params = new URLSearchParams({
               comments: 'open',
               ...(notification.data.commentId && { highlight: notification.data.commentId })

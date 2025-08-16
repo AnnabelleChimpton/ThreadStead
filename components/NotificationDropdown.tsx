@@ -150,7 +150,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
           const postAuthorUsername = getUsername(notification.data.postAuthorHandle);
           if (postAuthorUsername) {
             // Link to post author's profile with post ID fragment
-            return `/${postAuthorUsername}#post-${notification.data.postId.slice(-6)}`;
+            return `/resident/${postAuthorUsername}#post-${notification.data.postId.slice(-6)}`;
           }
         }
         // Fallback to actor's profile
