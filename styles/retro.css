@@ -59,6 +59,13 @@ a:hover {
   border-radius: 8px;
   box-shadow: 3px 3px 0 #A18463;
   position: relative;
+  
+  /* Consistent width across feed, directory, and profile pages */
+  min-width: 900px; /* Adjust this value to match your directory page width */
+  width: 100%;
+  max-width: 1100px; /* Maximum width to prevent overly wide content */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Micro-labels in monospace */
@@ -574,4 +581,23 @@ textarea:focus {
 
 .user-card:hover {
   /* No hover transformations */
+}
+
+/* =====================================================
+   THREAD MODULE RESPONSIVE ADJUSTMENTS
+   ===================================================== */
+
+/* Mobile responsiveness for thread modules */
+@media (max-width: 768px) {
+  .thread-module {
+    min-width: 280px; /* Smaller minimum on mobile */
+    max-width: 100%; /* Full width on mobile */
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .thread-module {
+    min-width: 260px; /* Even smaller on very small screens */
+  }
 }

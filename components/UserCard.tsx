@@ -19,7 +19,7 @@ type UserCardProps = {
 
 export default function UserCard({ user }: UserCardProps) {
   const displayName = user.displayName || user.username || "Anonymous";
-  const profileLink = user.username ? `/${user.username}` : null;
+  const profileLink = user.username ? `/resident/${user.username}` : null;
   
   const joinDate = new Date(user.createdAt).toLocaleDateString('en-US', {
     month: 'long',

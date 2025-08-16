@@ -10,7 +10,7 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
 
   if (user.primaryHandle) {
     const username = user.primaryHandle.split("@")[0];
-    return { redirect: { destination: `/${username}`, permanent: false } };
+    return { redirect: { destination: `/resident/${username}`, permanent: false } };
   }
 
   // No handle yet → onboarding

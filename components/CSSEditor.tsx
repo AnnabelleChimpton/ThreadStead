@@ -27,10 +27,10 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
 
   const handleRestoreDefault = () => {
     const confirmed = window.confirm(
-      'This will replace your current CSS with the default template. Are you sure?'
+      'This will clear your custom CSS and restore the site\'s default profile layout. Are you sure?'
     );
     if (confirmed) {
-      onChange(getDefaultTemplate('full'));
+      onChange(''); // Clear CSS to use site default
     }
   };
 
@@ -91,7 +91,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
             onClick={handleRestoreDefault}
             className="px-3 py-1 text-xs border border-thread-sunset text-thread-sunset hover:bg-thread-sunset hover:text-white rounded shadow-cozySm transition-all"
           >
-            🔄 Restore Default
+            🔄 Use Site Default
           </button>
         </div>
       </div>
@@ -163,7 +163,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
               className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
             >
               <div className="font-semibold text-thread-pine">🗑️ Clear All</div>
-              <div className="text-thread-sage mt-1">Start from scratch</div>
+              <div className="text-thread-sage mt-1">Remove all CSS (uses site default)</div>
             </button>
           </div>
         </div>
@@ -388,12 +388,19 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
       )}
 
       {/* CSS validation/preview info */}
-      <div className="text-xs text-thread-sage bg-thread-cream border border-thread-sage rounded p-3">
+      <div className="text-xs text-thread-sage bg-thread-cream border border-thread-sage rounded p-3 space-y-2">
         <div className="flex items-start gap-2">
           <span>💡</span>
           <div>
             <strong>Preview your changes:</strong> Save your profile settings and visit your public profile page to see your CSS in action.
             Changes apply immediately after saving.
+          </div>
+        </div>
+        <div className="flex items-start gap-2">
+          <span>🎨</span>
+          <div>
+            <strong>Site Default vs Templates:</strong> If you have no custom CSS, your profile uses the site&apos;s default theme (set by admin). 
+            Templates are starting points for your own customization.
           </div>
         </div>
       </div>

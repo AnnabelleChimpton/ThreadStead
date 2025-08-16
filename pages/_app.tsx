@@ -10,7 +10,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
   
   // Check if we're on a user profile page that might have custom CSS
-  const isProfilePage = router.pathname === '/[username]' || router.pathname === '/[username]/index';
+  const isProfilePage = router.pathname === '/resident/[username]' || router.pathname === '/resident/[username]/index';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
 
   return (

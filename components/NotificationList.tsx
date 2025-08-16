@@ -115,7 +115,7 @@ export default function NotificationList({
   const getNotificationMessage = (notification: NotificationData): React.ReactNode => {
     const actorName = notification.actor.displayName || notification.actor.handle || "Someone";
     const username = getUsername(notification.actor.handle);
-    const actorLink = username ? `/${username}` : null;
+    const actorLink = username ? `/resident/${username}` : null;
 
     const ActorComponent = actorLink ? (
       <Link href={actorLink} className="font-semibold text-thread-pine hover:text-thread-sunset">
@@ -182,12 +182,12 @@ export default function NotificationList({
           }
         }
         // Fallback to actor's profile
-        return username ? `/${username}` : null;
+        return username ? `/resident/${username}` : null;
       case "follow":
       case "friend":
-        return username ? `/${username}` : null;
+        return username ? `/resident/${username}` : null;
       case "guestbook":
-        return username ? `/${username}` : null;
+        return username ? `/resident/${username}` : null;
       default:
         return null;
     }

@@ -1,8 +1,8 @@
-// pages/[username]/index.tsx
+// pages/resident/[username]/index.tsx
 import React, { useEffect, useState } from "react";
 import type { GetServerSideProps } from "next";
 
-import Layout from "../../components/Layout";
+import Layout from "../../../components/Layout";
 import RetroCard from "@/components/RetroCard";
 import ProfilePhoto from "@/components/ProfilePhoto";
 import Guestbook from "@/components/Guestbook";
@@ -184,6 +184,7 @@ export default function ProfilePage({
 
   return (
     <>
+      {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
       <div className="profile-container">
         <Layout>
           <div className="profile-content-wrapper">
@@ -277,10 +278,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     console.error("Failed to fetch admin default CSS:", error);
   }
   
-  // If no admin default CSS is set, use the Professional template as default
-  if (!adminDefaultCSS || adminDefaultCSS.trim() === '') {
-    adminDefaultCSS = require('@/lib/default-profile-templates').DEFAULT_PROFILE_TEMPLATE;
-  }
+  // If no admin default CSS is set, leave empty to use clean ThreadStead styling
+  // (removing automatic fallback to professional template)
 
   const data: {
     userId: string;                      // <-- expecting this from /api/profile

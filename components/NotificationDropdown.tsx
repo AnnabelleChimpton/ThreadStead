@@ -154,12 +154,12 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
           }
         }
         // Fallback to actor's profile
-        return username ? `/${username}` : null;
+        return username ? `/resident/${username}` : null;
       case "follow":
       case "friend":
-        return username ? `/${username}` : null;
+        return username ? `/resident/${username}` : null;
       case "guestbook":
-        return username ? `/${username}` : null;
+        return username ? `/resident/${username}` : null;
       default:
         return null;
     }

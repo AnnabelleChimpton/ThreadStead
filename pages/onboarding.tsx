@@ -19,7 +19,7 @@ export default function Onboarding() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       // go to my page
-      window.location.href = `/${username}`;
+      window.location.href = `/resident/${username}`;
     } catch (e: unknown) {
       setErr((e as Error)?.message || "Failed to claim handle");
       setBusy(false);

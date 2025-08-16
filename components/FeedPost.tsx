@@ -48,7 +48,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
   }, [post.bodyHtml, post.bodyMarkdown, post.bodyText]);
 
   const authorName = post.authorDisplayName || post.authorUsername || "Anonymous";
-  const authorLink = post.authorUsername ? `/${post.authorUsername}` : null;
+  const authorLink = post.authorUsername ? `/resident/${post.authorUsername}` : null;
   
   const postDate = new Date(post.createdAt).toLocaleDateString('en-US', {
     month: 'short',

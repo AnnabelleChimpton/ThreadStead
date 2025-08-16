@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import type { GetServerSideProps } from "next";
-import { useRouter } from "next/router";
-import Layout from "../../../components/Layout";
+import Layout from "../../../../components/Layout";
 import RetroCard from "@/components/RetroCard";
 import PostItem, { Post as PostType } from "@/components/PostItem";
 import Link from "next/link";
@@ -18,7 +17,6 @@ type PostPageProps = {
 export default function PostPage({ username, post, authorDisplayName, initialCommentsOpen = false, highlightCommentId, customCSS }: PostPageProps) {
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     let alive = true;
@@ -49,7 +47,7 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
                     <div className="profile-info-section flex-1">
                       <div className="profile-identity mb-4">
                         <nav className="text-sm mb-3">
-                          <Link href={`/${username}`} className="text-thread-pine hover:text-thread-sunset transition-colors">
+                          <Link href={`/resident/${username}`} className="text-thread-pine hover:text-thread-sunset transition-colors">
                             {displayName}
                           </Link>
                           <span className="mx-2 text-thread-sage">›</span>
@@ -66,7 +64,7 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
                       
                       <div className="profile-actions flex items-center gap-3 flex-wrap">
                         <Link
-                          href={`/${username}`}
+                          href={`/resident/${username}`}
                           className="profile-button edit-profile-button thread-button text-sm"
                         >
                           ← Back to Profile
