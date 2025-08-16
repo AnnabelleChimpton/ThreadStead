@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { SelectedFriend } from "./FriendManager";
+import { SelectedFriend } from "../FriendManager";
 
 interface FriendDisplayProps {
   friends: SelectedFriend[];

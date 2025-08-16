@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import CommentList, { CommentWire } from "./CommentList";
-import NewCommentForm from "./NewCommentForm";
+import NewCommentForm from "../forms/NewCommentForm";
 
 export type FeedPostData = {
   id: string;

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
-import Preview from "@/components/PreviewForm";
+import Preview from "./PreviewForm";
 import hljs from "highlight.js"; // Ensure highlight.js is imported
 
 type Visibility = "public" | "followers" | "friends" | "private";

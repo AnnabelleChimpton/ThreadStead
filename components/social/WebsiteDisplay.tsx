@@ -1,5 +1,5 @@
 import React from "react";
-import { Website } from "./WebsiteManager";
+import { Website } from "../WebsiteManager";
 
 interface WebsiteDisplayProps {
   websites: Website[];

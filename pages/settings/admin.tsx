@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
-import RetroCard from "@/components/RetroCard";
+import RetroCard from "@/components/layout/RetroCard";
 import DesignPatternsGuide from "@/components/DesignPatternsGuide";
 import { useMe } from "@/hooks/useMe";
 import { getSiteTemplate, SITE_TEMPLATE_INFO } from "@/lib/site-css-templates";

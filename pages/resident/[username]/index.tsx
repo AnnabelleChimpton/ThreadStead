@@ -1,74 +1,19 @@
 // pages/resident/[username]/index.tsx
-import React, { useEffect, useState } from "react";
+import React from "react";
 import type { GetServerSideProps } from "next";
 
-import Layout from "../../../components/Layout";
-import RetroCard from "@/components/RetroCard";
-import ProfilePhoto from "@/components/ProfilePhoto";
+import RetroCard from "@/components/layout/RetroCard";
 import Guestbook from "@/components/Guestbook";
-import Tabs, { TabSpec } from "@/components/Tabs";
-import FollowButton from "@/components/FollowButton";
-import FriendBadge from "@/components/FriendBadge";
-import MutualFriends from "@/components/MutualFriends";
-import PostItem, { Post as PostType } from "@/components/PostItem";
-import NewPostForm from "@/components/NewPostForm";
-import WebsiteDisplay from "@/components/WebsiteDisplay";
-import FriendDisplay from "@/components/FriendDisplay";
+import Tabs, { TabSpec } from "@/components/navigation/Tabs";
 import { Website } from "@/components/WebsiteManager";
 import { SelectedFriend } from "@/components/FriendManager";
-import { useSiteConfig } from "@/hooks/useSiteConfig";
-import Link from "next/link";
+import ProfileLayout from "@/components/layout/ProfileLayout";
+import ProfileHeader from "@/components/profile/ProfileHeader";
+import BlogTab from "@/components/profile/tabs/BlogTab";
+import MediaGrid from "@/components/profile/tabs/MediaGrid";
+import FriendsWebsitesGrid from "@/components/profile/tabs/FriendsWebsitesGrid";
 
 /* ---------------- helpers ---------------- */
-
-function BlogTab({ username, ownerUserId }: { username: string; ownerUserId: string }) {
-  const [loading, setLoading] = useState(true);
-  const [posts, setPosts] = useState<PostType[]>([]);
-  const [isOwner, setIsOwner] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  const refresh = async () => {
-    const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
-    const data = res.ok ? await res.json() : { posts: [] };
-    setPosts(Array.isArray(data.posts) ? data.posts : []);
-  };
-
-  useEffect(() => { setLoading(true); refresh().finally(() => setLoading(false)); }, [username]);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const me = await fetch("/api/auth/me").then(r => r.json());
-      if (alive) {
-        setIsOwner(me?.loggedIn && me.user?.id === ownerUserId);
-        setIsAdmin(me?.loggedIn && me.user?.role === "admin");
-      }
-    })();
-    return () => { alive = false; };
-  }, [ownerUserId]);
-
-  if (loading) return <div>Loading posts…</div>;
-
-  return (
-    <div className="profile-tab-content blog-tab-content space-y-3">
-      {isOwner && (
-        <div className="new-post-section mb-3">
-          <div className="text-sm opacity-70 mb-1">Post as you</div>
-          <NewPostForm onPosted={refresh} />
-        </div>
-      )}
-      <div className="blog-posts-list">
-        {posts.length === 0 ? (
-          <div className="no-posts-message italic opacity-70">No posts yet.</div>
-        ) : (
-          posts.map((p) => (
-            <PostItem key={p.id} post={p} isOwner={isOwner} isAdmin={isAdmin} onChanged={refresh} />
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
 
 
 /* ---------------- types ---------------- */
@@ -94,48 +39,26 @@ export default function ProfilePage({
   featuredFriends = [],
   initialTabId,
 }: ProfileProps) {
-  const { config } = useSiteConfig();
   const [relStatus, setRelStatus] = React.useState<string>("loading");
 
   // built-in tabs
   const baseTabs: TabSpec[] = [
     { id: "blog", label: "Blog", content: <BlogTab username={username} ownerUserId={ownerUserId} /> },
-    // { id: "newPost", label: "New Post", content: <NewPostForm />},
     {
       id: "media",
       label: "Media",
-      content: (
-        <div className="profile-tab-content media-tab-content">
-          <div className="media-gallery grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="media-item border border-black bg-white shadow-[2px_2px_0_#000] aspect-square flex items-center justify-center"
-              >
-                <span className="text-sm">img {i}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ),
+      content: <MediaGrid />,
     },
     {
       id: "friends",
       label: "Friends / Websites",
-      content: (
-        <div className="profile-tab-content friends-tab-content">
-          <div className="friends-websites-grid grid sm:grid-cols-2 gap-3">
-            <FriendDisplay friends={featuredFriends} />
-            <WebsiteDisplay websites={websites} />
-          </div>
-        </div>
-      ),
+      content: <FriendsWebsitesGrid friends={featuredFriends} websites={websites} />,
     },
     {
       id: "guestbook",
       label: "Guestbook",
       content: (
-        <div className="profile-tab-content guestbook-tab-content">
+        <div className="ts-guestbook-tab-content profile-tab-content" data-component="guestbook-tab">
           <Guestbook username={username} bio={bio || ""} />
         </div>
       ),
@@ -183,62 +106,21 @@ export default function ProfilePage({
   const tabs: TabSpec[] = baseTabs;
 
   return (
-    <>
-      {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
-      <div className="profile-container">
-        <Layout>
-          <div className="profile-content-wrapper">
-            <div className="profile-main-content">
-              <RetroCard>
-                <div className="profile-header">
-                  <div className="profile-header-layout flex flex-col sm:flex-row sm:items-start sm:gap-6">
-                    <div className="profile-photo-section">
-                      <ProfilePhoto src={photoUrl} alt={`${username}'s profile photo`} />
-                    </div>
-                    <div className="profile-info-section flex-1">
-                      <div className="profile-identity mb-4">
-                        <h2 className="profile-display-name thread-headline text-3xl font-bold text-thread-pine mb-1">{username}</h2>
-                        <span className="profile-status thread-label">{config.user_status_text}</span>
-                      </div>
-                      {bio && (
-                        <div className="profile-bio-section mb-4">
-                          <p className="profile-bio text-thread-charcoal leading-relaxed">{bio}</p>
-                        </div>
-                      )}
-                      <div className="profile-actions flex items-center gap-3 flex-wrap">
-                        {relStatus === "friends" && <FriendBadge />}
-                        <FollowButton username={username} onStatus={setRelStatus} />
-                        <MutualFriends username={username} />
-                        {relStatus === "owner" && (
-                          <Link
-                            href="/settings/profile"
-                            className="profile-button edit-profile-button thread-button text-sm"
-                          >
-                            Edit Profile
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </RetroCard>
+    <ProfileLayout customCSS={customCSS}>
+      <RetroCard>
+        <ProfileHeader
+          username={username}
+          photoUrl={photoUrl}
+          bio={bio}
+          relStatus={relStatus}
+          onRelStatusChange={setRelStatus}
+        />
+      </RetroCard>
 
-              <div className="profile-tabs-wrapper">
-                <Tabs tabs={tabs} initialId={initialTabId} />
-              </div>
-            </div>
-            
-            {/* Sidebar for advanced layouts - hidden by default, can be shown via CSS */}
-            <div className="profile-sidebar" style={{ display: 'none' }}>
-              <div className="sidebar-content">
-                <h3 className="sidebar-heading">Quick Info</h3>
-                <p className="sidebar-text">This sidebar is available for advanced CSS customization.</p>
-              </div>
-            </div>
-          </div>
-        </Layout>
+      <div className="ts-profile-tabs-wrapper">
+        <Tabs tabs={tabs} initialId={initialTabId} />
       </div>
-    </>
+    </ProfileLayout>
   );
 }
 

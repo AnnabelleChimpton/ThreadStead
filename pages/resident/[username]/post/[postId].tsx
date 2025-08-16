@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import type { GetServerSideProps } from "next";
-import Layout from "../../../../components/Layout";
-import RetroCard from "@/components/RetroCard";
-import PostItem, { Post as PostType } from "@/components/PostItem";
-import Link from "next/link";
+import RetroCard from "@/components/layout/RetroCard";
+import PostItem, { Post as PostType } from "@/components/content/PostItem";
+import ProfileLayout from "@/components/layout/ProfileLayout";
+import Breadcrumb from "@/components/navigation/Breadcrumb";
 
 type PostPageProps = {
   username: string;
@@ -32,75 +32,65 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
 
   const displayName = authorDisplayName || username;
 
-  return (
-    <>
-      {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
-      <div className="profile-container">
-        <Layout>
-          <div className="profile-content-wrapper">
-            <div className="profile-main-content">
-              
-              {/* Post header card - matching profile header structure */}
-              <RetroCard>
-                <div className="profile-header">
-                  <div className="profile-header-layout">
-                    <div className="profile-info-section flex-1">
-                      <div className="profile-identity mb-4">
-                        <nav className="text-sm mb-3">
-                          <Link href={`/resident/${username}`} className="text-thread-pine hover:text-thread-sunset transition-colors">
-                            {displayName}
-                          </Link>
-                          <span className="mx-2 text-thread-sage">›</span>
-                          <span className="text-thread-charcoal">Post</span>
-                        </nav>
-                        
-                        {post.title && (
-                          <h1 className="profile-display-name thread-headline text-3xl font-bold text-thread-pine mb-1">{post.title}</h1>
-                        )}
-                        <span className="profile-status thread-label">
-                          Posted on {new Date(post.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      
-                      <div className="profile-actions flex items-center gap-3 flex-wrap">
-                        <Link
-                          href={`/resident/${username}`}
-                          className="profile-button edit-profile-button thread-button text-sm"
-                        >
-                          ← Back to Profile
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </RetroCard>
+  const breadcrumbItems = [
+    { label: displayName, href: `/resident/${username}` },
+    { label: "Post", active: true }
+  ];
 
-              {/* Post content in a separate card */}
-              <RetroCard>
-                <div className="profile-tab-content">
-                  <PostItem 
-                    post={post} 
-                    isOwner={isOwner}
-                    isAdmin={isAdmin}
-                    onChanged={() => window.location.reload()}
-                    initialCommentsOpen={initialCommentsOpen}
-                    highlightCommentId={highlightCommentId}
-                  />
+  const sidebarContent = (
+    <>
+      <h3 className="ts-sidebar-heading">Post Actions</h3>
+      <p className="ts-sidebar-text">This sidebar is available for advanced CSS customization.</p>
+    </>
+  );
+
+  return (
+    <ProfileLayout customCSS={customCSS} sidebarContent={sidebarContent}>
+      <RetroCard>
+        <div className="ts-post-header" data-component="post-header">
+          <div className="ts-post-header-layout">
+            <div className="ts-post-info-section flex-1">
+              <div className="ts-post-identity mb-4">
+                <div className="ts-post-breadcrumb mb-3">
+                  <Breadcrumb items={breadcrumbItems} className="text-sm" />
                 </div>
-              </RetroCard>
-            </div>
-            
-            {/* Sidebar for advanced layouts - hidden by default, can be shown via CSS */}
-            <div className="profile-sidebar" style={{ display: 'none' }}>
-              <div className="sidebar-content">
-                <h3 className="sidebar-heading">Post Actions</h3>
-                <p className="sidebar-text">This sidebar is available for advanced CSS customization.</p>
+                
+                {post.title && (
+                  <h1 className="ts-post-title thread-headline text-3xl font-bold text-thread-pine mb-1">
+                    {post.title}
+                  </h1>
+                )}
+                <span className="ts-post-date thread-label">
+                  Posted on {new Date(post.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              
+              <div className="ts-post-actions flex items-center gap-3 flex-wrap">
+                <a
+                  href={`/resident/${username}`}
+                  className="ts-back-button thread-button text-sm"
+                >
+                  ← Back to Profile
+                </a>
               </div>
             </div>
           </div>
-        </Layout>
-      </div>
-    </>
+        </div>
+      </RetroCard>
+
+      <RetroCard>
+        <div className="ts-post-content-wrapper profile-tab-content" data-component="post-content">
+          <PostItem 
+            post={post} 
+            isOwner={isOwner}
+            isAdmin={isAdmin}
+            onChanged={() => window.location.reload()}
+            initialCommentsOpen={initialCommentsOpen}
+            highlightCommentId={highlightCommentId}
+          />
+        </div>
+      </RetroCard>
+    </ProfileLayout>
   );
 }
 

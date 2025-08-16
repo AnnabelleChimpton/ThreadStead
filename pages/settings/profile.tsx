@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
-import RetroCard from "@/components/RetroCard";
+import RetroCard from "@/components/layout/RetroCard";
 import WebsiteManager, { Website } from "@/components/WebsiteManager";
 import FriendManager, { SelectedFriend } from "@/components/FriendManager";
 import CSSEditor from "@/components/CSSEditor";

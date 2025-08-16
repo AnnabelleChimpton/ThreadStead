@@ -1,6 +1,6 @@
 import Layout from "../components/Layout";
 import CustomPageLayout from "../components/CustomPageLayout";
-import RetroCard from "../components/RetroCard";
+import RetroCard from "../components/layout/RetroCard";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { PrismaClient } from "@prisma/client";

@@ -1,6 +1,6 @@
 import Layout from "../components/Layout";
-import Tabs, { TabSpec } from "../components/Tabs";
-import Feed from "../components/Feed";
+import Tabs, { TabSpec } from "../components/navigation/Tabs";
+import Feed from "../components/content/Feed";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import NewCommentForm from "./NewCommentForm";
+import NewCommentForm from "../forms/NewCommentForm";
 
 export type CommentWire = {
   id: string;

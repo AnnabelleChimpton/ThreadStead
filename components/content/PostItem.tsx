@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import hljs from "highlight.js"; // Ensure highlight.js is imported
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
-import NewCommentForm, { CommentWire as CommentWireForm } from "./NewCommentForm";
+import NewCommentForm, { CommentWire as CommentWireForm } from "../forms/NewCommentForm";
 import Link from "next/link";
 
 type Visibility = "public" | "followers" | "friends" | "private";

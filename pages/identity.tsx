@@ -17,7 +17,7 @@ import {
 } from "@/lib/did-client";
 import UsernameSelector from "@/components/UsernameSelector";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
-import Modal from "@/components/Modal";
+import Modal from "@/components/ui/Modal";
 
 interface IdentityPageProps {
   initialUser?: { id: string; did: string; primaryHandle: string | null } | null;
