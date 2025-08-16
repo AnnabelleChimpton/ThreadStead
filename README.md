@@ -12,6 +12,10 @@ A fully-featured retro-themed social networking template built with Next.js, fea
 - 🔐 **Decentralized identity** using DID (Decentralized Identifiers)
 - 🎫 **Beta key system** for controlled access
 - 📱 **Responsive design** that works on all devices
+- 🏗️ **Custom page creation** with full design freedom and built-in patterns
+- 🛠️ **Comprehensive admin panel** with site configuration and user management
+- 📚 **Design patterns guide** with copy-paste ready templates
+- 🎯 **Sticky footer layout** ensuring proper page structure
 
 ## 🚀 Quick Start
 
@@ -125,6 +129,36 @@ npm run beta:generate 10
 - [ ] Generate beta keys if `BETA_KEYS_ENABLED=true`
 - [ ] Test all functionality in production
 
+## 🎨 Custom Page Creation
+
+### Admin-Created Pages
+Admins can create fully customizable pages with complete design freedom:
+
+- **No Containers**: Pages render raw HTML without post-style wrappers
+- **Full Creative Control**: Use any HTML, CSS, and inline styles
+- **Navbar & Footer**: Automatically included on every page
+- **Responsive Design**: Built-in responsive layout structure
+- **Easy Access**: Pages available at `/page/[slug]`
+
+### Design Patterns Guide
+The admin panel includes a comprehensive design patterns guide with:
+
+- **Layout Patterns**: Full-screen heroes, centered containers, card grids, two-column layouts
+- **Color & Backgrounds**: Gradient backgrounds, pattern overlays, color schemes
+- **Interactive Elements**: Hover effects, animated buttons, progress indicators
+- **Typography & Content**: Article layouts, callout boxes, FAQ sections
+
+### Getting Started with Custom Pages
+
+1. **Access Admin Panel**: Navigate to `/settings/admin` (admin privileges required)
+2. **Open Design Patterns**: Review the built-in guide for inspiration and code snippets
+3. **Create New Page**: Use the page creation form with HTML content
+4. **Copy Patterns**: Use the copy-paste ready examples from the design guide
+5. **Customize**: Modify colors, text, and layout to match your vision
+6. **Publish**: Make your page live and optionally add it to navigation
+
+For detailed examples and patterns, see [DESIGN.md](DESIGN.md).
+
 ## 📊 Features Overview
 
 ### User System
@@ -145,17 +179,31 @@ npm run beta:generate 10
 ### Admin Features
 - **Beta Keys**: Control who can sign up
 - **Moderation**: Basic content management tools
+- **Custom Pages**: Create fully customizable pages with complete design freedom
+- **Site Configuration**: Manage site-wide settings, branding, and messaging
+- **CSS Theming**: Apply site-wide CSS themes and styles
+- **User Management**: View and manage all users on the platform
+- **Design Patterns**: Built-in guide with copy-paste ready design templates
 
 ## 🛠️ Development
 
 ### Project Structure
 ```
 ├── components/          # React components
+│   ├── Layout.tsx       # Main layout with navbar/footer
+│   ├── CustomPageLayout.tsx  # Special layout for admin pages
+│   ├── DesignPatternsGuide.tsx  # Interactive design guide
+│   └── ...             # Other components
 ├── pages/              # Next.js pages and API routes
+│   ├── page/           # Custom page routes
+│   ├── settings/       # Admin and user settings
+│   └── api/            # API endpoints
 ├── lib/                # Utility functions and configurations  
 ├── prisma/             # Database schema and migrations
 ├── public/             # Static assets
-└── styles/             # Global styles
+├── styles/             # Global styles
+├── DESIGN.md           # Design patterns documentation
+└── README.md           # This file
 ```
 
 ### Key Technologies

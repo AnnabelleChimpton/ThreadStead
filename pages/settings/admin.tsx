@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import RetroCard from "@/components/RetroCard";
+import DesignPatternsGuide from "@/components/DesignPatternsGuide";
 import { useMe } from "@/hooks/useMe";
 import { getSiteTemplate, SITE_TEMPLATE_INFO } from "@/lib/site-css-templates";
 import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO } from "@/lib/default-profile-templates";
@@ -104,13 +105,25 @@ function PageForm({
           <label className="block text-sm font-medium mb-1">Content (HTML)</label>
           <textarea
             className="w-full border border-black p-2 bg-white text-sm font-mono"
-            rows={8}
+            rows={12}
             value={formData.content}
             onChange={(e) => setFormData({...formData, content: e.target.value})}
-            placeholder="<h2>About Our Site</h2>
-<p>Welcome to our community...</p>"
+            placeholder="<div style='min-height: 100vh; padding: 2rem; background: linear-gradient(45deg, #ff6b6b, #4ecdc4);'>
+  <h1 style='color: white; text-align: center; font-size: 3rem;'>Welcome</h1>
+  <p style='color: white; text-align: center;'>You have complete control over this page!</p>
+</div>"
           />
-          <p className="text-xs text-gray-500 mt-1">You can use HTML tags for formatting</p>
+          <div className="text-xs text-gray-600 mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+            <p className="font-medium mb-2">🎨 Full Creative Control:</p>
+            <ul className="space-y-1">
+              <li>• Use any HTML, CSS, and inline styles</li>
+              <li>• Create custom layouts, colors, and backgrounds</li>
+              <li>• The navbar and footer will always appear automatically</li>
+              <li>• Footer stays at the bottom of the page regardless of content height</li>
+              <li>• No post-style containers - complete design freedom!</li>
+              <li>• <strong>📚 Check the "Design Patterns Guide" section above for copy-paste examples!</strong></li>
+            </ul>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -702,6 +715,11 @@ export default function AdminPage() {
           <p>Welcome to the admin panel. Manage your site's content, appearance, and users with the organized sections below.</p>
         </RetroCard>
 
+        {/* DESIGN PATTERNS GUIDE */}
+        <CollapsibleSection title="Design Patterns Guide" defaultOpen={false} icon="📚">
+          <DesignPatternsGuide />
+        </CollapsibleSection>
+
         {/* CONTENT MANAGEMENT */}
         <CollapsibleSection title="Content Management" defaultOpen={true} icon="📝">
           
@@ -711,7 +729,7 @@ export default function AdminPage() {
               📄 Custom Pages
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Create custom pages like About, Rules, or any other static content. Published pages can be accessed at /page/[slug].
+              Create fully customizable pages with complete design freedom. Pages appear with navbar and footer but no containers - you control everything else! Published pages can be accessed at /page/[slug]. Use the <strong>Design Patterns Guide</strong> above for ready-to-use examples.
             </p>
             
             <div className="border border-blue-300 bg-blue-50 p-3 rounded mb-4">

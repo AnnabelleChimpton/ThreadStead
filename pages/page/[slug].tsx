@@ -1,6 +1,7 @@
 import React from "react";
 import { GetServerSideProps } from "next";
 import Layout from "@/components/Layout";
+import CustomPageLayout from "@/components/CustomPageLayout";
 import RetroCard from "@/components/RetroCard";
 import { PrismaClient } from "@prisma/client";
 
@@ -40,17 +41,12 @@ export default function CustomPage({ page, error }: Props) {
   }
 
   return (
-    <Layout>
-      <RetroCard title={page.title}>
-        <div 
-          className="prose max-w-none"
-          dangerouslySetInnerHTML={{ __html: page.content }}
-        />
-        <div className="mt-6 pt-4 border-t border-gray-200 text-xs text-gray-500">
-          Last updated: {new Date(page.updatedAt).toLocaleDateString()}
-        </div>
-      </RetroCard>
-    </Layout>
+    <CustomPageLayout>
+      <div 
+        className="custom-page-content flex-1"
+        dangerouslySetInnerHTML={{ __html: page.content }}
+      />
+    </CustomPageLayout>
   );
 }
 

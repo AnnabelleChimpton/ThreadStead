@@ -6,16 +6,17 @@ import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
 
-interface LayoutProps {
+interface CustomPageLayoutProps {
   children: React.ReactNode;
   siteConfig?: SiteConfig;
 }
 
-export default function Layout({ children, siteConfig }: LayoutProps) {
+export default function CustomPageLayout({ children, siteConfig }: CustomPageLayoutProps) {
   const { config: hookConfig } = useSiteConfig();
   const { pages: navPages } = useNavPages();
   const { hasMismatch, fixMismatch } = useIdentitySync();
   const config = siteConfig || hookConfig;
+  
   return (
     <div className="site-layout min-h-screen thread-surface flex flex-col">
       {/* Identity Sync Issue Banner */}
@@ -80,7 +81,10 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
       {/* Creative header section - users can style this wildly! */}
       <div className="site-creative-header"></div>
 
-      <main className="site-main flex-1 mx-auto max-w-5xl px-6 py-8">{children}</main>
+      {/* Custom page content - no constraints */}
+      <div className="flex-1 flex flex-col">
+        {children}
+      </div>
 
       <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
         <div className="footer-content mx-auto max-w-5xl text-center">
