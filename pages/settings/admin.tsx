@@ -482,7 +482,7 @@ export default function AdminPage() {
       clearTimeout(timeoutId);
 
       console.log("Response status:", res.status);
-      console.log("Response headers:", Object.fromEntries(res.headers.entries()));
+      console.log("Response headers:", Object.fromEntries(res.headers));
 
       if (res.ok) {
         await loadCustomPages();
