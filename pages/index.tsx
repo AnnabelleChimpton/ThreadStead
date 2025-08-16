@@ -1,4 +1,5 @@
 import Layout from "../components/Layout";
+import CustomPageLayout from "../components/CustomPageLayout";
 import RetroCard from "../components/RetroCard";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
@@ -14,34 +15,22 @@ interface HomeProps {
     slug: string;
     title: string;
     content: string;
+    hideNavbar: boolean;
     createdAt: string;
     updatedAt: string;
   };
 }
 
 export default function Home({ siteConfig, customPage }: HomeProps) {
-  // If there's a custom homepage, show it
+  // If there's a custom homepage, render it exactly like a regular custom page
   if (customPage) {
     return (
-      <Layout siteConfig={siteConfig}>
-        <RetroCard title={customPage.title}>
-          <div 
-            className="prose max-w-none"
-            dangerouslySetInnerHTML={{ __html: customPage.content }}
-          />
-          <div className="mt-6 pt-4 border-t border-gray-200 text-xs text-gray-500">
-            Last updated: {new Date(customPage.updatedAt).toLocaleDateString()}
-          </div>
-        </RetroCard>
-        <div className="mt-8 text-center">
-          <Link 
-            href="/feed" 
-            className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block"
-          >
-            View Community Feed
-          </Link>
-        </div>
-      </Layout>
+      <CustomPageLayout siteConfig={siteConfig} hideNavbar={customPage.hideNavbar}>
+        <div 
+          className="custom-page-content flex-1"
+          dangerouslySetInnerHTML={{ __html: customPage.content }}
+        />
+      </CustomPageLayout>
     );
   }
 
@@ -81,27 +70,21 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
   }
   
   try {
-    // Look for a custom page that could serve as homepage
-    // Priority: 1) "home" slug, 2) "index" slug, 3) any page with isHomepage flag (if we add it later)
+    // Look for a custom page that is explicitly set as homepage
     const customPage = await db.customPage.findFirst({
       where: {
         published: true,
-        OR: [
-          { slug: "home" },
-          { slug: "index" }
-        ]
+        isHomepage: true,
       },
       select: {
         id: true,
         slug: true,
         title: true,
         content: true,
+        hideNavbar: true,
         createdAt: true,
         updatedAt: true,
       },
-      orderBy: [
-        { slug: "asc" } // "home" comes before "index" alphabetically
-      ]
     });
 
     if (customPage) {

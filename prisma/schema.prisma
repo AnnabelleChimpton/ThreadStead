@@ -243,9 +243,11 @@ model CustomPage {
   showInNav   Boolean  @default(false) // Show in navigation menu
   navOrder    Int      @default(0)     // Order in navigation (lower = earlier)
   hideNavbar  Boolean  @default(false) // Hide navigation bar on this page
+  isHomepage  Boolean  @default(false) // Use this page as the site homepage
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   @@index([published, showInNav, navOrder])
+  @@index([isHomepage])
 }

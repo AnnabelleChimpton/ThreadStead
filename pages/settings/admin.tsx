@@ -46,11 +46,13 @@ function CollapsibleSection({
 function PageForm({ 
   page, 
   onSave, 
-  onCancel 
+  onCancel,
+  saving = false
 }: { 
   page: CustomPage | null; 
   onSave: (pageData: Partial<CustomPage>) => void; 
   onCancel: () => void; 
+  saving?: boolean;
 }) {
   const [formData, setFormData] = useState({
     slug: page?.slug || "",
@@ -60,7 +62,22 @@ function PageForm({
     showInNav: page?.showInNav || false,
     navOrder: page?.navOrder || 0,
     hideNavbar: page?.hideNavbar || false,
+    isHomepage: page?.isHomepage || false,
   });
+
+  // Update form data when page prop changes
+  useEffect(() => {
+    setFormData({
+      slug: page?.slug || "",
+      title: page?.title || "",
+      content: page?.content || "",
+      published: page?.published || false,
+      showInNav: page?.showInNav || false,
+      navOrder: page?.navOrder || 0,
+      hideNavbar: page?.hideNavbar || false,
+      isHomepage: page?.isHomepage || false,
+    });
+  }, [page]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,6 +182,18 @@ function PageForm({
           </div>
           
           <div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.isHomepage}
+                onChange={(e) => setFormData({...formData, isHomepage: e.target.checked})}
+              />
+              <span className="text-sm font-bold text-orange-700">🏠 Use as Homepage</span>
+            </label>
+            <p className="text-xs text-gray-500">Override the default homepage with this page</p>
+          </div>
+          
+          <div>
             <label className="block text-sm font-medium mb-1">Nav Order</label>
             <input
               type="number"
@@ -180,14 +209,16 @@ function PageForm({
         <div className="flex gap-2 pt-3 border-t border-gray-200">
           <button
             type="submit"
-            className="border border-black px-4 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000]"
+            disabled={saving}
+            className="border border-black px-4 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {page ? "Update Page" : "Create Page"}
+            {saving ? "Saving..." : (page ? "Update Page" : "Create Page")}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="border border-black px-4 py-2 bg-gray-200 hover:bg-gray-100 shadow-[2px_2px_0_#000]"
+            disabled={saving}
+            className="border border-black px-4 py-2 bg-gray-200 hover:bg-gray-100 shadow-[2px_2px_0_#000] disabled:opacity-50"
           >
             Cancel
           </button>
@@ -232,6 +263,7 @@ type CustomPage = {
   showInNav: boolean;
   navOrder: number;
   hideNavbar: boolean;
+  isHomepage: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -253,6 +285,7 @@ export default function AdminPage() {
   const [loadingPages, setLoadingPages] = useState(false);
   const [editingPage, setEditingPage] = useState<CustomPage | null>(null);
   const [showPageForm, setShowPageForm] = useState(false);
+  const [savingPage, setSavingPage] = useState(false);
   
   // Site CSS state
   const [siteCSS, setSiteCSS] = useState("");
@@ -421,17 +454,35 @@ export default function AdminPage() {
   }
 
   async function saveCustomPage(pageData: Partial<CustomPage>) {
+    if (savingPage) return; // Prevent multiple submissions
+    
+    setSavingPage(true);
     try {
       const url = editingPage 
         ? `/api/admin/custom-pages/${editingPage.id}`
         : "/api/admin/custom-pages";
       const method = editingPage ? "PUT" : "POST";
       
+      console.log("Saving page with data:", pageData);
+      console.log("Using URL:", url, "Method:", method);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify(pageData),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
+
+      console.log("Response status:", res.status);
+      console.log("Response headers:", Object.fromEntries(res.headers.entries()));
 
       if (res.ok) {
         await loadCustomPages();
@@ -439,12 +490,24 @@ export default function AdminPage() {
         setShowPageForm(false);
         alert(editingPage ? "Page updated successfully" : "Page created successfully");
       } else {
-        const error = await res.json();
-        alert(error.error || "Failed to save page");
+        let errorMessage;
+        try {
+          const error = await res.json();
+          errorMessage = error.error || `Failed to save page (${res.status})`;
+        } catch (jsonError) {
+          console.error("Failed to parse error response as JSON:", jsonError);
+          const errorText = await res.text();
+          console.error("Raw error response:", errorText);
+          errorMessage = `Failed to save page (${res.status}): ${errorText || 'Unknown error'}`;
+        }
+        console.error("Save failed with error:", errorMessage);
+        alert(errorMessage);
       }
     } catch (error) {
       console.error("Failed to save page:", error);
-      alert("Failed to save page");
+      alert(`Failed to save page: ${error instanceof Error ? error.message : 'Network or connection error'}`);
+    } finally {
+      setSavingPage(false);
     }
   }
 
@@ -804,7 +867,7 @@ export default function AdminPage() {
             <div className="border border-blue-300 bg-blue-50 p-3 rounded mb-4">
               <h4 className="font-bold text-blue-800 mb-2">🏠 Homepage Control</h4>
               <p className="text-sm text-blue-700 mb-3">
-                Create a page with slug &quot;home&quot; or &quot;index&quot; for a custom homepage, or use the setting below to redirect visitors directly to /feed.
+                Create a custom page and check &quot;🏠 Use as Homepage&quot; to override the default homepage, or use the setting below to redirect visitors directly to /feed.
               </p>
               
               {loadingHomeSetting ? (
@@ -862,6 +925,7 @@ export default function AdminPage() {
               <PageForm
                 page={editingPage}
                 onSave={saveCustomPage}
+                saving={savingPage}
                 onCancel={() => {
                   setEditingPage(null);
                   setShowPageForm(false);
@@ -894,6 +958,11 @@ export default function AdminPage() {
                             {page.hideNavbar && (
                               <span className="text-xs px-2 py-1 rounded bg-purple-200">
                                 No Navbar
+                              </span>
+                            )}
+                            {page.isHomepage && (
+                              <span className="text-xs px-2 py-1 rounded bg-orange-200 text-orange-800 font-bold">
+                                🏠 Homepage
                               </span>
                             )}
                           </div>

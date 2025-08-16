@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === "POST") {
     try {
-      const { slug, title, content, published, showInNav, navOrder, hideNavbar } = req.body;
+      const { slug, title, content, published, showInNav, navOrder, hideNavbar, isHomepage } = req.body;
       
       if (!slug || !title) {
         return res.status(400).json({ error: "Slug and title are required" });
@@ -34,6 +34,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Validate slug format (alphanumeric and hyphens only)
       if (!/^[a-z0-9-]+$/.test(slug)) {
         return res.status(400).json({ error: "Slug must contain only lowercase letters, numbers, and hyphens" });
+      }
+
+      // If setting as homepage, unset any existing homepage
+      if (Boolean(isHomepage)) {
+        await db.customPage.updateMany({
+          where: { isHomepage: true },
+          data: { isHomepage: false },
+        });
       }
 
       const page = await db.customPage.create({
@@ -45,6 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           showInNav: Boolean(showInNav),
           navOrder: Number(navOrder) || 0,
           hideNavbar: hideNavbar !== undefined ? Boolean(hideNavbar) : false,
+          isHomepage: Boolean(isHomepage),
         },
       });
 
