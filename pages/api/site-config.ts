@@ -16,6 +16,8 @@ const DEFAULT_CONFIG = {
   welcome_dialog_title: "🎉 Welcome to Retro Social!",
   guestbook_prompt: "Share a friendly thought or memory…",
   site_description: "A cozy corner of the internet for thoughtful conversations and creative expression.",
+  disable_default_home: "false",
+  default_profile_css: "",
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

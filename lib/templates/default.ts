@@ -6,8 +6,8 @@ export const DEFAULT_CSS_TEMPLATE = `/* ========================================
    authentic spirit of 1990s web creativity - complete with 
    animated GIFs, rainbow gradients, and Comic Sans! 
    
-   Note: Navigation styling is now customizable while maintaining
-   functionality. Creative header is your playground! */
+   Note: This template works on a clean canvas - no site-wide CSS
+   interference on profile pages. Complete creative freedom! */
 
 @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Trebuchet+MS:wght@400;700&display=swap');
 
@@ -37,14 +37,14 @@ export const DEFAULT_CSS_TEMPLATE = `/* ========================================
 
 /* You can style the footer to match your theme */
 .site-footer {
-  background: linear-gradient(90deg, #32cd32, #00ced1) !important;
-  border: 3px solid #000 !important;
-  border-top: 5px solid #000 !important;
-  color: #000 !important;
-  font-weight: bold !important;
-  text-align: center !important;
-  padding: 1rem !important;
-  position: relative !important;
+  background: linear-gradient(90deg, #32cd32, #00ced1);
+  border: 3px solid #000;
+  border-top: 5px solid #000;
+  color: #000;
+  font-weight: bold;
+  text-align: center;
+  padding: 1rem;
+  position: relative;
 }
 
 .site-footer::before {
@@ -66,32 +66,32 @@ export const DEFAULT_CSS_TEMPLATE = `/* ========================================
 
 /* You can safely style these basic nav properties */
 .site-header {
-  background: linear-gradient(90deg, #ff69b4, #00ced1) !important;
-  color: #000 !important;
-  font-family: 'Comic Neue', cursive !important;
+  background: linear-gradient(90deg, #ff69b4, #00ced1);
+  color: #000;
+  font-family: 'Comic Neue', cursive;
 }
 
 .site-title {
-  color: #fff !important;
-  text-shadow: 2px 2px 0px #000 !important;
+  color: #fff;
+  text-shadow: 2px 2px 0px #000;
 }
 
 .site-tagline {
-  color: #ffff00 !important;
-  text-shadow: 1px 1px 0px #000 !important;
+  color: #ffff00;
+  text-shadow: 1px 1px 0px #000;
 }
 
 .nav-link {
-  color: #fff !important;
-  background: rgba(0,0,0,0.3) !important;
-  padding: 4px 8px !important;
-  border-radius: 4px !important;
-  font-weight: bold !important;
+  color: #fff;
+  background: rgba(0,0,0,0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
 }
 
 .nav-link:hover {
-  background: rgba(255,255,255,0.3) !important;
-  color: #000 !important;
+  background: rgba(255,255,255,0.3);
+  color: #000;
 }
 
 /* ===========================================

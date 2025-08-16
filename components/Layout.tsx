@@ -3,6 +3,7 @@ import Link from "next/link";
 import LoginStatus from "./LoginStatus";
 import NotificationDropdown from "./NotificationDropdown";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
+import { useNavPages } from "@/hooks/useNavPages";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface LayoutProps {
 
 export default function Layout({ children, siteConfig }: LayoutProps) {
   const { config: hookConfig } = useSiteConfig();
+  const { pages: navPages } = useNavPages();
   const config = siteConfig || hookConfig;
   return (
     <div className="site-layout min-h-screen thread-surface">
@@ -22,7 +24,17 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
           </div>
           <div className="site-nav-links flex items-center gap-6">
             <Link className="nav-link text-thread-pine hover:text-thread-sunset transition-colors" href="/">Home</Link>
+            <Link className="nav-link text-thread-pine hover:text-thread-sunset transition-colors" href="/feed">Feed</Link>
             <Link className="nav-link text-thread-pine hover:text-thread-sunset transition-colors" href="/directory">Directory</Link>
+            {navPages.map(page => (
+              <Link 
+                key={page.id} 
+                className="nav-link text-thread-pine hover:text-thread-sunset transition-colors" 
+                href={`/page/${page.slug}`}
+              >
+                {page.title}
+              </Link>
+            ))}
             <NotificationDropdown className="nav-link" />
             <div className="site-auth">
               <LoginStatus />

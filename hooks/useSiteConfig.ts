@@ -12,6 +12,8 @@ export type SiteConfig = {
   welcome_dialog_title: string;
   guestbook_prompt: string;
   site_description: string;
+  disable_default_home: string;
+  default_profile_css: string;
 };
 
 // Default values that match the API
@@ -27,6 +29,8 @@ const DEFAULT_CONFIG: SiteConfig = {
   welcome_dialog_title: "🎉 Welcome to Retro Social!",
   guestbook_prompt: "Share a friendly thought or memory…",
   site_description: "A cozy corner of the internet for thoughtful conversations and creative expression.",
+  disable_default_home: "false",
+  default_profile_css: "",
 };
 
 export function useSiteConfig() {

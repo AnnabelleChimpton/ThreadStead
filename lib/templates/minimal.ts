@@ -3,7 +3,10 @@ export const MINIMAL_CSS_TEMPLATE = `/* ========================================
    =========================================== */
 
 /* Simple but charming design inspired by early personal websites
-   Perfect for your first homepage! */
+   Perfect for your first homepage! 
+   
+   Note: This template is resilient against site-wide CSS
+   by using higher specificity and strategic !important declarations. */
 
 @import url('https://fonts.googleapis.com/css2?family=Trebuchet+MS&family=Georgia:wght@400;700&display=swap');
 
@@ -12,15 +15,16 @@ export const MINIMAL_CSS_TEMPLATE = `/* ========================================
    =========================================== */
 
 /* Classic web background */
+.profile-container .site-layout,
 .site-layout {
-  background: #e0e0e0;
+  background: #e0e0e0 !important;
   background-image: 
     linear-gradient(45deg, #d0d0d0 25%, transparent 25%),
     linear-gradient(-45deg, #d0d0d0 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, #d0d0d0 75%),
-    linear-gradient(-45deg, transparent 75%, #d0d0d0 75%);
-  background-size: 20px 20px;
-  font-family: 'Trebuchet MS', sans-serif;
+    linear-gradient(-45deg, transparent 75%, #d0d0d0 75%) !important;
+  background-size: 20px 20px !important;
+  font-family: 'Trebuchet MS', sans-serif !important;
 }
 
 /* ===========================================
@@ -28,6 +32,7 @@ export const MINIMAL_CSS_TEMPLATE = `/* ========================================
    =========================================== */
 
 /* Simple footer to match the minimal theme */
+.profile-container .site-footer,
 .site-footer {
   background: #4a4a4a !important;
   border-top: 2px solid #333 !important;
@@ -42,6 +47,7 @@ export const MINIMAL_CSS_TEMPLATE = `/* ========================================
    =========================================== */
 
 /* Simple, clean navigation styling */
+.profile-container .site-header,
 .site-header {
   background: #333 !important;
   color: #fff !important;

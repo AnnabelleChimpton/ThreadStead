@@ -3,7 +3,10 @@ export const DARK_THEME_TEMPLATE = `/* =========================================
    =========================================== */
 
 /* Enter the Matrix with this authentic hacker aesthetic
-   Inspired by 90s cyberpunk and terminal culture */
+   Inspired by 90s cyberpunk and terminal culture 
+   
+   Note: This template is resilient against site-wide CSS
+   by using higher specificity and strategic !important declarations. */
 
 @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600;700&family=Orbitron:wght@400;700;900&display=swap');
 
@@ -12,14 +15,15 @@ export const DARK_THEME_TEMPLATE = `/* =========================================
    =========================================== */
 
 /* Authentic terminal background */
+.profile-container .site-layout,
 .site-layout {
-  background: #000000;
-  color: #00ff41;
-  font-family: 'Source Code Pro', monospace;
-  font-size: 13px;
-  line-height: 1.4;
-  position: relative;
-  overflow: hidden;
+  background: #000000 !important;
+  color: #00ff41 !important;
+  font-family: 'Source Code Pro', monospace !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  position: relative !important;
+  overflow: hidden !important;
 }
 
 /* Matrix rain effect */

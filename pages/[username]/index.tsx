@@ -184,7 +184,6 @@ export default function ProfilePage({
 
   return (
     <>
-      {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
       <div className="profile-container">
         <Layout>
           <div className="profile-content-wrapper">
@@ -266,6 +265,23 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     return { props };
   }
 
+  // Fetch admin default CSS from public site config
+  let adminDefaultCSS = "";
+  try {
+    const configRes = await fetch(`${base}/api/site-config`);
+    if (configRes.ok) {
+      const configData = await configRes.json();
+      adminDefaultCSS = configData.config?.default_profile_css || "";
+    }
+  } catch (error) {
+    console.error("Failed to fetch admin default CSS:", error);
+  }
+  
+  // If no admin default CSS is set, use the Professional template as default
+  if (!adminDefaultCSS || adminDefaultCSS.trim() === '') {
+    adminDefaultCSS = require('@/lib/default-profile-templates').DEFAULT_PROFILE_TEMPLATE;
+  }
+
   const data: {
     userId: string;                      // <-- expecting this from /api/profile
     username?: string;
@@ -321,7 +337,17 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   };
   if (data.profile?.bio != null) props.bio = data.profile.bio;
   if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;
-  if (data.profile?.customCSS != null) props.customCSS = data.profile.customCSS;
+  
+  // CSS Priority: User CSS > Admin Default CSS > No CSS
+  if (data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
+    // User has custom CSS - use it
+    props.customCSS = data.profile.customCSS;
+  } else if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
+    // User has no custom CSS but admin has set default CSS - use admin default
+    props.customCSS = adminDefaultCSS;
+  }
+  // If neither, customCSS remains undefined and no CSS is injected
+  
   if (websites.length > 0) props.websites = websites;
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
 

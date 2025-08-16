@@ -233,3 +233,18 @@ model SiteConfig {
   
   @@index([key])
 }
+
+model CustomPage {
+  id          String   @id @default(cuid())
+  slug        String   @unique // URL slug like "about", "rules", etc.
+  title       String
+  content     String   // HTML content
+  published   Boolean  @default(false)
+  showInNav   Boolean  @default(false) // Show in navigation menu
+  navOrder    Int      @default(0)     // Order in navigation (lower = earlier)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([published, showInNav, navOrder])
+}

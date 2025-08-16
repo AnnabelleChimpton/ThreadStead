@@ -3,7 +3,10 @@ export const NEWSPAPER_TEMPLATE = `/* ==========================================
    =========================================== */
 
 /* Classic early internet newspaper with that authentic 1990s charm
-   Complete with web rings, banner ads, and visitor counters! */
+   Complete with web rings, banner ads, and visitor counters! 
+   
+   Note: This template works on a clean canvas - no site-wide CSS
+   interference on profile pages. Complete creative freedom! */
 
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Times+New+Roman:ital,wght@0,400;1,400;0,700&display=swap');
 
@@ -48,6 +51,7 @@ export const NEWSPAPER_TEMPLATE = `/* ==========================================
    =========================================== */
 
 /* Classic early web footer */
+.profile-container .site-footer,
 .site-footer {
   background: linear-gradient(180deg, #f0f0f0, #e0e0e0) !important;
   border-top: 4px double #000 !important;
@@ -75,6 +79,7 @@ export const NEWSPAPER_TEMPLATE = `/* ==========================================
    =========================================== */
 
 /* Classic newspaper navigation */
+.profile-container .site-header,
 .site-header {
   background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%) !important;
   border-bottom: 4px double #000 !important;
@@ -82,6 +87,7 @@ export const NEWSPAPER_TEMPLATE = `/* ==========================================
   font-family: 'Times New Roman', serif !important;
 }
 
+.profile-container .site-title,
 .site-title {
   color: #000 !important;
   font-family: 'Playfair Display', serif !important;
@@ -89,11 +95,13 @@ export const NEWSPAPER_TEMPLATE = `/* ==========================================
   text-shadow: 1px 1px 0px #ccc !important;
 }
 
+.profile-container .site-tagline,
 .site-tagline {
   color: #444 !important;
   font-style: italic !important;
 }
 
+.profile-container .nav-link,
 .nav-link {
   background: linear-gradient(135deg, #e0e0e0, #f0f0f0) !important;
   color: #000 !important;
@@ -108,6 +116,7 @@ export const NEWSPAPER_TEMPLATE = `/* ==========================================
   font-family: 'Times New Roman', serif !important;
 }
 
+.profile-container .nav-link:hover,
 .nav-link:hover {
   background: linear-gradient(135deg, #f0f0f0, #e0e0e0) !important;
   border: 2px inset #e0e0e0 !important;
@@ -118,15 +127,16 @@ export const NEWSPAPER_TEMPLATE = `/* ==========================================
    📰 CREATIVE HEADER - NEWSPAPER MASTHEAD
    =========================================== */
 
+.profile-container .site-creative-header,
 .site-creative-header {
-  background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%);
-  border: 4px double #000;
-  border-bottom: 6px double #000;
-  border-top: 6px double #000;
-  padding: 2rem 0;
-  text-align: center;
-  position: relative;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%) !important;
+  border: 4px double #000 !important;
+  border-bottom: 6px double #000 !important;
+  border-top: 6px double #000 !important;
+  padding: 2rem 0 !important;
+  text-align: center !important;
+  position: relative !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
 }
 
 .site-creative-header::before {
