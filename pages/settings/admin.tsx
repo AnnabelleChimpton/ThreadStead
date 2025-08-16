@@ -122,7 +122,7 @@ function PageForm({
               <li>• Toggle navbar visibility for full-screen experiences</li>
               <li>• Footer stays at the bottom of the page regardless of content height</li>
               <li>• No post-style containers - complete design freedom!</li>
-              <li>• <strong>📚 Check the "Design Patterns Guide" section above for copy-paste examples!</strong></li>
+              <li>• <strong>📚 Check the &quot;Design Patterns Guide&quot; section above for copy-paste examples!</strong></li>
             </ul>
           </div>
         </div>
@@ -726,7 +726,7 @@ export default function AdminPage() {
     <Layout>
       <div className="space-y-4">
         <RetroCard title="Admin Dashboard">
-          <p>Welcome to the admin panel. Manage your site's content, appearance, and users with the organized sections below.</p>
+          <p>Welcome to the admin panel. Manage your site&apos;s content, appearance, and users with the organized sections below.</p>
         </RetroCard>
 
         {/* DESIGN PATTERNS GUIDE */}
@@ -749,7 +749,7 @@ export default function AdminPage() {
             <div className="border border-blue-300 bg-blue-50 p-3 rounded mb-4">
               <h4 className="font-bold text-blue-800 mb-2">🏠 Homepage Control</h4>
               <p className="text-sm text-blue-700 mb-3">
-                Create a page with slug "home" or "index" for a custom homepage, or use the setting below to redirect visitors directly to /feed.
+                Create a page with slug &quot;home&quot; or &quot;index&quot; for a custom homepage, or use the setting below to redirect visitors directly to /feed.
               </p>
               
               {loadingHomeSetting ? (
@@ -874,7 +874,7 @@ export default function AdminPage() {
               ⚙️ Site Configuration
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Customize your site's branding and messaging. Changes will appear site-wide.
+              Customize your site&apos;s branding and messaging. Changes will appear site-wide.
             </p>
             
             {loadingConfig ? (
@@ -1144,7 +1144,7 @@ export default function AdminPage() {
               👤 Default Profile CSS (Admin Only)
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Set a default CSS theme for user profiles when they haven't customized their own. This provides visual cohesion while respecting user choice.
+              Set a default CSS theme for user profiles when they haven&apos;t customized their own. This provides visual cohesion while respecting user choice.
             </p>
             
             {loadingDefaultProfileCSS ? (
@@ -1260,7 +1260,7 @@ export default function AdminPage() {
                     {generatedKey}
                   </div>
                   <p className="text-xs mt-1 text-gray-600">
-                    Save this key - it won't be shown again!
+                    Save this key - it won&apos;t be shown again!
                   </p>
                 </div>
               )}
