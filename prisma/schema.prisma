@@ -242,6 +242,7 @@ model CustomPage {
   published   Boolean  @default(false)
   showInNav   Boolean  @default(false) // Show in navigation menu
   navOrder    Int      @default(0)     // Order in navigation (lower = earlier)
+  hideNavbar  Boolean  @default(false) // Hide navigation bar on this page
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

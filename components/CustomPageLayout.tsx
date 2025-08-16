@@ -9,9 +9,10 @@ import { useIdentitySync } from "@/hooks/useIdentitySync";
 interface CustomPageLayoutProps {
   children: React.ReactNode;
   siteConfig?: SiteConfig;
+  hideNavbar?: boolean;
 }
 
-export default function CustomPageLayout({ children, siteConfig }: CustomPageLayoutProps) {
+export default function CustomPageLayout({ children, siteConfig, hideNavbar = false }: CustomPageLayoutProps) {
   const { config: hookConfig } = useSiteConfig();
   const { pages: navPages } = useNavPages();
   const { hasMismatch, fixMismatch } = useIdentitySync();
@@ -47,36 +48,38 @@ export default function CustomPageLayout({ children, siteConfig }: CustomPageLay
         </div>
       )}
       
-      <header className="site-header border-b border-thread-sage bg-thread-cream px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95">
-        <nav className="site-navigation mx-auto max-w-5xl flex items-center justify-between">
-          <div className="site-branding">
-            <h1 className="site-title thread-headline text-2xl font-bold text-thread-pine">{config.site_name}</h1>
-            <span className="site-tagline thread-label">{config.site_tagline}</span>
-          </div>
-          <div className="site-nav-container flex items-center gap-8">
-            <div className="site-nav-links flex items-center gap-6">
-              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/">Home</Link>
-              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/feed">Feed</Link>
-              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/directory">Directory</Link>
-              {navPages.map(page => (
-                <Link 
-                  key={page.id} 
-                  className="nav-link text-thread-pine hover:text-thread-sunset font-medium" 
-                  href={`/page/${page.slug}`}
-                >
-                  {page.title}
-                </Link>
-              ))}
+      {!hideNavbar && (
+        <header className="site-header border-b border-thread-sage bg-thread-cream px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95">
+          <nav className="site-navigation mx-auto max-w-5xl flex items-center justify-between">
+            <div className="site-branding">
+              <h1 className="site-title thread-headline text-2xl font-bold text-thread-pine">{config.site_name}</h1>
+              <span className="site-tagline thread-label">{config.site_tagline}</span>
             </div>
-            <div className="site-nav-actions flex items-center gap-4">
-              <NotificationDropdown className="nav-link" />
-              <div className="site-auth">
-                <LoginStatus />
+            <div className="site-nav-container flex items-center gap-8">
+              <div className="site-nav-links flex items-center gap-6">
+                <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/">Home</Link>
+                <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/feed">Feed</Link>
+                <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/directory">Directory</Link>
+                {navPages.map(page => (
+                  <Link 
+                    key={page.id} 
+                    className="nav-link text-thread-pine hover:text-thread-sunset font-medium" 
+                    href={`/page/${page.slug}`}
+                  >
+                    {page.title}
+                  </Link>
+                ))}
+              </div>
+              <div className="site-nav-actions flex items-center gap-4">
+                <NotificationDropdown className="nav-link" />
+                <div className="site-auth">
+                  <LoginStatus />
+                </div>
               </div>
             </div>
-          </div>
-        </nav>
-      </header>
+          </nav>
+        </header>
+      )}
 
       {/* Creative header section - users can style this wildly! */}
       <div className="site-creative-header"></div>

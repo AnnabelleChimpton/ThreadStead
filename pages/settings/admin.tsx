@@ -59,6 +59,7 @@ function PageForm({
     published: page?.published || false,
     showInNav: page?.showInNav || false,
     navOrder: page?.navOrder || 0,
+    hideNavbar: page?.hideNavbar || false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -118,7 +119,7 @@ function PageForm({
             <ul className="space-y-1">
               <li>• Use any HTML, CSS, and inline styles</li>
               <li>• Create custom layouts, colors, and backgrounds</li>
-              <li>• The navbar and footer will always appear automatically</li>
+              <li>• Toggle navbar visibility for full-screen experiences</li>
               <li>• Footer stays at the bottom of the page regardless of content height</li>
               <li>• No post-style containers - complete design freedom!</li>
               <li>• <strong>📚 Check the "Design Patterns Guide" section above for copy-paste examples!</strong></li>
@@ -126,7 +127,7 @@ function PageForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="flex items-center gap-2">
               <input
@@ -149,6 +150,18 @@ function PageForm({
               <span className="text-sm">Show in Navigation</span>
             </label>
             <p className="text-xs text-gray-500">Add to main navigation menu</p>
+          </div>
+          
+          <div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.hideNavbar}
+                onChange={(e) => setFormData({...formData, hideNavbar: e.target.checked})}
+              />
+              <span className="text-sm">Hide Navigation Bar</span>
+            </label>
+            <p className="text-xs text-gray-500">Remove navbar for full-screen design</p>
           </div>
           
           <div>
@@ -218,6 +231,7 @@ type CustomPage = {
   published: boolean;
   showInNav: boolean;
   navOrder: number;
+  hideNavbar: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -820,6 +834,11 @@ export default function AdminPage() {
                             {page.showInNav && (
                               <span className="text-xs px-2 py-1 rounded bg-blue-200">
                                 In Navigation
+                              </span>
+                            )}
+                            {page.hideNavbar && (
+                              <span className="text-xs px-2 py-1 rounded bg-purple-200">
+                                No Navbar
                               </span>
                             )}
                           </div>

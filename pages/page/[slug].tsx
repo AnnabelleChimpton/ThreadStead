@@ -13,6 +13,7 @@ type Props = {
     slug: string;
     title: string;
     content: string;
+    hideNavbar: boolean;
     createdAt: string;
     updatedAt: string;
   } | null;
@@ -41,7 +42,7 @@ export default function CustomPage({ page, error }: Props) {
   }
 
   return (
-    <CustomPageLayout>
+    <CustomPageLayout hideNavbar={page.hideNavbar}>
       <div 
         className="custom-page-content flex-1"
         dangerouslySetInnerHTML={{ __html: page.content }}
@@ -73,6 +74,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         slug: true,
         title: true,
         content: true,
+        hideNavbar: true,
         createdAt: true,
         updatedAt: true,
       }
