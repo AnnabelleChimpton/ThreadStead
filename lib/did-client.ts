@@ -44,7 +44,10 @@ export async function signMessage(secretKeyB64Url: string, msg: string): Promise
 
 // Export current identity as a portable token
 export async function exportIdentityToken(): Promise<string> {
-  const keypair = await getOrCreateLocalDid();
+  const keypair = getExistingDid();
+  if (!keypair) {
+    throw new Error("No existing identity to export. Please create an identity first.");
+  }
   const token = {
     version: 1,
     keypair,

@@ -110,6 +110,40 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
     }
   }
 
+  async function handleRegenerateSeedPhrase() {
+    const confirmed = confirm(
+      'Are you sure you want to generate a new seed phrase?\n\n' +
+      'This will:\n' +
+      '• Create a completely new 12-word recovery phrase\n' +
+      '• Replace your current recovery phrase (if any)\n' +
+      '• Log you out and back in with new credentials\n' +
+      '• Require you to save the new phrase securely\n\n' +
+      'Your old recovery phrase will no longer work. Continue?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setIsLoading(true);
+      setMessage({ type: 'success', text: 'Generating new seed phrase and updating your account...' });
+      
+      // Generate a new seed phrase and update identity with it
+      const newSeed = await generateSeedPhrase();
+      await updateIdentityWithSeedPhrase(newSeed, true); // Pass true to regenerate identity
+      
+      setSeedPhrase(newSeed);
+      setShowSeedPhraseStep(true);
+      setMessage({ type: 'success', text: 'New recovery seed phrase generated! Please save it securely.' });
+      
+      // Reload the current identity to reflect changes
+      await loadCurrentIdentity();
+    } catch (e: unknown) {
+      setMessage({ type: 'error', text: (e as Error).message || 'Failed to generate new seed phrase' });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function handleCreateWithSeedPhrase() {
     setShowUsernameSelector(true);
   }
@@ -184,10 +218,10 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
 
   function handleSeedPhraseSaved() {
     if (seedPhrase) {
-      // Seed phrase is already stored by createNewIdentityWithSeedPhrase
+      // Seed phrase is already stored by createNewIdentityWithSeedPhrase or updateIdentityWithSeedPhrase
       setShowSeedPhraseStep(false);
       setSeedPhrase("");
-      setMessage({ type: 'success', text: 'Seed phrase saved! Your account is now ready to use.' });
+      setMessage({ type: 'success', text: 'Seed phrase saved! Your account has been updated with the new recovery phrase.' });
       // Stay on the identity page to show the logged-in state
       setTimeout(() => {
         setMessage(null);
@@ -491,6 +525,26 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                     </button>
                   </div>
                 )}
+                
+                {currentSeedPhrase && (
+                  <div className="bg-green-50 border border-green-200 p-3 rounded text-sm space-y-3">
+                    <p className="text-green-800 font-medium">✓ Seed phrase recovery is enabled</p>
+                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
+                      <p className="text-yellow-800 font-medium mb-2">🔄 Need a new recovery phrase?</p>
+                      <p className="text-yellow-700 text-xs mb-3">
+                        Generate a completely new 12-word recovery phrase. This will replace your current one and log you back in with new credentials.
+                      </p>
+                      <button
+                        onClick={handleRegenerateSeedPhrase}
+                        disabled={isLoading}
+                        className="text-xs bg-yellow-100 hover:bg-yellow-200 border border-yellow-300 px-3 py-1 rounded transition-all disabled:opacity-50"
+                      >
+                        {isLoading ? "Generating..." : "Generate New Seed Phrase"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 <p className="text-sm text-thread-sage leading-relaxed">
                   Export your account as a backup token for use with older versions.
                 </p>

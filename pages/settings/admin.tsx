@@ -273,6 +273,11 @@ export default function AdminPage() {
   const [savingDefaultProfileCSS, setSavingDefaultProfileCSS] = useState(false);
   const [defaultProfileMessage, setDefaultProfileMessage] = useState<string | null>(null);
   const [showDefaultProfileTemplates, setShowDefaultProfileTemplates] = useState(false);
+  
+  // Seed phrase generation state
+  const [generatedSeedPhrase, setGeneratedSeedPhrase] = useState<string | null>(null);
+  const [generatedSeedUser, setGeneratedSeedUser] = useState<{id: string, displayName: string | null, primaryHandle: string | null} | null>(null);
+  const [generatingSeed, setGeneratingSeed] = useState<string | null>(null);
 
   useEffect(() => {
     if (me?.loggedIn && me.user?.role === "admin") {
@@ -706,6 +711,56 @@ export default function AdminPage() {
     } finally {
       setSavingDefaultProfileCSS(false);
     }
+  }
+
+  async function generateSeedPhraseForUser(userId: string) {
+    console.log("Generating seed phrase for user:", userId);
+    setGeneratingSeed(userId);
+    try {
+      const res = await fetch("/api/admin/generate-user-seed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      console.log("API response status:", res.status);
+      
+      if (res.ok) {
+        const data = await res.json();
+        console.log("API response data:", data);
+        setGeneratedSeedPhrase(data.seedPhrase);
+        setGeneratedSeedUser(data.user);
+      } else {
+        const error = await res.json();
+        console.log("API error response:", error);
+        alert(error.error || "Failed to generate seed phrase");
+      }
+    } catch (error) {
+      console.error("Failed to generate seed phrase:", error);
+      alert("Failed to generate seed phrase");
+    } finally {
+      setGeneratingSeed(null);
+    }
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert("Copied to clipboard!");
+    }).catch(() => {
+      alert("Failed to copy to clipboard");
+    });
+  }
+
+  function downloadSeedPhrase(phrase: string, userInfo: string) {
+    const blob = new Blob([`Seed Phrase for ${userInfo}:\n\n${phrase}\n\nGenerated on: ${new Date().toLocaleString()}\n\nIMPORTANT: Keep this phrase secure and private.`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `seed-phrase-${userInfo.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   if (isLoading) {
@@ -1324,15 +1379,25 @@ export default function AdminPage() {
                           {new Date(user.createdAt).toLocaleDateString()}
                         </td>
                         <td className="border border-black p-2">
-                          {user.role !== "admin" && (
+                          <div className="flex gap-1">
                             <button
-                              onClick={() => deleteUser(user.id, user.displayName)}
-                              disabled={deletingUserId === user.id}
-                              className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
+                              onClick={() => generateSeedPhraseForUser(user.id)}
+                              disabled={generatingSeed === user.id}
+                              className="border border-black px-2 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
+                              title="Generate new seed phrase for user recovery"
                             >
-                              {deletingUserId === user.id ? "Deleting..." : "Delete"}
+                              {generatingSeed === user.id ? "Generating..." : "🔑 Seed"}
                             </button>
-                          )}
+                            {user.role !== "admin" && (
+                              <button
+                                onClick={() => deleteUser(user.id, user.displayName)}
+                                disabled={deletingUserId === user.id}
+                                className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
+                              >
+                                {deletingUserId === user.id ? "Deleting..." : "Delete"}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1343,6 +1408,84 @@ export default function AdminPage() {
             </div>
           </div>
         </CollapsibleSection>
+
+        {/* Seed Phrase Modal */}
+        {generatedSeedPhrase && generatedSeedUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white border-2 border-black rounded-lg max-w-4xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="text-center">
+                <h2 className="font-bold text-xl mb-2">🔑 Generated Seed Phrase</h2>
+                <p className="text-gray-600">
+                  Recovery seed phrase for user: <strong>{generatedSeedUser.displayName || generatedSeedUser.primaryHandle || 'Unknown User'}</strong>
+                </p>
+              </div>
+
+              <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
+                <h3 className="font-bold text-red-800 mb-2 flex items-center gap-2">
+                  <span>⚠️</span>
+                  ADMIN SECURITY WARNING
+                </h3>
+                <p className="text-sm text-red-700 mb-2">
+                  This seed phrase grants FULL ACCESS to the user&apos;s account and will immediately update their identity. Handle with extreme care:
+                </p>
+                <ul className="text-sm text-red-700 space-y-1">
+                  <li>• Only share this with the locked-out user through secure channels</li>
+                  <li>• Do not store this phrase in plain text</li>
+                  <li>• Verify user identity before providing access</li>
+                  <li>• This phrase cannot be retrieved again</li>
+                  <li>• <strong>User will be logged out of all existing sessions</strong></li>
+                  <li>• <strong>Their old recovery phrase will no longer work</strong></li>
+                </ul>
+              </div>
+
+              <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+                <h3 className="font-bold mb-3 flex items-center gap-2">
+                  <span>🔐</span>
+                  12-Word Recovery Phrase
+                </h3>
+                <div className="bg-white border border-gray-300 rounded p-4 mb-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {generatedSeedPhrase.split(' ').map((word, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-gray-100 rounded border text-sm">
+                        <span className="text-xs text-gray-600 font-medium min-w-[20px]">{index + 1}.</span>
+                        <span className="font-mono font-medium text-gray-800">{word}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mb-4">
+                  <button
+                    onClick={() => copyToClipboard(generatedSeedPhrase)}
+                    className="flex-1 px-4 py-2 text-sm bg-blue-200 border border-black hover:bg-blue-100 rounded shadow-[2px_2px_0_#000] transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>📋</span>
+                    Copy Seed Phrase
+                  </button>
+                  <button
+                    onClick={() => downloadSeedPhrase(generatedSeedPhrase, generatedSeedUser.displayName || generatedSeedUser.primaryHandle || 'Unknown')}
+                    className="flex-1 px-4 py-2 text-sm bg-green-200 border border-black hover:bg-green-100 rounded shadow-[2px_2px_0_#000] transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>💾</span>
+                    Download Backup
+                  </button>
+                </div>
+
+                <div className="text-center">
+                  <button
+                    onClick={() => {
+                      setGeneratedSeedPhrase(null);
+                      setGeneratedSeedUser(null);
+                    }}
+                    className="bg-gray-300 hover:bg-gray-200 border border-black px-6 py-2 rounded shadow-[2px_2px_0_#000] transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
