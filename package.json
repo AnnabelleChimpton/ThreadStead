@@ -1,6 +1,6 @@
 {
-  "name": "retro-social-site",
-  "version": "0.1.0",
+  "name": "threadstead",
+  "version": "0.8.0",
   "private": true,
   "prisma": {
     "seed": "tsx prisma/seed.ts"

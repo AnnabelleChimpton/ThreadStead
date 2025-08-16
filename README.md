@@ -29,7 +29,7 @@ A fully-featured retro-themed social networking template built with Next.js, fea
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd retro-social-site
+   cd threadstead
    ```
 
 2. **Install dependencies**
