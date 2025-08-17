@@ -30,6 +30,7 @@ export default function UserDropdown() {
 
   const userDisplayName = me.user?.primaryHandle || me.user?.did || "User";
   const isAdmin = me.user?.role === "admin";
+  const username = me.user?.primaryHandle?.split("@")[0] || "User";
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -67,6 +68,15 @@ export default function UserDropdown() {
             >
               <span>🔑</span>
               Identity
+            </Link>
+            
+            <Link
+              href={`/resident/${username}/edit`}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-thread-charcoal hover:bg-thread-cream"
+              onClick={() => setIsOpen(false)}
+            >
+              <span>✏️</span>
+              Edit Profile
             </Link>
             
             {isAdmin && (

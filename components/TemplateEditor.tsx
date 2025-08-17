@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TemplateEngine } from '@/lib/template-engine';
 import { fetchResidentData, fetchCurrentUserResidentData } from '@/lib/template-data';
+import { scopeCSS, generateScopeId } from '@/lib/css-scoping';
 import type { TemplateNode } from '@/lib/template-parser';
 import type { ResidentData } from '@/components/template/ResidentDataProvider';
 
@@ -9,13 +10,15 @@ interface TemplateEditorProps {
   username?: string;
   customCSS?: string;
   onSave?: (template: string, ast: TemplateNode) => void;
+  onAstChange?: (ast: TemplateNode | null) => void;
 }
 
 export default function TemplateEditor({ 
   initialTemplate = '', 
   username = 'testuser',
   customCSS = '',
-  onSave 
+  onSave,
+  onAstChange
 }: TemplateEditorProps) {
   // Start with multiple components test with self-closing tags
   const [template, setTemplate] = useState(initialTemplate || `<DisplayName />\n<Bio />`);
@@ -27,6 +30,12 @@ export default function TemplateEditor({
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [residentData, setResidentData] = useState<ResidentData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+
+  // Generate a unique ID for this preview instance to scope CSS
+  const previewId = generateScopeId(React.useId());
+  
+  // Process custom CSS to scope it to this preview container
+  const scopedCSS = useMemo(() => scopeCSS(customCSS || '', previewId), [customCSS, previewId]);
 
   // Sample templates for different modes
   const sampleTemplates = {
@@ -122,8 +131,10 @@ export default function TemplateEditor({
     
     if (result.success && result.ast) {
       setCompiledAst(result.ast);
+      onAstChange?.(result.ast);
     } else {
       setCompiledAst(null);
+      onAstChange?.(null);
     }
   }, [template, mode]);
 
@@ -198,7 +209,19 @@ export default function TemplateEditor({
         );
       }
 
-      return renderResult.content;
+      return (
+        <div className="site-layout">
+          <div className="site-main">
+            <div className="profile-container">
+              <div className="profile-content-wrapper">
+                <div className="profile-main-content">
+                  {renderResult.content}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
     } catch (error) {
       return (
         <div className="template-error p-4 bg-red-50 border border-red-200 rounded">
@@ -301,11 +324,20 @@ export default function TemplateEditor({
             </label>
           </div>
           <div className="template-preview-container bg-thread-cream border border-thread-sage/30 rounded p-4 h-96 overflow-auto">
-            {/* Apply custom CSS to preview */}
-            {customCSS && (
-              <style dangerouslySetInnerHTML={{ __html: customCSS }} />
+            {/* Apply scoped custom CSS to preview */}
+            {scopedCSS && (
+              <style dangerouslySetInnerHTML={{ __html: scopedCSS }} />
             )}
-            <div className="template-preview-wrapper">
+            <div 
+              id={previewId}
+              className="template-preview-wrapper"
+              style={{ 
+                isolation: 'isolate', 
+                position: 'relative',
+                height: '100%',
+                width: '100%'
+              }}
+            >
               {renderPreview()}
             </div>
           </div>

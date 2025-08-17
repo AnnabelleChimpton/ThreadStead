@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -6,6 +6,11 @@ import Head from "next/head";
 import TemplateEditor from "@/components/TemplateEditor";
 import RetroCard from "@/components/layout/RetroCard";
 import ProfileLayout from "@/components/layout/ProfileLayout";
+import Tabs, { TabSpec } from "@/components/navigation/Tabs";
+import WebsiteManager, { Website } from "@/components/WebsiteManager";
+import FriendManager, { SelectedFriend } from "@/components/FriendManager";
+import CSSEditor from "@/components/CSSEditor";
+import ProfilePreview from "@/components/ProfilePreview";
 import type { TemplateNode } from "@/lib/template-parser";
 
 interface ProfileEditProps {
@@ -15,6 +20,11 @@ interface ProfileEditProps {
   customCSS?: string;
   templateEnabled?: boolean;
   hideNavigation?: boolean;
+  displayName?: string;
+  bio?: string;
+  avatarUrl?: string;
+  websites?: Website[];
+  featuredFriends?: SelectedFriend[];
 }
 
 export default function ProfileEditPage({
@@ -23,7 +33,12 @@ export default function ProfileEditPage({
   existingTemplate,
   customCSS,
   templateEnabled = false,
-  hideNavigation = false
+  hideNavigation = false,
+  displayName: initialDisplayName = "",
+  bio: initialBio = "",
+  avatarUrl: initialAvatarUrl = "",
+  websites: initialWebsites = [],
+  featuredFriends: initialFeaturedFriends = []
 }: ProfileEditProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -31,6 +46,33 @@ export default function ProfileEditPage({
   const [customCSSValue, setCustomCSSValue] = useState(customCSS || "");
   const [isTemplateEnabled, setIsTemplateEnabled] = useState(templateEnabled);
   const [isNavigationHidden, setIsNavigationHidden] = useState(hideNavigation);
+  
+  // Profile editing state
+  const [displayName, setDisplayName] = useState(initialDisplayName);
+  const [bio, setBio] = useState(initialBio);
+  const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
+  const [websites, setWebsites] = useState<Website[]>(initialWebsites);
+  const [featuredFriends, setFeaturedFriends] = useState<SelectedFriend[]>(initialFeaturedFriends);
+  
+  // Template state for combined preview
+  const [currentTemplateAst, setCurrentTemplateAst] = useState<TemplateNode | null>(null);
+  
+  // Parse existing template for preview
+  const existingTemplateAst = React.useMemo(() => {
+    if (!existingTemplate || !existingTemplate.trim()) return null;
+    
+    try {
+      const { TemplateEngine } = require('@/lib/template-engine');
+      const validation = TemplateEngine.validate(existingTemplate);
+      if (!validation.isValid) return null;
+      
+      const result = TemplateEngine.compile({ html: existingTemplate, mode: 'custom-tags' });
+      return result.success && result.ast ? result.ast : null;
+    } catch (error) {
+      console.error('Failed to parse existing template:', error);
+      return null;
+    }
+  }, [existingTemplate]);
 
   const handleSaveTemplate = async (template: string, ast: TemplateNode) => {
     setSaving(true);
@@ -96,20 +138,44 @@ export default function ProfileEditPage({
     setSaving(true);
     setSaveMessage(null);
 
+    const newTemplateEnabled = !isTemplateEnabled;
+
     try {
+      // If disabling template and navigation is hidden, also reset navigation
+      const shouldResetNavigation = !newTemplateEnabled && isNavigationHidden;
+      
       const response = await fetch(`/api/profile/${username}/template-toggle`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          enabled: !isTemplateEnabled
+          enabled: newTemplateEnabled
         }),
       });
 
       if (response.ok) {
-        setIsTemplateEnabled(!isTemplateEnabled);
-        setSaveMessage(`Template ${!isTemplateEnabled ? 'enabled' : 'disabled'} successfully!`);
+        setIsTemplateEnabled(newTemplateEnabled);
+        
+        // Reset navigation if disabling template
+        if (shouldResetNavigation) {
+          setIsNavigationHidden(false);
+          // Also save the navigation change to the server
+          try {
+            await fetch(`/api/profile/${username}/navigation-toggle`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ hideNavigation: false }),
+            });
+          } catch (navError) {
+            console.error('Failed to reset navigation:', navError);
+          }
+        }
+        
+        setSaveMessage(
+          `Template ${newTemplateEnabled ? 'enabled' : 'disabled'} successfully!` +
+          (shouldResetNavigation ? ' Navigation visibility has been reset.' : '')
+        );
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
         const errorData = await response.json();
@@ -156,6 +222,63 @@ export default function ProfileEditPage({
     router.push(`/resident/${username}`);
   };
 
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    setSaveMessage(null);
+
+    try {
+      const capRes = await fetch("/api/cap/profile", { method: "POST" });
+      if (capRes.status === 401) {
+        setSaveMessage("Error: Please log in.");
+        setSaving(false);
+        return;
+      }
+      const { token } = await capRes.json();
+
+      // Convert websites back to blogroll format  
+      const blogroll = websites.filter(w => w.label.trim() && w.url.trim()).map(w => ({
+        id: w.id,
+        label: w.label,
+        url: w.url,
+        blurb: w.blurb || ""
+      }));
+
+      // Convert featured friends to stored format
+      const featuredFriendsData = featuredFriends.map(f => ({
+        id: f.id,
+        handle: f.handle,
+        displayName: f.displayName,
+        avatarUrl: f.avatarUrl
+      }));
+
+      const response = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          displayName, 
+          bio, 
+          avatarUrl, 
+          customCSS: customCSSValue, 
+          blogroll, 
+          featuredFriends: featuredFriendsData,
+          cap: token 
+        }),
+      });
+
+      if (response.ok) {
+        setSaveMessage("Profile saved successfully!");
+        setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        const errorData = await response.json();
+        setSaveMessage(`Error: ${errorData.error || "Failed to save profile"}`);        
+      }
+    } catch (error) {
+      setSaveMessage(`Error: ${error}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!isOwner) {
     return (
       <ProfileLayout>
@@ -172,21 +295,372 @@ export default function ProfileEditPage({
     );
   }
 
+  // Create tabs for the unified edit experience
+  const editTabs: TabSpec[] = [
+    {
+      id: "profile",
+      label: "Profile Settings",
+      content: (
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-2">
+                <span className="thread-label">Display Name</span>
+              </label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="w-full max-w-md border border-thread-sage p-3 bg-thread-paper rounded focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                placeholder="Your display name"
+              />
+            </div>
+            
+            <div>
+              <label className="block mb-2">
+                <span className="thread-label">Bio</span>
+              </label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={4}
+                className="w-full max-w-xl border border-thread-sage p-3 bg-thread-paper rounded focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                placeholder="Tell people about yourself..."
+              />
+            </div>
+            
+            <div>
+              <label className="block mb-2">
+                <span className="thread-label">Avatar URL</span>
+              </label>
+              <input
+                type="url"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                className="w-full max-w-xl border border-thread-sage p-3 bg-thread-paper rounded focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                placeholder="https://example.com/avatar.jpg"
+              />
+            </div>
+            
+            <div className="border-t border-thread-sage pt-6">
+              <WebsiteManager 
+                websites={websites} 
+                onChange={setWebsites}
+                maxWebsites={10}
+              />
+            </div>
+            
+            <div className="border-t border-thread-sage pt-6">
+              <FriendManager 
+                selectedFriends={featuredFriends} 
+                onChange={setFeaturedFriends}
+                maxFriends={8}
+              />
+            </div>
+            
+            <button
+              onClick={handleSaveProfile}
+              disabled={saving}
+              className="thread-button"
+            >
+              {saving ? "Saving..." : "Save Profile"}
+            </button>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: "css",
+      label: "Custom CSS",
+      content: (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold mb-3">Custom CSS</h2>
+            <p className="text-thread-sage mb-4">
+              Add your own CSS to customize the appearance of your profile.
+            </p>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* CSS Editor */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">CSS Editor</h3>
+                <CSSEditor 
+                  value={customCSSValue} 
+                  onChange={setCustomCSSValue}
+                />
+                <button
+                  onClick={handleSaveCSS}
+                  disabled={saving}
+                  className="thread-button"
+                >
+                  {saving ? "Saving..." : "Save CSS"}
+                </button>
+              </div>
+              
+              {/* CSS Preview */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Live Preview</h3>
+                <p className="text-sm text-thread-sage">
+                  See how your CSS changes will look on your profile:
+                </p>
+                <ProfilePreview
+                  mode="css-only"
+                  customCSS={customCSSValue}
+                  username={username}
+                  height="h-[500px]"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: "template",
+      label: "Template Editor",
+      content: (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Template Editor</h2>
+              <p className="text-thread-sage">
+                Design your profile layout using our template system. Toggle between your custom template and the default layout.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-thread-sage">
+                {isTemplateEnabled ? "Custom template active" : "Using default layout"}
+              </span>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className="text-sm font-medium">
+                  {isTemplateEnabled ? "Disable" : "Enable"} Template
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={isTemplateEnabled}
+                    onChange={handleToggleTemplate}
+                    disabled={saving}
+                    className="sr-only"
+                  />
+                  <div className={`w-11 h-6 rounded-full shadow-inner transition-colors duration-200 ${
+                    isTemplateEnabled ? 'bg-thread-pine' : 'bg-gray-300'
+                  }`}>
+                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
+                      isTemplateEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}></div>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+          
+          {!isTemplateEnabled && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+              <strong>Template disabled:</strong> Your profile is currently using the default layout. 
+              You can continue working on your template and enable it when ready.
+            </div>
+          )}
+
+          {/* Navigation Toggle - Only show when template is enabled and exists */}
+          {isTemplateEnabled && (existingTemplateAst || currentTemplateAst) && (
+            <div className="mb-4 p-4 bg-thread-cream/50 border border-thread-sage rounded">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium mb-1">Navigation Bar & Footer</h3>
+                  <p className="text-sm text-thread-sage">
+                    Hide the site navigation and footer for a full-screen template experience.
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-sm font-medium">
+                    {isNavigationHidden ? "Show" : "Hide"} Navigation
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={isNavigationHidden}
+                      onChange={handleToggleNavigation}
+                      disabled={saving}
+                      className="sr-only"
+                    />
+                    <div className={`w-11 h-6 rounded-full shadow-inner transition-colors duration-200 ${
+                      isNavigationHidden ? 'bg-thread-pine' : 'bg-gray-300'
+                    }`}>
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
+                        isNavigationHidden ? 'translate-x-5' : 'translate-x-0'
+                      }`}></div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
+          
+          {/* Explanation when navigation toggle is not available */}
+          {(!isTemplateEnabled || (!existingTemplateAst && !currentTemplateAst)) && (
+            <div className="mb-4 p-4 bg-thread-cream/30 border border-thread-sage/50 rounded">
+              <div className="flex items-start gap-3">
+                <span className="text-thread-sage">ℹ️</span>
+                <div>
+                  <h3 className="font-medium mb-1 text-thread-sage">Navigation Control</h3>
+                  <p className="text-sm text-thread-sage">
+                    Navigation hiding is only available when using a custom template. 
+                    {!existingTemplateAst && !currentTemplateAst 
+                      ? "Create a template below to access this feature."
+                      : "Enable your template above to access this feature."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <TemplateEditor
+            initialTemplate={existingTemplate}
+            username={username}
+            customCSS={customCSSValue}
+            onSave={handleSaveTemplate}
+            onAstChange={setCurrentTemplateAst}
+          />
+        </div>
+      )
+    },
+    {
+      id: "preview",
+      label: "Combined Preview",
+      content: (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold mb-3">Template + CSS Preview</h2>
+            <p className="text-thread-sage mb-6">
+              See how your custom template and CSS work together. This preview combines both your template design and custom styling.
+            </p>
+            
+            {/* Template Status */}
+            <div className="mb-4 p-4 bg-thread-cream/50 border border-thread-sage rounded">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium mb-1">Template Status</h3>
+                  <p className="text-sm text-thread-sage">
+                    {isTemplateEnabled 
+                      ? "Template is enabled and will be used on your profile" 
+                      : "Template is disabled - your profile uses the default layout"}
+                  </p>
+                  {(existingTemplateAst || currentTemplateAst) && (
+                    <p className="text-sm text-thread-pine mt-1">
+                      ✓ Template {currentTemplateAst ? 'compiled successfully' : 'saved and ready'}
+                    </p>
+                  )}
+                  {!existingTemplateAst && !currentTemplateAst && (
+                    <p className="text-sm text-orange-600 mt-1">
+                      ⚠ No template found - design a template in the Template Editor tab
+                    </p>
+                  )}
+                </div>
+                <div className="text-right text-sm text-thread-sage">
+                  <div>CSS: {customCSSValue ? `${customCSSValue.length} characters` : 'None'}</div>
+                  {isTemplateEnabled && (existingTemplateAst || currentTemplateAst) && (
+                    <div>Navigation: {isNavigationHidden ? 'Hidden' : 'Visible'}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Combined Preview */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Live Preview</h3>
+              
+              {(currentTemplateAst || (existingTemplateAst && isTemplateEnabled)) ? (
+                <div>
+                  <p className="text-sm text-thread-sage mb-4">
+                    This shows exactly how your profile will look with your custom template and CSS:
+                  </p>
+                  <ProfilePreview
+                    mode="combined"
+                    customCSS={customCSSValue}
+                    templateAst={currentTemplateAst || existingTemplateAst}
+                    username={username}
+                    height="h-[600px]"
+                  />
+                  {!currentTemplateAst && existingTemplate && (
+                    <p className="text-xs text-thread-sage mt-2 italic">
+                      Note: Showing saved template. Visit the Template Editor tab to see live changes.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-thread-sage mb-4">
+                    {existingTemplate && !isTemplateEnabled 
+                      ? "Template is disabled. Here's how your CSS affects the default profile layout:"
+                      : "Since no template is available, here's how your CSS affects the default profile layout:"}
+                  </p>
+                  <ProfilePreview
+                    mode="css-only"
+                    customCSS={customCSSValue}
+                    username={username}
+                    height="h-[600px]"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="border-t border-thread-sage pt-6">
+              <h3 className="text-lg font-medium mb-3">Quick Actions</h3>
+              <div className="flex gap-3 flex-wrap">
+                <button
+                  onClick={() => {
+                    // Switch to template tab
+                    const tabButtons = document.querySelectorAll('[role="tab"]');
+                    const templateTab = Array.from(tabButtons).find(tab => 
+                      tab.textContent?.includes('Template Editor')
+                    ) as HTMLElement;
+                    templateTab?.click();
+                  }}
+                  className="thread-button-secondary text-sm"
+                >
+                  Edit Template
+                </button>
+                <button
+                  onClick={() => {
+                    // Switch to CSS tab  
+                    const tabButtons = document.querySelectorAll('[role="tab"]');
+                    const cssTab = Array.from(tabButtons).find(tab => 
+                      tab.textContent?.includes('Custom CSS')
+                    ) as HTMLElement;
+                    cssTab?.click();
+                  }}
+                  className="thread-button-secondary text-sm"
+                >
+                  Edit CSS
+                </button>
+                <button
+                  onClick={handleBackToProfile}
+                  className="thread-button text-sm"
+                >
+                  View Live Profile
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+  ];
+
   return (
     <>
       <Head>
         <title>Edit Profile - {username} | ThreadStead</title>
       </Head>
-      <ProfileLayout customCSS={customCSS}>
+      <ProfileLayout>
         <RetroCard>
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Edit Profile - {username}</h1>
             <div className="flex gap-2">
               <button onClick={handleBackToProfile} className="thread-button-secondary">
                 Back to Profile
-              </button>
-              <button onClick={() => router.push(`/settings/profile`)} className="thread-button-secondary">
-                Profile Settings
               </button>
             </div>
           </div>
@@ -201,120 +675,7 @@ export default function ProfileEditPage({
             </div>
           )}
 
-          <div className="space-y-6">
-            {/* Template Editor Section */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Template Editor</h2>
-                  <p className="text-thread-sage">
-                    Design your profile layout using our template system. Toggle between your custom template and the default layout.
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-thread-sage">
-                    {isTemplateEnabled ? "Custom template active" : "Using default layout"}
-                  </span>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <span className="text-sm font-medium">
-                      {isTemplateEnabled ? "Disable" : "Enable"} Template
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={isTemplateEnabled}
-                        onChange={handleToggleTemplate}
-                        disabled={saving}
-                        className="sr-only"
-                      />
-                      <div className={`w-11 h-6 rounded-full shadow-inner transition-colors duration-200 ${
-                        isTemplateEnabled ? 'bg-thread-pine' : 'bg-gray-300'
-                      }`}>
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
-                          isTemplateEnabled ? 'translate-x-5' : 'translate-x-0'
-                        }`}></div>
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-              
-              {!isTemplateEnabled && (
-                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
-                  <strong>Template disabled:</strong> Your profile is currently using the default layout. 
-                  You can continue working on your template and enable it when ready.
-                </div>
-              )}
-
-              {/* Navigation Toggle */}
-              <div className="mb-4 p-4 bg-thread-cream/50 border border-thread-sage rounded">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium mb-1">Navigation Bar & Footer</h3>
-                    <p className="text-sm text-thread-sage">
-                      Hide the site navigation and footer for a full-screen template experience.
-                    </p>
-                  </div>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <span className="text-sm font-medium">
-                      {isNavigationHidden ? "Show" : "Hide"} Navigation
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={isNavigationHidden}
-                        onChange={handleToggleNavigation}
-                        disabled={saving}
-                        className="sr-only"
-                      />
-                      <div className={`w-11 h-6 rounded-full shadow-inner transition-colors duration-200 ${
-                        isNavigationHidden ? 'bg-thread-pine' : 'bg-gray-300'
-                      }`}>
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
-                          isNavigationHidden ? 'translate-x-5' : 'translate-x-0'
-                        }`}></div>
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-              
-              <TemplateEditor
-                initialTemplate={existingTemplate}
-                username={username}
-                customCSS={customCSSValue}
-                onSave={handleSaveTemplate}
-              />
-            </div>
-
-            {/* Custom CSS Section */}
-            <div>
-              <h2 className="text-xl font-semibold mb-3">Custom CSS</h2>
-              <p className="text-thread-sage mb-4">
-                Add your own CSS to customize the appearance of your profile.
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-2">
-                    <span className="thread-label">Custom CSS</span>
-                  </label>
-                  <textarea
-                    value={customCSSValue}
-                    onChange={(e) => setCustomCSSValue(e.target.value)}
-                    className="w-full h-64 border border-thread-sage p-3 bg-thread-paper rounded font-mono text-sm resize-none focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
-                    placeholder="/* Add your custom CSS here */&#10;.my-custom-class {&#10;  color: #333;&#10;  font-size: 16px;&#10;}"
-                  />
-                </div>
-                <button
-                  onClick={handleSaveCSS}
-                  disabled={saving}
-                  className="thread-button"
-                >
-                  {saving ? "Saving..." : "Save CSS"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <Tabs tabs={editTabs} initialId="profile" />
         </RetroCard>
       </ProfileLayout>
     </>
@@ -376,6 +737,11 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
     let customCSS = "";
     let templateEnabled = false;
     let hideNavigation = false;
+    let displayName = "";
+    let bio = "";
+    let avatarUrl = "";
+    let websites: Website[] = [];
+    let featuredFriends: SelectedFriend[] = [];
 
     if (isOwner) {
       try {
@@ -395,6 +761,31 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
       customCSS = profileData.profile?.customCSS || "";
       templateEnabled = profileData.profile?.templateEnabled || false;
       hideNavigation = profileData.profile?.hideNavigation || false;
+      displayName = profileData.profile?.displayName || "";
+      bio = profileData.profile?.bio || "";
+      avatarUrl = profileData.profile?.avatarUrl || "";
+      
+      // Parse blogroll as websites
+      const blogroll = profileData.profile?.blogroll;
+      if (blogroll && Array.isArray(blogroll)) {
+        websites = blogroll.map((item: any, index: number) => ({
+          id: item.id || index.toString(),
+          label: item.label || "",
+          url: item.url || "",
+          blurb: item.blurb || ""
+        }));
+      }
+
+      // Parse featuredFriends
+      const featuredFriendsData = profileData.profile?.featuredFriends;
+      if (Array.isArray(featuredFriendsData) && featuredFriendsData.length > 0) {
+        featuredFriends = featuredFriendsData.map((item: any, index: number) => ({
+          id: item.id || index.toString(),
+          handle: item.handle || "",
+          displayName: item.displayName || "",
+          avatarUrl: item.avatarUrl || "/assets/default-avatar.gif"
+        }));
+      }
     }
 
     return {
@@ -405,6 +796,11 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
         customCSS,
         templateEnabled,
         hideNavigation,
+        displayName,
+        bio,
+        avatarUrl,
+        websites,
+        featuredFriends,
       },
     };
   } catch (error) {
