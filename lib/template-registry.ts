@@ -7,10 +7,35 @@ import DisplayName from '@/components/template/DisplayName';
 import Bio from '@/components/template/Bio';
 import BlogPosts from '@/components/template/BlogPosts';
 import Guestbook from '@/components/template/Guestbook';
+import FollowButton from '@/components/template/FollowButton';
+import MutualFriends from '@/components/template/MutualFriends';
+import FriendBadge from '@/components/template/FriendBadge';
+import FriendDisplay from '@/components/template/FriendDisplay';
+import WebsiteDisplay from '@/components/template/WebsiteDisplay';
+import NotificationCenter from '@/components/template/NotificationCenter';
+import NotificationBell from '@/components/template/NotificationBell';
+import UserAccount from '@/components/template/UserAccount';
+import SiteBranding from '@/components/template/SiteBranding';
+import NavigationLinks from '@/components/template/NavigationLinks';
+import Breadcrumb from '@/components/template/Breadcrumb';
+import FlexContainer from '@/components/template/FlexContainer';
+import GridLayout from '@/components/template/GridLayout';
+import SplitLayout from '@/components/template/SplitLayout';
+import CenteredBox from '@/components/template/CenteredBox';
+import GradientBox from '@/components/template/GradientBox';
+import NeonBorder from '@/components/template/NeonBorder';
+import RetroTerminal from '@/components/template/RetroTerminal';
+import PolaroidFrame from '@/components/template/PolaroidFrame';
+import StickyNote from '@/components/template/StickyNote';
+import RevealBox from '@/components/template/RevealBox';
+import FloatingBadge from '@/components/template/FloatingBadge';
+import WaveText from '@/components/template/WaveText';
+import GlitchText from '@/components/template/GlitchText';
 import Tabs, { Tab } from '@/components/template/Tabs';
 import ProfileHero from '@/components/template/ProfileHero';
 import SimpleTest from '@/components/template/SimpleTest';
 import DataDebug from '@/components/template/DataDebug';
+import RetroCard from '@/components/layout/RetroCard';
 
 // Define the shape of prop schemas
 export type PropType = 'string' | 'number' | 'boolean' | 'enum';
@@ -177,6 +202,210 @@ componentRegistry.register({
 });
 
 componentRegistry.register({
+  name: 'FollowButton',
+  component: FollowButton,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'MutualFriends',
+  component: MutualFriends,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'FriendBadge',
+  component: FriendBadge,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'FriendDisplay',
+  component: FriendDisplay,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'WebsiteDisplay',
+  component: WebsiteDisplay,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'NotificationCenter',
+  component: NotificationCenter,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'NotificationBell',
+  component: NotificationBell,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'UserAccount',
+  component: UserAccount,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'SiteBranding',
+  component: SiteBranding,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'NavigationLinks',
+  component: NavigationLinks,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'Breadcrumb',
+  component: Breadcrumb,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'FlexContainer',
+  component: FlexContainer,
+  props: {
+    direction: { type: 'enum', values: ['row', 'column', 'row-reverse', 'column-reverse'], default: 'row' },
+    align: { type: 'enum', values: ['start', 'center', 'end', 'stretch'], default: 'start' },
+    justify: { type: 'enum', values: ['start', 'center', 'end', 'between', 'around', 'evenly'], default: 'start' },
+    wrap: { type: 'boolean', default: false },
+    gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' }
+  }
+});
+
+componentRegistry.register({
+  name: 'GridLayout',
+  component: GridLayout,
+  props: {
+    columns: { type: 'enum', values: ['1', '2', '3', '4', '5', '6'], default: '2' },
+    gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
+    responsive: { type: 'boolean', default: true }
+  }
+});
+
+componentRegistry.register({
+  name: 'SplitLayout',
+  component: SplitLayout,
+  props: {
+    ratio: { type: 'enum', values: ['1:1', '1:2', '2:1', '1:3', '3:1'], default: '1:1' },
+    vertical: { type: 'boolean', default: false },
+    gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' }
+  }
+});
+
+componentRegistry.register({
+  name: 'CenteredBox',
+  component: CenteredBox,
+  props: {
+    maxWidth: { type: 'enum', values: ['sm', 'md', 'lg', 'xl', '2xl', 'full'], default: 'lg' },
+    padding: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' }
+  }
+});
+
+componentRegistry.register({
+  name: 'GradientBox',
+  component: GradientBox,
+  props: {
+    gradient: { type: 'enum', values: ['sunset', 'ocean', 'forest', 'neon', 'rainbow', 'fire'], default: 'sunset' },
+    direction: { type: 'enum', values: ['r', 'l', 'b', 't', 'br', 'bl', 'tr', 'tl'], default: 'br' },
+    padding: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
+    rounded: { type: 'boolean', default: true }
+  }
+});
+
+componentRegistry.register({
+  name: 'NeonBorder',
+  component: NeonBorder,
+  props: {
+    color: { type: 'enum', values: ['blue', 'pink', 'green', 'purple', 'cyan', 'yellow'], default: 'blue' },
+    intensity: { type: 'enum', values: ['soft', 'medium', 'bright'], default: 'medium' },
+    padding: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
+    rounded: { type: 'boolean', default: true }
+  }
+});
+
+componentRegistry.register({
+  name: 'RetroTerminal',
+  component: RetroTerminal,
+  props: {
+    variant: { type: 'enum', values: ['green', 'amber', 'blue', 'white'], default: 'green' },
+    showHeader: { type: 'boolean', default: true },
+    padding: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' }
+  }
+});
+
+componentRegistry.register({
+  name: 'PolaroidFrame',
+  component: PolaroidFrame,
+  props: {
+    caption: { type: 'string', default: '' },
+    rotation: { type: 'number', min: -15, max: 15, default: 0 },
+    shadow: { type: 'boolean', default: true }
+  }
+});
+
+componentRegistry.register({
+  name: 'StickyNote',
+  component: StickyNote,
+  props: {
+    color: { type: 'enum', values: ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'], default: 'yellow' },
+    size: { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md' },
+    rotation: { type: 'number', min: -15, max: 15, default: 0 }
+  }
+});
+
+componentRegistry.register({
+  name: 'RevealBox',
+  component: RevealBox,
+  props: {
+    buttonText: { type: 'string', default: 'Click to reveal' },
+    revealText: { type: 'string', default: 'Hide' },
+    variant: { type: 'enum', values: ['slide', 'fade', 'grow'], default: 'fade' },
+    buttonStyle: { type: 'enum', values: ['button', 'link', 'minimal'], default: 'button' }
+  }
+});
+
+componentRegistry.register({
+  name: 'FloatingBadge',
+  component: FloatingBadge,
+  props: {
+    color: { type: 'enum', values: ['blue', 'green', 'red', 'yellow', 'purple', 'pink'], default: 'blue' },
+    size: { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md' },
+    animation: { type: 'enum', values: ['bounce', 'pulse', 'float', 'none'], default: 'float' },
+    position: { type: 'enum', values: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], default: 'top-right' }
+  }
+});
+
+componentRegistry.register({
+  name: 'WaveText',
+  component: WaveText,
+  props: {
+    text: { type: 'string', required: true },
+    speed: { type: 'enum', values: ['slow', 'medium', 'fast'], default: 'medium' },
+    amplitude: { type: 'enum', values: ['small', 'medium', 'large'], default: 'medium' },
+    color: { type: 'string', default: 'currentColor' }
+  }
+});
+
+componentRegistry.register({
+  name: 'GlitchText',
+  component: GlitchText,
+  props: {
+    text: { type: 'string', required: true },
+    intensity: { type: 'enum', values: ['low', 'medium', 'high'], default: 'medium' },
+    color: { type: 'string', default: 'currentColor' },
+    glitchColor1: { type: 'string', default: '#ff0000' },
+    glitchColor2: { type: 'string', default: '#00ffff' }
+  }
+});
+
+componentRegistry.register({
   name: 'Tabs',
   component: Tabs,
   props: {}
@@ -209,5 +438,11 @@ componentRegistry.register({
 componentRegistry.register({
   name: 'DataDebug',
   component: DataDebug,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'RetroCard',
+  component: RetroCard,
   props: {}
 });
