@@ -273,6 +273,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         capabilities: {
           bio: data.profile?.bio || ""
         },
+        featuredFriends,
+        websites,
       };
     } catch (error) {
       console.error('Error preparing custom template:', error);

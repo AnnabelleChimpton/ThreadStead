@@ -239,10 +239,18 @@ export default function TemplateEditor({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={loadSampleTemplate} className="thread-button text-sm">
             Load Sample
           </button>
+          <a 
+            href="/design-tutorial" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="thread-button text-sm bg-purple-600 hover:bg-purple-700 text-white border-purple-600 hover:border-purple-700"
+          >
+            🎨 Design Guide
+          </a>
           {onSave && compiledAst && (
             <button onClick={handleSave} className="thread-button text-sm">
               Save Template
@@ -333,19 +341,42 @@ export default function TemplateEditor({
 
       {/* Component Reference */}
       <div className="template-editor-reference border-t border-thread-sage/30 p-4 text-sm">
-        <details className="text-thread-sage">
-          <summary className="cursor-pointer font-medium mb-2">Available Components</summary>
-          <div className="space-y-2 text-xs">
-            <div><code>&lt;SimpleTest message=&quot;...&quot; /&gt;</code></div>
-            <div><code>&lt;ProfilePhoto size=&quot;sm|md|lg&quot; shape=&quot;circle|square&quot; /&gt;</code></div>
-            <div><code>&lt;DisplayName /&gt;</code></div>
-            <div><code>&lt;Bio /&gt;</code></div>
-            <div><code>&lt;BlogPosts limit=&quot;1-20&quot; /&gt;</code></div>
-            <div><code>&lt;Guestbook /&gt;</code></div>
-            <div><code>&lt;ProfileHero variant=&quot;tape|plain&quot; /&gt;</code></div>
-            <div><code>&lt;Tabs&gt;&lt;Tab title=&quot;...&quot;&gt;...&lt;/Tab&gt;&lt;/Tabs&gt;</code></div>
-          </div>
-        </details>
+        <div className="flex items-center justify-between mb-3">
+          <details className="text-thread-sage flex-1">
+            <summary className="cursor-pointer font-medium mb-2">Quick Component Reference</summary>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+              <div className="space-y-1">
+                <h4 className="font-medium text-thread-charcoal">Profile</h4>
+                <div><code>&lt;ProfilePhoto size=&quot;sm|md|lg&quot; /&gt;</code></div>
+                <div><code>&lt;DisplayName /&gt;</code></div>
+                <div><code>&lt;Bio /&gt;</code></div>
+                <div><code>&lt;BlogPosts limit=&quot;1-20&quot; /&gt;</code></div>
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-medium text-thread-charcoal">Layout</h4>
+                <div><code>&lt;FlexContainer direction=&quot;row|column&quot; /&gt;</code></div>
+                <div><code>&lt;GridLayout columns=&quot;1-6&quot; /&gt;</code></div>
+                <div><code>&lt;CenteredBox maxWidth=&quot;lg&quot; /&gt;</code></div>
+                <div><code>&lt;SplitLayout ratio=&quot;1:1&quot; /&gt;</code></div>
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-medium text-thread-charcoal">Visual</h4>
+                <div><code>&lt;GradientBox gradient=&quot;sunset&quot; /&gt;</code></div>
+                <div><code>&lt;NeonBorder color=&quot;blue&quot; /&gt;</code></div>
+                <div><code>&lt;RetroTerminal variant=&quot;green&quot; /&gt;</code></div>
+                <div><code>&lt;WaveText text=&quot;Hello!&quot; /&gt;</code></div>
+              </div>
+            </div>
+          </details>
+          <a 
+            href="/design-tutorial" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="ml-4 text-purple-600 hover:text-purple-800 text-sm font-medium"
+          >
+            View Full Guide →
+          </a>
+        </div>
       </div>
     </div>
   );

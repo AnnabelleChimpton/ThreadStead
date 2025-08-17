@@ -26,6 +26,18 @@ export interface ResidentData {
     bio?: string;
     [key: string]: any;
   };
+  featuredFriends?: Array<{
+    id: string;
+    handle: string;
+    displayName: string;
+    avatarUrl: string;
+  }>;
+  websites?: Array<{
+    id: string;
+    label: string;
+    url: string;
+    blurb?: string;
+  }>;
 }
 
 const ResidentDataContext = createContext<ResidentData | null>(null);
