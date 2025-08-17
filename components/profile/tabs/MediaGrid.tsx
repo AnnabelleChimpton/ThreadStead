@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import MediaUpload from "@/components/MediaUpload";
+import PhotoComments from "@/components/PhotoComments";
 
 interface MediaItem {
   id: string;
@@ -12,6 +13,9 @@ interface MediaItem {
   featured: boolean;
   featuredOrder?: number;
   createdAt: string;
+  width?: number;
+  height?: number;
+  fileSize?: number;
 }
 
 interface MediaGridProps {
@@ -24,6 +28,8 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<MediaItem | null>(null);
+  const [showComments, setShowComments] = useState(false);
 
   const loadFeaturedMedia = async () => {
     try {
@@ -45,6 +51,27 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
     loadFeaturedMedia();
   }, [username]);
 
+  // Handle keyboard shortcuts for modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && selectedImage) {
+        setSelectedImage(null);
+        setShowComments(false);
+      }
+    };
+
+    if (selectedImage) {
+      document.addEventListener('keydown', handleKeyDown);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedImage]);
+
   const handleUploadSuccess = (newMedia: MediaItem) => {
     // Add to featured media if it was marked as featured
     if (newMedia.featured) {
@@ -53,6 +80,20 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
       ));
     }
     setShowUpload(false);
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(1)} MB`;
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   // Create display grid - only show actual media items
@@ -64,10 +105,11 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
     return sortedMedia.slice(0, 6).map(media => (
       <div
         key={media.id}
-        className="ts-media-item border border-thread-sage bg-thread-paper shadow-cozy aspect-square overflow-hidden group relative"
+        className="ts-media-item border border-thread-sage bg-thread-paper shadow-cozy aspect-square overflow-hidden group relative cursor-pointer hover:shadow-cozyLg transition-all"
+        onClick={() => setSelectedImage(media)}
       >
         <img 
-          src={media.thumbnailUrl} 
+          src={media.mediumUrl} 
           alt={media.title || media.caption || 'Media item'} 
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
@@ -183,6 +225,83 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
       {error && (
         <div className="text-center py-8 text-red-600">
           {error}
+        </div>
+      )}
+
+      {/* Full Size Image Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 pt-20"
+          style={{ zIndex: 9999 }}
+          onClick={() => {
+            setSelectedImage(null);
+            setShowComments(false);
+          }}
+        >
+          <div 
+            className="max-w-6xl max-h-full bg-white rounded-lg overflow-hidden shadow-2xl flex"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Image section */}
+            <div className="flex-1 relative">
+              <img 
+                src={selectedImage.fullUrl} 
+                alt={selectedImage.title || selectedImage.caption || 'Full size image'} 
+                className="w-full h-full max-h-[80vh] object-contain"
+              />
+              <button
+                onClick={() => {
+                  setSelectedImage(null);
+                  setShowComments(false);
+                }}
+                className="absolute top-2 right-2 bg-black/70 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/90 transition-colors"
+                title="Close"
+              >
+                ×
+              </button>
+              
+              {/* Comments toggle button */}
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-2 rounded hover:bg-black/90 transition-colors text-sm"
+                title={showComments ? "Hide comments" : "Show comments"}
+              >
+                💬 {showComments ? "Hide" : "Comments"}
+              </button>
+            </div>
+
+            {/* Comments sidebar */}
+            {showComments && (
+              <div className="w-96 border-l border-thread-sage bg-white flex flex-col max-h-[80vh]">
+                {/* Photo info header */}
+                <div className="p-4 border-b border-thread-sage">
+                  {selectedImage.title && (
+                    <h3 className="font-medium text-thread-pine mb-2">
+                      {selectedImage.title}
+                    </h3>
+                  )}
+                  {selectedImage.caption && (
+                    <p className="text-thread-sage text-sm mb-2">
+                      {selectedImage.caption}
+                    </p>
+                  )}
+                  <div className="flex justify-between items-center text-xs text-thread-sage">
+                    <span>{formatDate(selectedImage.createdAt)}</span>
+                    {selectedImage.fileSize && (
+                      <span>{formatFileSize(selectedImage.fileSize)}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Comments section */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  <PhotoComments 
+                    photoId={selectedImage.id} 
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
