@@ -29,7 +29,10 @@
     "next": "15.4.6",
     "node-fetch": "^3.3.2",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "rehype-parse": "^9.0.1",
+    "rehype-sanitize": "^6.0.0",
+    "unified": "^11.0.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

@@ -12,6 +12,10 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import BlogTab from "@/components/profile/tabs/BlogTab";
 import MediaGrid from "@/components/profile/tabs/MediaGrid";
 import FriendsWebsitesGrid from "@/components/profile/tabs/FriendsWebsitesGrid";
+import { transformNodeToReact } from "@/lib/template-renderer";
+import { ResidentDataProvider } from "@/components/template/ResidentDataProvider";
+import type { TemplateNode } from "@/lib/template-parser";
+import type { ResidentData } from "@/components/template/ResidentDataProvider";
 
 /* ---------------- helpers ---------------- */
 
@@ -26,6 +30,9 @@ type ProfileProps = {
   websites?: Website[];
   featuredFriends?: SelectedFriend[];
   initialTabId?: string;
+  customTemplateAst?: TemplateNode;
+  residentData?: ResidentData;
+  hideNavigation?: boolean;
 };
 
 /* ---------------- page ---------------- */
@@ -38,8 +45,29 @@ export default function ProfilePage({
   websites = [],
   featuredFriends = [],
   initialTabId,
+  customTemplateAst,
+  residentData,
+  hideNavigation = false,
 }: ProfileProps) {
   const [relStatus, setRelStatus] = React.useState<string>("loading");
+
+  // If there's a custom template, render it instead of the default layout
+  if (customTemplateAst && residentData) {
+    try {
+      const templateContent = transformNodeToReact(customTemplateAst);
+      
+      return (
+        <ProfileLayout customCSS={customCSS} hideNavigation={hideNavigation}>
+          <ResidentDataProvider data={residentData}>
+            {templateContent}
+          </ResidentDataProvider>
+        </ProfileLayout>
+      );
+    } catch (error) {
+      console.error('Error rendering custom template:', error);
+      // Fall back to default layout if template fails
+    }
+  }
 
   // built-in tabs
   const baseTabs: TabSpec[] = [
@@ -106,7 +134,7 @@ export default function ProfilePage({
   const tabs: TabSpec[] = baseTabs;
 
   return (
-    <ProfileLayout customCSS={customCSS}>
+    <ProfileLayout customCSS={customCSS} hideNavigation={hideNavigation}>
       <RetroCard>
         <ProfileHeader
           username={username}
@@ -135,7 +163,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
   const res = await fetch(`${base}/api/profile/${encodeURIComponent(usernameParam)}`);
   if (res.status === 404) return { notFound: true };
-
   if (!res.ok) {
     // Fallback: we still must supply ownerUserId, but we don't have it.
     // You can 404 here, but we'll set a dummy and keep page usable.
@@ -166,7 +193,18 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const data: {
     userId: string;                      // <-- expecting this from /api/profile
     username?: string;
-    profile?: { bio?: string; avatarUrl?: string; customCSS?: string; blogroll?: unknown[]; featuredFriends?: unknown[] };
+    profile?: { 
+      bio?: string; 
+      avatarUrl?: string; 
+      displayName?: string;
+      customCSS?: string; 
+      customTemplate?: string;
+      customTemplateAst?: string;
+      templateEnabled?: boolean;
+      hideNavigation?: boolean;
+      blogroll?: unknown[]; 
+      featuredFriends?: unknown[] 
+    };
   } = await res.json();
 
   const requested = typeof query.tab === "string" ? query.tab : undefined;
@@ -209,7 +247,41 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       }
     });
   }
+  console.log({data});
 
+  // Handle custom template data
+  let customTemplateAst: TemplateNode | undefined;
+  let residentData: ResidentData | undefined;
+
+  if (data.profile?.customTemplate && data.profile?.customTemplateAst && data.profile?.templateEnabled) {
+    try {
+      // Parse the stored AST
+      customTemplateAst = JSON.parse(data.profile.customTemplateAst);
+      
+      // Create resident data from existing profile data
+      residentData = {
+        owner: {
+          id: data.userId,
+          handle: data.username || usernameParam,
+          displayName: data.profile?.displayName || data.username || usernameParam,
+          avatarUrl: data.profile?.avatarUrl || "/assets/default-avatar.gif"
+        },
+        viewer: {
+          id: null // This would need to be populated with current user ID in a real implementation
+        },
+        posts: [], // These would need separate API calls if needed in templates
+        guestbook: [],
+        capabilities: {
+          bio: data.profile?.bio || ""
+        }
+      };
+    } catch (error) {
+      console.error('Error preparing custom template:', error);
+      customTemplateAst = undefined;
+      residentData = undefined;
+    }
+  }
+  
   // Build typed props; omit undefined fields
   const props: ProfileProps = {
     username: data.username || usernameParam,
@@ -218,6 +290,9 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   };
   if (data.profile?.bio != null) props.bio = data.profile.bio;
   if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;
+  if (customTemplateAst != null) props.customTemplateAst = customTemplateAst;
+  if (residentData != null) props.residentData = residentData;
+  if (data.profile?.hideNavigation != null) props.hideNavigation = data.profile.hideNavigation;
   
   // CSS Priority: User CSS > Admin Default CSS > No CSS
   if (data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {

@@ -50,12 +50,20 @@ export default function ProfileHeader({
             <FollowButton username={username} onStatus={onRelStatusChange} />
             <MutualFriends username={username} />
             {relStatus === "owner" && (
-              <Link
-                href="/settings/profile"
-                className="ts-profile-button ts-edit-profile-button thread-button text-sm"
-              >
-                Edit Profile
-              </Link>
+              <>
+                <Link
+                  href="/settings/profile"
+                  className="ts-profile-button ts-edit-profile-button thread-button text-sm"
+                >
+                  Edit Profile
+                </Link>
+                <Link
+                  href={`/resident/${username}/edit`}
+                  className="ts-profile-button ts-template-editor-button thread-button-secondary text-sm"
+                >
+                  Template Editor
+                </Link>
+              </>
             )}
           </div>
         </div>
