@@ -72,6 +72,9 @@ model Profile {
   displayName        String?
   bio                String?
   avatarUrl          String?
+  avatarThumbnailUrl String? // 64x64 thumbnail
+  avatarMediumUrl    String? // 200x200 medium
+  avatarFullUrl      String? // 800x800 full size
   bannerUrl          String?
   customCSS          String? // store sanitized CSS or a pointer
   customTemplate     String? // raw template HTML

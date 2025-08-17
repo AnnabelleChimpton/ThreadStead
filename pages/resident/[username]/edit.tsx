@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import type { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -11,6 +11,7 @@ import WebsiteManager, { Website } from "@/components/WebsiteManager";
 import FriendManager, { SelectedFriend } from "@/components/FriendManager";
 import CSSEditor from "@/components/CSSEditor";
 import ProfilePreview from "@/components/ProfilePreview";
+import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 import type { TemplateNode } from "@/lib/template-parser";
 
 interface ProfileEditProps {
@@ -222,6 +223,13 @@ export default function ProfileEditPage({
     router.push(`/resident/${username}`);
   };
 
+  const handlePhotoUploadSuccess = (urls: { thumbnailUrl: string; mediumUrl: string; fullUrl: string }) => {
+    // Update the avatar URL to use the medium size
+    setAvatarUrl(urls.mediumUrl);
+    setSaveMessage("Profile photo uploaded successfully!");
+    setTimeout(() => setSaveMessage(null), 3000);
+  };
+
   const handleSaveProfile = async () => {
     setSaving(true);
     setSaveMessage(null);
@@ -329,9 +337,18 @@ export default function ProfileEditPage({
               />
             </div>
             
+            <div className="border-t border-thread-sage pt-6">
+              <ProfilePhotoUpload 
+                currentAvatarUrl={avatarUrl}
+                onUploadSuccess={handlePhotoUploadSuccess}
+                disabled={saving}
+              />
+            </div>
+            
             <div>
               <label className="block mb-2">
                 <span className="thread-label">Avatar URL</span>
+                <span className="text-xs text-thread-sage ml-2">(Alternative: Enter URL directly)</span>
               </label>
               <input
                 type="url"
