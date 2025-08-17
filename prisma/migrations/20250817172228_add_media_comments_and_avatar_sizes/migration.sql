@@ -10,9 +10,14 @@ ALTER TYPE "public"."NotificationType" ADD VALUE 'photo_comment';
 ALTER TYPE "public"."NotificationType" ADD VALUE 'photo_reply';
 
 -- AlterTable
-ALTER TABLE "public"."Profile" ADD COLUMN     "avatarFullUrl" TEXT,
-ADD COLUMN     "avatarMediumUrl" TEXT,
-ADD COLUMN     "avatarThumbnailUrl" TEXT,
+ALTER TABLE "public"."Profile" 
+ADD COLUMN IF NOT EXISTS "avatarFullUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "avatarMediumUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "avatarThumbnailUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "customTemplate" TEXT,
+ADD COLUMN IF NOT EXISTS "customTemplateAst" TEXT,
+ADD COLUMN IF NOT EXISTS "hideNavigation" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS "templateEnabled" BOOLEAN NOT NULL DEFAULT false;
 
 -- CreateTable
 CREATE TABLE "public"."Media" (
