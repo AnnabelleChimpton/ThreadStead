@@ -247,7 +247,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       }
     });
   }
-  console.log({data});
 
   // Handle custom template data
   let customTemplateAst: TemplateNode | undefined;
@@ -273,7 +272,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         guestbook: [],
         capabilities: {
           bio: data.profile?.bio || ""
-        }
+        },
       };
     } catch (error) {
       console.error('Error preparing custom template:', error);

@@ -361,8 +361,15 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
     }
 
     const profileData = await profileRes.json();
-    const currentUsername = currentUser.primaryHandle ? currentUser.primaryHandle.split("@")[0] : null;
-    const isOwner = currentUsername === username || currentUser.id === profileData.userId;
+    let currentUsername = null;
+    if (currentUser.primaryHandle) {
+      currentUsername = currentUser.primaryHandle.split("@")[0];
+    }
+    // Compare usernames case-insensitively, and always allow if user IDs match
+    const isOwner = (
+      (currentUsername && currentUsername.toLowerCase() === username.toLowerCase()) ||
+      (currentUser.id && profileData.userId && currentUser.id === profileData.userId)
+    );
 
     // Try to get existing template
     let existingTemplate = "";
