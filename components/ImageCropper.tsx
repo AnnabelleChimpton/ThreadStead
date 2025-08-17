@@ -158,7 +158,7 @@ export default function ImageCropper({
             
             <div className="text-xs text-thread-sage">
               <p>• Square images work best for profile photos</p>
-              <p>• We'll automatically create thumbnail, medium, and full-size versions</p>
+              <p>• We&apos;ll automatically create thumbnail, medium, and full-size versions</p>
             </div>
           </div>
         </div>

@@ -62,7 +62,7 @@ function checkRateLimit(userId: string): boolean {
   return true;
 }
 
-async function checkUserQuota(_userId: string): Promise<boolean> {
+async function checkUserQuota(userId: string): Promise<boolean> {
   // Check how many photos user has uploaded this month
   const monthStart = new Date();
   monthStart.setDate(1);

@@ -2,12 +2,15 @@ import { PrismaClient } from "@prisma/client";
 
 const db = new PrismaClient();
 
-export type NotificationType = "comment" | "reply" | "follow" | "friend" | "guestbook";
+export type NotificationType = "comment" | "reply" | "photo_comment" | "photo_reply" | "follow" | "friend" | "guestbook";
 
 export interface NotificationData {
   postId?: string;
   commentId?: string;
   parentCommentId?: string;
+  mediaId?: string;
+  mediaTitle?: string;
+  mediaOwnerHandle?: string;
   postAuthorHandle?: string;
   guestbookEntryId?: string;
   [key: string]: any;

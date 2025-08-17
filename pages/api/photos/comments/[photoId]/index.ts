@@ -173,31 +173,31 @@ async function handleCreateComment(req: NextApiRequest, res: NextApiResponse, ph
     // Create notifications
     if (parentComment && parentComment.authorId !== me.id) {
       // Reply notification - notify the original commenter
-      await createNotification({
-        recipientId: parentComment.authorId,
-        actorId: me.id,
-        type: "photo_reply",
-        data: {
+      await createNotification(
+        parentComment.authorId,
+        me.id,
+        "photo_reply",
+        {
           mediaId: photoId,
           commentId: comment.id,
           parentCommentId: parentId,
           mediaTitle: media.title || media.caption || "Untitled photo",
-          mediaOwnerHandle: media.user.primaryHandle // Add owner handle for proper link generation
+          mediaOwnerHandle: media.user.primaryHandle || undefined // Add owner handle for proper link generation
         }
-      });
+      );
     } else if (!parentComment && media.userId !== me.id) {
       // Top-level comment notification - notify the media owner
-      await createNotification({
-        recipientId: media.userId,
-        actorId: me.id,
-        type: "photo_comment",
-        data: {
+      await createNotification(
+        media.userId,
+        me.id,
+        "photo_comment",
+        {
           mediaId: photoId,
           commentId: comment.id,
           mediaTitle: media.title || media.caption || "Untitled photo",
-          mediaOwnerHandle: media.user.primaryHandle // Add owner handle for proper link generation
+          mediaOwnerHandle: media.user.primaryHandle || undefined // Add owner handle for proper link generation
         }
-      });
+      );
     }
 
     return res.status(201).json({

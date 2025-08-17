@@ -158,7 +158,7 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
                 <div className="text-6xl mb-4">📸</div>
                 <h3 className="text-lg font-medium text-thread-pine mb-2">Start sharing your moments</h3>
                 <p className="text-thread-sage mb-4">
-                  Every image has a story. What's yours?
+                  Every image has a story. What&apos;s yours?
                 </p>
                 <button
                   onClick={() => setShowUpload(true)}
@@ -172,7 +172,7 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
                 <div className="text-6xl mb-4">🖼️</div>
                 <h3 className="text-lg font-medium text-thread-pine mb-2">No featured photos</h3>
                 <p className="text-thread-sage">
-                  {username} hasn't featured any photos yet.
+                  {username} hasn&apos;t featured any photos yet.
                 </p>
               </>
             )}

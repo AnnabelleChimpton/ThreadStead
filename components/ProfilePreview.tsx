@@ -125,7 +125,7 @@ export default function ProfilePreview({
                         </h2>
                         <span className="profile-status thread-label">threadstead resident</span>
                       </div>
-                      {residentData.capabilities.bio && (
+                      {residentData.capabilities?.bio && (
                         <div className="profile-bio-section">
                           <p className="profile-bio">{residentData.capabilities.bio}</p>
                         </div>

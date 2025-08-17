@@ -4,6 +4,8 @@ import Layout from "@/components/Layout";
 import RetroCard from "@/components/layout/RetroCard";
 
 export default function SettingsProfile() {
+  const router = useRouter();
+  
   // Redirect to the new unified edit page
   useEffect(() => {
     (async () => {
