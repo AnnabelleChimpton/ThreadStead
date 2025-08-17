@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import ImageCropper from './ImageCropper';
 
 interface ProfilePhotoUploadProps {
   currentAvatarUrl?: string;
@@ -14,9 +15,11 @@ export default function ProfilePhotoUpload({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = async (file: File) => {
+  const handleFileSelect = (file: File) => {
     if (!file) return;
 
     // Validate file type
@@ -32,6 +35,16 @@ export default function ProfilePhotoUpload({
       return;
     }
 
+    setError(null);
+    
+    // Create URL for cropping
+    const imageUrl = URL.createObjectURL(file);
+    setSelectedImageUrl(imageUrl);
+    setShowCropper(true);
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setShowCropper(false);
     setUploading(true);
     setError(null);
 
@@ -45,9 +58,9 @@ export default function ProfilePhotoUpload({
       }
       const { token } = await capRes.json();
 
-      // Create form data
+      // Create form data with cropped image
       const formData = new FormData();
-      formData.append('photo', file);
+      formData.append('photo', croppedBlob, 'cropped-profile.jpg');
       formData.append('cap', token);
 
       // Upload photo
@@ -69,6 +82,19 @@ export default function ProfilePhotoUpload({
       console.error('Upload error:', err);
     } finally {
       setUploading(false);
+      // Clean up object URL
+      if (selectedImageUrl) {
+        URL.revokeObjectURL(selectedImageUrl);
+        setSelectedImageUrl(null);
+      }
+    }
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    if (selectedImageUrl) {
+      URL.revokeObjectURL(selectedImageUrl);
+      setSelectedImageUrl(null);
     }
   };
 
@@ -160,7 +186,7 @@ export default function ProfilePhotoUpload({
                 JPEG, PNG, WebP, or GIF • Max 10MB
               </p>
               <p className="text-xs text-thread-sage">
-                We'll create multiple sizes (thumbnail, medium, full) automatically
+                Select an image to preview and crop before uploading
               </p>
             </div>
           )}
@@ -178,6 +204,16 @@ export default function ProfilePhotoUpload({
           </div>
         )}
       </div>
+
+      {/* Image Cropper Modal */}
+      {showCropper && selectedImageUrl && (
+        <ImageCropper
+          imageUrl={selectedImageUrl}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={1} // Square crop for profile photos
+        />
+      )}
     </div>
   );
 }

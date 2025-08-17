@@ -63,6 +63,7 @@ export default function ProfileEditPage({
     if (!existingTemplate || !existingTemplate.trim()) return null;
     
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const TemplateEngine = require('@/lib/template-engine').TemplateEngine;
       const validation = TemplateEngine.validate(existingTemplate);
       if (!validation.isValid) return null;
@@ -265,7 +266,6 @@ export default function ProfileEditPage({
         body: JSON.stringify({ 
           displayName, 
           bio, 
-          avatarUrl, 
           customCSS: customCSSValue, 
           blogroll, 
           featuredFriends: featuredFriendsData,
@@ -342,20 +342,6 @@ export default function ProfileEditPage({
                 currentAvatarUrl={avatarUrl}
                 onUploadSuccess={handlePhotoUploadSuccess}
                 disabled={saving}
-              />
-            </div>
-            
-            <div>
-              <label className="block mb-2">
-                <span className="thread-label">Avatar URL</span>
-                <span className="text-xs text-thread-sage ml-2">(Alternative: Enter URL directly)</span>
-              </label>
-              <input
-                type="url"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                className="w-full max-w-xl border border-thread-sage p-3 bg-thread-paper rounded focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
-                placeholder="https://example.com/avatar.jpg"
               />
             </div>
             

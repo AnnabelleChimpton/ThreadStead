@@ -84,18 +84,29 @@ async function processAndUploadImage(
   const baseKey = `profile-photos/${userId}/${timestamp}`;
   
   // Process images in different sizes
+  // Since users will crop to square, we expect square input, so use 'cover' to maintain aspect ratio
   const thumbnail = await sharp(buffer)
-    .resize(64, 64, { fit: 'cover' })
+    .resize(64, 64, { 
+      fit: 'cover',
+      position: 'center'
+    })
     .jpeg({ quality: 80 })
     .toBuffer();
     
   const medium = await sharp(buffer)
-    .resize(200, 200, { fit: 'cover' })
+    .resize(200, 200, { 
+      fit: 'cover',
+      position: 'center'
+    })
     .jpeg({ quality: 85 })
     .toBuffer();
     
   const full = await sharp(buffer)
-    .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+    .resize(800, 800, { 
+      fit: 'cover',
+      position: 'center',
+      withoutEnlargement: true
+    })
     .jpeg({ quality: 90 })
     .toBuffer();
 
