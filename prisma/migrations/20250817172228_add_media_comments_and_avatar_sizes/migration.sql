@@ -13,10 +13,6 @@ ALTER TYPE "public"."NotificationType" ADD VALUE 'photo_reply';
 ALTER TABLE "public"."Profile" ADD COLUMN     "avatarFullUrl" TEXT,
 ADD COLUMN     "avatarMediumUrl" TEXT,
 ADD COLUMN     "avatarThumbnailUrl" TEXT,
-ADD COLUMN     "customTemplate" TEXT,
-ADD COLUMN     "customTemplateAst" TEXT,
-ADD COLUMN     "hideNavigation" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "templateEnabled" BOOLEAN NOT NULL DEFAULT false;
 
 -- CreateTable
 CREATE TABLE "public"."Media" (
