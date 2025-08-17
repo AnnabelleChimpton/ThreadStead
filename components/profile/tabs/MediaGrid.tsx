@@ -62,10 +62,8 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
 
     if (selectedImage) {
       document.addEventListener('keydown', handleKeyDown);
-      // Prevent body scroll when modal is open and ensure it's centered in viewport
+      // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
-      // Scroll to top to ensure modal is properly centered
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     return () => {
@@ -234,7 +232,16 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
       {selectedImage && (
         <div 
           className="fixed inset-0 bg-black/80 flex items-center justify-center p-4"
-          style={{ zIndex: 9999, top: 0, left: 0, right: 0, bottom: 0 }}
+          style={{ 
+            zIndex: 9999, 
+            position: 'fixed',
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0,
+            width: '100vw',
+            height: '100vh'
+          }}
           onClick={() => {
             setSelectedImage(null);
             setShowComments(false);
