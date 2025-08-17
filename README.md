@@ -43,12 +43,18 @@ A fully-featured retro-themed social networking template built with Next.js, fea
    ```
    This interactive wizard will guide you through configuring your site name, user handles, database, and security settings.
 
-4. **Set up the database**
+4. **Set up the database and create admin user**
    ```bash
+   npx prisma migrate deploy
    npx prisma generate
-   npx prisma db push
-   npm run seed  # Creates default user (if configured in setup)
+   npm run setup:admin  # Creates admin user with seed phrase
    ```
+   
+   💡 **The setup:admin script will:**
+   - Create an admin user account
+   - Generate a secure seed phrase for login
+   - Display the credentials you'll need to sign in
+   - ⚠️ **Save the seed phrase securely - you'll need it to log in!**
 
 5. **Generate beta keys (if enabled)**
    ```bash
@@ -60,7 +66,7 @@ A fully-featured retro-themed social networking template built with Next.js, fea
    npm run dev
    ```
 
-7. **Open [http://localhost:3000](http://localhost:3000)**
+7. **Open [http://localhost:3000](http://localhost:3000)** and use the seed phrase to sign in as admin
 
 ### Manual Configuration (Alternative)
 
@@ -84,6 +90,20 @@ Copy `.env.example` to `.env` and customize:
 - `BETA_KEYS_ENABLED` - Enable/disable beta key requirement
 - `DEFAULT_USER_*` - Customize the default seeded user
 
+### Admin User Management
+
+```bash
+npm run setup:admin         # Create initial admin user with seed phrase
+npm run promote-admin <handle>  # Promote existing user to admin
+```
+
+**Admin Setup Options:**
+You can customize the admin user via environment variables:
+- `ADMIN_HANDLE` - Admin username (default: "admin")
+- `ADMIN_DISPLAY_NAME` - Display name (default: "Site Administrator")
+- `ADMIN_BIO` - Bio text (default: "Site administrator and community manager.")
+- `SITE_HANDLE_DOMAIN` - Domain for handles (default: "localhost")
+
 ### Beta Key Management
 
 ```bash
@@ -106,9 +126,9 @@ npm run build
 
 ### 3. Database Setup
 ```bash
-npx prisma generate
-npx prisma db push
-npm run seed  # Optional: creates default user
+npx prisma migrate deploy  # Apply all migrations
+npx prisma generate        # Generate Prisma client
+npm run setup:admin        # Create admin user (save the seed phrase!)
 ```
 
 ### 4. Generate Beta Keys (if enabled)

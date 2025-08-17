@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export type NotificationData = {
   id: string;
-  type: "comment" | "reply" | "follow" | "friend" | "guestbook";
+  type: "comment" | "reply" | "photo_comment" | "photo_reply" | "follow" | "friend" | "guestbook";
   status: "unread" | "read" | "dismissed";
   data?: {
     postId?: string;
@@ -11,6 +11,9 @@ export type NotificationData = {
     parentCommentId?: string;
     postAuthorHandle?: string;
     guestbookEntryId?: string;
+    mediaId?: string;
+    mediaTitle?: string;
+    mediaOwnerHandle?: string;
   };
   createdAt: string;
   readAt?: string | null;
@@ -138,6 +141,18 @@ export default function NotificationList({
             {ActorComponent} replied to your comment
           </span>
         );
+      case "photo_comment":
+        return (
+          <span>
+            {ActorComponent} commented on your photo{notification.data?.mediaTitle ? ` "${notification.data.mediaTitle}"` : ""}
+          </span>
+        );
+      case "photo_reply":
+        return (
+          <span>
+            {ActorComponent} replied to your comment on a photo
+          </span>
+        );
       case "follow":
         return (
           <span>
@@ -183,6 +198,21 @@ export default function NotificationList({
         }
         // Fallback to actor's profile
         return username ? `/resident/${username}` : null;
+      case "photo_comment":
+      case "photo_reply":
+        // For photo comments, link to the specific photo in the owner's media gallery
+        if (notification.data?.mediaId && notification.data?.mediaOwnerHandle) {
+          const mediaOwnerUsername = getUsername(notification.data.mediaOwnerHandle);
+          if (mediaOwnerUsername) {
+            const params = new URLSearchParams({
+              photo: notification.data.mediaId,
+              ...(notification.data.commentId && { comment: notification.data.commentId })
+            });
+            return `/resident/${mediaOwnerUsername}/media?${params.toString()}`;
+          }
+        }
+        // Fallback to actor's profile
+        return username ? `/resident/${username}` : null;
       case "follow":
       case "friend":
         return username ? `/resident/${username}` : null;
@@ -198,6 +228,9 @@ export default function NotificationList({
       case "comment":
       case "reply":
         return "💬";
+      case "photo_comment":
+      case "photo_reply":
+        return "📸";
       case "follow":
         return "👥";
       case "friend":

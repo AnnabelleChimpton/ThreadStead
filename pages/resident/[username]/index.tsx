@@ -50,6 +50,27 @@ export default function ProfilePage({
   hideNavigation = false,
 }: ProfileProps) {
   const [relStatus, setRelStatus] = React.useState<string>("loading");
+  const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
+
+  // Check if current user is the owner
+  React.useEffect(() => {
+    const checkCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.loggedIn && data.user?.id) {
+            setCurrentUserId(data.user.id);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check current user:", error);
+      }
+    };
+    checkCurrentUser();
+  }, []);
+
+  const isOwner = currentUserId === ownerUserId;
 
   // If there's a custom template, render it instead of the default layout
   if (customTemplateAst && residentData) {
@@ -75,7 +96,7 @@ export default function ProfilePage({
     {
       id: "media",
       label: "Media",
-      content: <MediaGrid />,
+      content: <MediaGrid username={username} isOwner={isOwner} />,
     },
     {
       id: "friends",

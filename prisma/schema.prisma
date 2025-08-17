@@ -47,7 +47,9 @@ model User {
   followers Follow[] @relation("follows_followee") // others follow me
 
   comments Comment[] @relation("UserComments")
+  photoComments PhotoComment[] @relation("PhotoCommentAuthor")
   betaKey  BetaKey?
+  media    Media[]
 
   // notifications
   notificationsReceived Notification[] @relation("NotificationRecipient")
@@ -198,6 +200,8 @@ model BetaKey {
 enum NotificationType {
   comment       // someone commented on your post
   reply         // someone replied to your comment
+  photo_comment // someone commented on your photo
+  photo_reply   // someone replied to your photo comment
   follow        // someone followed you
   friend        // someone became mutual friend
   guestbook     // someone signed your guestbook
@@ -257,4 +261,64 @@ model CustomPage {
   
   @@index([published, showInNav, navOrder])
   @@index([isHomepage])
+}
+
+model Media {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Personal story/caption
+  caption      String?  // The story behind the image
+  title        String?  // Optional title
+  
+  // Image URLs (multiple sizes)
+  thumbnailUrl String   // Small thumbnail
+  mediumUrl    String   // Medium size for gallery
+  fullUrl      String   // Full size for viewing
+  originalName String?  // Original filename
+  
+  // Metadata
+  fileSize     Int?     // File size in bytes
+  mimeType     String?  // image/jpeg, etc.
+  width        Int?     // Image width
+  height       Int?     // Image height
+  
+  // Display settings
+  featured     Boolean  @default(false) // Show in media tab (max 6)
+  featuredOrder Int?    // Order in featured media (1-6)
+  visibility   Visibility @default(public)
+  
+  // Comments
+  comments     PhotoComment[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([userId, featured, featuredOrder])
+  @@index([userId, createdAt])
+  @@index([userId, visibility])
+}
+
+model PhotoComment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  
+  // Relations
+  mediaId   String
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("PhotoCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  // Nested comments support
+  parentId  String?
+  parent    PhotoComment? @relation("PhotoCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   PhotoComment[] @relation("PhotoCommentReplies")
+  
+  status    CommentStatus @default(visible)
+  
+  @@index([mediaId, createdAt])
+  @@index([authorId, createdAt])
+  @@index([parentId])
 }

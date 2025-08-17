@@ -26,8 +26,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         include: { user: { select: { id: true, primaryHandle: true } } }
       });
 
-      console.log('Handle found:', handle);
-
       if (!handle) {
         return res.status(404).json({ error: 'User not found' });
       }

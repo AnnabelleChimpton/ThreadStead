@@ -10,7 +10,6 @@ import { promisify } from "util";
 const db = new PrismaClient();
 
 // Configure S3 client for R2
-// Use the R2_PUBLIC_URL as the endpoint since it works with our setup
 const s3Client = new S3Client({
   region: "auto",
   endpoint: process.env.R2_PUBLIC_URL!,
@@ -25,7 +24,7 @@ const s3Client = new S3Client({
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 15 * 1024 * 1024, // 15MB limit for media
   },
   fileFilter: (req, file, cb) => {
     // Only allow image files
@@ -37,15 +36,15 @@ const upload = multer({
   },
 });
 
-const uploadSingle = promisify(upload.single('photo'));
+const uploadSingle = promisify(upload.single('image'));
 
 // Rate limiting storage (in production, use Redis or database)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 function checkRateLimit(userId: string): boolean {
   const now = Date.now();
-  const windowMs = 60 * 60 * 1000; // 1 hour
-  const maxUploads = 5; // 5 uploads per hour
+  const windowMs = 24 * 60 * 60 * 1000; // 24 hours (1 day)
+  const maxUploads = 30; // 30 media uploads per day
 
   const userLimit = rateLimitStore.get(userId);
   
@@ -62,40 +61,53 @@ function checkRateLimit(userId: string): boolean {
   return true;
 }
 
-async function checkUserQuota(_userId: string): Promise<boolean> {
-  // Check how many photos user has uploaded this month
+async function checkUserQuota(userId: string): Promise<boolean> {
+  // Check how many media items user has uploaded this month
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
   
-  // For now, we'll store upload count in a simple way
-  // In production, you might want a separate uploads table
+  const mediaCount = await db.media.count({
+    where: {
+      userId,
+      createdAt: { gte: monthStart }
+    }
+  });
   
-  // Simple quota: allow upload if they don't have an avatar or it's been a while
-  // In production, implement proper monthly quotas based on monthStart and userId
-  return true; // For now, always allow
+  // Allow up to 50 media uploads per month
+  return mediaCount < 50;
 }
 
-async function processAndUploadImage(
+async function processAndUploadMedia(
   buffer: Buffer,
   userId: string
-): Promise<{ thumbnailUrl: string; mediumUrl: string; fullUrl: string }> {
+): Promise<{
+  thumbnailUrl: string;
+  mediumUrl: string;
+  fullUrl: string;
+  metadata: { width: number; height: number; fileSize: number };
+}> {
   const timestamp = Date.now();
-  const baseKey = `profile-photos/${userId}/${timestamp}`;
+  const baseKey = `media/${userId}/${timestamp}`;
+  
+  // Get image metadata
+  const imageInfo = await sharp(buffer).metadata();
+  const originalWidth = imageInfo.width || 0;
+  const originalHeight = imageInfo.height || 0;
   
   // Process images in different sizes
   const thumbnail = await sharp(buffer)
-    .resize(64, 64, { fit: 'cover' })
+    .resize(150, 150, { fit: 'cover' })
     .jpeg({ quality: 80 })
     .toBuffer();
     
   const medium = await sharp(buffer)
-    .resize(200, 200, { fit: 'cover' })
+    .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: 85 })
     .toBuffer();
     
   const full = await sharp(buffer)
-    .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+    .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: 90 })
     .toBuffer();
 
@@ -128,6 +140,11 @@ async function processAndUploadImage(
     thumbnailUrl: urls.thumbnailUrl,
     mediumUrl: urls.mediumUrl,
     fullUrl: urls.fullUrl,
+    metadata: {
+      width: originalWidth,
+      height: originalHeight,
+      fileSize: buffer.length,
+    },
   };
 }
 
@@ -144,14 +161,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Check rate limiting
   if (!checkRateLimit(me.id)) {
     return res.status(429).json({ 
-      error: "Rate limit exceeded. Maximum 5 uploads per hour." 
+      error: "Rate limit exceeded. Maximum 30 uploads per day." 
     });
   }
 
   // Check user quota
   if (!(await checkUserQuota(me.id))) {
     return res.status(413).json({ 
-      error: "Monthly upload quota exceeded" 
+      error: "Monthly upload quota exceeded (50 images per month)" 
     });
   }
 
@@ -173,53 +190,76 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Check capability
-    const { cap } = req.body;
+    const { cap, caption, title } = req.body;
     if (!cap) {
       return res.status(401).json({ error: "Capability required" });
     }
 
-    const resource = `user:${me.id}/profile`;
-    const ok = await requireAction("write:profile", (resStr) => resStr === resource)(cap).catch(() => null);
+    const resource = `user:${me.id}/media`;
+    const ok = await requireAction("write:media", (resStr) => resStr === resource)(cap).catch(() => null);
     if (!ok) {
       return res.status(403).json({ error: "Invalid capability" });
     }
 
     // Process and upload image
-    const urls = await processAndUploadImage(file.buffer, me.id);
+    const { thumbnailUrl, mediumUrl, fullUrl, metadata } = await processAndUploadMedia(
+      file.buffer, 
+      me.id
+    );
 
-    // Update user profile with new avatar URLs (all sizes)
-    await db.profile.upsert({
-      where: { userId: me.id },
-      update: { 
-        avatarUrl: urls.mediumUrl, // Keep medium as primary
-        avatarThumbnailUrl: urls.thumbnailUrl,
-        avatarMediumUrl: urls.mediumUrl,
-        avatarFullUrl: urls.fullUrl,
-      },
-      create: { 
-        userId: me.id, 
-        avatarUrl: urls.mediumUrl,
-        avatarThumbnailUrl: urls.thumbnailUrl,
-        avatarMediumUrl: urls.mediumUrl,
-        avatarFullUrl: urls.fullUrl,
+    // Check if this should be featured (if user has < 6 featured media)
+    const featuredCount = await db.media.count({
+      where: { userId: me.id, featured: true }
+    });
+    
+    const shouldFeature = featuredCount < 6;
+    const featuredOrder = shouldFeature ? featuredCount + 1 : null;
+
+    // Save media record to database
+    const mediaRecord = await db.media.create({
+      data: {
+        userId: me.id,
+        caption: caption?.trim() || null,
+        title: title?.trim() || null,
+        thumbnailUrl,
+        mediumUrl,
+        fullUrl,
+        originalName: file.originalname,
+        fileSize: metadata.fileSize,
+        mimeType: file.mimetype,
+        width: metadata.width,
+        height: metadata.height,
+        featured: shouldFeature,
+        featuredOrder,
       },
     });
 
     return res.status(200).json({
       success: true,
-      urls,
-      message: "Profile photo uploaded successfully"
+      media: {
+        id: mediaRecord.id,
+        caption: mediaRecord.caption,
+        title: mediaRecord.title,
+        thumbnailUrl: mediaRecord.thumbnailUrl,
+        mediumUrl: mediaRecord.mediumUrl,
+        fullUrl: mediaRecord.fullUrl,
+        featured: mediaRecord.featured,
+        createdAt: mediaRecord.createdAt,
+      },
+      message: shouldFeature 
+        ? "Image uploaded and added to your featured media!" 
+        : "Image uploaded successfully!"
     });
 
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("Media upload error:", error);
     
     if (error instanceof Error) {
       if (error.message === 'Only image files are allowed') {
         return res.status(400).json({ error: error.message });
       }
       if (error.message.includes('File too large')) {
-        return res.status(413).json({ error: "File too large. Maximum size is 10MB." });
+        return res.status(413).json({ error: "File too large. Maximum size is 15MB." });
       }
     }
     

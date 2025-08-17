@@ -1,57 +1,190 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import MediaUpload from "@/components/MediaUpload";
 
 interface MediaItem {
-  id: string | number;
-  url?: string;
+  id: string;
+  thumbnailUrl: string;
+  mediumUrl: string;
+  fullUrl: string;
+  caption?: string;
   title?: string;
-  type?: 'image' | 'video' | 'placeholder';
+  featured: boolean;
+  featuredOrder?: number;
+  createdAt: string;
 }
 
 interface MediaGridProps {
-  items?: MediaItem[];
-  placeholderCount?: number;
+  username: string;
+  isOwner?: boolean;
 }
 
-export default function MediaGrid({ 
-  items = [], 
-  placeholderCount = 6 
-}: MediaGridProps) {
-  // Show placeholder items if no real items provided
-  const displayItems = items.length > 0 
-    ? items 
-    : Array.from({ length: placeholderCount }, (_, i) => ({
-        id: `placeholder-${i + 1}`,
-        type: 'placeholder' as const,
-        title: `img ${i + 1}`
-      }));
+export default function MediaGrid({ username, isOwner = false }: MediaGridProps) {
+  const [featuredMedia, setFeaturedMedia] = useState<MediaItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showUpload, setShowUpload] = useState(false);
+
+  const loadFeaturedMedia = async () => {
+    try {
+      const response = await fetch(`/api/photos/${username}/featured`);
+      if (response.ok) {
+        const data = await response.json();
+        setFeaturedMedia(data.media || []);
+      } else {
+        setError("Failed to load media");
+      }
+    } catch (err) {
+      setError("Failed to load media");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFeaturedMedia();
+  }, [username]);
+
+  const handleUploadSuccess = (newMedia: MediaItem) => {
+    // Add to featured media if it was marked as featured
+    if (newMedia.featured) {
+      setFeaturedMedia(prev => [...prev, newMedia].sort((a, b) => 
+        (a.featuredOrder || 0) - (b.featuredOrder || 0)
+      ));
+    }
+    setShowUpload(false);
+  };
+
+  // Create display grid - only show actual media items
+  const createDisplayGrid = () => {
+    const sortedMedia = featuredMedia.sort((a, b) => 
+      (a.featuredOrder || 0) - (b.featuredOrder || 0)
+    );
+    
+    return sortedMedia.slice(0, 6).map(media => (
+      <div
+        key={media.id}
+        className="ts-media-item border border-thread-sage bg-thread-paper shadow-cozy aspect-square overflow-hidden group relative"
+      >
+        <img 
+          src={media.thumbnailUrl} 
+          alt={media.title || media.caption || 'Media item'} 
+          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+        />
+        {/* Overlay with caption */}
+        {(media.title || media.caption) && (
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+            <div className="text-white text-xs">
+              {media.title && <div className="font-medium">{media.title}</div>}
+              {media.caption && (
+                <div className="line-clamp-2">{media.caption}</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    ));
+  };
+
+  if (loading) {
+    return (
+      <div className="ts-media-tab-content profile-tab-content">
+        <div className="text-center py-8">
+          <div className="animate-spin w-8 h-8 border-2 border-thread-pine border-t-transparent rounded-full mx-auto mb-2"></div>
+          <p className="text-thread-sage">Loading media...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="ts-media-tab-content profile-tab-content" data-component="media-grid">
-      <div className="ts-media-gallery grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {displayItems.map((item) => (
-          <div
-            key={item.id}
-            className="ts-media-item border border-black bg-white shadow-[2px_2px_0_#000] aspect-square flex items-center justify-center"
-            data-media-type={item.type}
-          >
-            {item.type === 'placeholder' ? (
-              <span className="ts-media-placeholder-text text-sm">
-                {item.title}
-              </span>
-            ) : item.url ? (
-              <img 
-                src={item.url} 
-                alt={item.title || 'Media item'} 
-                className="ts-media-image w-full h-full object-cover"
-              />
+    <div className="ts-media-tab-content profile-tab-content space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-thread-pine">Featured Media</h3>
+          <p className="text-sm text-thread-sage">
+            {isOwner ? "Share your favorite moments (up to 6)" : `${username}'s favorite moments`}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {featuredMedia.length > 0 && (
+            <Link 
+              href={`/resident/${username}/media`}
+              className="thread-button-secondary text-sm"
+            >
+              View All
+            </Link>
+          )}
+          {isOwner && (
+            <button
+              onClick={() => setShowUpload(!showUpload)}
+              className="thread-button text-sm"
+            >
+              {showUpload ? "Cancel" : "Add Photo"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Upload Section */}
+      {isOwner && showUpload && (
+        <MediaUpload onUploadSuccess={handleUploadSuccess} />
+      )}
+
+      {/* Media Grid - only show when there are photos */}
+      {featuredMedia.length > 0 ? (
+        <>
+          <div className="ts-media-gallery grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {createDisplayGrid()}
+          </div>
+
+          {/* Link to full gallery */}
+          <div className="text-center">
+            <Link 
+              href={`/resident/${username}/media`}
+              className="text-thread-pine hover:text-thread-sunset transition-colors text-sm"
+            >
+              Explore {isOwner ? "your" : `${username}'s`} complete media collection →
+            </Link>
+          </div>
+        </>
+      ) : (
+        /* Empty state */
+        !showUpload && (
+          <div className="text-center py-12">
+            {isOwner ? (
+              <>
+                <div className="text-6xl mb-4">📸</div>
+                <h3 className="text-lg font-medium text-thread-pine mb-2">Start sharing your moments</h3>
+                <p className="text-thread-sage mb-4">
+                  Every image has a story. What's yours?
+                </p>
+                <button
+                  onClick={() => setShowUpload(true)}
+                  className="thread-button"
+                >
+                  Share your first photo
+                </button>
+              </>
             ) : (
-              <span className="ts-media-loading-text text-sm">
-                Loading...
-              </span>
+              <>
+                <div className="text-6xl mb-4">🖼️</div>
+                <h3 className="text-lg font-medium text-thread-pine mb-2">No featured photos</h3>
+                <p className="text-thread-sage">
+                  {username} hasn't featured any photos yet.
+                </p>
+              </>
             )}
           </div>
-        ))}
-      </div>
+        )
+      )}
+
+      {error && (
+        <div className="text-center py-8 text-red-600">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

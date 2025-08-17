@@ -63,7 +63,7 @@ export default function ProfileEditPage({
     if (!existingTemplate || !existingTemplate.trim()) return null;
     
     try {
-      const { TemplateEngine } = require('@/lib/template-engine');
+      const TemplateEngine = require('@/lib/template-engine').TemplateEngine;
       const validation = TemplateEngine.validate(existingTemplate);
       if (!validation.isValid) return null;
       
