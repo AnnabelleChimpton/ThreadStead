@@ -17,13 +17,13 @@ function createCustomSchema() {
   return {
     ...defaultSchema,
     tagNames: [
-      ...(defaultSchema.tagNames || []),
+      ...(defaultSchema.tagNames || []).filter(tag => tag !== 'img'), // Remove standard img tag to avoid conflicts
       ...allTagVariations
     ],
     attributes: {
       ...defaultSchema.attributes,
       // Add component-specific attributes for all variations
-      '*': ['data-component', 'data-size', 'data-shape', 'data-limit', 'data-variant', 'data-title'],
+      '*': ['data-component', 'data-size', 'data-shape', 'data-limit', 'data-variant', 'data-title', 'data-when', 'data-condition', 'data-equals', 'data-exists', 'style', 'id', 'href', 'target', 'rel'],
       // Allow specific attributes for each component (both cases)
       ...Object.fromEntries(
         allowedTags.flatMap(tag => [

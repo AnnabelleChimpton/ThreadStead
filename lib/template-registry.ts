@@ -36,6 +36,12 @@ import ProfileHero from '@/components/template/ProfileHero';
 import SimpleTest from '@/components/template/SimpleTest';
 import DataDebug from '@/components/template/DataDebug';
 import RetroCard from '@/components/layout/RetroCard';
+import UserImage from '@/components/template/UserImage';
+
+// Import conditional rendering components
+import Show from '@/components/template/conditional/Show';
+import Choose, { When, Otherwise } from '@/components/template/conditional/Choose';
+import IfOwner, { IfVisitor } from '@/components/template/conditional/IfOwner';
 
 // Define the shape of prop schemas
 export type PropType = 'string' | 'number' | 'boolean' | 'enum';
@@ -178,7 +184,10 @@ componentRegistry.register({
 componentRegistry.register({
   name: 'DisplayName',
   component: DisplayName,
-  props: {}
+  props: {
+    as: { type: 'enum', values: ['h1', 'h2', 'h3', 'span', 'div'], default: 'h2' },
+    showLabel: { type: 'boolean', default: false }
+  }
 });
 
 componentRegistry.register({
@@ -275,7 +284,8 @@ componentRegistry.register({
     align: { type: 'enum', values: ['start', 'center', 'end', 'stretch'], default: 'start' },
     justify: { type: 'enum', values: ['start', 'center', 'end', 'between', 'around', 'evenly'], default: 'start' },
     wrap: { type: 'boolean', default: false },
-    gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' }
+    gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
+    responsive: { type: 'boolean', default: true }
   }
 });
 
@@ -295,7 +305,8 @@ componentRegistry.register({
   props: {
     ratio: { type: 'enum', values: ['1:1', '1:2', '2:1', '1:3', '3:1'], default: '1:1' },
     vertical: { type: 'boolean', default: false },
-    gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' }
+    gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
+    responsive: { type: 'boolean', default: true }
   }
 });
 
@@ -444,5 +455,71 @@ componentRegistry.register({
 componentRegistry.register({
   name: 'RetroCard',
   component: RetroCard,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'UserImage',
+  component: UserImage,
+  props: {
+    src: { type: 'string' },
+    data: { type: 'string' },
+    index: { type: 'number', default: 0 },
+    alt: { type: 'string', default: '' },
+    width: { type: 'string' },
+    height: { type: 'string' },
+    size: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl', 'full'], default: 'md' },
+    rounded: { type: 'enum', values: ['none', 'sm', 'md', 'lg', 'full'], default: 'sm' },
+    border: { type: 'boolean', default: false },
+    shadow: { type: 'enum', values: ['none', 'sm', 'md', 'lg'], default: 'none' },
+    fit: { type: 'enum', values: ['cover', 'contain', 'fill', 'scale-down'], default: 'cover' },
+    fallback: { type: 'string', default: '/assets/default-image.png' }
+  }
+});
+
+// Register conditional rendering components
+componentRegistry.register({
+  name: 'Show',
+  component: Show,
+  props: {
+    when: { type: 'string' },
+    data: { type: 'string' },
+    equals: { type: 'string' },
+    exists: { type: 'string' }
+  }
+});
+
+componentRegistry.register({
+  name: 'Choose',
+  component: Choose,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'When',
+  component: When,
+  props: {
+    condition: { type: 'string' },
+    data: { type: 'string' },
+    equals: { type: 'string' },
+    exists: { type: 'boolean' }
+  }
+});
+
+componentRegistry.register({
+  name: 'Otherwise',
+  component: Otherwise,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'IfOwner',
+  component: IfOwner,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'IfVisitor',
+  component: IfVisitor,
   props: {}
 });

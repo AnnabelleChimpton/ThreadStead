@@ -77,13 +77,35 @@ export default function ProfilePage({
     try {
       const templateContent = transformNodeToReact(customTemplateAst);
       
-      return (
-        <ProfileLayout customCSS={customCSS} hideNavigation={hideNavigation}>
-          <ResidentDataProvider data={residentData}>
-            {templateContent}
-          </ResidentDataProvider>
-        </ProfileLayout>
-      );
+      // Check if this is an advanced template (contains layout components)
+      const templateString = JSON.stringify(customTemplateAst);
+      const isAdvancedTemplate = templateString.includes('GradientBox') || 
+                                templateString.includes('SplitLayout') ||
+                                templateString.includes('FlexContainer') ||
+                                templateString.includes('CenteredBox');
+      
+      if (isAdvancedTemplate) {
+        // Render advanced templates without layout constraints
+        return (
+          <>
+            {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
+            <div className="min-h-screen thread-surface">
+              <ResidentDataProvider data={residentData}>
+                {templateContent}
+              </ResidentDataProvider>
+            </div>
+          </>
+        );
+      } else {
+        // Use standard profile layout for simple templates
+        return (
+          <ProfileLayout customCSS={customCSS} hideNavigation={hideNavigation}>
+            <ResidentDataProvider data={residentData}>
+              {templateContent}
+            </ResidentDataProvider>
+          </ProfileLayout>
+        );
+      }
     } catch (error) {
       console.error('Error rendering custom template:', error);
       // Fall back to default layout if template fails
@@ -278,6 +300,115 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       // Parse the stored AST
       customTemplateAst = JSON.parse(data.profile.customTemplateAst);
       
+      // Migration: Check if AST has img tags but template has Image or UserImage tags (indicates corrupted AST)
+      const hasImageComponents = data.profile.customTemplate.includes('<Image') || data.profile.customTemplate.includes('<UserImage');
+      const astString = JSON.stringify(customTemplateAst);
+      const hasImgInAst = astString.includes('"tagName":"img"');
+      
+      if (hasImageComponents && hasImgInAst) {
+        console.log('Detected corrupted AST with img tags instead of UserImage components. Recompiling...');
+        // Convert old <Image> tags to <UserImage> for backward compatibility
+        let updatedTemplate = data.profile.customTemplate.replace(/<Image\b/g, '<UserImage').replace(/<\/Image>/g, '</UserImage>');
+        
+        // Recompile the template to fix the AST
+        const { compileTemplate } = await import('@/lib/template-parser');
+        const compilationResult = compileTemplate(updatedTemplate);
+        
+        if (compilationResult.success && compilationResult.ast) {
+          console.log('Successfully recompiled template with correct AST');
+          console.log('AST contains RetroTerminal:', JSON.stringify(compilationResult.ast).includes('"tagName":"retroterminal"'));
+          customTemplateAst = compilationResult.ast;
+          
+          // TODO: Optionally save the corrected AST back to the database
+          // This would require an API call to update the user's profile
+        } else {
+          console.log('Failed to recompile template:', compilationResult.errors);
+        }
+      }
+      
+      // Fetch posts and guestbook data for template rendering
+      const [postsRes, guestbookRes, imagesRes] = await Promise.allSettled([
+        fetch(`${base}/api/posts/${encodeURIComponent(usernameParam)}`),
+        fetch(`${base}/api/guestbook/${encodeURIComponent(usernameParam)}`),
+        fetch(`${base}/api/photos/${encodeURIComponent(usernameParam)}`)
+      ]);
+      
+      // Handle posts data
+      let posts: Array<{ id: string; contentHtml: string; createdAt: string }> = [];
+      if (postsRes.status === 'fulfilled' && postsRes.value.ok) {
+        const postsData = await postsRes.value.json();
+
+        // Import cleaning functions
+        const { markdownToSafeHtml, cleanAndNormalizeHtml } = await import("@/lib/sanitize");
+        function escapeHtml(s: string) {
+          return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+        function textToHtml(text: string) {
+          return `<p>${escapeHtml(text).replace(/\n/g, "<br/>")}</p>`;
+        }
+
+        posts = postsData.posts?.map((post: any) => {
+          let text = "";
+          let mode: "markdown" | "html" | "text" = "text";
+          if (post.bodyMarkdown) {
+            text = post.bodyMarkdown;
+            mode = "markdown";
+          } else if (post.bodyHtml) {
+            text = post.bodyHtml;
+            mode = "html";
+          } else if (post.bodyText) {
+            text = post.bodyText;
+            mode = "text";
+          }
+
+          let contentHtml = "";
+          if (!text.trim()) {
+            contentHtml = "<p class='opacity-60'>(Nothing to preview)</p>";
+          } else if (mode === "markdown") {
+            contentHtml = markdownToSafeHtml(text);
+          } else if (mode === "html") {
+            contentHtml = cleanAndNormalizeHtml(text);
+          } else {
+            contentHtml = textToHtml(text);
+          }
+
+          return {
+            id: post.id || '',
+            contentHtml,
+            createdAt: post.createdAt || new Date().toISOString()
+          };
+        }) || [];
+      }
+      
+      // Handle images data
+      let images: Array<{ id: string; url: string; alt: string; caption: string; createdAt: string; }> = [];
+      if (imagesRes.status === 'fulfilled' && imagesRes.value.ok) {
+        const imagesData = await imagesRes.value.json();
+        console.log('Raw images data:', imagesData);
+        images = imagesData.media?.filter((img: any) => img.visibility === "public").map((img: any) => ({
+          id: img.id || '',
+          url: img.fullUrl || img.url || '',
+          alt: img.title || img.alt || '',
+          caption: img.caption || '',
+          createdAt: img.createdAt || new Date().toISOString()
+        })) || [];
+        console.log('Processed images:', images);
+      }
+
+      // Handle guestbook data
+      let guestbook: Array<{ id: string; message: string; authorUsername?: string; createdAt: string }> = [];
+      if (guestbookRes.status === 'fulfilled' && guestbookRes.value.ok) {
+        const guestbookData = await guestbookRes.value.json();
+        guestbook = guestbookData.entries?.map((entry: any) => ({
+          id: entry.id || '',
+          message: entry.message || '',
+          authorUsername: entry.authorUsername || null,
+          createdAt: entry.createdAt || new Date().toISOString()
+        })) || [];
+      }
+
+      console.log('Final images array for template:', images);
+      
       // Create resident data from existing profile data
       residentData = {
         owner: {
@@ -289,8 +420,9 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         viewer: {
           id: null // This would need to be populated with current user ID in a real implementation
         },
-        posts: [], // These would need separate API calls if needed in templates
-        guestbook: [],
+        posts,
+        guestbook,
+        images,
         capabilities: {
           bio: data.profile?.bio || ""
         },

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TemplateEngine } from '@/lib/template-engine';
 import { fetchResidentData, fetchCurrentUserResidentData } from '@/lib/template-data';
 import { scopeCSS, generateScopeId } from '@/lib/css-scoping';
+import HTMLTemplateSelector from '@/components/HTMLTemplateSelector';
 import type { TemplateNode } from '@/lib/template-parser';
 import type { ResidentData } from '@/components/template/ResidentDataProvider';
 
@@ -259,6 +260,14 @@ export default function TemplateEditor({
           >
             Data Attributes
           </button>
+        </div>
+
+        {/* Template Selector */}
+        <div className="mb-3">
+          <HTMLTemplateSelector 
+            currentTemplate={template}
+            onTemplateChange={setTemplate}
+          />
         </div>
 
         {/* Actions */}

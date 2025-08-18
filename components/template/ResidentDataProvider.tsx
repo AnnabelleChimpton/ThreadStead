@@ -38,6 +38,19 @@ export interface ResidentData {
     url: string;
     blurb?: string;
   }>;
+  images?: Array<{
+    id: string;
+    url: string;
+    alt?: string;
+    caption?: string;
+    createdAt: string;
+  }>;
+  profileImages?: Array<{
+    id: string;
+    url: string;
+    alt?: string;
+    type: 'avatar' | 'banner' | 'gallery';
+  }>;
 }
 
 const ResidentDataContext = createContext<ResidentData | null>(null);

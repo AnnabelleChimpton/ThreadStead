@@ -147,7 +147,24 @@ export function createMockResidentData(username: string = 'testuser'): ResidentD
     ],
     capabilities: {
       bio: 'Welcome to my corner of the internet! I love sharing thoughts and connecting with others.'
-    }
+    },
+    images: [
+      {
+        id: '1',
+        url: 'https://picsum.photos/300/200?random=1',
+        alt: 'Sample image',
+        caption: 'A beautiful landscape',
+        createdAt: new Date().toISOString()
+      }
+    ],
+    profileImages: [
+      {
+        id: '1',
+        url: 'https://picsum.photos/150/150?random=2',
+        alt: 'Profile banner',
+        type: 'banner' as const
+      }
+    ]
   };
 }
 

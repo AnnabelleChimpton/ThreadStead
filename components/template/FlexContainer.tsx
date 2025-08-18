@@ -6,6 +6,7 @@ interface FlexContainerProps {
   justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
   wrap?: boolean;
   gap?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  responsive?: boolean;
   children: React.ReactNode;
 }
 
@@ -15,14 +16,20 @@ export default function FlexContainer({
   justify = 'start',
   wrap = false,
   gap = 'md',
+  responsive = true,
   children 
 }: FlexContainerProps) {
-  const directionClass = {
+  const baseDirectionClass = {
     'row': 'flex-row',
     'column': 'flex-col',
     'row-reverse': 'flex-row-reverse',
     'column-reverse': 'flex-col-reverse'
   }[direction];
+
+  // Responsive-first: stack on mobile, apply direction on larger screens
+  const directionClass = responsive && (direction === 'row' || direction === 'row-reverse')
+    ? `flex-col md:${baseDirectionClass}`
+    : baseDirectionClass;
 
   const alignClass = {
     'start': 'items-start',

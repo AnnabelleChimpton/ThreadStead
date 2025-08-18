@@ -2,7 +2,7 @@ import React from "react";
 
 interface RetroTerminalProps {
   variant?: 'green' | 'amber' | 'blue' | 'white';
-  showHeader?: boolean;
+  showHeader?: boolean | string;
   padding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   children: React.ReactNode;
 }
@@ -13,6 +13,8 @@ export default function RetroTerminal({
   padding = 'md',
   children 
 }: RetroTerminalProps) {
+  // Convert string values to boolean (HTML attributes come as strings)
+  const shouldShowHeader = showHeader === true || showHeader === 'true';
   const variantStyles = {
     'green': {
       bg: 'bg-black',
@@ -46,7 +48,7 @@ export default function RetroTerminal({
 
   return (
     <div className={`${variantStyles.bg} ${variantStyles.border} border-2 rounded font-mono shadow-lg`}>
-      {showHeader && (
+      {shouldShowHeader && (
         <div className={`${variantStyles.text} border-b ${variantStyles.border} px-4 py-2 text-sm flex items-center gap-2`}>
           <span className="inline-block w-3 h-3 bg-red-500 rounded-full"></span>
           <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full"></span>

@@ -24,10 +24,22 @@ import GlitchText from "@/components/template/GlitchText";
 import { ResidentDataProvider } from "@/components/template/ResidentDataProvider";
 import FriendBadge from "@/components/template/FriendBadge";
 
+// Import conditional components
+import Show from "@/components/template/conditional/Show";
+import Choose, { When, Otherwise } from "@/components/template/conditional/Choose";
+import IfOwner, { IfVisitor } from "@/components/template/conditional/IfOwner";
+
+// Import image component
+import UserImage from "@/components/template/UserImage";
+
+// Import documentation helpers
+import { generateAllComponentDocs, getAvailableDataFields, type ComponentDocumentation, type DataField } from "@/lib/component-docs";
+
 export default function DesignTutorialPage() {
   const [activeCategory, setActiveCategory] = useState('layout');
   const [activeExample, setActiveExample] = useState(0);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [showDataReference, setShowDataReference] = useState(false);
 
   // Mock data for components that need ResidentDataProvider
   const mockResidentData = {
@@ -63,8 +75,45 @@ export default function DesignTutorialPage() {
         url: "https://example.com",
         blurb: "Check out my work!"
       }
+    ],
+    images: [
+      {
+        id: "img1",
+        url: "https://picsum.photos/300/200?random=1",
+        alt: "Sample image 1",
+        caption: "Beautiful landscape",
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: "img2", 
+        url: "https://picsum.photos/300/200?random=2",
+        alt: "Sample image 2",
+        caption: "City view",
+        createdAt: new Date().toISOString()
+      }
+    ],
+    profileImages: [
+      {
+        id: "profile1",
+        url: "https://picsum.photos/150/150?random=3",
+        alt: "Profile banner",
+        type: "banner" as const
+      }
     ]
   };
+
+  // Generate component documentation
+  const allComponentDocs = generateAllComponentDocs();
+  const availableDataFields = getAvailableDataFields();
+
+  // Group components by category
+  const categorizedComponents = allComponentDocs.reduce((acc, component) => {
+    if (!acc[component.category]) {
+      acc[component.category] = [];
+    }
+    acc[component.category].push(component);
+    return acc;
+  }, {} as Record<string, ComponentDocumentation[]>);
 
   // Get current user for edit link
   useEffect(() => {
@@ -83,6 +132,72 @@ export default function DesignTutorialPage() {
 
     fetchCurrentUser();
   }, []);
+
+  // Render detailed component information with props
+  const renderComponentInfo = (component: ComponentDocumentation) => {
+    return (
+      <div className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Component Info */}
+          <div>
+            <h3 className="text-xl font-bold text-purple-600 mb-2">
+              &lt;{component.name} /&gt;
+            </h3>
+            <p className="text-gray-700 mb-4">{component.description}</p>
+            
+            {/* Props Documentation */}
+            {component.props.length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-semibold text-gray-800 mb-2">Props:</h4>
+                <div className="space-y-2">
+                  {component.props.map((prop, propIndex) => (
+                    <div key={propIndex} className="bg-gray-50 rounded p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <code className="text-sm font-mono text-purple-600">{prop.name}</code>
+                        <span className={`px-2 py-0.5 text-xs rounded ${
+                          prop.required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {prop.type}{prop.required ? ' (required)' : ''}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-1">{prop.description}</p>
+                      {prop.values && (
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {prop.values.map((value, valueIndex) => (
+                            <span key={valueIndex} className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
+                              {value}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {prop.default !== undefined && (
+                        <p className="text-xs text-gray-500">Default: <code>{String(prop.default)}</code></p>
+                      )}
+                      {prop.constraints && (
+                        <p className="text-xs text-gray-500">{prop.constraints}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+              <pre className="text-green-400 text-sm">
+                <code>{component.example}</code>
+              </pre>
+            </div>
+          </div>
+          
+          {/* Live Preview */}
+          <div>
+            <h4 className="text-lg font-semibold text-gray-800 mb-3">🔥 Live Preview</h4>
+            {renderComponentPreview(component.name)}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Component preview renderer
   const renderComponentPreview = (componentName: string) => {
@@ -208,6 +323,68 @@ export default function DesignTutorialPage() {
           <div className={previewStyle}>
             <ResidentDataProvider data={mockResidentData}>
               <FriendBadge />
+            </ResidentDataProvider>
+          </div>
+        );
+      case "Show":
+        return (
+          <div className={previewStyle}>
+            <ResidentDataProvider data={mockResidentData}>
+              <Show data="featuredFriends">
+                <div className="bg-green-200 p-2 rounded text-sm">✅ User has friends!</div>
+              </Show>
+              <Show data="posts.length" equals="0">
+                <div className="bg-yellow-200 p-2 rounded text-sm">⚠️ No posts found</div>
+              </Show>
+            </ResidentDataProvider>
+          </div>
+        );
+      case "Choose":
+        return (
+          <div className={previewStyle}>
+            <ResidentDataProvider data={mockResidentData}>
+              <Choose>
+                <When data="featuredFriends">
+                  <div className="bg-blue-200 p-2 rounded text-sm">📱 Has friends</div>
+                </When>
+                <When data="posts">
+                  <div className="bg-purple-200 p-2 rounded text-sm">📝 Has posts</div>
+                </When>
+                <Otherwise>
+                  <div className="bg-gray-200 p-2 rounded text-sm">📭 Nothing to show</div>
+                </Otherwise>
+              </Choose>
+            </ResidentDataProvider>
+          </div>
+        );
+      case "IfOwner":
+        return (
+          <div className={previewStyle}>
+            <ResidentDataProvider data={{...mockResidentData, viewer: { id: "demo-user" }}}>
+              <IfOwner>
+                <div className="bg-blue-200 p-2 rounded text-sm">👑 Owner content</div>
+              </IfOwner>
+            </ResidentDataProvider>
+          </div>
+        );
+      case "IfVisitor":
+        return (
+          <div className={previewStyle}>
+            <ResidentDataProvider data={mockResidentData}>
+              <IfVisitor>
+                <div className="bg-green-200 p-2 rounded text-sm">👋 Visitor content</div>
+              </IfVisitor>
+            </ResidentDataProvider>
+          </div>
+        );
+      case "Image":
+        return (
+          <div className={previewStyle}>
+            <ResidentDataProvider data={mockResidentData}>
+              <div className="space-y-2">
+                <UserImage src="https://picsum.photos/100/100?random=4" alt="External image" size="sm" rounded="md" />
+                <UserImage data="images" alt="User image" size="sm" rounded="full" border={true} />
+              </div>
             </ResidentDataProvider>
           </div>
         );
@@ -476,6 +653,59 @@ export default function DesignTutorialPage() {
         }
       ]
     },
+    conditional: {
+      title: "🔀 Conditional Components",
+      description: "Show/hide content based on user data and preferences",
+      components: [
+        {
+          name: "Show",
+          description: "Display content based on data conditions",
+          props: ["when", "data", "equals", "exists"],
+          example: `<Show data="posts">
+  <h3>My Posts</h3>
+  <BlogPosts limit="5" />
+</Show>
+
+<Show data="posts.length" equals="0">
+  <p>No posts yet!</p>
+</Show>`
+        },
+        {
+          name: "Choose",
+          description: "Multi-condition rendering with fallbacks",
+          props: [],
+          example: `<Choose>
+  <When data="posts">
+    <BlogPosts limit="3" />
+  </When>
+  <When data="guestbook">
+    <Guestbook />
+  </When>
+  <Otherwise>
+    <p>Welcome to my profile!</p>
+  </Otherwise>
+</Choose>`
+        },
+        {
+          name: "IfOwner",
+          description: "Show content only to the profile owner",
+          props: [],
+          example: `<IfOwner>
+  <p>This is your profile!</p>
+  <FollowButton />
+</IfOwner>`
+        },
+        {
+          name: "IfVisitor",
+          description: "Show content only to visitors (not owner)",
+          props: [],
+          example: `<IfVisitor>
+  <p>Welcome! Sign my guestbook!</p>
+  <Guestbook />
+</IfVisitor>`
+        }
+      ]
+    },
     navigation: {
       title: "🧭 Navigation Components",
       description: "Site navigation and user interface elements",
@@ -600,6 +830,110 @@ export default function DesignTutorialPage() {
     </NeonBorder>
   </div>
 </SplitLayout>`
+    },
+    {
+      title: "Smart Profile Layout",
+      description: "Dynamic layout that adapts based on available content",
+      code: `<div>
+  <ProfileHero variant="tape" />
+  
+  <Choose>
+    <When data="capabilities.bio">
+      <Bio />
+    </When>
+    <Otherwise>
+      <IfOwner>
+        <StickyNote color="yellow" rotation="2">
+          Add a bio to tell visitors about yourself!
+        </StickyNote>
+      </IfOwner>
+    </Otherwise>
+  </Choose>
+  
+  <Show data="posts">
+    <h2>Recent Posts</h2>
+    <BlogPosts limit="3" />
+  </Show>
+  
+  <IfVisitor>
+    <Show data="guestbook">
+      <GradientBox gradient="ocean" padding="md">
+        <h2>Guestbook</h2>
+        <Guestbook />
+      </GradientBox>
+    </Show>
+  </IfVisitor>
+</div>`
+    },
+    {
+      title: "Conditional Content Showcase",
+      description: "Different layouts for users with different content types",
+      code: `<Choose>
+  <When data="featuredFriends">
+    <SplitLayout ratio="2:1" gap="lg">
+      <div>
+        <Show data="posts">
+          <BlogPosts limit="5" />
+        </Show>
+      </div>
+      <div>
+        <h3>Featured Friends</h3>
+        <FriendDisplay />
+        
+        <Show data="websites">
+          <div className="mt-4">
+            <h4>My Websites</h4>
+            <WebsiteDisplay />
+          </div>
+        </Show>
+      </div>
+    </SplitLayout>
+  </When>
+  <When data="posts">
+    <CenteredBox maxWidth="lg">
+      <BlogPosts limit="5" />
+      <IfVisitor>
+        <RevealBox buttonText="More about me...">
+          <p>Thanks for reading my posts!</p>
+        </RevealBox>
+      </IfVisitor>
+    </CenteredBox>
+  </When>
+  <Otherwise>
+    <CenteredBox maxWidth="md">
+      <WaveText text="Welcome!" />
+      <p>This profile is just getting started!</p>
+      <IfOwner>
+        <p>Start by adding some posts or customizing your bio.</p>
+      </IfOwner>
+    </CenteredBox>
+  </Otherwise>
+</Choose>`
+    },
+    {
+      title: "Image Gallery Layout",
+      description: "Showcase user images with conditional display",
+      code: `<div>
+  <h2>My Photo Gallery</h2>
+  
+  <Show data="images">
+    <GridLayout columns="3" gap="sm" responsive="true">
+      <Image data="images" alt="Gallery image" size="full" rounded="lg" shadow="md" />
+      <Image src="https://example.com/photo1.jpg" alt="External photo" size="full" rounded="lg" shadow="md" />
+      <RevealBox buttonText="More photos..." variant="fade">
+        <Image data="profileImages" alt="Profile image" size="full" rounded="lg" />
+      </RevealBox>
+    </GridLayout>
+  </Show>
+  
+  <Show data="images.length" equals="0">
+    <CenteredBox maxWidth="md" padding="lg">
+      <StickyNote color="blue" rotation="2">
+        No photos yet! Upload some images to get started.
+      </StickyNote>
+    </CenteredBox>
+  </Show>
+</div>`
     }
   ];
 
@@ -620,71 +954,121 @@ export default function DesignTutorialPage() {
 
           {/* Navigation Tabs */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {Object.entries(categories).map(([key, category]) => (
-              <button
-                key={key}
-                onClick={() => setActiveCategory(key)}
-                className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                  activeCategory === key
-                    ? 'bg-purple-600 text-white shadow-lg transform scale-105'
-                    : 'bg-white text-gray-700 hover:bg-purple-100 shadow-md'
-                }`}
-              >
-                {category.title}
-              </button>
-            ))}
+            {Object.keys(categorizedComponents).map((categoryKey) => {
+              const categoryTitles: Record<string, string> = {
+                layout: '🏗️ Layout Components',
+                visual: '🎨 Visual Components', 
+                interactive: '⚡ Interactive Components',
+                social: '👥 Social Components',
+                conditional: '🔀 Conditional Components',
+                navigation: '🧭 Navigation Components'
+              };
+              
+              return (
+                <button
+                  key={categoryKey}
+                  onClick={() => setActiveCategory(categoryKey)}
+                  className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                    activeCategory === categoryKey
+                      ? 'bg-purple-600 text-white shadow-lg transform scale-105'
+                      : 'bg-white text-gray-700 hover:bg-purple-100 shadow-md'
+                  }`}
+                >
+                  {categoryTitles[categoryKey] || categoryKey}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setShowDataReference(!showDataReference)}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                showDataReference
+                  ? 'bg-green-600 text-white shadow-lg transform scale-105'
+                  : 'bg-white text-gray-700 hover:bg-green-100 shadow-md'
+              }`}
+            >
+              📊 Data Reference
+            </button>
           </div>
 
-          {/* Component Reference */}
-          <div className="bg-white rounded-xl shadow-lg p-8 mb-12">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                {categories[activeCategory as keyof typeof categories].title}
-              </h2>
-              <p className="text-gray-600 text-lg">
-                {categories[activeCategory as keyof typeof categories].description}
-              </p>
-            </div>
+          {/* Component Reference or Data Reference */}
+          {showDataReference ? (
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-12">
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold text-gray-800 mb-2">📊 Available Data for Conditionals</h2>
+                <p className="text-gray-600 text-lg">
+                  Reference for data paths you can use with conditional components like Show, When, and Choose.
+                </p>
+              </div>
 
-            <div className="grid gap-6">
-              {categories[activeCategory as keyof typeof categories].components.map((component, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                  <div className="grid lg:grid-cols-2 gap-6">
-                    {/* Component Info */}
-                    <div>
-                      <h3 className="text-xl font-bold text-purple-600 mb-2">
-                        &lt;{component.name} /&gt;
-                      </h3>
-                      <p className="text-gray-700 mb-3">{component.description}</p>
-                      {component.props.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {component.props.map((prop, propIndex) => (
-                            <span
-                              key={propIndex}
-                              className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded"
-                            >
-                              {prop}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-                        <pre className="text-green-400 text-sm">
-                          <code>{component.example}</code>
-                        </pre>
-                      </div>
+              <div className="grid gap-4">
+                {availableDataFields.map((field, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <code className="text-lg font-mono text-purple-600 bg-purple-50 px-2 py-1 rounded">
+                        {field.path}
+                      </code>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded">
+                        {field.type}
+                      </span>
                     </div>
-                    
-                    {/* Live Preview */}
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-800 mb-3">🔥 Live Preview</h4>
-                      {renderComponentPreview(component.name)}
+                    <p className="text-gray-700 mb-2">{field.description}</p>
+                    <div className="bg-gray-900 rounded p-3">
+                      <pre className="text-green-400 text-sm">
+                        <code>{`<Show data="${field.example}">\n  Content shown when ${field.path} exists\n</Show>`}</code>
+                      </pre>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              <div className="mt-8 p-6 bg-blue-50 rounded-lg">
+                <h3 className="text-xl font-bold text-blue-800 mb-3">💡 Conditional Examples</h3>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <h4 className="font-semibold mb-2">Existence Checks:</h4>
+                    <ul className="space-y-1 text-blue-700">
+                      <li><code>data="posts"</code> - Shows if user has any posts</li>
+                      <li><code>data="capabilities.bio"</code> - Shows if user has a bio</li>
+                      <li><code>data="featuredFriends"</code> - Shows if user has featured friends</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">Value Comparisons:</h4>
+                    <ul className="space-y-1 text-blue-700">
+                      <li><code>data="posts.length" equals="0"</code> - Shows if no posts</li>
+                      <li><code>data="owner.handle" equals="john"</code> - Shows for specific user</li>
+                      <li><code>data="viewer.id" equals="null"</code> - Shows for anonymous visitors</li>
+                    </ul>
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-lg p-8 mb-12">
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                  {Object.keys(categorizedComponents).includes(activeCategory) ? 
+                    `${activeCategory.charAt(0).toUpperCase()}${activeCategory.slice(1)} Components` : 
+                    'Components'
+                  }
+                </h2>
+                <p className="text-gray-600 text-lg">
+                  {activeCategory === 'layout' && 'Structure and organize your content'}
+                  {activeCategory === 'visual' && 'Add style and personality to your content'}
+                  {activeCategory === 'interactive' && 'Add dynamic effects and animations'}
+                  {activeCategory === 'social' && 'Display social connections and interactions'}
+                  {activeCategory === 'conditional' && 'Show/hide content based on user data and preferences'}
+                  {activeCategory === 'navigation' && 'Site navigation and user interface elements'}
+                </p>
+              </div>
+
+              <div className="grid gap-6">
+                {categorizedComponents[activeCategory]?.map((component, index) => 
+                  renderComponentInfo(component)
+                ) || <p className="text-gray-500">No components found in this category.</p>}
+              </div>
+            </div>
+          )}
 
           {/* Examples Section */}
           <div className="bg-white rounded-xl shadow-lg p-8">
@@ -760,6 +1144,20 @@ export default function DesignTutorialPage() {
                   your content, not distract from it.
                 </p>
               </div>
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="font-bold text-lg mb-2">🔀 Smart Conditionals</h3>
+                <p className="text-gray-700">
+                  Use conditional components to create personalized experiences. Show different 
+                  content to visitors vs. owners, or adapt layouts based on available data.
+                </p>
+              </div>
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="font-bold text-lg mb-2">🎨 Progressive Enhancement</h3>
+                <p className="text-gray-700">
+                  Start with basic content, then use Show/Choose components to enhance the 
+                  experience when users have more data like posts, friends, or bio content.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -769,21 +1167,29 @@ export default function DesignTutorialPage() {
             <p className="text-gray-600 mb-4">
               Head over to your profile editor and start building your unique page!
             </p>
-            {currentUser ? (
+            <div className="flex flex-wrap gap-3 justify-center">
+              {currentUser ? (
+                <Link 
+                  href={`/resident/${currentUser}/edit`}
+                  className="inline-flex items-center px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  🎨 Start Designing
+                </Link>
+              ) : (
+                <Link 
+                  href="/identity"
+                  className="inline-flex items-center px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  🔐 Login to Design
+                </Link>
+              )}
               <Link 
-                href={`/resident/${currentUser}/edit`}
-                className="inline-flex items-center px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors"
+                href="/template-selector-test"
+                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
               >
-                🎨 Start Designing
+                🧪 Test Templates
               </Link>
-            ) : (
-              <Link 
-                href="/identity"
-                className="inline-flex items-center px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                🔐 Login to Design
-              </Link>
-            )}
+            </div>
           </div>
         </div>
       </div>

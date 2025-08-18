@@ -89,7 +89,7 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
       }
       
       // Regular HTML element
-      const allowedTags = ['div', 'p', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'section', 'article', 'main', 'header', 'footer', 'nav', 'aside', 'br'];
+      const allowedTags = ['div', 'p', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'section', 'article', 'main', 'header', 'footer', 'nav', 'aside', 'br', 'a'];
       
       if (allowedTags.includes(tagName.toLowerCase())) {
         const children = node.children?.map((child, index) => 
