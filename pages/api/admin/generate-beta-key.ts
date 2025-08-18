@@ -1,9 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
+
 import { requireAdmin } from "@/lib/auth-server";
 import crypto from "crypto";
 
-const db = new PrismaClient();
+
 
 function generateBetaKey(): string {
   // Generate a readable beta key: BETA-XXXX-XXXX-XXXX

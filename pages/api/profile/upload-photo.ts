@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
+
 import { getSessionUser } from "@/lib/auth-server";
 import { requireAction } from "@/lib/capabilities";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -7,7 +8,7 @@ import sharp from "sharp";
 import multer from "multer";
 import { promisify } from "util";
 
-const db = new PrismaClient();
+
 
 // Configure S3 client for R2
 // Use the R2_PUBLIC_URL as the endpoint since it works with our setup

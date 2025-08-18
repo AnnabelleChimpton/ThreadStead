@@ -1,10 +1,11 @@
 // pages/api/auth/verify.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
+
 import * as ed from "@noble/ed25519";
 import { fromBase64Url } from "@/lib/base64";
 
-const db = new PrismaClient();
+
 
 function readCookie(req: NextApiRequest, name: string) {
   const cookie = req.headers.cookie || "";

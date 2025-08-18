@@ -1064,7 +1064,9 @@ export default function DesignTutorialPage() {
 
               <div className="grid gap-6">
                 {categorizedComponents[activeCategory]?.map((component, index) => 
-                  renderComponentInfo(component)
+                  <div key={component.name || index}>
+                    {renderComponentInfo(component)}
+                  </div>
                 ) || <p className="text-gray-500">No components found in this category.</p>}
               </div>
             </div>

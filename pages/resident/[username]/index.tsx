@@ -404,8 +404,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
           createdAt: entry.createdAt || new Date().toISOString()
         })) || [];
       }
-
-      console.log('Final images array for template:', images);
       
       // Create resident data from existing profile data
       residentData = {

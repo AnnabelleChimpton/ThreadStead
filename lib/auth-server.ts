@@ -1,6 +1,6 @@
 import type { NextApiRequest } from "next";
-import { PrismaClient, UserRole } from "@prisma/client";
-const db = new PrismaClient();
+import { UserRole } from "@prisma/client";
+import { db } from "./db";
 
 export async function getSessionUser(req: NextApiRequest) {
   const cookie = req.headers.cookie || "";

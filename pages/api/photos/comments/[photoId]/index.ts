@@ -1,10 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
+
 import { getSessionUser } from "@/lib/auth-server";
 import { requireAction } from "@/lib/capabilities";
 import { createNotification } from "@/lib/notifications";
 
-const db = new PrismaClient();
+
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const photoId = String(req.query.photoId || "");

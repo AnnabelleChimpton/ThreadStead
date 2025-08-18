@@ -1,9 +1,10 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { requireAdmin } from "@/lib/auth-server";
 import { generateSeedPhrase, createKeypairFromSeedPhrase } from "@/lib/did-client";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
 
-const db = new PrismaClient();
+
+
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const adminUser = await requireAdmin(req);

@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
 
-const db = new PrismaClient();
+
+
 
 // Default site configuration values
 const DEFAULT_CONFIG = {

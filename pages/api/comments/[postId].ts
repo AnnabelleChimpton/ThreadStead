@@ -1,10 +1,9 @@
 // pages/api/comments/[postId].ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
 import { requireAction } from "@/lib/capabilities";
 import { createCommentNotification, createReplyNotification } from "@/lib/notifications";
+import { db } from "@/lib/db";
 
-const db = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const postId = String(req.query.postId || "");

@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const db = new PrismaClient();
+import { db } from "./db";
 
 export type NotificationType = "comment" | "reply" | "photo_comment" | "photo_reply" | "follow" | "friend" | "guestbook";
 
