@@ -197,7 +197,7 @@ export default function ProfilePage({
 
 /* ---------------- SSR: call /api/profile and omit undefined keys ---------------- */
 export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ params, query, req }) => {
-  const usernameParam = String(params?.username || "");
+  const usernameParam = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "");
   if (!usernameParam) return { notFound: true };
 
   const proto = req?.headers?.["x-forwarded-proto"] || "http";

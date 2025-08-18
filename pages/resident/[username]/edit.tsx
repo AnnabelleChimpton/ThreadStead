@@ -654,7 +654,7 @@ export default function ProfileEditPage({
   return (
     <>
       <Head>
-        <title>Edit Profile - {username} | ThreadStead</title>
+        <title>{`Edit Profile - ${username} | ThreadStead`}</title>
       </Head>
       <ProfileLayout>
         <RetroCard>
@@ -688,7 +688,7 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
   params, 
   req
 }) => {
-  const username = String(params?.username || "");
+  const username = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "");
   if (!username) return { notFound: true };
 
   const proto = req?.headers?.["x-forwarded-proto"] || "http";

@@ -134,7 +134,7 @@ export default function MediaGalleryPage({
   return (
     <>
       <Head>
-        <title>Media Gallery - {username} | ThreadStead</title>
+        <title>{`Media Gallery - ${username} | ThreadStead`}</title>
       </Head>
       <ProfileLayout>
         <RetroCard>
@@ -396,7 +396,7 @@ export const getServerSideProps: GetServerSideProps<MediaGalleryProps> = async (
   query,
   req 
 }) => {
-  const username = String(params?.username || "");
+  const username = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "");
   const page = parseInt(String(query.page || "1"));
   
   if (!username) return { notFound: true };
