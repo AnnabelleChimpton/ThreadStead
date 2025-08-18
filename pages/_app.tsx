@@ -12,6 +12,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   // Check if we're on a user profile page that might have custom CSS
   const isProfilePage = router.pathname === '/resident/[username]' || router.pathname === '/resident/[username]/index';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
+  const isAdvancedTemplate = isProfilePage && pageProps.templateMode === 'advanced';
 
   return (
     <>
@@ -34,13 +35,50 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   padding-top: 0;
 }
 
+${isAdvancedTemplate ? `
+/* Advanced Template Mode - CSS Override Helper */
+/* Users can target these classes to completely override defaults */
+
+/* Reset global color inheritance for advanced templates */
+body, body * {
+  color: inherit;
+}
+
+/* Make component classes easy to override */
+.ts-profile-display-name,
+.ts-bio-heading, 
+.ts-profile-bio,
+.ts-blog-posts,
+.ts-blog-posts h3,
+.ts-blog-post-content,
+.ts-blog-post-meta {
+  /* Reduced specificity - user CSS can override easily */
+}
+
+/* Helper comment for users */
+/*
+  TARGET THESE CLASSES IN YOUR <style> SECTION:
+  
+  .ts-profile-display-name { color: red !important; }
+  .ts-bio-heading { color: blue !important; }  
+  .ts-profile-bio { color: green !important; }
+  .ts-blog-posts { color: purple !important; }
+  
+  Use !important to override defaults completely.
+*/
+` : ''}
+
 /* Custom CSS - User or Admin Default */
 ${pageProps.customCSS}`
             }} 
           />
         )}
       </Head>
-      <div className="thread-surface min-h-screen font-body text-thread-charcoal">
+      <div className={`min-h-screen font-body ${
+        isAdvancedTemplate 
+          ? '' // No default classes for advanced templates - completely clean
+          : 'thread-surface text-thread-charcoal' // Normal styling for everything else
+      }`}>
         <Component {...pageProps} />
       </div>
     </>

@@ -17,27 +17,27 @@ export interface HTMLTemplateInfo {
 export const HTML_TEMPLATES: HTMLTemplateInfo[] = [
   {
     id: 'simple-default',
-    name: 'Simple Default',
-    description: 'Clean and minimal profile layout',
+    name: 'Modern Minimal',
+    description: 'Clean glassmorphism design with gradient backgrounds and smooth animations',
     category: 'minimal',
     template: SIMPLE_DEFAULT_TEMPLATE,
-    preview: '📝 Basic profile with posts and bio'
+    preview: '🔮 Glassmorphism cards with gradient text and backdrop blur effects'
   },
   {
     id: 'social-modern',
-    name: 'Social Hub',
-    description: 'Modern social profile with neon effects and interactive elements',
+    name: 'Cyberpunk Social',
+    description: 'Futuristic cyberpunk theme with neon glows, holographic effects, and terminal aesthetics',
     category: 'modern',
     template: SOCIAL_MODERN_TEMPLATE,
-    preview: '✨ Neon borders, gradients, and social features'
+    preview: '⚡ Neon animations, glitch effects, holographic borders, and matrix-style terminals'
   },
   {
     id: 'classic-web1',
-    name: 'Web 1.0 Classic',
-    description: 'Nostalgic 90s homepage with classic HTML styling',
+    name: 'Vintage Neocities',
+    description: 'Authentic 90s homepage with animated GIFs, blinking text, and retro web aesthetics',
     category: 'classic',
     template: CLASSIC_WEB1_TEMPLATE,
-    preview: '🖥️ Retro design with visitor counters and web rings'
+    preview: '💾 Marquee scrolling, rainbow text, animated borders, visitor counters, and webring links'
   }
 ];
 

@@ -37,6 +37,13 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
       
       // Extract and validate props from properties
       const rawProps = { ...node.properties };
+      
+      // Handle className/class attributes specially
+      if (rawProps.class && !rawProps.className) {
+        rawProps.className = rawProps.class;
+        delete rawProps.class;
+      }
+      
       const validatedProps = validateAndCoerceProps(rawProps, propSchemas);
       
       // Handle children for components that support them (like Tabs)
@@ -82,6 +89,14 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
             }
           }
           
+          // Handle className/class attributes specially for data-component syntax too
+          if (node.properties.class) {
+            rawProps.className = node.properties.class;
+          }
+          if (node.properties.className) {
+            rawProps.className = node.properties.className;
+          }
+          
           const validatedProps = validateAndCoerceProps(rawProps, propSchemas);
           
           return React.createElement(Component, { ...validatedProps, key });
@@ -89,12 +104,25 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
       }
       
       // Regular HTML element
-      const allowedTags = ['div', 'p', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'section', 'article', 'main', 'header', 'footer', 'nav', 'aside', 'br', 'a'];
+      const allowedTags = ['div', 'p', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'section', 'article', 'main', 'header', 'footer', 'nav', 'aside', 'br', 'a', 'style'];
       
       if (allowedTags.includes(tagName.toLowerCase())) {
         const children = node.children?.map((child, index) => 
           transformNodeToReact(child, index)
         );
+        
+        // Special handling for style tags
+        if (tagName === 'style') {
+          // For style tags, render the CSS content directly as innerHTML
+          const styleContent = children?.filter(child => typeof child === 'string').join('') || '';
+          return React.createElement(
+            'style',
+            { 
+              key,
+              dangerouslySetInnerHTML: { __html: styleContent }
+            }
+          );
+        }
         
         // Clean properties for regular HTML elements
         const cleanProperties = { ...node.properties };

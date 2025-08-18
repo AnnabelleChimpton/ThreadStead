@@ -14,6 +14,12 @@ enum Visibility {
   private
 }
 
+enum TemplateMode {
+  default  // uses ProfileLayout with site CSS (default behavior)
+  enhanced // custom template with site CSS applied  
+  advanced // complete CSS control, no wrapper classes
+}
+
 enum UserRole {
   member
   admin
@@ -82,6 +88,7 @@ model Profile {
   customTemplate     String? // raw template HTML
   customTemplateAst  String? // JSON-serialized template AST
   templateEnabled    Boolean    @default(false) // whether custom template is active
+  templateMode       TemplateMode @default(default) // template rendering mode
   hideNavigation     Boolean    @default(false) // hide navbar and footer on custom template
   blogroll           Json? // [{label,url,blurb}]
   featuredFriends    Json? // [{id,handle,displayName,avatarUrl}]

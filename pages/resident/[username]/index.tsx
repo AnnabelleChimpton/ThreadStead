@@ -33,6 +33,7 @@ type ProfileProps = {
   customTemplateAst?: TemplateNode;
   residentData?: ResidentData;
   hideNavigation?: boolean;
+  templateMode?: 'default' | 'enhanced' | 'advanced';
 };
 
 /* ---------------- page ---------------- */
@@ -48,6 +49,7 @@ export default function ProfilePage({
   customTemplateAst,
   residentData,
   hideNavigation = false,
+  templateMode = 'default',
 }: ProfileProps) {
   const [relStatus, setRelStatus] = React.useState<string>("loading");
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
@@ -72,20 +74,23 @@ export default function ProfilePage({
 
   const isOwner = currentUserId === ownerUserId;
 
-  // If there's a custom template, render it instead of the default layout
+  // If there's a custom template, render it based on template mode
   if (customTemplateAst && residentData) {
     try {
       const templateContent = transformNodeToReact(customTemplateAst);
       
-      // Check if this is an advanced template (contains layout components)
-      const templateString = JSON.stringify(customTemplateAst);
-      const isAdvancedTemplate = templateString.includes('GradientBox') || 
-                                templateString.includes('SplitLayout') ||
-                                templateString.includes('FlexContainer') ||
-                                templateString.includes('CenteredBox');
-      
-      if (isAdvancedTemplate) {
-        // Render advanced templates without layout constraints
+      if (templateMode === 'advanced') {
+        // Complete CSS control - completely clean container, no default classes at all
+        return (
+          <>
+            {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
+            <ResidentDataProvider data={residentData}>
+              {templateContent}
+            </ResidentDataProvider>
+          </>
+        );
+      } else if (templateMode === 'enhanced') {
+        // Custom template with site CSS - uses thread-surface but no ProfileLayout wrapper
         return (
           <>
             {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
@@ -97,7 +102,7 @@ export default function ProfilePage({
           </>
         );
       } else {
-        // Use standard profile layout for simple templates
+        // Default mode - use standard profile layout
         return (
           <ProfileLayout customCSS={customCSS} hideNavigation={hideNavigation}>
             <ResidentDataProvider data={residentData}>
@@ -244,6 +249,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       customTemplate?: string;
       customTemplateAst?: string;
       templateEnabled?: boolean;
+      templateMode?: 'default' | 'enhanced' | 'advanced';
       hideNavigation?: boolean;
       blogroll?: unknown[]; 
       featuredFriends?: unknown[] 
@@ -380,7 +386,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
           return {
             id: post.id || '',
             contentHtml,
-            createdAt: post.createdAt || new Date().toISOString()
+            createdAt: post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString()
           };
         }) || [];
       }
@@ -393,7 +399,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
           url: img.fullUrl || img.url || '',
           alt: img.title || img.alt || '',
           caption: img.caption || '',
-          createdAt: img.createdAt || new Date().toISOString()
+          createdAt: img.createdAt ? new Date(img.createdAt).toISOString() : new Date().toISOString()
         })) || [];
       }
 
@@ -404,7 +410,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
           id: entry.id || '',
           message: entry.message || '',
           authorUsername: entry.authorUsername || null,
-          createdAt: entry.createdAt || new Date().toISOString()
+          createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : new Date().toISOString()
         })) || [];
       }
       
@@ -446,6 +452,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (customTemplateAst != null) props.customTemplateAst = customTemplateAst;
   if (residentData != null) props.residentData = residentData;
   if (data.profile?.hideNavigation != null) props.hideNavigation = data.profile.hideNavigation;
+  if (data.profile?.templateMode != null) props.templateMode = data.profile.templateMode;
   
   // CSS Priority: User CSS > Admin Default CSS > No CSS
   if (data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {

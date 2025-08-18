@@ -114,6 +114,11 @@ export function validateAndCoerceProps(
   for (const [key, value] of Object.entries(attrs)) {
     const schema = propSchemas[key];
     if (!schema) {
+      // Allow className to pass through for all components without warning
+      if (key === 'className') {
+        result[key] = value;
+        continue;
+      }
       warnings.push(`Unknown prop: ${key}`);
       continue;
     }

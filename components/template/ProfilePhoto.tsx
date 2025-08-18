@@ -4,10 +4,16 @@ import { useResidentData } from './ResidentDataProvider';
 interface ProfilePhotoProps {
   size?: 'sm' | 'md' | 'lg';
   shape?: 'circle' | 'square';
+  className?: string;
 }
 
-export default function ProfilePhoto({ size = 'md', shape = 'circle' }: ProfilePhotoProps) {
+export default function ProfilePhoto({ size = 'md', shape = 'circle', className: customClassName }: ProfilePhotoProps) {
   const { owner } = useResidentData();
+  
+  // Handle className being passed as array or string
+  const normalizedCustomClassName = Array.isArray(customClassName) 
+    ? customClassName.join(' ')
+    : customClassName;
   
   const sizeClasses = {
     sm: 'w-16 h-16',
@@ -20,17 +26,21 @@ export default function ProfilePhoto({ size = 'md', shape = 'circle' }: ProfileP
     square: 'rounded-none'
   };
 
+  const wrapperClassName = normalizedCustomClassName 
+    ? `ts-profile-photo-wrapper profile-photo-wrapper flex flex-col items-center mb-4 ${normalizedCustomClassName}`
+    : "ts-profile-photo-wrapper profile-photo-wrapper flex flex-col items-center mb-4";
+
   return (
-    <div className="profile-photo-wrapper flex flex-col items-center mb-4">
-      <div className="profile-photo-frame border-4 border-black shadow-[4px_4px_0_#000] bg-white p-1">
+    <div className={wrapperClassName}>
+      <div className="ts-profile-photo-frame profile-photo-frame border-4 border-black shadow-[4px_4px_0_#000] bg-white p-1">
         {owner.avatarUrl ? (
           <img
             src={owner.avatarUrl}
             alt={`${owner.displayName}'s profile photo`}
-            className={`profile-photo-image object-cover ${sizeClasses[size]} ${shapeClasses[shape]}`}
+            className={`ts-profile-photo-image profile-photo-image object-cover ${sizeClasses[size]} ${shapeClasses[shape]}`}
           />
         ) : (
-          <div className={`profile-photo-placeholder flex items-center justify-center bg-yellow-200 text-black text-sm ${sizeClasses[size]} ${shapeClasses[shape]}`}>
+          <div className={`ts-profile-photo-placeholder profile-photo-placeholder flex items-center justify-center bg-yellow-200 text-black text-sm ${sizeClasses[size]} ${shapeClasses[shape]}`}>
             No Photo
           </div>
         )}

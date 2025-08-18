@@ -18,12 +18,13 @@ function createCustomSchema() {
     ...defaultSchema,
     tagNames: [
       ...(defaultSchema.tagNames || []).filter(tag => tag !== 'img'), // Remove standard img tag to avoid conflicts
-      ...allTagVariations
+      ...allTagVariations,
+      'style' // Allow style tags for user custom CSS
     ],
     attributes: {
       ...defaultSchema.attributes,
       // Add component-specific attributes for all variations
-      '*': ['data-component', 'data-size', 'data-shape', 'data-limit', 'data-variant', 'data-title', 'data-when', 'data-condition', 'data-equals', 'data-exists', 'style', 'id', 'href', 'target', 'rel'],
+      '*': ['data-component', 'data-size', 'data-shape', 'data-limit', 'data-variant', 'data-title', 'data-when', 'data-condition', 'data-equals', 'data-exists', 'style', 'id', 'href', 'target', 'rel', 'class', 'className'],
       // Allow specific attributes for each component (both cases)
       ...Object.fromEntries(
         allowedTags.flatMap(tag => [
