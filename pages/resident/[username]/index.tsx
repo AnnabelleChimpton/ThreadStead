@@ -384,7 +384,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       let images: Array<{ id: string; url: string; alt: string; caption: string; createdAt: string; }> = [];
       if (imagesRes.status === 'fulfilled' && imagesRes.value.ok) {
         const imagesData = await imagesRes.value.json();
-        console.log('Raw images data:', imagesData);
         images = imagesData.media?.filter((img: any) => img.visibility === "public").map((img: any) => ({
           id: img.id || '',
           url: img.fullUrl || img.url || '',
@@ -392,7 +391,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
           caption: img.caption || '',
           createdAt: img.createdAt || new Date().toISOString()
         })) || [];
-        console.log('Processed images:', images);
       }
 
       // Handle guestbook data

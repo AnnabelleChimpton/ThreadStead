@@ -13,6 +13,7 @@ import CSSEditor from "@/components/CSSEditor";
 import ProfilePreview from "@/components/ProfilePreview";
 import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 import type { TemplateNode } from "@/lib/template-parser";
+import { TemplateEngine } from "@/lib/template-engine";
 
 interface ProfileEditProps {
   username: string;
@@ -63,8 +64,6 @@ export default function ProfileEditPage({
     if (!existingTemplate || !existingTemplate.trim()) return null;
     
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const TemplateEngine = require('@/lib/template-engine').TemplateEngine;
       const validation = TemplateEngine.validate(existingTemplate);
       if (!validation.isValid) return null;
       

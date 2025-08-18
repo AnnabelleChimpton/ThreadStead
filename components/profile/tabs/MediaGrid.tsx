@@ -33,7 +33,7 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
 
   const loadFeaturedMedia = async () => {
     try {
-      const response = await fetch(`/api/photos/${username}/featured`);
+      const response = await fetch(`/api/photos/featured/${username}`);
       if (response.ok) {
         const data = await response.json();
         setFeaturedMedia(data.media || []);
