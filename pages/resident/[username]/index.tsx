@@ -326,17 +326,22 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         }
       }
       
-      // Fetch posts and guestbook data for template rendering
-      const [postsRes, guestbookRes, imagesRes] = await Promise.allSettled([
-        fetch(`${base}/api/posts/${encodeURIComponent(usernameParam)}`),
-        fetch(`${base}/api/guestbook/${encodeURIComponent(usernameParam)}`),
-        fetch(`${base}/api/photos/${encodeURIComponent(usernameParam)}`)
+      // Fetch posts and guestbook data for template rendering using direct DB calls
+      const { getSessionUser } = await import('@/lib/auth-server');
+      const { getPostsForUser, getGuestbookForUser, getPhotosForUser } = await import('@/lib/data-fetchers');
+      
+      const currentUser = await getSessionUser(req as any);
+      const viewerId = currentUser?.id;
+      
+      const [postsData, guestbookData, imagesData] = await Promise.allSettled([
+        getPostsForUser(usernameParam, viewerId),
+        getGuestbookForUser(usernameParam),
+        getPhotosForUser(usernameParam, 1, 20)
       ]);
       
       // Handle posts data
       let posts: Array<{ id: string; contentHtml: string; createdAt: string }> = [];
-      if (postsRes.status === 'fulfilled' && postsRes.value.ok) {
-        const postsData = await postsRes.value.json();
+      if (postsData.status === 'fulfilled' && postsData.value) {
 
         // Import cleaning functions
         const { markdownToSafeHtml, cleanAndNormalizeHtml } = await import("@/lib/sanitize");
@@ -347,7 +352,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
           return `<p>${escapeHtml(text).replace(/\n/g, "<br/>")}</p>`;
         }
 
-        posts = postsData.posts?.map((post: any) => {
+        posts = postsData.value.posts?.map((post: any) => {
           let text = "";
           let mode: "markdown" | "html" | "text" = "text";
           if (post.bodyMarkdown) {
@@ -382,9 +387,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       
       // Handle images data
       let images: Array<{ id: string; url: string; alt: string; caption: string; createdAt: string; }> = [];
-      if (imagesRes.status === 'fulfilled' && imagesRes.value.ok) {
-        const imagesData = await imagesRes.value.json();
-        images = imagesData.media?.filter((img: any) => img.visibility === "public").map((img: any) => ({
+      if (imagesData.status === 'fulfilled' && imagesData.value) {
+        images = imagesData.value.media?.map((img: any) => ({
           id: img.id || '',
           url: img.fullUrl || img.url || '',
           alt: img.title || img.alt || '',
@@ -395,9 +399,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
       // Handle guestbook data
       let guestbook: Array<{ id: string; message: string; authorUsername?: string; createdAt: string }> = [];
-      if (guestbookRes.status === 'fulfilled' && guestbookRes.value.ok) {
-        const guestbookData = await guestbookRes.value.json();
-        guestbook = guestbookData.entries?.map((entry: any) => ({
+      if (guestbookData.status === 'fulfilled' && guestbookData.value) {
+        guestbook = guestbookData.value.entries?.map((entry: any) => ({
           id: entry.id || '',
           message: entry.message || '',
           authorUsername: entry.authorUsername || null,

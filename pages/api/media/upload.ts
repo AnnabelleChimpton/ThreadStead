@@ -10,16 +10,30 @@ import { promisify } from "util";
 
 
 
-// Configure S3 client for R2
-const s3Client = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_PUBLIC_URL!,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-  forcePathStyle: false,
-});
+// Configure S3 client for R2 (with lazy initialization)
+let s3Client: S3Client | null = null;
+
+function getS3Client(): S3Client {
+  if (!s3Client) {
+    const requiredEnvVars = ['R2_PUBLIC_URL', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'];
+    for (const envVar of requiredEnvVars) {
+      if (!process.env[envVar]) {
+        throw new Error(`Missing required environment variable: ${envVar}`);
+      }
+    }
+    
+    s3Client = new S3Client({
+      region: "auto",
+      endpoint: process.env.R2_PUBLIC_URL!,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+      },
+      forcePathStyle: false,
+    });
+  }
+  return s3Client;
+}
 
 // Configure multer for memory storage
 const upload = multer({
@@ -122,7 +136,7 @@ async function processAndUploadMedia(
   const urls: Record<string, string> = {};
 
   for (const { key, buffer: imageBuffer, size } of uploads) {
-    await s3Client.send(
+    await getS3Client().send(
       new PutObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME!,
         Key: key,
