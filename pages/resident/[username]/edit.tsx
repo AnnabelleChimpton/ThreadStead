@@ -3,13 +3,13 @@ import type { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
 
-import TemplateEditor from "@/components/TemplateEditor";
+// Template Editor moved to dedicated page at /resident/[username]/template-editor
 import RetroCard from "@/components/layout/RetroCard";
 import ProfileLayout from "@/components/layout/ProfileLayout";
 import Tabs, { TabSpec } from "@/components/navigation/Tabs";
 import WebsiteManager, { Website } from "@/components/WebsiteManager";
 import FriendManager, { SelectedFriend } from "@/components/FriendManager";
-import CSSEditor from "@/components/CSSEditor";
+// CSS Editor moved to dedicated page at /resident/[username]/css-editor
 import ProfilePreview from "@/components/ProfilePreview";
 import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 import type { TemplateNode } from "@/lib/template-parser";
@@ -22,6 +22,7 @@ interface ProfileEditProps {
   customCSS?: string;
   templateEnabled?: boolean;
   hideNavigation?: boolean;
+  templateMode?: 'default' | 'enhanced' | 'advanced';
   displayName?: string;
   bio?: string;
   avatarUrl?: string;
@@ -36,6 +37,7 @@ export default function ProfileEditPage({
   customCSS,
   templateEnabled = false,
   hideNavigation = false,
+  templateMode = 'default',
   displayName: initialDisplayName = "",
   bio: initialBio = "",
   avatarUrl: initialAvatarUrl = "",
@@ -45,9 +47,17 @@ export default function ProfileEditPage({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [customCSSValue, setCustomCSSValue] = useState(customCSS || "");
+  // CSS is now edited in the dedicated CSS editor page
+  const customCSSValue = customCSS || "";
   const [isTemplateEnabled, setIsTemplateEnabled] = useState(templateEnabled);
   const [isNavigationHidden, setIsNavigationHidden] = useState(hideNavigation);
+  
+  // Track the current layout mode
+  const [layoutMode, setLayoutMode] = useState<'default' | 'custom-css' | 'template'>(() => {
+    if (templateEnabled) return 'template';
+    if (templateMode === 'enhanced') return 'custom-css';
+    return 'default';
+  });
   
   // Profile editing state
   const [displayName, setDisplayName] = useState(initialDisplayName);
@@ -57,7 +67,7 @@ export default function ProfileEditPage({
   const [featuredFriends, setFeaturedFriends] = useState<SelectedFriend[]>(initialFeaturedFriends);
   
   // Template state for combined preview
-  const [currentTemplateAst, setCurrentTemplateAst] = useState<TemplateNode | null>(null);
+  const [currentTemplateAst] = useState<TemplateNode | null>(null);
   
   // Parse existing template for preview
   const existingTemplateAst = React.useMemo(() => {
@@ -75,7 +85,7 @@ export default function ProfileEditPage({
     }
   }, [existingTemplate]);
 
-  const handleSaveTemplate = async (template: string, ast: TemplateNode) => {
+  const _handleSaveTemplate = async (template: string, ast: TemplateNode) => {
     setSaving(true);
     setSaveMessage(null);
 
@@ -106,45 +116,19 @@ export default function ProfileEditPage({
     }
   };
 
-  const handleSaveCSS = async () => {
+  // CSS saving has been moved to the dedicated CSS editor page
+
+  const handleSaveLayoutSettings = async () => {
     setSaving(true);
     setSaveMessage(null);
 
-    try {
-      const response = await fetch(`/api/profile/${username}/css`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          customCSS: customCSSValue
-        }),
-      });
-
-      if (response.ok) {
-        setSaveMessage("CSS saved successfully!");
-        setTimeout(() => setSaveMessage(null), 3000);
-      } else {
-        const errorData = await response.json();
-        setSaveMessage(`Error: ${errorData.error || "Failed to save CSS"}`);
-      }
-    } catch (error) {
-      setSaveMessage(`Error: ${error}`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleToggleTemplate = async () => {
-    setSaving(true);
-    setSaveMessage(null);
-
-    const newTemplateEnabled = !isTemplateEnabled;
+    const newTemplateEnabled = layoutMode === 'template';
 
     try {
       // If disabling template and navigation is hidden, also reset navigation
       const shouldResetNavigation = !newTemplateEnabled && isNavigationHidden;
       
+      // First, handle template toggle
       const response = await fetch(`/api/profile/${username}/template-toggle`, {
         method: "POST",
         headers: {
@@ -155,33 +139,74 @@ export default function ProfileEditPage({
         }),
       });
 
-      if (response.ok) {
-        setIsTemplateEnabled(newTemplateEnabled);
-        
-        // Reset navigation if disabling template
-        if (shouldResetNavigation) {
-          setIsNavigationHidden(false);
-          // Also save the navigation change to the server
-          try {
-            await fetch(`/api/profile/${username}/navigation-toggle`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ hideNavigation: false }),
-            });
-          } catch (navError) {
-            console.error('Failed to reset navigation:', navError);
-          }
-        }
-        
-        setSaveMessage(
-          `Template ${newTemplateEnabled ? 'enabled' : 'disabled'} successfully!` +
-          (shouldResetNavigation ? ' Navigation visibility has been reset.' : '')
-        );
-        setTimeout(() => setSaveMessage(null), 3000);
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
-        setSaveMessage(`Error: ${errorData.error || "Failed to toggle template"}`);
+        setSaveMessage(`Error: ${errorData.error || "Failed to save layout settings"}`);
+        return;
       }
+
+      // Save the layout mode preference
+      const capRes = await fetch("/api/cap/profile", { method: "POST" });
+      if (capRes.status === 401) {
+        setSaveMessage("Error: Please log in.");
+        return;
+      }
+      const { token } = await capRes.json();
+
+      // Convert layoutMode to templateMode for storage
+      let templateModeValue: 'default' | 'enhanced' | 'advanced' = 'default';
+      if (layoutMode === 'custom-css') {
+        templateModeValue = 'enhanced';
+      } else if (layoutMode === 'template') {
+        templateModeValue = 'advanced';
+      }
+
+      const layoutResponse = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          templateMode: templateModeValue,
+          cap: token 
+        }),
+      });
+
+      if (!layoutResponse.ok) {
+        const errorData = await layoutResponse.json();
+        setSaveMessage(`Error: ${errorData.error || "Failed to save layout mode"}`);
+        return;
+      }
+
+      setIsTemplateEnabled(newTemplateEnabled);
+      
+      // Reset navigation if disabling template
+      if (shouldResetNavigation) {
+        setIsNavigationHidden(false);
+        // Also save the navigation change to the server
+        try {
+          await fetch(`/api/profile/${username}/navigation-toggle`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ hideNavigation: false }),
+          });
+        } catch (navError) {
+          console.error('Failed to reset navigation:', navError);
+        }
+      }
+      
+      let successMessage = '';
+      if (layoutMode === 'default') {
+        successMessage = 'Layout set to default successfully!';
+      } else if (layoutMode === 'custom-css') {
+        successMessage = 'Layout set to default + custom CSS successfully!';
+      } else if (layoutMode === 'template') {
+        successMessage = 'Layout set to advanced template successfully!';
+      }
+      
+      setSaveMessage(
+        successMessage +
+        (shouldResetNavigation ? ' Navigation visibility has been reset.' : '')
+      );
+      setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       setSaveMessage(`Error: ${error}`);
     } finally {
@@ -372,277 +397,176 @@ export default function ProfileEditPage({
       )
     },
     {
-      id: "css",
-      label: "Custom CSS",
+      id: "layout", 
+      label: "Layout Settings",
       content: (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold mb-3">Custom CSS</h2>
-            <p className="text-thread-sage mb-4">
-              Add your own CSS to customize the appearance of your profile.
+            <h2 className="text-xl font-semibold mb-3">Profile Layout Settings</h2>
+            <p className="text-thread-sage mb-6">
+              Choose how your profile is displayed: default layout, custom CSS styling, or advanced template.
             </p>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* CSS Editor */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">CSS Editor</h3>
-                <CSSEditor 
-                  value={customCSSValue} 
-                  onChange={setCustomCSSValue}
-                />
-                <button
-                  onClick={handleSaveCSS}
-                  disabled={saving}
-                  className="thread-button"
-                >
-                  {saving ? "Saving..." : "Save CSS"}
-                </button>
-              </div>
-              
-              {/* CSS Preview */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Live Preview</h3>
-                <p className="text-sm text-thread-sage">
-                  See how your CSS changes will look on your profile:
-                </p>
-                <ProfilePreview
-                  mode="css-only"
-                  customCSS={customCSSValue}
-                  username={username}
-                  height="h-[500px]"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: "template",
-      label: "Template Editor",
-      content: (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Template Editor</h2>
-              <p className="text-thread-sage">
-                Design your profile layout using our template system. Toggle between your custom template and the default layout.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-thread-sage">
-                {isTemplateEnabled ? "Custom template active" : "Using default layout"}
-              </span>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <span className="text-sm font-medium">
-                  {isTemplateEnabled ? "Disable" : "Enable"} Template
-                </span>
-                <div className="relative">
+            {/* Layout Mode Selection */}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-4">Layout Mode</h3>
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 p-4 border border-thread-sage/30 rounded-lg hover:bg-thread-cream/30 cursor-pointer transition-colors">
                   <input
-                    type="checkbox"
-                    checked={isTemplateEnabled}
-                    onChange={handleToggleTemplate}
-                    disabled={saving}
-                    className="sr-only"
+                    type="radio"
+                    name="layoutMode"
+                    value="default"
+                    checked={layoutMode === 'default'}
+                    onChange={() => {
+                      setLayoutMode('default');
+                      setIsTemplateEnabled(false);
+                    }}
+                    className="mt-1"
                   />
-                  <div className={`w-11 h-6 rounded-full shadow-inner transition-colors duration-200 ${
-                    isTemplateEnabled ? 'bg-thread-pine' : 'bg-gray-300'
-                  }`}>
-                    <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
-                      isTemplateEnabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}></div>
-                  </div>
-                </div>
-              </label>
-            </div>
-          </div>
-          
-          {!isTemplateEnabled && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
-              <strong>Template disabled:</strong> Your profile is currently using the default layout. 
-              You can continue working on your template and enable it when ready.
-            </div>
-          )}
-
-          {/* Navigation Toggle - Only show when template is enabled and exists */}
-          {isTemplateEnabled && (existingTemplateAst || currentTemplateAst) && (
-            <div className="mb-4 p-4 bg-thread-cream/50 border border-thread-sage rounded">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium mb-1">Navigation Bar & Footer</h3>
-                  <p className="text-sm text-thread-sage">
-                    Hide the site navigation and footer for a full-screen template experience.
-                  </p>
-                </div>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-sm font-medium">
-                    {isNavigationHidden ? "Show" : "Hide"} Navigation
-                  </span>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={isNavigationHidden}
-                      onChange={handleToggleNavigation}
-                      disabled={saving}
-                      className="sr-only"
-                    />
-                    <div className={`w-11 h-6 rounded-full shadow-inner transition-colors duration-200 ${
-                      isNavigationHidden ? 'bg-thread-pine' : 'bg-gray-300'
-                    }`}>
-                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
-                        isNavigationHidden ? 'translate-x-5' : 'translate-x-0'
-                      }`}></div>
+                  <div className="flex-1">
+                    <div className="font-medium">Default Layout</div>
+                    <div className="text-sm text-thread-sage mt-1">
+                      Use the standard ThreadStead profile layout
                     </div>
+                  </div>
+                </label>
+                
+                <label className="flex items-start gap-3 p-4 border border-thread-sage/30 rounded-lg hover:bg-thread-cream/30 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="layoutMode"
+                    value="custom-css"
+                    checked={layoutMode === 'custom-css'}
+                    onChange={() => {
+                      setLayoutMode('custom-css');
+                      setIsTemplateEnabled(false);
+                    }}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">Default Layout + Custom CSS</div>
+                    <div className="text-sm text-thread-sage mt-1">
+                      Default layout styled with your custom CSS
+                    </div>
+                    {customCSSValue && (
+                      <div className="text-xs text-thread-pine mt-2">
+                        ✓ {customCSSValue.length} characters of CSS
+                      </div>
+                    )}
+                  </div>
+                </label>
+                
+                <label className="flex items-start gap-3 p-4 border border-thread-sage/30 rounded-lg hover:bg-thread-cream/30 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="layoutMode"
+                    value="template"
+                    checked={layoutMode === 'template'}
+                    onChange={() => {
+                      setLayoutMode('template');
+                      setIsTemplateEnabled(true);
+                    }}
+                    disabled={!existingTemplateAst && !currentTemplateAst}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">Advanced Template</div>
+                    <div className="text-sm text-thread-sage mt-1">
+                      Completely custom layout with your template
+                    </div>
+                    {existingTemplateAst || currentTemplateAst ? (
+                      <div className="text-xs text-thread-pine mt-2">
+                        ✓ Template ready
+                      </div>
+                    ) : (
+                      <div className="text-xs text-orange-600 mt-2">
+                        ⚠ No template - create one first
+                      </div>
+                    )}
                   </div>
                 </label>
               </div>
             </div>
-          )}
-          
-          {/* Explanation when navigation toggle is not available */}
-          {(!isTemplateEnabled || (!existingTemplateAst && !currentTemplateAst)) && (
-            <div className="mb-4 p-4 bg-thread-cream/30 border border-thread-sage/50 rounded">
-              <div className="flex items-start gap-3">
-                <span className="text-thread-sage">ℹ️</span>
-                <div>
-                  <h3 className="font-medium mb-1 text-thread-sage">Navigation Control</h3>
-                  <p className="text-sm text-thread-sage">
-                    Navigation hiding is only available when using a custom template. 
-                    {!existingTemplateAst && !currentTemplateAst 
-                      ? "Create a template below to access this feature."
-                      : "Enable your template above to access this feature."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <TemplateEditor
-            initialTemplate={existingTemplate}
-            username={username}
-            customCSS={customCSSValue}
-            onSave={handleSaveTemplate}
-            onAstChange={setCurrentTemplateAst}
-          />
-        </div>
-      )
-    },
-    {
-      id: "preview",
-      label: "Combined Preview",
-      content: (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-3">Template + CSS Preview</h2>
-            <p className="text-thread-sage mb-6">
-              See how your custom template and CSS work together. This preview combines both your template design and custom styling.
-            </p>
             
-            {/* Template Status */}
-            <div className="mb-4 p-4 bg-thread-cream/50 border border-thread-sage rounded">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium mb-1">Template Status</h3>
-                  <p className="text-sm text-thread-sage">
-                    {isTemplateEnabled 
-                      ? "Template is enabled and will be used on your profile" 
-                      : "Template is disabled - your profile uses the default layout"}
-                  </p>
-                  {(existingTemplateAst || currentTemplateAst) && (
-                    <p className="text-sm text-thread-pine mt-1">
-                      ✓ Template {currentTemplateAst ? 'compiled successfully' : 'saved and ready'}
+            {/* Save Layout Settings */}
+            <div className="mb-6">
+              <button
+                onClick={handleSaveLayoutSettings}
+                disabled={saving}
+                className="thread-button"
+              >
+                {saving ? "Saving..." : "Save Layout Settings"}
+              </button>
+            </div>
+            
+            {/* Navigation Toggle - Only show when template is enabled */}
+            {isTemplateEnabled && (existingTemplateAst || currentTemplateAst) && (
+              <div className="mb-6 p-4 bg-thread-cream/50 border border-thread-sage rounded">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium mb-1">Navigation Bar & Footer</h3>
+                    <p className="text-sm text-thread-sage">
+                      Hide the site navigation and footer for a full-screen template experience.
                     </p>
-                  )}
-                  {!existingTemplateAst && !currentTemplateAst && (
-                    <p className="text-sm text-orange-600 mt-1">
-                      ⚠ No template found - design a template in the Template Editor tab
-                    </p>
-                  )}
-                </div>
-                <div className="text-right text-sm text-thread-sage">
-                  <div>CSS: {customCSSValue ? `${customCSSValue.length} characters` : 'None'}</div>
-                  {isTemplateEnabled && (existingTemplateAst || currentTemplateAst) && (
-                    <div>Navigation: {isNavigationHidden ? 'Hidden' : 'Visible'}</div>
-                  )}
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-sm font-medium">
+                      {isNavigationHidden ? "Show" : "Hide"} Navigation
+                    </span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={isNavigationHidden}
+                        onChange={handleToggleNavigation}
+                        disabled={saving}
+                        className="sr-only"
+                      />
+                      <div className={`w-11 h-6 rounded-full shadow-inner transition-colors duration-200 ${
+                        isNavigationHidden ? 'bg-thread-pine' : 'bg-gray-300'
+                      }`}>
+                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
+                          isNavigationHidden ? 'translate-x-5' : 'translate-x-0'
+                        }`}></div>
+                      </div>
+                    </div>
+                  </label>
                 </div>
               </div>
-            </div>
-
-            {/* Combined Preview */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Live Preview</h3>
+            )}
+            
+            
+            {/* Editor Links */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-thread-cream border border-thread-sage/30 rounded-lg p-6 text-center">
+                <div className="mb-4">
+                  <span className="text-5xl">🎨</span>
+                </div>
+                <h3 className="text-lg font-bold mb-2">CSS Editor</h3>
+                <p className="text-sm text-thread-sage mb-4">
+                  Style your default layout with custom CSS
+                </p>
+                <a
+                  href={`/resident/${username}/css-editor`}
+                  className="thread-button inline-block"
+                >
+                  Open CSS Editor →
+                </a>
+              </div>
               
-              {(currentTemplateAst || (existingTemplateAst && isTemplateEnabled)) ? (
-                <div>
-                  <p className="text-sm text-thread-sage mb-4">
-                    This shows exactly how your profile will look with your custom template and CSS:
-                  </p>
-                  <ProfilePreview
-                    mode="combined"
-                    customCSS={customCSSValue}
-                    templateAst={currentTemplateAst || existingTemplateAst}
-                    username={username}
-                    height="h-[600px]"
-                  />
-                  {!currentTemplateAst && existingTemplate && (
-                    <p className="text-xs text-thread-sage mt-2 italic">
-                      Note: Showing saved template. Visit the Template Editor tab to see live changes.
-                    </p>
-                  )}
+              <div className="bg-thread-cream border border-thread-sage/30 rounded-lg p-6 text-center">
+                <div className="mb-4">
+                  <span className="text-5xl">📝</span>
                 </div>
-              ) : (
-                <div>
-                  <p className="text-sm text-thread-sage mb-4">
-                    {existingTemplate && !isTemplateEnabled 
-                      ? "Template is disabled. Here's how your CSS affects the default profile layout:"
-                      : "Since no template is available, here's how your CSS affects the default profile layout:"}
-                  </p>
-                  <ProfilePreview
-                    mode="css-only"
-                    customCSS={customCSSValue}
-                    username={username}
-                    height="h-[600px]"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Quick Actions */}
-            <div className="border-t border-thread-sage pt-6">
-              <h3 className="text-lg font-medium mb-3">Quick Actions</h3>
-              <div className="flex gap-3 flex-wrap">
-                <button
-                  onClick={() => {
-                    // Switch to template tab
-                    const tabButtons = document.querySelectorAll('[role="tab"]');
-                    const templateTab = Array.from(tabButtons).find(tab => 
-                      tab.textContent?.includes('Template Editor')
-                    ) as HTMLElement;
-                    templateTab?.click();
-                  }}
-                  className="thread-button-secondary text-sm"
+                <h3 className="text-lg font-bold mb-2">Template Editor</h3>
+                <p className="text-sm text-thread-sage mb-4">
+                  Create advanced layouts with templates
+                </p>
+                <a
+                  href={`/resident/${username}/template-editor`}
+                  className="thread-button inline-block"
                 >
-                  Edit Template
-                </button>
-                <button
-                  onClick={() => {
-                    // Switch to CSS tab  
-                    const tabButtons = document.querySelectorAll('[role="tab"]');
-                    const cssTab = Array.from(tabButtons).find(tab => 
-                      tab.textContent?.includes('Custom CSS')
-                    ) as HTMLElement;
-                    cssTab?.click();
-                  }}
-                  className="thread-button-secondary text-sm"
-                >
-                  Edit CSS
-                </button>
-                <button
-                  onClick={handleBackToProfile}
-                  className="thread-button text-sm"
-                >
-                  View Live Profile
-                </button>
+                  Open Template Editor →
+                </a>
               </div>
             </div>
           </div>
@@ -739,6 +663,7 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
     let customCSS = "";
     let templateEnabled = false;
     let hideNavigation = false;
+    let templateMode: 'default' | 'enhanced' | 'advanced' = 'default';
     let displayName = "";
     let bio = "";
     let avatarUrl = "";
@@ -763,6 +688,7 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
       customCSS = profileData.profile?.customCSS || "";
       templateEnabled = profileData.profile?.templateEnabled || false;
       hideNavigation = profileData.profile?.hideNavigation || false;
+      templateMode = profileData.profile?.templateMode || 'default';
       displayName = profileData.profile?.displayName || "";
       bio = profileData.profile?.bio || "";
       avatarUrl = profileData.profile?.avatarUrl || "";
@@ -798,6 +724,7 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
         customCSS,
         templateEnabled,
         hideNavigation,
+        templateMode,
         displayName,
         bio,
         avatarUrl,

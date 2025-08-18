@@ -9,9 +9,10 @@ import { useIdentitySync } from "@/hooks/useIdentitySync";
 interface LayoutProps {
   children: React.ReactNode;
   siteConfig?: SiteConfig;
+  fullWidth?: boolean;
 }
 
-export default function Layout({ children, siteConfig }: LayoutProps) {
+export default function Layout({ children, siteConfig, fullWidth = false }: LayoutProps) {
   const { config: hookConfig } = useSiteConfig();
   const { pages: navPages } = useNavPages();
   const { hasMismatch, fixMismatch } = useIdentitySync();
@@ -47,7 +48,7 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
       )}
       
       <header className="site-header border-b border-thread-sage bg-thread-cream px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95">
-        <nav className="site-navigation mx-auto max-w-5xl flex items-center justify-between">
+        <nav className={`site-navigation ${fullWidth ? 'w-full px-4' : 'mx-auto max-w-5xl'} flex items-center justify-between`}>
           <div className="site-branding">
             <h1 className="site-title thread-headline text-2xl font-bold text-thread-pine">{config.site_name}</h1>
             <span className="site-tagline thread-label">{config.site_tagline}</span>
@@ -80,7 +81,7 @@ export default function Layout({ children, siteConfig }: LayoutProps) {
       {/* Creative header section - users can style this wildly! */}
       <div className="site-creative-header"></div>
 
-      <main className="site-main flex-1 mx-auto max-w-5xl px-6 py-8">{children}</main>
+      <main className={`site-main flex-1 ${fullWidth ? 'w-full' : 'mx-auto max-w-5xl px-6 py-8'}`}>{children}</main>
 
       <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
         <div className="footer-content mx-auto max-w-5xl text-center">

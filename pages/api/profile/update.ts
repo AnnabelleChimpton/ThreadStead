@@ -12,12 +12,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const me = await getSessionUser(req);
   if (!me) return res.status(401).json({ error: "not logged in" });
 
-  const { displayName, bio, customCSS, blogroll, featuredFriends, cap } = (req.body || {}) as {
+  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, cap } = (req.body || {}) as {
     displayName?: string;
     bio?: string;
     customCSS?: string;
     blogroll?: unknown[];
     featuredFriends?: unknown[];
+    templateMode?: 'default' | 'enhanced' | 'advanced';
     cap?: string;
   };
 
@@ -31,6 +32,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (typeof displayName === "string") data.displayName = displayName.trim().slice(0, 80);
   if (typeof bio === "string") data.bio = bio.trim().slice(0, 1000);
   if (typeof customCSS === "string") data.customCSS = cleanCss(customCSS);
+  if (typeof templateMode === "string" && ['default', 'enhanced', 'advanced'].includes(templateMode)) {
+    data.templateMode = templateMode;
+  }
   
   // Handle blogroll/websites
   if (Array.isArray(blogroll)) {

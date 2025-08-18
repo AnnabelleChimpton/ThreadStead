@@ -80,20 +80,18 @@ export default function ProfilePage({
       const templateContent = transformNodeToReact(customTemplateAst);
       
       if (templateMode === 'advanced') {
-        // Complete CSS control - completely clean container, no default classes at all
+        // Complete CSS control - templates use only their own CSS, no user custom CSS
         return (
           <>
-            {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
             <ResidentDataProvider data={residentData}>
               {templateContent}
             </ResidentDataProvider>
           </>
         );
       } else if (templateMode === 'enhanced') {
-        // Custom template with site CSS - uses thread-surface but no ProfileLayout wrapper
+        // Custom template with site CSS - templates use only their own CSS, no user custom CSS
         return (
           <>
-            {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
             <div className="min-h-screen thread-surface">
               <ResidentDataProvider data={residentData}>
                 {templateContent}
@@ -454,15 +452,25 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (data.profile?.hideNavigation != null) props.hideNavigation = data.profile.hideNavigation;
   if (data.profile?.templateMode != null) props.templateMode = data.profile.templateMode;
   
-  // CSS Priority: User CSS > Admin Default CSS > No CSS
-  if (data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
-    // User has custom CSS - use it
+  // CSS Priority based on template mode
+  const templateMode = data.profile?.templateMode || 'default';
+  
+  if (templateMode === 'enhanced' && data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
+    // Enhanced mode (Default Layout + Custom CSS) - use user's custom CSS
+    props.customCSS = data.profile.customCSS;
+  } else if (templateMode === 'default') {
+    // Default mode - use admin default CSS only, ignore user CSS
+    if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
+      props.customCSS = adminDefaultCSS;
+    }
+  } else if (templateMode === 'advanced' && data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
+    // Advanced template mode - use user's custom CSS (legacy compatibility)
     props.customCSS = data.profile.customCSS;
   } else if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
-    // User has no custom CSS but admin has set default CSS - use admin default
+    // Fallback to admin default CSS if available
     props.customCSS = adminDefaultCSS;
   }
-  // If neither, customCSS remains undefined and no CSS is injected
+  // If none of the above, customCSS remains undefined and no CSS is injected
   
   if (websites.length > 0) props.websites = websites;
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
