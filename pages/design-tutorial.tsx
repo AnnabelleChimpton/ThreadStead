@@ -1027,17 +1027,17 @@ export default function DesignTutorialPage() {
                   <div>
                     <h4 className="font-semibold mb-2">Existence Checks:</h4>
                     <ul className="space-y-1 text-blue-700">
-                      <li><code>data="posts"</code> - Shows if user has any posts</li>
-                      <li><code>data="capabilities.bio"</code> - Shows if user has a bio</li>
-                      <li><code>data="featuredFriends"</code> - Shows if user has featured friends</li>
+                      <li><code>data=&quot;posts&quot;</code> - Shows if user has any posts</li>
+                      <li><code>data=&quot;capabilities.bio&quot;</code> - Shows if user has a bio</li>
+                      <li><code>data=&quot;featuredFriends&quot;</code> - Shows if user has featured friends</li>
                     </ul>
                   </div>
                   <div>
                     <h4 className="font-semibold mb-2">Value Comparisons:</h4>
                     <ul className="space-y-1 text-blue-700">
-                      <li><code>data="posts.length" equals="0"</code> - Shows if no posts</li>
-                      <li><code>data="owner.handle" equals="john"</code> - Shows for specific user</li>
-                      <li><code>data="viewer.id" equals="null"</code> - Shows for anonymous visitors</li>
+                      <li><code>data=&quot;posts.length&quot; equals=&quot;0&quot;</code> - Shows if no posts</li>
+                      <li><code>data=&quot;owner.handle&quot; equals=&quot;john&quot;</code> - Shows for specific user</li>
+                      <li><code>data=&quot;viewer.id&quot; equals=&quot;null&quot;</code> - Shows for anonymous visitors</li>
                     </ul>
                   </div>
                 </div>

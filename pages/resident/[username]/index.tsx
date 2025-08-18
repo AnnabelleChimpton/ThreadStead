@@ -308,7 +308,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       if (hasImageComponents && hasImgInAst) {
         console.log('Detected corrupted AST with img tags instead of UserImage components. Recompiling...');
         // Convert old <Image> tags to <UserImage> for backward compatibility
-        let updatedTemplate = data.profile.customTemplate.replace(/<Image\b/g, '<UserImage').replace(/<\/Image>/g, '</UserImage>');
+        const updatedTemplate = data.profile.customTemplate.replace(/<Image\b/g, '<UserImage').replace(/<\/Image>/g, '</UserImage>');
         
         // Recompile the template to fix the AST
         const { compileTemplate } = await import('@/lib/template-parser');
