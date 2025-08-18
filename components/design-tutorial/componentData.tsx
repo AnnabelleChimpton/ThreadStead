@@ -347,18 +347,14 @@ export const componentData = {
       name: 'GridLayout',
       description: 'Responsive CSS grids with configurable columns',
       props: [
-        { name: 'columns', type: 'string', options: ['1', '2', '3', '4', '5', '6', 'auto'], default: '3', description: 'Number of grid columns' },
-        { name: 'gap', type: 'string', options: ['none', 'sm', 'md', 'lg', 'xl'], default: 'md', description: 'Space between grid items' },
-        { name: 'responsive', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Automatically adjust columns on mobile' },
-        { name: 'minItemWidth', type: 'string', options: ['200px', '250px', '300px', '350px'], default: '250px', description: 'Minimum width for grid items' }
+        { name: 'columns', type: 'string', options: [], default: '', description: 'Number of columns in the grid' },
+        { name: 'gap', type: 'string', options: [], default: '', description: 'Gap between grid items' },
+        { name: 'responsive', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Enable responsive layout' }
       ],
       example: `<GridLayout columns="3" gap="md" responsive="true">
   <div>Item 1</div>
   <div>Item 2</div>
   <div>Item 3</div>
-</GridLayout>
-<GridLayout columns="auto" minItemWidth="300px" gap="lg">
-  <div>Auto-sized item</div>
 </GridLayout>`,
       preview: (
         <div className="grid grid-cols-3 gap-1 text-xs">
@@ -372,18 +368,12 @@ export const componentData = {
       name: 'SplitLayout',
       description: 'Two-column layout with customizable proportions',
       props: [
-        { name: 'split', type: 'string', options: ['50-50', '60-40', '70-30', '75-25', '80-20'], default: '50-50', description: 'Column width proportions' },
-        { name: 'gap', type: 'string', options: ['none', 'sm', 'md', 'lg', 'xl'], default: 'md', description: 'Space between columns' },
-        { name: 'direction', type: 'string', options: ['horizontal', 'vertical'], default: 'horizontal', description: 'Split direction' },
-        { name: 'responsive', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Stack vertically on mobile' }
+        { name: 'split', type: 'string', options: [], default: '', description: '' },
+        { name: 'gap', type: 'string', options: [], default: '', description: '' }
       ],
       example: `<SplitLayout split="60-40" gap="lg">
   <div>Main content area</div>
   <div>Sidebar content</div>
-</SplitLayout>
-<SplitLayout split="75-25" direction="vertical" responsive="false">
-  <div>Top section</div>
-  <div>Bottom section</div>
 </SplitLayout>`,
       preview: (
         <div className="grid grid-cols-2 gap-2 text-xs">
@@ -398,16 +388,11 @@ export const componentData = {
       name: 'GradientBox',
       description: 'Colorful gradient containers with customizable colors',
       props: [
-        { name: 'colors', type: 'string', options: ['pink-purple', 'blue-green', 'sunset', 'ocean', 'rainbow', 'neon'], default: 'blue-green', description: 'Predefined color scheme' },
-        { name: 'direction', type: 'string', options: ['horizontal', 'vertical', 'diagonal', 'radial'], default: 'diagonal', description: 'Gradient direction' },
-        { name: 'intensity', type: 'string', options: ['light', 'medium', 'strong'], default: 'medium', description: 'Color intensity' },
-        { name: 'animated', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Animate gradient movement' }
+        { name: 'colors', type: 'string', options: [], default: '', description: '' },
+        { name: 'direction', type: 'string', options: [], default: '', description: '' }
       ],
       example: `<GradientBox colors="pink-purple" direction="diagonal">
   <p>Content with gradient background</p>
-</GradientBox>
-<GradientBox colors="neon" animated="true" intensity="strong">
-  <p>Animated neon gradient!</p>
 </GradientBox>`,
       preview: (
         <div className="bg-gradient-to-br from-pink-400 to-purple-600 p-3 text-white text-xs rounded">
@@ -419,18 +404,12 @@ export const componentData = {
       name: 'RetroTerminal',
       description: 'Old-school computer terminal styling',
       props: [
-        { name: 'color', type: 'string', options: ['green', 'amber', 'cyan', 'white', 'red'], default: 'green', description: 'Terminal text color' },
-        { name: 'title', type: 'string', options: ['any text'], default: 'Terminal', description: 'Terminal window title' },
-        { name: 'prompt', type: 'string', options: ['>', '$', '#', 'C:\\>', '~$'], default: '>', description: 'Command prompt symbol' },
-        { name: 'blinking', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show blinking cursor' },
-        { name: 'scanlines', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Add CRT scanline effect' }
+        { name: 'color', type: 'string', options: [], default: '', description: '' },
+        { name: 'title', type: 'string', options: [], default: '', description: '' }
       ],
       example: `<RetroTerminal color="green" title="My Terminal">
   <p>Welcome to my retro computer!</p>
   <p>> Type commands here_</p>
-</RetroTerminal>
-<RetroTerminal color="amber" prompt="C:\\>" scanlines="true">
-  <p>DOS-style terminal with effects</p>
 </RetroTerminal>`,
       preview: (
         <div className="bg-black text-green-400 p-2 text-xs font-mono rounded">
@@ -445,18 +424,12 @@ export const componentData = {
       name: 'RevealBox',
       description: 'Content that shows/hides with hover or click',
       props: [
-        { name: 'trigger', type: 'string', options: ['hover', 'click', 'focus'], default: 'hover', description: 'What triggers the reveal' },
-        { name: 'effect', type: 'string', options: ['slide', 'fade', 'scale', 'flip'], default: 'slide', description: 'Animation effect' },
-        { name: 'direction', type: 'string', options: ['up', 'down', 'left', 'right'], default: 'up', description: 'Slide direction (for slide effect)' },
-        { name: 'duration', type: 'string', options: ['fast', 'normal', 'slow'], default: 'normal', description: 'Animation speed' }
+        { name: 'trigger', type: 'string', options: [], default: '', description: '' },
+        { name: 'effect', type: 'string', options: [], default: '', description: '' }
       ],
       example: `<RevealBox trigger="hover" effect="slide">
   <div>Hover to reveal content!</div>
   <div>Hidden content appears here</div>
-</RevealBox>
-<RevealBox trigger="click" effect="flip" duration="slow">
-  <div>Click me!</div>
-  <div>Surprise content!</div>
 </RevealBox>`,
       preview: (
         <div className="bg-orange-200 p-2 text-xs rounded cursor-pointer hover:bg-orange-300">
@@ -468,17 +441,11 @@ export const componentData = {
       name: 'WaveText',
       description: 'Animated text with wave effects',
       props: [
-        { name: 'speed', type: 'string', options: ['slow', 'normal', 'fast'], default: 'normal', description: 'Animation speed' },
-        { name: 'amplitude', type: 'string', options: ['low', 'medium', 'high'], default: 'medium', description: 'Wave height/intensity' },
-        { name: 'direction', type: 'string', options: ['horizontal', 'vertical', 'both'], default: 'horizontal', description: 'Wave movement direction' },
-        { name: 'color', type: 'string', options: ['rainbow', 'gradient', 'solid'], default: 'solid', description: 'Text color style' },
-        { name: 'trigger', type: 'string', options: ['always', 'hover', 'visible'], default: 'always', description: 'When to animate' }
+        { name: 'speed', type: 'string', options: [], default: '', description: '' },
+        { name: 'amplitude', type: 'string', options: [], default: '', description: '' }
       ],
       example: `<WaveText speed="slow" amplitude="high">
   This text waves around!
-</WaveText>
-<WaveText color="rainbow" direction="both" trigger="hover">
-  Hover for rainbow waves!
 </WaveText>`,
       preview: (
         <div className="text-xs text-blue-600 animate-pulse">
