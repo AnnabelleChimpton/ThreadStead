@@ -33,7 +33,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
       setBackupToken(token);
       setStep('backup');
     } catch (e) {
-      console.error("Failed to create backup:", e);
+      // Backup creation failed silently
     }
   }
 

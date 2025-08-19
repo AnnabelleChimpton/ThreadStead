@@ -42,7 +42,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         setUnreadCount(countData.count);
       }
     } catch (error) {
-      console.error("Failed to fetch notifications:", error);
+      // Notification fetch failed silently
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         setUnreadCount(prev => prev !== null ? Math.max(0, prev - notificationIds.length) : 0);
       }
     } catch (error) {
-      console.error("Failed to mark notifications as read:", error);
+      // Mark as read failed silently
     }
   };
 
@@ -101,7 +101,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
           setIsLoggedIn(false);
         }
       } catch (error) {
-        console.error("Failed to fetch notification count:", error);
+        // Notification count fetch failed silently
       }
     };
 

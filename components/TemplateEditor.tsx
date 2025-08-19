@@ -88,15 +88,11 @@ export default function TemplateEditor({
         
         if (!data) {
           // Fallback to mock data if real data fails
-          console.log('No real data found, creating mock data for:', username || 'testuser');
           data = TemplateEngine.createMockData(username || 'testuser');
-          console.log('Mock data created:', data);
         }
         
-        console.log('Setting resident data:', data);
         setResidentData(data);
       } catch (error) {
-        console.error('Failed to load resident data:', error);
         // Fallback to mock data
         setResidentData(TemplateEngine.createMockData(username || 'testuser'));
       } finally {
@@ -148,8 +144,6 @@ export default function TemplateEditor({
   };
 
   const loadSampleTemplate = () => {
-    console.log('Loading sample template for mode:', mode);
-    console.log('Sample template:', sampleTemplates[mode]);
     setTemplate(sampleTemplates[mode]);
   };
 

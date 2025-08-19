@@ -26,7 +26,7 @@ export default function NotificationIndicator({
         setUnreadCount(null);
       }
     } catch (error) {
-      console.error("Failed to fetch notification count:", error);
+      // Notification count fetch failed silently
     } finally {
       setLoading(false);
     }

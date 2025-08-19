@@ -21,7 +21,7 @@ export default function NavigationLinks() {
           setNavPages(pages);
         }
       } catch (error) {
-        console.error("Failed to fetch navigation pages:", error);
+        // Navigation fetch failed silently
       }
     };
 

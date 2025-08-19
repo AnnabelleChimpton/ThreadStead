@@ -18,7 +18,7 @@ export default function SiteBranding() {
           setConfig(data);
         }
       } catch (error) {
-        console.error("Failed to fetch site config:", error);
+        // Site config fetch failed silently
       }
     };
 

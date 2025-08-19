@@ -52,7 +52,7 @@ export default function NotificationList({
         setNotifications(data.notifications || []);
       }
     } catch (error) {
-      console.error("Failed to load notifications:", error);
+      // Notification loading failed silently
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,7 @@ export default function NotificationList({
         onNotificationUpdate?.();
       }
     } catch (error) {
-      console.error("Failed to mark notifications as read:", error);
+      // Mark notifications as read failed silently
     }
   };
 
@@ -105,7 +105,7 @@ export default function NotificationList({
         onNotificationUpdate?.();
       }
     } catch (error) {
-      console.error("Failed to mark all notifications as read:", error);
+      // Mark all notifications as read failed silently
     }
   };
 

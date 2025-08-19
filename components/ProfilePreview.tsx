@@ -53,7 +53,6 @@ export default function ProfilePreview({
         
         setResidentData(data);
       } catch (error) {
-        console.error('Failed to load resident data:', error);
         setPreviewError('Failed to load user data for preview');
         setResidentData(TemplateEngine.createMockData(username || 'testuser'));
       } finally {

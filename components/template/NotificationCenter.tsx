@@ -56,7 +56,7 @@ export default function NotificationCenter() {
         setUnreadCount(countData.count);
       }
     } catch (error) {
-      console.error("Failed to fetch notifications:", error);
+      // Notification fetch failed silently
     } finally {
       setLoading(false);
     }

@@ -50,7 +50,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
         setPreviewInfo(data);
       }
     } catch (error) {
-      console.error('Failed to preview CSS:', error);
+      // CSS preview failed silently
     } finally {
       setPreviewLoading(false);
     }

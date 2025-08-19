@@ -79,7 +79,6 @@ export default function ProfilePhotoUpload({
       }
     } catch (err) {
       setError('Upload failed. Please try again.');
-      console.error('Upload error:', err);
     } finally {
       setUploading(false);
       // Clean up object URL

@@ -17,7 +17,7 @@ export default function NotificationBell() {
         setIsLoggedIn(false);
       }
     } catch (error) {
-      console.error("Failed to fetch notification count:", error);
+      // Notification count fetch failed silently
     } finally {
       setLoading(false);
     }

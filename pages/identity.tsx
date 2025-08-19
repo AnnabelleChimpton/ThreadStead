@@ -48,7 +48,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
       const seedData = getSeedPhrase();
       setCurrentSeedPhrase(seedData);
     } catch (e) {
-      console.error("Failed to load identity:", e);
+      // Identity loading failed silently
     }
   }
 

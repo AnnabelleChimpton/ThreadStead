@@ -21,7 +21,7 @@ export default function IdentityManager() {
       const identity = getExistingDid();
       setCurrentIdentity(identity);
     } catch (e) {
-      console.error("Failed to load identity:", e);
+      // Identity loading failed silently
     }
   }
 

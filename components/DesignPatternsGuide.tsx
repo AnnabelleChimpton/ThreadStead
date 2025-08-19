@@ -23,7 +23,7 @@ export default function DesignPatternsGuide() {
       setCopiedCode(patternName);
       setTimeout(() => setCopiedCode(null), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      // Copy to clipboard failed silently
     }
   };
 

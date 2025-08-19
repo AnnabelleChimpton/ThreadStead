@@ -268,6 +268,13 @@ type CustomPage = {
   updatedAt: string;
 };
 
+type PolicyDocuments = {
+  terms_simple: string;
+  terms_full: string;
+  privacy_simple: string;
+  privacy_full: string;
+};
+
 export default function AdminPage() {
   const { me, isLoading } = useMe();
   const [users, setUsers] = useState<User[]>([]);
@@ -312,6 +319,12 @@ export default function AdminPage() {
   const [generatedSeedUser, setGeneratedSeedUser] = useState<{id: string, displayName: string | null, primaryHandle: string | null} | null>(null);
   const [generatingSeed, setGeneratingSeed] = useState<string | null>(null);
 
+  // Policy documents state
+  const [policies, setPolicies] = useState<PolicyDocuments | null>(null);
+  const [loadingPolicies, setLoadingPolicies] = useState(false);
+  const [savingPolicies, setSavingPolicies] = useState(false);
+  const [policyMessage, setPolicyMessage] = useState<string | null>(null);
+
   useEffect(() => {
     if (me?.loggedIn && me.user?.role === "admin") {
       loadUsers();
@@ -320,6 +333,7 @@ export default function AdminPage() {
       loadSiteCSS();
       loadHomeSetting();
       loadDefaultProfileCSS();
+      loadPolicies();
     }
   }, [me]);
 
@@ -463,8 +477,7 @@ export default function AdminPage() {
         : "/api/admin/custom-pages";
       const method = editingPage ? "PUT" : "POST";
       
-      console.log("Saving page with data:", pageData);
-      console.log("Using URL:", url, "Method:", method);
+      // Saving page data
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
@@ -481,8 +494,7 @@ export default function AdminPage() {
       
       clearTimeout(timeoutId);
 
-      console.log("Response status:", res.status);
-      console.log("Response headers:", res.headers);
+      // Response received
 
       if (res.ok) {
         await loadCustomPages();
@@ -495,9 +507,7 @@ export default function AdminPage() {
           const error = await res.json();
           errorMessage = error.error || `Failed to save page (${res.status})`;
         } catch (jsonError) {
-          console.error("Failed to parse error response as JSON:", jsonError);
           const errorText = await res.text();
-          console.error("Raw error response:", errorText);
           errorMessage = `Failed to save page (${res.status}): ${errorText || 'Unknown error'}`;
         }
         console.error("Save failed with error:", errorMessage);
@@ -804,6 +814,57 @@ export default function AdminPage() {
     } finally {
       setGeneratingSeed(null);
     }
+  }
+
+  async function loadPolicies() {
+    setLoadingPolicies(true);
+    try {
+      const res = await fetch("/api/admin/policies");
+      if (res.ok) {
+        const data = await res.json();
+        setPolicies(data.policies);
+      }
+    } catch (error) {
+      console.error("Failed to load policies:", error);
+      setPolicyMessage("Failed to load policy documents");
+    } finally {
+      setLoadingPolicies(false);
+    }
+  }
+
+  async function savePolicies() {
+    if (!policies) return;
+    
+    setSavingPolicies(true);
+    setPolicyMessage(null);
+    try {
+      const res = await fetch("/api/admin/policies", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ policies }),
+      });
+
+      if (res.ok) {
+        setPolicyMessage("✅ Policy documents saved successfully!");
+        setTimeout(() => setPolicyMessage(null), 3000);
+      } else {
+        const error = await res.json();
+        setPolicyMessage(`❌ ${error.error || "Failed to save policies"}`);
+      }
+    } catch (error) {
+      console.error("Failed to save policies:", error);
+      setPolicyMessage("❌ Failed to save policy documents");
+    } finally {
+      setSavingPolicies(false);
+    }
+  }
+
+  function updatePolicyField(key: keyof PolicyDocuments, value: string) {
+    if (!policies) return;
+    setPolicies({
+      ...policies,
+      [key]: value,
+    });
   }
 
   function copyToClipboard(text: string) {
@@ -1156,6 +1217,126 @@ export default function AdminPage() {
               </div>
             ) : (
               <div>Failed to load configuration</div>
+            )}
+          </div>
+          
+          {/* Policy Documents */}
+          <div className="border border-gray-300 rounded p-4 bg-gray-50">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              📋 Terms & Privacy Policy
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Manage your site&apos;s Terms and Conditions and Privacy Policy. Users will see the simple versions during signup with links to the full versions. Both versions are required for legal compliance.
+            </p>
+            
+            {loadingPolicies ? (
+              <div>Loading policy documents...</div>
+            ) : policies ? (
+              <div className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Terms of Service - Simple */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      📝 Terms of Service (Simple Version)
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Brief, user-friendly version shown during signup. Keep it concise and accessible.
+                    </p>
+                    <textarea
+                      className="w-full border border-black p-2 bg-white text-sm"
+                      rows={4}
+                      value={policies.terms_simple}
+                      onChange={(e) => updatePolicyField("terms_simple", e.target.value)}
+                      placeholder="By creating an account, you agree to use our platform respectfully..."
+                    />
+                  </div>
+
+                  {/* Privacy Policy - Simple */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      🔒 Privacy Policy (Simple Version)
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Brief, user-friendly version shown during signup. Explain data handling simply.
+                    </p>
+                    <textarea
+                      className="w-full border border-black p-2 bg-white text-sm"
+                      rows={4}
+                      value={policies.privacy_simple}
+                      onChange={(e) => updatePolicyField("privacy_simple", e.target.value)}
+                      placeholder="We collect minimal personal information to provide our service..."
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Terms of Service - Full */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      📑 Terms of Service (Full Legal Version)
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Complete legal document. Users can access this via a link from the simple version. Supports Markdown formatting.
+                    </p>
+                    <textarea
+                      className="w-full border border-black p-2 bg-white text-sm font-mono"
+                      rows={8}
+                      value={policies.terms_full}
+                      onChange={(e) => updatePolicyField("terms_full", e.target.value)}
+                      placeholder="# Terms and Conditions
+
+## 1. Acceptance of Terms
+By creating an account on this platform..."
+                    />
+                  </div>
+
+                  {/* Privacy Policy - Full */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      🔐 Privacy Policy (Full Legal Version)
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Complete privacy policy. Users can access this via a link from the simple version. Supports Markdown formatting.
+                    </p>
+                    <textarea
+                      className="w-full border border-black p-2 bg-white text-sm font-mono"
+                      rows={8}
+                      value={policies.privacy_full}
+                      onChange={(e) => updatePolicyField("privacy_full", e.target.value)}
+                      placeholder="# Privacy Policy
+
+## 1. Information We Collect
+We collect information you provide when creating an account..."
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
+                  <button
+                    onClick={savePolicies}
+                    disabled={savingPolicies}
+                    className="border border-black px-4 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] disabled:opacity-50"
+                  >
+                    {savingPolicies ? "Saving..." : "Save Policy Documents"}
+                  </button>
+                  {policyMessage && (
+                    <span className="text-sm">{policyMessage}</span>
+                  )}
+                </div>
+
+                <div className="text-xs text-gray-500 bg-blue-50 border border-blue-200 rounded p-3">
+                  <div className="flex items-start gap-2">
+                    <span>ℹ️</span>
+                    <div>
+                      <strong>How it works:</strong> During signup, users will see the simple versions with checkboxes to agree. 
+                      Each simple version will include a link to &quot;Read the full version&quot; that opens the complete legal document. 
+                      Both checkboxes must be checked before users can create an account.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>Failed to load policy documents</div>
             )}
           </div>
         </CollapsibleSection>

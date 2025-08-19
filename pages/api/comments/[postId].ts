@@ -83,7 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         if (parentId && created.parent?.authorId) {
           // This is a reply to another comment
-          console.log(`Creating reply notification: ${authorId} replied to ${created.parent.authorId}`);
+          // Creating reply notification
           
           // Get post author's handle for the notification link
           const postAuthor = await db.user.findUnique({
@@ -101,7 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           );
         } else {
           // This is a top-level comment on a post
-          console.log(`Creating comment notification: ${authorId} commented on post by ${created.post.authorId}`);
+          // Creating comment notification
           
           // Get post author's handle for the notification link
           const postAuthor = await db.user.findUnique({

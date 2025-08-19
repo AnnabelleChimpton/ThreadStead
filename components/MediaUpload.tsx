@@ -118,7 +118,6 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
       }
     } catch (err) {
       setError('Upload failed. Please try again.');
-      console.error('Upload error:', err);
     } finally {
       setUploading(false);
     }
