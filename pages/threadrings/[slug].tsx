@@ -5,6 +5,8 @@ import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
 import PostItem, { Post } from "../../components/content/PostItem";
+import ThreadRingStats from "../../components/ThreadRingStats";
+import ThreadRingLineage from "../../components/ThreadRingLineage";
 
 interface ThreadRingPageProps {
   siteConfig: SiteConfig;
@@ -17,6 +19,7 @@ interface ThreadRing {
   name: string;
   slug: string;
   description?: string;
+  curatorNote?: string;
   joinType: string;
   visibility: string;
   memberCount: number;
@@ -91,12 +94,21 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
   const checkMembership = async () => {
     try {
-      const response = await fetch('/api/users/me');
+      const response = await fetch('/api/auth/me');
       if (response.ok) {
-        const userData = await response.json();
-        if (userData && ring) {
+        const authData = await response.json();
+        if (authData.loggedIn && authData.user && ring) {
+          const userId = authData.user.id;
+          
+          // Check if user is the curator first
+          if (userId === ring.curator.id) {
+            setIsMember(true);
+            setCurrentUserRole("curator");
+            return;
+          }
+          
           // Check if user is a member of this ring
-          const member = ring.members.find(m => m.user.id === userData.id);
+          const member = ring.members.find(m => m.user.id === userId);
           if (member) {
             setIsMember(true);
             setCurrentUserRole(member.role);
@@ -225,6 +237,17 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   {ring.description}
                 </p>
               )}
+              {ring.curatorNote && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-3">
+                  <div className="flex items-start">
+                    <div className="text-yellow-600 mr-2">📌</div>
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800 mb-1">Curator&apos;s Note</p>
+                      <p className="text-sm text-yellow-700">{ring.curatorNote}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-4 text-sm text-gray-600">
                 <span>Curated by @{curatorHandle}</span>
                 <span>•</span>
@@ -245,6 +268,15 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       {currentUserRole === "curator" ? "Curator" : 
                        currentUserRole === "moderator" ? "Moderator" : "Member"}
                     </div>
+                    {currentUserRole === "curator" && (
+                      <button
+                        onClick={() => router.push(`/threadrings/${ring.slug}/settings`)}
+                        className="text-sm border border-black px-4 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
+                        title="Manage ThreadRing settings"
+                      >
+                        ⚙️ Settings
+                      </button>
+                    )}
                     <button
                       onClick={handleLeave}
                       disabled={joining}
@@ -331,6 +363,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     post={post}
                     isOwner={false} // We'll need to determine this based on current user
                     onChanged={handlePostChanged}
+                    threadRingContext={{ slug: ring.slug, name: ring.name }}
+                    canModerateRing={currentUserRole === "curator" || currentUserRole === "moderator"}
                   />
                 ))}
                 
@@ -373,6 +407,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             </div>
           </div>
 
+          {/* ThreadRing Statistics */}
+          <ThreadRingStats threadRingSlug={ring.slug} />
+
           {/* Members */}
           <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000]">
             <h3 className="font-bold mb-3">Members ({ring.memberCount})</h3>
@@ -403,6 +440,12 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               })}
             </div>
           </div>
+
+          {/* Fork Lineage */}
+          <ThreadRingLineage 
+            threadRingSlug={ring.slug} 
+            ringName={ring.name}
+          />
         </div>
       </div>
     </Layout>

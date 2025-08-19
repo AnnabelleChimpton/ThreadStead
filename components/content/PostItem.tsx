@@ -26,6 +26,8 @@ export type Post = {
       slug: string;
     };
   }>;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
 };
 
 const VIS_OPTS: { v: Visibility; label: string }[] = [
@@ -53,6 +55,8 @@ export default function PostItem({
   onChanged,
   highlightCommentId,
   initialCommentsOpen = false,
+  threadRingContext = null,
+  canModerateRing = false,
 }: {
   post: Post;
   isOwner: boolean;
@@ -60,6 +64,8 @@ export default function PostItem({
   onChanged?: () => void | Promise<void>;
   highlightCommentId?: string | null;
   initialCommentsOpen?: boolean;
+  threadRingContext?: { slug: string; name: string } | null;
+  canModerateRing?: boolean;
 }) {
   const initialMode: Mode = post.bodyHtml ? "html" : "text";
 
@@ -229,11 +235,60 @@ const countLabel = hasServerCount
     setErr(null);
   }
 
+  async function handlePinToggle() {
+    if (!threadRingContext || !canModerateRing) return;
+    
+    setBusy(true);
+    setErr(null);
+    try {
+      const method = post.isPinned ? "DELETE" : "POST";
+      const res = await fetch(`/api/threadrings/${threadRingContext.slug}/posts/${post.id}/pin`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error(`pin toggle ${res.status}`);
+      
+      await onChanged?.();
+    } catch (e: any) {
+      setErr(e?.message || "Failed to toggle pin");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRemoveFromRing() {
+    if (!threadRingContext || !canModerateRing) return;
+    if (!confirm(`Remove this post from ${threadRingContext.name}?`)) return;
+    
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/threadrings/${threadRingContext.slug}/posts/${post.id}/remove`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error(`remove ${res.status}`);
+      
+      await onChanged?.();
+    } catch (e: any) {
+      setErr(e?.message || "Failed to remove from ThreadRing");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <article id={`post-${post.id.slice(-6)}`} className="blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000]" data-post-id={post.id.slice(-6)}>
+    <article id={`post-${post.id.slice(-6)}`} className={`blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`} data-post-id={post.id.slice(-6)}>
       <div className="blog-post-header flex items-center justify-between gap-3 mb-2">
-        <div className="blog-post-date text-xs opacity-70">
-          {new Date(post.createdAt).toLocaleString()}
+        <div className="flex items-center gap-2">
+          <div className="blog-post-date text-xs opacity-70">
+            {new Date(post.createdAt).toLocaleString()}
+          </div>
+          {post.isPinned && (
+            <span className="text-xs bg-yellow-200 px-2 py-1 border border-black rounded">
+              📌 Pinned
+            </span>
+          )}
         </div>
 
         <div className="blog-post-actions flex items-center gap-2">
@@ -266,6 +321,26 @@ const countLabel = hasServerCount
                 >
                   🛡️ Delete
                 </button>
+              )}
+              {threadRingContext && canModerateRing && (
+                <>
+                  <button
+                    className="profile-button ring-moderate-button border border-black px-2 py-0.5 bg-purple-100 hover:bg-purple-200 shadow-[2px_2px_0_#000] text-xs"
+                    onClick={handlePinToggle}
+                    disabled={busy}
+                    title={post.isPinned ? "Unpin post" : "Pin post"}
+                  >
+                    {post.isPinned ? "Unpin" : "Pin"}
+                  </button>
+                  <button
+                    className="profile-button ring-moderate-button border border-black px-2 py-0.5 bg-orange-100 hover:bg-orange-200 shadow-[2px_2px_0_#000] text-xs"
+                    onClick={handleRemoveFromRing}
+                    disabled={busy}
+                    title="Remove from ThreadRing"
+                  >
+                    Remove
+                  </button>
+                </>
               )}
             </>
           ) : (

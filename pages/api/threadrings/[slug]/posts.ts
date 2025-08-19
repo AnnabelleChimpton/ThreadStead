@@ -136,6 +136,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         },
         threadRings: {
+          where: {
+            threadRingId: threadRing.id
+          },
           include: {
             threadRing: {
               select: {
@@ -147,32 +150,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         }
       },
-      orderBy: {
-        createdAt: "desc"
-      },
+      orderBy: [
+        // Sort pinned posts first
+        {
+          threadRings: {
+            _count: "desc"
+          }
+        },
+        {
+          createdAt: "desc"
+        }
+      ],
       take: limit,
       skip: offset
     });
 
+    // Get pinned status for posts in this specific ThreadRing
+    const postIds = posts.map(p => p.id);
+    const pinnedPosts = await db.postThreadRing.findMany({
+      where: {
+        postId: { in: postIds },
+        threadRingId: threadRing.id,
+        isPinned: true
+      },
+      select: {
+        postId: true,
+        isPinned: true,
+        pinnedAt: true
+      }
+    });
+    
+    const pinnedMap = new Map(pinnedPosts.map(p => [p.postId, p]));
+
     // Transform posts to include username and comment count
-    const transformedPosts = posts.map(post => ({
-      id: post.id,
-      authorId: post.authorId,
-      authorUsername: post.author.handles[0]?.handle || null,
-      authorDisplayName: post.author.profile?.displayName || null,
-      authorAvatarUrl: post.author.profile?.avatarUrl || null,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
-      title: post.title,
-      bodyHtml: post.bodyHtml,
-      bodyText: post.bodyText,
-      bodyMarkdown: post.bodyMarkdown,
-      media: post.media,
-      tags: post.tags,
-      visibility: post.visibility,
-      commentCount: post.comments.length,
-      threadRings: post.threadRings
-    }));
+    const transformedPosts = posts.map(post => {
+      const pinned = pinnedMap.get(post.id);
+      return {
+        id: post.id,
+        authorId: post.authorId,
+        authorUsername: post.author.handles[0]?.handle || null,
+        authorDisplayName: post.author.profile?.displayName || null,
+        authorAvatarUrl: post.author.profile?.avatarUrl || null,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        title: post.title,
+        bodyHtml: post.bodyHtml,
+        bodyText: post.bodyText,
+        bodyMarkdown: post.bodyMarkdown,
+        media: post.media,
+        tags: post.tags,
+        visibility: post.visibility,
+        commentCount: post.comments.length,
+        threadRings: post.threadRings,
+        isPinned: pinned?.isPinned || false,
+        pinnedAt: pinned?.pinnedAt || null
+      };
+    });
+    
+    // Sort to ensure pinned posts are first
+    transformedPosts.sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
     return res.json({ 
       posts: transformedPosts,
