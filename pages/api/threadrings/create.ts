@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Generate or validate slug
-  let finalSlug = slug?.trim() || slugify(name.trim());
+  const finalSlug = slug?.trim() || slugify(name.trim());
   if (!finalSlug) {
     return res.status(400).json({ error: "Invalid name for slug generation" });
   }

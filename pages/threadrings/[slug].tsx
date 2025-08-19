@@ -153,7 +153,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   );
 }
 
-export const getServerSideProps: GetServerSideProps<ThreadRingPageProps> = async (context) => {
+export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteConfig = await getSiteConfig();
   const { slug } = context.params!;
   

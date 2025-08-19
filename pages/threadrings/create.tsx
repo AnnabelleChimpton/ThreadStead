@@ -23,7 +23,7 @@ export default function CreateThreadRingPage({ siteConfig }: CreateThreadRingPag
           <h1 className="thread-headline text-3xl font-bold mb-2">Create ThreadRing</h1>
           <p className="text-thread-sage leading-relaxed">
             Create a new community space where members can share posts and engage around common interests.
-            As the creator, you'll become the curator and can invite others to join.
+            As the creator, you&apos;ll become the curator and can invite others to join.
           </p>
         </div>
         <div className="thread-divider"></div>
