@@ -60,6 +60,13 @@ model User {
   // notifications
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsActedOn  Notification[] @relation("NotificationActor")
+
+  // threadrings
+  curatedThreadRings     ThreadRing[]       @relation("ThreadRingCurator")
+  threadRingMemberships  ThreadRingMember[] @relation("ThreadRingMemberships")
+  postThreadRingAdditions PostThreadRing[]  @relation("PostThreadRingAdditions")
+  threadRingInvitesSent     ThreadRingInvite[] @relation("ThreadRingInvitationsSent")
+  threadRingInvitesReceived ThreadRingInvite[] @relation("ThreadRingInvitationsReceived")
 }
 
 model Handle {
@@ -110,6 +117,7 @@ model Post {
   tags         String[]
   visibility   Visibility @default(public)
   comments     Comment[]  @relation("PostComments")
+  threadRings  PostThreadRing[] @relation("PostThreadRings")
   // future: signature, cid
 }
 
@@ -212,6 +220,10 @@ enum NotificationType {
   follow        // someone followed you
   friend        // someone became mutual friend
   guestbook     // someone signed your guestbook
+  threadring_invite // invited to join a threadring
+  threadring_join   // someone joined your threadring
+  threadring_post   // new post in a threadring you're in
+  threadring_fork   // someone forked your threadring
 }
 
 enum NotificationStatus {
@@ -329,3 +341,426 @@ model PhotoComment {
   @@index([authorId, createdAt])
   @@index([parentId])
 }
+
+enum ThreadRingJoinType {
+  open     // Anyone can join
+  invite   // Invitation only
+  closed   // No new members
+}
+
+enum ThreadRingVisibility {
+  public   // Visible in directory, searchable
+  unlisted // Direct link only
+  private  // Members only
+}
+
+enum ThreadRingRole {
+  member
+  moderator
+  curator
+}
+
+model ThreadRing {
+  id          String   @id @default(cuid())
+  uri         String   @unique // Canonical URI for federation
+  curatorId   String   // User who created/manages the ring
+  curator     User     @relation("ThreadRingCurator", fields: [curatorId], references: [id], onDelete: Cascade)
+  
+  name        String   // Display name of the ring
+  slug        String   @unique // URL-friendly identifier
+  description String?  // Optional description/rules
+  
+  // Ring settings
+  joinType    ThreadRingJoinType @default(open)
+  visibility  ThreadRingVisibility @default(public)
+  
+  // Denormalized counters for performance
+  memberCount Int      @default(1) // Start with 1 (the curator)
+  postCount   Int      @default(0)
+  
+  // Ring content
+  currentPrompt    String?  // Current prompt/challenge for members
+  curatorNote      String?  // Pinned curator's note
+  
+  // Ring members
+  members     ThreadRingMember[]
+  
+  // Posts associated with this ring
+  posts       PostThreadRing[]
+  
+  // Invitations
+  invites     ThreadRingInvite[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([curatorId])
+  @@index([slug])
+  @@index([uri])
+  @@index([visibility, joinType])
+  @@index([memberCount, postCount]) // For trending calculation
+}
+
+model ThreadRingMember {
+  id           String     @id @default(cuid())
+  threadRingId String
+  threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation("ThreadRingMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  
+  role         ThreadRingRole @default(member)
+  joinedAt     DateTime       @default(now())
+  
+  @@unique([threadRingId, userId])
+  @@index([userId])
+  @@index([threadRingId, role])
+}
+
+model PostThreadRing {
+  id           String     @id @default(cuid())
+  postId       String
+  post         Post       @relation("PostThreadRings", fields: [postId], references: [id], onDelete: Cascade)
+  threadRingId String
+  threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+  
+  addedAt      DateTime   @default(now())
+  addedBy      String     // User who associated the post with the ring
+  addedByUser  User       @relation("PostThreadRingAdditions", fields: [addedBy], references: [id], onDelete: Cascade)
+  
+  // Moderation
+  isPinned     Boolean    @default(false) // Curator can pin/feature posts
+  pinnedAt     DateTime?
+  pinnedBy     String?
+  
+  @@unique([postId, threadRingId])
+  @@index([threadRingId, addedAt])
+  @@index([threadRingId, isPinned, pinnedAt]) // For pinned posts query
+  @@index([postId])
+}
+
+model ThreadRingInvite {
+  id           String     @id @default(cuid())
+  threadRingId String
+  threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+  inviterId    String
+  inviter      User       @relation("ThreadRingInvitationsSent", fields: [inviterId], references: [id], onDelete: Cascade)
+  inviteeId    String
+  invitee      User       @relation("ThreadRingInvitationsReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
+  
+  status       ThreadRingInviteStatus @default(pending)
+  createdAt    DateTime               @default(now())
+  respondedAt  DateTime?
+  
+  @@unique([threadRingId, inviteeId])
+  @@index([inviteeId, status])
+  @@index([threadRingId])
+}
+
+enum ThreadRingInviteStatus {
+  pending
+  accepted
+  declined
+  revoked
+}
+
+// =====================================================
+// THREADRINGS FEATURE PLANNING NOTES
+// =====================================================
+// 
+// ThreadRings are communities reminiscent of old webrings but with a modern twist.
+// Each ThreadRing has:
+// - A curator (creator/owner) who manages the ring
+// - Members who can post to the ring
+// - Posts that members can associate with one or more rings
+// - A dedicated page showing ring posts, member list, and ring info
+// - Join settings: open join, invite only, or closed
+//
+// DATABASE SCHEMA ADDITIONS NEEDED:
+//
+// model ThreadRing {
+//   id          String   @id @default(cuid())
+//   uri         String   @unique // Canonical URI for federation (e.g. "threadstead.local/rings/webdev")
+//   curatorId   String   // User who created/manages the ring
+//   curator     User     @relation("ThreadRingCurator", fields: [curatorId], references: [id], onDelete: Cascade)
+//   
+//   name        String   // Display name of the ring
+//   slug        String   @unique // URL-friendly identifier
+//   description String?  // Optional description/rules
+//   
+//   // Ring settings
+//   joinType    ThreadRingJoinType @default(open) // open, invite, closed
+//   visibility  ThreadRingVisibility @default(public) // public, unlisted, private
+//   
+//   // Denormalized counters for performance
+//   memberCount Int      @default(0)
+//   postCount   Int      @default(0)
+//   
+//   // Ring content
+//   currentPrompt    String?  // Current prompt/challenge for members
+//   curatorNote      String?  // Pinned curator's note
+//   themeCss         String?  // Custom CSS theme (future)
+//   
+//   // Ring members
+//   members     ThreadRingMember[]
+//   
+//   // Posts associated with this ring
+//   posts       PostThreadRing[]
+//   
+//   // Invitations
+//   invites     ThreadRingInvite[]
+//   
+//   // Moderation
+//   blockedActors String[]  // URIs of blocked actors/instances
+//   auditLogs     ThreadRingAuditLog[]
+//   
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//   
+//   @@index([curatorId])
+//   @@index([slug])
+//   @@index([uri])
+//   @@index([visibility, joinType])
+//   @@index([memberCount, postCount]) // For trending calculation
+// }
+//
+// enum ThreadRingJoinType {
+//   open     // Anyone can join
+//   invite   // Invitation only
+//   closed   // No new members
+// }
+//
+// enum ThreadRingVisibility {
+//   public   // Visible in directory, searchable
+//   unlisted // Direct link only
+//   private  // Members only
+// }
+//
+// model ThreadRingMember {
+//   id           String     @id @default(cuid())
+//   threadRingId String
+//   threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+//   userId       String
+//   user         User       @relation("ThreadRingMemberships", fields: [userId], references: [id], onDelete: Cascade)
+//   
+//   role         ThreadRingRole @default(member)
+//   joinedAt     DateTime       @default(now())
+//   
+//   @@unique([threadRingId, userId])
+//   @@index([userId])
+//   @@index([threadRingId, role])
+// }
+//
+// enum ThreadRingRole {
+//   member
+//   moderator
+//   curator
+// }
+//
+// model PostThreadRing {
+//   id           String     @id @default(cuid())
+//   postId       String
+//   post         Post       @relation("PostThreadRings", fields: [postId], references: [id], onDelete: Cascade)
+//   threadRingId String
+//   threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+//   
+//   addedAt      DateTime   @default(now())
+//   addedBy      String     // User who associated the post with the ring
+//   addedByUser  User       @relation("PostThreadRingAdditions", fields: [addedBy], references: [id], onDelete: Cascade)
+//   
+//   // Moderation
+//   isPinned     Boolean    @default(false) // Curator can pin/feature posts
+//   pinnedAt     DateTime?
+//   pinnedBy     String?
+//   
+//   @@unique([postId, threadRingId])
+//   @@index([threadRingId, addedAt])
+//   @@index([threadRingId, isPinned, pinnedAt]) // For pinned posts query
+//   @@index([postId])
+// }
+//
+// model ThreadRingInvite {
+//   id           String     @id @default(cuid())
+//   threadRingId String
+//   threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+//   inviterId    String
+//   inviter      User       @relation("ThreadRingInvitationsSent", fields: [inviterId], references: [id], onDelete: Cascade)
+//   inviteeId    String
+//   invitee      User       @relation("ThreadRingInvitationsReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
+//   
+//   status       ThreadRingInviteStatus @default(pending)
+//   createdAt    DateTime               @default(now())
+//   respondedAt  DateTime?
+//   
+//   @@unique([threadRingId, inviteeId])
+//   @@index([inviteeId, status])
+//   @@index([threadRingId])
+// }
+//
+// enum ThreadRingInviteStatus {
+//   pending
+//   accepted
+//   declined
+//   revoked
+// }
+//
+// UPDATES TO EXISTING MODELS:
+//
+// Add to User model:
+//   curatedThreadRings     ThreadRing[]       @relation("ThreadRingCurator")
+//   threadRingMemberships  ThreadRingMember[] @relation("ThreadRingMemberships")
+//   postThreadRingAdditions PostThreadRing[]  @relation("PostThreadRingAdditions")
+//   threadRingInvitesSent     ThreadRingInvite[] @relation("ThreadRingInvitationsSent")
+//   threadRingInvitesReceived ThreadRingInvite[] @relation("ThreadRingInvitationsReceived")
+//
+// Add to Post model:
+//   threadRings PostThreadRing[] @relation("PostThreadRings")
+//
+// model ThreadRingFork {
+//   id               String     @id @default(cuid())
+//   originalRingId   String     // The ring that was forked
+//   originalRing     ThreadRing @relation("ThreadRingOriginal", fields: [originalRingId], references: [id], onDelete: Cascade)
+//   forkedRingId     String     @unique // The new ring created from the fork
+//   forkedRing       ThreadRing @relation("ThreadRingForked", fields: [forkedRingId], references: [id], onDelete: Cascade)
+//   forkedById       String     // User who performed the fork
+//   forkedBy         User       @relation("ThreadRingForks", fields: [forkedById], references: [id], onDelete: Cascade)
+//   
+//   parentRingUri    String     // URI of parent ring for federation/lineage
+//   forkReason       String?    // Optional reason/description for the fork
+//   createdAt        DateTime   @default(now())
+//   
+//   @@index([originalRingId])
+//   @@index([forkedById])
+//   @@index([parentRingUri]) // For federation lineage queries
+// }
+//
+// model ThreadRingAuditLog {
+//   id           String               @id @default(cuid())
+//   threadRingId String
+//   threadRing   ThreadRing           @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+//   actorId      String               // User who performed the action
+//   actor        User                 @relation("ThreadRingAuditActor", fields: [actorId], references: [id], onDelete: Cascade)
+//   
+//   action       ThreadRingAuditAction
+//   targetType   String?              // "user", "post", "ring"
+//   targetId     String?              // ID of the target
+//   targetUri    String?              // URI for federation
+//   oldValue     Json?                // Previous state
+//   newValue     Json?                // New state
+//   reason       String?              // Reason for the action
+//   
+//   createdAt    DateTime             @default(now())
+//   
+//   @@index([threadRingId, createdAt])
+//   @@index([actorId, createdAt])
+// }
+//
+// enum ThreadRingAuditAction {
+//   member_add
+//   member_remove
+//   member_role_change
+//   post_remove
+//   post_pin
+//   post_unpin
+//   ring_update
+//   user_block
+//   user_unblock
+// }
+//
+// UPDATES TO EXISTING MODELS (ADDITIONAL):
+//
+// Add to ThreadRing model:
+//   originalForks    ThreadRingFork[] @relation("ThreadRingOriginal")  // Rings forked from this one
+//   forkedFrom       ThreadRingFork?  @relation("ThreadRingForked")    // If this ring is a fork
+//
+// Add to User model:
+//   threadRingForks     ThreadRingFork[]     @relation("ThreadRingForks")
+//   threadRingAudits    ThreadRingAuditLog[] @relation("ThreadRingAuditActor")
+//
+// Add to Post model:
+//   uri          String?  @unique // Canonical URI for federation
+//
+// FEDERATION-READY MODELS (Optional now, saves migration pain later):
+//
+// model Actor {
+//   id        String    @id @default(cuid())
+//   uri       String    @unique // Actor URI (local or remote)
+//   type      ActorType // Person, Group, etc.
+//   inbox     String?   // ActivityPub inbox URL
+//   outbox    String?   // ActivityPub outbox URL
+//   publicKey String?   // PEM-encoded public key
+//   
+//   // Local actor details (null for remote actors)
+//   userId    String?   @unique
+//   user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   
+//   @@index([uri])
+//   @@index([type])
+// }
+//
+// enum ActorType {
+//   Person
+//   Group
+//   Service
+// }
+//
+// model OutboxEvent {
+//   id        String   @id @default(cuid())
+//   actorUri  String   // Actor who generated this event
+//   type      String   // ActivityPub activity type
+//   object    Json     // Activity object
+//   published DateTime @default(now())
+//   
+//   // Delivery tracking
+//   deliveries Delivery[]
+//   
+//   @@index([actorUri, published])
+// }
+//
+// model InboxMessage {
+//   id        String   @id @default(cuid())
+//   targetUri String   // Actor who should receive this
+//   type      String   // ActivityPub activity type
+//   object    Json     // Activity object
+//   signature String?  // HTTP signature for verification
+//   processed Boolean  @default(false)
+//   
+//   receivedAt DateTime @default(now())
+//   processedAt DateTime?
+//   
+//   @@index([targetUri, processed])
+//   @@index([receivedAt])
+// }
+//
+// model Delivery {
+//   id           String        @id @default(cuid())
+//   eventId      String
+//   event        OutboxEvent   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+//   targetInbox  String        // Remote inbox URL
+//   attempts     Int           @default(0)
+//   status       DeliveryStatus @default(pending)
+//   lastAttempt  DateTime?
+//   nextAttempt  DateTime?
+//   error        String?
+//   
+//   @@index([status, nextAttempt])
+//   @@index([eventId])
+// }
+//
+// enum DeliveryStatus {
+//   pending
+//   delivered
+//   failed
+//   permanent_failure
+// }
+//
+// NOTIFICATION UPDATES:
+// Add to NotificationType enum:
+//   threadring_invite    // invited to join a threadring
+//   threadring_join      // someone joined your threadring
+//   threadring_post      // new post in a threadring you're in
+//   threadring_fork      // someone forked your threadring (soft notification)
+//
+// =====================================================

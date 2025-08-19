@@ -195,6 +195,15 @@ export default function NewPostForm({
           ))}
         </select>
 
+        {/* THREADRINGS TODO: Add ThreadRing selection here */}
+        {/* Future implementation: Multi-select dropdown for ThreadRings user is a member of */}
+        {/* <div className="flex items-center gap-2">
+             <label className="text-sm">ThreadRings</label>
+             <select multiple className="border border-black bg-white px-2 py-1">
+               // List of user's ThreadRing memberships
+             </select>
+           </div> */}
+
         <button
           className="ml-auto border border-black px-3 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000]"
           disabled={busy || !text.trim()}

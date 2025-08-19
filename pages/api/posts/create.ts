@@ -13,12 +13,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const viewer = await getSessionUser(req);
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
-  const { title, bodyText, bodyHtml, bodyMarkdown, visibility } = (req.body || {}) as {
+  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds } = (req.body || {}) as {
     title?: string;
     bodyText?: string;
     bodyHtml?: string;
     bodyMarkdown?: string;
     visibility?: Visibility;
+    threadRingIds?: string[]; // THREADRINGS TODO: Array of ThreadRing IDs to associate with post
   };
 
   if (!bodyText && !bodyHtml && !bodyMarkdown) {
@@ -48,6 +49,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       tags: [],
     },
   });
+
+  // THREADRINGS TODO: Associate post with ThreadRings if provided
+  // if (threadRingIds && threadRingIds.length > 0) {
+  //   // 1. Validate user is member of all specified ThreadRings
+  //   // 2. Create PostThreadRing associations
+  //   // await db.postThreadRing.createMany({
+  //   //   data: threadRingIds.map(ringId => ({
+  //   //     postId: post.id,
+  //   //     threadRingId: ringId,
+  //   //     addedBy: viewer.id
+  //   //   }))
+  //   // });
+  // }
 
   res.status(201).json({ post });
 }
