@@ -11,6 +11,7 @@ A fully-featured retro-themed social networking template built with Next.js, fea
 - 🔔 **Real-time notifications** for comments, replies, and follows
 - 🔐 **Decentralized identity** using DID (Decentralized Identifiers)
 - 📧 **Optional email login** with magic links and encrypted storage
+- 📷 **Media uploads** with R2/S3 storage (avatars, photos, post images)
 - 🎫 **Beta key system** for controlled access
 - 📱 **Responsive design** that works on all devices
 - 🏗️ **Custom page creation** with full design freedom and built-in patterns
@@ -189,6 +190,137 @@ curl -X POST http://localhost:3000/api/auth/email-login \
   -d '{"email":"test@example.com","username":"testuser"}'
 ```
 
+### R2/S3 Storage Setup
+
+Threadstead requires S3-compatible storage for media uploads (avatars, photos, post images). You can use Cloudflare R2, AWS S3, or other compatible providers.
+
+#### 1. Choose a Storage Provider
+
+**Cloudflare R2 (Recommended)**
+- ✅ **Free tier**: 10GB storage, no egress fees
+- ✅ **S3-compatible**: Works with existing AWS SDKs
+- ✅ **Global CDN**: Built-in content delivery
+- ✅ **Cost-effective**: No bandwidth charges
+
+**AWS S3**
+- ✅ **Mature service**: Industry standard
+- ⚠️ **Egress costs**: Charges for data transfer out
+- ✅ **Many features**: Advanced storage classes, analytics
+
+**Other S3-Compatible Providers**
+- DigitalOcean Spaces, Wasabi, MinIO, etc.
+
+#### 2. Set Up Cloudflare R2 (Recommended)
+
+1. **Sign up** for [Cloudflare R2](https://developers.cloudflare.com/r2/)
+2. **Create a bucket**:
+   ```bash
+   # Example bucket name: yoursite-media
+   # Choose a region close to your users
+   ```
+3. **Create R2 API Token**:
+   - Go to R2 → Manage R2 API tokens
+   - Click "Create API token"
+   - Select "Object Read & Write" permissions
+   - Save the `Access Key ID` and `Secret Access Key`
+
+4. **Get bucket information**:
+   - **Account ID**: Found in Cloudflare dashboard sidebar
+   - **Bucket Name**: Your bucket name (e.g., `yoursite-media`)
+   - **Public URL**: `https://<account-id>.r2.cloudflarestorage.com`
+
+5. **Optional: Set up custom domain**:
+   - Go to your bucket → Settings → Custom Domains
+   - Add your domain (e.g., `cdn.yoursite.com`)
+   - Configure DNS CNAME record
+
+#### 3. Set Up AWS S3 (Alternative)
+
+1. **Create S3 bucket**:
+   - Sign in to [AWS Console](https://console.aws.amazon.com/s3/)
+   - Create bucket with appropriate name and region
+   - Configure public access settings for media serving
+
+2. **Create IAM user**:
+   - Go to IAM → Users → Create user
+   - Attach policy for S3 access (AmazonS3FullAccess or custom policy)
+   - Generate access keys
+
+3. **Configure CORS** (if serving directly):
+   ```json
+   [
+     {
+       "AllowedHeaders": ["*"],
+       "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+       "AllowedOrigins": ["https://yourdomain.com"],
+       "ExposeHeaders": []
+     }
+   ]
+   ```
+
+#### 4. Configure Environment Variables
+
+Add these to your `.env` file:
+
+```bash
+# R2/S3 Storage Configuration (Required for media uploads)
+R2_ACCOUNT_ID="your-account-id-here"
+R2_ACCESS_KEY_ID="your-access-key-id"  
+R2_SECRET_ACCESS_KEY="your-secret-access-key"
+R2_BUCKET_NAME="yoursite-media"
+R2_PUBLIC_URL="https://your-account-id.r2.cloudflarestorage.com"
+R2_CDN_URL="https://cdn.yoursite.com"  # Optional: Custom domain
+```
+
+**Variable Explanations:**
+- `R2_ACCOUNT_ID`: Your Cloudflare account ID (or AWS account for S3)
+- `R2_ACCESS_KEY_ID`: Storage service access key
+- `R2_SECRET_ACCESS_KEY`: Storage service secret key
+- `R2_BUCKET_NAME`: Your bucket name
+- `R2_PUBLIC_URL`: Direct bucket access URL
+- `R2_CDN_URL`: Custom domain URL (optional, falls back to public URL)
+
+#### 5. Storage Features
+
+Once configured, users can:
+
+- **Upload avatars** via profile settings
+- **Upload photos** to personal galleries  
+- **Attach images** to posts and comments
+- **Automatic optimization** and serving via CDN
+
+#### 6. Production Considerations
+
+**Security:**
+- Use least-privilege IAM policies
+- Enable versioning for important data
+- Configure proper CORS policies
+- Use HTTPS for all storage URLs
+
+**Performance:**
+- Choose regions close to your users
+- Use custom domains/CDN for faster loading
+- Consider CloudFlare's global network for R2
+- Monitor storage usage and costs
+
+**Backup:**
+- Enable bucket versioning
+- Set up lifecycle policies for old versions
+- Consider cross-region replication for critical data
+
+**Cost Optimization:**
+- R2: No egress fees, flat storage pricing
+- S3: Watch for egress costs, use CloudFront CDN
+- Monitor usage with provider dashboards
+
+**Testing Storage:**
+```bash
+# Test storage configuration
+npm run dev
+# Go to profile settings and try uploading an avatar
+# Check browser network tab for successful uploads
+```
+
 ## 🏗️ Production Deployment
 
 ### 1. Prepare Environment
@@ -225,6 +357,13 @@ npm run beta:generate 10
 - [ ] Set `CAP_AUDIENCE` to your domain
 - [ ] Customize `SITE_NAME` and defaults
 - [ ] Generate beta keys if `BETA_KEYS_ENABLED=true`
+- [ ] **R2/S3 Storage (Required):**
+  - [ ] Choose storage provider (Cloudflare R2, AWS S3, etc.)
+  - [ ] Create bucket and configure permissions
+  - [ ] Generate access keys with appropriate permissions
+  - [ ] Configure all `R2_*` environment variables
+  - [ ] Set up custom domain/CDN (optional)
+  - [ ] Test media uploads (avatars, photos)
 - [ ] **Email Authentication (Optional):**
   - [ ] Generate `EMAIL_ENCRYPTION_KEY` with `npm run email:generate-key`
   - [ ] Set up Resend account and verify domain
@@ -275,6 +414,7 @@ For detailed examples and patterns, see [DESIGN.md](DESIGN.md).
 - **Posts**: Create, edit, delete posts with markdown support
 - **Comments**: Nested comment threads with notifications
 - **Guestbook**: Visitor messages on user profiles
+- **Media Uploads**: Avatar photos, post images, and personal galleries
 
 ### Social Features
 - **Following**: Follow other users to see their content
