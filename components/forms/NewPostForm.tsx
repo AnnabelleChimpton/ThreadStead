@@ -13,6 +13,14 @@ type NewPostFormProps = {
   existingPost?: { title?: string; bodyMarkdown: string; bodyHtml: string; visibility: Visibility }; // Existing post data
 };
 
+type ThreadRingMembership = {
+  id: string;
+  name: string;
+  slug: string;
+  role: string;
+  visibility: string;
+};
+
 const VIS_OPTS: { v: Visibility; label: string }[] = [
   { v: "public", label: "Public" },
   { v: "followers", label: "Followers" },
@@ -49,6 +57,11 @@ export default function NewPostForm({
   const [view, setView] = useState<View>("write");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  
+  // ThreadRing selection state
+  const [threadRings, setThreadRings] = useState<ThreadRingMembership[]>([]);
+  const [selectedRings, setSelectedRings] = useState<string[]>([]);
+  const [ringsLoading, setRingsLoading] = useState(false);
 
   const previewHtml = useMemo(() => {
     if (!text.trim()) return "<p class='opacity-60'>(Nothing to preview)</p>";
@@ -66,7 +79,25 @@ export default function NewPostForm({
 
     // Highlight the content after it's loaded (even for write mode)
     highlightCodeBlocks();
+    
+    // Fetch user's ThreadRing memberships
+    fetchThreadRingMemberships();
   }, [existingPost]);
+
+  const fetchThreadRingMemberships = async () => {
+    setRingsLoading(true);
+    try {
+      const response = await fetch("/api/threadrings/my-memberships");
+      if (response.ok) {
+        const { rings } = await response.json();
+        setThreadRings(rings);
+      }
+    } catch (error) {
+      console.error("Failed to fetch ThreadRing memberships:", error);
+    } finally {
+      setRingsLoading(false);
+    }
+  };
 
   const highlightCodeBlocks = () => {
     // Trigger highlighting for the current content
@@ -97,6 +128,11 @@ export default function NewPostForm({
       if (mode === "markdown") payload.bodyMarkdown = body;
       else if (mode === "html") payload.bodyHtml = body;
       else payload.bodyText = body;
+      
+      // Include selected ThreadRings
+      if (selectedRings.length > 0) {
+        payload.threadRingIds = selectedRings;
+      }
 
       const res = await fetch(postId ? `/api/posts/update/${postId}` : "/api/posts/create", {
         method: postId ? "PUT" : "POST",
@@ -107,6 +143,7 @@ export default function NewPostForm({
 
       setTitle("");
       setText("");
+      setSelectedRings([]);
       setView("write");
       await onPosted?.();
     } catch (e: any) {
@@ -195,14 +232,48 @@ export default function NewPostForm({
           ))}
         </select>
 
-        {/* THREADRINGS TODO: Add ThreadRing selection here */}
-        {/* Future implementation: Multi-select dropdown for ThreadRings user is a member of */}
-        {/* <div className="flex items-center gap-2">
-             <label className="text-sm">ThreadRings</label>
-             <select multiple className="border border-black bg-white px-2 py-1">
-               // List of user's ThreadRing memberships
-             </select>
-           </div> */}
+        {/* ThreadRing Selection */}
+        {threadRings.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold">Share to ThreadRings</label>
+            <div className="border border-black p-2 bg-white max-h-32 overflow-y-auto">
+              {ringsLoading ? (
+                <div className="text-sm text-gray-500">Loading your ThreadRings...</div>
+              ) : (
+                <div className="space-y-1">
+                  {threadRings.map((ring) => (
+                    <label key={ring.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={selectedRings.includes(ring.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedRings([...selectedRings, ring.id]);
+                          } else {
+                            setSelectedRings(selectedRings.filter(id => id !== ring.id));
+                          }
+                        }}
+                        disabled={busy}
+                      />
+                      <span className="flex-1">{ring.name}</span>
+                      {ring.role === "curator" && (
+                        <span className="text-xs bg-yellow-200 px-1 py-0.5 rounded">Curator</span>
+                      )}
+                      {ring.role === "moderator" && (
+                        <span className="text-xs bg-blue-200 px-1 py-0.5 rounded">Mod</span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            {selectedRings.length > 0 && (
+              <div className="text-xs text-gray-600">
+                Selected {selectedRings.length} ThreadRing{selectedRings.length !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           className="ml-auto border border-black px-3 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000]"

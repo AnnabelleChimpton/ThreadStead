@@ -38,6 +38,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           select: {
             id: true
           }
+        },
+        threadRings: {
+          include: {
+            threadRing: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
         }
       },
       orderBy: {
@@ -61,7 +72,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bodyMarkdown: post.bodyMarkdown,
       media: post.media,
       tags: post.tags,
-      commentCount: post.comments.length
+      commentCount: post.comments.length,
+      threadRings: post.threadRings
     }));
 
     return res.json({ 

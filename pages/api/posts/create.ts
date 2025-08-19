@@ -50,18 +50,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
   });
 
-  // THREADRINGS TODO: Associate post with ThreadRings if provided
-  // if (threadRingIds && threadRingIds.length > 0) {
-  //   // 1. Validate user is member of all specified ThreadRings
-  //   // 2. Create PostThreadRing associations
-  //   // await db.postThreadRing.createMany({
-  //   //   data: threadRingIds.map(ringId => ({
-  //   //     postId: post.id,
-  //   //     threadRingId: ringId,
-  //   //     addedBy: viewer.id
-  //   //   }))
-  //   // });
-  // }
+  // Associate post with ThreadRings if provided
+  if (threadRingIds && threadRingIds.length > 0) {
+    try {
+      // 1. Validate user is member of all specified ThreadRings
+      const userMemberships = await db.threadRingMember.findMany({
+        where: {
+          userId: viewer.id,
+          threadRingId: { in: threadRingIds }
+        },
+        select: { threadRingId: true }
+      });
+
+      const validRingIds = userMemberships.map(m => m.threadRingId);
+      
+      if (validRingIds.length > 0) {
+        // 2. Create PostThreadRing associations
+        await db.postThreadRing.createMany({
+          data: validRingIds.map(ringId => ({
+            postId: post.id,
+            threadRingId: ringId,
+            addedBy: viewer.id
+          }))
+        });
+
+        // 3. Update post counts for the ThreadRings
+        await db.threadRing.updateMany({
+          where: { id: { in: validRingIds } },
+          data: { postCount: { increment: 1 } }
+        });
+      }
+    } catch (ringError) {
+      console.error("ThreadRing association error:", ringError);
+      // Don't fail the entire post creation if ThreadRing association fails
+    }
+  }
 
   res.status(201).json({ post });
 }

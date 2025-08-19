@@ -67,6 +67,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               }
             }
           }
+        },
+        threadRings: {
+          include: {
+            threadRing: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
         }
       },
       orderBy: [
@@ -99,7 +110,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       tags: post.tags,
       commentCount: post._count.comments,
       lastCommentAt: post.comments[0]?.createdAt || null,
-      lastCommenterUsername: post.comments[0]?.author?.handles[0]?.handle || null
+      lastCommenterUsername: post.comments[0]?.author?.handles[0]?.handle || null,
+      threadRings: post.threadRings
     }));
 
     return res.json({ 

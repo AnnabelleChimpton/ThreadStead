@@ -30,6 +30,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
           },
         },
+        threadRings: {
+          include: {
+            threadRing: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
       },
     });
 

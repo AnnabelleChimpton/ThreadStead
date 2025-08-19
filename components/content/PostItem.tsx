@@ -4,6 +4,7 @@ import hljs from "highlight.js"; // Ensure highlight.js is imported
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../forms/NewCommentForm";
 import Link from "next/link";
+import ThreadRingBadge from "../ThreadRingBadge";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -18,6 +19,13 @@ export type Post = {
   bodyMarkdown?: string | null; // Ensure bodyMarkdown is available for edit
   visibility: Visibility;
   author?: { id: string; primaryHandle?: string; profile?: { displayName?: string } };
+  threadRings?: Array<{
+    threadRing: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }>;
 };
 
 const VIS_OPTS: { v: Visibility; label: string }[] = [
@@ -355,6 +363,22 @@ const countLabel = hasServerCount
               <p>{post.bodyText}</p>
             ) : (
               <div className="italic opacity-70">(No content)</div>
+            )}
+            
+            {/* ThreadRing badges */}
+            {post.threadRings && post.threadRings.length > 0 && (
+              <div className="mt-3 pt-2 border-t border-gray-200">
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-xs text-gray-600 font-medium">Posted to:</span>
+                  {post.threadRings.map((association) => (
+                    <ThreadRingBadge
+                      key={association.threadRing.id}
+                      threadRing={association.threadRing}
+                      size="small"
+                    />
+                  ))}
+                </div>
+              </div>
             )}
           </>
         ) : view === "write" ? (

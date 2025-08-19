@@ -4,6 +4,7 @@ import Layout from "../../components/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
+import PostItem, { Post } from "../../components/content/PostItem";
 
 interface ThreadRingPageProps {
   siteConfig: SiteConfig;
@@ -45,6 +46,58 @@ interface ThreadRing {
 }
 
 export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPageProps) {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+
+  useEffect(() => {
+    if (!ring) return;
+    
+    const fetchPosts = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/threadrings/${ring.slug}/posts`);
+        
+        if (!response.ok) {
+          if (response.status === 403) {
+            setLoadError("You don't have permission to view posts in this ThreadRing");
+          } else {
+            setLoadError("Failed to load posts");
+          }
+          return;
+        }
+        
+        const data = await response.json();
+        setPosts(data.posts);
+        setHasMore(data.hasMore);
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+        setLoadError("Failed to load posts");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, [ring]);
+
+  const handlePostChanged = async () => {
+    // Refetch posts when a post is updated/deleted
+    if (!ring) return;
+    
+    try {
+      const response = await fetch(`/api/threadrings/${ring.slug}/posts`);
+      if (response.ok) {
+        const data = await response.json();
+        setPosts(data.posts);
+        setHasMore(data.hasMore);
+      }
+    } catch (error) {
+      console.error("Error refetching posts:", error);
+    }
+  };
+
   if (error || !ring) {
     return (
       <Layout siteConfig={siteConfig}>
@@ -86,13 +139,49 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main content area - placeholder for posts */}
+        {/* Main content area - posts feed */}
         <div className="lg:col-span-2">
           <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000]">
             <h2 className="text-xl font-bold mb-4">Recent Posts</h2>
-            <div className="text-gray-600 text-center py-8">
-              No posts yet. Posts from members will appear here.
-            </div>
+            
+            {loading ? (
+              <div className="text-gray-600 text-center py-8">
+                Loading posts...
+              </div>
+            ) : loadError ? (
+              <div className="text-red-600 text-center py-8">
+                {loadError}
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="text-gray-600 text-center py-8">
+                No posts yet. Posts from members will appear here.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {posts.map((post, index) => (
+                  <PostItem
+                    key={post.id}
+                    post={post}
+                    isOwner={false} // We'll need to determine this based on current user
+                    onChanged={handlePostChanged}
+                  />
+                ))}
+                
+                {hasMore && (
+                  <div className="text-center py-4">
+                    <button 
+                      className="border border-black px-4 py-2 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] text-sm"
+                      onClick={() => {
+                        // TODO: Implement load more functionality
+                        console.log("Load more posts");
+                      }}
+                    >
+                      Load More Posts
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
