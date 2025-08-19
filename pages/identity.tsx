@@ -37,9 +37,19 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
   const [showRecovery, setShowRecovery] = useState(false);
   const [showUsernameSelector, setShowUsernameSelector] = useState(false);
   const [showSeedPhraseStep, setShowSeedPhraseStep] = useState(false);
+  const [showOptionalEmailStep, setShowOptionalEmailStep] = useState(false);
+  const [newAccountEmail, setNewAccountEmail] = useState('');
+  const [isNewAccountFlow, setIsNewAccountFlow] = useState(false);
   
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Email management states
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [emailVerifiedAt, setEmailVerifiedAt] = useState<Date | null>(null);
+  const [showEmailSection, setShowEmailSection] = useState(false);
+  const [emailInput, setEmailInput] = useState<string>('');
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
 
   async function loadCurrentIdentity() {
     try {
@@ -47,8 +57,24 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
       setCurrentIdentity(identity);
       const seedData = getSeedPhrase();
       setCurrentSeedPhrase(seedData);
+      await loadUserEmail();
     } catch (e) {
       // Identity loading failed silently
+    }
+  }
+
+  async function loadUserEmail() {
+    if (!initialUser) return;
+    
+    try {
+      const response = await fetch('/api/user/email');
+      if (response.ok) {
+        const data = await response.json();
+        setUserEmail(data.email || '');
+        setEmailVerifiedAt(data.emailVerifiedAt ? new Date(data.emailVerifiedAt) : null);
+      }
+    } catch (error) {
+      console.error('Failed to load user email:', error);
     }
   }
 
@@ -145,6 +171,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
   }
 
   async function handleCreateWithSeedPhrase() {
+    setIsNewAccountFlow(true);
     setShowUsernameSelector(true);
   }
 
@@ -221,13 +248,133 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
       // Seed phrase is already stored by createNewIdentityWithSeedPhrase or updateIdentityWithSeedPhrase
       setShowSeedPhraseStep(false);
       setSeedPhrase("");
-      setMessage({ type: 'success', text: 'Seed phrase saved! Your account has been updated with the new recovery phrase.' });
-      // Stay on the identity page to show the logged-in state
-      setTimeout(() => {
-        setMessage(null);
-        // Reload the page to reflect the new logged-in state
-        window.location.reload();
-      }, 1500);
+      
+      // Show optional email step for new accounts
+      if (isNewAccountFlow) {
+        setShowOptionalEmailStep(true);
+      } else {
+        setMessage({ type: 'success', text: 'Seed phrase saved! Your account has been updated with the new recovery phrase.' });
+        // Stay on the identity page to show the logged-in state
+        setTimeout(() => {
+          setMessage(null);
+          // Reload the page to reflect the new logged-in state
+          window.location.reload();
+        }, 1500);
+      }
+    }
+  }
+
+  // New account email handlers
+  async function handleNewAccountAddEmail() {
+    if (!newAccountEmail.trim()) return;
+    
+    setIsEmailLoading(true);
+    try {
+      const response = await fetch('/api/user/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newAccountEmail.trim() })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update local state to reflect the new email status
+        setUserEmail(newAccountEmail.trim());
+        setEmailVerifiedAt(null); // Email is not yet verified
+        setMessage({ type: 'success', text: data.message });
+        handleCompleteNewAccountFlow();
+      } else {
+        const error = await response.json();
+        setMessage({ type: 'error', text: error.error || 'Failed to add email' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to add email. Please try again.' });
+    } finally {
+      setIsEmailLoading(false);
+    }
+  }
+
+  function handleSkipNewAccountEmail() {
+    handleCompleteNewAccountFlow();
+  }
+
+  function handleCompleteNewAccountFlow() {
+    setShowOptionalEmailStep(false);
+    setNewAccountEmail('');
+    setIsNewAccountFlow(false);
+    setMessage({ type: 'success', text: 'Account created successfully! Welcome to the community.' });
+    // Stay on the identity page to show the logged-in state
+    // Don't reload immediately so users can see the email verification status
+    setTimeout(() => {
+      setMessage(null);
+    }, 3000);
+  }
+
+  // Email management functions
+  async function handleSetEmail() {
+    if (!emailInput.trim()) {
+      setMessage({ type: 'error', text: 'Please enter an email address' });
+      return;
+    }
+
+    setIsEmailLoading(true);
+    try {
+      const response = await fetch('/api/user/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput.trim() })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.requiresVerification) {
+          // Update local state to show pending verification
+          setUserEmail(emailInput.trim());
+          setEmailVerifiedAt(null);
+          setEmailInput('');
+          setShowEmailSection(false);
+          setMessage({ type: 'success', text: data.message });
+        } else {
+          setUserEmail(emailInput.trim());
+          setEmailVerifiedAt(null);
+          setEmailInput('');
+          setShowEmailSection(false);
+          setMessage({ type: 'success', text: 'Email updated successfully!' });
+        }
+      } else {
+        const error = await response.json();
+        setMessage({ type: 'error', text: error.error || 'Failed to update email' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to update email. Please try again.' });
+    } finally {
+      setIsEmailLoading(false);
+    }
+  }
+
+  async function handleRemoveEmail() {
+    if (!confirm('Are you sure you want to remove your email address? You will no longer be able to use email login.')) {
+      return;
+    }
+
+    setIsEmailLoading(true);
+    try {
+      const response = await fetch('/api/user/email', {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        setUserEmail('');
+        setEmailVerifiedAt(null);
+        setMessage({ type: 'success', text: 'Email removed successfully' });
+      } else {
+        const error = await response.json();
+        setMessage({ type: 'error', text: error.error || 'Failed to remove email' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to remove email. Please try again.' });
+    } finally {
+      setIsEmailLoading(false);
     }
   }
 
@@ -244,6 +391,124 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
             confirmButtonText="Create Account"
             isLoading={isLoading}
           />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Optional Email Step for New Accounts
+  if (showOptionalEmailStep) {
+    return (
+      <Layout>
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="w-full max-w-2xl">
+              {/* Progress Indicator */}
+              <div className="text-center mb-8">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-medium">✓</div>
+                  <div className="w-16 h-1 bg-green-500 rounded"></div>
+                  <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-medium">✓</div>
+                  <div className="w-16 h-1 bg-thread-pine rounded"></div>
+                  <div className="w-8 h-8 bg-thread-pine text-white rounded-full flex items-center justify-center text-sm font-medium">3</div>
+                </div>
+                <p className="text-sm text-thread-sage">Step 3 of 3: Optional Email Setup</p>
+              </div>
+
+              <div className="bg-gradient-to-r from-thread-cream to-blue-50 border-2 border-thread-sage rounded-lg p-8">
+                <div className="text-center mb-8">
+                  <h1 className="thread-headline text-3xl mb-4">📧 Add Email Address (Optional)</h1>
+                  <h2 className="text-xl font-medium text-thread-pine mb-4">Enable Email Login</h2>
+                </div>
+
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6">
+                  <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                    <span>ℹ️</span>
+                    Why add an email address?
+                  </h3>
+                  <ul className="text-blue-700 space-y-2 mb-4">
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 font-bold">✓</span>
+                      <span className="text-sm">Sign in without your seed phrase using magic links</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 font-bold">✓</span>
+                      <span className="text-sm">Account recovery option if you lose access</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 font-bold">✓</span>
+                      <span className="text-sm">Multiple accounts can use the same email</span>
+                    </li>
+                  </ul>
+                  <div className="bg-green-50 border border-green-200 p-3 rounded">
+                    <p className="text-green-800 text-sm font-medium">
+                      <strong>Privacy guarantee:</strong> We will never send marketing emails or share your address. 
+                      It&apos;s strictly for secure login purposes only.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="newAccountEmail" className="block text-sm font-medium text-thread-pine mb-2">
+                      Email address
+                    </label>
+                    <input
+                      id="newAccountEmail"
+                      type="email"
+                      value={newAccountEmail}
+                      onChange={(e) => setNewAccountEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full px-4 py-3 text-lg border-2 border-thread-sage rounded-lg bg-white focus:border-thread-pine outline-none transition-colors"
+                      disabled={isEmailLoading}
+                    />
+                  </div>
+
+                  {message && (
+                    <div className={`p-4 rounded text-sm ${
+                      message.type === 'success' 
+                        ? 'bg-green-100 border border-green-300 text-green-800' 
+                        : 'bg-red-100 border border-red-300 text-red-800'
+                    }`}>
+                      {message.text}
+                    </div>
+                  )}
+
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      onClick={handleSkipNewAccountEmail}
+                      disabled={isEmailLoading}
+                      className="px-6 py-3 text-lg border-2 border-gray-400 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all disabled:opacity-50 flex items-center gap-2"
+                    >
+                      <span>⏭️</span>
+                      Skip for now
+                    </button>
+                    <button
+                      onClick={handleNewAccountAddEmail}
+                      disabled={!newAccountEmail.trim() || isEmailLoading}
+                      className="px-6 py-3 text-lg bg-thread-pine hover:bg-thread-charcoal text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isEmailLoading ? (
+                        <>
+                          <span>⏳</span>
+                          Adding...
+                        </>
+                      ) : (
+                        <>
+                          <span>✓</span>
+                          Add Email & Continue
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-center text-sm text-thread-sage mt-6">
+                    You can always add or change your email later from this Identity page.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -435,6 +700,26 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                 </div>
               )}
               <div className="flex items-center gap-2">
+                <span className="text-sm text-thread-sage">Email Login:</span>
+                {userEmail ? (
+                  <div className="flex items-center gap-2">
+                    {emailVerifiedAt ? (
+                      <>
+                        <span className="text-green-600 text-sm font-medium">✓ {userEmail}</span>
+                        <span className="text-xs text-green-500">(verified)</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-amber-600 text-sm font-medium">⏳ {userEmail}</span>
+                        <span className="text-xs text-amber-500">(pending verification)</span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-gray-500 text-sm">Not set</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
                 <span className="text-sm text-thread-sage">Seed Phrase Recovery:</span>
                 {currentSeedPhrase ? (
                   <span className="text-green-600 text-sm font-medium">✓ Enabled</span>
@@ -504,6 +789,129 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               Import Legacy Token
             </button>
           </div>
+
+          {/* Email Login Management */}
+          {currentIdentity && (
+            <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
+              <h3 className="thread-label text-lg mb-3 flex items-center gap-2">
+                <span>📧</span>
+                Email Login
+              </h3>
+              <div className="space-y-3">
+                {userEmail ? (
+                  emailVerifiedAt ? (
+                    <div className="bg-green-50 border border-green-200 p-3 rounded text-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-green-800 font-medium">✓ Email verified: {userEmail}</span>
+                        <span className="text-xs text-green-600">Active</span>
+                      </div>
+                      <p className="text-green-700 text-xs mb-3">
+                        You can now login using magic links sent to this email address.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setEmailInput(userEmail);
+                            setShowEmailSection(true);
+                          }}
+                          disabled={isEmailLoading}
+                          className="text-xs bg-green-100 hover:bg-green-200 border border-green-300 px-3 py-1 rounded transition-all disabled:opacity-50"
+                        >
+                          Change Email
+                        </button>
+                        <button
+                          onClick={handleRemoveEmail}
+                          disabled={isEmailLoading}
+                          className="text-xs bg-red-100 hover:bg-red-200 border border-red-300 px-3 py-1 rounded transition-all disabled:opacity-50"
+                        >
+                          Remove Email
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 p-3 rounded text-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-amber-800 font-medium">⏳ Email pending verification</span>
+                        <span className="text-xs text-amber-600">Unverified</span>
+                      </div>
+                      <p className="text-amber-700 text-xs mb-3">
+                        Check your email and click the verification link to enable email login.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setEmailInput(userEmail);
+                            setShowEmailSection(true);
+                          }}
+                          disabled={isEmailLoading}
+                          className="text-xs bg-amber-100 hover:bg-amber-200 border border-amber-300 px-3 py-1 rounded transition-all disabled:opacity-50"
+                        >
+                          Resend Verification
+                        </button>
+                        <button
+                          onClick={handleRemoveEmail}
+                          disabled={isEmailLoading}
+                          className="text-xs bg-red-100 hover:bg-red-200 border border-red-300 px-3 py-1 rounded transition-all disabled:opacity-50"
+                        >
+                          Remove Email
+                        </button>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 p-3 rounded text-sm">
+                    <p className="text-gray-800 font-medium mb-2">📧 Email login not set</p>
+                    <p className="text-gray-700 text-xs mb-3">
+                      Add an email address to enable magic link login as an alternative to your DID key. You&apos;ll need to verify the email before it can be used for login.
+                    </p>
+                    <button
+                      onClick={() => setShowEmailSection(true)}
+                      disabled={isEmailLoading}
+                      className="text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 px-3 py-1 rounded transition-all disabled:opacity-50"
+                    >
+                      Add Email Address
+                    </button>
+                  </div>
+                )}
+
+                {showEmailSection && (
+                  <div className="bg-thread-cream border border-thread-sage p-3 rounded space-y-3">
+                    <h4 className="text-sm font-medium text-thread-pine">Set Email Address</h4>
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full px-3 py-2 text-sm border border-thread-sage rounded bg-thread-paper"
+                      disabled={isEmailLoading}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSetEmail}
+                        disabled={isEmailLoading || !emailInput.trim()}
+                        className="text-xs bg-thread-pine hover:bg-thread-charcoal text-white px-3 py-1 rounded transition-all disabled:opacity-50"
+                      >
+                        {isEmailLoading ? "Saving..." : "Save Email"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowEmailSection(false);
+                          setEmailInput('');
+                        }}
+                        className="text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 px-3 py-1 rounded transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                <p className="text-sm text-thread-sage leading-relaxed">
+                  Email addresses are encrypted and stored securely. You must verify your email before it can be used for login. Multiple accounts can share the same email.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Current Account Backup */}
           {currentIdentity && (

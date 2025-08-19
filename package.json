@@ -16,7 +16,9 @@
     "beta:generate": "tsx scripts/generate-beta-key.ts",
     "beta:list": "tsx scripts/manage-beta-keys.ts list",
     "migrate-users": "tsx scripts/migrate-legacy-users.ts",
-    "promote-admin": "tsx scripts/promote-to-admin.ts"
+    "promote-admin": "tsx scripts/promote-to-admin.ts",
+    "email:generate-key": "tsx scripts/generate-email-encryption-key.ts",
+    "email:test-encryption": "tsx scripts/test-email-encryption.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
@@ -38,6 +40,7 @@
     "react-image-crop": "^11.0.10",
     "rehype-parse": "^9.0.1",
     "rehype-sanitize": "^6.0.0",
+    "resend": "^6.0.1",
     "sharp": "^0.34.3",
     "unified": "^11.0.5"
   },

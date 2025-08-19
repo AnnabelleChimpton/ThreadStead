@@ -34,6 +34,10 @@ model User {
   handles       Handle[]
   primaryHandle String?
 
+  // optional email for login (encrypted at rest)
+  encryptedEmail String? // AES-256-GCM encrypted email
+  emailVerifiedAt DateTime? // when email was verified
+
   // storage pointers (future: let users point to their own stores)
   publicBaseUrl  String?
   sharedBaseUrl  String?
@@ -180,6 +184,26 @@ model Session {
   expiresAt DateTime
   // store a random secret to bind cookie to server state
   secret    String   @unique
+}
+
+enum EmailTokenType {
+  login        // For magic link login
+  verification // For email verification
+}
+
+model EmailLoginToken {
+  id        String   @id @default(cuid())
+  token     String   @unique // secure random token for email login
+  encryptedEmail String // encrypted email this token is for
+  type      EmailTokenType @default(login) // token type
+  userId    String?  // for verification tokens, the user setting the email
+  expiresAt DateTime // short expiration (15 minutes)
+  usedAt    DateTime? // when token was used (null = unused)
+  createdAt DateTime @default(now())
+  
+  @@index([token])
+  @@index([encryptedEmail, expiresAt])
+  @@index([userId, type])
 }
 
 model CapabilityGrant {
