@@ -4,6 +4,7 @@ import ThreadRingCard from "../../components/ThreadRingCard";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
+import { featureFlags } from "@/lib/feature-flags";
 
 interface ThreadRingsPageProps {
   siteConfig: SiteConfig;
@@ -250,6 +251,12 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
 }
 
 export const getServerSideProps: GetServerSideProps = async () => {
+  if (!featureFlags.threadrings()) {
+    return {
+      notFound: true,
+    };
+  }
+
   const siteConfig = await getSiteConfig();
   
   return {

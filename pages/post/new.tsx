@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { markdownToSafeHtml } from "@/lib/sanitize";
 import Preview from "@/components/forms/PreviewForm";
+import { featureFlags } from "@/lib/feature-flags";
 
 interface PostEditorPageProps {
   siteConfig: SiteConfig;
@@ -673,6 +674,7 @@ code block
             )}
 
             {/* ThreadRing Selection */}
+            {featureFlags.threadrings() && (
             <div className="mt-6 border border-black p-4 bg-gradient-to-r from-blue-50 to-purple-50">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">🔗</span>
@@ -770,7 +772,8 @@ code block
                   </div>
                 )}
               </div>
-            </div>
+            )}
+          </div>
 
           {/* Action Buttons */}
           <div className="border-t border-black bg-gray-50 p-4 flex items-center justify-between">

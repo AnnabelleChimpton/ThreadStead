@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { featureFlags } from "@/lib/feature-flags";
 
 // Temporarily use string literals instead of Prisma types
 type ThreadRingJoinType = "open" | "invite" | "closed";
@@ -15,6 +16,10 @@ function slugify(text: string): string {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!featureFlags.threadrings()) {
+    return res.status(404).json({ error: "Feature not available" });
+  }
+
   try {
     console.log("ThreadRing create API called");
     

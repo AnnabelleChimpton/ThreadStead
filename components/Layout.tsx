@@ -6,6 +6,7 @@ import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
 import { useMe } from "@/hooks/useMe";
+import { featureFlags } from "@/lib/feature-flags";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -59,7 +60,9 @@ export default function Layout({ children, siteConfig, fullWidth = false }: Layo
             <div className="site-nav-links flex items-center gap-6">
               <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/">Home</Link>
               <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/feed">Feed</Link>
-              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/threadrings">ThreadRings</Link>
+              {featureFlags.threadrings() && (
+                <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/threadrings">ThreadRings</Link>
+              )}
               <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/directory">Directory</Link>
               {navPages.map(page => (
                 <Link 

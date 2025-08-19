@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { featureFlags } from "@/lib/feature-flags";
 
 interface ThreadRingBadgeProps {
   threadRing: {
@@ -12,6 +13,10 @@ interface ThreadRingBadgeProps {
 }
 
 export default function ThreadRingBadge({ threadRing, size = "small", className = "" }: ThreadRingBadgeProps) {
+  if (!featureFlags.threadrings()) {
+    return null;
+  }
+
   const sizeClasses = {
     small: "text-xs px-2 py-1",
     medium: "text-sm px-3 py-1.5"
