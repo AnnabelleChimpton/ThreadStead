@@ -67,6 +67,7 @@ model User {
   postThreadRingAdditions PostThreadRing[]  @relation("PostThreadRingAdditions")
   threadRingInvitesSent     ThreadRingInvite[] @relation("ThreadRingInvitationsSent")
   threadRingInvitesReceived ThreadRingInvite[] @relation("ThreadRingInvitationsReceived")
+  threadRingForks        ThreadRingFork[]   @relation("ThreadRingForks")
 }
 
 model Handle {
@@ -391,6 +392,10 @@ model ThreadRing {
   // Invitations
   invites     ThreadRingInvite[]
   
+  // Fork relationships
+  parentForks ThreadRingFork[] @relation("ThreadRingParent")
+  childFork   ThreadRingFork?  @relation("ThreadRingChild")
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -615,23 +620,21 @@ enum ThreadRingInviteStatus {
 // Add to Post model:
 //   threadRings PostThreadRing[] @relation("PostThreadRings")
 //
-// model ThreadRingFork {
-//   id               String     @id @default(cuid())
-//   originalRingId   String     // The ring that was forked
-//   originalRing     ThreadRing @relation("ThreadRingOriginal", fields: [originalRingId], references: [id], onDelete: Cascade)
-//   forkedRingId     String     @unique // The new ring created from the fork
-//   forkedRing       ThreadRing @relation("ThreadRingForked", fields: [forkedRingId], references: [id], onDelete: Cascade)
-//   forkedById       String     // User who performed the fork
-//   forkedBy         User       @relation("ThreadRingForks", fields: [forkedById], references: [id], onDelete: Cascade)
-//   
-//   parentRingUri    String     // URI of parent ring for federation/lineage
-//   forkReason       String?    // Optional reason/description for the fork
-//   createdAt        DateTime   @default(now())
-//   
-//   @@index([originalRingId])
-//   @@index([forkedById])
-//   @@index([parentRingUri]) // For federation lineage queries
-// }
+model ThreadRingFork {
+  id               String     @id @default(cuid())
+  parentId         String     // The ring that was forked (parent)
+  parent           ThreadRing @relation("ThreadRingParent", fields: [parentId], references: [id], onDelete: Cascade)
+  childId          String     @unique // The new ring created from the fork (child)
+  child            ThreadRing @relation("ThreadRingChild", fields: [childId], references: [id], onDelete: Cascade)
+  createdBy        String     // User who performed the fork
+  createdByUser    User       @relation("ThreadRingForks", fields: [createdBy], references: [id], onDelete: Cascade)
+  
+  forkReason       String?    // Optional reason/description for the fork
+  createdAt        DateTime   @default(now())
+  
+  @@index([parentId])
+  @@index([createdBy])
+}
 //
 // model ThreadRingAuditLog {
 //   id           String               @id @default(cuid())

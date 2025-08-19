@@ -57,7 +57,7 @@ export default function Layout({ children, siteConfig, fullWidth = false }: Layo
             <div className="site-nav-links flex items-center gap-6">
               <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/">Home</Link>
               <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/feed">Feed</Link>
-              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/threadrings/create">ThreadRings</Link>
+              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/threadrings">ThreadRings</Link>
               <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/directory">Directory</Link>
               {navPages.map(page => (
                 <Link 

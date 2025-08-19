@@ -145,13 +145,14 @@ See `prisma/schema.prisma` for detailed schema comments.
 4. **Ring-level post moderation**: Remove associations, pin/unpin posts
 5. **Ring prompts/challenges**: Curator-driven engagement
 
-### Phase 3: Discovery & Social
-1. ThreadRing directory with trending calculation
-2. Search and discovery
-3. Invitation system with soft notifications
-4. **Fork functionality** - Allow users to fork existing rings
-5. **Onboarding integration**: Suggested rings for new users
-6. **Member surf**: Next/Random member navigation
+### ✅ Phase 3: Discovery & Social (COMPLETED)
+1. ✅ ThreadRing directory with trending calculation
+2. ✅ Search and discovery
+3. ✅ Invitation system (without invasive notifications)
+4. ✅ **Fork functionality** - Allow users to fork existing rings
+5. ✅ **Join/Leave functionality** - Members can join and leave rings
+6. **Onboarding integration**: Suggested rings for new users (future)
+7. **Member surf**: Next/Random member navigation (future)
 
 ### Phase 4: Polish & Features
 1. Advanced moderation tools (block lists, audit trails)
@@ -285,3 +286,83 @@ See `prisma/schema.prisma` for detailed schema comments.
 - `pages/api/users/me/threadrings.ts` - Fetch user's ThreadRing memberships for post creation
 
 **Status**: Phase 2 is production-ready! Users can associate posts with ThreadRings and view ring-specific feeds with proper privacy enforcement.
+
+## ✅ Phase 3 Implementation Summary
+
+**What was completed in Phase 3:**
+
+### ThreadRing Directory & Discovery
+- ✅ Main directory page at `/threadrings` with grid layout
+- ✅ `ThreadRingCard` component for clean ring display in listings
+- ✅ Real-time search with debouncing for performance
+- ✅ Multiple sort options: Trending, Newest, Most Members, Most Posts, Alphabetical
+- ✅ Pagination with "Load More" functionality
+- ✅ Total ring count display
+
+### Search & Trending
+- ✅ `GET /api/threadrings` - Directory API with search and sorting
+- ✅ Search across ring names, descriptions, and slugs
+- ✅ Case-insensitive search with partial matching
+- ✅ Trending algorithm based on activity (posts + members + recency)
+- ✅ Viewer membership status included in directory listings
+
+### Join/Leave Functionality
+- ✅ `POST /api/threadrings/[slug]/join` - Join open ThreadRings
+- ✅ `POST /api/threadrings/[slug]/leave` - Leave ThreadRings (with curator restrictions)
+- ✅ Join buttons on both directory cards and ring pages
+- ✅ Leave button with confirmation dialog
+- ✅ Posts remain associated when members leave (historical record preserved)
+- ✅ Curators cannot leave without transferring ownership (unless sole member)
+
+### Invitation System (Non-Invasive)
+- ✅ `POST /api/threadrings/[slug]/invite` - Send invitations (curator/moderator only)
+- ✅ `PUT /api/threadrings/invites/[inviteId]` - Accept/decline invites
+- ✅ `GET /api/threadrings/invites` - List user's pending invites
+- ✅ `ThreadRingInviteForm` component for sending invites
+- ✅ `ThreadRingInvites` component for viewing/responding to invites
+- ✅ Personal notifications ONLY for direct invitations
+- ✅ No invasive notifications for joins, forks, or general activity
+
+### Fork Functionality
+- ✅ `POST /api/threadrings/[slug]/fork` - Fork ThreadRings
+- ✅ `GET /api/threadrings/[slug]/forks` - View ring forks
+- ✅ Fork page at `/threadrings/[slug]/fork` with customization
+- ✅ `ForkThreadRingForm` component with full settings control
+- ✅ Fork button on ring pages (members always, non-members for public rings)
+- ✅ `ThreadRingFork` model for tracking fork genealogy
+- ✅ Privacy-aware: private rings only forkable by members
+- ✅ Database migration for fork relationships
+
+### Files Created/Modified in Phase 3
+
+#### API Endpoints
+- `pages/api/threadrings/index.ts` - Directory listing with search/sort
+- `pages/api/threadrings/[slug]/join.ts` - Join functionality
+- `pages/api/threadrings/[slug]/leave.ts` - Leave functionality  
+- `pages/api/threadrings/[slug]/invite.ts` - Send invitations
+- `pages/api/threadrings/invites/[inviteId].ts` - Accept/decline invites
+- `pages/api/threadrings/invites/index.ts` - List pending invites
+- `pages/api/threadrings/[slug]/fork.ts` - Fork ThreadRings
+- `pages/api/threadrings/[slug]/forks.ts` - View forks
+
+#### Frontend Components & Pages
+- `pages/threadrings/index.tsx` - Main directory page
+- `pages/threadrings/[slug]/fork.tsx` - Fork creation page
+- `components/ThreadRingCard.tsx` - Ring display card
+- `components/ThreadRingInvites.tsx` - Invite management
+- `components/forms/ThreadRingInviteForm.tsx` - Send invites
+- `components/forms/ForkThreadRingForm.tsx` - Fork creation form
+- `pages/threadrings/[slug].tsx` - Updated with join/leave/fork buttons
+
+#### Database Changes
+- `prisma/schema.prisma` - Added ThreadRingFork model with relations
+- Migration: `20250819032338_add_threadring_fork` - Applied successfully
+
+### Key Design Decisions
+- **Non-invasive notifications**: Only personal invites trigger notifications
+- **Historical preservation**: Posts remain when members leave
+- **Fork freedom**: Anyone can fork public rings, building derivative communities
+- **Privacy first**: All operations respect ring visibility settings
+- **Performance optimized**: Debounced search, efficient queries, pagination
+
+**Status**: Phase 3 is production-ready! ThreadRings now have a complete social ecosystem with discovery, membership management, invitations, and forking.

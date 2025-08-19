@@ -1,0 +1,93 @@
+import type { NextApiRequest, NextApiResponse } from "next";
+import { db } from "@/lib/db";
+import { getSessionUser } from "@/lib/auth-server";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  const { slug } = req.query;
+  if (typeof slug !== "string") {
+    return res.status(400).json({ error: "Invalid slug" });
+  }
+
+  try {
+    const viewer = await getSessionUser(req);
+    if (!viewer) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // Find the ThreadRing
+    const threadRing = await db.threadRing.findUnique({
+      where: { slug },
+      select: { 
+        id: true, 
+        name: true, 
+        joinType: true,
+        visibility: true,
+        memberCount: true,
+        curatorId: true
+      }
+    });
+
+    if (!threadRing) {
+      return res.status(404).json({ error: "ThreadRing not found" });
+    }
+
+    // Check if ThreadRing allows open joining
+    if (threadRing.joinType !== "open") {
+      return res.status(403).json({ 
+        error: threadRing.joinType === "invite" 
+          ? "This ThreadRing is invite-only" 
+          : "This ThreadRing is closed to new members" 
+      });
+    }
+
+    // Check if user is already a member
+    const existingMembership = await db.threadRingMember.findUnique({
+      where: {
+        threadRingId_userId: {
+          threadRingId: threadRing.id,
+          userId: viewer.id
+        }
+      }
+    });
+
+    if (existingMembership) {
+      return res.status(400).json({ error: "You are already a member of this ThreadRing" });
+    }
+
+    // Create membership
+    await db.$transaction([
+      // Create the membership
+      db.threadRingMember.create({
+        data: {
+          threadRingId: threadRing.id,
+          userId: viewer.id,
+          role: "member"
+        }
+      }),
+      // Update ThreadRing member count
+      db.threadRing.update({
+        where: { id: threadRing.id },
+        data: {
+          memberCount: {
+            increment: 1
+          }
+        }
+      })
+      // Note: No notification created - ThreadRing activity should be ambient, not invasive
+    ]);
+
+    return res.json({
+      success: true,
+      message: `Successfully joined ${threadRing.name}!`
+    });
+
+  } catch (error) {
+    console.error("Error joining ThreadRing:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
