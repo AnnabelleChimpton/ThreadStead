@@ -6,6 +6,7 @@ import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { markdownToSafeHtml } from "@/lib/sanitize";
 import Preview from "@/components/forms/PreviewForm";
 import { featureFlags } from "@/lib/feature-flags";
+import Link from "next/link";
 
 interface PostEditorPageProps {
   siteConfig: SiteConfig;
@@ -694,7 +695,7 @@ code block
                     </div>
                   ) : threadRings.length === 0 ? (
                     <div className="text-sm text-gray-500 italic">
-                      You're not a member of any ThreadRings yet
+                      You&apos;re not a member of any ThreadRings yet
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -763,12 +764,12 @@ code block
                     <div className="text-gray-500 text-sm mb-2">
                       Join ThreadRings to share your posts with communities
                     </div>
-                    <a 
+                    <Link 
                       href="/threadrings" 
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
                     >
                       Browse ThreadRings →
-                    </a>
+                    </Link>
                   </div>
                 )}
               </div>
