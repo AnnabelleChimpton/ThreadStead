@@ -65,6 +65,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       authorUsername: post.author.handles[0]?.handle || null,
       authorDisplayName: post.author.profile?.displayName || null,
       authorAvatarUrl: post.author.profile?.avatarUrl || null,
+      title: post.title,
+      intent: post.intent,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       bodyHtml: post.bodyHtml,

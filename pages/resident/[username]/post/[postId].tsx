@@ -47,38 +47,6 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
   return (
     <ProfileLayout customCSS={customCSS} sidebarContent={sidebarContent}>
       <RetroCard>
-        <div className="ts-post-header" data-component="post-header">
-          <div className="ts-post-header-layout">
-            <div className="ts-post-info-section flex-1">
-              <div className="ts-post-identity mb-4">
-                <div className="ts-post-breadcrumb mb-3">
-                  <Breadcrumb items={breadcrumbItems} className="text-sm" />
-                </div>
-                
-                {post.title && (
-                  <h1 className="ts-post-title thread-headline text-3xl font-bold text-thread-pine mb-1">
-                    {post.title}
-                  </h1>
-                )}
-                <span className="ts-post-date thread-label">
-                  Posted on {new Date(post.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-              
-              <div className="ts-post-actions flex items-center gap-3 flex-wrap">
-                <a
-                  href={`/resident/${username}`}
-                  className="ts-back-button thread-button text-sm"
-                >
-                  ← Back to Profile
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </RetroCard>
-
-      <RetroCard>
         <div className="ts-post-content-wrapper profile-tab-content" data-component="post-content">
           <PostItem 
             post={post} 

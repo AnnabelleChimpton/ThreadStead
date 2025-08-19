@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import PostItem, { Post as PostType } from "../../content/PostItem";
-import NewPostForm from "../../forms/NewPostForm";
 
 interface BlogTabProps {
   username: string;
@@ -48,10 +48,12 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
     <div className="ts-blog-tab-content profile-tab-content space-y-3" data-component="blog-tab">
       {isOwner && (
         <div className="ts-new-post-section mb-3">
-          <div className="ts-new-post-label text-sm opacity-70 mb-1">
-            Post as you
-          </div>
-          <NewPostForm onPosted={refresh} />
+          <Link 
+            href="/post/new"
+            className="inline-block border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+          >
+            ✏️ Create New Post
+          </Link>
         </div>
       )}
       <div className="ts-blog-posts-list">

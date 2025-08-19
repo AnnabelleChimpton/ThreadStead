@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { Visibility } from "@prisma/client";
+import { Visibility, PostIntent } from "@prisma/client";
 import { db } from "@/lib/db";
 
 import { getSessionUser } from "@/lib/auth-server";
@@ -13,13 +13,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const viewer = await getSessionUser(req);
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
-  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds } = (req.body || {}) as {
+  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds, intent } = (req.body || {}) as {
     title?: string;
     bodyText?: string;
     bodyHtml?: string;
     bodyMarkdown?: string;
     visibility?: Visibility;
-    threadRingIds?: string[]; // THREADRINGS TODO: Array of ThreadRing IDs to associate with post
+    threadRingIds?: string[]; // Array of ThreadRing IDs to associate with post
+    intent?: PostIntent;
   };
 
   if (!bodyText && !bodyHtml && !bodyMarkdown) {
@@ -41,7 +42,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const post = await db.post.create({
     data: {
       authorId: viewer.id,
-      title: title ?? null,
+      title: title || "Untitled Post", // Title is now required
+      intent: intent ?? null,
       bodyText: bodyText ?? null,
       bodyHtml: safeHtml,
       bodyMarkdown: bodyMarkdown ?? null, // Store raw markdown
@@ -86,6 +88,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  res.status(201).json({ post });
+  // Include author info for redirect
+  const postWithAuthor = await db.post.findUnique({
+    where: { id: post.id },
+    include: {
+      author: {
+        select: {
+          primaryHandle: true,
+        },
+      },
+    },
+  });
+
+  res.status(201).json({ 
+    post: {
+      ...post,
+      authorUsername: postWithAuthor?.author?.primaryHandle?.split('@')[0],
+    }
+  });
 }
 

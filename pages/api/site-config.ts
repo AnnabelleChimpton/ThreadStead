@@ -19,6 +19,8 @@ const DEFAULT_CONFIG = {
   site_description: "A cozy corner of the internet for thoughtful conversations and creative expression.",
   disable_default_home: "false",
   default_profile_css: "",
+  enable_intent_stamps: "true",
+  require_post_titles: "true",
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

@@ -5,6 +5,7 @@ import NotificationDropdown from "./NotificationDropdown";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
+import { useMe } from "@/hooks/useMe";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export default function Layout({ children, siteConfig, fullWidth = false }: Layo
   const { config: hookConfig } = useSiteConfig();
   const { pages: navPages } = useNavPages();
   const { hasMismatch, fixMismatch } = useIdentitySync();
+  const { me } = useMe();
   const config = siteConfig || hookConfig;
   return (
     <div className="site-layout min-h-screen thread-surface flex flex-col">
@@ -70,6 +72,14 @@ export default function Layout({ children, siteConfig, fullWidth = false }: Layo
               ))}
             </div>
             <div className="site-nav-actions flex items-center gap-4">
+              {me?.loggedIn && (
+                <Link 
+                  href="/post/new"
+                  className="px-3 py-1.5 text-sm border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                >
+                  ✏️ New Post
+                </Link>
+              )}
               <NotificationDropdown className="nav-link" />
               <div className="site-auth">
                 <LoginStatus />

@@ -10,9 +10,12 @@ type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
 type View = "write" | "preview";
 
+type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
+
 export type Post = {
   id: string;
   title?: string | null;
+  intent?: PostIntent | null;
   createdAt: string; // ISO string from API
   bodyText?: string | null;
   bodyHtml?: string | null;
@@ -422,13 +425,35 @@ const countLabel = hasServerCount
               <div className="blog-post-title mb-3">
                 {post.author?.primaryHandle ? (
                   <Link 
-                    href={`/${post.author.primaryHandle.split('@')[0]}/post/${post.id}`}
-                    className="text-xl font-semibold text-black hover:text-blue-700 underline-offset-2 hover:underline"
+                    href={`/resident/${post.author.primaryHandle.split('@')[0]}/post/${post.id}`}
+                    className="block hover:bg-gray-50 -m-2 p-2 rounded transition-colors"
                   >
-                    {post.title}
+                    {post.intent ? (
+                      <div className="space-y-1">
+                        <div className="text-sm text-gray-600">
+                          <span className="font-medium">{post.author.profile?.displayName || post.author.primaryHandle?.split('@')[0]}</span>
+                          <span> is {post.intent}</span>
+                        </div>
+                        <h2 className="text-xl font-semibold text-black leading-tight">{post.title}</h2>
+                      </div>
+                    ) : (
+                      <h2 className="text-xl font-semibold text-black">{post.title}</h2>
+                    )}
                   </Link>
                 ) : (
-                  <h2 className="text-xl font-semibold text-black">{post.title}</h2>
+                  <div>
+                    {post.intent ? (
+                      <div className="space-y-1">
+                        <div className="text-sm text-gray-600">
+                          <span className="font-medium">{post.author?.profile?.displayName || "User"}</span>
+                          <span> is {post.intent}</span>
+                        </div>
+                        <h2 className="text-xl font-semibold text-black leading-tight">{post.title}</h2>
+                      </div>
+                    ) : (
+                      <h2 className="text-xl font-semibold text-black">{post.title}</h2>
+                    )}
+                  </div>
                 )}
               </div>
             )}

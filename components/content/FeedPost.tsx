@@ -4,12 +4,16 @@ import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import CommentList, { CommentWire } from "./CommentList";
 import NewCommentForm from "../forms/NewCommentForm";
 
+type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
+
 export type FeedPostData = {
   id: string;
   authorId: string;
   authorUsername: string | null;
   authorDisplayName: string | null;
   authorAvatarUrl: string | null;
+  title: string | null;
+  intent: PostIntent | null;
   createdAt: string;
   updatedAt: string | null;
   bodyHtml: string | null;
@@ -114,6 +118,44 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
           )}
         </div>
       </header>
+
+      {/* Post Title with Intent */}
+      {post.title && (
+        <div className="mb-4">
+          {post.authorUsername ? (
+            <Link 
+              href={`/resident/${post.authorUsername}/post/${post.id}`}
+              className="block hover:bg-gray-50 -m-2 p-2 rounded transition-colors"
+            >
+              {post.intent ? (
+                <div className="space-y-1">
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">{authorName}</span>
+                    <span> is {post.intent}</span>
+                  </div>
+                  <h2 className="text-xl font-semibold text-black leading-tight">{post.title}</h2>
+                </div>
+              ) : (
+                <h2 className="text-xl font-semibold text-black">{post.title}</h2>
+              )}
+            </Link>
+          ) : (
+            <div>
+              {post.intent ? (
+                <div className="space-y-1">
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">{authorName}</span>
+                    <span> is {post.intent}</span>
+                  </div>
+                  <h2 className="text-xl font-semibold text-black leading-tight">{post.title}</h2>
+                </div>
+              ) : (
+                <h2 className="text-xl font-semibold text-black">{post.title}</h2>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Post Content */}
       <div className="thread-content mb-4">

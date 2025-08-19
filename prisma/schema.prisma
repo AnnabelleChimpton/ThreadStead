@@ -25,6 +25,18 @@ enum UserRole {
   admin
 }
 
+enum PostIntent {
+  sharing      // "I am sharing..."
+  asking       // "I am asking..."
+  feeling      // "I am feeling..."
+  announcing   // "I am announcing..."
+  showing      // "I am showing..."
+  teaching     // "I am teaching..."
+  looking      // "I am looking for..."
+  celebrating  // "I am celebrating..."
+  recommending // "I am recommending..."
+}
+
 model User {
   id            String   @id @default(cuid()) // internal id
   did           String   @unique // did:key:... (portable identity)
@@ -109,19 +121,20 @@ model Profile {
 }
 
 model Post {
-  id           String     @id @default(cuid())
+  id           String      @id @default(cuid())
   authorId     String
-  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  title        String?
-  createdAt    DateTime   @default(now())
+  author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title        String      @default("Untitled Post")
+  intent       PostIntent? // Optional intent stamp
+  createdAt    DateTime    @default(now())
   updatedAt    DateTime?
   bodyHtml     String?
   bodyText     String?
   bodyMarkdown String?
   media        Json? // [{url,mime,width,height}]
   tags         String[]
-  visibility   Visibility @default(public)
-  comments     Comment[]  @relation("PostComments")
+  visibility   Visibility  @default(public)
+  comments     Comment[]   @relation("PostComments")
   threadRings  PostThreadRing[] @relation("PostThreadRings")
   // future: signature, cid
 }
