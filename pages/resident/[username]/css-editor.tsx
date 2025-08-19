@@ -563,6 +563,14 @@ export default function CSSEditorPage({
 
                     <div className="flex items-center gap-2">
                       <a 
+                        href="/design-css-tutorial" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="thread-button-secondary text-sm"
+                      >
+                        🎯 CSS Classes Guide
+                      </a>
+                      <a 
                         href="https://developer.mozilla.org/en-US/docs/Web/CSS" 
                         target="_blank" 
                         rel="noopener noreferrer"
@@ -654,6 +662,11 @@ export default function CSSEditorPage({
                             <li>All templates are mobile-responsive</li>
                             <li>Use &quot;Clear&quot; to start with a blank stylesheet</li>
                           </ul>
+                          <div className="mt-2 pt-2 border-t border-blue-200">
+                            <p className="text-blue-600 font-medium">
+                              📖 Check the <a href="/design-css-tutorial" target="_blank" className="underline hover:text-blue-800">Complete CSS Classes Guide</a> to learn which specific classes you can target!
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}

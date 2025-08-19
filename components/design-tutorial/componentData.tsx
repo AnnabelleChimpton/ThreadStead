@@ -24,6 +24,12 @@ export const componentCategories = [
     title: 'Interactive',
     icon: '⚡',
     description: 'Dynamic components that respond and engage'
+  },
+  {
+    id: 'css-classes',
+    title: 'CSS Classes',
+    icon: '🎯',
+    description: 'Target these CSS classes to style the default profile layout'
   }
 ];
 
@@ -452,6 +458,447 @@ export const componentData = {
           ~ Wave Text ~
         </div>
       )
+    }
+  ],
+  'css-classes': [
+    {
+      name: 'Profile Structure',
+      description: 'Main container and layout elements for the default profile page',
+      example: `/* Target the main profile container */
+.profile-container {
+  background: linear-gradient(to bottom, #f0f8ff, #e6f3ff);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* Style the profile content wrapper */
+.profile-content-wrapper {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}`,
+      preview: (
+        <div className="bg-blue-50 border border-blue-200 p-3 rounded text-xs">
+          <div className="font-semibold mb-1">Profile Container</div>
+          <div className="text-gray-600">Main wrapper for all profile content</div>
+        </div>
+      ),
+      stylingGuide: {
+        classes: [
+          {
+            name: '.profile-container',
+            description: 'Main container for the entire profile page'
+          },
+          {
+            name: '.profile-content-wrapper', 
+            description: 'Inner wrapper for profile content with responsive padding'
+          },
+          {
+            name: '.profile-main-content',
+            description: 'Contains the main profile sections (header, tabs, etc.)'
+          }
+        ],
+        examples: [
+          {
+            title: 'Retro Computer Theme',
+            css: `.profile-container {
+  background: #c0c0c0 !important;
+  border: 4px outset #808080 !important;
+  border-radius: 0 !important;
+  font-family: "MS Sans Serif", sans-serif !important;
+}
+
+.profile-content-wrapper {
+  background: #008080 !important;
+  border: 2px inset #c0c0c0 !important;
+  margin: 4px !important;
+}`
+          }
+        ]
+      }
+    },
+    {
+      name: 'Profile Header',
+      description: 'User photo, name, bio, and header elements',
+      example: `/* Style the profile header section */
+.profile-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 15px;
+  padding: 2rem;
+}
+
+/* Customize the display name */
+.profile-display-name {
+  font-size: 3rem !important;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}`,
+      preview: (
+        <div className="bg-purple-100 border border-purple-200 p-3 rounded text-xs">
+          <div className="font-bold text-purple-800">Profile Header</div>
+          <div className="text-purple-600 mt-1">Photo, name, status, bio area</div>
+        </div>
+      ),
+      stylingGuide: {
+        classes: [
+          {
+            name: '.profile-header',
+            description: 'Main header section containing photo and basic info'
+          },
+          {
+            name: '.profile-header-layout',
+            description: 'Flex layout container for header elements'
+          },
+          {
+            name: '.profile-photo-section',
+            description: 'Container for profile photo'
+          },
+          {
+            name: '.profile-photo-wrapper',
+            description: 'Photo wrapper with positioning'
+          },
+          {
+            name: '.profile-photo-frame',
+            description: 'Photo frame/border styling'
+          },
+          {
+            name: '.profile-photo-image',
+            description: 'The actual profile image element'
+          },
+          {
+            name: '.profile-info-section',
+            description: 'Container for name, bio, and action buttons'
+          },
+          {
+            name: '.profile-identity',
+            description: 'Name and status container'
+          },
+          {
+            name: '.profile-display-name',
+            description: 'User\'s display name heading'
+          },
+          {
+            name: '.profile-status',
+            description: 'Status text (e.g. "threadstead resident")'
+          },
+          {
+            name: '.profile-bio-section',
+            description: 'Bio/about text container'
+          },
+          {
+            name: '.profile-bio',
+            description: 'The bio text itself'
+          },
+          {
+            name: '.profile-actions',
+            description: 'Container for action buttons (follow, message, etc.)'
+          }
+        ],
+        examples: [
+          {
+            title: 'Neon Cyberpunk Header',
+            css: `.profile-header {
+  background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%) !important;
+  border: 2px solid #00ffff !important;
+  box-shadow: 
+    0 0 20px rgba(0, 255, 255, 0.3),
+    inset 0 0 20px rgba(0, 255, 255, 0.1) !important;
+}
+
+.profile-display-name {
+  color: #00ffff !important;
+  text-shadow: 
+    0 0 10px #00ffff,
+    0 0 20px #00ffff,
+    0 0 30px #00ffff !important;
+  font-family: "Courier New", monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+}
+
+.profile-bio {
+  color: #ff00ff !important;
+  text-shadow: 0 0 10px #ff00ff !important;
+  border: 1px solid #ff00ff !important;
+  padding: 1rem !important;
+  background: rgba(255, 0, 255, 0.1) !important;
+}`
+          }
+        ]
+      }
+    },
+    {
+      name: 'Navigation & Tabs', 
+      description: 'Site navigation, profile tabs, and tab panels',
+      example: `/* Style the site navigation */
+.site-header {
+  background: linear-gradient(90deg, #ff9a9e 0%, #fecfef 100%);
+  border-bottom: 3px solid #ff6b9d;
+}
+
+/* Customize profile tabs */
+.profile-tabs {
+  background: #f8f9fa;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.profile-tab-button {
+  background: linear-gradient(to bottom, #e3f2fd, #bbdefb) !important;
+  border: none !important;
+  color: #1976d2 !important;
+  font-weight: bold !important;
+}`,
+      preview: (
+        <div className="bg-pink-50 border border-pink-200 p-3 rounded text-xs">
+          <div className="flex gap-2 mb-2">
+            <div className="bg-pink-200 px-2 py-1 rounded">Blog</div>
+            <div className="bg-pink-100 px-2 py-1 rounded">Media</div>
+          </div>
+          <div className="text-pink-600">Tab navigation and panels</div>
+        </div>
+      ),
+      stylingGuide: {
+        classes: [
+          {
+            name: '.site-header',
+            description: 'Main site header bar'
+          },
+          {
+            name: '.site-title',
+            description: 'Site title/logo text'
+          },
+          {
+            name: '.site-tagline',
+            description: 'Site tagline/subtitle'
+          },
+          {
+            name: '.nav-link',
+            description: 'Navigation menu links'
+          },
+          {
+            name: '.profile-tabs',
+            description: 'Container for the tab system'
+          },
+          {
+            name: '.profile-tab-list',
+            description: 'Container for tab buttons'
+          },
+          {
+            name: '.profile-tab-button',
+            description: 'Individual tab button'
+          },
+          {
+            name: '.profile-tab-button.active',
+            description: 'Currently active tab button'
+          },
+          {
+            name: '.profile-tab-panel',
+            description: 'Container for tab content'
+          },
+          {
+            name: '.profile-tab-content',
+            description: 'Individual tab content area'
+          }
+        ],
+        examples: [
+          {
+            title: 'Retro Gaming Tabs',
+            css: `.profile-tab-button {
+  background: #ffff00 !important;
+  border: 3px solid #000 !important;
+  color: #000 !important;
+  font-family: "Comic Sans MS", cursive !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  box-shadow: 4px 4px 0 #000 !important;
+  margin: 0 4px !important;
+}
+
+.profile-tab-button:hover {
+  background: #ff69b4 !important;
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0 #000 !important;
+}
+
+.profile-tab-button.active {
+  background: #00ff00 !important;
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0 #000 !important;
+}`
+          }
+        ]
+      }
+    },
+    {
+      name: 'Blog Posts',
+      description: 'Blog post cards, content, and metadata',
+      example: `/* Style blog post cards */
+.blog-post-card {
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  border: none;
+  border-radius: 15px;
+  box-shadow: 
+    20px 20px 60px #d0d0d0,
+    -20px -20px 60px #ffffff;
+  padding: 2rem;
+  margin: 1.5rem 0;
+}
+
+/* Customize post titles */
+.blog-post-title {
+  color: #2c3e50 !important;
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 1rem !important;
+}`,
+      preview: (
+        <div className="bg-gray-50 border border-gray-200 p-3 rounded text-xs">
+          <div className="font-semibold mb-1">Blog Post Card</div>
+          <div className="text-gray-500 text-xs mb-1">Oct 15, 2024</div>
+          <div className="text-gray-800">Post title and content styling</div>
+        </div>
+      ),
+      stylingGuide: {
+        classes: [
+          {
+            name: '.blog-tab-content',
+            description: 'Container for blog posts tab'
+          },
+          {
+            name: '.blog-posts-list',
+            description: 'List container for blog posts'
+          },
+          {
+            name: '.blog-post-card',
+            description: 'Individual blog post card'
+          },
+          {
+            name: '.blog-post-header',
+            description: 'Header section of blog post (date, meta)'
+          },
+          {
+            name: '.blog-post-date',
+            description: 'Post publication date'
+          },
+          {
+            name: '.blog-post-content',
+            description: 'Main content area of blog post'
+          },
+          {
+            name: '.blog-post-title',
+            description: 'Blog post title/heading'
+          }
+        ],
+        examples: [
+          {
+            title: 'Newspaper Style Posts',
+            css: `.blog-post-card {
+  background: #f9f7f4 !important;
+  border: 2px solid #333 !important;
+  border-radius: 0 !important;
+  font-family: "Times New Roman", serif !important;
+  box-shadow: 5px 5px 0 #333 !important;
+}
+
+.blog-post-title {
+  font-family: "Times New Roman", serif !important;
+  font-size: 2rem !important;
+  font-weight: bold !important;
+  color: #000 !important;
+  text-transform: uppercase !important;
+  border-bottom: 3px double #333 !important;
+  padding-bottom: 0.5rem !important;
+}
+
+.blog-post-date {
+  background: #333 !important;
+  color: #fff !important;
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.8rem !important;
+  font-weight: bold !important;
+  display: inline-block !important;
+}`
+          }
+        ]
+      }
+    },
+    {
+      name: 'Site Layout',
+      description: 'Overall site structure, header, footer, and main content areas',
+      example: `/* Style the overall site layout */
+.site-layout {
+  background: linear-gradient(45deg, #fa8bff 0%, #2bd2ff 52%, #2bff88 90%);
+  min-height: 100vh;
+}
+
+/* Customize the footer */
+.site-footer {
+  background: rgba(0, 0, 0, 0.8) !important;
+  color: white !important;
+  text-align: center !important;
+  padding: 2rem !important;
+}`,
+      preview: (
+        <div className="bg-gradient-to-r from-purple-200 to-blue-200 p-3 rounded text-xs">
+          <div className="text-center">
+            <div className="font-semibold">Site Layout</div>
+            <div className="text-gray-600 mt-1">Overall page structure and background</div>
+          </div>
+        </div>
+      ),
+      stylingGuide: {
+        classes: [
+          {
+            name: '.site-layout',
+            description: 'Overall page container (body-level styling)'
+          },
+          {
+            name: '.site-main',
+            description: 'Main content area container'
+          },
+          {
+            name: '.site-footer',
+            description: 'Site footer area'
+          },
+          {
+            name: '.footer-tagline',
+            description: 'Footer tagline text'
+          },
+          {
+            name: '.footer-copyright',
+            description: 'Copyright text in footer'
+          }
+        ],
+        examples: [
+          {
+            title: 'Matrix/Terminal Theme',
+            css: `.site-layout {
+  background: #000 !important;
+  color: #00ff00 !important;
+  font-family: "Courier New", monospace !important;
+}
+
+.site-header {
+  background: #000 !important;
+  border-bottom: 2px solid #00ff00 !important;
+}
+
+.site-title {
+  color: #00ff00 !important;
+  text-shadow: 0 0 10px #00ff00 !important;
+}
+
+.site-footer {
+  background: #000 !important;
+  border-top: 2px solid #00ff00 !important;
+  color: #00ff00 !important;
+}`
+          }
+        ]
+      }
     }
   ]
 };

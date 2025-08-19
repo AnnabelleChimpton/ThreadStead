@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 
 // Import new componentized design tutorial components
@@ -9,8 +10,20 @@ import RetroFooter from "@/components/design-tutorial/RetroFooter";
 import { componentCategories, componentData } from "@/components/design-tutorial/componentData";
 
 export default function DesignTutorialPage() {
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState('content');
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+
+  // Set initial category from URL parameter
+  useEffect(() => {
+    const { category } = router.query;
+    if (category && typeof category === 'string') {
+      const validCategories = componentCategories.map(cat => cat.id);
+      if (validCategories.includes(category)) {
+        setActiveCategory(category);
+      }
+    }
+  }, [router.query]);
 
   // Get current user info
   useEffect(() => {
@@ -47,7 +60,7 @@ export default function DesignTutorialPage() {
           }
         `}</style>
 
-        <div className="container mx-auto px-6 py-12 max-w-6xl">
+        <div className="w-full px-6 py-12">
           {/* Header */}
           <RetroHeader />
 
@@ -71,7 +84,7 @@ export default function DesignTutorialPage() {
           )}
 
           {/* Footer */}
-          <RetroFooter currentUser={currentUser} />
+          <RetroFooter />
         </div>
       </div>
     </Layout>
