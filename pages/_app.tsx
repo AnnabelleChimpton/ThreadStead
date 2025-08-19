@@ -4,10 +4,54 @@ import 'highlight.js/styles/github.css'; // or any theme you like
 import "../styles/globals.css";
 import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
+import { useEffect } from "react";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   const { css } = useSiteCSS();
   const router = useRouter();
+
+  // Handle browser back/forward navigation to ensure proper page refresh
+  useEffect(() => {
+    const handleRouteChangeComplete = () => {
+      // Check if this was a back/forward navigation using the Navigation API
+      if (typeof window !== 'undefined' && window.performance) {
+        const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (navigation && navigation.type === 'back_forward') {
+          // Small delay to ensure the page has loaded before refreshing
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        }
+      }
+    };
+
+    router.events.on('routeChangeComplete', handleRouteChangeComplete);
+
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChangeComplete);
+    };
+  }, [router]);
+
+  // Handle tab routing for pages with tabs
+  useEffect(() => {
+    const { tab } = router.query;
+    if (tab && typeof tab === 'string') {
+      // Scroll to tab section or trigger tab activation
+      setTimeout(() => {
+        const tabElement = document.getElementById(`tab-${tab}`) || 
+                          document.querySelector(`[data-tab="${tab}"]`) ||
+                          document.querySelector(`.tab-${tab}`);
+        
+        if (tabElement) {
+          tabElement.scrollIntoView({ behavior: 'smooth' });
+          // Trigger click if it's a clickable tab
+          if (tabElement.tagName === 'BUTTON' || tabElement.onclick) {
+            tabElement.click();
+          }
+        }
+      }, 100);
+    }
+  }, [router.query.tab, router.pathname]);
   
   // Check if we're on a user profile page that might have custom CSS
   const isProfilePage = router.pathname === '/resident/[username]' || router.pathname === '/resident/[username]/index';
