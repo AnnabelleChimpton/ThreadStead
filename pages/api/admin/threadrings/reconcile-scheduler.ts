@@ -62,10 +62,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.json({
               success: true,
               message: "Manual reconciliation completed",
-              result: {
+              result: result ? {
                 processed: result.processed,
                 corrected: result.corrected,
                 lineageErrors: result.lineageErrors,
+                timestamp: new Date().toISOString()
+              } : {
+                processed: 0,
+                corrected: 0,
+                lineageErrors: 0,
                 timestamp: new Date().toISOString()
               }
             });

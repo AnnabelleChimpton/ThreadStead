@@ -184,7 +184,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
           <div className="max-w-3xl mx-auto text-thread-sage leading-relaxed space-y-4">
             <p>
               The Spool represents the symbolic origin of all ThreadRing communities. Unlike regular ThreadRings, 
-              The Spool doesn't host posts or have traditional members - instead, it serves as the genealogical 
+              The Spool doesn&apos;t host posts or have traditional members - instead, it serves as the genealogical 
               root that connects every community in a unified family tree.
             </p>
             <p>
