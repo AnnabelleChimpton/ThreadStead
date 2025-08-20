@@ -84,6 +84,7 @@ model User {
   threadRingInvitesSent     ThreadRingInvite[] @relation("ThreadRingInvitationsSent")
   threadRingInvitesReceived ThreadRingInvite[] @relation("ThreadRingInvitationsReceived")
   threadRingForks        ThreadRingFork[]   @relation("ThreadRingForks")
+  threadRingBadgesCreated ThreadRingBadge[] @relation("ThreadRingBadgeCreator")
 }
 
 model Handle {
@@ -447,6 +448,9 @@ model ThreadRing {
   parentForks ThreadRingFork[] @relation("ThreadRingParent")
   childFork   ThreadRingFork?  @relation("ThreadRingChild")
   
+  // Badge
+  badge       ThreadRingBadge?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -689,6 +693,46 @@ model ThreadRingFork {
   @@index([parentId])
   @@index([createdBy])
 }
+
+model ThreadRingBadge {
+  id           String     @id @default(cuid())
+  threadRingId String     @unique // One badge per ThreadRing
+  threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+  
+  // Badge content
+  title        String     // Text displayed on badge (ThreadRing name)
+  subtitle     String?    // Optional subtitle/tagline
+  
+  // Badge image options
+  imageUrl     String?    // Custom uploaded image URL
+  templateId   String?    // Reference to badge template
+  backgroundColor String  @default("#4A90E2") // Hex color for background
+  textColor       String  @default("#FFFFFF") // Hex color for text
+  
+  // Badge metadata
+  isGenerated  Boolean    @default(true)  // Auto-generated vs custom
+  isActive     Boolean    @default(true)  // Whether badge is currently displayed
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  createdBy    String     // User who created/last modified
+  creator      User       @relation("ThreadRingBadgeCreator", fields: [createdBy], references: [id])
+  
+  @@index([threadRingId])
+  @@index([isActive])
+}
+
+enum BadgeTemplate {
+  classic_blue
+  retro_green  
+  sunset_orange
+  midnight_purple
+  matrix_green
+  neon_pink
+  vintage_brown
+  cyber_teal
+}
+
 //
 // model ThreadRingAuditLog {
 //   id           String               @id @default(cuid())

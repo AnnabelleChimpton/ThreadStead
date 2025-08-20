@@ -9,6 +9,7 @@ import ThreadRingStats from "../../components/ThreadRingStats";
 import ThreadRingLineage from "../../components/ThreadRingLineage";
 import RandomMemberDiscovery from "../../components/RandomMemberDiscovery";
 import ThreadRingFeedScope from "../../components/ThreadRingFeedScope";
+import ThreadRing88x31Badge from "../../components/ThreadRing88x31Badge";
 import { featureFlags } from "@/lib/feature-flags";
 
 interface ThreadRingPageProps {
@@ -36,6 +37,17 @@ interface ThreadRing {
   lineagePath?: string;
   isSystemRing?: boolean;
   currentPrompt?: string;
+  // Badge
+  badge?: {
+    id: string;
+    title: string;
+    subtitle?: string;
+    templateId?: string;
+    backgroundColor: string;
+    textColor: string;
+    imageUrl?: string;
+    isActive: boolean;
+  };
   curator: {
     id: string;
     handles: Array<{ handle: string; host: string }>;
@@ -61,6 +73,8 @@ interface ThreadRing {
 
 // Special component for The Spool landing page
 function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: SiteConfig }) {
+  const [showSpoolBadgeOptions, setShowSpoolBadgeOptions] = useState(false);
+  
   if (!ring.isSystemRing) return null;
 
   return (
@@ -71,9 +85,76 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
           <div className="mb-6">
             <div className="text-6xl mb-4">🧵</div>
             <h1 className="text-5xl font-bold text-thread-pine mb-4">{ring.name}</h1>
-            <p className="text-xl text-thread-sage max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl text-thread-sage max-w-2xl mx-auto leading-relaxed mb-6">
               {ring.description}
             </p>
+            
+            {/* Prominent Spool Badge */}
+            {ring.badge && ring.badge.isActive && (
+              <div className="bg-white border-2 border-thread-pine shadow-lg rounded-lg p-6 max-w-md mx-auto">
+                <div className="text-center">
+                  <div className="flex justify-center mb-3">
+                    <div 
+                      onClick={() => setShowSpoolBadgeOptions(!showSpoolBadgeOptions)}
+                      className="cursor-pointer transform transition-transform hover:scale-105"
+                      title="Click to show copy options"
+                    >
+                      <ThreadRing88x31Badge
+                        templateId={ring.badge.templateId}
+                        title={ring.badge.title}
+                        subtitle={ring.badge.subtitle}
+                        backgroundColor={ring.badge.backgroundColor}
+                        textColor={ring.badge.textColor}
+                        imageUrl={ring.badge.imageUrl}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-sm font-bold text-thread-pine mb-2">🌐 The Spool Official Badge</div>
+                  <p className="text-xs text-thread-sage mb-3">
+                    {showSpoolBadgeOptions ? 
+                      "The genesis badge representing the root of all ThreadRing communities" :
+                      "Click the badge to get HTML code for your website!"
+                    }
+                  </p>
+                  
+                  {showSpoolBadgeOptions ? (
+                    <div className="animate-in slide-in-from-top duration-200 bg-gray-50 rounded-lg p-3 mb-3">
+                      <div className="flex justify-center gap-2 mb-2">
+                        <button 
+                          onClick={() => {
+                            const badgeHtml = `<a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
+                            navigator.clipboard.writeText(badgeHtml);
+                            alert('Spool badge HTML copied to clipboard!');
+                          }}
+                          className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+                        >
+                          📋 Copy HTML
+                        </button>
+                        <button 
+                          onClick={() => {
+                            const badgeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}`;
+                            navigator.clipboard.writeText(badgeUrl);
+                            alert('Spool URL copied to clipboard!');
+                          }}
+                          className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors"
+                        >
+                          🔗 Copy Link
+                        </button>
+                        <button 
+                          onClick={() => setShowSpoolBadgeOptions(false)}
+                          className="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+                        >
+                          ✕ Close
+                        </button>
+                      </div>
+                      <p className="text-xs text-thread-sage">
+                        Share The Spool&apos;s genesis badge on your website
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -235,6 +316,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [joining, setJoining] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [showBadgeOptions, setShowBadgeOptions] = useState(false);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
 
   useEffect(() => {
@@ -421,7 +503,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         <div className="mb-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h1 className="thread-headline text-3xl font-bold mb-2">{ring.name}</h1>
+              <h1 className="thread-headline text-3xl font-bold mb-3">{ring.name}</h1>
               {ring.description && (
                 <p className="text-thread-sage leading-relaxed mb-3">
                   {ring.description}
@@ -613,8 +695,75 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             </div>
           </div>
 
-          {/* ThreadRing Statistics */}
-          <ThreadRingStats threadRingSlug={ring.slug} />
+          {/* Official ThreadRing Badge */}
+          {ring.badge && ring.badge.isActive && (
+            <div className="border border-black bg-white shadow-[2px_2px_0_#000] p-4">
+              <h3 className="font-bold mb-3 flex items-center gap-2">
+                <span>🌐 Official Badge</span>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">88x31</span>
+              </h3>
+              
+              <div className="text-center mb-3">
+                <div 
+                  onClick={() => setShowBadgeOptions(!showBadgeOptions)}
+                  className="cursor-pointer transform transition-transform hover:scale-105 inline-block"
+                  title="Click to show copy options"
+                >
+                  <ThreadRing88x31Badge
+                    templateId={ring.badge.templateId}
+                    title={ring.badge.title}
+                    subtitle={ring.badge.subtitle}
+                    backgroundColor={ring.badge.backgroundColor}
+                    textColor={ring.badge.textColor}
+                    imageUrl={ring.badge.imageUrl}
+                  />
+                </div>
+              </div>
+
+              <p className="text-xs text-center text-gray-600 mb-3">
+                {showBadgeOptions ? 
+                  "Classic webring badge for your website" :
+                  "Click badge to get HTML code"
+                }
+              </p>
+              
+              {showBadgeOptions && (
+                <div className="animate-in slide-in-from-top duration-200">
+                  <div className="bg-gray-50 border border-gray-200 rounded p-3 space-y-2">
+                    <button 
+                      onClick={() => {
+                        const badgeHtml = `<a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
+                        navigator.clipboard.writeText(badgeHtml);
+                        alert('Badge HTML copied to clipboard!');
+                      }}
+                      className="w-full text-xs bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition-colors"
+                    >
+                      📋 Copy HTML Code
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const badgeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}`;
+                        navigator.clipboard.writeText(badgeUrl);
+                        alert('ThreadRing URL copied to clipboard!');
+                      }}
+                      className="w-full text-xs bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition-colors"
+                    >
+                      🔗 Copy ThreadRing Link
+                    </button>
+                    <button 
+                      onClick={() => setShowBadgeOptions(false)}
+                      className="w-full text-xs bg-gray-500 text-white px-3 py-2 rounded hover:bg-gray-600 transition-colors"
+                    >
+                      ✕ Close
+                    </button>
+                    <div className="text-xs text-gray-600 text-center pt-1">
+                      <p>Embed the badge on your website to link back!</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Random Member Discovery */}
           {featureFlags.threadrings() && ring.memberCount > 1 && (
@@ -661,6 +810,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             threadRingSlug={ring.slug} 
             ringName={ring.name}
           />
+
+          {/* ThreadRing Statistics */}
+          <ThreadRingStats threadRingSlug={ring.slug} />
         </div>
       </div>
     </Layout>
@@ -726,6 +878,18 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             { role: "desc" }, // Curator first, then moderators, then members
             { joinedAt: "asc" },
           ],
+        },
+        badge: {
+          select: {
+            id: true,
+            title: true,
+            subtitle: true,
+            templateId: true,
+            backgroundColor: true,
+            textColor: true,
+            imageUrl: true,
+            isActive: true,
+          },
         },
       },
     });

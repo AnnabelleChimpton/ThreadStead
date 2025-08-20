@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import BadgeSelector from "../BadgeSelector";
 
 interface ForkThreadRingFormProps {
   originalRing: {
@@ -25,6 +26,13 @@ export default function ForkThreadRingForm({
   });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [badgeData, setBadgeData] = useState<{
+    templateId?: string;
+    backgroundColor?: string;
+    textColor?: string;
+    title?: string;
+    subtitle?: string;
+  }>({ templateId: 'classic_blue' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +51,10 @@ export default function ForkThreadRingForm({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          badge: badgeData,
+        }),
       });
 
       const data = await response.json();
@@ -148,6 +159,16 @@ export default function ForkThreadRingForm({
             <option value="unlisted">Unlisted - Only visible via direct link</option>
             <option value="private">Private - Only visible to members</option>
           </select>
+        </div>
+
+        {/* Badge Selection */}
+        <div>
+          <BadgeSelector
+            threadRingName={formData.name || "ThreadRing Fork"}
+            onBadgeChange={setBadgeData}
+            initialBadge={badgeData}
+            compact={true}
+          />
         </div>
 
         {/* Error */}

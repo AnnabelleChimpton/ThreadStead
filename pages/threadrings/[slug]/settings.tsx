@@ -6,6 +6,7 @@ import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import ThreadRingInviteForm from "../../../components/forms/ThreadRingInviteForm";
+import ThreadRingBadgeManager from "../../../components/ThreadRingBadgeManager";
 
 interface ThreadRingSettingsPageProps {
   siteConfig: SiteConfig;
@@ -243,6 +244,16 @@ export default function ThreadRingSettingsPage({
                 </div>
               </div>
             </div>
+
+            {/* Badge Manager */}
+            <ThreadRingBadgeManager
+              threadRingSlug={ring.slug}
+              threadRingName={ring.name}
+              onBadgeUpdate={() => {
+                // Could add refresh logic here if needed
+                console.log('Badge updated');
+              }}
+            />
 
             {/* Save Button */}
             <div className="flex items-center gap-4">

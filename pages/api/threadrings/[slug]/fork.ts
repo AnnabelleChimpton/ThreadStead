@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { generateThreadRingBadge } from "@/lib/badge-generator";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -9,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { slug } = req.query;
-  const { name, description, joinType, visibility } = req.body;
+  const { name, description, joinType, visibility, badge } = req.body;
 
   if (typeof slug !== "string") {
     return res.status(400).json({ error: "Invalid slug" });
@@ -174,6 +175,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         });
       }
+
+      // Create badge if provided or generate default
+      let badgeData;
+      if (badge && (badge.templateId || badge.backgroundColor)) {
+        // Use provided badge data
+        badgeData = {
+          templateId: badge.templateId,
+          title: badge.title || name.trim(),
+          subtitle: badge.subtitle,
+          backgroundColor: badge.backgroundColor || '#4A90E2',
+          textColor: badge.textColor || '#FFFFFF',
+          isGenerated: false
+        };
+      } else {
+        // Generate default badge
+        badgeData = await generateThreadRingBadge(name.trim(), finalSlug);
+      }
+
+      await tx.threadRingBadge.create({
+        data: {
+          threadRingId: ring.id,
+          title: badgeData.title,
+          subtitle: badgeData.subtitle,
+          templateId: badgeData.templateId,
+          backgroundColor: badgeData.backgroundColor,
+          textColor: badgeData.textColor,
+          isGenerated: badgeData.isGenerated,
+          isActive: true,
+          createdBy: viewer.id
+        }
+      });
 
       // Note: No notification created - forks should be discoverable through the ring's fork page
       // This keeps ThreadRing activity ambient rather than invasive

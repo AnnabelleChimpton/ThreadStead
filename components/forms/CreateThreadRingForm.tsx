@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import BadgeSelector from "../BadgeSelector";
 
 type ThreadRingJoinType = "open" | "invite" | "closed";
 type ThreadRingVisibility = "public" | "unlisted" | "private";
@@ -36,6 +37,13 @@ export default function CreateThreadRingForm({ onCreated }: CreateThreadRingForm
   const [autoSlug, setAutoSlug] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [badgeData, setBadgeData] = useState<{
+    templateId?: string;
+    backgroundColor?: string;
+    textColor?: string;
+    title?: string;
+    subtitle?: string;
+  }>({ templateId: 'classic_blue' });
 
   // Auto-generate slug from name
   React.useEffect(() => {
@@ -70,6 +78,7 @@ export default function CreateThreadRingForm({ onCreated }: CreateThreadRingForm
           description: description.trim() || undefined,
           joinType,
           visibility,
+          badge: badgeData,
         }),
       });
 
@@ -97,6 +106,7 @@ export default function CreateThreadRingForm({ onCreated }: CreateThreadRingForm
       setJoinType("open");
       setVisibility("public");
       setAutoSlug(true);
+      setBadgeData({ templateId: 'classic_blue' });
       
       await onCreated?.(ring);
     } catch (err: any) {
@@ -209,6 +219,16 @@ export default function CreateThreadRingForm({ onCreated }: CreateThreadRingForm
             {VISIBILITY_OPTIONS.find(o => o.value === visibility)?.description}
           </p>
         </div>
+      </div>
+
+      {/* Badge Selection */}
+      <div className="space-y-2">
+        <BadgeSelector
+          threadRingName={name || "ThreadRing"}
+          onBadgeChange={setBadgeData}
+          initialBadge={badgeData}
+          compact={true}
+        />
       </div>
 
       {error && (

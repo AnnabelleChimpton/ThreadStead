@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
+import { generateThreadRingBadge } from "@/lib/badge-generator";
 
 // Temporarily use string literals instead of Prisma types
 type ThreadRingJoinType = "open" | "invite" | "closed";
@@ -31,12 +32,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     console.log("User found:", viewer.id);
 
-  const { name, slug, description, joinType, visibility } = (req.body || {}) as {
+  const { name, slug, description, joinType, visibility, badge } = (req.body || {}) as {
     name?: string;
     slug?: string;
     description?: string;
     joinType?: ThreadRingJoinType;
     visibility?: ThreadRingVisibility;
+    badge?: {
+      templateId?: string;
+      backgroundColor?: string;
+      textColor?: string;
+      title?: string;
+      subtitle?: string;
+    };
   };
 
   if (!name?.trim()) {
@@ -124,6 +132,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           data: {
             directChildrenCount: { increment: 1 },
             totalDescendantsCount: { increment: 1 }
+          }
+        });
+
+        // Create badge if provided or generate default
+        let badgeData;
+        if (badge && (badge.templateId || badge.backgroundColor)) {
+          // Use provided badge data
+          badgeData = {
+            templateId: badge.templateId,
+            title: badge.title || name.trim(),
+            subtitle: badge.subtitle,
+            backgroundColor: badge.backgroundColor || '#4A90E2',
+            textColor: badge.textColor || '#FFFFFF',
+            isGenerated: false
+          };
+        } else {
+          // Generate default badge
+          badgeData = await generateThreadRingBadge(name.trim(), finalSlug);
+        }
+
+        await tx.threadRingBadge.create({
+          data: {
+            threadRingId: ring.id,
+            title: badgeData.title,
+            subtitle: badgeData.subtitle,
+            templateId: badgeData.templateId,
+            backgroundColor: badgeData.backgroundColor,
+            textColor: badgeData.textColor,
+            isGenerated: badgeData.isGenerated,
+            isActive: true,
+            createdBy: viewer.id
           }
         });
 
