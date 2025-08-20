@@ -448,3 +448,684 @@ See `prisma/schema.prisma` for detailed schema comments.
 - **Ring Prompts/Challenges**: Curator-driven engagement features
 
 **Status**: Phase 4 is production-ready! ThreadRings now have professional-grade moderation tools, comprehensive statistics, fork genealogy tracking, and complete curator management capabilities. The ThreadRings feature is now a fully-featured community platform ready for real-world use.
+
+## 🧭 Phase 5: The Spool Architecture & Enhanced Features
+
+### The Spool - Universal Parent ThreadRing
+
+**Concept**: All ThreadRings will architecturally trace back to a single symbolic parent ThreadRing called "The Spool". This creates a unified genealogical tree for all communities.
+
+**The Spool Characteristics**:
+- **Symbolic Nature**: More conceptual than practical - represents the origin point of all ThreadRing communities
+- **Unique Landing Page**: Unlike regular ThreadRings, The Spool's page will not display posts
+- **Status Display**: Shows total count of ALL descendants (entire ThreadRing family tree)
+- **Genealogy Portal**: Primary link to the interactive genealogical tree of all ThreadRings
+- **Universal Parent**: All top-level ThreadRings (those not forked from others) become children of The Spool
+
+**Database Changes Needed**:
+- Modify ThreadRing schema to ensure all rings have a parent (either another ring or The Spool)
+- Create The Spool as a special system ThreadRing with unique properties
+- Update fork creation logic to assign The Spool as parent for orphaned rings
+
+### Performant Descendant Counting Strategy
+
+**The Challenge**: Computing ALL descendants for The Spool requires traversing the entire ThreadRing family tree, which could become expensive with deep hierarchies and many rings.
+
+**Solution: Denormalized Descendant Counters with Incremental Updates**
+
+**Enhanced ThreadRing Schema**:
+```prisma
+model ThreadRing {
+  // Existing fields...
+  
+  // Hierarchical fields
+  parentId          String?    // Direct parent ThreadRing
+  parentUri         String?    // For federated parents
+  
+  // Denormalized counters for performance
+  directChildrenCount    Int    @default(0)    // Immediate children only
+  totalDescendantsCount  Int    @default(0)    // ALL descendants (recursive)
+  
+  // Cached lineage data
+  lineageDepth          Int    @default(0)    // How deep in the tree (Spool = 0)
+  lineagePath           String @default("")   // Comma-separated ancestor IDs for quick queries
+}
+```
+
+**Incremental Update Strategy**:
+
+When a new ThreadRing is created or forked:
+1. **Increment Direct Parent**: `directChildrenCount += 1` for immediate parent
+2. **Increment All Ancestors**: `totalDescendantsCount += 1` for all ancestors up the lineage chain
+3. **Use Lineage Path**: Pre-computed ancestor path makes updates efficient
+
+**Implementation Example**:
+```typescript
+async function createThreadRingFork(parentId: string, newRingData: any) {
+  // Create the new ring
+  const newRing = await prisma.threadRing.create({
+    data: {
+      ...newRingData,
+      parentId,
+      lineageDepth: parentRing.lineageDepth + 1,
+      lineagePath: `${parentRing.lineagePath},${parentId}`.replace(/^,/, '')
+    }
+  })
+  
+  // Update parent's direct children count
+  await prisma.threadRing.update({
+    where: { id: parentId },
+    data: { directChildrenCount: { increment: 1 } }
+  })
+  
+  // Update ALL ancestors' total descendant counts
+  const ancestorIds = newRing.lineagePath.split(',').filter(Boolean)
+  if (ancestorIds.length > 0) {
+    await prisma.threadRing.updateMany({
+      where: { id: { in: ancestorIds } },
+      data: { totalDescendantsCount: { increment: 1 } }
+    })
+  }
+}
+```
+
+**The Spool's Counter**:
+- **directChildrenCount**: Number of top-level ThreadRings (orphans assigned to Spool)
+- **totalDescendantsCount**: Total number of ALL ThreadRings in the entire system
+- **Real-time Updates**: Automatically maintained through incremental updates
+- **O(log n) Performance**: Updates are proportional to tree depth, not total size
+
+**Query Performance Benefits**:
+```sql
+-- Get The Spool's total descendant count (instant)
+SELECT totalDescendantsCount FROM ThreadRing WHERE id = 'spool-id';
+
+-- Get any ring's complete family size (instant)
+SELECT 
+  directChildrenCount,
+  totalDescendantsCount,
+  lineageDepth
+FROM ThreadRing WHERE id = 'any-ring-id';
+
+-- Find all rings at a specific depth (efficient)
+SELECT * FROM ThreadRing WHERE lineageDepth = 3;
+
+-- Find all descendants of a ring (efficient with lineagePath)
+SELECT * FROM ThreadRing WHERE lineagePath LIKE 'ancestor-id,%' OR lineagePath LIKE '%,ancestor-id,%' OR lineagePath LIKE '%,ancestor-id';
+```
+
+**Consistency & Integrity**:
+
+**Background Reconciliation Job**:
+```typescript
+// Run periodically to ensure counter accuracy
+async function reconcileDescendantCounts() {
+  const rings = await prisma.threadRing.findMany()
+  
+  for (const ring of rings) {
+    // Recompute actual descendant count
+    const actualCount = await prisma.threadRing.count({
+      where: {
+        OR: [
+          { lineagePath: { startsWith: `${ring.id},` } },
+          { lineagePath: { contains: `,${ring.id},` } },
+          { lineagePath: { endsWith: `,${ring.id}` } },
+          { parentId: ring.id } // Direct children
+        ]
+      }
+    })
+    
+    // Update if discrepancy found
+    if (actualCount !== ring.totalDescendantsCount) {
+      await prisma.threadRing.update({
+        where: { id: ring.id },
+        data: { totalDescendantsCount: actualCount }
+      })
+    }
+  }
+}
+```
+
+**Migration Strategy for Existing Data**:
+```typescript
+// One-time migration to compute initial values
+async function computeInitialLineageData() {
+  // 1. Set lineageDepth and lineagePath for all existing rings
+  // 2. Compute totalDescendantsCount for each ring
+  // 3. Ensure The Spool has accurate count of all rings
+}
+```
+
+**Performance Characteristics**:
+- **Ring Creation**: O(log n) - updates proportional to tree depth
+- **Count Queries**: O(1) - instant lookup from denormalized counters
+- **Tree Traversal**: O(1) with lineagePath for most queries
+- **Memory Overhead**: Minimal - just a few integer fields per ring
+- **Consistency**: Background job ensures long-term accuracy
+
+### Hierarchical Feed System
+
+**Parent/Descendant Feed Options**:
+- **Direct Parent Feed**: Option to follow posts from immediate parent ThreadRing
+- **Descendant Feeds**: Option to follow posts from any child ThreadRings (forks)
+- **Full Lineage Feed**: Advanced option to follow entire family tree (ancestors + descendants)
+- **Feed Scope Controls**: Granular settings for how deep to follow lineage (1 level, 2 levels, infinite)
+
+**Performance Considerations**:
+- **Recursive Query Optimization**: Use CTEs (Common Table Expressions) for efficient lineage traversal
+- **Feed Caching**: Cache lineage feed results with appropriate TTL
+- **Selective Loading**: Load feeds on-demand rather than pre-computing all possible combinations
+- **Depth Limits**: Enforce maximum depth limits to prevent infinite recursion or performance issues
+- **Batch Processing**: Process lineage updates in background jobs for large family trees
+
+### Interactive Genealogical Tree
+
+**Core Features**:
+- **Visual Tree Representation**: Interactive tree/graph showing ThreadRing relationships
+- **Branch Navigation**: Click to expand/collapse different branches of the tree
+- **Ring Details on Hover**: Show basic stats (members, posts) without leaving tree view
+- **Search Within Tree**: Find specific rings within the genealogical structure
+- **Zoom & Pan**: Handle large family trees with smooth navigation controls
+- **Multiple View Modes**: Tree view, network graph, hierarchical list
+
+**Technical Implementation**:
+- Use D3.js or similar library for interactive visualization
+- Server-side API for tree data with efficient parent/child queries
+- Client-side caching of tree segments for smooth navigation
+- Progressive loading for large trees (load branches on expand)
+
+### Random Member Discovery ("Stumbleupon Mode")
+
+**Feature Requirements**:
+- **Random Member Button**: "Visit Random Member" button on ThreadRing pages
+- **Weighted Randomization**: Prefer more active members or recent contributors
+- **Respect Privacy**: Only show members whose profiles are public/visible to viewer
+- **Discovery Settings**: Members can opt-out of random discovery
+- **Activity Bias**: Weight selection toward members with recent posts or engagement
+- **Cross-Ring Discovery**: Advanced option to discover random members across entire lineage
+
+**Implementation Details**:
+- Database query with RANDOM() or similar, filtered by privacy settings
+- Cache random member pools for performance with periodic refresh
+- Track discovery analytics (optional) for improving randomization algorithm
+
+### 88x31 Webring Badge System
+
+**Badge Enforcement at Fork Creation**:
+- **Mandatory Badge Creation**: Require badge generation/selection during fork process
+- **Standard Size**: Enforce classic 88x31 pixel webring badge dimensions
+- **Temporary Autogen**: Automatically generate temporary badges with ring name and basic design
+- **Badge Templates**: Provide library of templates for quick customization
+- **Custom Upload**: Allow upload of custom 88x31 badges (with validation)
+- **Badge Display**: Show badges prominently on ring pages and member profiles
+
+**Autogen Feature for Temporary Badges**:
+- **Text-Based Generation**: Auto-create badges with ring name and simple background
+- **Template Variations**: Multiple color schemes and layout options
+- **SVG Generation**: Create scalable badges that render properly at 88x31
+- **Placeholder System**: Clearly mark auto-generated badges as temporary
+- **Upgrade Prompts**: Encourage curators to create custom badges
+
+## 🗃️ Implementation Todos for Phase 5
+
+### The Spool Architecture
+- [ ] **Database Migration**: Create The Spool as system ThreadRing with special flags
+- [ ] **Enhanced Schema**: Add parentId, directChildrenCount, totalDescendantsCount, lineageDepth, lineagePath fields
+- [ ] **Descendant Counter System**: Implement incremental descendant counting with O(log n) performance
+- [ ] **Migration Script**: Update existing ThreadRings with lineage data and assign The Spool as parent for orphaned rings
+- [ ] **API Updates**: Modify fork creation to properly assign parent relationships and update ancestor counters
+- [ ] **Background Reconciliation**: Periodic job to ensure descendant counter accuracy
+- [ ] **The Spool Landing Page**: Create unique page template (no posts, genealogy link, ALL descendants count) - **Feature Flag Required**
+
+### Hierarchical Feed System  
+- [ ] **Feed Options UI**: Add parent/descendant feed toggles to ring settings - **Feature Flag Required**
+- [ ] **Lineage Feed API**: Create efficient API endpoints for hierarchical post feeds
+- [ ] **Performance Optimization**: Implement CTE queries and caching for lineage traversal
+- [ ] **Feed Settings**: User preferences for lineage feed depth and scope - **Feature Flag Required**
+- [ ] **Background Jobs**: Async processing for complex lineage feed updates
+
+### Interactive Genealogical Tree
+- [ ] **Tree Visualization Component**: Build interactive tree using D3.js or similar - **Feature Flag Required**
+- [ ] **Tree Data API**: Efficient endpoint for serving genealogical tree data
+- [ ] **Progressive Loading**: Implement branch-by-branch loading for large trees - **Feature Flag Required**
+- [ ] **Tree Navigation**: Zoom, pan, search, and branch collapse functionality - **Feature Flag Required**
+- [ ] **Tree Page**: Dedicated page for exploring the full ThreadRing genealogy - **Feature Flag Required**
+- [ ] **Integration**: Link from The Spool and other ring pages to genealogy explorer - **Feature Flag Required**
+
+### Random Member Discovery
+- [ ] **Random Member API**: Weighted randomization endpoint with privacy filtering
+- [ ] **Discovery UI**: "Visit Random Member" buttons with loading states - **Feature Flag Required**
+- [ ] **Privacy Controls**: Member settings to opt-out of random discovery - **Feature Flag Required**
+- [ ] **Discovery Analytics**: Optional tracking for improving randomization
+- [ ] **Cross-Ring Discovery**: Advanced discovery across ring lineages - **Feature Flag Required**
+
+### 88x31 Badge System
+- [ ] **Badge Model**: Database schema for storing ThreadRing badges
+- [ ] **Badge Templates**: Library of 88x31 badge templates and designs - **Feature Flag Required**
+- [ ] **Autogen Service**: Automatic badge generation with text and templates
+- [ ] **Badge Validation**: Ensure uploaded badges meet 88x31 requirements
+- [ ] **Fork Badge Flow**: Integrate badge creation/selection into fork process - **Feature Flag Required**
+- [ ] **Badge Display**: Show badges on ring pages, member profiles, and directory - **Feature Flag Required**
+- [ ] **Badge Management**: Curator interface for uploading/changing badges - **Feature Flag Required**
+
+### Enhanced Features
+- [ ] **Lineage Statistics**: Enhanced stats showing family tree metrics - **Feature Flag Required**
+- [ ] **Cross-Ring Moderation**: Tools for managing content across ring lineages - **Feature Flag Required**
+- [ ] **Genealogy-Aware Search**: Search functionality that understands ring relationships - **Feature Flag Required**
+- [ ] **Family Tree Notifications**: Optional notifications for activity in related rings - **Feature Flag Required**
+
+### Data Integrity & Error Handling
+- [ ] **Tree Structure Constraints**: Database constraints to prevent cycles and ensure valid parent-child relationships
+- [ ] **Lineage Path Validation**: Ensure lineagePath consistency and prevent corruption
+- [ ] **Maximum Depth Limits**: Enforce reasonable tree depth limits to prevent abuse
+- [ ] **Orphan Prevention**: Constraints to ensure all rings have valid parents
+- [ ] **Counter Consistency Checks**: Validation that descendant counts match actual tree structure
+- [ ] **Transaction Rollback**: Proper error handling for failed tree operations
+- [ ] **Tree Corruption Recovery**: Tools to detect and fix corrupted genealogy structures
+
+### Admin & Maintenance Tools
+- [ ] **Spool Management Interface**: Admin tools for managing The Spool and system-level tree operations
+- [ ] **Tree Structure Debugging**: Admin tools to visualize and debug tree inconsistencies
+- [ ] **Bulk Tree Operations**: Admin capabilities for bulk tree reorganization if needed
+- [ ] **Counter Reconciliation Controls**: Admin interface to trigger manual counter reconciliation
+- [ ] **Federation Health Monitoring**: Admin dashboard for cross-instance federation status
+
+### Testing & Quality Assurance
+- [ ] **Tree Operation Unit Tests**: Comprehensive tests for all tree manipulation operations
+- [ ] **Genealogy Integration Tests**: End-to-end tests for complex family tree scenarios
+- [ ] **Performance Tests**: Load testing for large tree structures and bulk operations
+- [ ] **Federation Test Suite**: Tests for cross-instance tree operations and sync
+- [ ] **Counter Accuracy Tests**: Automated tests to verify descendant counting accuracy
+- [ ] **Tree Visualization Tests**: Tests for genealogy tree rendering and interaction
+
+### Accessibility & Mobile
+- [ ] **Genealogy Tree Accessibility**: Screen reader support and keyboard navigation for tree interface - **Feature Flag Required**
+- [ ] **Mobile Tree Interface**: Touch-friendly genealogy tree navigation for mobile devices - **Feature Flag Required**
+- [ ] **Alternative Tree Views**: Text-based lineage representation for accessibility - **Feature Flag Required**
+- [ ] **Mobile Badge Management**: Mobile-optimized badge creation and management - **Feature Flag Required**
+
+### Rate Limiting & Abuse Prevention
+- [ ] **Fork Frequency Limits**: Prevent users from rapidly creating excessive forks
+- [ ] **Tree Depth Enforcement**: Hard limits on maximum genealogy tree depth
+- [ ] **Badge Creation Throttling**: Rate limits on badge generation and uploads
+- [ ] **Bulk Operation Limits**: Prevent abuse of batch tree operations
+- [ ] **Federation Request Limiting**: Rate limits for cross-instance operations
+- [ ] **Spam Detection**: Identify and prevent genealogy tree spam patterns
+
+### Missing Core Items
+- [ ] **Search Index Updates**: Update existing search to work with hierarchical ThreadRing structure
+- [ ] **Notification System Integration**: Ensure lineage-related notifications work with existing notification system
+- [ ] **Privacy Integration**: Ensure genealogy features respect existing privacy settings and controls
+- [ ] **Export/Backup Considerations**: Handle tree structure in data exports and backups
+
+## 🔧 Technical Architecture Notes
+
+### The Spool Implementation
+- The Spool should be created as ThreadRing ID 1 with special system flags
+- All parentId fields should default to 1 (The Spool) for orphaned rings
+- The Spool's landing page should use a completely different template
+- Consider The Spool as read-only (no posts, members, or normal ThreadRing features)
+
+### Performance Considerations
+- Lineage queries can become expensive - use proper indexing on parentId
+- Consider materialized views for complex genealogy calculations
+- Cache tree structures aggressively since they change infrequently
+- Use pagination and depth limits to prevent runaway queries
+
+### Privacy & Safety
+- All lineage features must respect individual ThreadRing privacy settings
+- Random discovery should honor user privacy preferences
+- Genealogy tree should hide private rings from unauthorized viewers
+- Badge system should prevent inappropriate content through moderation
+
+**Next Phase Priority**: Start with The Spool architecture as it's foundational to all other hierarchical features.
+
+## 🌐 Federation Architecture for Cross-Instance ThreadRings
+
+### Federated Spool Concept
+
+**Distributed Parent System**:
+- Each instance has its own local "Spool" (e.g., `https://threadstead.com/threadrings/spool`)
+- Cross-instance forking creates **federated lineage chains** that span multiple instances
+- **Origin Tracking**: Every ThreadRing maintains a canonical URI to its origin instance
+- **Lineage Federation**: Parent-child relationships can exist across instance boundaries
+
+**The Universal Spool Network**:
+- Local Spools connect to form a **distributed genealogy network**
+- Instance operators can configure **trusted federation partners** for cross-instance forking
+- **Spool Discovery**: Instances can discover and link to other Spools in the network
+- **Genealogy Bridging**: Interactive tree shows cross-instance relationships with clear instance indicators
+
+### Cross-Instance Forking & Lineage
+
+**Federated Fork Process**:
+1. **Local Fork**: User forks a remote ThreadRing, creating local copy with federated parent reference
+2. **Origin Notification**: Inform origin instance of the fork via ActivityPub
+3. **Canonical URIs**: Maintain immutable references to original ThreadRing across instances
+4. **Local Autonomy**: Forked ring operates independently while preserving lineage metadata
+
+**Cross-Instance Lineage Tracking**:
+- **Federated Parent References**: `parentUri` field stores full canonical URI (e.g., `https://other-instance.com/threadrings/original-ring`)
+- **Local Cache**: Store essential metadata about remote parents (name, instance, member count)
+- **Lineage Synchronization**: Periodic updates to maintain accurate cross-instance family trees
+- **Fallback Handling**: Graceful degradation when remote instances are unavailable
+
+### ActivityPub Integration for ThreadRings
+
+**ThreadRing as ActivityPub Actor**:
+```json
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "type": "Group",
+  "id": "https://threadstead.com/threadrings/web-dev-circle",
+  "name": "Web Dev Circle",
+  "summary": "A community for web developers to share and discuss",
+  "attributedTo": "https://threadstead.com/users/curator-username",
+  "followers": "https://threadstead.com/threadrings/web-dev-circle/followers",
+  "members": "https://threadstead.com/threadrings/web-dev-circle/members",
+  "inbox": "https://threadstead.com/threadrings/web-dev-circle/inbox",
+  "outbox": "https://threadstead.com/threadrings/web-dev-circle/outbox",
+  "threadring": {
+    "parentUri": "https://origin-instance.com/threadrings/parent-ring",
+    "spoolUri": "https://threadstead.com/threadrings/spool",
+    "joinType": "open",
+    "visibility": "public"
+  }
+}
+```
+
+**Cross-Instance Activities**:
+- **Fork Activity**: Notify origin instance when ThreadRing is forked
+- **Join/Leave Activities**: Cross-instance membership management
+- **Post Syndication**: Share posts to federated parent/child rings (with permission)
+- **Member Discovery**: Allow cross-instance member visibility and interaction
+
+### Federated Badge & Discovery System
+
+**Cross-Instance Badge Display**:
+- **Instance Attribution**: Badges show origin instance (e.g., "Web Dev Circle @ threadstead.com")
+- **Federated Badge CDN**: Distribute badges across instances for performance
+- **Badge Verification**: Cryptographic signatures to prevent badge spoofing
+- **Template Sharing**: Popular badge templates can be shared across instances
+
+**Federated Discovery & Search**:
+- **Cross-Instance Search**: Search ThreadRings across federated network
+- **Instance Reputation**: Trust scores for instance-to-instance forking permissions
+- **Federated Trending**: Aggregate trending ThreadRings across multiple instances
+- **Discovery Networks**: Curated lists of interesting cross-instance ThreadRings
+
+### Database Schema for Federation
+
+**Enhanced ThreadRing Model**:
+```prisma
+model ThreadRing {
+  // Existing fields...
+  
+  // Federation fields
+  canonicalUri     String    @unique  // Full URI: https://instance.com/threadrings/slug
+  originInstance   String              // Domain of origin instance
+  parentUri        String?             // Full URI of parent (may be remote)
+  spoolUri         String              // URI of local spool
+  federationKey    String?             // Public key for federation verification
+  lastSyncAt       DateTime?           // Last successful federation sync
+  
+  // Cached remote data (for performance)
+  parentMetadata   Json?               // Cached parent ring metadata
+  remoteMembers    Json?               // Cached cross-instance member data
+  
+  // Federation settings
+  allowFederation  Boolean   @default(true)
+  trustedInstances String[]            // Instances allowed to fork this ring
+}
+
+model FederatedSync {
+  id               String    @id @default(cuid())
+  threadRingId     String
+  remoteUri        String
+  syncType         String    // "parent", "child", "member"
+  lastSuccess      DateTime?
+  lastError        String?
+  retryCount       Int       @default(0)
+  
+  threadRing       ThreadRing @relation(fields: [threadRingId], references: [id])
+}
+```
+
+**Migration Strategy**:
+- Add federation fields to existing ThreadRing schema
+- Create federated sync tracking table
+- Generate canonical URIs for all existing ThreadRings
+- Establish local Spool with proper federation metadata
+
+## 🔗 Federation Implementation Todos
+
+### Core Federation Infrastructure
+- [ ] **ActivityPub Actor Model**: Implement ThreadRings as ActivityPub Groups
+- [ ] **Canonical URI Generation**: Create unique, immutable URIs for all ThreadRings
+- [ ] **Federation Key Management**: Public/private key pairs for secure cross-instance communication
+- [ ] **Instance Discovery**: Protocol for discovering and connecting to other ThreadRing instances
+- [ ] **Trust Network Setup**: Configuration for trusted federation partners
+
+### Cross-Instance Operations
+- [ ] **Federated Fork Protocol**: API endpoints for cross-instance forking requests
+- [ ] **Remote Parent Tracking**: System for maintaining relationships with remote parent ThreadRings
+- [ ] **Cross-Instance Notifications**: ActivityPub activities for forks, joins, and updates
+- [ ] **Lineage Synchronization**: Background jobs to sync remote lineage metadata
+- [ ] **Federation Fallbacks**: Graceful handling of unreachable remote instances
+
+### Data Synchronization
+- [ ] **Remote Metadata Caching**: Efficient storage and refresh of remote ThreadRing data
+- [ ] **Member Federation**: Cross-instance member visibility and interaction protocols
+- [ ] **Badge Federation**: Distributed badge sharing and verification system
+- [ ] **Search Federation**: Cross-instance search and discovery APIs
+- [ ] **Trending Aggregation**: Federated trending calculation across instances
+
+### Security & Privacy
+- [ ] **Federation Permissions**: Fine-grained control over cross-instance operations
+- [ ] **Instance Blocking**: Tools for blocking problematic instances or specific ThreadRings
+- [ ] **Data Privacy**: Ensure private ThreadRings remain private across federation
+- [ ] **Verification Systems**: Cryptographic verification of cross-instance activities
+- [ ] **Rate Limiting**: Prevent federation abuse and spam
+
+### User Experience
+- [ ] **Federated Genealogy Tree**: Visual tree showing cross-instance relationships - **Feature Flag Required**
+- [ ] **Instance Indicators**: Clear UI indicators for remote vs local ThreadRings - **Feature Flag Required**
+- [ ] **Cross-Instance Join Flow**: Seamless joining of remote ThreadRings - **Feature Flag Required**
+- [ ] **Federation Settings**: User controls for federation participation - **Feature Flag Required**
+- [ ] **Remote Ring Discovery**: Browse and discover ThreadRings on other instances - **Feature Flag Required**
+
+## 🌍 Federation Benefits
+
+**For Users**:
+- **Cross-Instance Communities**: Join ThreadRings regardless of home instance
+- **Distributed Genealogy**: ThreadRing family trees that span the entire network
+- **Instance Migration**: Move between instances while preserving ThreadRing relationships
+- **Diverse Discovery**: Access to ThreadRings from across the federated network
+
+**For Instance Operators**:
+- **Decentralized Growth**: ThreadRings can grow beyond single-instance limitations
+- **Content Diversity**: Access to content and communities from partner instances
+- **Reduced Hosting Load**: Distribute large communities across multiple instances
+- **Network Effects**: Benefit from the broader ThreadRing ecosystem
+
+**For the Ecosystem**:
+- **Resilience**: No single point of failure for ThreadRing communities
+- **Innovation**: Different instances can experiment with ThreadRing features
+- **Specialization**: Instances can focus on specific types of ThreadRing communities
+- **True Decentralization**: ThreadRings become a cross-platform community protocol
+
+**Next Federation Priority**: Implement canonical URIs and basic ActivityPub actor model for ThreadRings before building cross-instance operations.
+
+## 🚩 Feature Flag Implementation Strategy
+
+### ThreadRings Feature Flag Requirements
+
+**All Phase 5 client-side changes MUST be gated behind the existing `threadrings` feature flag** to ensure safe, gradual rollout and the ability to quickly disable features if issues arise.
+
+### Feature Flag Implementation Pattern
+
+**React Component Example**:
+```tsx
+import { useFeatureFlag } from '@/hooks/useFeatureFlag'
+
+export function SpoolLandingPage() {
+  const threadringsEnabled = useFeatureFlag('threadrings')
+  
+  if (!threadringsEnabled) {
+    return <NotFoundPage />
+  }
+  
+  return (
+    <div>
+      {/* Spool-specific content */}
+    </div>
+  )
+}
+```
+
+**Navigation/Link Example**:
+```tsx
+export function ThreadRingNavigation() {
+  const threadringsEnabled = useFeatureFlag('threadrings')
+  
+  return (
+    <nav>
+      {threadringsEnabled && (
+        <>
+          <Link href="/threadrings/genealogy">Family Tree</Link>
+          <Link href="/threadrings/spool">The Spool</Link>
+        </>
+      )}
+    </nav>
+  )
+}
+```
+
+**Settings/UI Controls Example**:
+```tsx
+export function ThreadRingSettings() {
+  const threadringsEnabled = useFeatureFlag('threadrings')
+  
+  return (
+    <div>
+      {/* Basic ThreadRing settings */}
+      
+      {threadringsEnabled && (
+        <div>
+          <h3>Advanced Features</h3>
+          <label>
+            <input type="checkbox" /> Enable parent/descendant feeds
+          </label>
+          <label>
+            <input type="checkbox" /> Participate in random discovery
+          </label>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### API Endpoint Strategy
+
+**Backend APIs should be available regardless of feature flag** - the feature flag only controls frontend access to prevent UI exposure of incomplete features. This allows for:
+
+- **Safe testing** of backend functionality
+- **Gradual frontend rollout** while backend is stable
+- **API-first development** where features can be tested via direct API calls
+- **Mobile app compatibility** that may have different feature flag timelines
+
+### Phase 5 Feature Flag Checklist
+
+**UI Components Requiring Feature Flags**:
+- [ ] **The Spool Landing Page** - Unique page template with genealogy portal
+- [ ] **Genealogical Tree Visualization** - Interactive D3.js tree component
+- [ ] **Tree Navigation Controls** - Zoom, pan, search, branch controls
+- [ ] **Hierarchical Feed Options** - Parent/descendant feed toggles in settings
+- [ ] **Random Member Discovery** - "Visit Random Member" buttons and controls
+- [ ] **Badge Management UI** - 88x31 badge creation/upload interfaces
+- [ ] **Badge Display Components** - Badge rendering on pages and profiles
+- [ ] **Fork Badge Flow** - Badge selection during fork creation
+- [ ] **Lineage Statistics Display** - Family tree metrics in stats
+- [ ] **Cross-Ring Moderation Tools** - Lineage-aware moderation interfaces
+- [ ] **Genealogy-Aware Search** - Search UI that understands relationships
+- [ ] **Federation UI Elements** - Instance indicators, cross-instance join flows
+- [ ] **Federation Settings** - User controls for federation participation
+
+**Pages Requiring Feature Flags**:
+- [ ] **`/threadrings/spool`** - The Spool landing page
+- [ ] **`/threadrings/genealogy`** - Interactive genealogical tree explorer
+- [ ] **Enhanced settings pages** - New Phase 5 setting sections
+
+**Navigation Elements Requiring Feature Flags**:
+- [ ] **Genealogy tree links** - Links to family tree explorer
+- [ ] **The Spool navigation** - Links to Spool from other pages
+- [ ] **Random discovery buttons** - Member discovery navigation
+- [ ] **Cross-instance links** - Federation-related navigation elements
+
+### Implementation Guidelines
+
+1. **Default to Feature Flag Check**: Every new UI component should check the feature flag
+2. **Graceful Fallbacks**: Components should render appropriately when feature is disabled
+3. **API Independence**: Backend APIs work regardless of frontend feature flag state
+4. **Progressive Enhancement**: Core ThreadRing functionality continues working without Phase 5 features
+5. **Clear Documentation**: Each TODO item marked with "Feature Flag Required" needs proper gating
+
+### Rollout Strategy
+
+**Phase 5A: Backend Only**
+- Implement all database changes and APIs
+- No frontend changes yet - all UI gated behind feature flag
+- Test APIs directly for functionality verification
+
+**Phase 5B: Limited Frontend Rollout**
+- Enable feature flag for development/staging environments
+- Implement and test UI components behind feature flag
+- Gather feedback from limited user base
+
+**Phase 5C: Gradual Production Rollout**
+- Enable for percentage of users (5%, 25%, 50%, 100%)
+- Monitor performance and user feedback
+- Quick rollback capability if issues arise
+
+**Feature Flag Benefits for Phase 5**:
+- **Risk Mitigation**: Complex features like genealogy trees can be quickly disabled
+- **Performance Testing**: Monitor impact of new features on system performance
+- **User Experience**: Gather feedback before full rollout
+- **Development Velocity**: Ship backend changes while frontend development continues
+
+## 🔮 Phase 6: Advanced Features & Polish (Future)
+
+**Items that could be moved to Phase 6 for better prioritization:**
+
+### Advanced Analytics & Monitoring
+- [ ] **Performance Monitoring Dashboard**: Real-time metrics for tree operations and genealogy performance
+- [ ] **Usage Analytics**: Track genealogy tree usage patterns and user engagement with hierarchical features
+- [ ] **Federation Health Metrics**: Comprehensive monitoring of cross-instance sync performance
+- [ ] **Tree Growth Analytics**: Track and visualize ThreadRing ecosystem growth over time
+
+### Enhanced User Experience
+- [ ] **Interactive Onboarding**: Guided tours for genealogy tree navigation and advanced features
+- [ ] **Smart Recommendations**: AI-driven suggestions for ThreadRings to join based on lineage patterns
+- [ ] **Advanced Tree Layouts**: Multiple visualization modes (radial, hierarchical, network graph)
+- [ ] **Tree History Timeline**: Visual timeline of ThreadRing creation and forking events
+
+### Advanced Search & Discovery
+- [ ] **Semantic Lineage Search**: Search ThreadRings by relationship patterns ("all children of X", "siblings of Y")
+- [ ] **Cross-Instance Discovery Hub**: Centralized discovery of interesting ThreadRings across federated instances
+- [ ] **Lineage-Based Recommendations**: Suggest ThreadRings based on family tree relationships
+- [ ] **Advanced Badge Search**: Search and filter by badge characteristics and templates
+
+### Enterprise & Scale Features
+- [ ] **Bulk Import/Export**: Tools for migrating large ThreadRing hierarchies between instances
+- [ ] **Advanced Federation Controls**: Fine-grained permissions for cross-instance operations
+- [ ] **ThreadRing Analytics API**: Public API for researchers and third-party tools
+- [ ] **Custom Tree Themes**: Advanced styling and customization for genealogy visualizations
+
+### Developer & Integration Features
+- [ ] **Genealogy API Webhooks**: Real-time notifications for tree structure changes
+- [ ] **Third-Party Integrations**: Connect ThreadRing genealogy to external tools and services
+- [ ] **Advanced Admin APIs**: Programmatic access to admin and maintenance operations
+- [ ] **Documentation Portal**: Comprehensive developer documentation for ThreadRing APIs
+
+**Phase 6 Priority**: Focus on advanced analytics, enhanced UX, and enterprise features after Phase 5 core functionality is stable and proven.
