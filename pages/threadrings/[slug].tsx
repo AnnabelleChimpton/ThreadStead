@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import PostItem, { Post } from "../../components/content/PostItem";
 import ThreadRingStats from "../../components/ThreadRingStats";
 import ThreadRingLineage from "../../components/ThreadRingLineage";
+import RandomMemberDiscovery from "../../components/RandomMemberDiscovery";
 import { featureFlags } from "@/lib/feature-flags";
 
 interface ThreadRingPageProps {
@@ -133,18 +134,17 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
               Explore the complete family tree of all ThreadRing communities. See how every ring traces its lineage back to The Spool.
             </p>
             
-            {/* TODO: Replace with actual genealogy tree when implemented */}
-            <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4">
-              <div className="text-4xl mb-2">🚧</div>
-              <p className="text-gray-600 font-medium">Interactive Genealogy Tree</p>
-              <p className="text-sm text-gray-500 mt-1">Coming soon in Phase 5</p>
+            <div className="bg-gradient-to-br from-green-50 to-blue-50 border border-green-200 rounded-lg p-6 text-center mb-4">
+              <div className="text-4xl mb-2">🌳</div>
+              <p className="text-gray-700 font-medium">Interactive genealogy tree is now available!</p>
+              <p className="text-sm text-gray-600 mt-1">Visualize the entire ThreadRing ecosystem</p>
             </div>
             
             <button 
-              disabled
-              className="w-full border border-black px-4 py-2 bg-gray-200 text-gray-500 shadow-[2px_2px_0_#000] font-medium cursor-not-allowed"
+              onClick={() => window.location.href = '/threadrings/genealogy'}
+              className="w-full border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
             >
-              🌳 Explore Family Tree (Coming Soon)
+              🌳 Explore Family Tree
             </button>
           </div>
 
@@ -591,6 +591,15 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
           {/* ThreadRing Statistics */}
           <ThreadRingStats threadRingSlug={ring.slug} />
+
+          {/* Random Member Discovery */}
+          {featureFlags.threadrings() && ring.memberCount > 1 && (
+            <RandomMemberDiscovery 
+              threadRingSlug={ring.slug}
+              threadRingName={ring.name}
+              enableLineageDiscovery={(ring.totalDescendantsCount || 0) > 0 || (ring.lineageDepth || 0) > 0}
+            />
+          )}
 
           {/* Members */}
           <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000]">

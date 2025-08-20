@@ -523,19 +523,39 @@ See `prisma/schema.prisma` for detailed schema comments.
 
 ## 🧭 Phase 5: The Spool Architecture & Enhanced Features
 
-**Current Progress: 🟢 Phase 5A Complete (7/30 total items) + Major Frontend Milestone**
+**Current Progress: 🟢 Phase 5A Complete + Phase 5B Major Progress (15/30 total items)**
 
-**✅ COMPLETED (Phase 5A):**
-- The Spool Architecture (7/7 items - backend foundation + landing page) ✅
-- Navigation enhancement (direct Spool access) ✅ 
+**✅ COMPLETED:**
+- **Phase 5A - The Spool Architecture (7/7 items)** ✅
+  - Database migration with hierarchical fields
+  - The Spool creation and orphan assignment
+  - Descendant counter system with O(log n) updates
+  - Fork API with proper lineage tracking
+  - Background reconciliation for counter accuracy
+  - The Spool landing page with genealogy portal
+  - Navigation enhancement (direct Spool access)
 
-**🔄 REMAINING (Phase 5B+):**
+- **Phase 5B - Interactive Genealogical Tree (4/6 items)** ✅
+  - Tree Data API endpoint (`/api/threadrings/genealogy`)
+  - Interactive D3.js tree visualization component
+  - Genealogy explorer page at `/threadrings/genealogy`
+  - Integration with The Spool and directory pages
+  - ✅ Fixed fork hierarchy restoration for pre-Spool forks
+  - ⏳ Progressive loading for large trees (future enhancement)
+  - ⏳ Advanced tree layouts (future enhancement)
+
+- **Phase 5B - Random Member Discovery (4/5 items)** ✅
+  - Random member API with weighted discovery algorithm
+  - "Stumbleupon" UI component with ring/lineage scopes
+  - Integration with ThreadRing sidebar
+  - Activity-based member weighting (posts, followers, recency)
+  - ⏳ Privacy controls for discovery opt-out (requires User schema update)
+
+**🔄 IN PROGRESS (Phase 5B+):**
 - Hierarchical Feed System (0/5 items)
-- Interactive Genealogical Tree (0/6 items) 
-- Random Member Discovery (0/5 items)
 - 88x31 Webring Badges (0/7 items)
 
-**Phase 5A brought the foundation + first user-facing feature. Phase 5B will focus on advanced UX features.**
+**Phase 5B Status: Interactive genealogy tree is now live! Users can explore the complete ThreadRing family tree.**
 
 ### The Spool - Universal Parent ThreadRing
 
@@ -1215,3 +1235,58 @@ export function ThreadRingSettings() {
 - [ ] **Documentation Portal**: Comprehensive developer documentation for ThreadRing APIs
 
 **Phase 6 Priority**: Focus on advanced analytics, enhanced UX, and enterprise features after Phase 5 core functionality is stable and proven.
+
+## 📝 Recent Development Notes (2025-08-20)
+
+### Interactive Genealogy Tree Implementation
+Successfully implemented the interactive genealogical tree visualization for ThreadRings:
+- **Tree Data API**: Created `/api/threadrings/genealogy` endpoint for efficient tree data serving
+- **D3.js Visualization**: Built interactive tree component with zoom, pan, and click-to-navigate
+- **Genealogy Explorer Page**: Added dedicated page at `/threadrings/genealogy` (feature flag protected)
+- **Integration**: Added genealogy links to The Spool landing page and ThreadRings directory
+
+### Fork Hierarchy Bug Fix
+Discovered and fixed a critical bug where pre-Spool forks had incorrect parent relationships:
+- **Issue**: When The Spool was created, all orphaned rings were assigned to it as parent, overwriting actual fork relationships
+- **Solution**: Created `fix-fork-hierarchy.ts` script that restores relationships from ThreadRingFork table
+- **Result**: Proper multi-level hierarchy now displays correctly (e.g., Spool → test → test Fork → test Fork Fork)
+
+### Files Created/Modified Today
+**Interactive Genealogy Tree:**
+- `pages/api/threadrings/genealogy.ts` - Tree data API endpoint
+- `components/ThreadRingGenealogy.tsx` - D3.js tree visualization component  
+- `pages/threadrings/genealogy.tsx` - Genealogy explorer page
+- `scripts/fix-fork-hierarchy.ts` - Fork relationship restoration script
+- `scripts/check-hierarchy.ts` - Hierarchy verification utility
+- `scripts/check-forks.ts` - Fork relationship debugging utility
+
+**Random Member Discovery:**
+- `pages/api/threadrings/[slug]/random-member.ts` - Random member API with weighted algorithm
+- `components/RandomMemberDiscovery.tsx` - "Stumbleupon" UI component
+- Updated `pages/threadrings/[slug].tsx` - Integrated discovery into ThreadRing sidebar
+
+**Performance Analysis:**
+- `docs/GENEALOGY_PERFORMANCE.md` - Comprehensive performance analysis
+- `docs/GENEALOGY_PERFORMANCE_MIGRATION.md` - Migration plan for scale optimization
+- `pages/api/threadrings/genealogy-optimized.ts` - Optimized API for large trees
+- `components/ThreadRingGenealogyOptimized.tsx` - Virtualized tree component
+
+**Cleanup:**
+- Removed obsolete test scripts from Phase 5A development
+
+### Key Achievements
+- ✅ Interactive genealogy tree is now fully functional
+- ✅ Fork hierarchy properly represents actual parent-child relationships
+- ✅ Tree visualization scales with zoom/pan for large hierarchies
+- ✅ Random member discovery with weighted algorithm and family tree scope
+- ✅ "Stumbleupon" style member exploration integrated into ThreadRing pages
+- ✅ Performance analysis and optimization strategy for scale (500+ rings)
+- ✅ All features properly gated behind threadrings feature flag
+- ✅ Fixed TypeScript build errors from test scripts
+
+### Performance Considerations
+- ⚠️ **Current implementation works well for <500 ThreadRings**
+- 📊 **Performance analysis completed** - see `docs/GENEALOGY_PERFORMANCE.md`
+- 🔧 **Optimized implementation available** - see `pages/api/threadrings/genealogy-optimized.ts` and `components/ThreadRingGenealogyOptimized.tsx`
+- 📋 **Migration plan ready** - see `docs/GENEALOGY_PERFORMANCE_MIGRATION.md`
+- 🎯 **Migration trigger**: When total ThreadRings > 500 or API response time > 1s

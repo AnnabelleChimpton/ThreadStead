@@ -156,12 +156,22 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                 {total !== null && ` • ${total} total rings`}
               </p>
             </div>
-            <Link
-              href="/threadrings/create"
-              className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
-            >
-              Create ThreadRing
-            </Link>
+            <div className="flex gap-2">
+              {featureFlags.threadrings() && (
+                <Link
+                  href="/threadrings/genealogy"
+                  className="border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+                >
+                  🌳 Genealogy
+                </Link>
+              )}
+              <Link
+                href="/threadrings/create"
+                className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+              >
+                Create ThreadRing
+              </Link>
+            </div>
           </div>
 
           {/* Search and Filters */}
