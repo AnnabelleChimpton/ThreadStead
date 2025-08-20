@@ -6,6 +6,9 @@ import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
+// Initialize ThreadRing reconciliation scheduler (server-side only)
+import "@/lib/threadring-reconciliation-bootstrap";
+
 export default function MyApp({ Component, pageProps }: AppProps) {
   const { css } = useSiteCSS();
   const router = useRouter();

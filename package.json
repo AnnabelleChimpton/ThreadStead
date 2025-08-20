@@ -18,7 +18,8 @@
     "migrate-users": "tsx scripts/migrate-legacy-users.ts",
     "promote-admin": "tsx scripts/promote-to-admin.ts",
     "email:generate-key": "tsx scripts/generate-email-encryption-key.ts",
-    "email:test-encryption": "tsx scripts/test-email-encryption.ts"
+    "email:test-encryption": "tsx scripts/test-email-encryption.ts",
+    "threadrings:reconcile": "tsx scripts/reconcile-threadring-counters.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",

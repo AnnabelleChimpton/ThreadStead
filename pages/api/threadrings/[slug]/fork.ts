@@ -45,7 +45,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: true,
         description: true,
         visibility: true,
-        curatorId: true
+        curatorId: true,
+        lineageDepth: true,
+        lineagePath: true,
+        isSystemRing: true
       }
     });
 
@@ -100,9 +103,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // Calculate lineage data for the forked ring
+    const newLineageDepth = originalRing.lineageDepth + 1;
+    const newLineagePath = originalRing.lineagePath 
+      ? `${originalRing.lineagePath},${originalRing.id}`
+      : originalRing.id;
+
+    // Get all ancestor IDs from the lineage path for counter updates
+    const ancestorIds = originalRing.lineagePath 
+      ? originalRing.lineagePath.split(',').filter(Boolean)
+      : [];
+    ancestorIds.push(originalRing.id); // Include the direct parent
+
     // Create the forked ThreadRing
     const forkedRing = await db.$transaction(async (tx) => {
-      // Create the new ThreadRing
+      // Create the new ThreadRing with hierarchical data
       const ring = await tx.threadRing.create({
         data: {
           name: name.trim(),
@@ -113,6 +128,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           curatorId: viewer.id,
           uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${finalSlug}`,
           memberCount: 1, // Curator is automatically a member
+          // Hierarchical fields
+          parentId: originalRing.id,
+          lineageDepth: newLineageDepth,
+          lineagePath: newLineagePath,
+          directChildrenCount: 0, // New ring has no children
+          totalDescendantsCount: 0, // New ring has no descendants
         },
       });
 
@@ -133,6 +154,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           createdBy: viewer.id
         }
       });
+
+      // Update parent's direct children count
+      await tx.threadRing.update({
+        where: { id: originalRing.id },
+        data: { 
+          directChildrenCount: { increment: 1 }
+        }
+      });
+
+      // Update ALL ancestors' total descendant counts (including the parent)
+      if (ancestorIds.length > 0) {
+        await tx.threadRing.updateMany({
+          where: { 
+            id: { in: ancestorIds }
+          },
+          data: { 
+            totalDescendantsCount: { increment: 1 }
+          }
+        });
+      }
 
       // Note: No notification created - forks should be discoverable through the ring's fork page
       // This keeps ThreadRing activity ambient rather than invasive

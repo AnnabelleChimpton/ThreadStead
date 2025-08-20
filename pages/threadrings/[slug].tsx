@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import PostItem, { Post } from "../../components/content/PostItem";
 import ThreadRingStats from "../../components/ThreadRingStats";
 import ThreadRingLineage from "../../components/ThreadRingLineage";
+import { featureFlags } from "@/lib/feature-flags";
 
 interface ThreadRingPageProps {
   siteConfig: SiteConfig;
@@ -25,6 +26,14 @@ interface ThreadRing {
   memberCount: number;
   postCount: number;
   createdAt: string;
+  // Hierarchical fields for The Spool architecture
+  parentId?: string | null;
+  directChildrenCount?: number;
+  totalDescendantsCount?: number;
+  lineageDepth?: number;
+  lineagePath?: string;
+  isSystemRing?: boolean;
+  currentPrompt?: string;
   curator: {
     id: string;
     handles: Array<{ handle: string; host: string }>;
@@ -46,6 +55,174 @@ interface ThreadRing {
       };
     };
   }>;
+}
+
+// Special component for The Spool landing page
+function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: SiteConfig }) {
+  if (!ring.isSystemRing) return null;
+
+  return (
+    <Layout siteConfig={siteConfig}>
+      <div className="max-w-4xl mx-auto">
+        {/* Hero Section */}
+        <div className="text-center py-12 mb-12">
+          <div className="mb-6">
+            <div className="text-6xl mb-4">🧵</div>
+            <h1 className="text-5xl font-bold text-thread-pine mb-4">{ring.name}</h1>
+            <p className="text-xl text-thread-sage max-w-2xl mx-auto leading-relaxed">
+              {ring.description}
+            </p>
+          </div>
+        </div>
+
+        {/* Stats Section */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <div className="border border-black bg-thread-cream shadow-[4px_4px_0_#000] p-6 text-center">
+            <div className="text-3xl font-bold text-thread-pine mb-2">
+              {ring.totalDescendantsCount || 0}
+            </div>
+            <div className="text-thread-sage font-medium">Total Communities</div>
+            <div className="text-sm text-thread-sage mt-1">
+              All ThreadRings in existence
+            </div>
+          </div>
+          
+          <div className="border border-black bg-thread-cream shadow-[4px_4px_0_#000] p-6 text-center">
+            <div className="text-3xl font-bold text-thread-pine mb-2">
+              {ring.directChildrenCount || 0}
+            </div>
+            <div className="text-thread-sage font-medium">Direct Descendants</div>
+            <div className="text-sm text-thread-sage mt-1">
+              Communities born from The Spool
+            </div>
+          </div>
+          
+          <div className="border border-black bg-thread-cream shadow-[4px_4px_0_#000] p-6 text-center">
+            <div className="text-3xl font-bold text-thread-pine mb-2">∞</div>
+            <div className="text-thread-sage font-medium">Lineage Depth</div>
+            <div className="text-sm text-thread-sage mt-1">
+              The root of all genealogy
+            </div>
+          </div>
+        </div>
+
+        {/* Curator's Note / Welcome Message */}
+        {(ring.curatorNote || ring.currentPrompt) && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-12">
+            <div className="flex items-start">
+              <div className="text-yellow-600 mr-3 text-xl">📌</div>
+              <div>
+                <p className="font-medium text-yellow-800 mb-2">Welcome to The Spool</p>
+                <p className="text-yellow-700 leading-relaxed">
+                  {ring.curatorNote || ring.currentPrompt}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Genealogy Section */}
+        <div className="grid md:grid-cols-2 gap-8 mb-12">
+          {/* Genealogy Explorer */}
+          <div className="border border-black bg-white shadow-[4px_4px_0_#000] p-6">
+            <h2 className="text-2xl font-bold text-thread-pine mb-4 flex items-center">
+              <span className="mr-2">🌳</span>
+              Genealogy Explorer
+            </h2>
+            <p className="text-thread-sage mb-6">
+              Explore the complete family tree of all ThreadRing communities. See how every ring traces its lineage back to The Spool.
+            </p>
+            
+            {/* TODO: Replace with actual genealogy tree when implemented */}
+            <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4">
+              <div className="text-4xl mb-2">🚧</div>
+              <p className="text-gray-600 font-medium">Interactive Genealogy Tree</p>
+              <p className="text-sm text-gray-500 mt-1">Coming soon in Phase 5</p>
+            </div>
+            
+            <button 
+              disabled
+              className="w-full border border-black px-4 py-2 bg-gray-200 text-gray-500 shadow-[2px_2px_0_#000] font-medium cursor-not-allowed"
+            >
+              🌳 Explore Family Tree (Coming Soon)
+            </button>
+          </div>
+
+          {/* Community Discovery */}
+          <div className="border border-black bg-white shadow-[4px_4px_0_#000] p-6">
+            <h2 className="text-2xl font-bold text-thread-pine mb-4 flex items-center">
+              <span className="mr-2">🔍</span>
+              Discover Communities
+            </h2>
+            <p className="text-thread-sage mb-6">
+              Browse all ThreadRing communities that have grown from The Spool. Find your people and join the conversation.
+            </p>
+            
+            <div className="space-y-3">
+              <button 
+                onClick={() => window.location.href = '/threadrings'}
+                className="w-full border border-black px-4 py-2 bg-blue-100 hover:bg-blue-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+              >
+                📍 Discover Communities
+              </button>
+              
+              <button 
+                onClick={() => window.location.href = '/threadrings/create'}
+                className="w-full border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+              >
+                ➕ Create New Community
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* About The Spool */}
+        <div className="border border-black bg-thread-paper shadow-[4px_4px_0_#000] p-8 mb-12">
+          <h2 className="text-2xl font-bold text-thread-pine mb-4 text-center">
+            About The Spool
+          </h2>
+          <div className="max-w-3xl mx-auto text-thread-sage leading-relaxed space-y-4">
+            <p>
+              The Spool represents the symbolic origin of all ThreadRing communities. Unlike regular ThreadRings, 
+              The Spool doesn't host posts or have traditional members - instead, it serves as the genealogical 
+              root that connects every community in a unified family tree.
+            </p>
+            <p>
+              Every ThreadRing community, whether created directly or forked from another, can trace its lineage 
+              back to The Spool. This creates a rich genealogy that shows how communities evolve, split, and grow 
+              over time.
+            </p>
+            <p>
+              Think of The Spool as the trunk of a vast tree, with every ThreadRing as a branch that grows in its 
+              own direction while staying connected to the whole.
+            </p>
+          </div>
+        </div>
+
+        {/* Technical Info (for admins/curious users) */}
+        <div className="border border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <strong>System Information:</strong>
+              <ul className="mt-1 space-y-1">
+                <li>• System Ring: {ring.isSystemRing ? 'Yes' : 'No'}</li>
+                <li>• Lineage Depth: {ring.lineageDepth}</li>
+                <li>• Created: {new Date(ring.createdAt).toLocaleDateString()}</li>
+              </ul>
+            </div>
+            <div>
+              <strong>Genealogy Stats:</strong>
+              <ul className="mt-1 space-y-1">
+                <li>• Direct Children: {ring.directChildrenCount}</li>
+                <li>• Total Descendants: {ring.totalDescendantsCount}</li>
+                <li>• Lineage Path: Root</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
 }
 
 export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPageProps) {
@@ -219,6 +396,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         </div>
       </Layout>
     );
+  }
+
+  // Check if this is The Spool and feature flag is enabled
+  if (ring.isSystemRing && featureFlags.threadrings()) {
+    return <SpoolLandingPage ring={ring} siteConfig={siteConfig} />;
   }
 
   const curatorHandle = ring.curator.handles.find(h => h.host === "local")?.handle || 

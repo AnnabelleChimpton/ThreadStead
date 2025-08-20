@@ -351,6 +351,11 @@ npm run beta:generate 10
 - Set environment variables in your hosting dashboard
 - Ensure PostgreSQL database is accessible
 
+### 6. ThreadRing Reconciliation Setup
+- **Most deployments**: ✅ Works automatically (VPS, Docker, Railway, Render)
+- **Serverless (Vercel)**: ⚠️ Requires cron job setup - see `docs/threadring-reconciliation-setup.md`
+- **Manual option**: `npm run threadrings:reconcile` for any deployment type
+
 ### Deployment Checklist
 - [ ] Set strong `CAP_JWT_SECRET` (min 32 chars)
 - [ ] Configure production `DATABASE_URL` 
@@ -466,6 +471,7 @@ For detailed examples and patterns, see [DESIGN.md](DESIGN.md).
 - `npm run seed` - Seed database
 - `npm run beta:generate` - Generate beta keys
 - `npm run beta:list` - List beta keys
+- `npm run threadrings:reconcile` - Check and fix ThreadRing counter accuracy
 
 ## 🤝 Contributing
 

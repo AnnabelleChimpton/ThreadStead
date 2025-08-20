@@ -88,6 +88,25 @@ SEED_USER_BIO="Welcome to my digital garden where I share thoughts and projects.
 ```
 **Result:** Users get handles like `friends@SarahsGarden`, site shows "Sarah's Digital Garden"
 
+### ThreadRing Reconciliation (Optional)
+- **`DISABLE_THREADRING_RECONCILIATION`**
+  - **Purpose:** Disable automatic background reconciliation in production
+  - **Default:** `false` (reconciliation runs automatically)
+  - **Example:** `DISABLE_THREADRING_RECONCILIATION=true`
+  - **Note:** Reconciliation ensures ThreadRing counter accuracy
+
+- **`THREADRING_RECONCILIATION_HOURS`**
+  - **Purpose:** How often to run automatic reconciliation (in hours)
+  - **Default:** `24` (once per day)
+  - **Example:** `THREADRING_RECONCILIATION_HOURS=12` (twice per day)
+  - **Range:** 1-168 hours (1 hour to 1 week)
+
+- **`FORCE_THREADRING_RECONCILIATION`**
+  - **Purpose:** Force enable reconciliation in development/testing
+  - **Default:** `false` (only runs in production)
+  - **Example:** `FORCE_THREADRING_RECONCILIATION=true`
+  - **Note:** Useful for testing reconciliation in development
+
 ## ⚠️ Important Notes
 
 1. **Keep `SITE_HANDLE_DOMAIN` short** - it appears after @ in every username
@@ -95,3 +114,4 @@ SEED_USER_BIO="Welcome to my digital garden where I share thoughts and projects.
 3. **`SITE_TITLE` can be longer** - only appears in header
 4. **Seed user is optional** - only created when you run `npm run seed`
 5. **Change before seeding** - user data is set when created, not dynamic
+6. **ThreadRing reconciliation** - Runs automatically in production unless disabled

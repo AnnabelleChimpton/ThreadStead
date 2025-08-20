@@ -71,34 +71,67 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         joinType: validJoinType,
         visibility: validVisibility
       });
-      
-      // Create the ThreadRing with URI for federation
-      const ring = await db.threadRing.create({
-        data: {
-          name: name.trim(),
-          slug: finalSlug,
-          description: description?.trim() || null,
-          joinType: validJoinType as any, // Cast to avoid type issues
-          visibility: validVisibility as any, // Cast to avoid type issues
-          curatorId: viewer.id,
-          uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${finalSlug}`,
-          memberCount: 1, // Curator is automatically a member
-        },
+
+      // Find The Spool to assign as parent for new ThreadRings
+      const spool = await db.threadRing.findFirst({
+        where: { isSystemRing: true },
+        select: { id: true, lineageDepth: true, lineagePath: true }
       });
 
-      console.log("ThreadRing created:", ring.id);
+      if (!spool) {
+        console.error("The Spool not found - cannot create ThreadRing without parent");
+        return res.status(500).json({ error: "System error: genealogy root not found" });
+      }
 
-      // Add the creator as a curator member
-      await db.threadRingMember.create({
-        data: {
-          threadRingId: ring.id,
-          userId: viewer.id,
-          role: "curator" as any, // Cast to avoid type issues
-        },
+      // Calculate lineage data for the new ring
+      const newLineageDepth = spool.lineageDepth + 1; // First level below The Spool
+      const newLineagePath = spool.id; // The Spool is the only ancestor
+
+      // Create the ThreadRing in a transaction to ensure counter updates
+      const result = await db.$transaction(async (tx) => {
+        // Create the ThreadRing with hierarchical data
+        const ring = await tx.threadRing.create({
+          data: {
+            name: name.trim(),
+            slug: finalSlug,
+            description: description?.trim() || null,
+            joinType: validJoinType as any, // Cast to avoid type issues
+            visibility: validVisibility as any, // Cast to avoid type issues
+            curatorId: viewer.id,
+            uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${finalSlug}`,
+            memberCount: 1, // Curator is automatically a member
+            // Hierarchical fields
+            parentId: spool.id,
+            lineageDepth: newLineageDepth,
+            lineagePath: newLineagePath,
+            directChildrenCount: 0, // New ring has no children
+            totalDescendantsCount: 0, // New ring has no descendants
+          },
+        });
+
+        // Add the creator as a curator member
+        await tx.threadRingMember.create({
+          data: {
+            threadRingId: ring.id,
+            userId: viewer.id,
+            role: "curator" as any, // Cast to avoid type issues
+          },
+        });
+
+        // Update The Spool's counters
+        await tx.threadRing.update({
+          where: { id: spool.id },
+          data: {
+            directChildrenCount: { increment: 1 },
+            totalDescendantsCount: { increment: 1 }
+          }
+        });
+
+        return ring;
       });
 
-      console.log("Curator member added");
-      res.status(201).json({ ring });
+      console.log("ThreadRing created with hierarchical data:", result.id);
+      res.status(201).json({ ring: result });
     } catch (dbError: any) {
       console.error("Database error:", dbError);
       res.status(500).json({ error: "Database error", details: dbError.message });

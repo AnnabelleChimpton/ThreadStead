@@ -61,7 +61,7 @@ export default function Layout({ children, siteConfig, fullWidth = false }: Layo
               <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/">Home</Link>
               <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/feed">Feed</Link>
               {featureFlags.threadrings() && (
-                <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/threadrings">ThreadRings</Link>
+                <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/threadrings/spool">The Spool</Link>
               )}
               <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/directory">Directory</Link>
               {navPages.map(page => (
