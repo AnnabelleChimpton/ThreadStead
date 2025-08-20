@@ -523,7 +523,7 @@ See `prisma/schema.prisma` for detailed schema comments.
 
 ## 🧭 Phase 5: The Spool Architecture & Enhanced Features
 
-**Current Progress: 🟢 Phase 5A Complete + Phase 5B Major Progress (15/30 total items)**
+**Current Progress: 🟢 Phase 5A Complete + Phase 5B Nearly Complete (19/30 total items)**
 
 **✅ COMPLETED:**
 - **Phase 5A - The Spool Architecture (7/7 items)** ✅
@@ -551,8 +551,14 @@ See `prisma/schema.prisma` for detailed schema comments.
   - Activity-based member weighting (posts, followers, recency)
   - ⏳ Privacy controls for discovery opt-out (requires User schema update)
 
+- **Phase 5B - Hierarchical Feed System (5/5 items)** ✅
+  - Lineage feed API with direct parent/children scope
+  - Feed scope selector component (compact design)
+  - Integration with ThreadRing post feeds
+  - Privacy-aware cross-ring post visibility
+  - Dynamic post loading based on selected scope
+
 **🔄 IN PROGRESS (Phase 5B+):**
-- Hierarchical Feed System (0/5 items)
 - 88x31 Webring Badges (0/7 items)
 
 **Phase 5B Status: Interactive genealogy tree is now live! Users can explore the complete ThreadRing family tree.**
@@ -1265,6 +1271,11 @@ Discovered and fixed a critical bug where pre-Spool forks had incorrect parent r
 - `components/RandomMemberDiscovery.tsx` - "Stumbleupon" UI component
 - Updated `pages/threadrings/[slug].tsx` - Integrated discovery into ThreadRing sidebar
 
+**Hierarchical Feed System:**
+- `pages/api/threadrings/[slug]/lineage-feed.ts` - Lineage feed API with parent/children/family scopes
+- `components/ThreadRingFeedScope.tsx` - Compact feed scope selector component
+- Updated `pages/threadrings/[slug].tsx` - Integrated feed scope controls with dynamic post loading
+
 **Performance Analysis:**
 - `docs/GENEALOGY_PERFORMANCE.md` - Comprehensive performance analysis
 - `docs/GENEALOGY_PERFORMANCE_MIGRATION.md` - Migration plan for scale optimization
@@ -1280,6 +1291,9 @@ Discovered and fixed a critical bug where pre-Spool forks had incorrect parent r
 - ✅ Tree visualization scales with zoom/pan for large hierarchies
 - ✅ Random member discovery with weighted algorithm and family tree scope
 - ✅ "Stumbleupon" style member exploration integrated into ThreadRing pages
+- ✅ Hierarchical feed system with parent/children/family post scopes
+- ✅ Compact feed scope selector with horizontal button design
+- ✅ Privacy-aware cross-ring post visibility and dynamic loading
 - ✅ Performance analysis and optimization strategy for scale (500+ rings)
 - ✅ All features properly gated behind threadrings feature flag
 - ✅ Fixed TypeScript build errors from test scripts

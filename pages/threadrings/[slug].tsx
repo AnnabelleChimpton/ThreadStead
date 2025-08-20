@@ -8,6 +8,7 @@ import PostItem, { Post } from "../../components/content/PostItem";
 import ThreadRingStats from "../../components/ThreadRingStats";
 import ThreadRingLineage from "../../components/ThreadRingLineage";
 import RandomMemberDiscovery from "../../components/RandomMemberDiscovery";
+import ThreadRingFeedScope from "../../components/ThreadRingFeedScope";
 import { featureFlags } from "@/lib/feature-flags";
 
 interface ThreadRingPageProps {
@@ -234,6 +235,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [joining, setJoining] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
 
   useEffect(() => {
     if (!ring) return;
@@ -244,7 +246,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/threadrings/${ring.slug}/posts`);
+        
+        // Choose API endpoint based on feed scope
+        const apiEndpoint = feedScope === 'current' 
+          ? `/api/threadrings/${ring.slug}/posts`
+          : `/api/threadrings/${ring.slug}/lineage-feed?scope=${feedScope}`;
+        
+        const response = await fetch(apiEndpoint);
         
         if (!response.ok) {
           if (response.status === 403) {
@@ -267,7 +275,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     };
 
     fetchPosts();
-  }, [ring]);
+  }, [ring, feedScope]);
 
   const checkMembership = async () => {
     try {
@@ -522,8 +530,24 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main content area - posts feed */}
         <div className="lg:col-span-2">
+          {/* Feed Scope Selector */}
+          {featureFlags.threadrings() && (ring.parentId || (ring.directChildrenCount || 0) > 0) && (
+            <ThreadRingFeedScope
+              threadRingSlug={ring.slug}
+              hasParent={!!ring.parentId}
+              hasChildren={(ring.directChildrenCount || 0) > 0}
+              currentScope={feedScope}
+              onScopeChange={(newScope) => setFeedScope(newScope)}
+            />
+          )}
+          
           <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000]">
-            <h2 className="text-xl font-bold mb-4">Recent Posts</h2>
+            <h2 className="text-xl font-bold mb-4">
+              {feedScope === 'current' ? 'Recent Posts' :
+               feedScope === 'parent' ? 'Posts from Parent Ring' :
+               feedScope === 'children' ? 'Posts from Child Rings' :
+               feedScope === 'family' ? 'Family Feed' : 'Recent Posts'}
+            </h2>
             
             {loading ? (
               <div className="text-gray-600 text-center py-8">
