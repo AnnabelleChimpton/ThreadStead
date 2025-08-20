@@ -1,7 +1,7 @@
 export function isFeatureEnabled(feature: 'threadrings'): boolean {
   switch (feature) {
     case 'threadrings':
-      return process.env.THREADRINGS_ENABLED === 'true';
+      return process.env.NEXT_PUBLIC_THREADRINGS_ENABLED === 'true';
     default:
       return false;
   }

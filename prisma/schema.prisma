@@ -412,9 +412,23 @@ model ThreadRing {
   joinType    ThreadRingJoinType @default(open)
   visibility  ThreadRingVisibility @default(public)
   
+  // Hierarchical fields for The Spool architecture
+  parentId          String?    // Direct parent ThreadRing (null only for The Spool)
+  parent            ThreadRing? @relation("ThreadRingHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children          ThreadRing[] @relation("ThreadRingHierarchy")
+  
   // Denormalized counters for performance
-  memberCount Int      @default(1) // Start with 1 (the curator)
-  postCount   Int      @default(0)
+  memberCount           Int    @default(1) // Start with 1 (the curator)
+  postCount             Int    @default(0)
+  directChildrenCount   Int    @default(0) // Immediate children only
+  totalDescendantsCount Int    @default(0) // ALL descendants (recursive)
+  
+  // Cached lineage data for efficient queries
+  lineageDepth    Int    @default(0)    // How deep in the tree (Spool = 0)
+  lineagePath     String @default("")   // Comma-separated ancestor IDs for quick queries
+  
+  // Special system flags
+  isSystemRing    Boolean @default(false) // True for The Spool
   
   // Ring content
   currentPrompt    String?  // Current prompt/challenge for members
@@ -441,6 +455,9 @@ model ThreadRing {
   @@index([uri])
   @@index([visibility, joinType])
   @@index([memberCount, postCount]) // For trending calculation
+  @@index([parentId]) // For hierarchical queries
+  @@index([lineageDepth]) // For depth-based queries
+  @@index([isSystemRing]) // For system ring queries
 }
 
 model ThreadRingMember {

@@ -32,6 +32,79 @@ async function generateKeyPair() {
   };
 }
 
+async function createSpool(adminUserId: string) {
+  console.log("🧵 Setting up The Spool (ThreadRing genealogy root)...");
+  
+  // Check if The Spool already exists
+  const existingSpool = await db.threadRing.findFirst({
+    where: { isSystemRing: true }
+  });
+
+  if (existingSpool) {
+    console.log("✅ The Spool already exists");
+    return existingSpool;
+  }
+
+  // Create The Spool
+  const spool = await db.threadRing.create({
+    data: {
+      name: 'The Spool',
+      slug: 'spool',
+      description: 'The universal origin point of all ThreadRing communities. This is where all rings begin their journey.',
+      uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/spool`,
+      curatorId: adminUserId,
+      joinType: 'closed', // The Spool doesn't accept new members
+      visibility: 'public',
+      isSystemRing: true,
+      parentId: null, // The Spool has no parent
+      lineageDepth: 0, // Root level
+      lineagePath: '', // Empty for root
+      memberCount: 0, // The Spool doesn't have traditional members
+      currentPrompt: 'Welcome to The Spool - the origin of all ThreadRing communities!',
+      curatorNote: 'The Spool represents the beginning of all ThreadRing genealogy. Every ThreadRing community can trace its lineage back to this symbolic origin point.'
+    }
+  });
+
+  console.log("✅ The Spool created successfully");
+  
+  // Assign any orphaned ThreadRings to The Spool
+  const orphanedRings = await db.threadRing.findMany({
+    where: {
+      parentId: null,
+      isSystemRing: false
+    }
+  });
+
+  if (orphanedRings.length > 0) {
+    console.log(`🔗 Assigning ${orphanedRings.length} orphaned ThreadRings to The Spool...`);
+    
+    await db.threadRing.updateMany({
+      where: {
+        parentId: null,
+        isSystemRing: false
+      },
+      data: {
+        parentId: spool.id,
+        lineageDepth: 1,
+        lineagePath: spool.id
+      }
+    });
+
+    // Update The Spool's counters
+    await db.threadRing.update({
+      where: { id: spool.id },
+      data: {
+        directChildrenCount: orphanedRings.length,
+        totalDescendantsCount: orphanedRings.length
+      }
+    });
+
+    console.log("✅ Orphaned ThreadRings assigned to The Spool");
+  }
+  
+  return spool;
+}
+
 async function createAdminUser() {
   console.log("🚀 Setting up ThreadStead admin user...\n");
   
@@ -44,6 +117,9 @@ async function createAdminUser() {
     console.log("❌ Admin user already exists!");
     console.log(`   User: ${existingAdmin.primaryHandle}`);
     console.log("   Use the existing admin credentials or delete the user first.\n");
+    
+    // Still ensure The Spool exists even if admin already exists
+    await createSpool(existingAdmin.id);
     return;
   }
   
@@ -88,6 +164,9 @@ async function createAdminUser() {
     
     console.log("✅ Admin user created successfully!\n");
     
+    // Create The Spool with admin as curator
+    await createSpool(adminUser.id);
+    
     // Display setup information
     console.log("📋 ADMIN USER DETAILS");
     console.log("=" .repeat(50));
@@ -115,7 +194,8 @@ async function createAdminUser() {
     console.log("   1. Start the development server: npm run dev");
     console.log("   2. Visit http://localhost:3000");
     console.log("   3. Import the seed phrase to sign in as admin");
-    console.log("   4. Configure site settings in the admin panel\n");
+    console.log("   4. Configure site settings in the admin panel");
+    console.log("   5. Visit /threadrings/spool to see The Spool (ThreadRing genealogy root)\n");
     
   } catch (error) {
     console.error("❌ Failed to create admin user:", error);

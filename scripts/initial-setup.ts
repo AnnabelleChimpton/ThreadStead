@@ -13,7 +13,8 @@ async function setupRepository() {
   console.log("  1. Apply database migrations");
   console.log("  2. Generate Prisma client");
   console.log("  3. Create an admin user");
-  console.log("  4. Display setup credentials\n");
+  console.log("  4. Set up The Spool (ThreadRing genealogy root)");
+  console.log("  5. Display setup credentials\n");
   
   try {
     // Step 1: Apply migrations
