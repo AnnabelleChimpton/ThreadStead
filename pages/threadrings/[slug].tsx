@@ -12,6 +12,8 @@ import ThreadRingFeedScope from "../../components/ThreadRingFeedScope";
 import ThreadRingActivePrompt from "../../components/ThreadRingActivePrompt";
 import ThreadRing88x31Badge from "../../components/ThreadRing88x31Badge";
 import { featureFlags } from "@/lib/feature-flags";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 
 interface ThreadRingPageProps {
   siteConfig: SiteConfig;
@@ -76,6 +78,9 @@ interface ThreadRing {
 function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: SiteConfig }) {
   const [showSpoolBadgeOptions, setShowSpoolBadgeOptions] = useState(false);
   
+  // Toast notifications
+  const { toasts, showSuccess, hideToast } = useToast();
+  
   if (!ring.isSystemRing) return null;
 
   return (
@@ -125,7 +130,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                           onClick={() => {
                             const badgeHtml = `<a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
                             navigator.clipboard.writeText(badgeHtml);
-                            alert('Spool badge HTML copied to clipboard!');
+                            showSuccess('Spool badge HTML copied to clipboard!');
                           }}
                           className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
                         >
@@ -135,7 +140,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                           onClick={() => {
                             const badgeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}`;
                             navigator.clipboard.writeText(badgeUrl);
-                            alert('Spool URL copied to clipboard!');
+                            showSuccess('Spool URL copied to clipboard!');
                           }}
                           className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors"
                         >
@@ -304,6 +309,17 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
           </div>
         </div>
       </div>
+      
+      {/* Toast Notifications */}
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onClose={() => hideToast(toast.id)}
+        />
+      ))}
     </Layout>
   );
 }
@@ -319,6 +335,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
+  
+  // Toast notifications
+  const { toasts, showError, showSuccess, showWarning, hideToast } = useToast();
 
   useEffect(() => {
     if (!ring) return;
@@ -404,7 +423,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to join ThreadRing");
+        // Handle error gracefully with toast instead of throwing
+        showError(data.error || "Failed to join ThreadRing");
+        return;
       }
 
       // Update local state
@@ -416,7 +437,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       
     } catch (error: any) {
       console.error("Error joining ThreadRing:", error);
-      alert(error.message || "Failed to join ThreadRing");
+      showError(error.message || "Failed to join ThreadRing");
     } finally {
       setJoining(false);
     }
@@ -444,7 +465,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to leave ThreadRing");
+        // Handle error gracefully with toast instead of throwing
+        showError(data.error || "Failed to leave ThreadRing");
+        return;
       }
 
       // Update local state
@@ -452,12 +475,12 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       setCurrentUserRole(null);
       
       // Show success message and reload
-      alert(data.message);
-      window.location.reload();
+      showSuccess(data.message);
+      setTimeout(() => window.location.reload(), 1000); // Brief delay to show the toast
       
     } catch (error: any) {
       console.error("Error leaving ThreadRing:", error);
-      alert(error.message || "Failed to leave ThreadRing");
+      showError(error.message || "Failed to leave ThreadRing");
     } finally {
       setJoining(false);
     }
@@ -741,7 +764,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       onClick={() => {
                         const badgeHtml = `<a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
                         navigator.clipboard.writeText(badgeHtml);
-                        alert('Badge HTML copied to clipboard!');
+                        showSuccess('Badge HTML copied to clipboard!');
                       }}
                       className="w-full text-xs bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition-colors"
                     >
@@ -751,7 +774,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       onClick={() => {
                         const badgeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}`;
                         navigator.clipboard.writeText(badgeUrl);
-                        alert('ThreadRing URL copied to clipboard!');
+                        showSuccess('ThreadRing URL copied to clipboard!');
                       }}
                       className="w-full text-xs bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition-colors"
                     >
@@ -822,6 +845,17 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           <ThreadRingStats threadRingSlug={ring.slug} />
         </div>
       </div>
+      
+      {/* Toast Notifications */}
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onClose={() => hideToast(toast.id)}
+        />
+      ))}
     </Layout>
   );
 }

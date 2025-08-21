@@ -19,8 +19,8 @@ ThreadRings are communities reminiscent of old webrings but with a modern twist.
 
 **High Priority Items** (Good impact, manageable complexity):
 1. **Ring Prompts/Challenges** - Curator-driven engagement features ✅ **COMPLETED**
-2. **Block Lists** - User/instance blocking for enhanced moderation
-3. **Member Profile Badge Integration** - Display ThreadRing badges on user profiles
+2. **Block Lists** - User/instance blocking for enhanced moderation ✅ **COMPLETED**
+3. **Member Profile Badge Integration** - Display ThreadRing badges on user profiles ✅ **COMPLETED**
 4. **Import/Export** - Backup and migration tools for ring data
 
 **Medium Priority Items**:
@@ -477,6 +477,203 @@ The following items from Phase 4 have been moved to Phase 6 for future implement
 - **Ring Prompts/Challenges**: Curator-driven engagement features
 
 **Status**: Phase 4 is production-ready! ThreadRings now have professional-grade moderation tools, comprehensive statistics, fork genealogy tracking, and complete curator management capabilities. The ThreadRings feature is now a fully-featured community platform ready for real-world use.
+
+## 🛡️ Phase 6: Block Lists Implementation (COMPLETED - 2025-08-21)
+
+**Core Feature**: User/instance blocking for enhanced moderation - allows curators to block problematic users, domains, or federated actors from their ThreadRings.
+
+### ✅ Implementation Summary
+
+Successfully implemented a comprehensive blocking system with full CRUD operations, multiple block types, graceful error handling, and professional user experience.
+
+#### **Database Schema**
+- ✅ **ThreadRingBlock Model**: Complete schema supporting three block types:
+  - **User Blocking**: Block specific users by ID with automatic username/handle resolution
+  - **Instance Blocking**: Block entire domains/instances (e.g., "spam.example.com")
+  - **Actor Blocking**: Block federated users by full actor URI
+- ✅ **Audit Trail**: Comprehensive logging with moderator tracking, reasons, and timestamps
+- ✅ **Prisma Migration**: Applied successfully with proper foreign keys and unique constraints
+
+#### **API Endpoints Created**
+- ✅ `GET /api/threadrings/[slug]/blocks` - List all blocks for a ThreadRing with full metadata
+- ✅ `POST /api/threadrings/[slug]/blocks` - Create new block with smart user resolution
+- ✅ `DELETE /api/threadrings/[slug]/blocks/[blockId]` - Remove blocks (unblock)
+- ✅ `PUT /api/threadrings/[slug]/blocks/[blockId]` - Update block reasons for documentation
+
+#### **Smart User Resolution**
+- ✅ **Flexible Input**: API accepts both user IDs and usernames/handles
+- ✅ **Automatic Lookup**: Resolves usernames to user IDs using site's handle system
+- ✅ **Error Prevention**: Prevents self-blocking and blocking of curators
+- ✅ **Validation**: Comprehensive validation for all block types
+
+#### **Blocking Library (lib/threadring-blocks.ts)**
+- ✅ **`isUserBlockedFromThreadRing()`**: Check if user is blocked with reason details
+- ✅ **`isInstanceBlockedFromThreadRing()`**: Check if domain is blocked
+- ✅ **`filterBlockedUsers()`**: Batch filtering for performance optimization
+- ✅ **`getThreadRingBlocks()`**: Management utility for UI components
+- ✅ **Performance Optimized**: Efficient queries with proper error handling
+
+#### **Frontend Components**
+- ✅ **ThreadRingBlockManager**: Complete block management interface for curators
+  - Create blocks with type selection (user/instance/actor)
+  - Visual block list with removal capabilities  
+  - Smart form with type-specific validation and placeholders
+  - Integrated into ThreadRing settings page
+- ✅ **Professional Toast System**: Elegant centered notifications
+  - No dark backdrop overlay for non-intrusive UX
+  - Multiple dismissal options (click X, click OK, auto-dismiss)
+  - Smooth animations with scale and fade effects
+  - Type-appropriate styling and icons
+
+#### **API Integration & Enforcement**
+- ✅ **Join Protection**: Blocked users cannot join ThreadRings
+- ✅ **Invitation Protection**: Cannot invite blocked users
+- ✅ **Content Filtering**: Posts from blocked users filtered from feeds
+- ✅ **Member List Filtering**: Blocked users removed from member displays
+- ✅ **Automatic Removal**: Blocked users automatically removed from ThreadRing membership
+
+#### **Enhanced User Experience**
+- ✅ **Graceful Error Handling**: Professional toast notifications instead of runtime crashes
+- ✅ **Clear Messaging**: Descriptive error messages with block reasons
+- ✅ **Non-Disruptive**: Page remains functional when blocking errors occur
+- ✅ **Mobile-Friendly**: Responsive design that works on all devices
+
+#### **Audit & Transparency**
+- ✅ **Comprehensive Logging**: All block actions logged with structured data
+- ✅ **Moderator Tracking**: Records who created/removed each block
+- ✅ **Reason Documentation**: Optional reasons for all blocks with update capability
+- ✅ **Timestamp Tracking**: Full audit trail for accountability
+
+### Files Created/Modified
+**Database:**
+- `prisma/schema.prisma` - Added ThreadRingBlock model and ThreadRingBlockType enum
+- `prisma/migrations/20250821002803_add_threadring_prompts_and_blocks/` - Applied successfully
+
+**API Endpoints:**
+- `pages/api/threadrings/[slug]/blocks.ts` - Main block management API with smart user resolution
+- `pages/api/threadrings/[slug]/blocks/[blockId].ts` - Individual block operations
+
+**Utility Library:**
+- `lib/threadring-blocks.ts` - Complete blocking utility functions with performance optimization
+
+**UI Components:**
+- `components/ThreadRingBlockManager.tsx` - Full block management interface
+- `components/Toast.tsx` - Professional toast notification system
+- `hooks/useToast.ts` - Toast management hook
+- Updated `pages/threadrings/[slug]/settings.tsx` - Integrated block manager
+
+**API Integrations:**
+- Updated `pages/api/threadrings/[slug]/join.ts` - Block checking for joins
+- Updated `pages/api/threadrings/[slug]/posts.ts` - Post content filtering
+- Updated `pages/api/threadrings/[slug].ts` - Member list filtering  
+- Updated `pages/api/threadrings/[slug]/invite.ts` - Invitation blocking
+- Updated `pages/threadrings/[slug].tsx` - Graceful error handling with toasts
+
+**The Block Lists feature is now fully functional and production-ready!** 🛡️
+
+## 🏷️ Phase 6: Member Profile Badge Integration Implementation (COMPLETED - 2025-08-21)
+
+**Core Feature**: User profile badge integration - allows members to display ThreadRing badges on their profiles, posts, and comments with granular control over visibility and display preferences.
+
+### ✅ Implementation Summary
+
+Successfully implemented a comprehensive badge integration system with user preferences, profile display, compact post/comment badges, and a dedicated badge collection page.
+
+#### **User Badge Preferences System**
+- ✅ **API Endpoint**: `/api/users/me/badge-preferences` - Complete CRUD operations for user badge settings
+- ✅ **Database Schema**: Added `badgePreferences` JSON field to Profile model with migration
+- ✅ **Granular Controls**: Context-specific settings (profile, posts, comments) with display order and limits
+- ✅ **Smart Defaults**: Intelligent default selections for new users based on membership
+
+#### **Profile Badge Management Interface**
+- ✅ **ProfileBadgeSelector Component**: Complete badge management UI integrated into user settings
+- ✅ **Visual Badge Selection**: Grid interface with live preview and toggle controls
+- ✅ **Display Order Management**: Drag-and-drop style ordering with up/down controls
+- ✅ **Context Controls**: Separate toggles for profile, posts, and comments display
+- ✅ **Settings Integration**: Added "Badge Preferences" tab to profile edit page
+
+#### **Profile Badge Display**
+- ✅ **Profile Badges Tab**: New tab showing user's complete badge collection
+- ✅ **ProfileBadgeDisplay Component**: Responsive badge grid with hover effects
+- ✅ **Collection Page**: Dedicated `/resident/[username]/badges` page with rich statistics
+- ✅ **Badge Details**: Shows ThreadRing info, member role, join date, and community stats
+- ✅ **Navigation Links**: Seamless flow between profile → badges → ThreadRings
+
+#### **Compact Post & Comment Integration**
+- ✅ **PostAuthor Component**: Unified author display component with badge integration
+- ✅ **PostHeader Component**: Cleaned up post title/author rendering logic
+- ✅ **CompactBadgeDisplay**: Small badges displayed next to author names
+- ✅ **Comment Integration**: Added badges to comment author displays in both mobile and desktop views
+- ✅ **Context-Aware Display**: Respects user's post vs comment badge preferences
+
+#### **API Infrastructure & Performance**
+- ✅ **Public Badge API**: `/api/users/[username]/badges` - Privacy-aware badge fetching
+- ✅ **Context Display API**: `/api/users/badges-for-display` - Efficient context-specific badge queries
+- ✅ **Privacy Controls**: Only displays badges from public ThreadRings
+- ✅ **Performance Optimized**: Efficient database queries with proper includes and caching
+
+#### **Code Quality & Architecture**
+- ✅ **Component Refactoring**: Eliminated duplicate post author rendering logic across PostItem
+- ✅ **Type Safety**: Full TypeScript integration with proper interfaces and error handling
+- ✅ **Serialization Fixes**: Proper handling of undefined/null values for Next.js compatibility
+- ✅ **Reusable Components**: Clean separation between badge display vs management functionality
+
+### Files Created/Modified
+
+**New Components:**
+- `components/ProfileBadgeSelector.tsx` - Complete badge preference management interface
+- `components/ProfileBadgeDisplay.tsx` - Profile badge grid with collection link
+- `components/CompactBadgeDisplay.tsx` - Small badges for posts and comments
+- `components/PostAuthor.tsx` - Unified author display with badge integration
+- `components/PostHeader.tsx` - Unified post title and author component
+
+**New API Endpoints:**
+- `pages/api/users/me/badge-preferences.ts` - User badge preference CRUD operations
+- `pages/api/users/[username]/badges.ts` - Public badge display API with privacy controls
+- `pages/api/users/badges-for-display.ts` - Context-specific badge fetching for posts/comments
+
+**New Pages:**
+- `pages/resident/[username]/badges.tsx` - Full badge collection gallery with statistics
+
+**Enhanced Existing Files:**
+- `pages/resident/[username]/index.tsx` - Added badges tab to profile
+- `pages/resident/[username]/edit.tsx` - Added badge preferences tab to settings
+- `components/content/PostItem.tsx` - Simplified with unified components
+- `components/content/CommentList.tsx` - Added compact badge display to authors
+- `prisma/schema.prisma` - Added `badgePreferences` field to Profile model
+
+**Database:**
+- Migration: `20250821011800_add_badge_preferences_to_profile` - Applied successfully
+
+### Key Technical Achievements
+
+- **User Control**: Complete granular control over badge display across different contexts
+- **Performance**: Efficient queries that respect privacy settings and user preferences
+- **UX Excellence**: Seamless integration that enhances community identity without overwhelming content
+- **Code Quality**: Eliminated technical debt through component refactoring and unification
+- **Type Safety**: Full TypeScript coverage with proper error handling and serialization
+
+### User Experience Features
+
+#### **Badge Collection Page**
+- **Rich Statistics**: Visual dashboard showing curated vs moderated ThreadRings
+- **Interactive Badges**: Clickable badges linking directly to ThreadRings
+- **Member Details**: Role indicators, join dates, and community size information
+- **Responsive Design**: Beautiful layout that works across all device sizes
+
+#### **Profile Integration**
+- **Discovery Flow**: Natural progression from profile → badges → specific ThreadRings
+- **Smart Defaults**: New users get intelligent badge selections automatically
+- **Visual Hierarchy**: Badges complement existing profile sections without competing
+
+#### **Post Enhancement**
+- **Community Context**: Shows author's community affiliations naturally
+- **Non-Intrusive**: Compact design that doesn't overwhelm post content
+- **Performance Conscious**: Lazy loading and efficient rendering patterns
+
+**The Member Profile Badge Integration feature is now fully functional and production-ready!** 🏷️
+
+Users can now showcase their ThreadRing community involvement across their entire platform presence, with complete control over how and where their badges appear. This creates stronger community identity and helps users discover related ThreadRings through badge connections.
 
 ## ✅ Phase 5A Implementation Summary: The Spool Architecture (Partially Complete)
 

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { isUserBlockedFromThreadRing } from "@/lib/threadring-blocks";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -57,6 +58,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (existingMembership) {
       return res.status(400).json({ error: "You are already a member of this ThreadRing" });
+    }
+
+    // Check if user is blocked from this ThreadRing
+    const blockCheck = await isUserBlockedFromThreadRing(threadRing.id, viewer.id);
+    if (blockCheck.isBlocked) {
+      return res.status(403).json({ 
+        error: blockCheck.reason 
+          ? `You are blocked from this ThreadRing: ${blockCheck.reason}`
+          : "You are blocked from this ThreadRing"
+      });
     }
 
     // Create membership

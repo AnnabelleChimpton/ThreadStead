@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import NewCommentForm from "../forms/NewCommentForm";
+import CompactBadgeDisplay from "../CompactBadgeDisplay";
 
 export type CommentWire = {
   id: string;
@@ -205,6 +206,15 @@ export default function CommentList({
                   <img src={comment.author.avatarUrl} alt="" className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" loading="lazy" />
                 ) : null}
                 <span className="comment-author-name font-semibold text-sm md:text-base">{comment.author?.handle ?? "anon"}</span>
+                {comment.author?.id && (
+                  <div className="mt-1">
+                    <CompactBadgeDisplay 
+                      userId={comment.author.id} 
+                      context="comments" 
+                      size="small"
+                    />
+                  </div>
+                )}
               </div>
               <span className="comment-timestamp text-xs opacity-70">
                 {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
@@ -217,6 +227,14 @@ export default function CommentList({
                 <img src={comment.author.avatarUrl} alt="" className="w-6 h-6 rounded-full" loading="lazy" />
               ) : null}
               <span className="font-semibold">{comment.author?.handle ?? "anon"}</span>
+              {comment.author?.id && (
+                <CompactBadgeDisplay 
+                  userId={comment.author.id} 
+                  context="comments" 
+                  size="small"
+                  className="ml-2"
+                />
+              )}
               <span className="text-xs opacity-70 ml-auto">
                 {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
               </span>

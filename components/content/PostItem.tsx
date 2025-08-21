@@ -5,6 +5,7 @@ import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../forms/NewCommentForm";
 import Link from "next/link";
 import ThreadRingBadge from "../ThreadRingBadge";
+import PostHeader from "../PostHeader";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -422,40 +423,7 @@ const countLabel = hasServerCount
         {!editing ? (
           <>
             {post.title && (
-              <div className="blog-post-title mb-3">
-                {post.author?.primaryHandle ? (
-                  <Link 
-                    href={`/resident/${post.author.primaryHandle.split('@')[0]}/post/${post.id}`}
-                    className="block hover:bg-gray-50 -m-2 p-2 rounded transition-colors"
-                  >
-                    {post.intent ? (
-                      <div className="space-y-1">
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">{post.author.profile?.displayName || post.author.primaryHandle?.split('@')[0]}</span>
-                          <span> is {post.intent}</span>
-                        </div>
-                        <h2 className="text-xl font-semibold text-black leading-tight">{post.title}</h2>
-                      </div>
-                    ) : (
-                      <h2 className="text-xl font-semibold text-black">{post.title}</h2>
-                    )}
-                  </Link>
-                ) : (
-                  <div>
-                    {post.intent ? (
-                      <div className="space-y-1">
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">{post.author?.profile?.displayName || "User"}</span>
-                          <span> is {post.intent}</span>
-                        </div>
-                        <h2 className="text-xl font-semibold text-black leading-tight">{post.title}</h2>
-                      </div>
-                    ) : (
-                      <h2 className="text-xl font-semibold text-black">{post.title}</h2>
-                    )}
-                  </div>
-                )}
-              </div>
+              <PostHeader post={post} />
             )}
             {post.bodyHtml ? (
               <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />

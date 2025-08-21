@@ -85,6 +85,8 @@ model User {
   threadRingInvitesReceived ThreadRingInvite[] @relation("ThreadRingInvitationsReceived")
   threadRingForks        ThreadRingFork[]   @relation("ThreadRingForks")
   threadRingPrompts      ThreadRingPrompt[] // Prompts created by this user
+  threadRingBlocksReceived ThreadRingBlock[] @relation("ThreadRingBlockedUsers") // Blocks targeting this user
+  threadRingBlocksCreated  ThreadRingBlock[] @relation("ThreadRingBlockCreators") // Blocks created by this user
 }
 
 model Handle {
@@ -117,6 +119,7 @@ model Profile {
   hideNavigation     Boolean    @default(false) // hide navbar and footer on custom template
   blogroll           Json? // [{label,url,blurb}]
   featuredFriends    Json? // [{id,handle,displayName,avatarUrl}]
+  badgePreferences   Json? // User badge display preferences
   visibility         Visibility @default(public)
   updatedAt          DateTime   @updatedAt
 }
@@ -454,6 +457,9 @@ model ThreadRing {
   
   // Prompts/Challenges
   prompts     ThreadRingPrompt[]
+  
+  // Block lists
+  blocks      ThreadRingBlock[] @relation("ThreadRingBlocks")
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -906,6 +912,40 @@ model PostThreadRingPrompt {
   @@unique([postId, promptId])
   @@index([promptId, createdAt]) // For fetching prompt responses
   @@index([postId])
+}
+
+model ThreadRingBlock {
+  id           String     @id @default(cuid())
+  threadRingId String
+  threadRing   ThreadRing @relation("ThreadRingBlocks", fields: [threadRingId], references: [id], onDelete: Cascade)
+  
+  // Block target (user or instance)
+  blockedUserId    String?   // User ID if blocking a specific user
+  blockedUser      User?     @relation("ThreadRingBlockedUsers", fields: [blockedUserId], references: [id], onDelete: Cascade)
+  blockedInstance  String?   // Instance domain if blocking an entire instance (e.g. "spam.example.com")
+  blockedActorUri  String?   // Full actor URI for federated blocks (e.g. "https://remote.com/users/spammer")
+  
+  // Block metadata
+  blockType    ThreadRingBlockType
+  reason       String?               // Optional reason for the block
+  createdBy    String                // Curator/moderator who created the block
+  createdByUser User                 @relation("ThreadRingBlockCreators", fields: [createdBy], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime              @default(now())
+  
+  @@unique([threadRingId, blockedUserId])          // One block per user per ring
+  @@unique([threadRingId, blockedInstance])        // One block per instance per ring
+  @@unique([threadRingId, blockedActorUri])        // One block per actor URI per ring
+  @@index([threadRingId, blockType])
+  @@index([blockedUserId])
+  @@index([blockedInstance])
+  @@index([createdBy])
+}
+
+enum ThreadRingBlockType {
+  user      // Block specific user
+  instance  // Block entire instance/domain
+  actor     // Block federated actor by URI
 }
 
 // NOTIFICATION UPDATES:

@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { SITE_NAME } from "@/lib/site-config";
+import { isUserBlockedFromThreadRing } from "@/lib/threadring-blocks";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -85,6 +86,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (existingMembership) {
       return res.status(400).json({ error: "User is already a member of this ThreadRing" });
+    }
+
+    // Check if user is blocked from this ThreadRing
+    const blockCheck = await isUserBlockedFromThreadRing(threadRing.id, inviteeId);
+    if (blockCheck.isBlocked) {
+      return res.status(403).json({ 
+        error: blockCheck.reason 
+          ? `Cannot invite blocked user: ${blockCheck.reason}`
+          : "Cannot invite blocked user"
+      });
     }
 
     // Check if there's already a pending invite

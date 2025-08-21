@@ -8,6 +8,7 @@ import { getSessionUser } from "@/lib/auth-server";
 import ThreadRingInviteForm from "../../../components/forms/ThreadRingInviteForm";
 import ThreadRingBadgeManager from "../../../components/ThreadRingBadgeManager";
 import ThreadRingPromptManager from "../../../components/ThreadRingPromptManager";
+import ThreadRingBlockManager from "../../../components/ThreadRingBlockManager";
 
 interface ThreadRingSettingsPageProps {
   siteConfig: SiteConfig;
@@ -261,6 +262,13 @@ export default function ThreadRingSettingsPage({
               <ThreadRingPromptManager
                 threadRingSlug={ring.slug}
                 canManage={canManage}
+              />
+            </div>
+
+            {/* Block Management */}
+            <div className="border-t pt-6">
+              <ThreadRingBlockManager
+                threadRingSlug={ring.slug}
               />
             </div>
 

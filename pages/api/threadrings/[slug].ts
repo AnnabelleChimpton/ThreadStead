@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
+import { filterBlockedUsers } from "@/lib/threadring-blocks";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
@@ -61,6 +62,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!ring) {
       return res.status(404).json({ error: "ThreadRing not found" });
+    }
+
+    // Filter out blocked users from member list
+    if (ring.members.length > 0) {
+      const memberUserIds = ring.members.map(member => member.user.id);
+      const allowedUserIds = await filterBlockedUsers(ring.id, memberUserIds);
+      ring.members = ring.members.filter(member => allowedUserIds.includes(member.user.id));
     }
 
     res.status(200).json({ ring });

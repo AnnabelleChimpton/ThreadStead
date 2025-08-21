@@ -12,6 +12,7 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import BlogTab from "@/components/profile/tabs/BlogTab";
 import MediaGrid from "@/components/profile/tabs/MediaGrid";
 import FriendsWebsitesGrid from "@/components/profile/tabs/FriendsWebsitesGrid";
+import ProfileBadgeDisplay from "@/components/ProfileBadgeDisplay";
 import { transformNodeToReact } from "@/lib/template-renderer";
 import { ResidentDataProvider } from "@/components/template/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/template-parser";
@@ -127,6 +128,20 @@ export default function ProfilePage({
       id: "friends",
       label: "Friends / Websites",
       content: <FriendsWebsitesGrid friends={featuredFriends} websites={websites} />,
+    },
+    {
+      id: "badges",
+      label: "Badges",
+      content: (
+        <div className="profile-tab-content p-4">
+          <ProfileBadgeDisplay 
+            username={username} 
+            showTitle={false}
+            layout="grid"
+            className="max-w-2xl"
+          />
+        </div>
+      ),
     },
     {
       id: "guestbook",

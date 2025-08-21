@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { SITE_NAME } from "@/lib/site-config";
+import { filterBlockedUsers } from "@/lib/threadring-blocks";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -182,8 +183,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     const pinnedMap = new Map(pinnedPosts.map(p => [p.postId, p]));
 
+    // Filter out posts from blocked users
+    const authorIds = posts.map(post => post.authorId);
+    const allowedAuthorIds = await filterBlockedUsers(threadRing.id, authorIds);
+    const filteredPosts = posts.filter(post => allowedAuthorIds.includes(post.authorId));
+
     // Transform posts to include username and comment count
-    const transformedPosts = posts.map(post => {
+    const transformedPosts = filteredPosts.map(post => {
       const pinned = pinnedMap.get(post.id);
       return {
         id: post.id,
@@ -216,7 +222,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.json({ 
       posts: transformedPosts,
-      hasMore: posts.length === limit 
+      hasMore: posts.length === limit // Note: filtering may affect pagination, but this is acceptable
     });
 
   } catch (error) {

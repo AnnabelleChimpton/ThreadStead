@@ -12,6 +12,7 @@ import FriendManager, { SelectedFriend } from "@/components/FriendManager";
 // CSS Editor moved to dedicated page at /resident/[username]/css-editor
 import ProfilePreview from "@/components/ProfilePreview";
 import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
+import ProfileBadgeSelector from "@/components/ProfileBadgeSelector";
 import type { TemplateNode } from "@/lib/template-parser";
 import { TemplateEngine } from "@/lib/template-engine";
 
@@ -570,6 +571,20 @@ export default function ProfileEditPage({
               </div>
             </div>
           </div>
+        </div>
+      )
+    },
+    {
+      id: "badges",
+      label: "Badge Preferences",
+      content: (
+        <div className="space-y-6">
+          <ProfileBadgeSelector 
+            onSave={(preferences) => {
+              setSaveMessage("Badge preferences saved successfully!");
+              setTimeout(() => setSaveMessage(null), 3000);
+            }}
+          />
         </div>
       )
     }
