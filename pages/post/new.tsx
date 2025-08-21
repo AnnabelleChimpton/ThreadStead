@@ -78,6 +78,13 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
   const [selectedRings, setSelectedRings] = useState<string[]>([]);
   const [ringsLoading, setRingsLoading] = useState(false);
   
+  // Prompt response state
+  const [respondingToPrompt, setRespondingToPrompt] = useState<{
+    id: string;
+    title: string;
+    threadRingSlug: string;
+  } | null>(null);
+  
   // Site config for intent stamps
   const [intentStampsEnabled, setIntentStampsEnabled] = useState(true);
   const [postTitlesRequired, setPostTitlesRequired] = useState(true);
@@ -90,7 +97,30 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
   useEffect(() => {
     fetchThreadRingMemberships();
     fetchSiteConfig();
+    handleUrlParameters();
   }, []);
+
+  const handleUrlParameters = () => {
+    const { promptId, threadRing, promptTitle } = router.query;
+    
+    if (promptId && threadRing && promptTitle) {
+      setRespondingToPrompt({
+        id: String(promptId),
+        title: String(promptTitle),
+        threadRingSlug: String(threadRing)
+      });
+    }
+  };
+
+  // Update selected rings when prompt data is available and threadrings are loaded
+  useEffect(() => {
+    if (respondingToPrompt && threadRings.length > 0) {
+      const ring = threadRings.find(r => r.slug === respondingToPrompt.threadRingSlug);
+      if (ring && !selectedRings.includes(ring.id)) {
+        setSelectedRings([ring.id]);
+      }
+    }
+  }, [respondingToPrompt, threadRings, selectedRings]);
 
   const fetchSiteConfig = async () => {
     try {
@@ -449,6 +479,11 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
       if (selectedRings.length > 0) {
         payload.threadRingIds = selectedRings;
       }
+      
+      // Add prompt ID if responding to a prompt
+      if (respondingToPrompt) {
+        payload.promptId = respondingToPrompt.id;
+      }
 
       const res = await fetch("/api/posts/create", {
         method: "POST",
@@ -469,6 +504,28 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
 
   return (
     <Layout siteConfig={siteConfig}>
+      {/* Prompt Response Banner */}
+      {respondingToPrompt && (
+        <div className="w-full bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-blue-400 p-4 mb-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">💭</span>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  Responding to Challenge
+                </h3>
+                <p className="text-blue-700 font-medium">
+                  &quot;{respondingToPrompt.title}&quot;
+                </p>
+                <p className="text-sm text-gray-600">
+                  Your post will be automatically linked to this prompt in the {respondingToPrompt.threadRingSlug} ThreadRing
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="w-full p-4">
         <div className="p-6 mb-4 bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463]" style={{width: '80vw', marginLeft: 'calc(-40vw + 50%)', marginRight: 'calc(-40vw + 50%)'}}>
           <h1 className="thread-headline text-2xl font-bold mb-2">Create New Post</h1>
@@ -680,12 +737,27 @@ code block
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">🔗</span>
                   <h3 className="text-base font-semibold text-gray-800">Share to ThreadRings</h3>
-                  {selectedRings.length > 0 && (
+                  {respondingToPrompt ? (
+                    <span className="ml-auto text-xs bg-green-200 px-2 py-1 rounded-full font-medium">
+                      Auto-selected
+                    </span>
+                  ) : selectedRings.length > 0 && (
                     <span className="ml-auto text-xs bg-blue-200 px-2 py-1 rounded-full font-medium">
                       {selectedRings.length} selected
                     </span>
                   )}
                 </div>
+
+                {respondingToPrompt && (
+                  <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-600 font-medium">📍</span>
+                      <span className="text-sm text-green-800">
+                        This post will be shared to <strong>{respondingToPrompt.threadRingSlug}</strong> as a prompt response
+                      </span>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="border border-black p-3 bg-white rounded max-h-40 overflow-y-auto">
                   {ringsLoading ? (
@@ -718,8 +790,10 @@ code block
                                 setSelectedRings(selectedRings.filter(id => id !== ring.id));
                               }
                             }}
-                            disabled={busy || uploadingImage}
-                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            disabled={busy || uploadingImage || !!respondingToPrompt}
+                            className={`w-4 h-4 text-blue-600 rounded focus:ring-blue-500 ${
+                              respondingToPrompt ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           />
                           <div className="flex-1">
                             <span className="font-medium text-gray-900">{ring.name}</span>

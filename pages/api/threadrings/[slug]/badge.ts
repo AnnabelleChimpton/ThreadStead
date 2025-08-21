@@ -119,8 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             textColor: textColor || threadRing.badge.textColor,
             imageUrl,
             isGenerated: !title && !templateId && !backgroundColor && !textColor && !imageUrl,
-            isActive,
-            createdBy: user.id
+            isActive
           }
         });
       } else {
@@ -147,8 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             textColor: badgeData.textColor,
             imageUrl,
             isGenerated: badgeData.isGenerated,
-            isActive,
-            createdBy: user.id
+            isActive
           }
         });
       }

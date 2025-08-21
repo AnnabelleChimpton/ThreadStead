@@ -9,6 +9,7 @@ import ThreadRingStats from "../../components/ThreadRingStats";
 import ThreadRingLineage from "../../components/ThreadRingLineage";
 import RandomMemberDiscovery from "../../components/RandomMemberDiscovery";
 import ThreadRingFeedScope from "../../components/ThreadRingFeedScope";
+import ThreadRingActivePrompt from "../../components/ThreadRingActivePrompt";
 import ThreadRing88x31Badge from "../../components/ThreadRing88x31Badge";
 import { featureFlags } from "@/lib/feature-flags";
 
@@ -612,6 +613,12 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main content area - posts feed */}
         <div className="lg:col-span-2">
+          {/* Active Prompt/Challenge */}
+          <ThreadRingActivePrompt 
+            threadRingSlug={ring.slug}
+            isMember={isMember}
+          />
+
           {/* Feed Scope Selector */}
           {featureFlags.threadrings() && (ring.parentId || (ring.directChildrenCount || 0) > 0) && (
             <ThreadRingFeedScope

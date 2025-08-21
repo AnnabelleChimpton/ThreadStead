@@ -12,26 +12,23 @@ ThreadRings are communities reminiscent of old webrings but with a modern twist.
 - **Phase 5A**: The Spool Architecture ✅
 - **Phase 5B**: Interactive Features (Genealogy Tree, Random Discovery, Hierarchical Feeds, 88x31 Badges) ✅
 
-### 🚀 Major Remaining Work
+### 🚀 Next Development Phase
 
-#### Phase 5C: Federation Architecture (Not Started)
-The entire federation system for cross-instance ThreadRings remains to be implemented. This is a significant undertaking that includes:
-- ActivityPub integration
-- Cross-instance forking and lineage
-- Federated discovery and search
-- Security and privacy controls
-- See lines 895-1069 for complete federation architecture
+#### Phase 6: Priority Enhancements (Active Development)
+**Note:** Phase 5C (Federation) has been deferred until the platform is ready for cross-instance communication.
 
-#### Phase 6: Future Enhancements
-Items moved from earlier phases plus new advanced features:
-- Ring Themes/CSS Customization
-- Import/Export functionality
-- Advanced Audit Trails
-- Block Lists (user/instance blocking)
-- Ring Prompts/Challenges
-- Member Profile Badge Integration
-- Advanced analytics and monitoring
-- See Phase 6 section for complete list
+**High Priority Items** (Good impact, manageable complexity):
+1. **Ring Prompts/Challenges** - Curator-driven engagement features ✅ **COMPLETED**
+2. **Block Lists** - User/instance blocking for enhanced moderation
+3. **Member Profile Badge Integration** - Display ThreadRing badges on user profiles
+4. **Import/Export** - Backup and migration tools for ring data
+
+**Medium Priority Items**:
+5. **Ring Themes/CSS Customization** - Custom styling for individual ThreadRings
+6. **Advanced Audit Trails** - Detailed logging of all moderation actions
+7. **Privacy Controls for Discovery** - Opt-out settings (requires User schema update)
+
+**See Phase 6 section below for complete implementation details**
 
 ## Feature Overview
 
@@ -1402,6 +1399,84 @@ Discovered and fixed a critical bug where pre-Spool forks had incorrect parent r
 - **Error handling** - Comprehensive validation and user feedback
 - **Performance optimized** - Efficient database queries and caching
 - **Accessible design** - ARIA labels and keyboard navigation support
+
+## 🎯 Phase 6: Ring Prompts/Challenges Implementation (COMPLETED - 2025-08-20)
+
+**Core Feature**: Curator-driven engagement features that encourage community participation through prompts and challenges.
+
+### ✅ Implementation Summary
+
+Successfully implemented a complete Ring Prompts/Challenges system with full CRUD operations, post association, and response viewing functionality.
+
+#### **Database Schema**
+- ✅ **ThreadRingPrompt Model**: Complete schema with title, description, dates, active/pinned status
+- ✅ **PostThreadRingPrompt Model**: Junction table for associating posts with prompts as responses
+- ✅ **Prisma Migration**: Applied successfully with proper relations and indexes
+
+#### **API Endpoints Created**
+- ✅ `GET /api/threadrings/[slug]/prompts` - List all prompts for a ThreadRing
+- ✅ `POST /api/threadrings/[slug]/prompts` - Create new prompt (curator only)
+- ✅ `GET /api/threadrings/[slug]/prompts/[promptId]` - Get single prompt with responses
+- ✅ `PUT /api/threadrings/[slug]/prompts/[promptId]` - Update prompt (curator only)
+- ✅ `DELETE /api/threadrings/[slug]/prompts/[promptId]` - Delete prompt (curator only)
+- ✅ `GET /api/threadrings/[slug]/prompts/[promptId]/responses` - List prompt responses with pagination
+
+#### **Frontend Components**
+- ✅ **ThreadRingPromptManager**: Complete management interface for curators
+  - Create, edit, delete prompts with validation
+  - Toggle active/pinned status
+  - View response counts and expandable response viewer
+- ✅ **ThreadRingActivePrompt**: Displays active prompts prominently on ThreadRing pages
+  - Shows current challenge with countdown timer for timed prompts
+  - "Respond to Challenge" button with enhanced flow
+  - Quick link to view all responses
+- ✅ **ThreadRingPromptResponses**: Component for viewing prompt responses inline
+- ✅ **Dedicated Responses Page**: Full page at `/threadrings/[slug]/prompts/[promptId]/responses`
+  - Server-side rendered for performance
+  - Shows all responses with author info, post content, and metadata
+  - Pagination support for large response sets
+
+#### **Post Creation Integration**
+- ✅ **Enhanced Post Flow**: Seamless integration when responding to prompts
+  - URL parameters pass prompt context (promptId, threadRing, promptTitle)
+  - Auto-selection of ThreadRing when responding to prompts
+  - Banner showing which prompt is being responded to
+  - Disabled manual ThreadRing selection to ensure correct association
+
+#### **Key Features Delivered**
+- ✅ **Full CRUD Operations**: Complete prompt management for curators
+- ✅ **Response Tracking**: Automatic response count updates
+- ✅ **Time-Limited Prompts**: Optional end dates with visual indicators
+- ✅ **Pinned Prompts**: Keep important prompts visible
+- ✅ **Enhanced UX**: Seamless flow from prompt to response to viewing
+- ✅ **Privacy Aware**: Respects post visibility settings
+- ✅ **Type Safety**: Full TypeScript integration with proper interfaces
+
+### Technical Fixes Applied
+- ✅ Fixed all TypeScript errors related to user field mappings (username → handles/profile)
+- ✅ Fixed ThreadRingBadge `createdBy` field errors across multiple APIs
+- ✅ Fixed date serialization issues in server-side rendering
+- ✅ Fixed response display query to use correct ThreadRing slug
+
+### Files Created/Modified
+**Database:**
+- `prisma/schema.prisma` - Added ThreadRingPrompt and PostThreadRingPrompt models
+- Migration applied successfully
+
+**API Endpoints:**
+- `pages/api/threadrings/[slug]/prompts/index.ts`
+- `pages/api/threadrings/[slug]/prompts/[promptId].ts`
+- `pages/api/threadrings/[slug]/prompts/[promptId]/responses.ts`
+
+**Frontend Components:**
+- `components/ThreadRingPromptManager.tsx`
+- `components/ThreadRingActivePrompt.tsx`
+- `components/ThreadRingPromptResponses.tsx`
+- `pages/threadrings/[slug]/prompts/[promptId]/responses.tsx`
+
+**Integration Updates:**
+- `pages/post/new.tsx` - Enhanced with prompt response flow
+- `pages/threadrings/[slug].tsx` - Added prompt display components
 
 ### 🎯 **Future Enhancements (Phase 6)**
 

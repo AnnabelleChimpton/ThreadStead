@@ -161,8 +161,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             backgroundColor: badgeData.backgroundColor,
             textColor: badgeData.textColor,
             isGenerated: badgeData.isGenerated,
-            isActive: true,
-            createdBy: viewer.id
+            isActive: true
           }
         });
 

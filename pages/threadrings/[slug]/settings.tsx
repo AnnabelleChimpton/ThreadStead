@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import ThreadRingInviteForm from "../../../components/forms/ThreadRingInviteForm";
 import ThreadRingBadgeManager from "../../../components/ThreadRingBadgeManager";
+import ThreadRingPromptManager from "../../../components/ThreadRingPromptManager";
 
 interface ThreadRingSettingsPageProps {
   siteConfig: SiteConfig;
@@ -254,6 +255,14 @@ export default function ThreadRingSettingsPage({
                 console.log('Badge updated');
               }}
             />
+
+            {/* Prompts & Challenges Manager */}
+            <div className="border-t pt-6">
+              <ThreadRingPromptManager
+                threadRingSlug={ring.slug}
+                canManage={canManage}
+              />
+            </div>
 
             {/* Save Button */}
             <div className="flex items-center gap-4">

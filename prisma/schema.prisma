@@ -84,7 +84,7 @@ model User {
   threadRingInvitesSent     ThreadRingInvite[] @relation("ThreadRingInvitationsSent")
   threadRingInvitesReceived ThreadRingInvite[] @relation("ThreadRingInvitationsReceived")
   threadRingForks        ThreadRingFork[]   @relation("ThreadRingForks")
-  threadRingBadgesCreated ThreadRingBadge[] @relation("ThreadRingBadgeCreator")
+  threadRingPrompts      ThreadRingPrompt[] // Prompts created by this user
 }
 
 model Handle {
@@ -137,6 +137,7 @@ model Post {
   visibility   Visibility  @default(public)
   comments     Comment[]   @relation("PostComments")
   threadRings  PostThreadRing[] @relation("PostThreadRings")
+  promptResponses PostThreadRingPrompt[] // Prompt responses
   // future: signature, cid
 }
 
@@ -451,6 +452,9 @@ model ThreadRing {
   // Badge
   badge       ThreadRingBadge?
   
+  // Prompts/Challenges
+  prompts     ThreadRingPrompt[]
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -715,8 +719,6 @@ model ThreadRingBadge {
   
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  createdBy    String     // User who created/last modified
-  creator      User       @relation("ThreadRingBadgeCreator", fields: [createdBy], references: [id])
   
   @@index([threadRingId])
   @@index([isActive])
@@ -857,6 +859,55 @@ enum BadgeTemplate {
 //   permanent_failure
 // }
 //
+model ThreadRingPrompt {
+  id           String      @id @default(cuid())
+  threadRingId String
+  threadRing   ThreadRing  @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+  
+  // Prompt details
+  title        String      // Short title for the prompt
+  description  String      // Full prompt description/challenge
+  
+  // Timing
+  startsAt     DateTime    @default(now()) // When the prompt becomes active
+  endsAt       DateTime?   // Optional deadline for responses
+  
+  // Status
+  isActive     Boolean     @default(true) // Whether this is the current active prompt
+  isPinned     Boolean     @default(false) // Keep visible even after new prompts
+  
+  // Response tracking
+  responseCount Int        @default(0) // Denormalized count of responses
+  
+  // Creator tracking
+  createdById  String      // User who created the prompt (usually curator)
+  createdBy    User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  
+  // Responses (posts associated with this prompt)
+  responses    PostThreadRingPrompt[]
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  @@index([threadRingId, isActive])
+  @@index([threadRingId, startsAt])
+  @@index([threadRingId, isPinned])
+}
+
+model PostThreadRingPrompt {
+  id         String           @id @default(cuid())
+  postId     String
+  post       Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  promptId   String
+  prompt     ThreadRingPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime         @default(now())
+  
+  @@unique([postId, promptId])
+  @@index([promptId, createdAt]) // For fetching prompt responses
+  @@index([postId])
+}
+
 // NOTIFICATION UPDATES:
 // Add to NotificationType enum:
 //   threadring_invite    // invited to join a threadring

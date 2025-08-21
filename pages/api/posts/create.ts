@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const viewer = await getSessionUser(req);
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
-  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds, intent } = (req.body || {}) as {
+  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds, intent, promptId } = (req.body || {}) as {
     title?: string;
     bodyText?: string;
     bodyHtml?: string;
@@ -21,6 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     visibility?: Visibility;
     threadRingIds?: string[]; // Array of ThreadRing IDs to associate with post
     intent?: PostIntent;
+    promptId?: string; // Optional prompt ID to associate with post
   };
 
   if (!bodyText && !bodyHtml && !bodyMarkdown) {
@@ -85,6 +86,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch (ringError) {
       console.error("ThreadRing association error:", ringError);
       // Don't fail the entire post creation if ThreadRing association fails
+    }
+  }
+
+  // Associate post with prompt if provided
+  if (promptId) {
+    try {
+      // Verify the prompt exists and is active
+      const prompt = await db.threadRingPrompt.findFirst({
+        where: {
+          id: promptId,
+          isActive: true
+        },
+        include: {
+          threadRing: {
+            select: {
+              id: true
+            }
+          }
+        }
+      });
+
+      if (prompt) {
+        // Verify user is member of the ThreadRing that owns this prompt
+        const isMember = await db.threadRingMember.findFirst({
+          where: {
+            userId: viewer.id,
+            threadRingId: prompt.threadRing.id
+          }
+        });
+
+        if (isMember) {
+          // Create the prompt response association
+          await db.postThreadRingPrompt.create({
+            data: {
+              postId: post.id,
+              promptId: prompt.id
+            }
+          });
+
+          // Update response count on the prompt
+          await db.threadRingPrompt.update({
+            where: { id: prompt.id },
+            data: {
+              responseCount: {
+                increment: 1
+              }
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error associating post with prompt:', error);
+      // Continue without failing the post creation
     }
   }
 
