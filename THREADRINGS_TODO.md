@@ -2,7 +2,20 @@
 
 ThreadRings are communities reminiscent of old webrings but with a modern twist. This document outlines the implementation plan for this major feature.
 
-## 📊 Current Status Summary (as of 2025-08-20)
+## 🎯 Quick Start - Next Task
+
+**NEXT UP: Import/Export Functionality** (Phase 6, Item #4)
+- Start with: Export ThreadRing configuration to JSON
+- Key files to review: 
+  - `/api/threadrings/[slug].ts` - For data structure reference
+  - `/api/threadrings/[slug]/settings.ts` - Settings that need exporting
+- Main considerations: Privacy controls, data validation, large dataset handling
+
+## 📊 Current Status Summary (as of 2025-08-21)
+
+### 🆕 Completed Today (2025-08-21)
+1. **Block Lists** ✅ - Complete user/instance blocking system with smart user resolution
+2. **Member Profile Badge Integration** ✅ - Full badge display system across profiles, posts, and comments
 
 ### ✅ Completed Phases
 - **Phase 1**: Core Infrastructure ✅
@@ -17,16 +30,50 @@ ThreadRings are communities reminiscent of old webrings but with a modern twist.
 #### Phase 6: Priority Enhancements (Active Development)
 **Note:** Phase 5C (Federation) has been deferred until the platform is ready for cross-instance communication.
 
-**High Priority Items** (Good impact, manageable complexity):
-1. **Ring Prompts/Challenges** - Curator-driven engagement features ✅ **COMPLETED**
-2. **Block Lists** - User/instance blocking for enhanced moderation ✅ **COMPLETED**
-3. **Member Profile Badge Integration** - Display ThreadRing badges on user profiles ✅ **COMPLETED**
-4. **Import/Export** - Backup and migration tools for ring data
+**✅ Completed High Priority Items**:
+1. **Ring Prompts/Challenges** - Curator-driven engagement features ✅ **COMPLETED** (2025-08-20)
+2. **Block Lists** - User/instance blocking for enhanced moderation ✅ **COMPLETED** (2025-08-21)
+3. **Member Profile Badge Integration** - Display ThreadRing badges on user profiles ✅ **COMPLETED** (2025-08-21)
 
-**Medium Priority Items**:
-5. **Ring Themes/CSS Customization** - Custom styling for individual ThreadRings
-6. **Advanced Audit Trails** - Detailed logging of all moderation actions
+**🔴 Remaining High Priority Item** (Start here next session):
+4. **Import/Export** - Backup and migration tools for ring data
+   - **Why Priority**: Essential for data portability, backups, and instance migrations
+   - **Key Features to Implement**:
+     - Export ThreadRing configuration (settings, members, prompts, badges)
+     - Export ThreadRing posts and content
+     - Import ThreadRing from backup file
+     - Selective import options (members only, settings only, etc.)
+     - ThreadRing template sharing functionality
+   - **Technical Considerations**:
+     - JSON format for data interchange
+     - Privacy controls for exported data
+     - Validation and conflict resolution on import
+     - Large dataset handling for rings with many posts
+   - **Implementation Approach**:
+     1. Create export API endpoint (`/api/threadrings/[slug]/export`)
+     2. Define export schema/format (version, metadata, data sections)
+     3. Add export button to curator settings page
+     4. Create import API endpoint (`/api/threadrings/import`)
+     5. Build import validation and conflict resolution
+     6. Add import UI with preview and options
+     7. Implement template library for sharing
+
+**🟡 Medium Priority Items** (After Import/Export):
+5. **Advanced Audit Trails** - Detailed logging of all moderation actions
+   - Track all curator/moderator actions with timestamps
+   - Dispute resolution capabilities
+   - Exportable audit logs for transparency
+   
+6. **Ring Themes/CSS Customization** - Custom styling for individual ThreadRings
+   - Custom color schemes per ThreadRing
+   - Badge style overrides
+   - Layout customization options
+   - Theme templates and sharing
+   
 7. **Privacy Controls for Discovery** - Opt-out settings (requires User schema update)
+   - User preferences for random discovery opt-out
+   - ThreadRing visibility in searches
+   - Member list privacy options
 
 **See Phase 6 section below for complete implementation details**
 
