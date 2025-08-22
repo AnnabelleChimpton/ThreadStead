@@ -9,6 +9,14 @@
  * Run with: npx tsx scripts/quick-ringhub-test.ts
  */
 
+// Load environment variables using Next.js's @next/env
+import { loadEnvConfig } from '@next/env'
+import path from 'path'
+
+// Load .env files the same way Next.js does
+const projectDir = process.cwd()
+loadEnvConfig(projectDir)
+
 import { getRingHubClient } from '@/lib/ringhub-client'
 import { getServerDID, generateDIDDocument } from '@/lib/server-did-client'
 

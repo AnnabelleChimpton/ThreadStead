@@ -6,6 +6,13 @@
  * Run with: npx tsx scripts/fix-production-migration.ts
  */
 
+// Load environment variables using Next.js's @next/env
+import { loadEnvConfig } from '@next/env'
+
+// Load .env files the same way Next.js does
+const projectDir = process.cwd()
+loadEnvConfig(projectDir)
+
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()

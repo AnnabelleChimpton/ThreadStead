@@ -9,6 +9,13 @@
  * Run with: npx tsx scripts/test-ringhub-production.ts
  */
 
+// Load environment variables using Next.js's @next/env
+import { loadEnvConfig } from '@next/env'
+
+// Load .env files the same way Next.js does
+const projectDir = process.cwd()
+loadEnvConfig(projectDir)
+
 import { 
   testRingHubConnection, 
   testRingHubAPI, 
