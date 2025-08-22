@@ -290,7 +290,7 @@ export class RingHubClient {
     if (method !== 'GET') {
       try {
         const signature = await this.generateHttpSignature(method, path, headers)
-        headers['Signature'] = signature
+        headers['Authorization'] = `Signature ${signature}`
       } catch (error) {
         throw new RingHubClientError(`Failed to generate HTTP signature: ${error}`)
       }
@@ -306,7 +306,7 @@ export class RingHubClient {
     }
 
     try {
-      console.log(`Ring Hub ${method} request to ${path}:`, { headers: headers['Signature'] ? 'signed' : 'unsigned' });
+      console.log(`Ring Hub ${method} request to ${path}:`, { headers: headers['Authorization'] ? 'signed' : 'unsigned' });
       const response = await fetch(url, config)
 
       if (!response.ok) {
