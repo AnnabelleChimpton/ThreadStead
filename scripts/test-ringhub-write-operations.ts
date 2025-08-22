@@ -67,8 +67,16 @@ async function testCreateRing() {
       name: `Test Ring ${timestamp}`,
       slug: testRingSlug,
       description: 'Test ring created by write operations test script',
+      joinType: 'open' as const,
       visibility: 'public' as const,
-      joinType: 'open' as const
+      uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${testRingSlug}`,
+      spoolUri: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+      lineageDepth: 1,
+      memberCount: 1,
+      postCount: 0,
+      descendantCount: 0,
+      createdAt: new Date().toISOString(),
+      curatorNotes: 'Test ring for write operations verification'
     }
 
     console.log('   Creating ring with slug:', testRingSlug)
