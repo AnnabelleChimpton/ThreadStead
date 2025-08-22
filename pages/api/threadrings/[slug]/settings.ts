@@ -1,8 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (req.method !== "PUT") {
     res.setHeader("Allow", ["PUT"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -45,6 +51,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!viewer) {
       return res.status(401).json({ error: "Authentication required" });
     }
+
+    // Use Ring Hub if enabled
+    if (system === 'ringhub') {
+      try {
+        const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
+        
+        // Prepare Ring Hub ring updates
+        const updates = {
+          name: name.trim(),
+          description: description?.trim() || undefined,
+          joinType,
+          visibility,
+          curatorNotes: curatorNote?.trim() || undefined
+        };
+
+        // Update ring in Ring Hub
+        const updatedRing = await authenticatedClient.updateRing(slug as string, updates);
+        
+        return res.json({
+          success: true,
+          message: "Settings updated successfully",
+          newSlug: updatedRing.slug !== slug ? updatedRing.slug : undefined
+        });
+        
+      } catch (ringHubError: any) {
+        console.error("Ring Hub settings update error:", ringHubError);
+        if (ringHubError.status === 404) {
+          return res.status(404).json({ error: "ThreadRing not found" });
+        }
+        if (ringHubError.status === 403) {
+          return res.status(403).json({ error: "Only the curator can update settings" });
+        }
+        return res.status(500).json({ 
+          error: "Failed to update ThreadRing settings in Ring Hub", 
+          details: ringHubError.message 
+        });
+      }
+    }
+
+    // Original local database logic
 
     // Find the ThreadRing
     const threadRing = await db.threadRing.findUnique({
@@ -128,4 +174,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Error updating ThreadRing settings:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+});

@@ -6,6 +6,7 @@ import NewCommentForm, { CommentWire as CommentWireForm } from "../forms/NewComm
 import Link from "next/link";
 import ThreadRingBadge from "../ThreadRingBadge";
 import PostHeader from "../PostHeader";
+import { featureFlags } from "@/lib/feature-flags";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -434,7 +435,7 @@ const countLabel = hasServerCount
             )}
             
             {/* ThreadRing badges */}
-            {post.threadRings && post.threadRings.length > 0 && (
+            {featureFlags.threadrings() && post.threadRings && post.threadRings.length > 0 && (
               <div className="mt-3 pt-2 border-t border-gray-200">
                 <div className="flex flex-wrap gap-2 items-center">
                   <span className="text-xs text-gray-600 font-medium">Posted to:</span>

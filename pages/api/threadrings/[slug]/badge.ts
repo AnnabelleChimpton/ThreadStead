@@ -3,15 +3,48 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { generateThreadRingBadge, validateBadgeContent } from "@/lib/badge-generator";
 import { BADGE_TEMPLATES } from "@/lib/threadring-badges";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { getRingHubClient } from "@/lib/ringhub-client";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest, 
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   const { slug } = req.query;
 
   if (typeof slug !== "string") {
     return res.status(400).json({ error: "Invalid slug" });
   }
 
-  // Find the ThreadRing
+  // Use Ring Hub if enabled (for GET requests only, badge generation/update requires local storage)
+  if (system === 'ringhub' && req.method === 'GET') {
+    const client = getRingHubClient();
+    if (client) {
+      try {
+        const ringDescriptor = await client.getRing(slug as string);
+        if (!ringDescriptor) {
+          return res.status(404).json({ error: "ThreadRing not found" });
+        }
+
+        // Generate a default badge for Ring Hub rings
+        const defaultBadge = await generateThreadRingBadge(ringDescriptor.name, ringDescriptor.slug);
+        return res.json({
+          success: true,
+          badge: {
+            ...defaultBadge,
+            id: `ringhub-${ringDescriptor.slug}`,
+            isActive: true
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching ring from Ring Hub:", error);
+        // Fall through to local database
+      }
+    }
+  }
+
+  // Find the ThreadRing (local database)
   const threadRing = await db.threadRing.findUnique({
     where: { slug },
     include: {
@@ -203,4 +236,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Method not allowed
   res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
   return res.status(405).json({ error: "Method Not Allowed" });
-}
+});

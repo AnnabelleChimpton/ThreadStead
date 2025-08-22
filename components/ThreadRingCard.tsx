@@ -16,7 +16,7 @@ interface ThreadRingCardProps {
       handle: string;
       displayName?: string | null;
       avatarUrl?: string | null;
-    };
+    } | null;
     viewerMembership?: {
       role: string;
       joinedAt: string;
@@ -64,12 +64,14 @@ export default function ThreadRingCard({
           >
             {threadRing.name}
           </Link>
-          <div className="text-sm text-gray-600 mt-1">
-            curated by{" "}
-            <span className="font-medium">
-              {threadRing.curator.displayName || `@${threadRing.curator.handle}`}
-            </span>
-          </div>
+          {threadRing.curator && (
+            <div className="text-sm text-gray-600 mt-1">
+              curated by{" "}
+              <span className="font-medium">
+                {threadRing.curator.displayName || `@${threadRing.curator.handle}`}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Join Status / Button */}

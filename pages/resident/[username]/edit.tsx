@@ -15,6 +15,7 @@ import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 import ProfileBadgeSelector from "@/components/ProfileBadgeSelector";
 import type { TemplateNode } from "@/lib/template-parser";
 import { TemplateEngine } from "@/lib/template-engine";
+import { featureFlags } from "@/lib/feature-flags";
 
 interface ProfileEditProps {
   username: string;
@@ -616,7 +617,7 @@ export default function ProfileEditPage({
             </div>
           )}
 
-          <Tabs tabs={editTabs} initialId="profile" />
+          <Tabs tabs={featureFlags.threadrings() ? editTabs : editTabs.filter(tab => tab.id !== 'badges')} initialId="profile" />
         </RetroCard>
       </ProfileLayout>
     </>

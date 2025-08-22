@@ -87,6 +87,7 @@ model User {
   threadRingPrompts      ThreadRingPrompt[] // Prompts created by this user
   threadRingBlocksReceived ThreadRingBlock[] @relation("ThreadRingBlockedUsers") // Blocks targeting this user
   threadRingBlocksCreated  ThreadRingBlock[] @relation("ThreadRingBlockCreators") // Blocks created by this user
+  ringHubOwnerships        RingHubOwnership[] @relation("RingHubOwnerships") // Ring Hub rings owned by this user
 }
 
 model Handle {
@@ -946,6 +947,22 @@ enum ThreadRingBlockType {
   user      // Block specific user
   instance  // Block entire instance/domain
   actor     // Block federated actor by URI
+}
+
+// Ring Hub Integration Models
+model RingHubOwnership {
+  id           String   @id @default(cuid())
+  ringSlug     String   @unique // Ring Hub slug
+  ringUri      String   // Ring Hub URI  
+  ownerUserId  String   // ThreadStead user who owns this ring
+  owner        User     @relation("RingHubOwnerships", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  serverDID    String   // DID used to create ring in Ring Hub
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([ownerUserId])
+  @@index([serverDID])
 }
 
 // NOTIFICATION UPDATES:

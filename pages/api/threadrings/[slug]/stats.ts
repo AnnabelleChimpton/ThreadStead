@@ -2,8 +2,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { SITE_NAME } from "@/lib/site-config";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { getRingHubClient } from "@/lib/ringhub-client";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest, 
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -17,6 +23,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const viewer = await getSessionUser(req);
 
+    // Use Ring Hub if enabled
+    if (system === 'ringhub') {
+      const client = getRingHubClient();
+      if (!client) {
+        return res.status(500).json({ error: "Ring Hub client not configured" });
+      }
+
+      const ringDescriptor = await client.getRing(slug as string);
+      
+      if (!ringDescriptor) {
+        return res.status(404).json({ error: "ThreadRing not found" });
+      }
+
+      // For Ring Hub rings, return simplified stats since we don't have detailed local data
+      const stats = {
+        memberCount: ringDescriptor.memberCount,
+        postCount: ringDescriptor.postCount,
+        pinnedPostCount: 0, // Not available from Ring Hub basic descriptor
+        moderatorCount: 1, // Assume 1 curator
+        recentActivity: {
+          newMembersThisWeek: 0, // Not available from Ring Hub
+          newPostsThisWeek: 0 // Not available from Ring Hub
+        },
+        topPosters: [], // Not available from Ring Hub
+        membershipTrend: [] // Not available from Ring Hub
+      };
+
+      return res.json(stats);
+    }
+
+    // Original local database logic
     // Find the ThreadRing
     const threadRing = await db.threadRing.findUnique({
       where: { slug },
@@ -216,4 +253,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Error fetching ThreadRing stats:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+});

@@ -1,8 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { filterBlockedUsers } from "@/lib/threadring-blocks";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { getRingHubClient } from "@/lib/ringhub-client";
+import { transformRingDescriptorToThreadRing } from "@/lib/ringhub-transformers";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest, 
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
 
   const { slug } = req.query;
@@ -12,6 +19,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Use Ring Hub if enabled
+    if (system === 'ringhub') {
+      const client = getRingHubClient();
+      if (!client) {
+        return res.status(500).json({ error: "Ring Hub client not configured" });
+      }
+
+      const ringDescriptor = await client.getRing(slug);
+      
+      if (!ringDescriptor) {
+        return res.status(404).json({ error: "ThreadRing not found" });
+      }
+
+      // Transform Ring Hub descriptor to ThreadRing format
+      // Note: We'll need to fetch members separately if needed
+      const ring = transformRingDescriptorToThreadRing(ringDescriptor);
+      
+      // For now, return a simplified response matching the expected format
+      // Members will be fetched separately via the members endpoint
+      return res.status(200).json({ 
+        ring: {
+          ...ring,
+          curator: null, // Will be populated from members with role=curator
+          members: [] // Members fetched separately via /api/threadrings/[slug]/members
+        }
+      });
+    }
+
+    // Original local ThreadRing logic
     const ring = await db.threadRing.findUnique({
       where: { slug },
       include: {
@@ -76,4 +112,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("ThreadRing fetch error:", error);
     res.status(500).json({ error: "Failed to fetch ThreadRing" });
   }
-}
+});

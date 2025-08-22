@@ -1,6 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { featureFlags } from "@/lib/feature-flags";
+
+// Note: Member role management is currently local-only
+// Ring Hub doesn't expose member management APIs yet
+// TODO: Integrate with Ring Hub member management when available
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "PUT" && req.method !== "DELETE") {
@@ -18,6 +23,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const viewer = await getSessionUser(req);
     if (!viewer) {
       return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // If Ring Hub is enabled, member management is not available
+    if (featureFlags.ringhub()) {
+      return res.status(501).json({ 
+        error: "Member role management not available with Ring Hub",
+        message: "Ring Hub member management is not yet supported"
+      });
     }
 
     // Find the ThreadRing

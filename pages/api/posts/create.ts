@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 
 import { getSessionUser } from "@/lib/auth-server";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
+import { featureFlags } from "@/lib/feature-flags";
+import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
 
 
@@ -56,32 +58,90 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Associate post with ThreadRings if provided
   if (threadRingIds && threadRingIds.length > 0) {
     try {
-      // 1. Validate user is member of all specified ThreadRings
-      const userMemberships = await db.threadRingMember.findMany({
-        where: {
-          userId: viewer.id,
-          threadRingId: { in: threadRingIds }
-        },
-        select: { threadRingId: true }
-      });
-
-      const validRingIds = userMemberships.map(m => m.threadRingId);
-      
-      if (validRingIds.length > 0) {
-        // 2. Create PostThreadRing associations
-        await db.postThreadRing.createMany({
-          data: validRingIds.map(ringId => ({
-            postId: post.id,
-            threadRingId: ringId,
-            addedBy: viewer.id
-          }))
+      if (featureFlags.ringhub()) {
+        // Ring Hub integration for post association
+        const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
+        
+        // Get ThreadRing slugs from IDs for Ring Hub submission
+        const threadRings = await db.threadRing.findMany({
+          where: { id: { in: threadRingIds } },
+          select: { id: true, slug: true, name: true }
+        });
+        
+        // Validate user membership locally (we still need this for Ring Hub validation)
+        const userMemberships = await db.threadRingMember.findMany({
+          where: {
+            userId: viewer.id,
+            threadRingId: { in: threadRingIds }
+          },
+          select: { threadRingId: true }
+        });
+        
+        const validRingIds = userMemberships.map(m => m.threadRingId);
+        const validRings = threadRings.filter(ring => validRingIds.includes(ring.id));
+        
+        // Submit post to each Ring Hub ring as PostRef
+        for (const ring of validRings) {
+          try {
+            const postRef = {
+              uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/posts/${post.id}`,
+              digest: post.id, // Use post ID as digest for now
+              isPinned: false,
+              metadata: {
+                title: post.title,
+                threadRingId: ring.id,
+                threadRingSlug: ring.slug,
+                threadRingName: ring.name
+              }
+            };
+            
+            await authenticatedClient.submitPost(postRef);
+            console.log(`Post ${post.id} submitted to Ring Hub ring: ${ring.slug}`);
+          } catch (ringHubError) {
+            console.error(`Failed to submit post to Ring Hub ring ${ring.slug}:`, ringHubError);
+            // Continue with other rings
+          }
+        }
+        
+        // Still create local associations for fallback/caching
+        if (validRingIds.length > 0) {
+          await db.postThreadRing.createMany({
+            data: validRingIds.map(ringId => ({
+              postId: post.id,
+              threadRingId: ringId,
+              addedBy: viewer.id
+            }))
+          });
+        }
+      } else {
+        // Original local-only logic
+        // 1. Validate user is member of all specified ThreadRings
+        const userMemberships = await db.threadRingMember.findMany({
+          where: {
+            userId: viewer.id,
+            threadRingId: { in: threadRingIds }
+          },
+          select: { threadRingId: true }
         });
 
-        // 3. Update post counts for the ThreadRings
-        await db.threadRing.updateMany({
-          where: { id: { in: validRingIds } },
-          data: { postCount: { increment: 1 } }
-        });
+        const validRingIds = userMemberships.map(m => m.threadRingId);
+        
+        if (validRingIds.length > 0) {
+          // 2. Create PostThreadRing associations
+          await db.postThreadRing.createMany({
+            data: validRingIds.map(ringId => ({
+              postId: post.id,
+              threadRingId: ringId,
+              addedBy: viewer.id
+            }))
+          });
+
+          // 3. Update post counts for the ThreadRings
+          await db.threadRing.updateMany({
+            where: { id: { in: validRingIds } },
+            data: { postCount: { increment: 1 } }
+          });
+        }
       }
     } catch (ringError) {
       console.error("ThreadRing association error:", ringError);

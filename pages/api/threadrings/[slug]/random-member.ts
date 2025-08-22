@@ -1,10 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-server";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { getRingHubClient } from "@/lib/ringhub-client";
 
 const prisma = new PrismaClient();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest, 
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -20,6 +26,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const viewer = await getSessionUser(req);
 
+    // For Ring Hub, we don't have local member data, so return not found
+    if (system === 'ringhub') {
+      const client = getRingHubClient();
+      if (!client) {
+        return res.status(500).json({ error: "Ring Hub client not configured" });
+      }
+
+      // Verify ring exists in Ring Hub
+      const ringDescriptor = await client.getRing(slug as string);
+      if (!ringDescriptor) {
+        return res.status(404).json({ error: "ThreadRing not found" });
+      }
+
+      // Ring Hub doesn't provide member discovery features yet
+      return res.status(404).json({ 
+        error: "Member discovery not available for Ring Hub rings",
+        message: "Random member discovery requires local membership data"
+      });
+    }
+
+    // Original local database logic
     // Find the ThreadRing
     const ring = await prisma.threadRing.findUnique({
       where: { slug },
@@ -210,4 +237,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } finally {
     await prisma.$disconnect();
   }
-}
+});

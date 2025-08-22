@@ -6,6 +6,8 @@ import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { SITE_NAME } from "@/lib/site-config";
+import { featureFlags } from "@/lib/feature-flags";
+import { getRingHubClient } from "@/lib/ringhub-client";
 
 interface Member {
   id: string;
@@ -281,6 +283,67 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const viewer = await getSessionUser(context.req as any);
 
   try {
+    // Use Ring Hub if enabled
+    if (featureFlags.ringhub()) {
+      const client = getRingHubClient();
+      if (client) {
+        try {
+          const ringDescriptor = await client.getRing(slug as string);
+          if (ringDescriptor) {
+            // Get Ring Hub members
+            const ringHubMembers = await client.getRingMembers(slug as string);
+            
+            // Check if viewer owns this Ring Hub ring locally
+            let canManage = false;
+            if (viewer) {
+              const ownership = await db.ringHubOwnership.findUnique({
+                where: { ringSlug: slug as string },
+              });
+              canManage = ownership?.ownerUserId === viewer.id;
+            }
+
+            // Convert Ring Hub members to local format
+            // Note: Ring Hub members only have DIDs, so we can't show full user profiles
+            // This is a limitation until we integrate user mapping
+            const members = ringHubMembers.map((member, index) => ({
+              id: member.did,
+              role: member.role,
+              joinedAt: member.joinedAt,
+              user: {
+                id: member.did,
+                handles: [{ handle: member.did.replace('did:key:', ''), host: 'ringhub' }],
+                profile: {
+                  displayName: `Ring Hub User`,
+                  avatarUrl: null,
+                },
+              },
+            }));
+
+            const ring = {
+              id: ringDescriptor.slug,
+              name: ringDescriptor.name,
+              slug: ringDescriptor.slug,
+              memberCount: ringDescriptor.memberCount,
+              curatorId: '',
+            };
+
+            return {
+              props: {
+                siteConfig,
+                ring,
+                members,
+                canManage,
+              },
+            };
+          }
+        } catch (ringHubError) {
+          console.error("Ring Hub error in members page:", ringHubError);
+          // Fall through to local database
+        }
+      }
+    }
+
+    // Fall back to local database
     const ring = await db.threadRing.findUnique({
       where: { slug },
       select: {

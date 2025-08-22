@@ -2,8 +2,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { isUserBlockedFromThreadRing } from "@/lib/threadring-blocks";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -19,6 +25,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!viewer) {
       return res.status(401).json({ error: "Authentication required" });
     }
+
+    // Use Ring Hub if enabled
+    if (system === 'ringhub') {
+      try {
+        console.log('Attempting to join Ring Hub ring:', slug, 'for user:', viewer.id);
+        
+        console.log('Creating AuthenticatedRingHubClient...');
+        const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
+        
+        // Join ring via Ring Hub
+        console.log('Calling joinRing on authenticated client...');
+        const membership = await authenticatedClient.joinRing(slug as string);
+        console.log('Join successful, membership:', membership);
+        
+        return res.json({
+          success: true,
+          message: `Successfully joined the ThreadRing!`,
+          badge: membership.badge // Include badge info if available
+        });
+        
+      } catch (ringHubError: any) {
+        console.error("Ring Hub join error:", ringHubError);
+        if (ringHubError.status === 404) {
+          return res.status(404).json({ error: "ThreadRing not found" });
+        }
+        if (ringHubError.status === 403) {
+          return res.status(403).json({ error: ringHubError.message || "Cannot join this ThreadRing" });
+        }
+        if (ringHubError.status === 400) {
+          return res.status(400).json({ error: ringHubError.message || "Already a member or invalid request" });
+        }
+        return res.status(500).json({ 
+          error: "Failed to join ThreadRing via Ring Hub", 
+          details: ringHubError.message 
+        });
+      }
+    }
+
+    // Original local database logic
 
     // Find the ThreadRing
     const threadRing = await db.threadRing.findUnique({
@@ -101,4 +146,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Error joining ThreadRing:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+});

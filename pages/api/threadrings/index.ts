@@ -1,8 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { getRingHubClient } from "@/lib/ringhub-client";
+import { transformRingDescriptorToThreadRing } from "@/lib/ringhub-transformers";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest, 
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -15,6 +22,62 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const sort = String(req.query.sort || "trending"); // trending, newest, members, posts, alphabetical
 
     const viewer = await getSessionUser(req);
+
+    // Use Ring Hub if enabled
+    if (system === 'ringhub') {
+      const client = getRingHubClient();
+      if (!client) {
+        return res.status(500).json({ error: "Ring Hub client not configured" });
+      }
+
+      // Map sort parameter to Ring Hub format
+      let sortBy: 'trending' | 'newest' | 'members' | 'posts' | 'alphabetical' | undefined;
+      switch (sort) {
+        case "newest": sortBy = "newest"; break;
+        case "members": sortBy = "members"; break;
+        case "posts": sortBy = "posts"; break;
+        case "alphabetical": sortBy = "alphabetical"; break;
+        case "trending": sortBy = "trending"; break;
+        default: sortBy = undefined; // Ring Hub uses default
+      }
+
+      // Build Ring Hub parameters with strict validation
+      let ringHubOptions: { search?: string; limit?: number; offset?: number } | undefined;
+      
+      if (search?.trim() || limit !== 20 || offset > 0) {
+        ringHubOptions = {};
+        if (search?.trim()) ringHubOptions.search = search.trim();
+        if (limit !== 20 && limit >= 1 && limit <= 100) ringHubOptions.limit = limit;
+        if (offset >= 0) ringHubOptions.offset = offset;
+      }
+
+      const result = await client.listRings(ringHubOptions);
+
+      // Transform Ring Hub response to ThreadStead format
+      const transformedRings = result.rings.map((descriptor: any) => ({
+        id: descriptor.id,
+        name: descriptor.name,
+        slug: descriptor.slug,
+        description: descriptor.description,
+        visibility: descriptor.visibility.toLowerCase(), // PUBLIC -> public
+        joinType: descriptor.joinPolicy === 'OPEN' ? 'open' : 'closed', // OPEN/APPLICATION/CLOSED -> open/closed
+        memberCount: descriptor.memberCount,
+        postCount: descriptor.postCount,
+        createdAt: descriptor.createdAt,
+        curator: null, // Ring Hub doesn't include curator in list
+        viewerMembership: null // Will need separate API call
+      }));
+
+      const hasMore = (offset + limit) < result.total;
+      
+      return res.json({
+        threadRings: transformedRings,
+        hasMore,
+        total: result.total
+      });
+    }
+
+    // Original local ThreadRing logic
 
     // Base where clause - only show public and unlisted ThreadRings for non-members
     let whereClause: any = {
@@ -164,4 +227,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Error fetching ThreadRings:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+});

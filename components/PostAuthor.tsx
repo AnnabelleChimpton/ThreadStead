@@ -2,6 +2,7 @@
 import React from 'react'
 import Link from 'next/link'
 import CompactBadgeDisplay from './CompactBadgeDisplay'
+import { featureFlags } from '@/lib/feature-flags'
 
 interface PostAuthorProps {
   author?: { 
@@ -40,7 +41,7 @@ export default function PostAuthor({
         <span className="font-medium">{displayName}</span>
         {intent && <span> is {intent}</span>}
       </div>
-      {showBadges && author.id && (
+      {featureFlags.threadrings() && showBadges && author.id && (
         <div className="mt-1">
           <CompactBadgeDisplay 
             userId={author.id} 

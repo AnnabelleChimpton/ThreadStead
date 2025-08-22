@@ -1,7 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { getRingHubClient } from "@/lib/ringhub-client";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest, 
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -14,6 +20,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Use Ring Hub if enabled
+    if (system === 'ringhub') {
+      const client = getRingHubClient();
+      if (!client) {
+        return res.status(500).json({ error: "Ring Hub client not configured" });
+      }
+
+      try {
+        const ringDescriptor = await client.getRing(slug as string);
+        if (!ringDescriptor) {
+          return res.status(404).json({ error: "ThreadRing not found" });
+        }
+
+        // Return lineage info in expected format for ThreadRingLineage component
+        return res.json({
+          parent: null, // Ring Hub doesn't provide detailed fork data yet
+          children: [], // Ring Hub doesn't provide detailed fork data yet
+          ringName: ringDescriptor.name
+        });
+
+      } catch (error) {
+        console.error("Error fetching Ring Hub lineage:", error);
+        return res.status(500).json({ error: "Failed to fetch lineage from Ring Hub" });
+      }
+    }
+
+    // Original local database logic
     // Find the ThreadRing
     const threadRing = await db.threadRing.findUnique({
       where: { slug },
@@ -145,4 +178,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Error fetching ThreadRing lineage:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+});

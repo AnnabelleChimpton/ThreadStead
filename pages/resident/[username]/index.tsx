@@ -17,6 +17,7 @@ import { transformNodeToReact } from "@/lib/template-renderer";
 import { ResidentDataProvider } from "@/components/template/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/template-parser";
 import type { ResidentData } from "@/components/template/ResidentDataProvider";
+import { featureFlags } from "@/lib/feature-flags";
 
 /* ---------------- helpers ---------------- */
 
@@ -192,7 +193,9 @@ export default function ProfilePage({
   */
 
   // const tabs: TabSpec[] = [...baseTabs, ...pluginTabs];
-  const tabs: TabSpec[] = baseTabs;
+  const tabs: TabSpec[] = featureFlags.threadrings() 
+    ? baseTabs 
+    : baseTabs.filter(tab => tab.id !== 'badges');
 
   return (
     <ProfileLayout customCSS={customCSS} hideNavigation={hideNavigation}>

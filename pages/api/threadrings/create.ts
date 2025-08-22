@@ -3,6 +3,9 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { transformThreadRingToRingDescriptor } from "@/lib/ringhub-transformers";
 
 // Temporarily use string literals instead of Prisma types
 type ThreadRingJoinType = "open" | "invite" | "closed";
@@ -16,7 +19,11 @@ function slugify(text: string): string {
     .replace(/^-|-$/g, '');
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (!featureFlags.threadrings()) {
     return res.status(404).json({ error: "Feature not available" });
   }
@@ -72,6 +79,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const validVisibility: ThreadRingVisibility = 
     visibility && ["public", "unlisted", "private"].includes(visibility) ? visibility : "public";
 
+    // Use Ring Hub if enabled
+    if (system === 'ringhub') {
+      try {
+        console.log("Creating ThreadRing via Ring Hub with data:", {
+          name: name.trim(),
+          slug: finalSlug,
+          joinType: validJoinType,
+          visibility: validVisibility
+        });
+
+        const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
+        
+        // Prepare Ring Hub ring descriptor
+        const ringDescriptor = {
+          name: name.trim(),
+          slug: finalSlug,
+          description: description?.trim() || undefined,
+          joinType: validJoinType,
+          visibility: validVisibility,
+          uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${finalSlug}`,
+          spoolUri: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+          lineageDepth: 1, // Ring Hub will handle genealogy
+          memberCount: 1,
+          postCount: 0,
+          descendantCount: 0,
+          createdAt: new Date().toISOString(),
+          curatorNotes: description?.trim() || undefined
+        };
+
+        // Create ring in Ring Hub
+        const createdRing = await authenticatedClient.createRing(ringDescriptor);
+        
+        console.log("ThreadRing created in Ring Hub:", createdRing.slug);
+        return res.status(201).json({ ring: createdRing });
+        
+      } catch (ringHubError: any) {
+        console.error("Ring Hub creation error:", ringHubError);
+        return res.status(500).json({ 
+          error: "Failed to create ThreadRing in Ring Hub", 
+          details: ringHubError.message 
+        });
+      }
+    }
+
+    // Original local database logic
     try {
       console.log("Creating ThreadRing with data:", {
         name: name.trim(),
@@ -178,4 +230,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("ThreadRing creation error:", error);
     res.status(500).json({ error: "Failed to create ThreadRing", details: error.message });
   }
-}
+});

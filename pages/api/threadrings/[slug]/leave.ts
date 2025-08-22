@@ -1,8 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -18,6 +24,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!viewer) {
       return res.status(401).json({ error: "Authentication required" });
     }
+
+    // Use Ring Hub if enabled
+    if (system === 'ringhub') {
+      try {
+        const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
+        
+        // Leave ring via Ring Hub
+        await authenticatedClient.leaveRing(slug as string);
+        
+        return res.json({
+          success: true,
+          message: `You have left the ThreadRing.`
+        });
+        
+      } catch (ringHubError: any) {
+        console.error("Ring Hub leave error:", ringHubError);
+        if (ringHubError.status === 404) {
+          return res.status(404).json({ error: "ThreadRing not found" });
+        }
+        if (ringHubError.status === 400) {
+          return res.status(400).json({ error: ringHubError.message || "Not a member of this ThreadRing" });
+        }
+        if (ringHubError.status === 403) {
+          return res.status(403).json({ error: ringHubError.message || "Cannot leave ThreadRing" });
+        }
+        return res.status(500).json({ 
+          error: "Failed to leave ThreadRing via Ring Hub", 
+          details: ringHubError.message 
+        });
+      }
+    }
+
+    // Original local database logic
 
     // Find the ThreadRing
     const threadRing = await db.threadRing.findUnique({
@@ -102,4 +141,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Error leaving ThreadRing:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+});

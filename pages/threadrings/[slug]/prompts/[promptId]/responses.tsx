@@ -7,6 +7,8 @@ import Layout from '@/components/Layout'
 import { getSiteConfig, SiteConfig } from '@/lib/get-site-config'
 import { getSessionUser } from '@/lib/auth-server'
 import { db } from '@/lib/db'
+import { featureFlags } from '@/lib/feature-flags'
+import { getRingHubClient } from '@/lib/ringhub-client'
 
 interface PromptResponse {
   id: string
@@ -351,7 +353,25 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
   try {
     console.log('Loading responses page for:', slug, promptId)
 
-    // Find the ThreadRing first
+    // Note: Prompts/Responses are currently local-only features
+    // Even with Ring Hub enabled, we use local ThreadRing data for prompts
+    // TODO: Integrate prompts/responses with Ring Hub in future
+    
+    // Verify ThreadRing exists (check Ring Hub first if enabled, then local)
+    let threadRingExists = false;
+    if (featureFlags.ringhub()) {
+      const client = getRingHubClient();
+      if (client) {
+        try {
+          const ringDescriptor = await client.getRing(slug);
+          threadRingExists = !!ringDescriptor;
+        } catch (ringHubError) {
+          console.log('Ring Hub check failed, falling back to local:', ringHubError instanceof Error ? ringHubError.message : ringHubError);
+        }
+      }
+    }
+
+    // Find the ThreadRing in local database (for prompts data)
     const threadRing = await db.threadRing.findUnique({
       where: { slug },
       select: {
@@ -362,6 +382,20 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
         visibility: true
       }
     })
+
+    // If Ring Hub is enabled but ThreadRing doesn't exist there, show error
+    if (featureFlags.ringhub() && !threadRingExists) {
+      return {
+        props: {
+          siteConfig,
+          threadRing: null,
+          prompt: null,
+          initialResponses: [],
+          canAccess: false,
+          error: 'ThreadRing not found in Ring Hub'
+        }
+      }
+    }
 
     console.log('ThreadRing found:', !!threadRing)
 

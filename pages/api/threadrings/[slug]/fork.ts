@@ -2,8 +2,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -37,6 +43,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!viewer) {
       return res.status(401).json({ error: "Authentication required" });
     }
+
+    // Use Ring Hub if enabled
+    if (system === 'ringhub') {
+      try {
+        const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
+        
+        // Generate slug for the fork
+        const forkSlug = name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        
+        // Map ThreadStead values to Ring Hub format
+        const joinPolicyMapping = {
+          'open': 'OPEN',
+          'invite': 'APPLICATION',
+          'closed': 'CLOSED'
+        };
+
+        // Prepare Ring Hub fork data (matching Ring Hub API format)
+        const forkData = {
+          name: name.trim(),
+          slug: forkSlug,
+          description: description?.trim() || undefined,
+          joinPolicy: joinPolicyMapping[joinType as keyof typeof joinPolicyMapping] || 'OPEN',
+          visibility: visibility.toUpperCase(),
+        };
+        
+        console.log('Ring Hub fork request:', { parentSlug: slug, forkData });
+        
+        // Fork ring via Ring Hub
+        const forkedRing = await authenticatedClient.forkRing(slug as string, forkData);
+        
+        return res.json({
+          success: true,
+          threadRing: {
+            id: forkedRing.slug,
+            name: forkedRing.name,
+            slug: forkedRing.slug,
+            description: forkedRing.description,
+            joinType: (forkedRing as any).joinPolicy?.toLowerCase() || forkedRing.joinType,
+            visibility: forkedRing.visibility?.toLowerCase() || forkedRing.visibility,
+            uri: forkedRing.uri
+          },
+          message: `Successfully forked as "${forkedRing.name}"`
+        });
+        
+      } catch (ringHubError: any) {
+        console.error("Ring Hub fork error:", ringHubError);
+        if (ringHubError.status === 404) {
+          return res.status(404).json({ error: "ThreadRing not found" });
+        }
+        if (ringHubError.status === 403) {
+          return res.status(403).json({ error: ringHubError.message || "Cannot fork this ThreadRing" });
+        }
+        if (ringHubError.status === 400) {
+          return res.status(400).json({ error: ringHubError.message || "Invalid fork data" });
+        }
+        return res.status(500).json({ 
+          error: "Failed to fork ThreadRing via Ring Hub", 
+          details: ringHubError.message 
+        });
+      }
+    }
+
+    // Original local database logic
 
     // Find the original ThreadRing to fork
     const originalRing = await db.threadRing.findUnique({
@@ -230,4 +299,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Error forking ThreadRing:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+});

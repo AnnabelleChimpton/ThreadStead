@@ -3,8 +3,14 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { SITE_NAME } from "@/lib/site-config";
 import { filterBlockedUsers } from "@/lib/threadring-blocks";
+import { withThreadRingSupport } from "@/lib/ringhub-middleware";
+import { getRingHubClient } from "@/lib/ringhub-client";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withThreadRingSupport(async function handler(
+  req: NextApiRequest, 
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
+) {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -19,6 +25,66 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
     const offset = parseInt(String(req.query.offset || "0"));
 
+    // Use Ring Hub if enabled
+    if (system === 'ringhub') {
+      const client = getRingHubClient();
+      if (!client) {
+        return res.status(500).json({ error: "Ring Hub client not configured" });
+      }
+
+      // First verify the ring exists
+      const ringDescriptor = await client.getRing(slug as string);
+      if (!ringDescriptor) {
+        return res.status(404).json({ error: "ThreadRing not found" });
+      }
+
+      try {
+        // Get the ring feed from Ring Hub
+        const feed = await client.getRingFeed(slug as string, { 
+          limit, 
+          offset 
+        });
+
+        // Transform PostRef objects to expected post format
+        // Note: Ring Hub returns PostRef objects that reference external content
+        // For now, we'll return empty posts since we don't have the actual post content
+        const transformedPosts = feed.posts.map(postRef => ({
+          id: postRef.uri || postRef.digest,
+          authorId: postRef.submittedBy || 'unknown',
+          authorUsername: postRef.submittedBy?.split(':').pop() || 'external-user',
+          authorDisplayName: null,
+          authorAvatarUrl: null,
+          createdAt: postRef.submittedAt || new Date().toISOString(),
+          updatedAt: postRef.submittedAt || new Date().toISOString(),
+          title: postRef.metadata?.title || 'External Post',
+          bodyHtml: `<p>This is a reference to external content: <a href="${postRef.uri}" target="_blank" rel="noopener noreferrer">${postRef.metadata?.title || 'View Post'}</a></p>`,
+          bodyText: `External content: ${postRef.metadata?.title || postRef.uri}`,
+          bodyMarkdown: `[${postRef.metadata?.title || 'External Post'}](${postRef.uri})`,
+          media: [],
+          tags: [],
+          visibility: 'public',
+          commentCount: 0,
+          threadRings: [],
+          isPinned: false,
+          pinnedAt: null
+        }));
+
+        return res.json({
+          posts: transformedPosts,
+          hasMore: feed.posts.length === limit
+        });
+
+      } catch (feedError) {
+        console.error("Error fetching Ring Hub feed:", feedError);
+        // Return empty posts rather than error to avoid breaking the UI
+        return res.json({
+          posts: [],
+          hasMore: false
+        });
+      }
+    }
+
+    // Original local database logic
     // Find the ThreadRing
     const threadRing = await db.threadRing.findUnique({
       where: { slug },
@@ -229,4 +295,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Error fetching ThreadRing posts:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+});

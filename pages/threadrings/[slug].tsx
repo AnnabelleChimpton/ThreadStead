@@ -12,6 +12,8 @@ import ThreadRingFeedScope from "../../components/ThreadRingFeedScope";
 import ThreadRingActivePrompt from "../../components/ThreadRingActivePrompt";
 import ThreadRing88x31Badge from "../../components/ThreadRing88x31Badge";
 import { featureFlags } from "@/lib/feature-flags";
+import { getRingHubClient } from "@/lib/ringhub-client";
+import { transformRingDescriptorToThreadRing } from "@/lib/ringhub-transformers";
 import Toast from "../../components/Toast";
 import { useToast } from "../../hooks/useToast";
 
@@ -58,7 +60,7 @@ interface ThreadRing {
       displayName?: string;
       avatarUrl?: string;
     };
-  };
+  } | null;
   members: Array<{
     id: string;
     role: string;
@@ -388,7 +390,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           const userId = authData.user.id;
           
           // Check if user is the curator first
-          if (userId === ring.curator.id) {
+          if (ring.curator && userId === ring.curator.id) {
             setIsMember(true);
             setCurrentUserRole("curator");
             return;
@@ -517,8 +519,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     return <SpoolLandingPage ring={ring} siteConfig={siteConfig} />;
   }
 
-  const curatorHandle = ring.curator.handles.find(h => h.host === "local")?.handle || 
-                       ring.curator.handles[0]?.handle || 
+  const curatorHandle = ring.curator?.handles.find(h => h.host === "local")?.handle || 
+                       ring.curator?.handles[0]?.handle || 
                        "unknown";
 
   return (
@@ -545,8 +547,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 </div>
               )}
               <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span>Curated by @{curatorHandle}</span>
-                <span>•</span>
+                {ring.curator && (
+                  <>
+                    <span>Curated by @{curatorHandle}</span>
+                    <span>•</span>
+                  </>
+                )}
+                
                 <span>{ring.memberCount} member{ring.memberCount !== 1 ? 's' : ''}</span>
                 <span>•</span>
                 <span>{ring.postCount} post{ring.postCount !== 1 ? 's' : ''}</span>
@@ -875,65 +882,107 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   try {
-    const ring = await db.threadRing.findUnique({
-      where: { slug },
-      include: {
-        curator: {
-          select: {
-            id: true,
-            handles: {
-              select: {
-                handle: true,
-                host: true,
+    let ring = null;
+
+    // Use Ring Hub if enabled
+    console.log('Environment NEXT_PUBLIC_USE_RING_HUB:', process.env.NEXT_PUBLIC_USE_RING_HUB);
+    console.log('Ring Hub feature flag:', featureFlags.ringhub());
+    if (featureFlags.ringhub()) {
+      const client = getRingHubClient();
+      console.log('Ring Hub client available:', !!client);
+      if (client) {
+        try {
+          console.log('Fetching ring from Ring Hub:', slug);
+          const ringDescriptor = await client.getRing(slug as string);
+          console.log('Ring Hub response:', ringDescriptor ? 'found' : 'not found');
+          if (ringDescriptor) {
+            // Transform Ring Hub descriptor to expected format
+            const transformedRing = transformRingDescriptorToThreadRing(ringDescriptor);
+            ring = {
+              ...transformedRing,
+              curator: null, // Ring Hub doesn't provide curator details
+              members: [], // Members will be fetched separately if needed
+              badge: null, // Badge info not available in basic ring descriptor
+              // Add default values for fields expected by the component
+              parentId: null,
+              directChildrenCount: 0,
+              totalDescendantsCount: 0,
+              lineageDepth: 0,
+              lineagePath: "",
+              isSystemRing: false
+            };
+            console.log('Using Ring Hub data for ring:', ring.name);
+          }
+        } catch (error) {
+          console.error("Error fetching ring from Ring Hub:", error);
+          // Fall through to local database as fallback
+        }
+      }
+    }
+
+    // Fallback to local database if Ring Hub is not available or failed
+    if (!ring) {
+      console.log('Falling back to local database for ring:', slug);
+      ring = await db.threadRing.findUnique({
+        where: { slug },
+        include: {
+          curator: {
+            select: {
+              id: true,
+              handles: {
+                select: {
+                  handle: true,
+                  host: true,
+                },
               },
-            },
-            profile: {
-              select: {
-                displayName: true,
-                avatarUrl: true,
+              profile: {
+                select: {
+                  displayName: true,
+                  avatarUrl: true,
+                },
               },
             },
           },
-        },
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                handles: {
-                  select: {
-                    handle: true,
-                    host: true,
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  handles: {
+                    select: {
+                      handle: true,
+                      host: true,
+                    },
+                  },
+                  profile: {
+                    select: {
+                      displayName: true,
+                      avatarUrl: true,
+                    },
                   },
                 },
-                profile: {
-                  select: {
-                    displayName: true,
-                    avatarUrl: true,
-                  },
-                },
               },
             },
+            orderBy: [
+              { role: "desc" }, // Curator first, then moderators, then members
+              { joinedAt: "asc" },
+            ],
           },
-          orderBy: [
-            { role: "desc" }, // Curator first, then moderators, then members
-            { joinedAt: "asc" },
-          ],
-        },
-        badge: {
-          select: {
-            id: true,
-            title: true,
-            subtitle: true,
-            templateId: true,
-            backgroundColor: true,
-            textColor: true,
-            imageUrl: true,
-            isActive: true,
+          badge: {
+            select: {
+              id: true,
+              title: true,
+              subtitle: true,
+              templateId: true,
+              backgroundColor: true,
+              textColor: true,
+              imageUrl: true,
+              isActive: true,
+            },
           },
         },
-      },
-    });
+      });
+    }
 
     if (!ring) {
       return {
@@ -945,16 +994,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       };
     }
 
-    // Serialize the data for Next.js
-    const serializedRing = {
+    // Serialize the data for Next.js - convert undefined to null for JSON serialization
+    const serializedRing = JSON.parse(JSON.stringify({
       ...ring,
-      createdAt: ring.createdAt.toISOString(),
-      updatedAt: ring.updatedAt.toISOString(),
+      createdAt: typeof ring.createdAt === 'string' ? ring.createdAt : ring.createdAt.toISOString(),
+      updatedAt: typeof ring.updatedAt === 'string' ? ring.updatedAt : ring.updatedAt.toISOString(),
       members: ring.members.map(member => ({
         ...member,
-        joinedAt: member.joinedAt.toISOString(),
+        joinedAt: typeof member.joinedAt === 'string' ? member.joinedAt : member.joinedAt.toISOString(),
       })),
-    };
+    }, (key, value) => value === undefined ? null : value));
 
     return {
       props: {

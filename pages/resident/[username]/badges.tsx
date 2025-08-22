@@ -7,6 +7,7 @@ import ProfileLayout from '@/components/layout/ProfileLayout'
 import RetroCard from '@/components/layout/RetroCard'
 import ThreadRing88x31Badge from '@/components/ThreadRing88x31Badge'
 import { db } from '@/lib/db'
+import { featureFlags } from '@/lib/feature-flags'
 
 interface BadgeWithThreadRing {
   id: string
@@ -187,6 +188,11 @@ export default function UserBadgesPage({
 }
 
 export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async ({ params, req }) => {
+  // Check if ThreadRings feature is enabled
+  if (!featureFlags.threadrings()) {
+    return { notFound: true }
+  }
+
   const usernameParam = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "")
   
   if (!usernameParam) {

@@ -5,6 +5,8 @@ import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { featureFlags } from "@/lib/feature-flags";
+import { getRingHubClient } from "@/lib/ringhub-client";
 import ThreadRingInviteForm from "../../../components/forms/ThreadRingInviteForm";
 import ThreadRingBadgeManager from "../../../components/ThreadRingBadgeManager";
 import ThreadRingPromptManager from "../../../components/ThreadRingPromptManager";
@@ -368,6 +370,50 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const viewer = await getSessionUser(context.req as any);
 
   try {
+    // Use Ring Hub if enabled
+    if (featureFlags.ringhub()) {
+      const client = getRingHubClient();
+      if (client) {
+        try {
+          const ringDescriptor = await client.getRing(slug as string);
+          if (ringDescriptor) {
+            // Check if viewer owns this Ring Hub ring locally
+            let canManage = false;
+            if (viewer) {
+              const ownership = await db.ringHubOwnership.findUnique({
+                where: { ringSlug: slug as string },
+              });
+              canManage = ownership?.ownerUserId === viewer.id;
+            }
+
+            const ring = {
+              id: ringDescriptor.slug,
+              name: ringDescriptor.name,
+              slug: ringDescriptor.slug,
+              description: ringDescriptor.description,
+              joinType: ringDescriptor.joinType || 'open',
+              visibility: ringDescriptor.visibility?.toLowerCase() || 'public',
+              curatorNote: ringDescriptor.curatorNotes || '',
+              memberCount: ringDescriptor.memberCount,
+              postCount: ringDescriptor.postCount,
+            };
+
+            return {
+              props: {
+                siteConfig,
+                ring,
+                canManage,
+              },
+            };
+          }
+        } catch (ringHubError) {
+          console.error("Ring Hub error in settings page:", ringHubError);
+          // Fall through to return not found
+        }
+      }
+    }
+
+    // Fall back to local database
     const ring = await db.threadRing.findUnique({
       where: { slug },
       select: {

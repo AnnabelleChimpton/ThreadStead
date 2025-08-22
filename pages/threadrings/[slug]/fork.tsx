@@ -6,6 +6,8 @@ import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { featureFlags } from "@/lib/feature-flags";
+import { getRingHubClient } from "@/lib/ringhub-client";
 
 interface ForkPageProps {
   siteConfig: SiteConfig;
@@ -94,16 +96,43 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   try {
-    const ring = await db.threadRing.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        visibility: true,
-      },
-    });
+    let ring = null;
+
+    // Use Ring Hub if enabled
+    if (featureFlags.ringhub()) {
+      const client = getRingHubClient();
+      if (client) {
+        try {
+          const ringDescriptor = await client.getRing(slug as string);
+          if (ringDescriptor) {
+            ring = {
+              id: ringDescriptor.slug,
+              name: ringDescriptor.name,
+              slug: ringDescriptor.slug,
+              description: ringDescriptor.description,
+              visibility: ringDescriptor.visibility?.toLowerCase() || 'public',
+            };
+          }
+        } catch (error) {
+          console.error("Error fetching ring from Ring Hub for fork page:", error);
+          // Fall through to local database as fallback
+        }
+      }
+    }
+
+    // Fallback to local database if Ring Hub is not available or failed
+    if (!ring) {
+      ring = await db.threadRing.findUnique({
+        where: { slug },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          visibility: true,
+        },
+      });
+    }
 
     if (!ring) {
       return {
