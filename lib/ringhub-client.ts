@@ -432,7 +432,7 @@ export function createThreadSteadRingHubClient(): RingHubClient {
   return new RingHubClient({
     baseUrl: 'https://ringhub.io',
     instanceDID: 'did:web:homepageagain.com',
-    privateKeyBase64Url: 'ZHKcPS3yXew3cDBVwXdufAPXL6bT4E1-qVxrDnu2W2g',
-    publicKeyMultibase: 'z6MkobdPZAxTYoFfh79Zc6HvUcJrk9wHKm9QAMxwFwMPrpgj'
+    privateKeyBase64Url: 'NEED_PRODUCTION_PRIVATE_KEY',
+    publicKeyMultibase: 'z6Mkge2qRL1zoZdrD4XjUjjrF4vQpheVopXu1Fc3j36pooTY'
   })
 }

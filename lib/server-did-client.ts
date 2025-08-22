@@ -165,7 +165,8 @@ export interface DIDDocument {
     id: string;
     type: string;
     controller: string;
-    publicKeyMultibase: string;
+    publicKeyMultibase?: string;
+    publicKeyBase64?: string;
   }>;
   authentication: string[];
   assertionMethod: string[];
@@ -187,6 +188,9 @@ export async function generateDIDDocument(): Promise<DIDDocument> {
   // Use base58btc encoding with 'z' prefix (multibase)
   const publicKeyMultibase = 'z' + bs58.encode(multicodecKey);
   
+  // Also provide raw base64 format for Ring Hub compatibility
+  const publicKeyBase64 = Buffer.from(publicKeyBytes).toString('base64');
+  
   return {
     "@context": [
       "https://www.w3.org/ns/did/v1",
@@ -199,12 +203,18 @@ export async function generateDIDDocument(): Promise<DIDDocument> {
         "type": "Ed25519VerificationKey2020",
         "controller": keypair.did,
         "publicKeyMultibase": publicKeyMultibase
+      },
+      {
+        "id": `${keypair.did}#key-2`,
+        "type": "Ed25519VerificationKey2020",
+        "controller": keypair.did,
+        "publicKeyBase64": publicKeyBase64
       }
     ],
-    "authentication": [`${keypair.did}#key-1`],
-    "assertionMethod": [`${keypair.did}#key-1`],
-    "capabilityDelegation": [`${keypair.did}#key-1`],
-    "capabilityInvocation": [`${keypair.did}#key-1`]
+    "authentication": [`${keypair.did}#key-1`, `${keypair.did}#key-2`],
+    "assertionMethod": [`${keypair.did}#key-1`, `${keypair.did}#key-2`],
+    "capabilityDelegation": [`${keypair.did}#key-1`, `${keypair.did}#key-2`],
+    "capabilityInvocation": [`${keypair.did}#key-1`, `${keypair.did}#key-2`]
   };
 }
 
