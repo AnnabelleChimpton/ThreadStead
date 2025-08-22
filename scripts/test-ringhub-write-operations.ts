@@ -68,8 +68,7 @@ async function testCreateRing() {
       slug: testRingSlug,
       description: 'Test ring created by write operations test script',
       visibility: 'public' as const,
-      joinPolicy: 'OPEN',
-      postPolicy: 'MEMBERS'
+      joinType: 'open' as const
     }
 
     console.log('   Creating ring with slug:', testRingSlug)
@@ -96,6 +95,7 @@ async function testCreateRing() {
       return false
     }
   } catch (error) {
+    console.error('❌ Full error details:', error)
     logResult('Create Ring', 'FAIL', error instanceof Error ? error.message : String(error), null, Date.now() - startTime)
     return false
   }
