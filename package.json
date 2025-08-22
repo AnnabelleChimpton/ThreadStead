@@ -22,7 +22,8 @@
     "threadrings:reconcile": "tsx scripts/reconcile-threadring-counters.ts",
     "ringhub:test": "tsx scripts/quick-ringhub-test.ts",
     "ringhub:test-full": "tsx scripts/test-ringhub-production.ts",
-    "ringhub:test-write": "tsx scripts/test-ringhub-write-operations.ts"
+    "ringhub:test-write": "tsx scripts/test-ringhub-write-operations.ts",
+    "ringhub:test-read": "tsx scripts/test-ringhub-read-only.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
