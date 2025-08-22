@@ -65,9 +65,13 @@ async function testCreateRing() {
     const newRing = {
       name: `Test Ring ${timestamp}`,
       description: 'Test ring created by write operations test script',
+      shortCode: `TR${timestamp.toString().slice(-6)}`, // Last 6 digits
       visibility: 'PUBLIC' as const,
       joinPolicy: 'OPEN' as const,
-      curatorNote: 'Test ring for write operations verification'
+      postPolicy: 'MEMBERS' as const,
+      curatorNote: 'Test ring for write operations verification',
+      metadata: {},
+      policies: {}
     }
 
     console.log('   Creating ring...')

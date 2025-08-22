@@ -24,7 +24,8 @@
     "ringhub:test-full": "tsx scripts/test-ringhub-production.ts",
     "ringhub:test-write": "tsx scripts/test-ringhub-write-operations.ts",
     "ringhub:test-read": "tsx scripts/test-ringhub-read-only.ts",
-    "ringhub:test-verification": "tsx scripts/test-actor-verification.ts"
+    "ringhub:test-verification": "tsx scripts/test-actor-verification.ts",
+    "ringhub:debug": "tsx scripts/debug-actor-verification.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
