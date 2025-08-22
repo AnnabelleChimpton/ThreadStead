@@ -18,6 +18,7 @@ import { ResidentDataProvider } from "@/components/template/ResidentDataProvider
 import type { TemplateNode } from "@/lib/template-parser";
 import type { ResidentData } from "@/components/template/ResidentDataProvider";
 import { featureFlags } from "@/lib/feature-flags";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 /* ---------------- helpers ---------------- */
 
@@ -54,27 +55,9 @@ export default function ProfilePage({
   templateMode = 'default',
 }: ProfileProps) {
   const [relStatus, setRelStatus] = React.useState<string>("loading");
-  const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
+  const { user: currentUser } = useCurrentUser();
 
-  // Check if current user is the owner
-  React.useEffect(() => {
-    const checkCurrentUser = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.loggedIn && data.user?.id) {
-            setCurrentUserId(data.user.id);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to check current user:", error);
-      }
-    };
-    checkCurrentUser();
-  }, []);
-
-  const isOwner = currentUserId === ownerUserId;
+  const isOwner = currentUser?.id === ownerUserId;
 
   // If there's a custom template, render it based on template mode
   if (customTemplateAst && residentData) {
@@ -193,7 +176,7 @@ export default function ProfilePage({
   */
 
   // const tabs: TabSpec[] = [...baseTabs, ...pluginTabs];
-  const tabs: TabSpec[] = featureFlags.threadrings() 
+  const tabs: TabSpec[] = featureFlags.threadrings(currentUser) 
     ? baseTabs 
     : baseTabs.filter(tab => tab.id !== 'badges');
 

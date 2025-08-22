@@ -2,6 +2,7 @@
 import React from 'react'
 import Link from 'next/link'
 import PostAuthor from './PostAuthor'
+import { UserWithRole } from '@/lib/feature-flags'
 
 interface PostHeaderProps {
   post: {
@@ -15,9 +16,10 @@ interface PostHeaderProps {
     }
   }
   className?: string
+  currentUser?: UserWithRole | null
 }
 
-export default function PostHeader({ post, className = '' }: PostHeaderProps) {
+export default function PostHeader({ post, className = '', currentUser }: PostHeaderProps) {
   const { title = 'Untitled Post', intent, author } = post
   const username = author?.primaryHandle?.split('@')[0]
 
@@ -47,6 +49,7 @@ export default function PostHeader({ post, className = '' }: PostHeaderProps) {
             author={author} 
             intent={intent}
             showBadges={true}
+            currentUser={currentUser}
           />
           {titleWithLink}
         </div>
@@ -57,6 +60,7 @@ export default function PostHeader({ post, className = '' }: PostHeaderProps) {
             author={author} 
             intent={null}
             showBadges={true}
+            currentUser={currentUser}
           />
         </div>
       )}

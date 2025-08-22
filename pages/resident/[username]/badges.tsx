@@ -8,6 +8,7 @@ import RetroCard from '@/components/layout/RetroCard'
 import ThreadRing88x31Badge from '@/components/ThreadRing88x31Badge'
 import { db } from '@/lib/db'
 import { featureFlags } from '@/lib/feature-flags'
+import { getSessionUser } from '@/lib/auth-server'
 
 interface BadgeWithThreadRing {
   id: string
@@ -188,8 +189,11 @@ export default function UserBadgesPage({
 }
 
 export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async ({ params, req }) => {
-  // Check if ThreadRings feature is enabled
-  if (!featureFlags.threadrings()) {
+  // Get current user to check if they're an admin
+  const currentUser = await getSessionUser(req as any)
+  
+  // Check if ThreadRings feature is enabled (or user is admin)
+  if (!featureFlags.threadrings(currentUser)) {
     return { notFound: true }
   }
 

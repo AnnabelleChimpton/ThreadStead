@@ -16,6 +16,7 @@ import ProfileBadgeSelector from "@/components/ProfileBadgeSelector";
 import type { TemplateNode } from "@/lib/template-parser";
 import { TemplateEngine } from "@/lib/template-engine";
 import { featureFlags } from "@/lib/feature-flags";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface ProfileEditProps {
   username: string;
@@ -49,6 +50,7 @@ export default function ProfileEditPage({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const { user: currentUser } = useCurrentUser();
   // CSS is now edited in the dedicated CSS editor page
   const customCSSValue = customCSS || "";
   const [isTemplateEnabled, setIsTemplateEnabled] = useState(templateEnabled);
@@ -617,7 +619,7 @@ export default function ProfileEditPage({
             </div>
           )}
 
-          <Tabs tabs={featureFlags.threadrings() ? editTabs : editTabs.filter(tab => tab.id !== 'badges')} initialId="profile" />
+          <Tabs tabs={featureFlags.threadrings(currentUser) ? editTabs : editTabs.filter(tab => tab.id !== 'badges')} initialId="profile" />
         </RetroCard>
       </ProfileLayout>
     </>

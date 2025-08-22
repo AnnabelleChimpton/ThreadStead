@@ -4,6 +4,7 @@ import RetroCard from "@/components/layout/RetroCard";
 import PostItem, { Post as PostType } from "@/components/content/PostItem";
 import ProfileLayout from "@/components/layout/ProfileLayout";
 import Breadcrumb from "@/components/navigation/Breadcrumb";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type PostPageProps = {
   username: string;
@@ -17,6 +18,7 @@ type PostPageProps = {
 export default function PostPage({ username, post, authorDisplayName, initialCommentsOpen = false, highlightCommentId, customCSS }: PostPageProps) {
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { user: currentUser } = useCurrentUser();
 
   useEffect(() => {
     let alive = true;
@@ -55,6 +57,7 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
             onChanged={() => window.location.reload()}
             initialCommentsOpen={initialCommentsOpen}
             highlightCommentId={highlightCommentId}
+            currentUser={currentUser}
           />
         </div>
       </RetroCard>

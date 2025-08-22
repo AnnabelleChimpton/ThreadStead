@@ -16,6 +16,7 @@ import { getRingHubClient } from "@/lib/ringhub-client";
 import { transformRingDescriptorToThreadRing } from "@/lib/ringhub-transformers";
 import Toast from "../../components/Toast";
 import { useToast } from "../../hooks/useToast";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 
 interface ThreadRingPageProps {
   siteConfig: SiteConfig;
@@ -337,6 +338,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
+  const { user: currentUser } = useCurrentUser();
   
   // Toast notifications
   const { toasts, showError, showSuccess, showWarning, hideToast } = useToast();
@@ -686,10 +688,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   <PostItem
                     key={post.id}
                     post={post}
-                    isOwner={false} // We'll need to determine this based on current user
+                    isOwner={currentUser?.id === post.author?.id}
                     onChanged={handlePostChanged}
                     threadRingContext={{ slug: ring.slug, name: ring.name }}
                     canModerateRing={currentUserRole === "curator" || currentUserRole === "moderator"}
+                    currentUser={currentUser}
                   />
                 ))}
                 

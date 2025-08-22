@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import PostItem, { Post as PostType } from "../../content/PostItem";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface BlogTabProps {
   username: string;
@@ -12,6 +13,7 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
   const [posts, setPosts] = useState<PostType[]>([]);
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { user: currentUser } = useCurrentUser();
 
   const refresh = async () => {
     const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
@@ -68,7 +70,8 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
               post={p} 
               isOwner={isOwner} 
               isAdmin={isAdmin} 
-              onChanged={refresh} 
+              onChanged={refresh}
+              currentUser={currentUser} 
             />
           ))
         )}

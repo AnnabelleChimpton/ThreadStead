@@ -6,7 +6,7 @@ import NewCommentForm, { CommentWire as CommentWireForm } from "../forms/NewComm
 import Link from "next/link";
 import ThreadRingBadge from "../ThreadRingBadge";
 import PostHeader from "../PostHeader";
-import { featureFlags } from "@/lib/feature-flags";
+import { featureFlags, UserWithRole } from "@/lib/feature-flags";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -62,6 +62,7 @@ export default function PostItem({
   initialCommentsOpen = false,
   threadRingContext = null,
   canModerateRing = false,
+  currentUser,
 }: {
   post: Post;
   isOwner: boolean;
@@ -69,6 +70,7 @@ export default function PostItem({
   onChanged?: () => void | Promise<void>;
   highlightCommentId?: string | null;
   initialCommentsOpen?: boolean;
+  currentUser?: UserWithRole | null;
   threadRingContext?: { slug: string; name: string } | null;
   canModerateRing?: boolean;
 }) {
@@ -424,7 +426,7 @@ const countLabel = hasServerCount
         {!editing ? (
           <>
             {post.title && (
-              <PostHeader post={post} />
+              <PostHeader post={post} currentUser={currentUser} />
             )}
             {post.bodyHtml ? (
               <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
@@ -435,7 +437,7 @@ const countLabel = hasServerCount
             )}
             
             {/* ThreadRing badges */}
-            {featureFlags.threadrings() && post.threadRings && post.threadRings.length > 0 && (
+            {featureFlags.threadrings(currentUser) && post.threadRings && post.threadRings.length > 0 && (
               <div className="mt-3 pt-2 border-t border-gray-200">
                 <div className="flex flex-wrap gap-2 items-center">
                   <span className="text-xs text-gray-600 font-medium">Posted to:</span>
