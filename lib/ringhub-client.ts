@@ -317,8 +317,14 @@ export class RingHubClient {
           errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
         }
 
+        // For validation errors, include the full error details
+        const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
+        const fullError = errorData.validation ? 
+          `${errorMessage}. Validation errors: ${JSON.stringify(errorData.validation, null, 2)}` :
+          errorMessage
+
         throw new RingHubClientError(
-          errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+          fullError,
           response.status,
           errorData.code
         )

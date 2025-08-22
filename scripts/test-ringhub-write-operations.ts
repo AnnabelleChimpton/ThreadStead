@@ -80,6 +80,7 @@ async function testCreateRing() {
     }
 
     console.log('   Creating ring with slug:', testRingSlug)
+    console.log('   Ring data:', JSON.stringify(newRing, null, 2))
     const createdRing = await client.createRing(newRing)
     
     if (createdRing && createdRing.slug === testRingSlug) {
