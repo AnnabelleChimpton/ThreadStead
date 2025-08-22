@@ -61,29 +61,21 @@ async function testCreateRing() {
 
   try {
     const timestamp = Date.now()
-    testRingSlug = `test-ring-${timestamp}`
     
     const newRing = {
       name: `Test Ring ${timestamp}`,
-      slug: testRingSlug,
       description: 'Test ring created by write operations test script',
-      joinType: 'open' as const,
-      visibility: 'public' as const,
-      uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${testRingSlug}`,
-      spoolUri: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-      lineageDepth: 1,
-      memberCount: 1,
-      postCount: 0,
-      descendantCount: 0,
-      createdAt: new Date().toISOString(),
-      curatorNotes: 'Test ring for write operations verification'
+      visibility: 'PUBLIC' as const,
+      joinPolicy: 'OPEN' as const,
+      curatorNote: 'Test ring for write operations verification'
     }
 
-    console.log('   Creating ring with slug:', testRingSlug)
+    console.log('   Creating ring...')
     console.log('   Ring data:', JSON.stringify(newRing, null, 2))
     const createdRing = await client.createRing(newRing)
     
-    if (createdRing && createdRing.slug === testRingSlug) {
+    if (createdRing && createdRing.slug) {
+      testRingSlug = createdRing.slug // Use the server-generated slug
       logResult('Create Ring', 'PASS', `Ring created successfully: ${testRingSlug}`, createdRing, Date.now() - startTime)
       
       // Also store in local database for ownership tracking
