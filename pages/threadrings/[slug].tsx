@@ -80,11 +80,17 @@ interface ThreadRing {
 // Special component for The Spool landing page
 function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: SiteConfig }) {
   const [showSpoolBadgeOptions, setShowSpoolBadgeOptions] = useState(false);
+  const [lineageData, setLineageData] = useState({
+    lineage: [],
+    directChildrenCount: 0,
+    totalDescendantsCount: 0,
+    lineageDepth: 0,
+    lineagePath: ""
+  });
   
   // Toast notifications
   const { toasts, showSuccess, hideToast } = useToast();
   
-  if (!ring.isSystemRing) return null;
 
   return (
     <Layout siteConfig={siteConfig}>
@@ -171,7 +177,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           <div className="border border-black bg-thread-cream shadow-[4px_4px_0_#000] p-6 text-center">
             <div className="text-3xl font-bold text-thread-pine mb-2">
-              {ring.totalDescendantsCount || 0}
+              {lineageData.totalDescendantsCount || ring.totalDescendantsCount || 0}
             </div>
             <div className="text-thread-sage font-medium">Total Communities</div>
             <div className="text-sm text-thread-sage mt-1">
@@ -181,7 +187,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
           
           <div className="border border-black bg-thread-cream shadow-[4px_4px_0_#000] p-6 text-center">
             <div className="text-3xl font-bold text-thread-pine mb-2">
-              {ring.directChildrenCount || 0}
+              {lineageData.directChildrenCount || ring.directChildrenCount || 0}
             </div>
             <div className="text-thread-sage font-medium">Direct Descendants</div>
             <div className="text-sm text-thread-sage mt-1">
@@ -297,16 +303,16 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
               <strong>System Information:</strong>
               <ul className="mt-1 space-y-1">
                 <li>• System Ring: {ring.isSystemRing ? 'Yes' : 'No'}</li>
-                <li>• Lineage Depth: {ring.lineageDepth}</li>
+                <li>• Lineage Depth: {lineageData.lineageDepth || ring.lineageDepth || 0}</li>
                 <li>• Created: {new Date(ring.createdAt).toLocaleDateString()}</li>
               </ul>
             </div>
             <div>
               <strong>Genealogy Stats:</strong>
               <ul className="mt-1 space-y-1">
-                <li>• Direct Children: {ring.directChildrenCount}</li>
-                <li>• Total Descendants: {ring.totalDescendantsCount}</li>
-                <li>• Lineage Path: Root</li>
+                <li>• Direct Children: {lineageData.directChildrenCount || ring.directChildrenCount || 0}</li>
+                <li>• Total Descendants: {lineageData.totalDescendantsCount || ring.totalDescendantsCount || 0}</li>
+                <li>• Lineage Path: {lineageData.lineagePath || ring.lineagePath || 'Root'}</li>
               </ul>
             </div>
           </div>
@@ -329,8 +335,6 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
 
 export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPageProps) {
   const router = useRouter();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [joining, setJoining] = useState(false);
@@ -340,6 +344,16 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
   const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [lineageData, setLineageData] = useState({
+    lineage: [],
+    directChildrenCount: 0,
+    totalDescendantsCount: 0,
+    lineageDepth: 0,
+    lineagePath: ""
+  });
+  const [lineageLoading, setLineageLoading] = useState(false);
   const { user: currentUser } = useCurrentUser();
   
   // Toast notifications
@@ -379,45 +393,81 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     }
   }, [ring]);
 
+  // Fetch lineage data using user-authenticated API
   useEffect(() => {
     if (!ring) return;
     
-    // Check if current user is a member
-    checkMembership();
+    const fetchLineage = async () => {
+      try {
+        setLineageLoading(true);
+        const response = await fetch(`/api/threadrings/${ring.slug}/lineage`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setLineageData(data);
+          console.log(`Loaded lineage for ${ring.slug}${data.fullGenealogy ? ' [Full Genealogy Tree]' : ' [Public Lineage]'}:`, {
+            lineageDepth: data.lineageDepth,
+            childrenCount: data.directChildrenCount,
+            authenticated: data.authenticated
+          });
+        } else {
+          console.error('Failed to fetch lineage:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching lineage:', error);
+      } finally {
+        setLineageLoading(false);
+      }
+    };
+
+    // Always fetch lineage for Ring Hub rings
+    if (featureFlags.ringhub()) {
+      fetchLineage();
+    }
+  }, [ring]);
+
+  // Fetch posts using user-authenticated API
+  useEffect(() => {
+    if (!ring) return;
     
     const fetchPosts = async () => {
       try {
-        setLoading(true);
+        setPostsLoading(true);
+        setLoadError(null); // Clear previous errors
+        const response = await fetch(`/api/threadrings/${ring.slug}/posts?scope=${feedScope}`);
         
-        // Choose API endpoint based on feed scope
-        const apiEndpoint = feedScope === 'current' 
-          ? `/api/threadrings/${ring.slug}/posts`
-          : `/api/threadrings/${ring.slug}/lineage-feed?scope=${feedScope}`;
-        
-        const response = await fetch(apiEndpoint);
-        
-        if (!response.ok) {
+        if (response.ok) {
+          const data = await response.json();
+          setPosts(data.posts || []);
+          setHasMore(data.hasMore || false);
+          console.log(`Loaded ${data.posts?.length || 0} posts for ${ring.slug} (scope: ${feedScope})${data.enhanced ? ' [Enhanced Data]' : ' [Public Data]'}`);
+        } else {
+          console.error('Failed to fetch posts:', response.status);
           if (response.status === 403) {
             setLoadError("You don't have permission to view posts in this ThreadRing");
           } else {
             setLoadError("Failed to load posts");
           }
-          return;
         }
-        
-        const data = await response.json();
-        setPosts(data.posts);
-        setHasMore(data.hasMore);
       } catch (error) {
-        console.error("Error fetching posts:", error);
+        console.error('Error fetching posts:', error);
         setLoadError("Failed to load posts");
       } finally {
-        setLoading(false);
+        setPostsLoading(false);
       }
     };
 
-    fetchPosts();
+    // Always fetch posts for Ring Hub rings
+    if (featureFlags.ringhub()) {
+      fetchPosts();
+    }
   }, [ring, feedScope]);
+
+  // Check membership and ownership when ring loads
+  useEffect(() => {
+    if (!ring) return;
+    checkMembership();
+  }, [ring]);
 
   const checkMembership = async () => {
     try {
@@ -705,11 +755,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           />
 
           {/* Feed Scope Selector */}
-          {featureFlags.threadrings() && (ring.parentId || (ring.directChildrenCount || 0) > 0) && (
+          {featureFlags.threadrings() && (ring.parentId || (lineageData.directChildrenCount || ring.directChildrenCount || 0) > 0) && (
             <ThreadRingFeedScope
               threadRingSlug={ring.slug}
               hasParent={!!ring.parentId}
-              hasChildren={(ring.directChildrenCount || 0) > 0}
+              hasChildren={(lineageData.directChildrenCount || ring.directChildrenCount || 0) > 0}
               currentScope={feedScope}
               onScopeChange={(newScope) => setFeedScope(newScope)}
             />
@@ -723,7 +773,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                feedScope === 'family' ? 'Family Feed' : 'Recent Posts'}
             </h2>
             
-            {loading ? (
+            {postsLoading ? (
               <div className="text-gray-600 text-center py-8">
                 Loading posts...
               </div>
@@ -863,7 +913,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             <RandomMemberDiscovery 
               threadRingSlug={ring.slug}
               threadRingName={ring.name}
-              enableLineageDiscovery={(ring.totalDescendantsCount || 0) > 0 || (ring.lineageDepth || 0) > 0}
+              enableLineageDiscovery={(lineageData.totalDescendantsCount || ring.totalDescendantsCount || 0) > 0 || (lineageData.lineageDepth || ring.lineageDepth || 0) > 0}
             />
           )}
 
