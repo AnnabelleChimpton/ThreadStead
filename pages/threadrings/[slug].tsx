@@ -338,10 +338,43 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
+  const [members, setMembers] = useState(ring?.members || []);
+  const [membersLoading, setMembersLoading] = useState(false);
   const { user: currentUser } = useCurrentUser();
   
   // Toast notifications
   const { toasts, showError, showSuccess, showWarning, hideToast } = useToast();
+
+  // Fetch members using user-authenticated API
+  useEffect(() => {
+    if (!ring) return;
+    
+    const fetchMembers = async () => {
+      try {
+        setMembersLoading(true);
+        const response = await fetch(`/api/threadrings/${ring.slug}/members`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setMembers(data.members);
+          console.log(`Loaded ${data.members.length} members for ${ring.slug}`);
+        } else {
+          console.error('Failed to fetch members:', response.status);
+          // Keep existing members if fetch fails
+        }
+      } catch (error) {
+        console.error('Error fetching members:', error);
+        // Keep existing members if fetch fails
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+
+    // Only fetch if we don't already have members or if it's Ring Hub mode
+    if (ring.members.length === 0 || featureFlags.ringhub()) {
+      fetchMembers();
+    }
+  }, [ring]);
 
   useEffect(() => {
     if (!ring) return;
@@ -398,8 +431,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             return;
           }
           
-          // Check if user is a member of this ring
-          const member = ring.members.find(m => m.user.id === userId);
+          // Check if user is a member of this ring (use local members state)
+          const member = members.find(m => m.user.id === userId);
           if (member) {
             setIsMember(true);
             setCurrentUserRole(member.role);
@@ -816,17 +849,21 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
           {/* Members */}
           <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000]">
-            <h3 className="font-bold mb-3">Members ({ring.memberCount})</h3>
+            <h3 className="font-bold mb-3">
+              Members ({members.length})
+              {membersLoading && <span className="text-xs text-gray-500 ml-2">Loading...</span>}
+            </h3>
             <div className="space-y-2">
-              {ring.members.map((member) => {
-                const memberHandle = member.user.handles.find(h => h.host === "local")?.handle || 
-                                   member.user.handles[0]?.handle || 
+              {members.map((member) => {
+                const memberHandle = member.user?.handles?.find(h => h.host === "local")?.handle || 
+                                   member.user?.handles?.[0]?.handle || 
+                                   member.user?.id?.split(':').pop() || 
                                    "unknown";
-                const displayName = member.user.profile.displayName || memberHandle;
+                const displayName = member.user?.profile?.displayName || memberHandle;
                 
                 return (
                   <div key={member.id} className="flex items-center gap-2 text-sm">
-                    {member.user.profile.avatarUrl && (
+                    {member.user?.profile?.avatarUrl && (
                       <img 
                         src={member.user.profile.avatarUrl} 
                         alt={displayName}
@@ -842,6 +879,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   </div>
                 );
               })}
+              {members.length === 0 && !membersLoading && (
+                <div className="text-sm text-gray-500 italic">
+                  No members to display
+                </div>
+              )}
             </div>
           </div>
 
@@ -901,10 +943,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           if (ringDescriptor) {
             // Transform Ring Hub descriptor to expected format
             const transformedRing = transformRingDescriptorToThreadRing(ringDescriptor);
+            console.log('Ring Hub descriptor curatorNotes:', ringDescriptor.curatorNotes);
+            console.log('Transformed ring curatorNote:', transformedRing.curatorNote);
             ring = {
               ...transformedRing,
               curator: null, // Ring Hub doesn't provide curator details
-              members: [], // Members will be fetched separately if needed
+              members: [], // Members will be fetched client-side with user authentication
               badge: null, // Badge info not available in basic ring descriptor
               // Add default values for fields expected by the component
               parentId: null,
@@ -914,7 +958,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
               lineagePath: "",
               isSystemRing: false
             };
-            console.log('Using Ring Hub data for ring:', ring.name);
+            console.log('Using Ring Hub data for ring:', ring.name, 'with', ring.members.length, 'members');
           }
         } catch (error) {
           console.error("Error fetching ring from Ring Hub:", error);

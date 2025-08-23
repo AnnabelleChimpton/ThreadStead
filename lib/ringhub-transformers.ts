@@ -148,13 +148,13 @@ export function transformRingMemberToThreadRingMember(
   userId?: string
 ): ThreadRingMember {
   return {
-    id: generateMemberId(member.did, threadRingId),
+    id: generateMemberId(member.actorDid, threadRingId),
     threadRingId,
-    userId: userId || member.did, // Will need DID -> user mapping
+    userId: userId || member.actorDid, // Will need DID -> user mapping
     role: member.role as ThreadRingRole,
-    joinedAt: member.joinedAt,
+    joinedAt: member.joinedAt || new Date().toISOString(), // Default to now if null
     user: {
-      id: userId || member.did,
+      id: userId || member.actorDid,
       displayName: undefined, // TODO: Resolve from DID
       avatarUrl: undefined, // TODO: Resolve from DID
       handles: [] // TODO: Extract from DID document

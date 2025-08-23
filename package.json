@@ -24,8 +24,13 @@
     "ringhub:test-full": "tsx scripts/test-ringhub-production.ts",
     "ringhub:test-write": "tsx scripts/test-ringhub-write-operations.ts",
     "ringhub:test-read": "tsx scripts/test-ringhub-read-only.ts",
-    "ringhub:test-verification": "tsx scripts/test-actor-verification.ts",
-    "ringhub:debug": "tsx scripts/debug-actor-verification.ts"
+    "ringhub:test-server-verification": "tsx scripts/test-actor-verification.ts",
+    "ringhub:debug": "tsx scripts/debug-actor-verification.ts",
+    "user-did:test": "tsx scripts/test-user-did-web.ts",
+    "user-did:migrate": "tsx scripts/migrate-user-dids-to-web.ts",
+    "user-did:register-sql": "tsx scripts/generate-ringhub-did-registration.ts",
+    "user-did:test-verification": "tsx scripts/test-user-did-verification.ts",
+    "user-did:test-fork": "tsx scripts/test-user-did-fork.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",

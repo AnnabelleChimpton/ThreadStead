@@ -36,10 +36,12 @@ export interface RingDescriptor {
 }
 
 export interface RingMember {
-  did: string              // User DID
-  role: 'member' | 'moderator' | 'curator'
-  joinedAt: string         // ISO timestamp
-  badge?: BadgeInfo        // Badge metadata
+  actorDid: string         // User DID 
+  actorName?: string       // Display name (if available)
+  status: 'ACTIVE' | 'PENDING' | 'BANNED'
+  role: 'owner' | 'moderator' | 'member'
+  joinedAt: string | null  // ISO timestamp
+  badgeId?: string         // Badge ID
 }
 
 export interface PostRef {
@@ -221,7 +223,13 @@ export class RingHubClient {
   /**
    * Get ring members
    */
-  async getRingMembers(slug: string): Promise<RingMember[]> {
+  async getRingMembers(slug: string): Promise<{
+    members: RingMember[]
+    total: number
+    limit: number
+    offset: number
+    hasMore: boolean
+  }> {
     return this.get(`/trp/rings/${slug}/members`)
   }
 

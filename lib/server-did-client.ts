@@ -26,6 +26,7 @@ export type ServerKeypair = {
 export type UserDIDMapping = {
   userId: string;
   did: string;
+  userHash: string; // For DID document publishing path
   publicKey: string;
   secretKey: string;
   created: string;
@@ -118,20 +119,44 @@ export async function getOrCreateUserDID(userId: string): Promise<UserDIDMapping
   // Check if user already has a DID
   const existing = mappings.find(m => m.userId === userId);
   if (existing) {
+    // Migrate old did:key format to did:web format
+    if (existing.did.startsWith('did:key:')) {
+      console.log(`Migrating user ${userId} from did:key to did:web format`);
+      
+      // Generate new did:web DID but keep the same keys
+      const userHash = createHash('sha256').update(userId + process.env.THREADSTEAD_DID_SALT || 'default-salt').digest('hex').slice(0, 16);
+      const domain = getDomainFromEnvironment();
+      const newDID = `did:web:${domain}:users:${userHash}`;
+      
+      // Update the mapping
+      existing.did = newDID;
+      existing.userHash = userHash;
+      
+      // Save updated mappings
+      await storeUserDIDMappings(mappings);
+      
+      console.log(`Migrated user DID: ${existing.did}`);
+    }
+    
     return existing;
   }
   
-  // Generate new DID for user
+  // Generate new DID for user using did:web format for Ring Hub compatibility
   const secret = ed.utils.randomPrivateKey();
   const publicKey = await ed.getPublicKeyAsync(secret);
   
   const skb64u = toBase64Url(secret);
   const pkb64u = toBase64Url(publicKey);
-  const did = `did:key:${pkb64u}`; // Using did:key format for users
+  
+  // Create a deterministic but private user hash
+  const userHash = createHash('sha256').update(userId + process.env.THREADSTEAD_DID_SALT || 'default-salt').digest('hex').slice(0, 16);
+  const domain = getDomainFromEnvironment();
+  const did = `did:web:${domain}:users:${userHash}`;
   
   const mapping: UserDIDMapping = {
     userId,
     did,
+    userHash,
     publicKey: pkb64u,
     secretKey: skb64u,
     created: new Date().toISOString()
@@ -205,6 +230,41 @@ export async function generateDIDDocument(): Promise<DIDDocument> {
     "capabilityDelegation": [`${keypair.did}#key-1`],
     "capabilityInvocation": [`${keypair.did}#key-1`]
   };
+}
+
+/**
+ * Generate DID document for a user
+ */
+export function generateUserDIDDocument(userDIDMapping: UserDIDMapping): DIDDocument {
+  // Convert base64url public key to base64
+  const publicKeyBytes = fromBase64Url(userDIDMapping.publicKey);
+  const publicKeyBase64 = Buffer.from(publicKeyBytes).toString('base64');
+
+  return {
+    "@context": [
+      "https://www.w3.org/ns/did/v1",
+      "https://w3id.org/security/suites/ed25519-2020/v1"
+    ],
+    "id": userDIDMapping.did,
+    "verificationMethod": [{
+      "id": `${userDIDMapping.did}#key-1`,
+      "type": "Ed25519VerificationKey2020",
+      "controller": userDIDMapping.did,
+      "publicKeyBase64": publicKeyBase64
+    }],
+    "authentication": [`${userDIDMapping.did}#key-1`],
+    "assertionMethod": [`${userDIDMapping.did}#key-1`],
+    "capabilityDelegation": [`${userDIDMapping.did}#key-1`],
+    "capabilityInvocation": [`${userDIDMapping.did}#key-1`]
+  };
+}
+
+/**
+ * Get user DID mapping by hash (for DID document publishing)
+ */
+export async function getUserDIDMappingByHash(userHash: string): Promise<UserDIDMapping | null> {
+  const mappings = await loadUserDIDMappings();
+  return mappings.find(m => m.userHash === userHash) || null;
 }
 
 /**
@@ -327,7 +387,7 @@ async function loadServerKeypair(): Promise<ServerKeypair | null> {
   }
 }
 
-async function loadUserDIDMappings(): Promise<UserDIDMapping[]> {
+export async function loadUserDIDMappings(): Promise<UserDIDMapping[]> {
   try {
     const filePath = join(process.cwd(), USER_DID_MAPPINGS_FILE);
     const data = await fs.readFile(filePath, 'utf-8');
@@ -347,7 +407,7 @@ async function loadUserDIDMappings(): Promise<UserDIDMapping[]> {
   }
 }
 
-async function storeUserDIDMappings(mappings: UserDIDMapping[]): Promise<void> {
+export async function storeUserDIDMappings(mappings: UserDIDMapping[]): Promise<void> {
   const filePath = join(process.cwd(), USER_DID_MAPPINGS_FILE);
   
   let dataToWrite: string;

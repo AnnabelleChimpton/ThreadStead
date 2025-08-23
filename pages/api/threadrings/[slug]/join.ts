@@ -42,7 +42,7 @@ export default withThreadRingSupport(async function handler(
         return res.json({
           success: true,
           message: `Successfully joined the ThreadRing!`,
-          badge: membership.badge // Include badge info if available
+          badgeId: membership.badgeId // Include badge ID if available
         });
         
       } catch (ringHubError: any) {

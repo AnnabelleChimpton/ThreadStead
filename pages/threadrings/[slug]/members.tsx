@@ -305,13 +305,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             // Convert Ring Hub members to local format
             // Note: Ring Hub members only have DIDs, so we can't show full user profiles
             // This is a limitation until we integrate user mapping
-            const members = ringHubMembers.map((member, index) => ({
-              id: member.did,
+            const members = ringHubMembers.members.map((member, index) => ({
+              id: member.actorDid,
               role: member.role,
-              joinedAt: member.joinedAt,
+              joinedAt: member.joinedAt || new Date().toISOString(),
               user: {
-                id: member.did,
-                handles: [{ handle: member.did.replace('did:key:', ''), host: 'ringhub' }],
+                id: member.actorDid,
+                handles: [{ handle: member.actorDid.replace('did:key:', ''), host: 'ringhub' }],
                 profile: {
                   displayName: `Ring Hub User`,
                   avatarUrl: null,

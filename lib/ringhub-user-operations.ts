@@ -16,10 +16,50 @@ import type { RingDescriptor, RingMember, PostRef } from './ringhub-client'
 export class AuthenticatedRingHubClient {
   private client: RingHubClient | null
   private userId: string
+  private userClient: RingHubClient | null = null
 
   constructor(userId: string) {
-    this.client = getRingHubClient()
+    this.client = getRingHubClient() // Server client (for fallback)
     this.userId = userId
+  }
+
+  /**
+   * Get or create a user-authenticated Ring Hub client
+   */
+  private async getUserClient(): Promise<RingHubClient> {
+    if (this.userClient) {
+      return this.userClient
+    }
+
+    // Get user's DID data
+    const userDIDMapping = await getOrCreateUserDID(this.userId)
+    
+    // Check if we can use user DID directly (production with resolvable domain)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
+    
+    if (isLocalhost) {
+      console.log(`⚠️ Using localhost - Ring Hub can't resolve user DIDs in development`)
+      console.log(`User DID: ${userDIDMapping.did}`)
+      console.log(`Falling back to server DID for Ring Hub authentication`)
+      
+      // In development, use server DID but track user intent locally
+      if (!this.client) {
+        throw new Error('Ring Hub client not available')
+      }
+      return this.client
+    }
+    
+    // In production, use user's DID directly
+    this.userClient = new RingHubClient({
+      baseUrl: process.env.RING_HUB_URL!,
+      instanceDID: userDIDMapping.did,
+      privateKeyBase64Url: userDIDMapping.secretKey,
+      publicKeyMultibase: userDIDMapping.publicKey
+    })
+
+    console.log(`Created user-authenticated Ring Hub client for ${userDIDMapping.did}`)
+    return this.userClient
   }
 
   /**
@@ -37,28 +77,24 @@ export class AuthenticatedRingHubClient {
     }
   }
 
+
   /**
-   * Join a ring as this user
+   * Join a ring as this user (using their own DID)
    */
   async joinRing(slug: string, message?: string): Promise<RingMember> {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
-
-    // Use the enhanced client method that will automatically sign with user's DID
-    console.log('Calling Ring Hub joinRing with:', { slug, message })
-    return await this.client.joinRing(slug, message)
+    const userClient = await this.getUserClient()
+    
+    console.log('Calling Ring Hub joinRing with user DID:', { slug, message })
+    return await userClient.joinRing(slug, message)
   }
 
   /**
-   * Leave a ring as this user
+   * Leave a ring as this user (using their own DID)
    */
   async leaveRing(slug: string, reason?: string): Promise<void> {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
-
-    return await this.client.leaveRing(slug)
+    const userClient = await this.getUserClient()
+    
+    return await userClient.leaveRing(slug)
   }
 
   /**
@@ -130,28 +166,40 @@ export class AuthenticatedRingHubClient {
   }
 
   /**
-   * Fork a ring as this user (using server DID for stability)
+   * Fork a ring as this user
    */
   async forkRing(parentSlug: string, forkData: Partial<RingDescriptor>): Promise<RingDescriptor> {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
-
-    // Get server DID for stable ring ownership
-    const serverDID = await getServerDID()
+    const userClient = await this.getUserClient()
+    const userDIDMapping = await getOrCreateUserDID(this.userId)
     
-    // Fork ring using server DID (Ring Hub client will handle server auth)
-    const forkedRing = await this.client.forkRing(parentSlug, forkData)
+    // Check if we're using user DID directly or server proxy
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
+    const usingServerProxy = isLocalhost
+    
+    // Add user identification to fork metadata
+    const enrichedForkData = {
+      ...forkData,
+      // Add user DID in curator notes (Ring Hub uses 'curatorNotes' plural)
+      curatorNotes: usingServerProxy 
+        ? `Created by user ${userDIDMapping.did} via ThreadStead (development mode)`
+        : `Created by user ${userDIDMapping.did} via ThreadStead`
+    }
+    
+    // Fork ring (may use server DID in development, user DID in production)
+    console.log(`${usingServerProxy ? 'Server proxy for user' : 'User'} ${userDIDMapping.did} forking ring ${parentSlug}`)
+    const forkedRing = await userClient.forkRing(parentSlug, enrichedForkData)
     
     console.log('Fork response from Ring Hub:', forkedRing);
     
     // Track ownership locally for user access control
+    // Note: Both Ring Hub and local tracking now show user as actual owner
     await db.ringHubOwnership.create({
       data: {
         ringSlug: forkedRing.slug,
         ringUri: forkedRing.uri || `https://ringhub.io/rings/${forkedRing.slug}`, // Fallback if uri not provided
         ownerUserId: this.userId,
-        serverDID: serverDID
+        serverDID: userDIDMapping.did, // User's DID is now the Ring Hub owner too
       }
     })
     
@@ -179,11 +227,10 @@ export class AuthenticatedRingHubClient {
     return await this.client.listRings(options)
   }
 
-  async getRingMembers(slug: string): Promise<RingMember[]> {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
-    return await this.client.getRingMembers(slug)
+  async getRingMembers(slug: string) {
+    const userClient = await this.getUserClient()
+    
+    return await userClient.getRingMembers(slug)
   }
 
   async getRingFeed(slug: string, options?: Parameters<RingHubClient['getRingFeed']>[1]) {

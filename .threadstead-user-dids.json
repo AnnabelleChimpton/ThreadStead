@@ -1,0 +1,26 @@
+[
+  {
+    "userId": "cmekoa77e00007p3459395xdl",
+    "did": "did:web:homepageagain.com:users:e22004f3c2cef4c9",
+    "publicKey": "cxe19Wiit-8so4efv_LBQq-Lhq-dWuBsge_54-GNZco",
+    "secretKey": "4AgzR90N68B0PgTlECfvMKkgJxztVzWxcJVJNhMIoiY",
+    "created": "2025-08-23T03:44:05.724Z",
+    "userHash": "e22004f3c2cef4c9"
+  },
+  {
+    "userId": "test-user-verification-123",
+    "did": "did:web:homepageagain.com:users:9b56ae3f3fd422d2",
+    "userHash": "9b56ae3f3fd422d2",
+    "publicKey": "BLmEwEuv6fWGxhEW2-eijD8BpIz73-nXtOaXIYtQQMM",
+    "secretKey": "7veMbqN6HoGdnhKMGpsWsEPZxE33vtNluBln9EJgUuI",
+    "created": "2025-08-23T04:21:40.453Z"
+  },
+  {
+    "userId": "test-fork-user-1755963043614",
+    "did": "did:web:homepageagain.com:users:959e177c2185dd65",
+    "userHash": "959e177c2185dd65",
+    "publicKey": "iWFCqUJxSj_5cpjxcBkiLx4-HubDD6AF8u4UVA2DO_Y",
+    "secretKey": "A4Q5p5RFHMf-ehrw2BsZBuPBXc0H8tuUfFRGkWW8kPo",
+    "created": "2025-08-23T15:30:43.637Z"
+  }
+]
