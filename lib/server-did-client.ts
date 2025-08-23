@@ -6,11 +6,15 @@
  */
 
 import * as ed from "@noble/ed25519";
+import { sha512 } from "@noble/hashes/sha512";
 import { toBase64Url, fromBase64Url } from "@/lib/base64";
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import bs58 from 'bs58';
+
+// Configure @noble/ed25519 with SHA-512 (required)
+ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
 
 export type ServerKeypair = { 
   publicKey: string; 
