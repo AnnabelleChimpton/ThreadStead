@@ -80,13 +80,13 @@ interface ThreadRing {
 // Special component for The Spool landing page
 function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: SiteConfig }) {
   const [showSpoolBadgeOptions, setShowSpoolBadgeOptions] = useState(false);
-  const [lineageData, setLineageData] = useState({
+  const lineageData = {
     lineage: [],
     directChildrenCount: 0,
     totalDescendantsCount: 0,
     lineageDepth: 0,
     lineagePath: ""
-  });
+  };
   
   // Toast notifications
   const { toasts, showSuccess, hideToast } = useToast();

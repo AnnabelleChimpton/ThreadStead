@@ -57,29 +57,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       console.log(`Fetched lineage data for ${slug}:`, {
-        parents: lineageData?.parents?.length || 0,
-        children: lineageData?.children?.length || 0,
-        ancestors: lineageData?.ancestors?.length || 0
+        ring: lineageData?.ring?.name,
+        ancestors: lineageData?.ancestors?.length || 0,
+        descendants: lineageData?.descendants?.length || 0
       });
 
-      // Calculate lineage metrics from Ring Hub data
-      const parents = lineageData?.parents || [];
-      const children = lineageData?.children || [];
+      // Extract data from Ring Hub response format
+      const ring = lineageData?.ring;
       const ancestors = lineageData?.ancestors || [];
+      const descendants = lineageData?.descendants || [];
+      
+      // Calculate parent (immediate ancestor) and children (immediate descendants)
+      const parent = ancestors.length > 0 ? ancestors[ancestors.length - 1] : null;
+      const parents = parent ? [parent] : [];
+      const children = descendants; // Direct children are at the top level of descendants
       
       const lineageDepth = ancestors.length;
-      const lineagePath = ancestors.map(r => r.name).join(' → ') || (ancestors.length === 0 ? 'Root' : '');
-      const directChildrenCount = children.length;
+      const lineagePath = ancestors.map(r => r.name).join(' → ') || (ring?.name || 'Root');
       
-      // Total descendants would require recursive calculation
-      // For now, just use direct children count
-      const totalDescendantsCount = directChildrenCount;
+      // Count all descendants recursively
+      const countDescendants = (nodes: any[]): number => {
+        let count = 0;
+        for (const node of nodes) {
+          count++;
+          if (node.children && Array.isArray(node.children)) {
+            count += countDescendants(node.children);
+          }
+        }
+        return count;
+      };
+      
+      const directChildrenCount = descendants.length;
+      const totalDescendantsCount = countDescendants(descendants);
 
       return res.json({
         lineage: ancestors, // Full lineage path from root to current
+        ring, // Current ring info
         parents,
         children,
         ancestors,
+        descendants, // Full descendants tree
         directChildrenCount,
         totalDescendantsCount,
         lineageDepth,

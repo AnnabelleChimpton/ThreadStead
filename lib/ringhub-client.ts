@@ -262,9 +262,10 @@ export class RingHubClient {
    * Get ring lineage/genealogy
    */
   async getRingLineage(slug: string): Promise<{
-    parents: RingDescriptor[]
-    children: RingDescriptor[]
+    ring: RingDescriptor
     ancestors: RingDescriptor[]
+    descendants: any[] // Nested tree structure with children
+    generatedAt: string
   }> {
     return this.get(`/trp/rings/${slug}/lineage`)
   }
