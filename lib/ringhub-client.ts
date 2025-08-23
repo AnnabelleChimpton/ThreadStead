@@ -16,8 +16,8 @@ export interface RingDescriptor {
   slug: string             // URL-friendly identifier
 
   // Settings
-  joinType: 'open' | 'invite' | 'closed'
-  visibility: 'public' | 'unlisted' | 'private'
+  joinPolicy: 'OPEN' | 'INVITE' | 'CLOSED'
+  visibility: 'PUBLIC' | 'UNLISTED' | 'PRIVATE'
 
   // Hierarchical (The Spool Architecture)
   parentUri?: string       // Parent ring URI
@@ -367,7 +367,21 @@ export class RingHubClient {
       if (header === '(request-target)') {
         return `(request-target): ${method.toLowerCase()} ${path}`
       }
-      const headerValue = headers[header.charAt(0).toUpperCase() + header.slice(1)]
+      
+      // Map header names to actual header keys
+      const headerKeyMap: Record<string, string> = {
+        'host': 'Host',
+        'date': 'Date', 
+        'digest': 'Digest'
+      }
+      
+      const headerKey = headerKeyMap[header.toLowerCase()]
+      const headerValue = headers[headerKey]
+      
+      if (!headerValue) {
+        throw new Error(`Missing header: ${header}`)
+      }
+      
       return `${header}: ${headerValue}`
     }).join('\n')
 
@@ -430,9 +444,9 @@ export function shouldUseRingHub(): boolean {
  */
 export function createThreadSteadRingHubClient(): RingHubClient {
   return new RingHubClient({
-    baseUrl: 'https://ringhub.io',
-    instanceDID: 'did:web:homepageagain.com',
-    privateKeyBase64Url: 'NEED_PRODUCTION_PRIVATE_KEY',
-    publicKeyMultibase: 'z6Mkge2qRL1zoZdrD4XjUjjrF4vQpheVopXu1Fc3j36pooTY'
+    baseUrl: "https://ringhub.io",
+    instanceDID: "did:web:homepageagain.com",
+    privateKeyBase64Url: "UimoIIlEt_XaweDHW2sg4g26YuEjc2OYJL3ztbPZz0Y",
+    publicKeyMultibase: "z6Mkge2qRL1zoZdrD4XjUjjrF4vQpheVopXu1Fc3j36pooTY"
   })
 }
