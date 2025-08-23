@@ -155,8 +155,8 @@ async function testUpdateRing() {
   try {
     const updatedData = {
       description: 'Updated description - ' + new Date().toISOString(),
-      visibility: 'unlisted' as const,
-      joinPolicy: 'APPLICATION'
+      visibility: 'UNLISTED' as const,
+      joinPolicy: 'INVITE' as const
     }
 
     console.log('   Updating ring:', testRingSlug)
@@ -191,11 +191,12 @@ async function testJoinRing() {
   }
 
   try {
-    // Note: This would normally use a user DID, but for testing we'll use the server DID
-    const serverDID = await getServerDID()
-    console.log('   Joining ring as:', serverDID)
+    // Note: This would normally use a user DID, but for testing we'll use a test user DID
+    // The server DID is already the owner, so trying to join with a different DID
+    const testUserDID = 'did:key:test123'  // Test user DID
+    console.log('   Joining ring as:', testUserDID)
     
-    const joinResult = await client.joinRing(testRingSlug, serverDID)
+    const joinResult = await client.joinRing(testRingSlug, testUserDID)
     
     if (joinResult) {
       logResult('Join Ring', 'PASS', `Joined ring successfully: ${testRingSlug}`, joinResult, Date.now() - startTime)
