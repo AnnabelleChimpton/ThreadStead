@@ -37,20 +37,34 @@ export default async function handler(
         
         console.log(`Fetched ${membersResponse.members?.length || 0} members from Ring Hub for user ${viewer.id}`);
         
-        // Transform Ring Hub member format to expected ThreadRing member format
-        const transformedMembers = (membersResponse.members || []).map(member => ({
-          id: member.actorDid,
-          userId: member.actorDid,
-          role: member.role,
-          joinedAt: member.joinedAt,
-          user: {
-            id: member.actorDid,
-            handles: [{ handle: member.actorDid.split(':').pop() || 'unknown' }],
-            profile: {
-              displayName: member.actorName || member.actorDid.split(':').pop() || 'Unknown User'
+        // Transform Ring Hub member format with proper user resolution
+        const { transformRingMemberWithUserResolution } = await import('@/lib/ringhub-transformers')
+        
+        const transformedMembers = await Promise.all(
+          (membersResponse.members || []).map(async (member) => {
+            const resolvedMember = await transformRingMemberWithUserResolution(
+              member,
+              slug as string,
+              db
+            )
+            
+            // Convert to API response format
+            return {
+              id: resolvedMember.id,
+              userId: resolvedMember.userId,
+              role: resolvedMember.role,
+              joinedAt: resolvedMember.joinedAt,
+              user: {
+                id: resolvedMember.user.id,
+                handles: resolvedMember.user.handles,
+                profile: {
+                  displayName: resolvedMember.user.displayName,
+                  avatarUrl: resolvedMember.user.avatarUrl
+                }
+              }
             }
-          }
-        }));
+          })
+        );
 
         return res.json({
           members: transformedMembers,

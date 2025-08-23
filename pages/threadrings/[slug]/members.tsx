@@ -302,22 +302,33 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
               canManage = ownership?.ownerUserId === viewer.id;
             }
 
-            // Convert Ring Hub members to local format
-            // Note: Ring Hub members only have DIDs, so we can't show full user profiles
-            // This is a limitation until we integrate user mapping
-            const members = ringHubMembers.members.map((member, index) => ({
-              id: member.actorDid,
-              role: member.role,
-              joinedAt: member.joinedAt || new Date().toISOString(),
-              user: {
-                id: member.actorDid,
-                handles: [{ handle: member.actorDid.replace('did:key:', ''), host: 'ringhub' }],
-                profile: {
-                  displayName: `Ring Hub User`,
-                  avatarUrl: null,
-                },
-              },
-            }));
+            // Convert Ring Hub members to local format with user resolution
+            const { transformRingMemberWithUserResolution } = await import('@/lib/ringhub-transformers')
+            
+            const members = await Promise.all(
+              ringHubMembers.members.map(async (member) => {
+                const transformedMember = await transformRingMemberWithUserResolution(
+                  member,
+                  slug as string,
+                  db
+                )
+                
+                // Convert to the expected format for this page
+                return {
+                  id: transformedMember.id,
+                  role: transformedMember.role,
+                  joinedAt: transformedMember.joinedAt,
+                  user: {
+                    id: transformedMember.user.id,
+                    handles: transformedMember.user.handles,
+                    profile: {
+                      displayName: transformedMember.user.displayName,
+                      avatarUrl: transformedMember.user.avatarUrl,
+                    },
+                  },
+                }
+              })
+            );
 
             const ring = {
               id: ringDescriptor.slug,

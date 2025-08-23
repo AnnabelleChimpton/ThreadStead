@@ -424,15 +424,32 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         if (authData.loggedIn && authData.user && ring) {
           const userId = authData.user.id;
           
-          // Check if user is the curator first
+          // Check Ring Hub ownership first (for rings that were forked/created via Ring Hub)
+          try {
+            const ownershipResponse = await fetch(`/api/threadrings/${ring.slug}/ownership`);
+            if (ownershipResponse.ok) {
+              const ownershipData = await ownershipResponse.json();
+              if (ownershipData.isOwner || ownershipData.isCurator) {
+                setIsMember(true);
+                setCurrentUserRole("curator");
+                console.log('User is owner/curator via:', ownershipData.ownershipSource);
+                return;
+              }
+            }
+          } catch (ownershipError) {
+            console.warn('Error checking Ring Hub ownership:', ownershipError);
+          }
+          
+          // Check if user is the local curator
           if (ring.curator && userId === ring.curator.id) {
             setIsMember(true);
             setCurrentUserRole("curator");
             return;
           }
           
-          // Check if user is a member of this ring (use local members state)
+          // Check if user is a member of this ring
           const member = members.find(m => m.user.id === userId);
+          
           if (member) {
             setIsMember(true);
             setCurrentUserRole(member.role);

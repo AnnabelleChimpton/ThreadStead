@@ -477,6 +477,32 @@ export async function rotateServerKeypair(): Promise<ServerKeypair> {
 }
 
 /**
+ * Map DID back to ThreadStead user ID
+ */
+export async function mapDIDToUserId(did: string): Promise<string | null> {
+  const mappings = await loadUserDIDMappings();
+  const mapping = mappings.find(m => m.did === did);
+  return mapping ? mapping.userId : null;
+}
+
+/**
+ * Map multiple DIDs to user IDs (bulk operation)
+ */
+export async function mapDIDsToUserIds(dids: string[]): Promise<Map<string, string>> {
+  const mappings = await loadUserDIDMappings();
+  const didToUserMap = new Map<string, string>();
+  
+  for (const did of dids) {
+    const mapping = mappings.find(m => m.did === did);
+    if (mapping) {
+      didToUserMap.set(did, mapping.userId);
+    }
+  }
+  
+  return didToUserMap;
+}
+
+/**
  * Export server identity for backup/migration
  */
 export async function exportServerIdentity(): Promise<string> {

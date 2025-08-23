@@ -163,6 +163,60 @@ export function transformRingMemberToThreadRingMember(
 }
 
 /**
+ * Enhanced transformer that resolves DID to ThreadStead user data
+ */
+export async function transformRingMemberWithUserResolution(
+  member: RingMember,
+  threadRingId: string,
+  db: any // Import from lib/db
+): Promise<ThreadRingMember> {
+  // Try to map DID back to ThreadStead user
+  const { mapDIDToUserId } = await import('./server-did-client')
+  let resolvedUserId: string | null = null
+  let threadSteadUser = null
+  
+  try {
+    resolvedUserId = await mapDIDToUserId(member.actorDid)
+    
+    if (resolvedUserId) {
+      // Fetch full user data from ThreadStead database
+      threadSteadUser = await db.user.findUnique({
+        where: { id: resolvedUserId },
+        include: {
+          handles: true,
+          profile: true
+        }
+      })
+    }
+  } catch (error) {
+    console.warn('Failed to resolve DID to ThreadStead user:', error)
+  }
+  
+  const displayName = threadSteadUser?.profile?.displayName || 
+                     threadSteadUser?.handles?.[0]?.handle || 
+                     member.actorName ||
+                     member.actorDid.split(':').pop() ||
+                     'Ring Hub User'
+  
+  return {
+    id: generateMemberId(member.actorDid, threadRingId),
+    threadRingId,
+    userId: resolvedUserId || member.actorDid,
+    role: member.role as ThreadRingRole,
+    joinedAt: member.joinedAt || new Date().toISOString(),
+    user: {
+      id: resolvedUserId || member.actorDid,
+      displayName,
+      avatarUrl: threadSteadUser?.profile?.avatarUrl,
+      handles: threadSteadUser?.handles?.map((h: any) => ({
+        handle: h.handle,
+        host: h.host
+      })) || []
+    }
+  }
+}
+
+/**
  * Transform ThreadStead PostThreadRing to Ring Hub PostRef
  */
 export function transformPostThreadRingToPostRef(
