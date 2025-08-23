@@ -18,6 +18,18 @@ import Toast from "../../components/Toast";
 import { useToast } from "../../hooks/useToast";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 
+// Helper function to count total descendants recursively
+function countTotalDescendants(descendants: any[]): number {
+  if (!Array.isArray(descendants)) return 0;
+  let count = descendants.length; // Count direct children
+  for (const descendant of descendants) {
+    if (descendant.children && Array.isArray(descendant.children)) {
+      count += countTotalDescendants(descendant.children); // Count nested descendants
+    }
+  }
+  return count;
+}
+
 interface ThreadRingPageProps {
   siteConfig: SiteConfig;
   ring: ThreadRing | null;
@@ -80,17 +92,47 @@ interface ThreadRing {
 // Special component for The Spool landing page
 function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: SiteConfig }) {
   const [showSpoolBadgeOptions, setShowSpoolBadgeOptions] = useState(false);
-  const lineageData = {
+  const [lineageData, setLineageData] = useState({
     lineage: [],
     directChildrenCount: 0,
     totalDescendantsCount: 0,
     lineageDepth: 0,
     lineagePath: ""
-  };
+  });
+  const [lineageLoading, setLineageLoading] = useState(false);
   
   // Toast notifications
   const { toasts, showSuccess, hideToast } = useToast();
   
+  // Fetch lineage data for The Spool
+  useEffect(() => {
+    if (!ring) return;
+    
+    const fetchLineage = async () => {
+      try {
+        setLineageLoading(true);
+        const response = await fetch(`/api/threadrings/${ring.slug}/lineage`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setLineageData(data);
+          console.log(`Loaded lineage for ${ring.slug}:`, {
+            lineageDepth: data.lineageDepth,
+            childrenCount: data.directChildrenCount,
+            totalDescendants: data.totalDescendantsCount
+          });
+        } else {
+          console.error('Failed to fetch lineage:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching lineage:', error);
+      } finally {
+        setLineageLoading(false);
+      }
+    };
+    
+    fetchLineage();
+  }, [ring]);
 
   return (
     <Layout siteConfig={siteConfig}>
@@ -1015,20 +1057,31 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             const transformedRing = transformRingDescriptorToThreadRing(ringDescriptor);
             console.log('Ring Hub descriptor curatorNotes:', ringDescriptor.curatorNotes);
             console.log('Transformed ring curatorNote:', transformedRing.curatorNote);
+            // Fetch lineage data to get accurate counts
+            let lineageData = null;
+            try {
+              lineageData = await client.getRingLineage(slug as string);
+            } catch (error) {
+              console.error('Error fetching lineage from Ring Hub:', error);
+            }
+
             ring = {
               ...transformedRing,
               curator: null, // Ring Hub doesn't provide curator details
               members: [], // Members will be fetched client-side with user authentication
               badge: null, // Badge info not available in basic ring descriptor
-              // Add default values for fields expected by the component
+              // Use lineage data for accurate counts
               parentId: null,
-              directChildrenCount: 0,
-              totalDescendantsCount: 0,
+              directChildrenCount: lineageData?.descendants?.length || 0,
+              totalDescendantsCount: lineageData ? countTotalDescendants(lineageData.descendants || []) : 0,
               lineageDepth: 0,
               lineagePath: "",
-              isSystemRing: false
+              isSystemRing: slug === 'spool'
             };
-            console.log('Using Ring Hub data for ring:', ring.name, 'with', ring.members.length, 'members');
+            console.log('Using Ring Hub data for ring:', ring.name, 'with lineage counts:', {
+              directChildren: ring.directChildrenCount,
+              totalDescendants: ring.totalDescendantsCount
+            });
           }
         } catch (error) {
           console.error("Error fetching ring from Ring Hub:", error);

@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-server";
-
-const prisma = new PrismaClient();
+import { getRingHubClient, shouldUseRingHub } from "@/lib/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
 interface ThreadRingNode {
   id: string;
@@ -19,6 +18,14 @@ interface ThreadRingNode {
   children?: ThreadRingNode[];
 }
 
+interface GenealogyStats {
+  totalRings: number;
+  totalMembers: number;
+  totalPosts: number;
+  maxDepth: number;
+  averageChildren: number;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -32,126 +39,110 @@ export default async function handler(
     const viewer = await getSessionUser(req);
     const { rootId, maxDepth = 3 } = req.query;
 
-    // Get all ThreadRings with their relationships
-    const allRings = await prisma.threadRing.findMany({
-      where: {
-        // Only show public rings or rings the viewer is a member of
-        OR: [
-          { visibility: "public" },
-          ...(viewer ? [
-            {
-              members: {
-                some: {
-                  userId: viewer.id
-                }
-              }
-            }
-          ] : [])
-        ]
-      },
-      include: {
-        curator: {
-          select: {
-            primaryHandle: true
-          }
-        },
-        _count: {
-          select: {
-            members: true,
-            posts: true
-          }
+    if (!shouldUseRingHub()) {
+      return res.status(503).json({ error: "Ring Hub is not available" });
+    }
+
+    // Get Ring Hub client (authenticated if user is logged in)
+    let ringHubClient;
+    if (viewer) {
+      ringHubClient = await createAuthenticatedRingHubClient(viewer.id);
+    } else {
+      ringHubClient = getRingHubClient();
+    }
+
+    if (!ringHubClient) {
+      return res.status(503).json({ error: "Ring Hub client not available" });
+    }
+
+    // Determine the root ring
+    let rootSlug = 'spool'; // Default to spool
+    if (rootId && typeof rootId === 'string') {
+      rootSlug = rootId;
+    }
+
+    // Get lineage data from Ring Hub
+    const lineageData = await ringHubClient.getRingLineage(rootSlug);
+
+    // Transform Ring Hub data to our format
+    const transformRingToNode = (ring: any): ThreadRingNode => {
+      // Calculate lineage depth from parent hierarchy
+      const calculateDepth = (node: any, depth = 0): number => {
+        if (!node.parentId) return depth;
+        return depth + 1;
+      };
+
+      // Count total descendants recursively
+      const countDescendants = (node: any): number => {
+        if (!Array.isArray(node.children)) return 0;
+        let count = node.children.length;
+        for (const child of node.children) {
+          count += countDescendants(child);
         }
-      },
-      orderBy: {
-        createdAt: 'asc'
-      }
-    });
+        return count;
+      };
 
-    // Build a map for quick lookups
-    const ringMap = new Map<string, ThreadRingNode>();
-    const childrenMap = new Map<string, ThreadRingNode[]>();
+      const children = Array.isArray(ring.children) ? ring.children : [];
+      const totalDescendants = countDescendants(ring);
 
-    // First pass: Create all nodes
-    for (const ring of allRings) {
-      const node: ThreadRingNode = {
-        id: ring.id,
+      return {
+        id: ring.slug,
         name: ring.name,
         slug: ring.slug,
-        description: ring.description,
-        memberCount: ring._count.members,
-        postCount: ring._count.posts,
-        directChildrenCount: ring.directChildrenCount,
-        totalDescendantsCount: ring.totalDescendantsCount,
-        lineageDepth: ring.lineageDepth,
-        curatorHandle: ring.curator?.primaryHandle || null,
-        createdAt: ring.createdAt.toISOString(),
+        description: ring.description || null,
+        memberCount: ring.memberCount || 0,
+        postCount: ring.postCount || 0,
+        directChildrenCount: children.length,
+        totalDescendantsCount: totalDescendants,
+        lineageDepth: calculateDepth(ring),
+        curatorHandle: null, // Will be resolved by transformers if needed
+        createdAt: ring.createdAt || new Date().toISOString(),
         children: []
       };
-      ringMap.set(ring.id, node);
+    };
 
-      // Track parent-child relationships
-      if (ring.parentId) {
-        if (!childrenMap.has(ring.parentId)) {
-          childrenMap.set(ring.parentId, []);
-        }
-        childrenMap.get(ring.parentId)!.push(node);
+    // Build tree structure recursively
+    const buildTreeStructure = (node: any): ThreadRingNode => {
+      const transformedNode = transformRingToNode(node);
+      if (Array.isArray(node.children)) {
+        transformedNode.children = node.children.map(buildTreeStructure);
       }
-    }
+      return transformedNode;
+    };
 
-    // Second pass: Build the tree structure
-    for (const [parentId, children] of childrenMap.entries()) {
-      const parent = ringMap.get(parentId);
-      if (parent) {
-        parent.children = children.sort((a, b) => {
-          // Sort by descendant count (most descendants first), then by name
-          if (b.totalDescendantsCount !== a.totalDescendantsCount) {
-            return b.totalDescendantsCount - a.totalDescendantsCount;
-          }
-          return a.name.localeCompare(b.name);
-        });
-      }
-    }
-
-    // Find the root (The Spool or specified root)
-    let root: ThreadRingNode | undefined;
-    
-    if (rootId && typeof rootId === 'string') {
-      root = ringMap.get(rootId);
+    // Build the genealogy tree from Ring Hub data
+    let root: ThreadRingNode;
+    if (rootSlug === 'spool' && lineageData.descendants && lineageData.descendants.length > 0) {
+      // For the spool, create a virtual root with all top-level rings as children
+      const spoolRing = transformRingToNode(lineageData.ring);
+      spoolRing.children = lineageData.descendants.map(buildTreeStructure);
+      spoolRing.directChildrenCount = lineageData.descendants.length;
+      spoolRing.totalDescendantsCount = lineageData.descendants.reduce((sum: number, desc: any) => {
+        return sum + 1 + (desc.children ? countDescendants(desc) : 0);
+      }, 0);
+      root = spoolRing;
+    } else if (lineageData.ring) {
+      // For specific rings, use the ring itself as root with its descendants
+      root = buildTreeStructure({
+        ...lineageData.ring,
+        children: lineageData.descendants || []
+      });
     } else {
-      // Find The Spool (system ring)
-      const spool = allRings.find(r => r.isSystemRing);
-      if (spool) {
-        root = ringMap.get(spool.id);
-      }
+      // Fallback: create a simple root node
+      root = transformRingToNode(lineageData.ring);
     }
 
-    // If we still don't have a root, find rings with no parent
-    if (!root) {
-      const orphans = allRings.filter(r => !r.parentId);
-      if (orphans.length > 0) {
-        // Create a virtual root if there are multiple orphans
-        if (orphans.length === 1) {
-          root = ringMap.get(orphans[0].id);
-        } else {
-          root = {
-            id: 'virtual-root',
-            name: 'ThreadRings',
-            slug: 'threadrings',
-            description: 'All ThreadRing communities',
-            memberCount: 0,
-            postCount: 0,
-            directChildrenCount: orphans.length,
-            totalDescendantsCount: allRings.length,
-            lineageDepth: 0,
-            curatorHandle: null,
-            createdAt: new Date().toISOString(),
-            children: orphans.map(o => ringMap.get(o.id)!).filter(Boolean)
-          };
-        }
+    // Helper function for counting descendants (used above)
+    function countDescendants(node: any): number {
+      if (!Array.isArray(node.children)) return 0;
+      let count = node.children.length;
+      for (const child of node.children) {
+        count += countDescendants(child);
       }
+      return count;
     }
 
-    // Prune tree to maxDepth if specified
+    // Apply maxDepth pruning
     const pruneToDepth = (node: ThreadRingNode, currentDepth: number): ThreadRingNode => {
       if (currentDepth >= Number(maxDepth)) {
         return { ...node, children: [] };
@@ -162,24 +153,43 @@ export default async function handler(
       };
     };
 
-    if (root && maxDepth) {
+    if (maxDepth) {
       root = pruneToDepth(root, 0);
     }
 
-    // Calculate statistics
-    const stats = {
-      totalRings: allRings.length,
-      totalMembers: allRings.reduce((sum, r) => sum + r.memberCount, 0),
-      totalPosts: allRings.reduce((sum, r) => sum + r.postCount, 0),
-      maxDepth: Math.max(...allRings.map(r => r.lineageDepth)),
-      averageChildren: allRings.length > 0 
-        ? allRings.reduce((sum, r) => sum + r.directChildrenCount, 0) / allRings.length 
-        : 0
+    // Calculate statistics from the tree
+    const calculateStats = (node: ThreadRingNode): GenealogyStats => {
+      let totalRings = 1;
+      let totalMembers = node.memberCount;
+      let totalPosts = node.postCount;
+      let maxDepth = node.lineageDepth;
+      let directChildrenSum = node.directChildrenCount;
+
+      if (node.children) {
+        for (const child of node.children) {
+          const childStats = calculateStats(child);
+          totalRings += childStats.totalRings;
+          totalMembers += childStats.totalMembers;
+          totalPosts += childStats.totalPosts;
+          maxDepth = Math.max(maxDepth, childStats.maxDepth);
+          directChildrenSum += childStats.averageChildren * childStats.totalRings;
+        }
+      }
+
+      return {
+        totalRings,
+        totalMembers,
+        totalPosts,
+        maxDepth,
+        averageChildren: totalRings > 0 ? directChildrenSum / totalRings : 0
+      };
     };
+
+    const stats = calculateStats(root);
 
     return res.json({
       success: true,
-      tree: root || null,
+      tree: root,
       stats,
       timestamp: new Date().toISOString()
     });
@@ -190,7 +200,5 @@ export default async function handler(
       error: "Failed to fetch genealogy data",
       message: error instanceof Error ? error.message : "Unknown error"
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

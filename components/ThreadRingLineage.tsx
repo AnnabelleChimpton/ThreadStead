@@ -1,28 +1,28 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-interface ForkData {
+interface RingDescriptor {
   id: string;
+  slug: string;
+  name: string;
+  description?: string;
   createdAt: string;
-  threadRing: {
-    id: string;
-    name: string;
-    slug: string;
-    description?: string | null;
-    memberCount: number;
-    postCount: number;
-  };
-  createdBy: {
-    handle: string;
-    displayName?: string | null;
-    avatarUrl?: string | null;
-  };
+  memberCount?: number;
+  postCount?: number;
+  ownerDid?: string;
+  metadata?: any;
 }
 
 interface LineageData {
-  parent: ForkData | null;
-  children: ForkData[];
-  ringName: string;
+  ring: RingDescriptor;
+  ancestors: RingDescriptor[];
+  descendants: RingDescriptor[];
+  parents: RingDescriptor[];
+  children: RingDescriptor[];
+  directChildrenCount: number;
+  totalDescendantsCount: number;
+  lineageDepth: number;
+  lineagePath: string;
 }
 
 interface ThreadRingLineageProps {
@@ -53,7 +53,18 @@ export default function ThreadRingLineage({
       
       if (!response.ok) {
         if (response.status === 404) {
-          setLineageData({ parent: null, children: [], ringName }); // No lineage data
+          // Create empty lineage structure for no data case
+          setLineageData({
+            ring: { id: '', slug: threadRingSlug, name: ringName, createdAt: '' },
+            ancestors: [],
+            descendants: [],
+            parents: [],
+            children: [],
+            directChildrenCount: 0,
+            totalDescendantsCount: 0,
+            lineageDepth: 0,
+            lineagePath: ringName
+          });
           return;
         }
         throw new Error("Failed to fetch lineage");
@@ -87,38 +98,38 @@ export default function ThreadRingLineage({
     );
   }
 
-  const renderFork = (fork: ForkData, isParent: boolean = false) => (
+  const renderRing = (ring: RingDescriptor, isParent: boolean = false) => (
     <div 
-      key={fork.id} 
+      key={ring.id} 
       className="border border-gray-300 p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <Link 
-            href={`/threadrings/${fork.threadRing.slug}`}
+            href={`/threadrings/${ring.slug}`}
             className="font-medium text-black hover:text-blue-700 hover:underline block"
           >
-            {isParent ? "🌱" : "🍴"} {fork.threadRing.name}
+            {isParent ? "🌱" : "🍴"} {ring.name}
           </Link>
-          {fork.threadRing.description && (
+          {ring.description && (
             <p className="text-xs text-gray-700 mt-1 line-clamp-2">
-              {fork.threadRing.description}
+              {ring.description}
             </p>
           )}
           <div className="text-xs text-gray-600 mt-2 flex items-center gap-3">
             <span>
-              {isParent ? "Original by" : "Forked by"} {fork.createdBy.displayName || `@${fork.createdBy.handle}`}
+              {isParent ? "Original" : "Fork"}
             </span>
             <span>•</span>
             <span>
-              {new Date(fork.createdAt).toLocaleDateString()}
+              {new Date(ring.createdAt).toLocaleDateString()}
             </span>
           </div>
         </div>
         
         <div className="text-xs text-gray-600 text-right">
-          <div>{fork.threadRing.memberCount} members</div>
-          <div>{fork.threadRing.postCount} posts</div>
+          <div>{ring.memberCount || 0} members</div>
+          <div>{ring.postCount || 0} posts</div>
         </div>
       </div>
     </div>
@@ -128,37 +139,71 @@ export default function ThreadRingLineage({
     <div className={`bg-white border border-black p-4 shadow-[2px_2px_0_#000] ${className}`}>
       <h3 className="font-bold mb-3">Fork Lineage</h3>
       
-      {!lineageData?.parent && lineageData?.children.length === 0 ? (
+      {(lineageData?.directChildrenCount || 0) === 0 && (lineageData?.lineageDepth || 0) === 0 ? (
         <div className="text-sm text-gray-600">
           No fork relationships yet. This ThreadRing can be forked to create derivative communities!
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Parent (if this is a fork) */}
-          {lineageData?.parent && (
+          {/* Lineage Overview */}
+          <div className="bg-gray-50 border border-gray-200 p-3 rounded">
+            <div className="text-sm text-gray-700 space-y-1">
+              <div><strong>Lineage Depth:</strong> {lineageData?.lineageDepth || 0} levels from root</div>
+              <div><strong>Direct Children:</strong> {lineageData?.directChildrenCount || 0}</div>
+              <div><strong>Total Descendants:</strong> {lineageData?.totalDescendantsCount || 0}</div>
+              {lineageData?.lineagePath && (
+                <div><strong>Path:</strong> {lineageData.lineagePath}</div>
+              )}
+            </div>
+          </div>
+
+          {/* Parent (immediate ancestor) */}
+          {lineageData?.parents && lineageData.parents.length > 0 && (
             <div>
               <p className="text-sm text-gray-600 mb-2">
                 <strong>{ringName}</strong> was forked from:
               </p>
-              {renderFork(lineageData.parent, true)}
+              {renderRing(lineageData.parents[0], true)}
             </div>
           )}
 
-          {/* Children (forks of this ring) */}
+          {/* Children (direct forks of this ring) */}
           {lineageData?.children && lineageData.children.length > 0 && (
             <div>
-              {lineageData.parent && <div className="border-t border-gray-300 pt-4"></div>}
+              {lineageData.parents && lineageData.parents.length > 0 && <div className="border-t border-gray-300 pt-4"></div>}
               <p className="text-sm text-gray-600 mb-2">
                 ThreadRings forked from <strong>{ringName}</strong>:
               </p>
               <div className="space-y-2">
-                {lineageData.children.map((fork) => renderFork(fork, false))}
+                {lineageData.children.map((ring) => renderRing(ring, false))}
+              </div>
+            </div>
+          )}
+
+          {/* Full Ancestor Chain */}
+          {lineageData?.ancestors && lineageData.ancestors.length > 0 && (
+            <div>
+              <div className="border-t border-gray-300 pt-4"></div>
+              <p className="text-sm text-gray-600 mb-2">
+                Full ancestry chain:
+              </p>
+              <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                {lineageData.ancestors.map((ancestor, index) => (
+                  <span key={ancestor.id}>
+                    <Link href={`/threadrings/${ancestor.slug}`} className="text-blue-600 hover:underline">
+                      {ancestor.name}
+                    </Link>
+                    {index < lineageData.ancestors.length - 1 && ' → '}
+                  </span>
+                ))}
+                {' → '}
+                <span className="font-medium">{ringName}</span>
               </div>
             </div>
           )}
 
           {/* Footer */}
-          {(lineageData?.parent || (lineageData?.children && lineageData.children.length > 0)) && (
+          {((lineageData?.lineageDepth || 0) > 0 || (lineageData?.directChildrenCount || 0) > 0) && (
             <div className="pt-2 border-t border-gray-300">
               <p className="text-xs text-gray-500 italic">
                 Fork genealogy helps track the evolution of communities and ideas across ThreadRings.
