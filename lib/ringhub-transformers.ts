@@ -37,10 +37,10 @@ export function mapJoinPolicyToJoinType(policy: string): ThreadRingJoinType {
 /**
  * Map ThreadStead join type to Ring Hub join policy
  */
-export function mapJoinTypeToJoinPolicy(joinType: ThreadRingJoinType): string {
+export function mapJoinTypeToJoinPolicy(joinType: ThreadRingJoinType): 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED' {
   switch (joinType) {
     case 'open': return 'OPEN'
-    case 'invite': return 'APPLICATION'
+    case 'invite': return 'INVITATION'  // Updated to match RingHub spec
     case 'closed': return 'CLOSED'
     default: return 'CLOSED'
   }
@@ -126,7 +126,7 @@ export function transformThreadRingToRingDescriptor(
     name: ring.name!,
     slug: ring.slug!,
     description: ring.description,
-    joinPolicy: (ring.joinType?.toUpperCase() || 'OPEN') as 'OPEN' | 'INVITE' | 'CLOSED', // Ring Hub expects uppercase joinPolicy
+    joinPolicy: mapJoinTypeToJoinPolicy(ring.joinType || 'open'), // Ring Hub expects uppercase joinPolicy
     visibility: (ring.visibility?.toUpperCase() || 'PUBLIC') as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
     uri,
     spoolUri: generateSpoolUri(instanceDID), // The Spool for this instance

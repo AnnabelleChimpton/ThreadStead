@@ -55,7 +55,7 @@ export default withThreadRingSupport(async function handler(
         // Map ThreadStead values to Ring Hub format
         const joinPolicyMapping = {
           'open': 'OPEN',
-          'invite': 'APPLICATION',
+          'invite': 'INVITATION',
           'closed': 'CLOSED'
         };
 
@@ -64,7 +64,7 @@ export default withThreadRingSupport(async function handler(
           name: name.trim(),
           slug: forkSlug,
           description: description?.trim() || undefined,
-          joinPolicy: (joinPolicyMapping[joinType as keyof typeof joinPolicyMapping] || 'OPEN') as 'OPEN' | 'INVITE' | 'CLOSED',
+          joinPolicy: (joinPolicyMapping[joinType as keyof typeof joinPolicyMapping] || 'OPEN') as 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED',
           visibility: visibility.toUpperCase() as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
         };
         

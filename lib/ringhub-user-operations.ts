@@ -45,12 +45,9 @@ export class AuthenticatedRingHubClient {
       throw new Error('Ring Hub client not available')
     }
 
-    const userDID = await this.ensureUserDID()
-    console.log('Generated user DID for ring join:', userDID)
-    
     // Use the enhanced client method that will automatically sign with user's DID
-    console.log('Calling Ring Hub joinRing with:', { slug, userDID })
-    return await this.client.joinRing(slug, userDID)
+    console.log('Calling Ring Hub joinRing with:', { slug, message })
+    return await this.client.joinRing(slug, message)
   }
 
   /**
@@ -61,8 +58,7 @@ export class AuthenticatedRingHubClient {
       throw new Error('Ring Hub client not available')
     }
 
-    const userDID = await this.ensureUserDID()
-    return await this.client.leaveRing(slug, userDID)
+    return await this.client.leaveRing(slug)
   }
 
   /**

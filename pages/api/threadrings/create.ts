@@ -94,7 +94,7 @@ export default withThreadRingSupport(async function handler(
         // Map local joinType to RingHub joinPolicy
         const joinPolicyMap = {
           'open': 'OPEN',
-          'invite': 'INVITE', 
+          'invite': 'INVITATION', 
           'closed': 'CLOSED'
         } as const;
 
@@ -103,7 +103,7 @@ export default withThreadRingSupport(async function handler(
           name: name.trim(),
           slug: finalSlug,
           description: description?.trim() || undefined,
-          joinPolicy: joinPolicyMap[validJoinType] as 'OPEN' | 'INVITE' | 'CLOSED',
+          joinPolicy: joinPolicyMap[validJoinType] as 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED',
           visibility: validVisibility.toUpperCase() as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
           uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${finalSlug}`,
           spoolUri: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
