@@ -181,14 +181,7 @@ export async function generateDIDDocument(): Promise<DIDDocument> {
   const keypair = await getOrCreateServerKeypair();
   const publicKeyBytes = fromBase64Url(keypair.publicKey);
   
-  // Convert to proper multibase format with Ed25519 multicodec prefix
-  const multicodecPrefix = Buffer.from([0xed, 0x01]); // Ed25519 multicodec
-  const multicodecKey = Buffer.concat([multicodecPrefix, publicKeyBytes]);
-  
-  // Use base58btc encoding with 'z' prefix (multibase)
-  const publicKeyMultibase = 'z' + bs58.encode(multicodecKey);
-  
-  // Also provide raw base64 format for Ring Hub compatibility
+  // RingHub spec requires only base64 format, not multibase
   const publicKeyBase64 = Buffer.from(publicKeyBytes).toString('base64');
   
   return {
@@ -197,24 +190,16 @@ export async function generateDIDDocument(): Promise<DIDDocument> {
       "https://w3id.org/security/suites/ed25519-2020/v1"
     ],
     "id": keypair.did,
-    "verificationMethod": [
-      {
-        "id": `${keypair.did}#key-1`,
-        "type": "Ed25519VerificationKey2020",
-        "controller": keypair.did,
-        "publicKeyMultibase": publicKeyMultibase
-      },
-      {
-        "id": `${keypair.did}#key-2`,
-        "type": "Ed25519VerificationKey2020",
-        "controller": keypair.did,
-        "publicKeyBase64": publicKeyBase64
-      }
-    ],
-    "authentication": [`${keypair.did}#key-1`, `${keypair.did}#key-2`],
-    "assertionMethod": [`${keypair.did}#key-1`, `${keypair.did}#key-2`],
-    "capabilityDelegation": [`${keypair.did}#key-1`, `${keypair.did}#key-2`],
-    "capabilityInvocation": [`${keypair.did}#key-1`, `${keypair.did}#key-2`]
+    "verificationMethod": [{
+      "id": `${keypair.did}#key-1`,
+      "type": "Ed25519VerificationKey2020",
+      "controller": keypair.did,
+      "publicKeyBase64": publicKeyBase64
+    }],
+    "authentication": [`${keypair.did}#key-1`],
+    "assertionMethod": [`${keypair.did}#key-1`],
+    "capabilityDelegation": [`${keypair.did}#key-1`],
+    "capabilityInvocation": [`${keypair.did}#key-1`]
   };
 }
 
