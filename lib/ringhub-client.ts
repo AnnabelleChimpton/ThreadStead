@@ -193,6 +193,13 @@ export class RingHubClient {
     return this.get(`/trp/rings?${params.toString()}`)
   }
 
+  /**
+   * Get root ring (The Spool)
+   */
+  async getRootRing(): Promise<RingDescriptor> {
+    return this.get(`/trp/root`)
+  }
+
   // Membership Operations
 
   /**
@@ -258,7 +265,11 @@ export class RingHubClient {
    * Fork a ring
    */
   async forkRing(parentSlug: string, forkData: Partial<RingDescriptor>): Promise<RingDescriptor> {
-    return this.post(`/trp/rings/${parentSlug}/fork`, forkData)
+    const requestData = {
+      ...forkData,
+      parentSlug
+    }
+    return this.post(`/trp/fork`, requestData)
   }
 
   // HTTP Helper Methods with Signature Authentication

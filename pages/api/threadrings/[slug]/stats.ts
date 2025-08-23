@@ -30,7 +30,14 @@ export default withThreadRingSupport(async function handler(
         return res.status(500).json({ error: "Ring Hub client not configured" });
       }
 
-      const ringDescriptor = await client.getRing(slug as string);
+      let ringDescriptor;
+      
+      // Use efficient root endpoint for spool
+      if (slug === 'spool') {
+        ringDescriptor = await client.getRootRing();
+      } else {
+        ringDescriptor = await client.getRing(slug as string);
+      }
       
       if (!ringDescriptor) {
         return res.status(404).json({ error: "ThreadRing not found" });

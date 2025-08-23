@@ -143,11 +143,13 @@ export class AuthenticatedRingHubClient {
     // Fork ring using server DID (Ring Hub client will handle server auth)
     const forkedRing = await this.client.forkRing(parentSlug, forkData)
     
+    console.log('Fork response from Ring Hub:', forkedRing);
+    
     // Track ownership locally for user access control
     await db.ringHubOwnership.create({
       data: {
         ringSlug: forkedRing.slug,
-        ringUri: forkedRing.uri,
+        ringUri: forkedRing.uri || `https://ringhub.io/rings/${forkedRing.slug}`, // Fallback if uri not provided
         ownerUserId: this.userId,
         serverDID: serverDID
       }

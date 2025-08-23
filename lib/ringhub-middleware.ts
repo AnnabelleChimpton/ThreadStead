@@ -37,11 +37,11 @@ export function shouldUseLocalThreadRings(): boolean {
  * Get the appropriate ThreadRing system to use
  * Returns 'ringhub' | 'local' | 'none'
  */
-export function getThreadRingSystem(): 'ringhub' | 'local' | 'none' {
+export function getThreadRingSystem(user?: any): 'ringhub' | 'local' | 'none' {
   if (featureFlags.ringhub()) {
     return 'ringhub';
   }
-  if (featureFlags.threadrings()) {
+  if (featureFlags.threadrings(user)) {
     return 'local';
   }
   return 'none';
@@ -59,7 +59,12 @@ export function withThreadRingSupport<T = any>(
   ) => Promise<void> | void
 ) {
   return async (req: NextApiRequest, res: NextApiResponse<T>) => {
-    const system = getThreadRingSystem();
+    // Import here to avoid circular dependency
+    const { getSessionUser } = await import('@/lib/auth-server');
+    
+    // Get user context for feature flag check
+    const user = await getSessionUser(req);
+    const system = getThreadRingSystem(user);
     
     if (system === 'none') {
       return res.status(404).json({ error: "ThreadRing features not available" } as T);

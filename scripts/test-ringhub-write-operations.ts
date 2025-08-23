@@ -362,14 +362,14 @@ async function main() {
     console.log('   Test User: Not available (will skip ownership tracking)')
   }
 
-  // Run tests
+  // Run tests (reordered to test List Members before deleting ring)
   const tests = [
     testCreateRing,
     testGetRing,
     testUpdateRing,
     testJoinRing,
-    testListMembers,
-    testDeleteRing
+    testListMembers,  // Test while ring still exists
+    testDeleteRing    // Delete last
   ]
 
   console.log('\n🚀 Starting write operations tests...')
