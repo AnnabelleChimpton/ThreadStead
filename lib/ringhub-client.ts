@@ -16,7 +16,7 @@ export interface RingDescriptor {
   slug: string             // URL-friendly identifier
 
   // Settings
-  joinPolicy: 'OPEN' | 'INVITE' | 'CLOSED'
+  joinPolicy: 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED'
   visibility: 'PUBLIC' | 'UNLISTED' | 'PRIVATE'
 
   // Hierarchical (The Spool Architecture)
@@ -198,15 +198,17 @@ export class RingHubClient {
   /**
    * Join a ring
    */
-  async joinRing(slug: string, userDID: string): Promise<RingMember> {
-    return this.post(`/trp/join`, { ringSlug: slug, userDID })
+  async joinRing(slug: string, message?: string): Promise<RingMember> {
+    const body: any = { ringSlug: slug }
+    if (message) body.message = message
+    return this.post(`/trp/join`, body)
   }
 
   /**
    * Leave a ring
    */
-  async leaveRing(slug: string, userDID: string): Promise<void> {
-    await this.post(`/trp/leave`, { ringSlug: slug, userDID })
+  async leaveRing(slug: string): Promise<void> {
+    await this.post(`/trp/leave`, { ringSlug: slug })
   }
 
   /**
