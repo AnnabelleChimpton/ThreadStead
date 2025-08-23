@@ -100,7 +100,7 @@ export function transformRingDescriptorToThreadRing(
     name: descriptor.name,
     slug: descriptor.slug,
     description: descriptor.description,
-    joinType: mapJoinPolicyToJoinType(descriptor.joinType || 'CLOSED'),
+    joinType: mapJoinPolicyToJoinType(descriptor.joinPolicy || 'CLOSED'),
     visibility: mapVisibility(descriptor.visibility),
     memberCount: descriptor.memberCount,
     postCount: descriptor.postCount,
@@ -126,8 +126,8 @@ export function transformThreadRingToRingDescriptor(
     name: ring.name!,
     slug: ring.slug!,
     description: ring.description,
-    joinType: ring.joinType || 'open', // Ring Hub expects joinType directly
-    visibility: ring.visibility || 'public',
+    joinPolicy: (ring.joinType?.toUpperCase() || 'OPEN') as 'OPEN' | 'INVITE' | 'CLOSED', // Ring Hub expects uppercase joinPolicy
+    visibility: (ring.visibility?.toUpperCase() || 'PUBLIC') as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
     uri,
     spoolUri: generateSpoolUri(instanceDID), // The Spool for this instance
     lineageDepth: 'parentUri' in ring && ring.parentUri ? 1 : 0, // Will be calculated by Ring Hub

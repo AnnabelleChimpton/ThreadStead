@@ -391,7 +391,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
               name: ringDescriptor.name,
               slug: ringDescriptor.slug,
               description: ringDescriptor.description,
-              joinType: ringDescriptor.joinType || 'open',
+              joinType: ringDescriptor.joinPolicy?.toLowerCase() || 'open',
               visibility: ringDescriptor.visibility?.toLowerCase() || 'public',
               curatorNote: ringDescriptor.curatorNotes || '',
               memberCount: ringDescriptor.memberCount,

@@ -91,13 +91,20 @@ export default withThreadRingSupport(async function handler(
 
         const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
         
+        // Map local joinType to RingHub joinPolicy
+        const joinPolicyMap = {
+          'open': 'OPEN',
+          'invite': 'INVITE', 
+          'closed': 'CLOSED'
+        } as const;
+
         // Prepare Ring Hub ring descriptor
         const ringDescriptor = {
           name: name.trim(),
           slug: finalSlug,
           description: description?.trim() || undefined,
-          joinType: validJoinType,
-          visibility: validVisibility,
+          joinPolicy: joinPolicyMap[validJoinType] as 'OPEN' | 'INVITE' | 'CLOSED',
+          visibility: validVisibility.toUpperCase() as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
           uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${finalSlug}`,
           spoolUri: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
           lineageDepth: 1, // Ring Hub will handle genealogy

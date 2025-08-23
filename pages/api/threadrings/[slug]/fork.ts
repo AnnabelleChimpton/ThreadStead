@@ -64,8 +64,8 @@ export default withThreadRingSupport(async function handler(
           name: name.trim(),
           slug: forkSlug,
           description: description?.trim() || undefined,
-          joinPolicy: joinPolicyMapping[joinType as keyof typeof joinPolicyMapping] || 'OPEN',
-          visibility: visibility.toUpperCase(),
+          joinPolicy: (joinPolicyMapping[joinType as keyof typeof joinPolicyMapping] || 'OPEN') as 'OPEN' | 'INVITE' | 'CLOSED',
+          visibility: visibility.toUpperCase() as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
         };
         
         console.log('Ring Hub fork request:', { parentSlug: slug, forkData });
@@ -80,8 +80,8 @@ export default withThreadRingSupport(async function handler(
             name: forkedRing.name,
             slug: forkedRing.slug,
             description: forkedRing.description,
-            joinType: (forkedRing as any).joinPolicy?.toLowerCase() || forkedRing.joinType,
-            visibility: forkedRing.visibility?.toLowerCase() || forkedRing.visibility,
+            joinType: forkedRing.joinPolicy?.toLowerCase() || 'open',
+            visibility: forkedRing.visibility?.toLowerCase() || 'public',
             uri: forkedRing.uri
           },
           message: `Successfully forked as "${forkedRing.name}"`

@@ -116,8 +116,8 @@ async function main() {
       name: `Auth Test Ring ${Date.now()}`,
       slug: `auth-test-ring-${Date.now()}`,
       description: 'Test ring for authentication verification',
-      visibility: 'public' as const,
-      joinType: 'open' as const
+      visibility: 'PUBLIC' as const,
+      joinPolicy: 'OPEN' as const
     }
     
     const createdRing = await authClient.createRing(testRing)

@@ -119,9 +119,9 @@ export async function testRingHubAuth(): Promise<ConnectionTestResult> {
       name: 'Connection Test Ring',
       slug: `test-ring-${Date.now()}`,
       description: 'Temporary ring for testing Ring Hub connection',
-      visibility: 'private' as const,
-      joinPolicy: 'closed' as const,
-      postPolicy: 'closed' as const
+      visibility: 'PRIVATE' as const,
+      joinPolicy: 'CLOSED' as const,
+      postPolicy: 'CLOSED' as const
     }
     
     await client.createRing(testRing)
