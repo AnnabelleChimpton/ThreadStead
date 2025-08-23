@@ -42,11 +42,15 @@ export default async function handler(
         
         const transformedMembers = await Promise.all(
           (membersResponse.members || []).map(async (member) => {
+            console.log(`Transforming member: ${member.actorDid}`)
+            
             const resolvedMember = await transformRingMemberWithUserResolution(
               member,
               slug as string,
               db
             )
+            
+            console.log(`Resolved to: ${resolvedMember.user.displayName} (userId: ${resolvedMember.userId})`)
             
             // Convert to API response format
             return {

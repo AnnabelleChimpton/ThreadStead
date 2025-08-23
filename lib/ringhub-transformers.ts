@@ -192,11 +192,26 @@ export async function transformRingMemberWithUserResolution(
     console.warn('Failed to resolve DID to ThreadStead user:', error)
   }
   
-  const displayName = threadSteadUser?.profile?.displayName || 
-                     threadSteadUser?.handles?.[0]?.handle || 
-                     member.actorName ||
-                     member.actorDid.split(':').pop() ||
-                     'Ring Hub User'
+  // Enhanced display name logic with better fallbacks
+  let displayName = 'Ring Hub User'
+  
+  if (threadSteadUser?.profile?.displayName) {
+    displayName = threadSteadUser.profile.displayName
+  } else if (threadSteadUser?.handles?.[0]?.handle) {
+    displayName = threadSteadUser.handles[0].handle
+  } else if (member.actorName) {
+    displayName = member.actorName
+  } else {
+    // Handle placeholder users and unknown users more gracefully
+    const didParts = member.actorDid.split(':')
+    const lastPart = didParts.pop() || 'unknown'
+    
+    if (resolvedUserId && resolvedUserId.startsWith('unknown-user-')) {
+      displayName = `External User (${lastPart})`
+    } else {
+      displayName = `Ring Hub User (${lastPart})`
+    }
+  }
   
   return {
     id: generateMemberId(member.actorDid, threadRingId),
