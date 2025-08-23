@@ -338,7 +338,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
-  const [members, setMembers] = useState(ring?.members || []);
+  const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const { user: currentUser } = useCurrentUser();
   
@@ -370,9 +370,12 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       }
     };
 
-    // Only fetch if we don't already have members or if it's Ring Hub mode
-    if (ring.members.length === 0 || featureFlags.ringhub()) {
+    // Always fetch members for Ring Hub rings to get proper user resolution
+    if (featureFlags.ringhub()) {
       fetchMembers();
+    } else if (ring.members && ring.members.length > 0) {
+      // For non-Ring Hub rings, use the server-side members
+      setMembers(ring.members);
     }
   }, [ring]);
 
@@ -872,7 +875,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             </h3>
             <div className="space-y-2">
               {members.map((member) => {
-                const memberHandle = member.user?.handles?.find(h => h.host === "local")?.handle || 
+                const memberHandle = member.user?.handles?.find((h: any) => h.host === "local")?.handle || 
                                    member.user?.handles?.[0]?.handle || 
                                    member.user?.id?.split(':').pop() || 
                                    "unknown";
