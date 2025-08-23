@@ -7,7 +7,7 @@ const nextConfig = {
     return [
       {
         source: '/users/:hash/did.json',
-        destination: '/api/users/:hash/did.json',
+        destination: '/api/did/:hash/document',
       },
     ]
   },

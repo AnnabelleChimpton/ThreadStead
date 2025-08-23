@@ -25,7 +25,7 @@ async function findUserIdByHash() {
   try {
     // Get all users from database
     const users = await db.user.findMany({
-      select: { id: true, handle: true }
+      select: { id: true, handles: true }
     })
     
     console.log(`Checking ${users.length} users...\n`)
@@ -46,7 +46,7 @@ async function findUserIdByHash() {
     if (foundUser) {
       console.log('✅ Found user!')
       console.log('   User ID:', foundUser.id)
-      console.log('   Handle:', foundUser.handle)
+      console.log('   Handle:', foundUser.handles?.[0]?.handle || 'No handle')
       console.log('   Hash:', targetHash)
       
       // Generate the full DID
@@ -71,7 +71,7 @@ async function findUserIdByHash() {
           .update(user.id + salt)
           .digest('hex')
           .slice(0, 16)
-        console.log(`   ${user.handle || user.id} -> ${hash}`)
+        console.log(`   ${user.handles?.[0]?.handle || user.id} -> ${hash}`)
       })
     }
     
