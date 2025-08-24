@@ -39,9 +39,8 @@ export class AuthenticatedRingHubClient {
     const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
     
     if (isLocalhost) {
-      console.log(`⚠️ Using localhost - Ring Hub can't resolve user DIDs in development`)
-      console.log(`User DID: ${userDIDMapping.did}`)
-      console.log(`Falling back to server DID for Ring Hub authentication`)
+      console.log(`⚠️ Development mode: Using server DID proxy for Ring Hub authentication`)
+      console.log(`User intent tracked locally for: ${userDIDMapping.did}`)
       
       // In development, use server DID but track user intent locally
       if (!this.client) {
@@ -50,7 +49,10 @@ export class AuthenticatedRingHubClient {
       return this.client
     }
     
-    // In production, use user's DID directly
+    // In production, use user's DID directly (DID documents are now published)
+    console.log(`✅ Production mode: User ${userDIDMapping.did} authenticating directly to Ring Hub`)
+    console.log(`DID document available at: /.well-known/did/users/${userDIDMapping.userHash}/did.json`)
+    
     // Convert base64url public key to multibase format for Ring Hub
     const publicKeyMultibase = publicKeyToMultibase(userDIDMapping.publicKey)
     
@@ -62,7 +64,6 @@ export class AuthenticatedRingHubClient {
     })
 
     console.log(`Created user-authenticated Ring Hub client for ${userDIDMapping.did}`)
-    console.log(`Using multibase public key: ${publicKeyMultibase.substring(0, 20)}...`)
     return this.userClient
   }
 
@@ -83,7 +84,7 @@ export class AuthenticatedRingHubClient {
 
 
   /**
-   * Join a ring as this user (using their own DID)
+   * Join a ring as this user (dev: server proxy, prod: user DID)
    */
   async joinRing(slug: string, message?: string): Promise<RingMember> {
     console.log(`Starting join operation for ring: ${slug}`)
@@ -91,26 +92,16 @@ export class AuthenticatedRingHubClient {
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
     
-    // Check if we're using localhost (server proxy mode)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
     
     if (isLocalhost) {
-      console.log(`⚠️ Development mode: Server DID proxy joining ring ${slug} for user ${userDID}`)
-      console.log(`Server will authenticate to Ring Hub, but membership is for user ${userDID}`)
-      
-      // In development, Ring Hub will see the server DID in the HTTP signature.
-      // This means Ring Hub thinks the server instance is joining, not the user.
-      // For development/testing purposes, this is actually fine - we just need to
-      // understand that all development joins appear as the server instance.
-      console.log('Note: Ring Hub will record server DID as the joining member')
+      console.log(`User ${userDID} joining ring ${slug} via server DID proxy (dev mode)`)
     } else {
-      console.log(`✅ Production mode: User ${userDID} authenticating directly to Ring Hub`)
-      console.log(`Ring: ${slug}, Message: ${message || 'none'}`)
+      console.log(`User ${userDID} joining ring ${slug} with direct authentication (production)`)
     }
     
     try {
-      console.log('Calling Ring Hub join API...')
       const result = await userClient.joinRing(slug, message)
       console.log('✅ Ring Hub join successful:', result)
       return result
@@ -118,30 +109,28 @@ export class AuthenticatedRingHubClient {
       console.error('❌ Ring Hub join error:', {
         message: error.message,
         status: error.status,
-        code: error.code,
-        stack: error.stack
+        code: error.code
       })
       throw error
     }
   }
 
   /**
-   * Leave a ring as this user (using their own DID)
+   * Leave a ring as this user (dev: server proxy, prod: user DID)
    */
   async leaveRing(slug: string, reason?: string): Promise<void> {
     const userClient = await this.getUserClient()
+    const userDID = await this.ensureUserDID()
     
+    console.log(`User ${userDID} leaving ring ${slug}`)
     return await userClient.leaveRing(slug)
   }
 
   /**
-   * Submit a post to a ring as this user
+   * Submit a post to a ring as this user (dev: server proxy, prod: user DID)
    */
   async submitPost(postRef: Omit<PostRef, 'submittedAt' | 'submittedBy'>): Promise<void> {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
-
+    const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
     
     const fullPostRef = {
@@ -149,7 +138,8 @@ export class AuthenticatedRingHubClient {
       submittedBy: userDID
     }
     
-    return await this.client.submitPost(fullPostRef)
+    console.log(`Submitting post to ring as user ${userDID}`)
+    return await userClient.submitPost(fullPostRef)
   }
 
   /**
@@ -203,31 +193,27 @@ export class AuthenticatedRingHubClient {
   }
 
   /**
-   * Fork a ring as this user
+   * Fork a ring as this user (dev: server proxy, prod: user DID)
    */
   async forkRing(parentSlug: string, forkData: Partial<RingDescriptor>): Promise<RingDescriptor> {
     const userClient = await this.getUserClient()
     const userDIDMapping = await getOrCreateUserDID(this.userId)
     
-    // Check if we're using user DID directly or server proxy
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-    const usingServerProxy = isLocalhost
     
     // Add user identification to fork metadata
     const enrichedForkData = {
       ...forkData,
-      // Add user DID in curator notes (Ring Hub uses 'curatorNotes' plural)
-      curatorNotes: usingServerProxy 
-        ? `Created by user ${userDIDMapping.did} via ThreadStead (development mode)`
+      curatorNotes: isLocalhost 
+        ? `Created by user ${userDIDMapping.did} via ThreadStead (dev mode)`
         : `Created by user ${userDIDMapping.did} via ThreadStead`
     }
     
-    // Fork ring (may use server DID in development, user DID in production)
-    console.log(`${usingServerProxy ? 'Server proxy for user' : 'User'} ${userDIDMapping.did} forking ring ${parentSlug}`)
+    console.log(`User ${userDIDMapping.did} forking ring ${parentSlug}`)
     const forkedRing = await userClient.forkRing(parentSlug, enrichedForkData)
     
-    console.log('Fork response from Ring Hub:', forkedRing);
+    console.log('✅ Fork response from Ring Hub:', forkedRing);
     
     // Track ownership locally for user access control
     // Note: Both Ring Hub and local tracking now show user as actual owner

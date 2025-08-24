@@ -9,6 +9,10 @@ const nextConfig = {
         source: '/users/:hash/did.json',
         destination: '/api/did/:hash/document',
       },
+      {
+        source: '/.well-known/did/users/:hash/did.json',
+        destination: '/api/did/:hash/document',
+      },
     ]
   },
 }

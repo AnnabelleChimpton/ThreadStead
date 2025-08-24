@@ -246,9 +246,8 @@ export async function generateDIDDocument(): Promise<DIDDocument> {
  * Generate DID document for a user
  */
 export function generateUserDIDDocument(userDIDMapping: UserDIDMapping): DIDDocument {
-  // Convert base64url public key to base64
-  const publicKeyBytes = fromBase64Url(userDIDMapping.publicKey);
-  const publicKeyBase64 = Buffer.from(publicKeyBytes).toString('base64');
+  // Convert base64url public key to multibase format for Ring Hub compatibility
+  const publicKeyMultibase = publicKeyToMultibase(userDIDMapping.publicKey);
 
   return {
     "@context": [
@@ -260,7 +259,7 @@ export function generateUserDIDDocument(userDIDMapping: UserDIDMapping): DIDDocu
       "id": `${userDIDMapping.did}#key-1`,
       "type": "Ed25519VerificationKey2020",
       "controller": userDIDMapping.did,
-      "publicKeyBase64": publicKeyBase64
+      "publicKeyMultibase": publicKeyMultibase
     }],
     "authentication": [`${userDIDMapping.did}#key-1`],
     "assertionMethod": [`${userDIDMapping.did}#key-1`],
