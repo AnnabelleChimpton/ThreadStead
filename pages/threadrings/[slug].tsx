@@ -158,20 +158,26 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
               <div className="bg-white border-2 border-thread-pine shadow-lg rounded-lg p-6 max-w-md mx-auto">
                 <div className="text-center">
                   <div className="flex justify-center mb-3">
-                    <div 
-                      onClick={() => setShowSpoolBadgeOptions(!showSpoolBadgeOptions)}
-                      className="cursor-pointer transform transition-transform hover:scale-105"
-                      title="Click to show copy options"
-                    >
-                      <ThreadRing88x31Badge
-                        templateId={ring.badge.templateId}
-                        title={ring.badge.title}
-                        subtitle={ring.badge.subtitle}
-                        backgroundColor={ring.badge.backgroundColor}
-                        textColor={ring.badge.textColor}
-                        imageUrl={ring.badge.imageUrl}
-                      />
-                    </div>
+                    {ring.badge.imageUrl ? (
+                      <div 
+                        onClick={() => setShowSpoolBadgeOptions(!showSpoolBadgeOptions)}
+                        className="cursor-pointer transform transition-transform hover:scale-105"
+                        title="Click to show copy options"
+                      >
+                        <ThreadRing88x31Badge
+                          templateId={ring.badge.templateId}
+                          title={ring.badge.title}
+                          subtitle={ring.badge.subtitle}
+                          backgroundColor={ring.badge.backgroundColor}
+                          textColor={ring.badge.textColor}
+                          imageUrl={ring.badge.imageUrl}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center w-[88px] h-[31px] bg-gray-100 border border-gray-400 text-gray-600 text-xs">
+                        No badge
+                      </div>
+                    )}
                   </div>
                   <div className="text-sm font-bold text-thread-pine mb-2">🌐 The Spool Official Badge</div>
                   <p className="text-xs text-thread-sage mb-3">
@@ -391,6 +397,12 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
+  const [ringInfoCollapsed, setRingInfoCollapsed] = useState(true);
+  const [badgeInfoCollapsed, setBadgeInfoCollapsed] = useState(true);
+  const [statsCollapsed, setStatsCollapsed] = useState(true);
+  const [lineageCollapsed, setLineageCollapsed] = useState(true);
+  const [membersCollapsed, setMembersCollapsed] = useState(true);
+  const [discoveryCollapsed, setDiscoveryCollapsed] = useState(true);
   const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [isPublicMemberInfo, setIsPublicMemberInfo] = useState(false);
@@ -703,124 +715,137 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
   return (
     <Layout siteConfig={siteConfig}>
-      <div className="thread-module p-6 mb-6">
-        <div className="mb-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <h1 className="thread-headline text-3xl font-bold mb-3">{ring.name}</h1>
-              {ring.description && (
-                <p className="text-thread-sage leading-relaxed mb-3">
-                  {ring.description}
-                </p>
-              )}
-              {ring.curatorNote && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-3">
-                  <div className="flex items-start">
-                    <div className="text-yellow-600 mr-2">📌</div>
-                    <div>
-                      <p className="text-sm font-medium text-yellow-800 mb-1">Curator&apos;s Note</p>
-                      <p className="text-sm text-yellow-700">{ring.curatorNote}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                {ring.curator && (
-                  <>
-                    <span>Curated by @{curatorHandle}</span>
-                    <span>•</span>
-                  </>
-                )}
-                
-                <span>{ring.memberCount} member{ring.memberCount !== 1 ? 's' : ''}</span>
-                <span>•</span>
-                <span>{ring.postCount} post{ring.postCount !== 1 ? 's' : ''}</span>
-                <span>•</span>
-                <span className="capitalize">{ring.joinType} joining</span>
-              </div>
-            </div>
-            
-            {/* Join/Member Status Button */}
-            <div className="flex-shrink-0">
-              {isMember ? (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm bg-green-200 px-4 py-2 border border-black rounded">
-                      {currentUserRole === "curator" ? "Curator" : 
-                       currentUserRole === "moderator" ? "Moderator" : "Member"}
-                    </div>
-                    {currentUserRole === "curator" && (
-                      <button
-                        onClick={() => router.push(`/threadrings/${ring.slug}/settings`)}
-                        className="text-sm border border-black px-4 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
-                        title="Manage ThreadRing settings"
-                      >
-                        ⚙️ Settings
-                      </button>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main content area - posts feed */}
+        <div className="lg:col-span-3">
+          <div className="border border-black p-6 mb-6 bg-white shadow-[2px_2px_0_#000]" style={{ minWidth: 'auto' }}>
+            <div className="mb-4">
+              <div className="flex items-start justify-between gap-4 flex-wrap lg:flex-nowrap">
+                <div className="flex-1">
+                  <div className="flex items-center gap-4 mb-3">
+                    <h1 className="thread-headline text-3xl font-bold">{ring.name}</h1>
+                    {ring.badge && ring.badge.isActive && (
+                      <div className="flex-shrink-0">
+                        <ThreadRing88x31Badge
+                          templateId={ring.badge.templateId}
+                          title={ring.badge.title}
+                          subtitle={ring.badge.subtitle}
+                          backgroundColor={ring.badge.backgroundColor}
+                          textColor={ring.badge.textColor}
+                          imageUrl={ring.badge.imageUrl}
+                        />
+                      </div>
                     )}
-                    <button
-                      onClick={handleLeave}
-                      disabled={joining}
-                      className="text-sm border border-black px-4 py-2 bg-white hover:bg-red-100 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={currentUserRole === "curator" 
-                        ? "As curator, you must transfer ownership first (unless you're the only member)" 
-                        : "Leave this ThreadRing"}
-                    >
-                      {joining ? "..." : "Leave"}
-                    </button>
                   </div>
-                  <button
-                    onClick={() => router.push(`/threadrings/${ring.slug}/fork`)}
-                    className="text-sm border border-black px-4 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
-                    title="Create your own version of this ThreadRing"
-                  >
-                    🍴 Fork ThreadRing
-                  </button>
+                  {ring.description && (
+                    <p className="text-thread-sage leading-relaxed mb-3">
+                      {ring.description}
+                    </p>
+                  )}
+                  {ring.curatorNote && (
+                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-3">
+                      <div className="flex items-start">
+                        <div className="text-yellow-600 mr-2">📌</div>
+                        <div>
+                          <p className="text-sm font-medium text-yellow-800 mb-1">Curator&apos;s Note</p>
+                          <p className="text-sm text-yellow-700">{ring.curatorNote}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    {ring.curator && (
+                      <>
+                        <span>Curated by @{curatorHandle}</span>
+                        <span>•</span>
+                      </>
+                    )}
+                    
+                    <span>{ring.memberCount} member{ring.memberCount !== 1 ? 's' : ''}</span>
+                    <span>•</span>
+                    <span>{ring.postCount} post{ring.postCount !== 1 ? 's' : ''}</span>
+                    <span>•</span>
+                    <span className="capitalize">{ring.joinType} joining</span>
+                  </div>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {ring.joinType === "open" ? (
-                    <button
-                      onClick={handleJoin}
-                      disabled={joining}
-                      className="border border-black px-6 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                    >
-                      {joining ? "Joining..." : "Join ThreadRing"}
-                    </button>
-                  ) : ring.joinType === "invite" ? (
-                    <div className="text-sm bg-gray-200 px-4 py-2 border border-black rounded">
-                      Invite Only
+                
+                {/* Join/Member Status Button */}
+                <div className="flex-shrink-0">
+                  {isMember ? (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm bg-green-200 px-4 py-2 border border-black rounded">
+                          {currentUserRole === "curator" ? "Curator" : 
+                           currentUserRole === "moderator" ? "Moderator" : "Member"}
+                        </div>
+                        {currentUserRole === "curator" && (
+                          <button
+                            onClick={() => router.push(`/threadrings/${ring.slug}/settings`)}
+                            className="text-sm border border-black px-4 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
+                            title="Manage ThreadRing settings"
+                          >
+                            ⚙️ Settings
+                          </button>
+                        )}
+                        <button
+                          onClick={handleLeave}
+                          disabled={joining}
+                          className="text-sm border border-black px-4 py-2 bg-white hover:bg-red-100 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={currentUserRole === "curator" 
+                            ? "As curator, you must transfer ownership first (unless you're the only member)" 
+                            : "Leave this ThreadRing"}
+                        >
+                          {joining ? "..." : "Leave"}
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => router.push(`/threadrings/${ring.slug}/fork`)}
+                        className="text-sm border border-black px-4 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
+                        title="Create your own version of this ThreadRing"
+                      >
+                        🍴 Fork ThreadRing
+                      </button>
                     </div>
-                  ) : ring.joinType === "closed" ? (
-                    <div className="text-sm bg-red-200 px-4 py-2 border border-black rounded">
-                      Closed
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {ring.joinType === "open" ? (
+                        <button
+                          onClick={handleJoin}
+                          disabled={joining}
+                          className="border border-black px-6 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                        >
+                          {joining ? "Joining..." : "Join ThreadRing"}
+                        </button>
+                      ) : ring.joinType === "invite" ? (
+                        <div className="text-sm bg-gray-200 px-4 py-2 border border-black rounded">
+                          Invite Only
+                        </div>
+                      ) : ring.joinType === "closed" ? (
+                        <div className="text-sm bg-red-200 px-4 py-2 border border-black rounded">
+                          Closed
+                        </div>
+                      ) : null}
+                      
+                      {/* Fork button for non-members (if ring is public/unlisted) */}
+                      {ring.visibility !== "private" && (
+                        <button
+                          onClick={() => router.push(`/threadrings/${ring.slug}/fork`)}
+                          className="text-sm border border-black px-4 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
+                          title="Create your own version of this ThreadRing"
+                        >
+                          🍴 Fork ThreadRing
+                        </button>
+                      )}
                     </div>
-                  ) : null}
-                  
-                  {/* Fork button for non-members (if ring is public/unlisted) */}
-                  {ring.visibility !== "private" && (
-                    <button
-                      onClick={() => router.push(`/threadrings/${ring.slug}/fork`)}
-                      className="text-sm border border-black px-4 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
-                      title="Create your own version of this ThreadRing"
-                    >
-                      🍴 Fork ThreadRing
-                    </button>
                   )}
                 </div>
-              )}
+              </div>
+            </div>
+            <div className="thread-divider"></div>
+            <div className="mt-6">
+              <span className="thread-label">threadring • {ring.slug}</span>
             </div>
           </div>
-        </div>
-        <div className="thread-divider"></div>
-        <div className="mt-6">
-          <span className="thread-label">threadring • {ring.slug}</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main content area - posts feed */}
-        <div className="lg:col-span-2">
           {/* Active Prompt/Challenge */}
           <ThreadRingActivePrompt 
             threadRingSlug={ring.slug}
@@ -891,49 +916,71 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-4">
+        <div className="lg:col-span-1 space-y-4">
           {/* Ring Info */}
-          <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000]">
-            <h3 className="font-bold mb-3">Ring Info</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <span className="font-semibold">Created:</span>{" "}
-                {new Date(ring.createdAt).toLocaleDateString()}
+          <div className="border border-black bg-white shadow-[2px_2px_0_#000]">
+            <button
+              onClick={() => setRingInfoCollapsed(!ringInfoCollapsed)}
+              className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <h3 className="font-bold">Ring Info</h3>
+              <span className="text-sm">{ringInfoCollapsed ? '▼' : '▲'}</span>
+            </button>
+            {!ringInfoCollapsed && (
+              <div className="px-4 pb-4 space-y-2 text-sm border-t border-gray-200">
+                <div>
+                  <span className="font-semibold">Created:</span>{" "}
+                  {new Date(ring.createdAt).toLocaleDateString()}
+                </div>
+                <div>
+                  <span className="font-semibold">Visibility:</span>{" "}
+                  <span className="capitalize">{ring.visibility}</span>
+                </div>
+                <div>
+                  <span className="font-semibold">Join Type:</span>{" "}
+                  <span className="capitalize">{ring.joinType}</span>
+                </div>
               </div>
-              <div>
-                <span className="font-semibold">Visibility:</span>{" "}
-                <span className="capitalize">{ring.visibility}</span>
-              </div>
-              <div>
-                <span className="font-semibold">Join Type:</span>{" "}
-                <span className="capitalize">{ring.joinType}</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Official ThreadRing Badge */}
           {ring.badge && ring.badge.isActive && (
-            <div className="border border-black bg-white shadow-[2px_2px_0_#000] p-4">
-              <h3 className="font-bold mb-3 flex items-center gap-2">
-                <span>🌐 Official Badge</span>
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">88x31</span>
-              </h3>
+            <div className="border border-black bg-white shadow-[2px_2px_0_#000]">
+              <button
+                onClick={() => setBadgeInfoCollapsed(!badgeInfoCollapsed)}
+                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-bold">🌐 Official Badge</span>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">88x31</span>
+                </div>
+                <span className="text-sm">{badgeInfoCollapsed ? '▼' : '▲'}</span>
+              </button>
+              {!badgeInfoCollapsed && (
+                <div className="px-4 pb-4 border-t border-gray-200">
               
               <div className="text-center mb-3">
-                <div 
-                  onClick={() => setShowBadgeOptions(!showBadgeOptions)}
-                  className="cursor-pointer transform transition-transform hover:scale-105 inline-block"
-                  title="Click to show copy options"
-                >
-                  <ThreadRing88x31Badge
-                    templateId={ring.badge.templateId}
-                    title={ring.badge.title}
-                    subtitle={ring.badge.subtitle}
-                    backgroundColor={ring.badge.backgroundColor}
-                    textColor={ring.badge.textColor}
-                    imageUrl={ring.badge.imageUrl}
-                  />
-                </div>
+                {ring.badge.imageUrl ? (
+                  <div 
+                    onClick={() => setShowBadgeOptions(!showBadgeOptions)}
+                    className="cursor-pointer transform transition-transform hover:scale-105 inline-block"
+                    title="Click to show copy options"
+                  >
+                    <ThreadRing88x31Badge
+                      templateId={ring.badge.templateId}
+                      title={ring.badge.title}
+                      subtitle={ring.badge.subtitle}
+                      backgroundColor={ring.badge.backgroundColor}
+                      textColor={ring.badge.textColor}
+                      imageUrl={ring.badge.imageUrl}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center w-[88px] h-[31px] bg-gray-100 border border-gray-400 text-gray-600 text-xs mx-auto">
+                    No badge
+                  </div>
+                )}
               </div>
 
               <p className="text-xs text-center text-gray-600 mb-3">
@@ -978,29 +1025,52 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   </div>
                 </div>
               )}
+                </div>
+              )}
             </div>
           )}
 
           {/* Random Member Discovery */}
           {featureFlags.threadrings() && ring.memberCount > 1 && (
-            <RandomMemberDiscovery 
-              threadRingSlug={ring.slug}
-              threadRingName={ring.name}
-              enableLineageDiscovery={(lineageData.totalDescendantsCount || ring.totalDescendantsCount || 0) > 0 || (lineageData.lineageDepth || ring.lineageDepth || 0) > 0}
-            />
+            <div className="border border-black bg-white shadow-[2px_2px_0_#000]">
+              <button
+                onClick={() => setDiscoveryCollapsed(!discoveryCollapsed)}
+                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                <h3 className="font-bold">🎲 Discover Members</h3>
+                <span className="text-sm">{discoveryCollapsed ? '▼' : '▲'}</span>
+              </button>
+              {!discoveryCollapsed && (
+                <div className="border-t border-gray-200">
+                  <RandomMemberDiscovery 
+                    threadRingSlug={ring.slug}
+                    threadRingName={ring.name}
+                    enableLineageDiscovery={(lineageData.totalDescendantsCount || ring.totalDescendantsCount || 0) > 0 || (lineageData.lineageDepth || ring.lineageDepth || 0) > 0}
+                  />
+                </div>
+              )}
+            </div>
           )}
 
           {/* Members */}
-          <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000]">
-            <h3 className="font-bold mb-3">
-              Members ({ring.memberCount || members.length})
-              {membersLoading && <span className="text-xs text-gray-500 ml-2">Loading...</span>}
-              {isPublicMemberInfo && (
-                <div className="text-xs text-gray-500 mt-1">
-                  Join to see all members
-                </div>
-              )}
-            </h3>
+          <div className="border border-black bg-white shadow-[2px_2px_0_#000]">
+            <button
+              onClick={() => setMembersCollapsed(!membersCollapsed)}
+              className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold">👥 Members ({ring.memberCount || members.length})</h3>
+                {membersLoading && <span className="text-xs text-gray-500">Loading...</span>}
+              </div>
+              <span className="text-sm">{membersCollapsed ? '▼' : '▲'}</span>
+            </button>
+            {!membersCollapsed && (
+              <div className="px-4 pb-4 border-t border-gray-200">
+                {isPublicMemberInfo && (
+                  <div className="text-xs text-gray-500 mb-3">
+                    Join to see all members
+                  </div>
+                )}
             <div className="space-y-2">
               {members.map((member) => {
                 const memberHandle = member.user?.handles?.find((h: any) => h.host === "local")?.handle || 
@@ -1038,16 +1108,44 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 </div>
               )}
             </div>
+              </div>
+            )}
           </div>
 
           {/* Fork Lineage */}
-          <ThreadRingLineage 
-            threadRingSlug={ring.slug} 
-            ringName={ring.name}
-          />
+          <div className="border border-black bg-white shadow-[2px_2px_0_#000]">
+            <button
+              onClick={() => setLineageCollapsed(!lineageCollapsed)}
+              className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <h3 className="font-bold">🌳 Fork Lineage</h3>
+              <span className="text-sm">{lineageCollapsed ? '▼' : '▲'}</span>
+            </button>
+            {!lineageCollapsed && (
+              <div className="border-t border-gray-200">
+                <ThreadRingLineage 
+                  threadRingSlug={ring.slug} 
+                  ringName={ring.name}
+                />
+              </div>
+            )}
+          </div>
 
           {/* ThreadRing Statistics */}
-          <ThreadRingStats threadRingSlug={ring.slug} />
+          <div className="border border-black bg-white shadow-[2px_2px_0_#000]">
+            <button
+              onClick={() => setStatsCollapsed(!statsCollapsed)}
+              className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <h3 className="font-bold">📊 Statistics</h3>
+              <span className="text-sm">{statsCollapsed ? '▼' : '▲'}</span>
+            </button>
+            {!statsCollapsed && (
+              <div className="border-t border-gray-200">
+                <ThreadRingStats threadRingSlug={ring.slug} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
       
@@ -1125,7 +1223,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
               ...transformedRing,
               curator: null, // Ring Hub doesn't provide curator details
               members: [], // Members will be fetched client-side with user authentication
-              badge: null, // Badge info not available in basic ring descriptor
               parentId: null,
               // Use Ring Hub stats for Spool, lineage data for other rings
               directChildrenCount: slug === 'spool' 

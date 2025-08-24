@@ -45,6 +45,13 @@ export default function ThreadRing88x31Badge({
           width={88}
           height={31}
           className="border border-gray-400"
+          style={{ 
+            width: '88px', 
+            height: '31px', 
+            maxWidth: '88px', 
+            maxHeight: '31px', 
+            objectFit: 'contain' 
+          }}
         />
       </BadgeElement>
     );
@@ -82,6 +89,8 @@ export default function ThreadRing88x31Badge({
   const badgeStyle: React.CSSProperties = {
     width: '88px',
     height: '31px',
+    maxWidth: '88px',
+    maxHeight: '31px',
     background: template.gradient 
       ? `linear-gradient(${
           template.gradient.direction === 'vertical' ? 'to bottom' :

@@ -106,13 +106,13 @@ export async function generateBadge(options: BadgeGenerationOptions): Promise<Ge
     textColor = colors.textColor;
   }
 
-  // Auto-select template if not provided
-  if (!templateId && !backgroundColor) {
+  // Only auto-select template if no auto-color and no backgroundColor provided
+  if (!templateId && !backgroundColor && !options.autoColor) {
     templateId = autoSelectTemplate(options.title, options.subtitle);
   }
 
-  // Get template if specified
-  if (templateId) {
+  // Get template if specified (only if not using auto-color)
+  if (templateId && !options.autoColor) {
     template = getBadgeTemplate(templateId);
     if (template) {
       backgroundColor = template.backgroundColor;
@@ -156,7 +156,7 @@ export async function generateBadge(options: BadgeGenerationOptions): Promise<Ge
 }
 
 /**
- * Generate a 88x31 badge image as a data URL using Sharp
+ * Generate a 88x31 badge image as a data URL using Sharp with SVG text overlay
  */
 async function generateBadgeImageDataUrl(
   title: string,
@@ -166,18 +166,31 @@ async function generateBadgeImageDataUrl(
 ): Promise<string> {
   const sharp = (await import('sharp')).default;
   
-  // Create a simple badge with solid background
-  // For now, create a basic colored rectangle - text overlay would require more complex SVG
-  const badgeBuffer = await sharp({
-    create: {
-      width: 88,
-      height: 31,
-      channels: 4,
-      background: backgroundColor
-    }
-  })
-  .png()
-  .toBuffer();
+  // Truncate title for badge display
+  const displayTitle = title.length > 12 ? title.substring(0, 11) + '…' : title;
+  const displaySubtitle = subtitle && subtitle.length > 10 ? subtitle.substring(0, 9) + '…' : subtitle;
+  
+  // Create SVG with text
+  const fontSize = subtitle ? 8 : 10;
+  const titleY = subtitle ? 12 : 16;
+  const subtitleY = 23;
+  
+  const svgText = `
+    <svg width="88" height="31" xmlns="http://www.w3.org/2000/svg">
+      <rect width="88" height="31" fill="${backgroundColor}" stroke="#000" stroke-width="1"/>
+      <text x="44" y="${titleY}" text-anchor="middle" 
+            font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" 
+            fill="${textColor}">${displayTitle}</text>
+      ${subtitle ? `<text x="44" y="${subtitleY}" text-anchor="middle" 
+            font-family="Arial, sans-serif" font-size="7" 
+            fill="${textColor}">${displaySubtitle}</text>` : ''}
+    </svg>
+  `;
+  
+  // Convert SVG to PNG using Sharp
+  const badgeBuffer = await sharp(Buffer.from(svgText))
+    .png()
+    .toBuffer();
 
   // Convert to data URL
   const base64 = badgeBuffer.toString('base64');
@@ -190,20 +203,9 @@ export async function generateThreadRingBadge(
   threadRingSlug: string,
   options: Partial<BadgeGenerationOptions> = {}
 ): Promise<GeneratedBadge> {
-  // Truncate name if too long for badge
-  let title = threadRingName;
-  if (title.length > 12) {
-    title = title.substring(0, 11) + '…';
-  }
-
-  // Create subtitle from slug if name was truncated
-  let subtitle = options.subtitle;
-  if (threadRingName.length > 12 && !subtitle) {
-    subtitle = `@${threadRingSlug}`;
-    if (subtitle.length > 10) {
-      subtitle = subtitle.substring(0, 9) + '…';
-    }
-  }
+  // Use full name - let the SVG generator handle display truncation
+  const title = threadRingName;
+  const subtitle = options.subtitle;
 
   return generateBadge({
     title,

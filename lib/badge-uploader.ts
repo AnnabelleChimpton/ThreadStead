@@ -67,7 +67,7 @@ export async function uploadBadgeImage(
 
     const client = getS3Client();
     const bucketName = process.env.R2_BUCKET_NAME || 'threadstead-media';
-    const publicUrl = process.env.R2_PUBLIC_URL?.replace(/\/$/, '') || '';
+    const publicUrl = (process.env.R2_CDN_URL || process.env.R2_PUBLIC_URL)?.replace(/\/$/, '') || '';
 
     // Standard badge (88x31) - optimize the original
     const standardBuffer = await sharp(imageBuffer)

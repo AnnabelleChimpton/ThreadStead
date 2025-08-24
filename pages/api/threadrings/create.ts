@@ -101,14 +101,41 @@ export default withThreadRingSupport(async function handler(
           'closed': 'CLOSED'
         } as const;
 
-        // Use pre-uploaded badge URLs if provided
+        // Generate and upload badge if no pre-uploaded URLs provided
         let badgeUrls = {};
         if (badgeImageUrl) {
           badgeUrls = {
             badgeImageUrl,
             badgeImageHighResUrl
           };
-          console.log('Using pre-uploaded badge URLs:', badgeUrls);
+        } else {
+          // Generate badge for the new ring using user's badge preferences
+          try {
+            const badgeOptions: any = {};
+            
+            // If user provided badge preferences, use them
+            if (badge) {
+              if (badge.templateId) badgeOptions.templateId = badge.templateId;
+              if (badge.backgroundColor) badgeOptions.backgroundColor = badge.backgroundColor;
+              if (badge.textColor) badgeOptions.textColor = badge.textColor;
+              if (badge.title) badgeOptions.title = badge.title;
+              if (badge.subtitle) badgeOptions.subtitle = badge.subtitle;
+              // Don't use autoColor if user specified preferences
+              badgeOptions.autoColor = false;
+            } else {
+              // No user preferences, use auto-color
+              badgeOptions.autoColor = true;
+            }
+            
+            const badgeData = await generateThreadRingBadge(name.trim(), finalSlug, badgeOptions);
+            
+            if (badgeData.imageDataUrl) {
+              badgeUrls = await uploadBadgeImage(badgeData.imageDataUrl, finalSlug);
+            }
+          } catch (uploadError) {
+            console.error('Badge generation/upload failed for new ring:', uploadError);
+            // Continue without badge images - not a fatal error
+          }
         }
 
         // Prepare Ring Hub ring descriptor

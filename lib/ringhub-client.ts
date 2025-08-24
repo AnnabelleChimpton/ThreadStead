@@ -29,6 +29,10 @@ export interface RingDescriptor {
   postCount: number        // Associated post count
   descendantCount: number  // Total descendant rings
 
+  // Badge fields
+  badgeImageUrl?: string   // 88x31 badge image URL
+  badgeImageHighResUrl?: string // High-res badge image URL
+
   // Metadata
   createdAt: string        // ISO timestamp
   updatedAt?: string       // ISO timestamp

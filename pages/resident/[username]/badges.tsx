@@ -285,130 +285,27 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async
         }
       } catch (error) {
         console.error('Ring Hub badges fetch failed in SSR:', error)
-        // Fall through to local logic below
-      }
-    }
-
-    // Local database fallback
-    // Get total ThreadRing memberships
-    const totalThreadRings = await db.threadRingMember.count({
-      where: { userId }
-    })
-
-    // Get user's badge preferences
-    let badgePreferences = null
-    if (handle.user.profile?.badgePreferences) {
-      try {
-        badgePreferences = JSON.parse(handle.user.profile.badgePreferences as string)
-      } catch (e) {
-        console.error('Failed to parse badge preferences:', e)
-      }
-    }
-
-    // If no preferences or badges not enabled, show empty
-    if (!badgePreferences || !badgePreferences.showBadgesOnProfile || !badgePreferences.selectedBadges?.length) {
-      const props: UserBadgesPageProps = {
-        username: usernameParam,
-        badges: [],
-        totalThreadRings
-      }
-      if (displayName) props.displayName = displayName
-      return { props }
-    }
-
-    // Get badges to display (only those marked for profile display)
-    const profileBadges = badgePreferences.selectedBadges
-      .filter((b: any) => b.showOnProfile)
-      .sort((a: any, b: any) => a.displayOrder - b.displayOrder)
-
-    if (profileBadges.length === 0) {
-      const props: UserBadgesPageProps = {
-        username: usernameParam,
-        badges: [],
-        totalThreadRings
-      }
-      if (displayName) props.displayName = displayName
-      return { props }
-    }
-
-    // Get full badge and ThreadRing data
-    const badgeIds = profileBadges.map((b: any) => b.badgeId)
-    
-    const badges = await db.threadRingBadge.findMany({
-      where: { id: { in: badgeIds } },
-      include: {
-        threadRing: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            description: true,
-            memberCount: true,
-            visibility: true,
-            members: {
-              where: { userId },
-              select: {
-                role: true,
-                joinedAt: true
-              }
-            }
+        // Return empty badges if Ring Hub fails
+        return {
+          props: {
+            username: usernameParam,
+            displayName,
+            badges: [],
+            totalThreadRings: 0
           }
         }
       }
-    })
-
-    // Filter to only public ThreadRings and format data
-    const publicBadges: BadgeWithThreadRing[] = badges
-      .filter(badge => 
-        badge.threadRing.visibility === 'public' && 
-        badge.threadRing.members.length > 0
-      )
-      .map(badge => {
-        const membership = badge.threadRing.members[0]
-        const preference = profileBadges.find((p: any) => p.badgeId === badge.id)
-        
-        const result: BadgeWithThreadRing & { displayOrder: number } = {
-          id: badge.id,
-          title: badge.title,
-          backgroundColor: badge.backgroundColor,
-          textColor: badge.textColor,
-          threadRing: {
-            id: badge.threadRing.id,
-            name: badge.threadRing.name,
-            slug: badge.threadRing.slug,
-            memberCount: badge.threadRing.memberCount,
-            visibility: badge.threadRing.visibility as 'public' | 'unlisted' | 'private'
-          },
-          userMembership: {
-            role: membership.role,
-            joinedAt: membership.joinedAt.toISOString()
-          },
-          displayOrder: preference?.displayOrder || 999
-        }
-
-        // Only include optional fields if they have values
-        if (badge.subtitle) result.subtitle = badge.subtitle
-        if (badge.imageUrl) result.imageUrl = badge.imageUrl
-        if (badge.templateId) result.templateId = badge.templateId
-        if (badge.threadRing.description) result.threadRing.description = badge.threadRing.description
-
-        return result
-      })
-      .sort((a, b) => a.displayOrder - b.displayOrder)
-      .map(({ displayOrder, ...badge }) => badge) // Remove displayOrder from final result
-
-    const props: UserBadgesPageProps = {
-      username: usernameParam,
-      badges: publicBadges,
-      totalThreadRings
     }
 
-    // Only include displayName if it exists
-    if (displayName) {
-      props.displayName = displayName
+    // No Ring Hub enabled, return empty
+    return {
+      props: {
+        username: usernameParam,
+        displayName,
+        badges: [],
+        totalThreadRings: 0
+      }
     }
-
-    return { props }
   } catch (error) {
     console.error('Error fetching user badges:', error)
     return { notFound: true }

@@ -93,6 +93,18 @@ export function transformRingDescriptorToThreadRing(
   // Generate ThreadStead-compatible ID from Ring Hub URI or slug
   const id = generateThreadRingId(descriptor.uri || descriptor.slug)
   
+  // Create badge object - always create one, even if no image URL  
+  const badge = {
+    id: `${descriptor.slug}-badge`,
+    title: descriptor.name,
+    subtitle: undefined, // Ring Hub doesn't store badge subtitle separately
+    templateId: undefined, // Ring Hub doesn't use template IDs
+    backgroundColor: '#4A90E2', // Default color - Ring Hub stores actual image
+    textColor: '#FFFFFF', // Default color - Ring Hub stores actual image
+    imageUrl: descriptor.badgeImageUrl || undefined, // Can be null from Ring Hub
+    isActive: true
+  }
+  
   return {
     id,
     uri: descriptor.uri || `ringhub:ring:${descriptor.slug}`,
@@ -108,7 +120,8 @@ export function transformRingDescriptorToThreadRing(
     curatorNote: descriptor.curatorNotes,
     themeCss: undefined, // Not supported in Ring Hub initially
     createdAt: descriptor.createdAt,
-    updatedAt: descriptor.updatedAt || descriptor.createdAt
+    updatedAt: descriptor.updatedAt || descriptor.createdAt,
+    badge
   }
 }
 

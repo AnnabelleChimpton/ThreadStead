@@ -21,6 +21,17 @@ export interface ThreadRing {
   themeCss?: string;
   createdAt: string;
   updatedAt: string;
+  // Badge
+  badge?: {
+    id: string;
+    title: string;
+    subtitle?: string;
+    templateId?: string;
+    backgroundColor: string;
+    textColor: string;
+    imageUrl?: string;
+    isActive: boolean;
+  };
 }
 
 export interface ThreadRingMember {
