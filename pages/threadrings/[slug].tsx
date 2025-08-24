@@ -435,6 +435,28 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     }
   }, [ring]);
 
+  // Update membership status when members data or current user changes
+  useEffect(() => {
+    if (!currentUser || !members) {
+      setIsMember(false);
+      setCurrentUserRole(null);
+      return;
+    }
+
+    // Find current user in members list
+    const userMembership = members.find(member => member.userId === currentUser.id);
+    
+    if (userMembership) {
+      setIsMember(true);
+      setCurrentUserRole(userMembership.role);
+      console.log(`User is a member with role: ${userMembership.role}`);
+    } else {
+      setIsMember(false);
+      setCurrentUserRole(null);
+      console.log(`User is not a member of ${ring?.slug}`);
+    }
+  }, [members, currentUser, ring?.slug]);
+
   // Fetch lineage data using user-authenticated API
   useEffect(() => {
     if (!ring) return;
