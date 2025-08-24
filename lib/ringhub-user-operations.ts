@@ -175,25 +175,26 @@ export class AuthenticatedRingHubClient {
   }
 
   /**
-   * Update a ring as this user (must be curator)
+   * Update a ring as this user (must be curator/have manage_ring permission)
    */
   async updateRing(slug: string, updates: Partial<RingDescriptor>): Promise<RingDescriptor> {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
-
-    // Check if user owns this Ring Hub ring locally
-    const ownership = await db.ringHubOwnership.findUnique({
-      where: { ringSlug: slug },
-      include: { owner: true }
-    })
+    console.log(`Starting update operation for ring: ${slug}`)
     
-    if (!ownership || ownership.ownerUserId !== this.userId) {
-      throw new Error('Only the ring owner can update settings')
+    const userClient = await this.getUserClient()
+    const userDID = await this.ensureUserDID()
+    
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
+    
+    if (isLocalhost) {
+      console.log(`User ${userDID} updating ring ${slug} via server DID proxy (dev mode)`)
+    } else {
+      console.log(`User ${userDID} updating ring ${slug} directly (prod mode)`)
     }
     
-    // Update via Ring Hub using server DID (Ring Hub client handles auth)
-    return await this.client.updateRing(slug, updates)
+    // Update via Ring Hub using user-authenticated client
+    // Ring Hub will verify the user has manage_ring permission
+    return await userClient.updateRing(slug, updates)
   }
 
   /**

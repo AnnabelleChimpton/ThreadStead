@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { SITE_NAME } from "@/lib/site-config";
 import { withThreadRingSupport } from "@/lib/ringhub-middleware";
-import { getRingHubClient } from "@/lib/ringhub-client";
+import { getRingHubClient, getPublicRingHubClient } from "@/lib/ringhub-client";
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest, 
@@ -43,18 +43,45 @@ export default withThreadRingSupport(async function handler(
         return res.status(404).json({ error: "ThreadRing not found" });
       }
 
-      // For Ring Hub rings, return simplified stats since we don't have detailed local data
+      // Try to get membership info for more detailed stats
+      let membershipInfo = null;
+      let moderatorCount = 1; // Default to 1 (curator)
+      
+      try {
+        // Use public client for membership info (doesn't require authentication)
+        const publicClient = getPublicRingHubClient();
+        if (publicClient) {
+          membershipInfo = await publicClient.getRingMembershipInfo(slug as string);
+          // Count owner + moderators
+          moderatorCount = 1 + (membershipInfo?.moderators?.length || 0);
+        }
+      } catch (error) {
+        console.log(`Could not fetch membership info for ${slug}:`, error);
+      }
+
+      // For Ring Hub rings, return stats with membership info if available
       const stats = {
-        memberCount: ringDescriptor.memberCount,
+        memberCount: membershipInfo?.memberCount || ringDescriptor.memberCount,
         postCount: ringDescriptor.postCount,
         pinnedPostCount: 0, // Not available from Ring Hub basic descriptor
-        moderatorCount: 1, // Assume 1 curator
+        moderatorCount,
         recentActivity: {
           newMembersThisWeek: 0, // Not available from Ring Hub
           newPostsThisWeek: 0 // Not available from Ring Hub
         },
         topPosters: [], // Not available from Ring Hub
-        membershipTrend: [] // Not available from Ring Hub
+        membershipTrend: [], // Not available from Ring Hub
+        // Include membership info for non-members
+        membershipInfo: membershipInfo ? {
+          owner: {
+            ...membershipInfo.owner,
+            displayName: membershipInfo.owner.actorName || membershipInfo.owner.actorDid.split(':').pop() || 'Owner'
+          },
+          moderators: membershipInfo.moderators.map(mod => ({
+            ...mod,
+            displayName: mod.actorName || mod.actorDid.split(':').pop() || 'Moderator'
+          }))
+        } : null
       };
 
       return res.json(stats);

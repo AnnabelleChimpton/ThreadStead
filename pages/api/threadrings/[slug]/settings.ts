@@ -57,13 +57,25 @@ export default withThreadRingSupport(async function handler(
       try {
         const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
         
-        // Prepare Ring Hub ring updates
+        // Map local joinType to RingHub joinPolicy
+        const joinPolicyMap = {
+          'open': 'OPEN',
+          'invite': 'INVITATION',
+          'closed': 'CLOSED'
+        } as const;
+        
+        // Validate joinType
+        if (!joinType || !['open', 'invite', 'closed'].includes(joinType)) {
+          return res.status(400).json({ error: "Invalid join type" });
+        }
+        
+        // Prepare Ring Hub ring updates with correct field names and formats
         const updates = {
           name: name.trim(),
           description: description?.trim() || undefined,
-          joinType,
-          visibility,
-          curatorNotes: curatorNote?.trim() || undefined
+          joinPolicy: joinPolicyMap[joinType as keyof typeof joinPolicyMap],
+          visibility: visibility.toUpperCase() as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
+          curatorNote: curatorNote?.trim() || undefined
         };
 
         // Update ring in Ring Hub

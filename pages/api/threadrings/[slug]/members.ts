@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { getPublicRingHubClient } from "@/lib/ringhub-client";
 import { db } from "@/lib/db";
 
 export default async function handler(
@@ -20,12 +21,82 @@ export default async function handler(
 
   try {
     const viewer = await getSessionUser(req);
-    if (!viewer) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-
+    
     // Use Ring Hub if enabled
     if (featureFlags.ringhub()) {
+      // If user is not authenticated, use public membership info endpoint
+      if (!viewer) {
+        console.log('Fetching Ring Hub membership info for non-authenticated user...');
+        
+        try {
+          const publicClient = getPublicRingHubClient();
+          if (!publicClient) {
+            return res.status(500).json({ error: "Ring Hub client not configured" });
+          }
+          
+          // Get membership info from public endpoint
+          const membershipInfo = await publicClient.getRingMembershipInfo(slug as string);
+          
+          console.log(`Fetched membership info: ${membershipInfo.memberCount} members`);
+          
+          // Transform membership info to member format for display
+          const transformedMembers = [];
+          
+          // Add owner
+          if (membershipInfo.owner) {
+            transformedMembers.push({
+              id: `owner-${membershipInfo.owner.actorDid}`,
+              userId: 'external',
+              role: 'curator',
+              joinedAt: membershipInfo.owner.joinedAt,
+              user: {
+                id: 'external',
+                handles: [],
+                profile: {
+                  displayName: membershipInfo.owner.actorName || membershipInfo.owner.actorDid.split(':').pop() || 'Owner',
+                  avatarUrl: null
+                }
+              }
+            });
+          }
+          
+          // Add moderators
+          membershipInfo.moderators.forEach((mod, index) => {
+            transformedMembers.push({
+              id: `mod-${index}-${mod.actorDid}`,
+              userId: 'external',
+              role: 'moderator',
+              joinedAt: mod.joinedAt,
+              user: {
+                id: 'external',
+                handles: [],
+                profile: {
+                  displayName: mod.actorName || mod.actorDid.split(':').pop() || 'Moderator',
+                  avatarUrl: null
+                }
+              }
+            });
+          });
+          
+          return res.json({
+            members: transformedMembers,
+            total: membershipInfo.memberCount,
+            limit: 100,
+            offset: 0,
+            hasMore: false,
+            isPublicInfo: true // Flag to indicate limited info
+          });
+          
+        } catch (error) {
+          console.error('Failed to fetch public membership info:', error);
+          return res.status(500).json({ 
+            error: "Failed to fetch membership information",
+            message: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+      
+      // Authenticated user path
       console.log('Fetching Ring Hub members with user authentication...');
       
       try {
@@ -106,6 +177,10 @@ export default async function handler(
 
     // Check access permissions for private rings
     if (threadRing.visibility === "private") {
+      if (!viewer) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
       const membership = await db.threadRingMember.findUnique({
         where: {
           threadRingId_userId: {

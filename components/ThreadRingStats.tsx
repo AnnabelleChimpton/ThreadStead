@@ -23,6 +23,20 @@ interface StatsData {
     date: string;
     count: number;
   }>;
+  membershipInfo?: {
+    owner: {
+      actorDid: string;
+      actorName: string | null;
+      displayName: string;
+      joinedAt: string;
+    };
+    moderators: Array<{
+      actorDid: string;
+      actorName: string | null;
+      displayName: string;
+      joinedAt: string;
+    }>;
+  };
 }
 
 export default function ThreadRingStats({ 
@@ -153,6 +167,40 @@ export default function ThreadRingStats({
                 </span>
               ) : (
                 <span>Not enough data for trend analysis</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Membership Info (for non-members) */}
+        {stats.membershipInfo && (
+          <div>
+            <h4 className="font-medium mb-2">Leadership</h4>
+            <div className="space-y-2 text-xs">
+              <div>
+                <div className="font-medium text-gray-700">Owner</div>
+                <div className="pl-2">
+                  {stats.membershipInfo.owner.displayName}
+                  <span className="text-gray-500 ml-1">
+                    (joined {new Date(stats.membershipInfo.owner.joinedAt).toLocaleDateString()})
+                  </span>
+                </div>
+              </div>
+              
+              {stats.membershipInfo.moderators.length > 0 && (
+                <div>
+                  <div className="font-medium text-gray-700">Moderators</div>
+                  <div className="pl-2 space-y-1">
+                    {stats.membershipInfo.moderators.map((mod, index) => (
+                      <div key={index}>
+                        {mod.displayName}
+                        <span className="text-gray-500 ml-1">
+                          (joined {new Date(mod.joinedAt).toLocaleDateString()})
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           </div>

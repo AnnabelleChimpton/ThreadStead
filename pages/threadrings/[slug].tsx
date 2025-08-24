@@ -393,6 +393,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
   const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [isPublicMemberInfo, setIsPublicMemberInfo] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [lineageData, setLineageData] = useState({
@@ -420,7 +421,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         if (response.ok) {
           const data = await response.json();
           setMembers(data.members);
-          console.log(`Loaded ${data.members.length} members for ${ring.slug}`);
+          setIsPublicMemberInfo(data.isPublicInfo || false);
+          console.log(`Loaded ${data.members.length} members for ${ring.slug}` + (data.isPublicInfo ? ' (public info only)' : ''));
         } else {
           console.error('Failed to fetch members:', response.status);
           // Keep existing members if fetch fails
@@ -991,8 +993,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           {/* Members */}
           <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000]">
             <h3 className="font-bold mb-3">
-              Members ({members.length})
+              Members ({ring.memberCount || members.length})
               {membersLoading && <span className="text-xs text-gray-500 ml-2">Loading...</span>}
+              {isPublicMemberInfo && (
+                <div className="text-xs text-gray-500 mt-1">
+                  Join to see all members
+                </div>
+              )}
             </h3>
             <div className="space-y-2">
               {members.map((member) => {
@@ -1015,6 +1022,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     {member.role !== "member" && (
                       <span className="text-xs bg-yellow-200 px-2 py-1 rounded capitalize">
                         {member.role}
+                      </span>
+                    )}
+                    {isPublicMemberInfo && (
+                      <span className="text-xs text-gray-400">
+                        {new Date(member.joinedAt).toLocaleDateString()}
                       </span>
                     )}
                   </div>

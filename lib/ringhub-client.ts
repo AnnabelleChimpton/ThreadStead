@@ -140,6 +140,25 @@ export class RingHubClient {
     })
   }
 
+  /**
+   * Create a public Ring Hub client for unauthenticated requests
+   * This client can only make GET requests to public endpoints
+   */
+  static createPublicClient(): RingHubClient | null {
+    if (!featureFlags.ringhub() || !process.env.RING_HUB_URL) {
+      return null
+    }
+
+    // Create a minimal client that can only make public GET requests
+    // We'll need to modify the request method to handle this
+    return new RingHubClient({
+      baseUrl: process.env.RING_HUB_URL!,
+      instanceDID: 'public-client',
+      privateKeyBase64Url: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', // Dummy key, won't be used
+      publicKeyMultibase: 'zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' // Dummy key, won't be used
+    })
+  }
+
   // Ring Operations
 
   /**
@@ -344,6 +363,26 @@ export class RingHubClient {
   }
 
   /**
+   * Get public membership info for a ring
+   * No authentication required - returns member count and owner/moderator info
+   */
+  async getRingMembershipInfo(slug: string): Promise<{
+    memberCount: number
+    owner: {
+      actorDid: string
+      actorName: string | null
+      joinedAt: string
+    }
+    moderators: Array<{
+      actorDid: string
+      actorName: string | null
+      joinedAt: string
+    }>
+  }> {
+    return this.get(`/trp/rings/${slug}/membership-info`)
+  }
+
+  /**
    * Fork a ring
    */
   async forkRing(parentSlug: string, forkData: Partial<RingDescriptor>): Promise<RingDescriptor> {
@@ -526,6 +565,14 @@ export class RingHubClient {
  */
 export function getRingHubClient(): RingHubClient | null {
   return RingHubClient.fromEnvironment()
+}
+
+/**
+ * Get a public Ring Hub client for unauthenticated requests
+ * Returns null if Ring Hub is not enabled
+ */
+export function getPublicRingHubClient(): RingHubClient | null {
+  return RingHubClient.createPublicClient()
 }
 
 /**

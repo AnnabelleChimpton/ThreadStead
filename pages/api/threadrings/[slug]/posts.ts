@@ -54,7 +54,7 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: any) {
           updatedAt: ringHubPost.submittedAt,
           author: {
             id: 'external',
-            displayName: ringHubPost.submittedBy.split(':').pop() || 'External Author',
+            displayName: ringHubPost.metadata?.actorName || ringHubPost.submittedBy.split(':').pop() || 'User',
             avatarUrl: null,
             handle: 'external',
             // Don't provide primaryHandle so PostHeader won't try to create local links
