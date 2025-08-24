@@ -7,6 +7,69 @@ import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import { featureFlags } from "@/lib/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
+/**
+ * Generate a text preview from post content (max 300 chars for Ring Hub)
+ */
+function generateTextPreview(bodyText?: string | null, bodyHtml?: string | null, bodyMarkdown?: string | null): string {
+  // Get plain text content
+  let content = '';
+  
+  if (bodyText) {
+    content = bodyText;
+  } else if (bodyHtml) {
+    // Strip HTML tags to get plain text
+    content = bodyHtml.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ');
+  } else if (bodyMarkdown) {
+    // Strip markdown formatting to get plain text
+    content = bodyMarkdown
+      .replace(/[#*`_~]/g, '') // Remove markdown symbols
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to just text
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1'); // Convert images to alt text
+  }
+  
+  // Clean up whitespace and truncate
+  content = content.replace(/\s+/g, ' ').trim();
+  
+  if (content.length <= 300) {
+    return content;
+  }
+  
+  // Truncate at word boundary
+  const truncated = content.substring(0, 300);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return lastSpace > 250 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+}
+
+/**
+ * Generate an excerpt from post content (max 500 chars for Ring Hub)
+ */
+function generateExcerpt(bodyText?: string | null, bodyHtml?: string | null, bodyMarkdown?: string | null): string {
+  // Get plain text content (same logic as preview but longer)
+  let content = '';
+  
+  if (bodyText) {
+    content = bodyText;
+  } else if (bodyHtml) {
+    content = bodyHtml.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ');
+  } else if (bodyMarkdown) {
+    content = bodyMarkdown
+      .replace(/[#*`_~]/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');
+  }
+  
+  content = content.replace(/\s+/g, ' ').trim();
+  
+  if (content.length <= 500) {
+    return content;
+  }
+  
+  // Truncate at word boundary
+  const truncated = content.substring(0, 500);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return lastSpace > 450 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+}
+
 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -42,6 +105,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? visibility
       : "public";
 
+  // Generate Ring Hub metadata fields for consistency
+  const textPreview = generateTextPreview(bodyText, safeHtml, bodyMarkdown);
+  const excerpt = generateExcerpt(bodyText, safeHtml, bodyMarkdown);
+  const publishedAt = new Date(); // Use current time as published time
+
   const post = await db.post.create({
     data: {
       authorId: viewer.id,
@@ -52,6 +120,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bodyMarkdown: bodyMarkdown ?? null, // Store raw markdown
       visibility: vis,
       tags: [],
+      
+      // Ring Hub metadata alignment
+      textPreview: textPreview,
+      excerpt: excerpt,
+      publishedAt: publishedAt,
+      platform: "blog", // ThreadStead posts are blog-style
     },
   });
 
@@ -100,13 +174,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             // Find the ring membership data to get the name
             const membership = userMemberships.memberships.find(m => m.ringSlug === slug);
             
+            // Generate Ring Hub metadata following the new schema
+            const textPreview = generateTextPreview(post.bodyText, post.bodyHtml, post.bodyMarkdown);
+            const excerpt = generateExcerpt(post.bodyText, post.bodyHtml, post.bodyMarkdown);
+            
             const postSubmission = {
               uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/resident/${postWithAuthor?.author?.primaryHandle?.split('@')[0]}/post/${post.id}`,
               digest: `sha256:${post.id}`, // Use proper digest format as per Ring Hub spec
               metadata: {
-                title: post.title,
-                threadRingSlug: slug,
-                threadRingName: membership?.ringName || slug
+                title: post.title.length > 200 ? post.title.substring(0, 197) + '...' : post.title, // Max 200 chars
+                textPreview: textPreview, // Max 300 chars (handled by function)
+                excerpt: excerpt, // Max 500 chars (handled by function)
+                publishedAt: new Date().toISOString(), // ISO datetime
+                platform: "blog", // ThreadStead posts are blog-style
+                // Note: Not including tags for now as requested
+                threadRingSlug: slug, // Keep for backward compatibility
+                threadRingName: membership?.ringName || slug // Keep for backward compatibility
               }
             };
             

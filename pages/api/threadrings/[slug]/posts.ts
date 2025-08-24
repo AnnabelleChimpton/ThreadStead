@@ -40,8 +40,9 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: any) {
       // Check if this post is from our ThreadStead instance
       if (!isOurThreadSteadInstance(ringHubPost.uri)) {
         // External post - create a link-only representation
+        // Use ring slug + post ID to avoid collisions between different external sources
         const externalPost = {
-          id: `external-${ringHubPost.id}`,
+          id: `external-${ringHubPost.ringSlug}-${ringHubPost.id}`,
           title: ringHubPost.metadata?.title || 'External Post',
           isExternal: true,
           externalUrl: ringHubPost.uri,

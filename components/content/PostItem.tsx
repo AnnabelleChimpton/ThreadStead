@@ -23,6 +23,13 @@ export type Post = {
   bodyHtml?: string | null;
   bodyMarkdown?: string | null; // Ensure bodyMarkdown is available for edit
   visibility: Visibility;
+  
+  // Ring Hub metadata alignment (all optional)
+  textPreview?: string | null; // Max 300 chars - for social/feed previews
+  excerpt?: string | null; // Max 500 chars - for detailed descriptions
+  publishedAt?: string | null; // ISO string, can differ from createdAt
+  platform?: string | null; // Source platform
+  
   author?: { id: string; primaryHandle?: string; profile?: { displayName?: string } };
   threadRings?: Array<{
     threadRing: {

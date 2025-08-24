@@ -139,6 +139,13 @@ model Post {
   media        Json? // [{url,mime,width,height}]
   tags         String[]
   visibility   Visibility  @default(public)
+  
+  // Ring Hub metadata alignment
+  textPreview  String?     // Max 300 chars - for social/feed previews
+  excerpt      String?     // Max 500 chars - for detailed descriptions
+  publishedAt  DateTime?   // Can differ from createdAt for scheduled posts
+  platform     String?     @default("blog") // Source platform
+  
   comments     Comment[]   @relation("PostComments")
   threadRings  PostThreadRing[] @relation("PostThreadRings")
   promptResponses PostThreadRingPrompt[] // Prompt responses
