@@ -17,7 +17,11 @@ export default withThreadRingSupport(async function handler(
   }
 
   const { slug } = req.query;
-  const { name, description, joinType, visibility, badge, badgeImageUrl, badgeImageHighResUrl } = req.body;
+  const { name, slug: customSlug, description, joinType, visibility, badge, badgeImageUrl, badgeImageHighResUrl } = req.body;
+  
+  // Debug logging
+  console.log("Fork API - req.body:", req.body);
+  console.log("Fork API - customSlug extracted:", customSlug);
 
   if (typeof slug !== "string") {
     return res.status(400).json({ error: "Invalid slug" });
@@ -39,6 +43,27 @@ export default withThreadRingSupport(async function handler(
     return res.status(400).json({ error: "Invalid visibility" });
   }
 
+  // Validate custom slug if provided
+  if (customSlug) {
+    if (typeof customSlug !== "string" || customSlug.trim().length === 0) {
+      return res.status(400).json({ error: "Slug must be a non-empty string" });
+    }
+    
+    // Validate slug format according to Ring Hub standards
+    const slugPattern = /^[a-z0-9-]+$/;
+    if (!slugPattern.test(customSlug) || customSlug.startsWith('-') || customSlug.endsWith('-') || customSlug.includes('--')) {
+      return res.status(400).json({ error: "Invalid slug format" });
+    }
+    
+    if (customSlug.length < 3) {
+      return res.status(400).json({ error: "Slug must be at least 3 characters" });
+    }
+    
+    if (customSlug.length > 25) {
+      return res.status(400).json({ error: "Slug must be 25 characters or less" });
+    }
+  }
+
   try {
     const viewer = await getSessionUser(req);
     if (!viewer) {
@@ -50,8 +75,16 @@ export default withThreadRingSupport(async function handler(
       try {
         const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
         
-        // Generate slug for the fork
-        const forkSlug = name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        // Use custom slug or generate from name
+        let forkSlug;
+        if (customSlug?.trim()) {
+          // Use custom slug as-is (already validated by frontend)
+          forkSlug = customSlug.trim();
+        } else {
+          // Generate slug from name
+          forkSlug = name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        }
+        console.log("Fork API - customSlug:", customSlug, "generated forkSlug:", forkSlug);
         
         // Map ThreadStead values to Ring Hub format
         const joinPolicyMapping = {
@@ -183,14 +216,23 @@ export default withThreadRingSupport(async function handler(
       }
     }
 
-    // Generate a unique slug for the forked ring
-    const baseSlug = name.trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
-      .substring(0, 50);
+    // Use custom slug or generate from name
+    let baseSlug;
+    if (customSlug?.trim()) {
+      // Use custom slug as-is (already validated by frontend)
+      baseSlug = customSlug.trim();
+    } else {
+      // Generate slug from name
+      baseSlug = name.trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .substring(0, 50);
+    }
+      
+    console.log("Local fork API - customSlug:", customSlug, "baseSlug:", baseSlug);
 
     let finalSlug = baseSlug;
     let counter = 1;

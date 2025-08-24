@@ -10,19 +10,24 @@ import { featureFlags } from '@/lib/feature-flags'
 
 // Types for Ring Hub API compatibility
 export interface RingDescriptor {
+  id?: string              // Ring ID (returned by API, not settable)
   uri: string              // Canonical URI for the ring
   name: string             // Display name
   description?: string     // Optional description
   slug: string             // URL-friendly identifier
+  shortCode?: string       // Short code (2-10 alphanumeric + hyphens)
 
   // Settings
   joinPolicy: 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED'
   visibility: 'PUBLIC' | 'UNLISTED' | 'PRIVATE'
+  postPolicy?: 'OPEN' | 'MEMBERS' | 'CURATED' | 'CLOSED'
 
   // Hierarchical (The Spool Architecture)
   parentUri?: string       // Parent ring URI
+  parentId?: string        // Parent ring ID
   spoolUri: string         // Spool URI for this instance
   lineageDepth: number     // Depth in genealogy tree
+  ownerDid?: string        // Owner's DID
 
   // Counters
   memberCount: number      // Current member count
@@ -36,7 +41,10 @@ export interface RingDescriptor {
   // Metadata
   createdAt: string        // ISO timestamp
   updatedAt?: string       // ISO timestamp
-  curatorNotes?: string    // Curator's notes
+  curatorNote?: string     // Curator's note (singular, matching API)
+  curatorNotes?: string    // Curator's notes (legacy, for compatibility)
+  metadata?: any           // Additional metadata
+  policies?: any           // Ring policies
 }
 
 export interface RingMember {

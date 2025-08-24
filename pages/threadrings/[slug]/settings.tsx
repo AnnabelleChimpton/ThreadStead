@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "../../../components/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
@@ -19,8 +19,10 @@ interface ThreadRingSettingsPageProps {
     name: string;
     slug: string;
     description?: string | null;
+    shortCode?: string | null;
     joinType: string;
     visibility: string;
+    postPolicy?: string;
     curatorNote?: string | null;
     memberCount: number;
     postCount: number;
@@ -39,8 +41,10 @@ export default function ThreadRingSettingsPage({
   const [formData, setFormData] = useState({
     name: ring?.name || "",
     description: ring?.description || "",
+    shortCode: ring?.shortCode || "",
     joinType: ring?.joinType || "open",
     visibility: ring?.visibility || "public",
+    postPolicy: ring?.postPolicy || "members",
     curatorNote: ring?.curatorNote || ""
   });
   const [saving, setSaving] = useState(false);
@@ -106,13 +110,6 @@ export default function ThreadRingSettingsPage({
       }
 
       setSaveSuccess(true);
-      
-      // If slug changed, redirect to new URL
-      if (data.newSlug && data.newSlug !== ring.slug) {
-        setTimeout(() => {
-          router.push(`/threadrings/${data.newSlug}/settings`);
-        }, 1000);
-      }
     } catch (error: any) {
       console.error("Error saving settings:", error);
       setSaveError(error.message || "Failed to save settings");
@@ -168,9 +165,40 @@ export default function ThreadRingSettingsPage({
                     className="w-full border border-black p-3 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000]"
                     maxLength={100}
                   />
-                  <p className="text-xs text-gray-600 mt-1">
-                    Changing the name will update the URL slug
-                  </p>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {formData.name.length}/100 characters
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="slug" className="block text-sm font-medium mb-2">
+                    ThreadRing Slug (URL)
+                  </label>
+                  <div className="bg-gray-50 border border-gray-300 p-3">
+                    <div className="text-gray-700 font-mono">{ring.slug}</div>
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    Slug cannot be changed after creation
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="shortCode" className="block text-sm font-medium mb-2">
+                    Short Code (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    id="shortCode"
+                    value={formData.shortCode}
+                    onChange={(e) => handleChange("shortCode", e.target.value.toUpperCase())}
+                    className="w-full border border-black p-3 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000]"
+                    maxLength={10}
+                    pattern="[A-Z0-9-]+"
+                    placeholder="e.g., TC, TECH"
+                  />
+                  <div className="text-xs text-gray-600 mt-1">
+                    2-10 alphanumeric characters and hyphens ({formData.shortCode.length}/10)
+                  </div>
                 </div>
 
                 <div>
@@ -201,10 +229,10 @@ export default function ThreadRingSettingsPage({
                     rows={3}
                     className="w-full border border-black p-3 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000] resize-none"
                     placeholder="A message to display to members..."
-                    maxLength={300}
+                    maxLength={1000}
                   />
                   <div className="text-xs text-gray-600 mt-1">
-                    {formData.curatorNote.length}/300 characters
+                    {formData.curatorNote.length}/1000 characters
                   </div>
                 </div>
               </div>
@@ -226,6 +254,7 @@ export default function ThreadRingSettingsPage({
                     className="w-full border border-black p-3 bg-white focus:outline-none"
                   >
                     <option value="open">Open - Anyone can join</option>
+                    <option value="application">Application - Requires approval</option>
                     <option value="invite">Invite Only - Members by invitation</option>
                     <option value="closed">Closed - No new members</option>
                   </select>
@@ -244,6 +273,23 @@ export default function ThreadRingSettingsPage({
                     <option value="public">Public - Visible to everyone</option>
                     <option value="unlisted">Unlisted - Only visible via direct link</option>
                     <option value="private">Private - Only visible to members</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="postPolicy" className="block text-sm font-medium mb-2">
+                    Who can post?
+                  </label>
+                  <select
+                    id="postPolicy"
+                    value={formData.postPolicy}
+                    onChange={(e) => handleChange("postPolicy", e.target.value)}
+                    className="w-full border border-black p-3 bg-white focus:outline-none"
+                  >
+                    <option value="open">Open - Anyone can post</option>
+                    <option value="members">Members - Only members can post</option>
+                    <option value="curated">Curated - Posts require approval</option>
+                    <option value="closed">Closed - No new posts allowed</option>
                   </select>
                 </div>
               </div>
@@ -284,16 +330,16 @@ export default function ThreadRingSettingsPage({
                 {saving ? "Saving..." : "Save Settings"}
               </button>
               
-              {saveSuccess && (
-                <span className="text-green-600 font-medium">
-                  ✓ Settings saved successfully
-                </span>
+              {saveError && (
+                <div className="text-red-600 text-sm">
+                  {saveError}
+                </div>
               )}
               
-              {saveError && (
-                <span className="text-red-600">
-                  {saveError}
-                </span>
+              {saveSuccess && (
+                <div className="text-green-600 text-sm">
+                  Settings saved successfully!
+                </div>
               )}
             </div>
           </div>
@@ -301,42 +347,41 @@ export default function ThreadRingSettingsPage({
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Stats */}
-            <div className="bg-white border border-black p-4 shadow-[2px_2px_0_#000]">
-              <h3 className="font-bold mb-3">ThreadRing Stats</h3>
-              <div className="space-y-2 text-sm">
+            <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
+              <h3 className="font-bold mb-4">ThreadRing Stats</h3>
+              <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>Members:</span>
-                  <span className="font-medium">{ring.memberCount}</span>
+                  <dt className="text-gray-600">Members:</dt>
+                  <dd className="font-medium">{ring.memberCount}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <span>Posts:</span>
-                  <span className="font-medium">{ring.postCount}</span>
+                  <dt className="text-gray-600">Posts:</dt>
+                  <dd className="font-medium">{ring.postCount}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <span>Slug:</span>
-                  <span className="font-mono text-xs">{ring.slug}</span>
-                </div>
-              </div>
+              </dl>
             </div>
 
-            {/* Invite Members */}
+            {/* Invite Members (for invite-only) */}
             {formData.joinType === "invite" && (
-              <ThreadRingInviteForm
-                threadRingSlug={ring.slug}
-                threadRingName={ring.name}
-              />
+              <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
+                <h3 className="font-bold mb-4">Invite Members</h3>
+                <ThreadRingInviteForm 
+                  threadRingSlug={ring.slug} 
+                  threadRingName={ring.name}
+                />
+              </div>
             )}
 
             {/* Danger Zone */}
-            <div className="bg-red-50 border border-red-300 p-4">
-              <h3 className="font-bold mb-3 text-red-800">Danger Zone</h3>
-              <p className="text-sm text-red-700 mb-3">
-                Once you delete a ThreadRing, there is no going back.
+            <div className="bg-red-50 border border-red-300 p-6">
+              <h3 className="font-bold text-red-800 mb-4">Danger Zone</h3>
+              <p className="text-sm text-red-700 mb-4">
+                Careful! These actions cannot be undone.
               </p>
               <button
-                className="w-full border border-red-500 px-4 py-2 bg-white hover:bg-red-100 text-red-600 text-sm font-medium"
+                className="w-full border border-red-300 px-4 py-2 bg-white text-red-700 hover:bg-red-100"
                 onClick={() => {
-                  if (confirm(`Are you sure you want to delete "${ring.name}"? This action cannot be undone.`)) {
+                  if (confirm("Are you sure you want to delete this ThreadRing? This action cannot be undone.")) {
                     // TODO: Implement delete
                     console.log("Delete ThreadRing");
                   }
@@ -354,7 +399,8 @@ export default function ThreadRingSettingsPage({
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteConfig = await getSiteConfig();
-  const { slug } = context.params!;
+  const { slug } = context.query;
+  const session = context.req.cookies.session;
   
   if (typeof slug !== "string") {
     return {
@@ -362,53 +408,47 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         siteConfig,
         ring: null,
         canManage: false,
-        error: "Invalid ThreadRing URL",
-      },
+        error: "Invalid ThreadRing slug"
+      }
     };
   }
 
-  const viewer = await getSessionUser(context.req as any);
-
   try {
-    // Use Ring Hub if enabled
+    const viewer = session ? await getSessionUser({ cookies: { session } } as any) : null;
+
+    // Try Ring Hub first if enabled
     if (featureFlags.ringhub()) {
       const client = getRingHubClient();
       if (client) {
         try {
-          const ringDescriptor = await client.getRing(slug as string);
-          if (ringDescriptor) {
-            // Check if viewer owns this Ring Hub ring locally
-            let canManage = false;
-            if (viewer) {
-              const ownership = await db.ringHubOwnership.findUnique({
-                where: { ringSlug: slug as string },
-              });
-              canManage = ownership?.ownerUserId === viewer.id;
-            }
-
-            const ring = {
-              id: ringDescriptor.slug,
-              name: ringDescriptor.name,
-              slug: ringDescriptor.slug,
-              description: ringDescriptor.description,
-              joinType: ringDescriptor.joinPolicy?.toLowerCase() || 'open',
-              visibility: ringDescriptor.visibility?.toLowerCase() || 'public',
-              curatorNote: ringDescriptor.curatorNotes || '',
-              memberCount: ringDescriptor.memberCount,
-              postCount: ringDescriptor.postCount,
-            };
-
+          const ringHubRing = await client.getRing(slug);
+          
+          if (ringHubRing) {
+            // Check if viewer can manage (is owner)
+            const canManage = viewer && ringHubRing.ownerDid === viewer.did;
+            
             return {
               props: {
                 siteConfig,
-                ring,
-                canManage,
-              },
+                ring: {
+                  id: ringHubRing.id,
+                  name: ringHubRing.name,
+                  slug: ringHubRing.slug,
+                  description: ringHubRing.description,
+                  shortCode: ringHubRing.shortCode || null,
+                  joinType: ringHubRing.joinPolicy?.toLowerCase() || 'open',
+                  visibility: ringHubRing.visibility?.toLowerCase() || 'public',
+                  postPolicy: ringHubRing.postPolicy?.toLowerCase() || 'members',
+                  curatorNote: ringHubRing.curatorNote || null,
+                  memberCount: ringHubRing.memberCount || 0,
+                  postCount: ringHubRing.postCount || 0
+                },
+                canManage
+              }
             };
           }
         } catch (ringHubError) {
-          console.error("Ring Hub error in settings page:", ringHubError);
-          // Fall through to return not found
+          console.error("Ring Hub error:", ringHubError);
         }
       }
     }
@@ -424,10 +464,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         joinType: true,
         visibility: true,
         curatorNote: true,
-        memberCount: true,
-        postCount: true,
         curatorId: true,
-      },
+        memberCount: true,
+        postCount: true
+      }
     });
 
     if (!ring) {
@@ -436,12 +476,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           siteConfig,
           ring: null,
           canManage: false,
-          error: "ThreadRing not found",
-        },
+          error: "ThreadRing not found"
+        }
       };
     }
 
-    // Check if viewer is the curator
     const canManage = viewer?.id === ring.curatorId;
 
     return {
@@ -449,21 +488,21 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         siteConfig,
         ring: {
           ...ring,
-          joinType: ring.joinType as string,
-          visibility: ring.visibility as string,
+          shortCode: null,
+          postPolicy: 'members'
         },
-        canManage,
-      },
+        canManage
+      }
     };
-  } catch (error: any) {
-    console.error("Settings page error:", error);
+  } catch (error) {
+    console.error("Error fetching ThreadRing settings:", error);
     return {
       props: {
         siteConfig,
         ring: null,
         canManage: false,
-        error: "Failed to load ThreadRing",
-      },
+        error: "Failed to load ThreadRing settings"
+      }
     };
   }
 };

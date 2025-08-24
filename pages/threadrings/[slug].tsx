@@ -720,23 +720,22 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         <div className="lg:col-span-3">
           <div className="border border-black p-6 mb-6 bg-white shadow-[2px_2px_0_#000]" style={{ minWidth: 'auto' }}>
             <div className="mb-4">
-              <div className="flex items-start justify-between gap-4 flex-wrap lg:flex-nowrap">
-                <div className="flex-1">
-                  <div className="flex items-center gap-4 mb-3">
-                    <h1 className="thread-headline text-3xl font-bold">{ring.name}</h1>
-                    {ring.badge && ring.badge.isActive && (
-                      <div className="flex-shrink-0">
-                        <ThreadRing88x31Badge
-                          templateId={ring.badge.templateId}
-                          title={ring.badge.title}
-                          subtitle={ring.badge.subtitle}
-                          backgroundColor={ring.badge.backgroundColor}
-                          textColor={ring.badge.textColor}
-                          imageUrl={ring.badge.imageUrl}
-                        />
-                      </div>
-                    )}
-                  </div>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                  <h1 className="thread-headline text-2xl sm:text-3xl font-bold truncate min-w-0 flex-shrink" title={ring.name}>{ring.name}</h1>
+                  {ring.badge && ring.badge.isActive && (
+                    <div className="flex-shrink-0">
+                      <ThreadRing88x31Badge
+                        templateId={ring.badge.templateId}
+                        title={ring.badge.title}
+                        subtitle={ring.badge.subtitle}
+                        backgroundColor={ring.badge.backgroundColor}
+                        textColor={ring.badge.textColor}
+                        imageUrl={ring.badge.imageUrl}
+                      />
+                    </div>
+                  )}
+                </div>
                   {ring.description && (
                     <p className="text-thread-sage leading-relaxed mb-3">
                       {ring.description}
@@ -767,78 +766,6 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     <span>•</span>
                     <span className="capitalize">{ring.joinType} joining</span>
                   </div>
-                </div>
-                
-                {/* Join/Member Status Button */}
-                <div className="flex-shrink-0">
-                  {isMember ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm bg-green-200 px-4 py-2 border border-black rounded">
-                          {currentUserRole === "curator" ? "Curator" : 
-                           currentUserRole === "moderator" ? "Moderator" : "Member"}
-                        </div>
-                        {currentUserRole === "curator" && (
-                          <button
-                            onClick={() => router.push(`/threadrings/${ring.slug}/settings`)}
-                            className="text-sm border border-black px-4 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
-                            title="Manage ThreadRing settings"
-                          >
-                            ⚙️ Settings
-                          </button>
-                        )}
-                        <button
-                          onClick={handleLeave}
-                          disabled={joining}
-                          className="text-sm border border-black px-4 py-2 bg-white hover:bg-red-100 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={currentUserRole === "curator" 
-                            ? "As curator, you must transfer ownership first (unless you're the only member)" 
-                            : "Leave this ThreadRing"}
-                        >
-                          {joining ? "..." : "Leave"}
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => router.push(`/threadrings/${ring.slug}/fork`)}
-                        className="text-sm border border-black px-4 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
-                        title="Create your own version of this ThreadRing"
-                      >
-                        🍴 Fork ThreadRing
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      {ring.joinType === "open" ? (
-                        <button
-                          onClick={handleJoin}
-                          disabled={joining}
-                          className="border border-black px-6 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                        >
-                          {joining ? "Joining..." : "Join ThreadRing"}
-                        </button>
-                      ) : ring.joinType === "invite" ? (
-                        <div className="text-sm bg-gray-200 px-4 py-2 border border-black rounded">
-                          Invite Only
-                        </div>
-                      ) : ring.joinType === "closed" ? (
-                        <div className="text-sm bg-red-200 px-4 py-2 border border-black rounded">
-                          Closed
-                        </div>
-                      ) : null}
-                      
-                      {/* Fork button for non-members (if ring is public/unlisted) */}
-                      {ring.visibility !== "private" && (
-                        <button
-                          onClick={() => router.push(`/threadrings/${ring.slug}/fork`)}
-                          className="text-sm border border-black px-4 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
-                          title="Create your own version of this ThreadRing"
-                        >
-                          🍴 Fork ThreadRing
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
             <div className="thread-divider"></div>
@@ -939,6 +866,82 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 <div>
                   <span className="font-semibold">Join Type:</span>{" "}
                   <span className="capitalize">{ring.joinType}</span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-3 border-t border-gray-200 space-y-2">
+                  {isMember ? (
+                    <>
+                      {/* Member Status */}
+                      <div className="text-xs bg-green-100 px-3 py-2 border border-green-300 rounded text-center">
+                        <span className="font-medium">
+                          {currentUserRole === "curator" ? "👑 Curator" : 
+                           currentUserRole === "moderator" ? "🛡️ Moderator" : "👤 Member"}
+                        </span>
+                      </div>
+
+                      {/* Curator Settings Button */}
+                      {currentUserRole === "curator" && (
+                        <button
+                          onClick={() => router.push(`/threadrings/${ring.slug}/settings`)}
+                          className="w-full text-sm border border-black px-3 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
+                        >
+                          ⚙️ Manage Settings
+                        </button>
+                      )}
+
+                      {/* Fork Button for Members */}
+                      <button
+                        onClick={() => router.push(`/threadrings/${ring.slug}/fork`)}
+                        className="w-full text-sm border border-black px-3 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
+                      >
+                        🍴 Fork ThreadRing
+                      </button>
+
+                      {/* Leave Button */}
+                      <button
+                        onClick={handleLeave}
+                        disabled={joining}
+                        className="w-full text-sm border border-black px-3 py-2 bg-white hover:bg-red-100 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={currentUserRole === "curator" 
+                          ? "As curator, you must transfer ownership first (unless you're the only member)" 
+                          : "Leave this ThreadRing"}
+                      >
+                        {joining ? "Leaving..." : "Leave ThreadRing"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {/* Join Button for Non-Members */}
+                      {ring.joinType === "open" ? (
+                        <button
+                          onClick={handleJoin}
+                          disabled={joining}
+                          className="w-full border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                        >
+                          {joining ? "Joining..." : "Join ThreadRing"}
+                        </button>
+                      ) : ring.joinType === "invite" ? (
+                        <div className="text-xs bg-gray-100 px-3 py-2 border border-gray-300 rounded text-center">
+                          🔒 Invite Only
+                        </div>
+                      ) : ring.joinType === "closed" ? (
+                        <div className="text-xs bg-red-100 px-3 py-2 border border-red-300 rounded text-center">
+                          🚫 Closed to New Members
+                        </div>
+                      ) : null}
+
+                      {/* Fork button for non-members (if ring is public/unlisted) */}
+                      {ring.visibility !== "private" && (
+                        <button
+                          onClick={() => router.push(`/threadrings/${ring.slug}/fork`)}
+                          className="w-full text-sm border border-black px-3 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
+                        >
+                          🍴 Fork ThreadRing
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             )}

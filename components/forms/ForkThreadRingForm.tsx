@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import BadgeSelector from "../BadgeSelector";
 
@@ -20,6 +20,7 @@ export default function ForkThreadRingForm({
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: `${originalRing.name} Fork`,
+    slug: `${originalRing.slug.slice(0, 20)}-fork`.slice(0, 25),
     description: originalRing.description || "",
     joinType: "open" as "open" | "invite" | "closed",
     visibility: "public" as "public" | "unlisted" | "private"
@@ -34,11 +35,115 @@ export default function ForkThreadRingForm({
     subtitle?: string;
   }>({ templateId: 'classic_blue' });
 
+  // Slug validation state
+  const [slugStatus, setSlugStatus] = useState<{
+    isValid: boolean;
+    isAvailable: boolean | null;
+    isChecking: boolean;
+    message: string;
+  }>({
+    isValid: true,
+    isAvailable: null,
+    isChecking: false,
+    message: ''
+  });
+
+  // Slug validation function
+  const validateSlug = useCallback((slug: string) => {
+    // Length check (3-25 characters)
+    if (slug.length === 0) {
+      return { isValid: false, message: "Slug is required" };
+    }
+    if (slug.length < 3) {
+      return { isValid: false, message: "Slug must be at least 3 characters" };
+    }
+    if (slug.length > 25) {
+      return { isValid: false, message: "Slug must be 25 characters or less" };
+    }
+
+    // Pattern check: ^[a-z0-9-]+$
+    const pattern = /^[a-z0-9-]+$/;
+    if (!pattern.test(slug)) {
+      return { isValid: false, message: "Slug can only contain lowercase letters, numbers, and hyphens" };
+    }
+
+    // Cannot start or end with hyphen
+    if (slug.startsWith('-') || slug.endsWith('-')) {
+      return { isValid: false, message: "Slug cannot start or end with a hyphen" };
+    }
+
+    // Cannot contain consecutive hyphens
+    if (slug.includes('--')) {
+      return { isValid: false, message: "Slug cannot contain consecutive hyphens" };
+    }
+
+    return { isValid: true, message: "" };
+  }, []);
+
+  // Check slug availability with Ring Hub API
+  const checkSlugAvailability = useCallback(async (slug: string) => {
+    if (!slug) return;
+
+    setSlugStatus(prev => ({ ...prev, isChecking: true }));
+
+    try {
+      const response = await fetch(`/api/threadrings/check-availability/${encodeURIComponent(slug)}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setSlugStatus(prev => ({
+          ...prev,
+          isAvailable: data.available,
+          message: data.message,
+          isChecking: false
+        }));
+      } else {
+        setSlugStatus(prev => ({
+          ...prev,
+          isAvailable: false,
+          message: data.message || "Failed to check availability",
+          isChecking: false
+        }));
+      }
+    } catch (error) {
+      setSlugStatus(prev => ({
+        ...prev,
+        isAvailable: null,
+        message: "Failed to check availability",
+        isChecking: false
+      }));
+    }
+  }, []);
+
+  // Debounced slug validation and availability check
+  useEffect(() => {
+    const validation = validateSlug(formData.slug);
+    setSlugStatus(prev => ({
+      ...prev,
+      isValid: validation.isValid,
+      message: validation.message || prev.message,
+      isAvailable: validation.isValid ? prev.isAvailable : null
+    }));
+
+    if (validation.isValid && formData.slug) {
+      const timeoutId = setTimeout(() => {
+        checkSlugAvailability(formData.slug);
+      }, 500); // 500ms debounce
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [formData.slug, validateSlug, checkSlugAvailability]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
       setError("ThreadRing name is required");
+      return;
+    }
+
+    if (!slugStatus.isValid || slugStatus.isAvailable === false) {
+      setError("Please fix the slug issues before submitting");
       return;
     }
 
@@ -105,6 +210,53 @@ export default function ForkThreadRingForm({
           />
           <div className="text-xs text-gray-600 mt-1">
             {formData.name.length}/100 characters
+          </div>
+        </div>
+
+        {/* Slug */}
+        <div>
+          <label htmlFor="slug" className="block text-sm font-medium mb-2">
+            ThreadRing Slug (URL) *
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              id="slug"
+              value={formData.slug}
+              onChange={(e) => handleChange("slug", e.target.value.toLowerCase())}
+              className={`w-full border p-3 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000] ${
+                !slugStatus.isValid ? 'border-red-500' : 
+                slugStatus.isAvailable === false ? 'border-red-500' : 
+                slugStatus.isAvailable === true ? 'border-green-500' : 'border-black'
+              }`}
+              placeholder="my-fork"
+              maxLength={25}
+              pattern="[a-z0-9-]+"
+              required
+            />
+            {slugStatus.isChecking && (
+              <div className="absolute right-3 top-3">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+              </div>
+            )}
+          </div>
+          <div className="text-xs mt-1 space-y-1">
+            <div className="text-gray-600">
+              {formData.slug.length}/25 characters
+            </div>
+            {slugStatus.message && (
+              <div className={`${
+                !slugStatus.isValid || slugStatus.isAvailable === false ? 'text-red-600' : 
+                slugStatus.isAvailable === true ? 'text-green-600' : 'text-gray-600'
+              }`}>
+                {slugStatus.message}
+                {slugStatus.isAvailable === true && ' ✓'}
+                {slugStatus.isAvailable === false && ' ✗'}
+              </div>
+            )}
+            <div className="text-gray-500">
+              URL will be: /threadrings/{formData.slug || 'your-slug'}
+            </div>
           </div>
         </div>
 
