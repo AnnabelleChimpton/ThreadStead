@@ -90,10 +90,7 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: any) {
         include: {
           author: {
             include: {
-              handles: {
-                where: { host: process.env.NEXT_PUBLIC_BASE_URL?.replace(/https?:\/\//, '') || 'localhost:3000' },
-                take: 1
-              },
+              handles: true,
               profile: true
             }
           },
@@ -127,8 +124,10 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: any) {
             id: post.author.id,
             displayName: post.author.profile?.displayName,
             avatarUrl: post.author.profile?.avatarUrl,
-            handle: post.author.handles[0]?.handle || 'unknown',
-            primaryHandle: post.author.handles[0]?.handle || 'unknown'
+            handle: post.author.handles.find(h => h.host === "local")?.handle || 
+                   post.author.handles[0]?.handle || 'unknown',
+            primaryHandle: post.author.handles.find(h => h.host === "local")?.handle || 
+                          post.author.handles[0]?.handle || 'unknown'
           },
           threadRings: post.threadRings?.map(tr => ({
             id: tr.threadRing.id,
