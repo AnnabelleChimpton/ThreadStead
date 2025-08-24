@@ -276,6 +276,11 @@ export class AuthenticatedRingHubClient {
     }
     return await this.client.getStats()
   }
+
+  async getMyMemberships(options?: Parameters<RingHubClient['getMyMemberships']>[0]) {
+    const userClient = await this.getUserClient()
+    return await userClient.getMyMemberships(options)
+  }
 }
 
 /**

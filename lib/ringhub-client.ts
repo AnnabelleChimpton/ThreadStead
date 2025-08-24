@@ -220,6 +220,40 @@ export class RingHubClient {
     return this.get(`/trp/stats`)
   }
 
+  /**
+   * Get current user's memberships (requires authentication)
+   */
+  async getMyMemberships(options?: {
+    status?: 'ACTIVE' | 'PENDING' | 'REVOKED'
+    limit?: number
+    offset?: number
+  }): Promise<{
+    memberships: Array<{
+      ringSlug: string
+      ringName: string
+      ringDescription?: string
+      ringVisibility: 'PUBLIC' | 'UNLISTED' | 'PRIVATE'
+      status: 'ACTIVE' | 'PENDING' | 'REVOKED'
+      role: 'owner' | 'moderator' | 'member'
+      joinedAt: string
+      badgeId?: string
+    }>
+    total: number
+    limit: number
+    offset: number
+    hasMore: boolean
+  }> {
+    const params = new URLSearchParams()
+    if (options?.status) params.append('status', options.status)
+    if (options?.limit) params.append('limit', options.limit.toString())
+    if (options?.offset) params.append('offset', options.offset.toString())
+
+    const queryString = params.toString()
+    const path = `/trp/my/memberships${queryString ? `?${queryString}` : ''}`
+    
+    return this.get(path)
+  }
+
   // Membership Operations
 
   /**

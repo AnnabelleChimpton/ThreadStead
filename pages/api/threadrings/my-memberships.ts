@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
-import { getRingHubClient } from "@/lib/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
@@ -11,13 +11,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
   try {
-    // For Ring Hub, we don't have local membership data, so return empty for now
-    // TODO: Implement Ring Hub membership tracking when user authentication is available
+    // Use Ring Hub memberships when enabled
     if (featureFlags.ringhub()) {
-      // When Ring Hub is enabled, local memberships may not be available
-      // Return empty list for now - this will need proper implementation when
-      // Ring Hub supports user authentication and membership tracking
-      return res.status(200).json({ rings: [] });
+      try {
+        const authenticatedClient = createAuthenticatedRingHubClient(viewer.id);
+        const ringHubMemberships = await authenticatedClient.getMyMemberships({
+          status: 'ACTIVE' // Only get active memberships
+        });
+        
+        console.log(`Fetched ${ringHubMemberships.memberships?.length || 0} Ring Hub memberships for user ${viewer.id}`);
+        
+        // Transform Ring Hub memberships to ThreadStead format
+        const rings = ringHubMemberships.memberships.map(membership => ({
+          id: membership.ringSlug, // Use slug as ID for Ring Hub rings
+          name: membership.ringName,
+          slug: membership.ringSlug,
+          role: membership.role,
+          visibility: membership.ringVisibility.toLowerCase(), // Convert to lowercase
+        }));
+        
+        return res.status(200).json({ rings });
+      } catch (error) {
+        console.error('Failed to fetch Ring Hub memberships:', error);
+        // Fall back to empty array if Ring Hub fails
+        return res.status(200).json({ rings: [] });
+      }
     }
 
     const memberships = await db.threadRingMember.findMany({
