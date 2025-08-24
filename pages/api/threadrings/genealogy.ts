@@ -157,35 +157,79 @@ export default async function handler(
       root = pruneToDepth(root, 0);
     }
 
-    // Calculate statistics from the tree
-    const calculateStats = (node: ThreadRingNode): GenealogyStats => {
-      let totalRings = 1;
-      let totalMembers = node.memberCount;
-      let totalPosts = node.postCount;
-      let maxDepth = node.lineageDepth;
-      let directChildrenSum = node.directChildrenCount;
+    // Calculate statistics efficiently using Ring Hub stats endpoint
+    const calculateStats = async (node: ThreadRingNode): Promise<GenealogyStats> => {
+      try {
+        // Use Ring Hub stats for global network statistics
+        const ringHubStats = await ringHubClient.getStats();
+        console.log('Using Ring Hub stats for genealogy:', ringHubStats);
+        
+        // Calculate max depth from the tree structure
+        const calculateMaxDepth = (n: ThreadRingNode): number => {
+          let maxDepth = n.lineageDepth;
+          if (n.children) {
+            for (const child of n.children) {
+              maxDepth = Math.max(maxDepth, calculateMaxDepth(child));
+            }
+          }
+          return maxDepth;
+        };
 
-      if (node.children) {
-        for (const child of node.children) {
-          const childStats = calculateStats(child);
-          totalRings += childStats.totalRings;
-          totalMembers += childStats.totalMembers;
-          totalPosts += childStats.totalPosts;
-          maxDepth = Math.max(maxDepth, childStats.maxDepth);
-          directChildrenSum += childStats.averageChildren * childStats.totalRings;
+        // Calculate average children from the tree structure
+        const calculateAverageChildren = (n: ThreadRingNode): number => {
+          let totalRings = 1;
+          let directChildrenSum = n.directChildrenCount;
+
+          if (n.children) {
+            for (const child of n.children) {
+              const childStats = calculateAverageChildren(child);
+              totalRings += 1; // Each child adds to ring count
+              directChildrenSum += child.directChildrenCount;
+            }
+          }
+
+          return totalRings > 0 ? directChildrenSum / totalRings : 0;
+        };
+
+        return {
+          totalRings: ringHubStats.totalRings,
+          totalMembers: ringHubStats.activeMemberships, // Use active memberships for member count
+          totalPosts: ringHubStats.acceptedPosts, // Use accepted posts for post count
+          maxDepth: calculateMaxDepth(root),
+          averageChildren: calculateAverageChildren(root)
+        };
+      } catch (error) {
+        console.error('Failed to get Ring Hub stats, falling back to tree calculation:', error);
+        
+        // Fallback to original tree traversal calculation
+        let totalRings = 1;
+        let totalMembers = node.memberCount;
+        let totalPosts = node.postCount;
+        let maxDepth = node.lineageDepth;
+        let directChildrenSum = node.directChildrenCount;
+
+        if (node.children) {
+          for (const child of node.children) {
+            const childStats = await calculateStats(child);
+            totalRings += childStats.totalRings;
+            totalMembers += childStats.totalMembers;
+            totalPosts += childStats.totalPosts;
+            maxDepth = Math.max(maxDepth, childStats.maxDepth);
+            directChildrenSum += childStats.averageChildren * childStats.totalRings;
+          }
         }
-      }
 
-      return {
-        totalRings,
-        totalMembers,
-        totalPosts,
-        maxDepth,
-        averageChildren: totalRings > 0 ? directChildrenSum / totalRings : 0
-      };
+        return {
+          totalRings,
+          totalMembers,
+          totalPosts,
+          maxDepth,
+          averageChildren: totalRings > 0 ? directChildrenSum / totalRings : 0
+        };
+      }
     };
 
-    const stats = calculateStats(root);
+    const stats = await calculateStats(root);
 
     return res.json({
       success: true,

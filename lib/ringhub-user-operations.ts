@@ -269,6 +269,13 @@ export class AuthenticatedRingHubClient {
     }
     return await this.client.getRingLineage(slug)
   }
+
+  async getStats() {
+    if (!this.client) {
+      throw new Error('Ring Hub client not available')
+    }
+    return await this.client.getStats()
+  }
 }
 
 /**

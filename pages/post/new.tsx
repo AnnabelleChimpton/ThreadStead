@@ -7,6 +7,7 @@ import { markdownToSafeHtml } from "@/lib/sanitize";
 import Preview from "@/components/forms/PreviewForm";
 import { featureFlags } from "@/lib/feature-flags";
 import Link from "next/link";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface PostEditorPageProps {
   siteConfig: SiteConfig;
@@ -62,6 +63,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user: currentUser } = useCurrentUser();
   
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -732,7 +734,7 @@ code block
             )}
 
             {/* ThreadRing Selection */}
-            {featureFlags.threadrings() && (
+            {featureFlags.threadrings(currentUser) && (
             <div className="mt-6 border border-black p-4 bg-gradient-to-r from-blue-50 to-purple-50">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">🔗</span>

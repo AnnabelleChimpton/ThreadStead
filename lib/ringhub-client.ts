@@ -202,6 +202,24 @@ export class RingHubClient {
     return this.get(`/trp/root`)
   }
 
+  /**
+   * Get Ring Hub network statistics
+   */
+  async getStats(): Promise<{
+    totalRings: number
+    publicRings: number
+    privateRings: number
+    unlistedRings: number
+    totalActors: number
+    verifiedActors: number
+    totalMemberships: number
+    activeMemberships: number
+    totalPosts: number
+    acceptedPosts: number
+  }> {
+    return this.get(`/trp/stats`)
+  }
+
   // Membership Operations
 
   /**
