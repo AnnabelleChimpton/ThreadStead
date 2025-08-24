@@ -360,8 +360,9 @@ export class RingHubClient {
       headers['Digest'] = `sha-256=${hash}`
     }
 
-    // Generate HTTP signature for write operations
-    if (method !== 'GET') {
+    // Generate HTTP signature for write operations and specific authenticated GET endpoints
+    const requiresAuth = method !== 'GET' || path.includes('/trp/my/')
+    if (requiresAuth) {
       try {
         const signature = await this.generateHttpSignature(method, path, headers)
         headers['Authorization'] = `Signature ${signature}`
