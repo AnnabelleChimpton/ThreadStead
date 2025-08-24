@@ -8,7 +8,7 @@
 import { getRingHubClient, RingHubClient } from './ringhub-client'
 import { getOrCreateUserDID, getUserDID, signMessageAsUser, getServerDID, publicKeyToMultibase } from './server-did-client'
 import { db } from './db'
-import type { RingDescriptor, RingMember, PostRef } from './ringhub-client'
+import type { RingDescriptor, RingMember } from './ringhub-client'
 
 /**
  * Enhanced Ring Hub client that automatically handles user authentication
@@ -129,17 +129,21 @@ export class AuthenticatedRingHubClient {
   /**
    * Submit a post to a ring as this user (dev: server proxy, prod: user DID)
    */
-  async submitPost(postRef: Omit<PostRef, 'submittedAt' | 'submittedBy'>): Promise<void> {
+  async submitPost(ringSlug: string, postSubmission: {
+    uri: string
+    digest: string
+    metadata?: any
+  }) {
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
     
-    const fullPostRef = {
-      ...postRef,
-      submittedBy: userDID
+    const submission = {
+      ...postSubmission,
+      actorDid: userDID  // Include the user's DID as the actor
     }
     
-    console.log(`Submitting post to ring as user ${userDID}`)
-    return await userClient.submitPost(fullPostRef)
+    console.log(`Submitting post to ring ${ringSlug} as user ${userDID}`)
+    return await userClient.submitPost(ringSlug, submission)
   }
 
   /**

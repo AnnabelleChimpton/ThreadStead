@@ -290,8 +290,29 @@ export class RingHubClient {
   /**
    * Submit post to ring
    */
-  async submitPost(postRef: Omit<PostRef, 'submittedAt'>): Promise<void> {
-    await this.post('/trp/submit', postRef)
+  async submitPost(ringSlug: string, postSubmission: {
+    uri: string
+    digest: string
+    actorDid?: string
+    metadata?: any
+  }): Promise<{
+    id: string
+    ringSlug: string
+    uri: string
+    digest: string
+    actorDid: string
+    submittedBy: string
+    submittedAt: string
+    status: 'ACCEPTED' | 'PENDING'
+    moderatedAt?: string
+    moderatedBy?: string
+    metadata?: any
+  }> {
+    const requestBody = {
+      ringSlug,
+      ...postSubmission
+    }
+    return await this.post('/trp/submit', requestBody)
   }
 
   /**

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import { featureFlags } from "@/lib/feature-flags";
-import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
 
 
@@ -55,65 +55,74 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
   });
 
+  // Get author info for post URI generation
+  const postWithAuthor = await db.post.findUnique({
+    where: { id: post.id },
+    include: {
+      author: {
+        select: {
+          primaryHandle: true,
+        },
+      },
+    },
+  });
+
   // Associate post with ThreadRings if provided
   if (threadRingIds && threadRingIds.length > 0) {
+    console.log('🔗 Processing ThreadRing associations for post:', post.id, 'rings:', threadRingIds);
     try {
       if (featureFlags.ringhub()) {
+        console.log('🌐 Using Ring Hub for ThreadRing associations');
         // Ring Hub integration for post association
-        const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
+        const authenticatedClient = createAuthenticatedRingHubClient(viewer.id);
         
-        // Get ThreadRing slugs from IDs for Ring Hub submission
-        const threadRings = await db.threadRing.findMany({
-          where: { id: { in: threadRingIds } },
-          select: { id: true, slug: true, name: true }
+        // When Ring Hub is enabled, threadRingIds are actually slugs, not database IDs
+        const ringSlugs = threadRingIds;
+        
+        // Validate user membership by fetching from Ring Hub
+        console.log('📋 Fetching user memberships from Ring Hub...');
+        const userMemberships = await authenticatedClient.getMyMemberships({
+          status: 'ACTIVE'
         });
+        console.log('📋 Retrieved memberships:', userMemberships.memberships?.length || 0, 'rings');
         
-        // Validate user membership locally (we still need this for Ring Hub validation)
-        const userMemberships = await db.threadRingMember.findMany({
-          where: {
-            userId: viewer.id,
-            threadRingId: { in: threadRingIds }
-          },
-          select: { threadRingId: true }
-        });
+        // Filter to only rings the user is actually a member of
+        const validSlugs = ringSlugs.filter(slug => 
+          userMemberships.memberships.some(membership => 
+            membership.ringSlug === slug && membership.status === 'ACTIVE'
+          )
+        );
+        console.log('✅ Valid rings for submission:', validSlugs);
         
-        const validRingIds = userMemberships.map(m => m.threadRingId);
-        const validRings = threadRings.filter(ring => validRingIds.includes(ring.id));
-        
-        // Submit post to each Ring Hub ring as PostRef
-        for (const ring of validRings) {
+        // Submit post to each Ring Hub ring using the correct Ring Hub API format
+        for (const slug of validSlugs) {
           try {
-            const postRef = {
-              uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/posts/${post.id}`,
-              digest: post.id, // Use post ID as digest for now
-              isPinned: false,
+            // Find the ring membership data to get the name
+            const membership = userMemberships.memberships.find(m => m.ringSlug === slug);
+            
+            const postSubmission = {
+              uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/resident/${postWithAuthor?.author?.primaryHandle?.split('@')[0]}/post/${post.id}`,
+              digest: `sha256:${post.id}`, // Use proper digest format as per Ring Hub spec
               metadata: {
                 title: post.title,
-                threadRingId: ring.id,
-                threadRingSlug: ring.slug,
-                threadRingName: ring.name
+                threadRingSlug: slug,
+                threadRingName: membership?.ringName || slug
               }
             };
             
-            await authenticatedClient.submitPost(postRef);
-            console.log(`Post ${post.id} submitted to Ring Hub ring: ${ring.slug}`);
+            console.log(`📤 Submitting post to Ring Hub ring: ${slug}`, postSubmission);
+            const result = await authenticatedClient.submitPost(slug, postSubmission);
+            console.log(`✅ Post ${post.id} successfully submitted to Ring Hub ring: ${slug}`, result);
           } catch (ringHubError) {
-            console.error(`Failed to submit post to Ring Hub ring ${ring.slug}:`, ringHubError);
+            console.error(`❌ Failed to submit post to Ring Hub ring ${slug}:`, ringHubError);
             // Continue with other rings
           }
         }
         
-        // Still create local associations for fallback/caching
-        if (validRingIds.length > 0) {
-          await db.postThreadRing.createMany({
-            data: validRingIds.map(ringId => ({
-              postId: post.id,
-              threadRingId: ringId,
-              addedBy: viewer.id
-            }))
-          });
-        }
+        // Note: When Ring Hub is enabled, we don't create local PostThreadRing associations
+        // since the authoritative data is in Ring Hub
       } else {
+        console.log('🏠 Using local database for ThreadRing associations');
         // Original local-only logic
         // 1. Validate user is member of all specified ThreadRings
         const userMemberships = await db.threadRingMember.findMany({
@@ -201,18 +210,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Continue without failing the post creation
     }
   }
-
-  // Include author info for redirect
-  const postWithAuthor = await db.post.findUnique({
-    where: { id: post.id },
-    include: {
-      author: {
-        select: {
-          primaryHandle: true,
-        },
-      },
-    },
-  });
 
   res.status(201).json({ 
     post: {
