@@ -83,9 +83,33 @@ export class AuthenticatedRingHubClient {
    */
   async joinRing(slug: string, message?: string): Promise<RingMember> {
     const userClient = await this.getUserClient()
+    const userDID = await this.ensureUserDID()
     
-    console.log('Calling Ring Hub joinRing with user DID:', { slug, message })
-    return await userClient.joinRing(slug, message)
+    // Check if we're using localhost (server proxy mode)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
+    
+    if (isLocalhost) {
+      console.log(`⚠️ Development mode: Server DID proxy joining ring ${slug} for user ${userDID}`)
+      console.log(`Server will authenticate to Ring Hub, but membership is for user ${userDID}`)
+      
+      // In development, Ring Hub will see the server DID in the HTTP signature.
+      // This means Ring Hub thinks the server instance is joining, not the user.
+      // For development/testing purposes, this is actually fine - we just need to
+      // understand that all development joins appear as the server instance.
+      console.log('Note: Ring Hub will record server DID as the joining member')
+    } else {
+      console.log(`Production mode: Direct user DID ${userDID} authenticating to Ring Hub`)
+    }
+    
+    try {
+      const result = await userClient.joinRing(slug, message)
+      console.log('Ring Hub join result:', result)
+      return result
+    } catch (error) {
+      console.error('Ring Hub join error:', error)
+      throw error
+    }
   }
 
   /**
