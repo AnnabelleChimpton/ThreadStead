@@ -424,8 +424,33 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           const ringHubRing = await client.getRing(slug);
           
           if (ringHubRing) {
-            // Check if viewer can manage (is owner)
-            const canManage = viewer && ringHubRing.ownerDid === viewer.did;
+            // Check ownership using the same logic as the main ThreadRing page
+            let canManage = false;
+            
+            if (viewer) {
+              // Check local ThreadRing ownership first
+              const localRing = await db.threadRing.findUnique({
+                where: { slug },
+                select: { curatorId: true }
+              });
+
+              if (localRing && localRing.curatorId === viewer.id) {
+                canManage = true;
+              } else {
+                // Check Ring Hub ownership
+                try {
+                  const ringHubOwnership = await db.ringHubOwnership.findUnique({
+                    where: { ringSlug: slug }
+                  });
+
+                  if (ringHubOwnership && ringHubOwnership.ownerUserId === viewer.id) {
+                    canManage = true;
+                  }
+                } catch (ownershipError) {
+                  console.warn('Error checking Ring Hub ownership in settings:', ownershipError);
+                }
+              }
+            }
             
             return {
               props: {
