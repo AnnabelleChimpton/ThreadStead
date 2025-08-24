@@ -124,16 +124,64 @@ export async function generateBadge(options: BadgeGenerationOptions): Promise<Ge
   if (!backgroundColor) backgroundColor = '#4A90E2';
   if (!textColor) textColor = '#FFFFFF';
 
+  // Generate image data URL for server-side use
+  let imageDataUrl: string | undefined;
+  
+  try {
+    // Only generate image on server side (Node.js environment)
+    if (typeof window === 'undefined') {
+      imageDataUrl = await generateBadgeImageDataUrl(
+        options.title,
+        options.subtitle,
+        backgroundColor,
+        textColor
+      );
+    }
+  } catch (error) {
+    console.warn('Failed to generate badge image:', error);
+    // Continue without image - not a fatal error
+  }
+
   const result: GeneratedBadge = {
     title: options.title,
     subtitle: options.subtitle,
     templateId: templateId,
     backgroundColor,
     textColor,
+    imageDataUrl,
     isGenerated: true
   };
 
   return result;
+}
+
+/**
+ * Generate a 88x31 badge image as a data URL using Sharp
+ */
+async function generateBadgeImageDataUrl(
+  title: string,
+  subtitle?: string,
+  backgroundColor: string = '#4A90E2',
+  textColor: string = '#FFFFFF'
+): Promise<string> {
+  const sharp = (await import('sharp')).default;
+  
+  // Create a simple badge with solid background
+  // For now, create a basic colored rectangle - text overlay would require more complex SVG
+  const badgeBuffer = await sharp({
+    create: {
+      width: 88,
+      height: 31,
+      channels: 4,
+      background: backgroundColor
+    }
+  })
+  .png()
+  .toBuffer();
+
+  // Convert to data URL
+  const base64 = badgeBuffer.toString('base64');
+  return `data:image/png;base64,${base64}`;
 }
 
 // Generate badge for a ThreadRing automatically

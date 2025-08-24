@@ -9,6 +9,8 @@ import ThreadRing88x31Badge from '@/components/ThreadRing88x31Badge'
 import { db } from '@/lib/db'
 import { featureFlags } from '@/lib/feature-flags'
 import { getSessionUser } from '@/lib/auth-server'
+import { getPublicRingHubClient } from '@/lib/ringhub-client'
+import { getUserDID } from '@/lib/server-did-client'
 
 interface BadgeWithThreadRing {
   id: string
@@ -231,6 +233,63 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async
     const userId = handle.user.id
     const displayName = handle.user.profile?.displayName || null
 
+    // Use Ring Hub if enabled
+    if (featureFlags.ringhub()) {
+      try {
+        // Get user's DID for Ring Hub lookup
+        const userDID = await getUserDID(userId)
+        if (userDID) {
+          const publicClient = getPublicRingHubClient()
+          if (publicClient) {
+            // Fetch badges from Ring Hub
+            const ringHubBadges = await publicClient.getActorBadges(userDID, {
+              status: 'active',
+              limit: 100 // Get all active badges
+            })
+
+            // Transform Ring Hub badges to our expected format
+            const transformedBadges: BadgeWithThreadRing[] = ringHubBadges.badges.map(badge => {
+              const achievement = badge.badge.credentialSubject?.achievement
+              return {
+                id: badge.ring.slug,
+                title: achievement?.name || badge.ring.name,
+                subtitle: badge.membership.role !== 'member' ? badge.membership.role : undefined,
+                imageUrl: achievement?.image,
+                templateId: undefined, // Not available from Ring Hub
+                backgroundColor: '#4A90E2', // Default color
+                textColor: '#FFFFFF', // Default color
+                threadRing: {
+                  id: badge.ring.slug,
+                  name: badge.ring.name,
+                  slug: badge.ring.slug,
+                  description: achievement?.description,
+                  memberCount: 0, // Not available in badges endpoint
+                  visibility: badge.ring.visibility.toLowerCase() as 'public' | 'unlisted' | 'private'
+                },
+                userMembership: {
+                  role: badge.membership.role.toLowerCase() as 'member' | 'moderator' | 'curator',
+                  joinedAt: badge.membership.joinedAt
+                }
+              }
+            })
+
+            return {
+              props: {
+                username: usernameParam,
+                displayName,
+                badges: transformedBadges,
+                totalThreadRings: transformedBadges.length // Use badge count as approximation
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Ring Hub badges fetch failed in SSR:', error)
+        // Fall through to local logic below
+      }
+    }
+
+    // Local database fallback
     // Get total ThreadRing memberships
     const totalThreadRings = await db.threadRingMember.count({
       where: { userId }

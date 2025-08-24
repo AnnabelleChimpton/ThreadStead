@@ -1,6 +1,9 @@
 // pages/api/users/[username]/badges.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { db } from '@/lib/db'
+import { featureFlags } from '@/lib/feature-flags'
+import { getPublicRingHubClient } from '@/lib/ringhub-client'
+import { getUserDID } from '@/lib/server-did-client'
 import { UserBadgePreferences } from '@/pages/api/users/me/badge-preferences'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -30,6 +33,62 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const userId = handle.user.id
 
+    // Use Ring Hub if enabled
+    if (featureFlags.ringhub()) {
+      try {
+        // Get user's DID for Ring Hub lookup
+        const userDID = await getUserDID(userId)
+        if (!userDID) {
+          console.log(`No DID found for user ${userId}, falling back to local badges`)
+          // Fall through to local logic below
+        } else {
+          const publicClient = getPublicRingHubClient()
+          if (!publicClient) {
+            console.log('Ring Hub client not available, falling back to local badges')
+            // Fall through to local logic below  
+          } else {
+            // Fetch badges from Ring Hub
+            const ringHubBadges = await publicClient.getActorBadges(userDID, {
+              status: 'active',
+              limit: 100 // Get all active badges
+            })
+
+            // Transform Ring Hub badges to our expected format
+            const transformedBadges = ringHubBadges.badges.map(badge => {
+              const achievement = badge.badge.credentialSubject?.achievement
+              return {
+                id: badge.ring.slug,
+                title: achievement?.name || badge.ring.name,
+                subtitle: badge.membership.role !== 'member' ? badge.membership.role : undefined,
+                imageUrl: achievement?.image,
+                templateId: undefined, // Not available from Ring Hub
+                backgroundColor: '#4A90E2', // Default color
+                textColor: '#FFFFFF', // Default color
+                threadRing: {
+                  id: badge.ring.slug,
+                  name: badge.ring.name,
+                  slug: badge.ring.slug,
+                  description: achievement?.description,
+                  memberCount: 0, // Not available in badges endpoint
+                  visibility: badge.ring.visibility.toLowerCase() as 'public' | 'unlisted' | 'private'
+                },
+                userMembership: {
+                  role: badge.membership.role.toLowerCase() as 'member' | 'moderator' | 'curator',
+                  joinedAt: badge.membership.joinedAt
+                }
+              }
+            })
+
+            return res.json({ badges: transformedBadges })
+          }
+        }
+      } catch (error) {
+        console.error('Ring Hub badges fetch failed:', error)
+        // Fall through to local logic below
+      }
+    }
+
+    // Local database fallback
     // Get user's badge preferences
     const userProfile = await db.profile.findUnique({
       where: { userId },

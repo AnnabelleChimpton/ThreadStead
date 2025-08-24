@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
+import { uploadBadgeImage } from "@/lib/badge-uploader";
 import { withThreadRingSupport } from "@/lib/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 import { transformThreadRingToRingDescriptor } from "@/lib/ringhub-transformers";
@@ -39,7 +40,7 @@ export default withThreadRingSupport(async function handler(
     
     console.log("User found:", viewer.id);
 
-  const { name, slug, description, joinType, visibility, badge } = (req.body || {}) as {
+  const { name, slug, description, joinType, visibility, badge, badgeImageUrl, badgeImageHighResUrl } = (req.body || {}) as {
     name?: string;
     slug?: string;
     description?: string;
@@ -52,6 +53,8 @@ export default withThreadRingSupport(async function handler(
       title?: string;
       subtitle?: string;
     };
+    badgeImageUrl?: string;
+    badgeImageHighResUrl?: string;
   };
 
   if (!name?.trim()) {
@@ -98,6 +101,16 @@ export default withThreadRingSupport(async function handler(
           'closed': 'CLOSED'
         } as const;
 
+        // Use pre-uploaded badge URLs if provided
+        let badgeUrls = {};
+        if (badgeImageUrl) {
+          badgeUrls = {
+            badgeImageUrl,
+            badgeImageHighResUrl
+          };
+          console.log('Using pre-uploaded badge URLs:', badgeUrls);
+        }
+
         // Prepare Ring Hub ring descriptor
         const ringDescriptor = {
           name: name.trim(),
@@ -112,7 +125,9 @@ export default withThreadRingSupport(async function handler(
           postCount: 0,
           descendantCount: 0,
           createdAt: new Date().toISOString(),
-          curatorNotes: description?.trim() || undefined
+          curatorNotes: description?.trim() || undefined,
+          // Add badge image URLs for Ring Hub
+          ...badgeUrls
         };
 
         // Create ring in Ring Hub

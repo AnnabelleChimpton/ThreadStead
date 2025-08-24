@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
+import { uploadBadgeImage } from "@/lib/badge-uploader";
 import { withThreadRingSupport } from "@/lib/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
@@ -16,7 +17,7 @@ export default withThreadRingSupport(async function handler(
   }
 
   const { slug } = req.query;
-  const { name, description, joinType, visibility, badge } = req.body;
+  const { name, description, joinType, visibility, badge, badgeImageUrl, badgeImageHighResUrl } = req.body;
 
   if (typeof slug !== "string") {
     return res.status(400).json({ error: "Invalid slug" });
@@ -59,6 +60,16 @@ export default withThreadRingSupport(async function handler(
           'closed': 'CLOSED'
         };
 
+        // Use pre-uploaded badge URLs if provided
+        let badgeUrls = {};
+        if (badgeImageUrl) {
+          badgeUrls = {
+            badgeImageUrl,
+            badgeImageHighResUrl
+          };
+          console.log('Using pre-uploaded badge URLs for fork:', badgeUrls);
+        }
+
         // Prepare Ring Hub fork data (matching Ring Hub API format)
         const forkData = {
           name: name.trim(),
@@ -66,6 +77,8 @@ export default withThreadRingSupport(async function handler(
           description: description?.trim() || undefined,
           joinPolicy: (joinPolicyMapping[joinType as keyof typeof joinPolicyMapping] || 'OPEN') as 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED',
           visibility: visibility.toUpperCase() as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
+          // Add badge image URLs for Ring Hub
+          ...badgeUrls
         };
         
         console.log('Ring Hub fork request:', { parentSlug: slug, forkData });

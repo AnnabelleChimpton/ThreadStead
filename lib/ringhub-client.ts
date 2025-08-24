@@ -383,6 +383,46 @@ export class RingHubClient {
   }
 
   /**
+   * Get actor badges (public endpoint)
+   * No authentication required - returns badges for a specific DID
+   */
+  async getActorBadges(did: string, options?: {
+    status?: 'active' | 'revoked' | 'all'
+    limit?: number
+    offset?: number
+  }): Promise<{
+    badges: Array<{
+      badge: any // Full Open Badge JSON-LD
+      ring: {
+        slug: string
+        name: string
+        visibility: 'PUBLIC' | 'UNLISTED' | 'PRIVATE'
+      }
+      membership: {
+        role: string
+        joinedAt: string
+        status: string
+      }
+      issuedAt: string
+      isRevoked: boolean
+      revokedAt: string | null
+      revocationReason: string | null
+    }>
+    total: number
+    limit: number
+    offset: number
+    hasMore: boolean
+  }> {
+    const params = new URLSearchParams()
+    if (options?.status) params.append('status', options.status)
+    if (options?.limit) params.append('limit', options.limit.toString())
+    if (options?.offset) params.append('offset', options.offset.toString())
+    
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return this.get(`/trp/actors/${encodeURIComponent(did)}/badges${query}`)
+  }
+
+  /**
    * Fork a ring
    */
   async forkRing(parentSlug: string, forkData: Partial<RingDescriptor>): Promise<RingDescriptor> {
