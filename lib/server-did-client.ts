@@ -16,6 +16,16 @@ import bs58 from 'bs58';
 // Configure @noble/ed25519 with SHA-512 (required)
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
 
+/**
+ * Convert base64url public key to multibase format for Ring Hub
+ */
+export function publicKeyToMultibase(publicKeyBase64Url: string): string {
+  const publicKeyBytes = fromBase64Url(publicKeyBase64Url);
+  const multicodecPrefix = Buffer.from([0xed, 0x01]); // Ed25519 prefix
+  const multicodecKey = Buffer.concat([multicodecPrefix, publicKeyBytes]);
+  return 'z' + bs58.encode(multicodecKey);
+}
+
 export type ServerKeypair = { 
   publicKey: string; 
   secretKey: string; 

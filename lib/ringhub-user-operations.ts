@@ -6,7 +6,7 @@
  */
 
 import { getRingHubClient, RingHubClient } from './ringhub-client'
-import { getOrCreateUserDID, getUserDID, signMessageAsUser, getServerDID } from './server-did-client'
+import { getOrCreateUserDID, getUserDID, signMessageAsUser, getServerDID, publicKeyToMultibase } from './server-did-client'
 import { db } from './db'
 import type { RingDescriptor, RingMember, PostRef } from './ringhub-client'
 
@@ -51,14 +51,18 @@ export class AuthenticatedRingHubClient {
     }
     
     // In production, use user's DID directly
+    // Convert base64url public key to multibase format for Ring Hub
+    const publicKeyMultibase = publicKeyToMultibase(userDIDMapping.publicKey)
+    
     this.userClient = new RingHubClient({
       baseUrl: process.env.RING_HUB_URL!,
       instanceDID: userDIDMapping.did,
       privateKeyBase64Url: userDIDMapping.secretKey,
-      publicKeyMultibase: userDIDMapping.publicKey
+      publicKeyMultibase: publicKeyMultibase
     })
 
     console.log(`Created user-authenticated Ring Hub client for ${userDIDMapping.did}`)
+    console.log(`Using multibase public key: ${publicKeyMultibase.substring(0, 20)}...`)
     return this.userClient
   }
 
@@ -82,6 +86,8 @@ export class AuthenticatedRingHubClient {
    * Join a ring as this user (using their own DID)
    */
   async joinRing(slug: string, message?: string): Promise<RingMember> {
+    console.log(`Starting join operation for ring: ${slug}`)
+    
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
     
@@ -99,15 +105,22 @@ export class AuthenticatedRingHubClient {
       // understand that all development joins appear as the server instance.
       console.log('Note: Ring Hub will record server DID as the joining member')
     } else {
-      console.log(`Production mode: Direct user DID ${userDID} authenticating to Ring Hub`)
+      console.log(`✅ Production mode: User ${userDID} authenticating directly to Ring Hub`)
+      console.log(`Ring: ${slug}, Message: ${message || 'none'}`)
     }
     
     try {
+      console.log('Calling Ring Hub join API...')
       const result = await userClient.joinRing(slug, message)
-      console.log('Ring Hub join result:', result)
+      console.log('✅ Ring Hub join successful:', result)
       return result
-    } catch (error) {
-      console.error('Ring Hub join error:', error)
+    } catch (error: any) {
+      console.error('❌ Ring Hub join error:', {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        stack: error.stack
+      })
       throw error
     }
   }
