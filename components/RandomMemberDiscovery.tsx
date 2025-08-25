@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 
 interface RandomMember {
   id: string;
@@ -136,9 +137,11 @@ export default function RandomMemberDiscovery({
             {/* Avatar */}
             <div className="flex-shrink-0">
               {member.avatarUrl ? (
-                <img
+                <Image
                   src={member.avatarUrl}
                   alt={member.displayName || member.handle || 'User'}
+                  width={48}
+                  height={48}
                   className="w-12 h-12 rounded-full border-2 border-black"
                 />
               ) : (

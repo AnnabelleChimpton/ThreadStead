@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import Image from "next/image";
 import Layout from "@/components/Layout";
 
 interface User {
@@ -170,9 +171,11 @@ export default function EmailVerifyPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex-shrink-0">
                     {user.avatarThumbnailUrl ? (
-                      <img
+                      <Image
                         src={user.avatarThumbnailUrl}
                         alt=""
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     ) : (

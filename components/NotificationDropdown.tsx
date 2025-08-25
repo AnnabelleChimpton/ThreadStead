@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import type { NotificationData } from "./NotificationList";
 
@@ -41,7 +42,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         const countData = await countRes.json();
         setUnreadCount(countData.count);
       }
-    } catch (error) {
+    } catch {
       // Notification fetch failed silently
     } finally {
       setLoading(false);
@@ -69,7 +70,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         );
         setUnreadCount(prev => prev !== null ? Math.max(0, prev - notificationIds.length) : 0);
       }
-    } catch (error) {
+    } catch {
       // Mark as read failed silently
     }
   };
@@ -100,7 +101,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
           setUnreadCount(0);
           setIsLoggedIn(false);
         }
-      } catch (error) {
+      } catch {
         // Notification count fetch failed silently
       }
     };
@@ -247,9 +248,11 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
                 >
                   <div className="flex items-start gap-3">
                     {notification.actor.avatarUrl ? (
-                      <img
+                      <Image
                         src={notification.actor.avatarUrl}
                         alt=""
+                        width={32}
+                        height={32}
                         className="w-8 h-8 rounded-full border border-thread-sage/30 flex-shrink-0"
                       />
                     ) : (

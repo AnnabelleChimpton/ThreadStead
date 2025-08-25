@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import NewCommentForm from "../forms/NewCommentForm";
 import CompactBadgeDisplay from "../CompactBadgeDisplay";
 
@@ -203,7 +204,7 @@ export default function CommentList({
             <div className="comment-header-top md:hidden w-full">
               <div className="comment-author-info">
                 {comment.author?.avatarUrl ? (
-                  <img src={comment.author.avatarUrl} alt="" className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" loading="lazy" />
+                  <Image src={comment.author.avatarUrl} alt="" width={32} height={32} className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" />
                 ) : null}
                 <span className="comment-author-name font-semibold text-sm md:text-base">{comment.author?.handle ?? "anon"}</span>
                 {comment.author?.id && (
@@ -224,7 +225,7 @@ export default function CommentList({
             {/* Desktop header (original layout) */}
             <div className="hidden md:flex md:items-center md:gap-2 md:w-full">
               {comment.author?.avatarUrl ? (
-                <img src={comment.author.avatarUrl} alt="" className="w-6 h-6 rounded-full" loading="lazy" />
+                <Image src={comment.author.avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full" />
               ) : null}
               <span className="font-semibold">{comment.author?.handle ?? "anon"}</span>
               {comment.author?.id && (

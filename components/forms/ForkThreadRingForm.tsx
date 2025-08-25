@@ -105,7 +105,7 @@ export default function ForkThreadRingForm({
           isChecking: false
         }));
       }
-    } catch (error) {
+    } catch {
       setSlugStatus(prev => ({
         ...prev,
         isAvailable: null,

@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // Configure external image domains
+  images: {
+    domains: ['cdn.homepageagain.com'],
+  },
+  
   // Rewrite user DID document paths to API routes
   async rewrites() {
     return [

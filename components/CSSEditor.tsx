@@ -49,7 +49,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
         const data = await response.json();
         setPreviewInfo(data);
       }
-    } catch (error) {
+    } catch {
       // CSS preview failed silently
     } finally {
       setPreviewLoading(false);

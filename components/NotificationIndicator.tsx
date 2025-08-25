@@ -25,7 +25,7 @@ export default function NotificationIndicator({
         // Not logged in
         setUnreadCount(null);
       }
-    } catch (error) {
+    } catch {
       // Notification count fetch failed silently
     } finally {
       setLoading(false);

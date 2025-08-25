@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export type NotificationData = {
   id: string;
@@ -51,7 +52,7 @@ export default function NotificationList({
         const data = await res.json();
         setNotifications(data.notifications || []);
       }
-    } catch (error) {
+    } catch {
       // Notification loading failed silently
     } finally {
       setLoading(false);
@@ -83,7 +84,7 @@ export default function NotificationList({
         );
         onNotificationUpdate?.();
       }
-    } catch (error) {
+    } catch {
       // Mark notifications as read failed silently
     }
   };
@@ -104,7 +105,7 @@ export default function NotificationList({
         );
         onNotificationUpdate?.();
       }
-    } catch (error) {
+    } catch {
       // Mark all notifications as read failed silently
     }
   };
@@ -315,9 +316,11 @@ export default function NotificationList({
               >
                 <div className="flex items-start gap-3">
                   {notification.actor.avatarUrl ? (
-                    <img
+                    <Image
                       src={notification.actor.avatarUrl}
                       alt=""
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-full border-2 border-thread-sage/30"
                     />
                   ) : (

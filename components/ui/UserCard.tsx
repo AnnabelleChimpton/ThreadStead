@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export type DirectoryUser = {
   id: string;
@@ -38,9 +39,11 @@ export default function UserCard({ user }: UserCardProps) {
         {/* Avatar */}
         <div className="flex-shrink-0">
           {user.avatarUrl ? (
-            <img
+            <Image
               src={user.avatarUrl}
               alt={`${displayName}'s avatar`}
+              width={48}
+              height={48}
               className="w-12 h-12 rounded-full border-2 border-thread-sage/30 shadow-sm"
             />
           ) : (

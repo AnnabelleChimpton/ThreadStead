@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { SelectedFriend } from "../FriendManager";
 
 interface FriendDisplayProps {
@@ -26,9 +27,11 @@ export default function FriendDisplay({ friends }: FriendDisplayProps) {
             href={`/${friend.handle}`}
             className="friend-card flex items-center gap-2 p-2 border border-gray-300 bg-gray-50 hover:bg-yellow-100 shadow-[1px_1px_0_#000] transition-colors"
           >
-            <img 
+            <Image 
               src={friend.avatarUrl}
               alt={friend.displayName}
+              width={32}
+              height={32}
               className="w-8 h-8 border border-black object-cover flex-shrink-0"
             />
             <div className="min-w-0 flex-1">

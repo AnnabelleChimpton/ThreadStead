@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import CommentList, { CommentWire } from "./CommentList";
 import NewCommentForm from "../forms/NewCommentForm";
@@ -87,9 +88,11 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
       {/* Author Info */}
       <header className="flex items-center gap-3 mb-4">
         {post.authorAvatarUrl ? (
-          <img
+          <Image
             src={post.authorAvatarUrl}
             alt={`${authorName}'s avatar`}
+            width={48}
+            height={48}
             className="w-12 h-12 rounded-full border-2 border-thread-sage/30 shadow-sm"
           />
         ) : (

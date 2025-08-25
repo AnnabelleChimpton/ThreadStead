@@ -92,7 +92,7 @@ export default function ImageCropper({
     try {
       const croppedBlob = await getCroppedImg(imgRef.current, completedCrop);
       onCropComplete(croppedBlob);
-    } catch (error) {
+    } catch {
       // Image cropping failed silently
     } finally {
       setProcessing(false);

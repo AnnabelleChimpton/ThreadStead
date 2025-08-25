@@ -204,7 +204,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
             try {
               const errorData = JSON.parse(xhr.responseText);
               errorMsg = errorData.error || errorMsg;
-            } catch (e) {
+            } catch {
               // If response is not JSON, use default message
             }
             reject(new Error(errorMsg));

@@ -22,7 +22,7 @@ export default function DesignPatternsGuide() {
       await navigator.clipboard.writeText(code);
       setCopiedCode(patternName);
       setTimeout(() => setCopiedCode(null), 2000);
-    } catch (err) {
+    } catch {
       // Copy to clipboard failed silently
     }
   };

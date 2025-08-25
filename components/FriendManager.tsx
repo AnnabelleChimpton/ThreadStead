@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 
 export interface SelectedFriend {
   id: string;
@@ -128,9 +129,11 @@ export default function FriendManager({
                 className="flex items-center justify-between bg-green-50 border border-green-300 p-3 shadow-[2px_2px_0_#000]"
               >
                 <div className="flex items-center gap-3">
-                  <img 
+                  <Image 
                     src={friend.avatarUrl} 
                     alt={friend.displayName}
+                    width={32}
+                    height={32}
                     className="w-8 h-8 border border-black object-cover"
                   />
                   <div>
@@ -196,9 +199,11 @@ export default function FriendManager({
                   onClick={() => canSelect || isSelected ? toggleFriend(friend) : undefined}
                 >
                   <div className="flex items-center gap-3">
-                    <img 
+                    <Image 
                       src={friend.avatarUrl} 
                       alt={friend.displayName}
+                      width={32}
+                      height={32}
                       className="w-8 h-8 border border-black object-cover"
                     />
                     <div>

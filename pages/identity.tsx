@@ -58,7 +58,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
       const seedData = getSeedPhrase();
       setCurrentSeedPhrase(seedData);
       await loadUserEmail();
-    } catch (e) {
+    } catch {
       // Identity loading failed silently
     }
   }
@@ -287,7 +287,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
         const error = await response.json();
         setMessage({ type: 'error', text: error.error || 'Failed to add email' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to add email. Please try again.' });
     } finally {
       setIsEmailLoading(false);
@@ -345,7 +345,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
         const error = await response.json();
         setMessage({ type: 'error', text: error.error || 'Failed to update email' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to update email. Please try again.' });
     } finally {
       setIsEmailLoading(false);
@@ -371,7 +371,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
         const error = await response.json();
         setMessage({ type: 'error', text: error.error || 'Failed to remove email' });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to remove email. Please try again.' });
     } finally {
       setIsEmailLoading(false);
