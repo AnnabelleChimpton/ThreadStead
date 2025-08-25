@@ -41,7 +41,6 @@ export default function TemplateEditor({
   // Sample templates for different modes
   const sampleTemplates = {
     'custom-tags': `<main>
-  <SimpleTest message="Testing the template system!" />
   <ProfileHero variant="tape" />
   <section>
     <ProfilePhoto size="lg" shape="circle" />

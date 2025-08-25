@@ -200,8 +200,6 @@ function getComponentDescription(tagName: string): string {
     Tabs: 'Tabbed content container',
     Tab: 'Individual tab within Tabs component',
     ProfileHero: 'Hero section for user profiles',
-    SimpleTest: 'Simple test component for debugging',
-    DataDebug: 'Debug component to inspect available data',
     RetroCard: 'Retro-styled card container',
     Show: 'Conditionally display content based on data',
     Choose: 'Multi-condition container for When/Otherwise',

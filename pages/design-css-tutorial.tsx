@@ -8,6 +8,12 @@ import RetroFooter from "@/components/design-tutorial/RetroFooter";
 // CSS Class Categories
 const cssCategories = [
   {
+    id: 'threadring-pages',
+    title: 'ThreadRing Pages',
+    icon: '🔗',
+    description: 'ThreadRing community page styling and components'
+  },
+  {
     id: 'profile-structure',
     title: 'Profile Structure',
     icon: '🏗️',
@@ -40,6 +46,335 @@ const cssCategories = [
 ];
 
 const cssData = {
+  'threadring-pages': [
+    {
+      name: 'ThreadRing Page Layout',
+      description: 'Main page structure for ThreadRing community pages',
+      classes: [
+        { name: '.tr-page-container', description: 'Main grid container for ThreadRing pages' },
+        { name: '.tr-main-content', description: 'Main content area (left column)' },
+        { name: '.tr-sidebar', description: 'Sidebar area (right column)' },
+        { name: '.tr-header-card', description: 'ThreadRing header information card' },
+        { name: '.tr-posts-container', description: 'Container for posts list' }
+      ],
+      example: `/* Custom ThreadRing page layout */
+.tr-page-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  min-height: 100vh !important;
+  padding: 2rem !important;
+}
+
+.tr-header-card {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 20px !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+.tr-sidebar {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 15px !important;
+  padding: 1rem !important;
+}`,
+      preview: (
+        <div className="bg-gradient-to-br from-blue-100 to-purple-100 p-3 rounded-lg">
+          <div className="bg-white bg-opacity-90 rounded-lg p-3 mb-2 shadow-lg">
+            <div className="text-sm font-bold text-purple-800">ThreadRing Header</div>
+            <div className="text-xs text-gray-600">Community info and actions</div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2 bg-white bg-opacity-60 rounded p-2 text-xs">Posts Area</div>
+            <div className="bg-white bg-opacity-40 rounded p-2 text-xs">Sidebar</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'ThreadRing Header Elements',
+      description: 'Header components showing ThreadRing information',
+      classes: [
+        { name: '.tr-title', description: 'ThreadRing title/name' },
+        { name: '.tr-description', description: 'ThreadRing description text' },
+        { name: '.tr-curator-note', description: 'Curator\'s note/welcome message' },
+        { name: '.tr-meta-info', description: 'Member count, post count, join type info' },
+        { name: '.tr-badge-wrapper', description: 'Container for ThreadRing badge' }
+      ],
+      example: `/* Cosmic ThreadRing header styling */
+.tr-title {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1) !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-size: 3rem !important;
+  text-align: center !important;
+  animation: rainbow 3s ease-in-out infinite !important;
+}
+
+@keyframes rainbow {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+.tr-curator-note {
+  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%) !important;
+  border: none !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 25px rgba(255, 154, 158, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.tr-meta-info {
+  background: rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: blur(5px) !important;
+  border-radius: 25px !important;
+  padding: 1rem 1.5rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}`,
+      preview: (
+        <div className="space-y-3">
+          <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent text-center">
+            My ThreadRing
+          </div>
+          <div className="bg-gradient-to-r from-pink-100 to-purple-100 p-3 rounded-xl border-l-4 border-pink-400">
+            <div className="text-xs text-pink-600 font-medium mb-1">Curator&apos;s Note</div>
+            <div className="text-xs">Welcome to our community!</div>
+          </div>
+          <div className="bg-white bg-opacity-50 rounded-full px-3 py-1 text-xs text-center">
+            25 members • 142 posts • open joining
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'ThreadRing Sidebar Components',
+      description: 'Sidebar widgets and sections',
+      classes: [
+        { name: '.tr-sidebar-section', description: 'Individual sidebar section container' },
+        { name: '.tr-sidebar-header', description: 'Collapsible section header' },
+        { name: '.tr-sidebar-title', description: 'Section title text' },
+        { name: '.tr-ring-info', description: 'Ring info section' },
+        { name: '.tr-member-status', description: 'Current user membership status' },
+        { name: '.tr-actions-section', description: 'Action buttons container' }
+      ],
+      example: `/* Glassmorphism sidebar styling */
+.tr-sidebar-section {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(15px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 15px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.tr-sidebar-header {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 15px 15px 0 0 !important;
+  transition: all 0.3s ease !important;
+}
+
+.tr-sidebar-header:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-2px) !important;
+}
+
+.tr-member-status {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
+}`,
+      preview: (
+        <div className="space-y-2">
+          <div className="bg-white bg-opacity-20 rounded-lg border border-white border-opacity-30">
+            <div className="bg-white bg-opacity-10 rounded-t-lg p-2 border-b border-white border-opacity-20">
+              <div className="text-xs font-bold">Ring Info</div>
+            </div>
+            <div className="p-2 space-y-1 text-xs">
+              <div>Created: Oct 15, 2024</div>
+              <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-1 rounded-full text-center">
+                👑 Curator
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'ThreadRing Feed Components',
+      description: 'Post feed and scope selection components',
+      classes: [
+        { name: '.tr-feed-scope', description: 'Feed scope selector widget' },
+        { name: '.tr-scope-options', description: 'Scope option buttons container' },
+        { name: '.tr-scope-active', description: 'Currently active scope option' },
+        { name: '.tr-posts-list', description: 'Posts list container' },
+        { name: '.tr-posts-loading', description: 'Loading state for posts' },
+        { name: '.tr-posts-empty', description: 'Empty state when no posts' }
+      ],
+      example: `/* Retro gaming feed styling */
+.tr-feed-scope {
+  background: #ff6b9d !important;
+  border: 4px solid #000 !important;
+  border-radius: 0 !important;
+  box-shadow: 8px 8px 0 #000 !important;
+  font-family: 'Comic Sans MS', cursive !important;
+}
+
+.tr-scope-option {
+  background: #ffff00 !important;
+  border: 3px solid #000 !important;
+  color: #000 !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  transition: all 0.1s ease !important;
+}
+
+.tr-scope-active {
+  background: #00ff00 !important;
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0 #000 !important;
+}
+
+.tr-posts-list {
+  background: #e0e0e0 !important;
+  border: 4px solid #000 !important;
+  border-radius: 0 !important;
+  box-shadow: inset 4px 4px 8px rgba(0,0,0,0.3) !important;
+}`,
+      preview: (
+        <div className="space-y-3">
+          <div className="bg-pink-300 border-2 border-black p-2 shadow-lg">
+            <div className="text-xs font-bold mb-2">Feed: This Ring</div>
+            <div className="flex gap-1">
+              <div className="bg-green-400 border-2 border-black px-2 py-1 text-xs font-bold">THIS</div>
+              <div className="bg-yellow-400 border-2 border-black px-2 py-1 text-xs font-bold">FAMILY</div>
+            </div>
+          </div>
+          <div className="bg-gray-200 border-2 border-black p-3">
+            <div className="text-xs">Posts would appear here...</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'ThreadRing Active Prompts',
+      description: 'Challenge/prompt display components',
+      classes: [
+        { name: '.tr-active-prompt', description: 'Active prompt/challenge container' },
+        { name: '.tr-prompt-active', description: 'Active prompt styling' },
+        { name: '.tr-prompt-inactive', description: 'Inactive/ended prompt styling' },
+        { name: '.tr-prompt-title', description: 'Prompt title text' },
+        { name: '.tr-prompt-description', description: 'Prompt description/content' },
+        { name: '.tr-prompt-status', description: 'Prompt status badges' }
+      ],
+      example: `/* Holographic prompt styling */
+.tr-active-prompt {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4) !important;
+  background-size: 400% 400% !important;
+  animation: gradient-shift 4s ease infinite !important;
+  border: none !important;
+  border-radius: 20px !important;
+  padding: 2rem !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.tr-active-prompt::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+  z-index: -1 !important;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.tr-prompt-title {
+  color: white !important;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5) !important;
+  font-size: 2rem !important;
+  font-weight: bold !important;
+}`,
+      preview: (
+        <div className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-4 rounded-xl text-white">
+          <div className="flex items-center gap-2 mb-2">
+            <span>💭</span>
+            <span className="text-xs bg-blue-600 px-2 py-1 rounded-full animate-pulse">Active</span>
+          </div>
+          <div className="font-bold mb-1">Weekly Challenge</div>
+          <div className="text-sm opacity-90">Share your favorite autumn memory!</div>
+          <div className="mt-2 text-xs opacity-75">5 responses so far</div>
+        </div>
+      )
+    },
+    {
+      name: 'ThreadRing Statistics',
+      description: 'Statistics and data display components',
+      classes: [
+        { name: '.tr-stats', description: 'Statistics widget container' },
+        { name: '.tr-stats-overview', description: 'Overview stats section' },
+        { name: '.tr-stats-grid', description: 'Grid of stat items' },
+        { name: '.tr-stat-value', description: 'Numeric stat values' },
+        { name: '.tr-stat-label', description: 'Stat labels/descriptions' },
+        { name: '.tr-stats-activity', description: 'Recent activity section' }
+      ],
+      example: `/* Cyberpunk stats styling */
+.tr-stats {
+  background: #0f0f0f !important;
+  border: 2px solid #00ff41 !important;
+  border-radius: 0 !important;
+  box-shadow: 
+    0 0 20px #00ff41,
+    inset 0 0 20px rgba(0, 255, 65, 0.1) !important;
+  font-family: 'Courier New', monospace !important;
+  color: #00ff41 !important;
+}
+
+.tr-stat-value {
+  color: #00ffff !important;
+  font-size: 2rem !important;
+  font-weight: bold !important;
+  text-shadow: 0 0 10px #00ffff !important;
+  animation: flicker 2s infinite alternate !important;
+}
+
+.tr-stat-label {
+  color: #00ff41 !important;
+  text-transform: uppercase !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 1px !important;
+}
+
+@keyframes flicker {
+  0% { opacity: 1; }
+  97% { opacity: 1; }
+  98% { opacity: 0.8; }
+  100% { opacity: 1; }
+}`,
+      preview: (
+        <div className="bg-black border-2 border-green-400 p-3 rounded font-mono text-green-400">
+          <div className="text-xs font-bold mb-2 text-center">THREAD.STATS</div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-gray-900 p-2 border border-green-400">
+              <div className="text-cyan-400 font-bold">42</div>
+              <div className="text-green-400">MEMBERS</div>
+            </div>
+            <div className="bg-gray-900 p-2 border border-green-400">
+              <div className="text-cyan-400 font-bold">156</div>
+              <div className="text-green-400">POSTS</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+  ],
   'profile-structure': [
     {
       name: 'Profile Containers',
@@ -643,7 +978,7 @@ const cssData = {
 
 export default function DesignCSSTutorialPage() {
   const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState('profile-structure');
+  const [activeCategory, setActiveCategory] = useState('threadring-pages');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   // Get active category data

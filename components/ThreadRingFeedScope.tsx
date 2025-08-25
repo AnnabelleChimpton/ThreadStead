@@ -66,22 +66,22 @@ export default function ThreadRingFeedScope({
   }
 
   return (
-    <div className="border border-black bg-white shadow-[2px_2px_0_#000] p-3 mb-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-bold text-sm">Feed:</h3>
-        <span className="text-xs text-gray-600">
-          {getScopeIcon(scope)} {getScopeLabel(scope)}
+    <div className="tr-feed-scope tr-widget border border-black bg-white shadow-[2px_2px_0_#000] p-3 mb-4">
+      <div className="tr-feed-scope-header flex items-center justify-between mb-2">
+        <h3 className="tr-feed-scope-title font-bold text-sm">Feed:</h3>
+        <span className="tr-current-scope text-xs text-gray-600">
+          <span className="tr-scope-icon">{getScopeIcon(scope)}</span> <span className="tr-scope-label">{getScopeLabel(scope)}</span>
         </span>
       </div>
       
-      <div className="flex flex-wrap gap-2">
+      <div className="tr-scope-options flex flex-wrap gap-2">
         {availableScopes.map((scopeOption) => (
           <label
             key={scopeOption}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer transition-colors border ${
+            className={`tr-scope-option flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer transition-colors border ${
               scope === scopeOption 
-                ? 'bg-blue-100 border-blue-300 text-blue-800' 
-                : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                ? 'tr-scope-active bg-blue-100 border-blue-300 text-blue-800' 
+                : 'tr-scope-inactive bg-gray-50 border-gray-200 hover:bg-gray-100'
             }`}
           >
             <input
@@ -90,16 +90,16 @@ export default function ThreadRingFeedScope({
               value={scopeOption}
               checked={scope === scopeOption}
               onChange={() => handleScopeChange(scopeOption)}
-              className="sr-only"
+              className="tr-scope-radio sr-only"
             />
-            <span>{getScopeIcon(scopeOption)}</span>
-            <span className="font-medium">{getScopeLabel(scopeOption)}</span>
+            <span className="tr-scope-icon">{getScopeIcon(scopeOption)}</span>
+            <span className="tr-scope-label font-medium">{getScopeLabel(scopeOption)}</span>
           </label>
         ))}
       </div>
 
       {/* Show description for current selection */}
-      <div className="mt-2 text-xs text-gray-600">
+      <div className="tr-scope-description mt-2 text-xs text-gray-600">
         {getScopeDescription(scope)}
       </div>
     </div>

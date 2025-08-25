@@ -26,6 +26,12 @@ export const componentCategories = [
     description: 'Dynamic components that respond and engage'
   },
   {
+    id: 'utility',
+    title: 'Utility',
+    icon: '🔧',
+    description: 'Helper components for data display, navigation, and conditional rendering'
+  },
+  {
     id: 'css-classes',
     title: 'CSS Classes',
     icon: '🎯',
@@ -81,6 +87,88 @@ export const componentData = {
           }
         ]
       }
+    },
+    {
+      name: 'ProfileHero',
+      description: 'Hero section with profile photo, name, and social links in one container',
+      props: [
+        { name: 'layout', type: 'string', options: ['horizontal', 'vertical'], default: 'horizontal', description: 'Layout direction' },
+        { name: 'showBio', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Include bio in hero section' },
+        { name: 'className', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes' }
+      ],
+      example: `<ProfileHero layout="horizontal" showBio="true" />
+<ProfileHero layout="vertical" class="hero-style" />
+<ProfileHero showBio="false" />`,
+      preview: (
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-lg text-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-500 text-xs font-bold">
+              Photo
+            </div>
+            <div>
+              <div className="font-bold">Profile Hero</div>
+              <div className="text-blue-100 text-xs">Bio and social links</div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'UserImage', 
+      description: 'Display user profile image with fallback and customization options',
+      props: [
+        { name: 'size', type: 'string', options: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md', description: 'Image size' },
+        { name: 'shape', type: 'string', options: ['circle', 'square', 'rounded'], default: 'circle', description: 'Image shape' },
+        { name: 'showStatus', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Show online status indicator' }
+      ],
+      example: `<UserImage size="lg" shape="circle" />
+<UserImage size="sm" shape="square" showStatus="true" />
+<UserImage size="xl" shape="rounded" />`,
+      preview: (
+        <div className="w-10 h-10 bg-indigo-200 rounded-full border-2 border-gray-300 flex items-center justify-center">
+          <span className="text-xs">UI</span>
+        </div>
+      )
+    },
+    {
+      name: 'UserAccount',
+      description: 'User account information display with handle, join date, and status',
+      props: [
+        { name: 'showJoinDate', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Display account creation date' },
+        { name: 'showHandle', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show user handle' },
+        { name: 'format', type: 'string', options: ['compact', 'detailed'], default: 'compact', description: 'Information density' }
+      ],
+      example: `<UserAccount showJoinDate="true" showHandle="true" />
+<UserAccount format="detailed" />
+<UserAccount format="compact" showJoinDate="false" />`,
+      preview: (
+        <div className="text-sm space-y-1">
+          <div className="text-gray-600">@username</div>
+          <div className="text-xs text-gray-500">Joined Oct 2024</div>
+        </div>
+      )
+    },
+    {
+      name: 'Guestbook',
+      description: 'Interactive guestbook for visitors to leave messages',
+      props: [
+        { name: 'maxEntries', type: 'number', options: ['5', '10', '20', '50'], default: '10', description: 'Maximum entries to display' },
+        { name: 'allowAnonymous', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Allow anonymous posts' },
+        { name: 'showDates', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show post dates' }
+      ],
+      example: `<Guestbook maxEntries="10" allowAnonymous="false" />
+<Guestbook maxEntries="20" showDates="false" />
+<Guestbook allowAnonymous="true" class="custom-guestbook" />`,
+      preview: (
+        <div className="border border-gray-200 rounded p-3 text-sm">
+          <div className="font-semibold mb-2">Sign My Guestbook!</div>
+          <div className="bg-yellow-50 p-2 rounded mb-2 text-xs">
+            <div className="font-medium">Visitor says:</div>
+            <div className="text-gray-600">Great profile! 👍</div>
+          </div>
+          <button className="bg-blue-500 text-white text-xs px-3 py-1 rounded">Add Entry</button>
+        </div>
+      )
     },
     {
       name: 'Bio',
@@ -350,6 +438,45 @@ export const componentData = {
       )
     },
     {
+      name: 'CenteredBox',
+      description: 'Center content with configurable max width and padding',
+      props: [
+        { name: 'maxWidth', type: 'string', options: ['sm', 'md', 'lg', 'xl', '2xl', 'full'], default: 'lg', description: 'Maximum container width' },
+        { name: 'padding', type: 'string', options: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md', description: 'Inner padding amount' }
+      ],
+      example: `<CenteredBox maxWidth="lg" padding="md">
+  <p>This content is centered and constrained to a max width</p>
+</CenteredBox>
+<CenteredBox maxWidth="sm" padding="xl">
+  <div>Narrow, well-padded content</div>
+</CenteredBox>`,
+      preview: (
+        <div className="max-w-sm mx-auto bg-green-50 p-3 text-center text-xs rounded border border-green-200">
+          <div>Centered Content</div>
+        </div>
+      )
+    },
+    {
+      name: 'Breadcrumb',
+      description: 'Automatic breadcrumb navigation based on current route',
+      props: [
+        { name: 'separator', type: 'string', options: ['>', '/', '›', '•'], default: '›', description: 'Separator character between links' },
+        { name: 'maxItems', type: 'number', options: ['3', '5', '7'], default: '5', description: 'Maximum breadcrumb items to show' }
+      ],
+      example: `<Breadcrumb />
+<Breadcrumb separator="/" />
+<Breadcrumb maxItems="3" separator="•" />`,
+      preview: (
+        <nav className="text-xs text-gray-600">
+          <span className="text-blue-600 hover:underline cursor-pointer">Home</span>
+          <span className="mx-2">›</span>
+          <span className="text-blue-600 hover:underline cursor-pointer">Profile</span>
+          <span className="mx-2">›</span>
+          <span className="font-medium text-gray-800">Current Page</span>
+        </nav>
+      )
+    },
+    {
       name: 'GridLayout',
       description: 'Responsive CSS grids with configurable columns',
       props: [
@@ -394,8 +521,8 @@ export const componentData = {
       name: 'GradientBox',
       description: 'Colorful gradient containers with customizable colors',
       props: [
-        { name: 'colors', type: 'string', options: [], default: '', description: '' },
-        { name: 'direction', type: 'string', options: [], default: '', description: '' }
+        { name: 'colors', type: 'string', options: ['pink-purple', 'blue-green', 'yellow-orange', 'cyan-blue'], default: 'pink-purple', description: 'Gradient color scheme' },
+        { name: 'direction', type: 'string', options: ['to-r', 'to-l', 'to-t', 'to-b', 'to-br', 'to-bl'], default: 'to-br', description: 'Gradient direction' }
       ],
       example: `<GradientBox colors="pink-purple" direction="diagonal">
   <p>Content with gradient background</p>
@@ -403,6 +530,110 @@ export const componentData = {
       preview: (
         <div className="bg-gradient-to-br from-pink-400 to-purple-600 p-3 text-white text-xs rounded">
           Gradient Box
+        </div>
+      )
+    },
+    {
+      name: 'NeonBorder',
+      description: 'Glowing neon border effects with customizable colors and intensity',
+      props: [
+        { name: 'color', type: 'string', options: ['blue', 'pink', 'green', 'purple', 'cyan', 'yellow'], default: 'blue', description: 'Neon glow color' },
+        { name: 'intensity', type: 'string', options: ['soft', 'medium', 'bright'], default: 'medium', description: 'Glow intensity' },
+        { name: 'padding', type: 'string', options: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md', description: 'Inner padding' },
+        { name: 'rounded', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Rounded corners' }
+      ],
+      example: `<NeonBorder color="cyan" intensity="bright">
+  <p>Glowing content!</p>
+</NeonBorder>
+<NeonBorder color="pink" intensity="soft" rounded="false">
+  <div>Sharp neon box</div>
+</NeonBorder>`,
+      preview: (
+        <div className="border-2 border-cyan-400 p-3 text-xs rounded" style={{boxShadow: '0 0 10px #00ffff'}}>
+          <span className="text-cyan-400">Neon Border</span>
+        </div>
+      )
+    },
+    {
+      name: 'GlitchText',
+      description: 'Animated glitch text effect with customizable colors and intensity',
+      props: [
+        { name: 'text', type: 'string', options: ['any text'], default: 'Glitch Text', description: 'Text to animate' },
+        { name: 'intensity', type: 'string', options: ['low', 'medium', 'high'], default: 'medium', description: 'Animation intensity' },
+        { name: 'color', type: 'string', options: ['any color'], default: 'currentColor', description: 'Main text color' },
+        { name: 'glitchColor1', type: 'string', options: ['any color'], default: '#ff0000', description: 'First glitch color' },
+        { name: 'glitchColor2', type: 'string', options: ['any color'], default: '#00ffff', description: 'Second glitch color' }
+      ],
+      example: `<GlitchText text="GLITCH ME" intensity="high" />
+<GlitchText text="Subtle Effect" intensity="low" />
+<GlitchText text="Custom Colors" glitchColor1="#ff00ff" glitchColor2="#00ff00" />`,
+      preview: (
+        <div className="text-sm font-bold animate-pulse text-red-500">
+          GLITCH TEXT
+        </div>
+      )
+    },
+    {
+      name: 'PolaroidFrame',
+      description: 'Retro polaroid-style photo frame with rotation and customization',
+      props: [
+        { name: 'rotation', type: 'string', options: ['none', 'slight', 'medium', 'random'], default: 'slight', description: 'Frame rotation angle' },
+        { name: 'shadow', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Drop shadow effect' },
+        { name: 'caption', type: 'string', options: ['any text'], default: '', description: 'Bottom caption text' }
+      ],
+      example: `<PolaroidFrame rotation="medium" caption="Summer 2024">
+  <img src="/photo.jpg" alt="My photo" />
+</PolaroidFrame>
+<PolaroidFrame rotation="random" shadow="true">
+  <div>Any content can go here</div>
+</PolaroidFrame>`,
+      preview: (
+        <div className="bg-white p-4 shadow-lg transform rotate-2 max-w-32">
+          <div className="bg-gray-200 h-16 mb-2 flex items-center justify-center text-xs">
+            Photo
+          </div>
+          <div className="text-xs text-center font-handwriting">Memories</div>
+        </div>
+      )
+    },
+    {
+      name: 'StickyNote',
+      description: 'Sticky note styling with various colors and rotation effects',
+      props: [
+        { name: 'color', type: 'string', options: ['yellow', 'pink', 'blue', 'green', 'orange'], default: 'yellow', description: 'Note color' },
+        { name: 'size', type: 'string', options: ['sm', 'md', 'lg'], default: 'md', description: 'Note size' },
+        { name: 'rotation', type: 'string', options: ['none', 'slight', 'random'], default: 'slight', description: 'Rotation angle' }
+      ],
+      example: `<StickyNote color="pink" rotation="slight">
+  <p>Don't forget to call mom!</p>
+</StickyNote>
+<StickyNote color="blue" size="lg">
+  <div>Important reminder here</div>
+</StickyNote>`,
+      preview: (
+        <div className="bg-yellow-200 p-3 shadow-md transform rotate-1 max-w-24 text-xs">
+          <div>Sticky Note</div>
+        </div>
+      )
+    },
+    {
+      name: 'FloatingBadge',
+      description: 'Floating badge that stays fixed on screen with animations',
+      props: [
+        { name: 'color', type: 'string', options: ['blue', 'green', 'red', 'yellow', 'purple', 'pink'], default: 'blue', description: 'Badge color' },
+        { name: 'size', type: 'string', options: ['sm', 'md', 'lg'], default: 'md', description: 'Badge size' },
+        { name: 'animation', type: 'string', options: ['bounce', 'pulse', 'float', 'none'], default: 'float', description: 'Animation type' },
+        { name: 'position', type: 'string', options: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], default: 'top-right', description: 'Screen position' }
+      ],
+      example: `<FloatingBadge color="red" position="top-right" animation="bounce">
+  New!
+</FloatingBadge>
+<FloatingBadge color="green" position="bottom-left" size="lg">
+  Online
+</FloatingBadge>`,
+      preview: (
+        <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold animate-bounce">
+          New!
         </div>
       )
     },
@@ -430,8 +661,8 @@ export const componentData = {
       name: 'RevealBox',
       description: 'Content that shows/hides with hover or click',
       props: [
-        { name: 'trigger', type: 'string', options: [], default: '', description: '' },
-        { name: 'effect', type: 'string', options: [], default: '', description: '' }
+        { name: 'trigger', type: 'string', options: ['hover', 'click', 'focus'], default: 'hover', description: 'What triggers the reveal' },
+        { name: 'effect', type: 'string', options: ['fade', 'slide', 'scale', 'flip'], default: 'fade', description: 'Animation effect' }
       ],
       example: `<RevealBox trigger="hover" effect="slide">
   <div>Hover to reveal content!</div>
@@ -440,6 +671,94 @@ export const componentData = {
       preview: (
         <div className="bg-orange-200 p-2 text-xs rounded cursor-pointer hover:bg-orange-300">
           Hover me!
+        </div>
+      )
+    },
+    {
+      name: 'Tabs',
+      description: 'Tabbed interface for organizing content into sections',
+      props: [
+        { name: 'defaultTab', type: 'string', options: ['any tab name'], default: 'first', description: 'Initially active tab' },
+        { name: 'orientation', type: 'string', options: ['horizontal', 'vertical'], default: 'horizontal', description: 'Tab layout direction' },
+        { name: 'style', type: 'string', options: ['default', 'pills', 'underline'], default: 'default', description: 'Tab visual style' }
+      ],
+      example: `<Tabs defaultTab="about" style="pills">
+  <Tab label="About" content="About me content..." />
+  <Tab label="Projects" content="My projects..." />
+  <Tab label="Contact" content="Contact info..." />
+</Tabs>`,
+      preview: (
+        <div className="text-xs">
+          <div className="flex gap-2 mb-2">
+            <div className="bg-blue-500 text-white px-3 py-1 rounded">About</div>
+            <div className="bg-gray-200 px-3 py-1 rounded">Projects</div>
+            <div className="bg-gray-200 px-3 py-1 rounded">Contact</div>
+          </div>
+          <div className="bg-blue-50 p-2 rounded">Tab content goes here</div>
+        </div>
+      )
+    },
+    {
+      name: 'FollowButton',
+      description: 'Social follow button with different states and animations',
+      props: [
+        { name: 'variant', type: 'string', options: ['primary', 'secondary', 'outline'], default: 'primary', description: 'Button style variant' },
+        { name: 'size', type: 'string', options: ['sm', 'md', 'lg'], default: 'md', description: 'Button size' },
+        { name: 'animated', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Hover animations' }
+      ],
+      example: `<FollowButton variant="primary" size="md" />
+<FollowButton variant="outline" animated="false" />
+<FollowButton variant="secondary" size="lg" />`,
+      preview: (
+        <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 text-xs rounded transition-colors">
+          + Follow
+        </button>
+      )
+    },
+    {
+      name: 'NotificationBell',
+      description: 'Notification bell icon with badge and animation options',
+      props: [
+        { name: 'count', type: 'number', options: ['0', '5', '10', '99+'], default: '0', description: 'Notification count' },
+        { name: 'animate', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Bell shake animation' },
+        { name: 'size', type: 'string', options: ['sm', 'md', 'lg'], default: 'md', description: 'Bell size' }
+      ],
+      example: `<NotificationBell count="5" animate="true" />
+<NotificationBell count="99" size="lg" />
+<NotificationBell count="0" />`,
+      preview: (
+        <div className="relative">
+          <div className="w-6 h-6 text-gray-600">🔔</div>
+          <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+            3
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'FriendDisplay',
+      description: 'Display friends list with avatars and status indicators',
+      props: [
+        { name: 'layout', type: 'string', options: ['grid', 'list', 'carousel'], default: 'grid', description: 'Display layout' },
+        { name: 'showStatus', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show online status' },
+        { name: 'limit', type: 'number', options: ['6', '12', '20'], default: '12', description: 'Maximum friends to show' }
+      ],
+      example: `<FriendDisplay layout="grid" showStatus="true" limit="12" />
+<FriendDisplay layout="list" limit="6" />
+<FriendDisplay layout="carousel" showStatus="false" />`,
+      preview: (
+        <div className="text-xs">
+          <div className="font-semibold mb-2">Friends (24)</div>
+          <div className="grid grid-cols-3 gap-1">
+            {[1,2,3].map(i => (
+              <div key={i} className="relative">
+                <div className="w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center text-xs">
+                  {i}
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-white"></div>
+              </div>
+            ))}
+          </div>
         </div>
       )
     },
@@ -456,6 +775,263 @@ export const componentData = {
       preview: (
         <div className="text-xs text-blue-600 animate-pulse">
           ~ Wave Text ~
+        </div>
+      )
+    }
+  ],
+  utility: [
+    {
+      name: 'NavigationLinks',
+      description: 'Flexible navigation menu with customizable links and styling',
+      props: [
+        { name: 'orientation', type: 'string', options: ['horizontal', 'vertical'], default: 'horizontal', description: 'Link layout direction' },
+        { name: 'style', type: 'string', options: ['plain', 'buttons', 'pills', 'underline'], default: 'plain', description: 'Link appearance' },
+        { name: 'spacing', type: 'string', options: ['tight', 'normal', 'loose'], default: 'normal', description: 'Space between links' }
+      ],
+      example: `<NavigationLinks orientation="horizontal" style="pills" />
+<NavigationLinks orientation="vertical" style="buttons" spacing="loose" />`,
+      preview: (
+        <nav className="flex gap-2 text-xs">
+          <div className="bg-blue-100 px-3 py-1 rounded-full">Home</div>
+          <div className="hover:bg-gray-100 px-3 py-1 rounded-full">About</div>
+          <div className="hover:bg-gray-100 px-3 py-1 rounded-full">Contact</div>
+        </nav>
+      )
+    },
+    {
+      name: 'SiteBranding',
+      description: 'Site logo, title, and tagline display component',
+      props: [
+        { name: 'showLogo', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Display logo image' },
+        { name: 'showTagline', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show site tagline' },
+        { name: 'layout', type: 'string', options: ['horizontal', 'vertical', 'stacked'], default: 'horizontal', description: 'Brand element layout' }
+      ],
+      example: `<SiteBranding showLogo="true" showTagline="true" layout="horizontal" />
+<SiteBranding showLogo="false" layout="vertical" />`,
+      preview: (
+        <div className="flex items-center gap-2 text-xs">
+          <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center text-white font-bold">
+            T
+          </div>
+          <div>
+            <div className="font-bold">Threadstead</div>
+            <div className="text-gray-500 text-xs">Your digital home</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'WebsiteDisplay',
+      description: 'Display website links with preview cards and metadata',
+      props: [
+        { name: 'showPreview', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show link preview cards' },
+        { name: 'layout', type: 'string', options: ['list', 'grid', 'compact'], default: 'list', description: 'Display layout' },
+        { name: 'maxLinks', type: 'number', options: ['3', '5', '10'], default: '5', description: 'Maximum links to display' }
+      ],
+      example: `<WebsiteDisplay showPreview="true" layout="grid" maxLinks="6" />
+<WebsiteDisplay layout="compact" showPreview="false" />`,
+      preview: (
+        <div className="border border-gray-200 rounded p-2 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-500 rounded"></div>
+            <div>
+              <div className="font-medium">My Portfolio</div>
+              <div className="text-gray-500">portfolio.example.com</div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'MutualFriends',
+      description: 'Display mutual friends between users with avatars',
+      props: [
+        { name: 'limit', type: 'number', options: ['3', '5', '8'], default: '5', description: 'Max mutual friends to show' },
+        { name: 'showCount', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Display total count' },
+        { name: 'size', type: 'string', options: ['sm', 'md', 'lg'], default: 'md', description: 'Avatar size' }
+      ],
+      example: `<MutualFriends limit="5" showCount="true" />
+<MutualFriends limit="3" size="lg" />`,
+      preview: (
+        <div className="text-xs">
+          <div className="flex -space-x-2 mb-1">
+            {[1,2,3].map(i => (
+              <div key={i} className="w-6 h-6 bg-indigo-300 rounded-full border-2 border-white flex items-center justify-center text-xs">
+                {i}
+              </div>
+            ))}
+          </div>
+          <div className="text-gray-600">12 mutual friends</div>
+        </div>
+      )
+    },
+    {
+      name: 'FriendBadge',
+      description: 'Small badge indicator for friend status and relationships',
+      props: [
+        { name: 'status', type: 'string', options: ['friend', 'pending', 'none', 'blocked'], default: 'none', description: 'Friendship status' },
+        { name: 'showText', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Show status text' },
+        { name: 'size', type: 'string', options: ['sm', 'md'], default: 'sm', description: 'Badge size' }
+      ],
+      example: `<FriendBadge status="friend" showText="true" />
+<FriendBadge status="pending" size="md" />`,
+      preview: (
+        <div className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          Friend
+        </div>
+      )
+    },
+    {
+      name: 'NotificationCenter',
+      description: 'Notification panel with list of recent notifications',
+      props: [
+        { name: 'maxNotifications', type: 'number', options: ['5', '10', '20'], default: '10', description: 'Maximum notifications to show' },
+        { name: 'showTimestamps', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Display notification times' },
+        { name: 'groupByDate', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Group notifications by date' }
+      ],
+      example: `<NotificationCenter maxNotifications="10" showTimestamps="true" />
+<NotificationCenter groupByDate="true" />`,
+      preview: (
+        <div className="border border-gray-200 rounded p-2 text-xs max-w-48">
+          <div className="font-semibold mb-2">Notifications</div>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <div className="w-6 h-6 bg-blue-200 rounded-full"></div>
+              <div className="flex-1">
+                <div>John liked your post</div>
+                <div className="text-gray-500 text-xs">2h ago</div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <div className="w-6 h-6 bg-green-200 rounded-full"></div>
+              <div className="flex-1">
+                <div>New friend request</div>
+                <div className="text-gray-500 text-xs">1d ago</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'Choose (conditional)',
+      description: 'Advanced conditional rendering with When/Otherwise logic blocks',
+      props: [
+        { name: 'children', type: 'components', options: ['When', 'Otherwise'], default: 'required', description: 'When and Otherwise components as children' }
+      ],
+      example: `<Choose>
+  <When condition="user.isLoggedIn">
+    <p>Welcome back, {user.name}!</p>
+  </When>
+  <When data="user.posts" equals="0">
+    <p>You haven't posted anything yet.</p>
+  </When>
+  <Otherwise>
+    <p>Please log in to see your content</p>
+  </Otherwise>
+</Choose>`,
+      preview: (
+        <div className="bg-yellow-50 border border-yellow-200 p-2 text-xs rounded">
+          <div className="text-yellow-800">When condition is true: Welcome back!</div>
+          <div className="text-gray-500 text-xs">Advanced conditional rendering with multiple When clauses</div>
+        </div>
+      )
+    },
+    {
+      name: 'When (used with Choose)',
+      description: 'Condition block for use inside Choose component',
+      props: [
+        { name: 'condition', type: 'string', options: ['true', 'false', 'has:path.to.data', 'path.to.data'], default: 'none', description: 'Condition to evaluate against resident data' },
+        { name: 'data', type: 'string', options: ['user.name', 'posts', 'bio', 'any.data.path'], default: 'none', description: 'Data path to check' },
+        { name: 'equals', type: 'string', options: ['any value'], default: 'none', description: 'Value to compare data against' },
+        { name: 'exists', type: 'boolean', options: ['true', 'false'], default: 'none', description: 'Check if data exists' }
+      ],
+      example: `<When condition="has:user.bio">Bio exists</When>
+<When data="user.posts" equals="5">You have exactly 5 posts</When>
+<When data="user.verified" exists="true">Verified user badge</When>`,
+      preview: (
+        <div className="bg-blue-50 border border-blue-200 p-2 text-xs rounded">
+          <div className="text-blue-800">✓ When condition met</div>
+          <div className="text-gray-500 text-xs">Used inside Choose for conditional logic</div>
+        </div>
+      )
+    },
+    {
+      name: 'Otherwise (used with Choose)',
+      description: 'Fallback content block for use inside Choose component',
+      props: [
+        { name: 'children', type: 'ReactNode', options: ['any content'], default: 'required', description: 'Content to show when no When conditions are met' }
+      ],
+      example: `<Choose>
+  <When condition="user.isLoggedIn">Welcome!</When>
+  <Otherwise>
+    <div>Please log in to continue</div>
+  </Otherwise>
+</Choose>`,
+      preview: (
+        <div className="bg-gray-50 border border-gray-200 p-2 text-xs rounded">
+          <div className="text-gray-600">Otherwise: Default fallback content</div>
+          <div className="text-gray-500 text-xs">Shown when no When conditions match</div>
+        </div>
+      )
+    },
+    {
+      name: 'Show (conditional)',
+      description: 'Simple conditional rendering with flexible data evaluation',
+      props: [
+        { name: 'when', type: 'string', options: ['true', 'false', 'has:path.to.data', 'path.to.data'], default: 'none', description: 'Condition string to evaluate' },
+        { name: 'data', type: 'string', options: ['user.name', 'posts', 'bio', 'any.data.path'], default: 'none', description: 'Data path to check' },
+        { name: 'equals', type: 'string', options: ['any value'], default: 'none', description: 'Value to compare data against' },
+        { name: 'exists', type: 'string', options: ['any.data.path'], default: 'none', description: 'Check if data path exists' }
+      ],
+      example: `<Show when="has:user.bio">
+  <div>User has a bio: {user.bio}</div>
+</Show>
+<Show data="user.posts" equals="0">
+  <p>No posts yet - write your first one!</p>
+</Show>
+<Show exists="user.profilePhoto">
+  <img src={user.profilePhoto} alt="Profile" />
+</Show>`,
+      preview: (
+        <div className="bg-green-50 border border-green-200 p-2 text-xs rounded">
+          <div className="text-green-800">✓ Content is shown</div>
+          <div className="text-gray-500 text-xs">Simple conditional with data path evaluation</div>
+        </div>
+      )
+    },
+    {
+      name: 'IfOwner (conditional)',
+      description: 'Show content only to the profile owner (viewer === owner)',
+      props: [
+        { name: 'children', type: 'ReactNode', options: ['any content'], default: 'required', description: 'Content visible only to profile owner' }
+      ],
+      example: `<IfOwner>
+  <button>Edit Profile</button>
+  <button>Settings</button>
+</IfOwner>`,
+      preview: (
+        <div className="bg-purple-50 border border-purple-200 p-2 text-xs rounded">
+          <div className="text-purple-800">👤 Owner-only: Edit Profile button</div>
+          <div className="text-gray-500 text-xs">Visible only when viewer.id === owner.id</div>
+        </div>
+      )
+    },
+    {
+      name: 'IfVisitor (conditional)',
+      description: 'Show content only to visitors (viewer !== owner)',
+      props: [
+        { name: 'children', type: 'ReactNode', options: ['any content'], default: 'required', description: 'Content visible only to visitors' }
+      ],
+      example: `<IfVisitor>
+  <button>Follow</button>
+  <button>Send Message</button>
+</IfVisitor>`,
+      preview: (
+        <div className="bg-indigo-50 border border-indigo-200 p-2 text-xs rounded">
+          <div className="text-indigo-800">👥 Visitor-only: Follow button</div>
+          <div className="text-gray-500 text-xs">Visible only when viewer.id !== owner.id</div>
         </div>
       )
     }

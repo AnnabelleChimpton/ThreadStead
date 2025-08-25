@@ -33,8 +33,6 @@ import WaveText from '@/components/template/WaveText';
 import GlitchText from '@/components/template/GlitchText';
 import Tabs, { Tab } from '@/components/template/Tabs';
 import ProfileHero from '@/components/template/ProfileHero';
-import SimpleTest from '@/components/template/SimpleTest';
-import DataDebug from '@/components/template/DataDebug';
 import RetroCard from '@/components/layout/RetroCard';
 import UserImage from '@/components/template/UserImage';
 
@@ -443,19 +441,6 @@ componentRegistry.register({
   }
 });
 
-componentRegistry.register({
-  name: 'SimpleTest',
-  component: SimpleTest,
-  props: {
-    message: { type: 'string', default: 'Hello from SimpleTest!' }
-  }
-});
-
-componentRegistry.register({
-  name: 'DataDebug',
-  component: DataDebug,
-  props: {}
-});
 
 componentRegistry.register({
   name: 'RetroCard',

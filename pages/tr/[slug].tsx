@@ -143,20 +143,20 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
 
   return (
     <Layout siteConfig={siteConfig}>
-      <div className="max-w-4xl mx-auto">
+      <div className="tr-spool-landing max-w-4xl mx-auto">
         {/* Hero Section */}
-        <div className="text-center py-12 mb-12">
-          <div className="mb-6">
-            <div className="text-6xl mb-4">🧵</div>
-            <h1 className="text-5xl font-bold text-thread-pine mb-4">{ring.name}</h1>
-            <p className="text-xl text-thread-sage max-w-2xl mx-auto leading-relaxed mb-6">
+        <div className="tr-spool-hero text-center py-12 mb-12">
+          <div className="tr-spool-header mb-6">
+            <div className="tr-spool-icon text-6xl mb-4">🧵</div>
+            <h1 className="tr-spool-title text-5xl font-bold text-thread-pine mb-4">{ring.name}</h1>
+            <p className="tr-spool-description text-xl text-thread-sage max-w-2xl mx-auto leading-relaxed mb-6">
               {ring.description}
             </p>
             
             {/* Prominent Spool Badge */}
             {ring.badge && ring.badge.isActive && (
-              <div className="bg-white border-2 border-thread-pine shadow-lg rounded-lg p-6 max-w-md mx-auto">
-                <div className="text-center">
+              <div className="tr-spool-badge-container bg-white border-2 border-thread-pine shadow-lg rounded-lg p-6 max-w-md mx-auto">
+                <div className="tr-spool-badge-content text-center">
                   <div className="flex justify-center mb-3">
                     {ring.badge.imageUrl ? (
                       <div 
@@ -229,7 +229,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
         </div>
 
         {/* Stats Section */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <div className="tr-spool-stats grid md:grid-cols-3 gap-6 mb-12">
           <div className="border border-black bg-thread-cream shadow-[4px_4px_0_#000] p-6 text-center">
             <div className="text-3xl font-bold text-thread-pine mb-2">
               {lineageData.totalDescendantsCount || ring.totalDescendantsCount || 0}
@@ -715,16 +715,16 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
   return (
     <Layout siteConfig={siteConfig}>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="tr-page-container grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main content area - posts feed */}
-        <div className="lg:col-span-3">
-          <div className="border border-black p-6 mb-6 bg-white shadow-[2px_2px_0_#000]" style={{ minWidth: 'auto' }}>
-            <div className="mb-4">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                  <h1 className="thread-headline text-2xl sm:text-3xl font-bold truncate min-w-0 flex-shrink" title={ring.name}>{ring.name}</h1>
+        <div className="tr-main-content lg:col-span-3">
+          <div className="tr-header-card border border-black p-6 mb-6 bg-white shadow-[2px_2px_0_#000]" style={{ minWidth: 'auto' }}>
+            <div className="tr-header-content mb-4">
+              <div className="tr-header-details flex flex-col gap-4">
+                <div className="tr-title-row flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                  <h1 className="tr-title thread-headline text-2xl sm:text-3xl font-bold truncate min-w-0 flex-shrink" title={ring.name}>{ring.name}</h1>
                   {ring.badge && ring.badge.isActive && (
-                    <div className="flex-shrink-0">
+                    <div className="tr-badge-wrapper flex-shrink-0">
                       <ThreadRing88x31Badge
                         templateId={ring.badge.templateId}
                         title={ring.badge.title}
@@ -737,40 +737,40 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   )}
                 </div>
                   {ring.description && (
-                    <p className="text-thread-sage leading-relaxed mb-3">
+                    <p className="tr-description text-thread-sage leading-relaxed mb-3">
                       {ring.description}
                     </p>
                   )}
                   {ring.curatorNote && (
-                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-3">
-                      <div className="flex items-start">
-                        <div className="text-yellow-600 mr-2">📌</div>
-                        <div>
-                          <p className="text-sm font-medium text-yellow-800 mb-1">Curator&apos;s Note</p>
-                          <p className="text-sm text-yellow-700">{ring.curatorNote}</p>
+                    <div className="tr-curator-note bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-3">
+                      <div className="tr-curator-note-content flex items-start">
+                        <div className="tr-curator-note-icon text-yellow-600 mr-2">📌</div>
+                        <div className="tr-curator-note-text">
+                          <p className="tr-curator-note-label text-sm font-medium text-yellow-800 mb-1">Curator&apos;s Note</p>
+                          <p className="tr-curator-note-message text-sm text-yellow-700">{ring.curatorNote}</p>
                         </div>
                       </div>
                     </div>
                   )}
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="tr-meta-info flex items-center gap-4 text-sm text-gray-600">
                     {ring.curator && (
                       <>
-                        <span>Curated by @{curatorHandle}</span>
+                        <span className="tr-curator-info">Curated by @{curatorHandle}</span>
                         <span>•</span>
                       </>
                     )}
                     
-                    <span>{ring.memberCount} member{ring.memberCount !== 1 ? 's' : ''}</span>
+                    <span className="tr-member-count">{ring.memberCount} member{ring.memberCount !== 1 ? 's' : ''}</span>
                     <span>•</span>
-                    <span>{ring.postCount} post{ring.postCount !== 1 ? 's' : ''}</span>
+                    <span className="tr-post-count">{ring.postCount} post{ring.postCount !== 1 ? 's' : ''}</span>
                     <span>•</span>
-                    <span className="capitalize">{ring.joinType} joining</span>
+                    <span className="tr-join-type capitalize">{ring.joinType} joining</span>
                   </div>
               </div>
             </div>
-            <div className="thread-divider"></div>
-            <div className="mt-6">
-              <span className="thread-label">threadring • {ring.slug}</span>
+            <div className="tr-divider thread-divider"></div>
+            <div className="tr-footer mt-6">
+              <span className="tr-slug thread-label">threadring • {ring.slug}</span>
             </div>
           </div>
           {/* Active Prompt/Challenge */}
@@ -790,8 +790,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             />
           )}
           
-          <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000]">
-            <h2 className="text-xl font-bold mb-4">
+          <div className="tr-posts-container border border-black p-4 bg-white shadow-[2px_2px_0_#000]">
+            <h2 className="tr-posts-title text-xl font-bold mb-4">
               {feedScope === 'current' ? 'Recent Posts' :
                feedScope === 'parent' ? 'Posts from Parent Ring' :
                feedScope === 'children' ? 'Posts from Child Rings' :
@@ -799,19 +799,19 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             </h2>
             
             {postsLoading ? (
-              <div className="text-gray-600 text-center py-8">
+              <div className="tr-posts-loading text-gray-600 text-center py-8">
                 Loading posts...
               </div>
             ) : loadError ? (
-              <div className="text-red-600 text-center py-8">
+              <div className="tr-posts-error text-red-600 text-center py-8">
                 {loadError}
               </div>
             ) : posts.length === 0 ? (
-              <div className="text-gray-600 text-center py-8">
+              <div className="tr-posts-empty text-gray-600 text-center py-8">
                 No posts yet. Posts from members will appear here.
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="tr-posts-list space-y-6">
                 {posts.map((post, index) => (
                   <PostItem
                     key={post.id}
@@ -845,38 +845,38 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         </div>
 
         {/* Sidebar */}
-        <div className="lg:col-span-1 space-y-4">
+        <div className="tr-sidebar lg:col-span-1 space-y-4">
           {/* Ring Info */}
-          <div className="border border-black bg-white shadow-[2px_2px_0_#000]">
+          <div className="tr-sidebar-section tr-ring-info border border-black bg-white shadow-[2px_2px_0_#000]">
             <button
               onClick={() => setRingInfoCollapsed(!ringInfoCollapsed)}
-              className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              className="tr-sidebar-header w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
-              <h3 className="font-bold">Ring Info</h3>
-              <span className="text-sm">{ringInfoCollapsed ? '▼' : '▲'}</span>
+              <h3 className="tr-sidebar-title font-bold">Ring Info</h3>
+              <span className="tr-collapse-indicator text-sm">{ringInfoCollapsed ? '▼' : '▲'}</span>
             </button>
             {!ringInfoCollapsed && (
-              <div className="px-4 pb-4 space-y-2 text-sm border-t border-gray-200">
-                <div>
-                  <span className="font-semibold">Created:</span>{" "}
-                  {new Date(ring.createdAt).toLocaleDateString()}
+              <div className="tr-sidebar-content tr-ring-info-content px-4 pb-4 space-y-2 text-sm border-t border-gray-200">
+                <div className="tr-ring-info-item tr-created-date">
+                  <span className="tr-info-label font-semibold">Created:</span>{" "}
+                  <span className="tr-info-value">{new Date(ring.createdAt).toLocaleDateString()}</span>
                 </div>
-                <div>
-                  <span className="font-semibold">Visibility:</span>{" "}
-                  <span className="capitalize">{ring.visibility}</span>
+                <div className="tr-ring-info-item tr-visibility">
+                  <span className="tr-info-label font-semibold">Visibility:</span>{" "}
+                  <span className="tr-info-value capitalize">{ring.visibility}</span>
                 </div>
-                <div>
-                  <span className="font-semibold">Join Type:</span>{" "}
-                  <span className="capitalize">{ring.joinType}</span>
+                <div className="tr-ring-info-item tr-join-type-info">
+                  <span className="tr-info-label font-semibold">Join Type:</span>{" "}
+                  <span className="tr-info-value capitalize">{ring.joinType}</span>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="pt-3 border-t border-gray-200 space-y-2">
+                <div className="tr-actions-section pt-3 border-t border-gray-200 space-y-2">
                   {isMember ? (
                     <>
                       {/* Member Status */}
-                      <div className="text-xs bg-green-100 px-3 py-2 border border-green-300 rounded text-center">
-                        <span className="font-medium">
+                      <div className="tr-member-status text-xs bg-green-100 px-3 py-2 border border-green-300 rounded text-center">
+                        <span className="tr-role-indicator font-medium">
                           {currentUserRole === "curator" ? "👑 Curator" : 
                            currentUserRole === "moderator" ? "🛡️ Moderator" : "👤 Member"}
                         </span>

@@ -93,44 +93,44 @@ export default function ThreadRingStats({
   }
 
   return (
-    <div className={`bg-white border border-black p-4 shadow-[2px_2px_0_#000] ${className}`}>
-      <h3 className="font-bold mb-4">ThreadRing Statistics</h3>
+    <div className={`tr-stats tr-sidebar-widget bg-white border border-black p-4 shadow-[2px_2px_0_#000] ${className}`}>
+      <h3 className="tr-stats-title font-bold mb-4">ThreadRing Statistics</h3>
       
-      <div className="space-y-6 text-sm">
+      <div className="tr-stats-content space-y-6 text-sm">
         {/* Overview */}
-        <div>
-          <h4 className="font-medium mb-2">Overview</h4>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 p-2 border border-gray-300">
-              <div className="font-medium">{stats.memberCount}</div>
-              <div className="text-xs text-gray-600">Total Members</div>
+        <div className="tr-stats-overview">
+          <h4 className="tr-stats-section-title font-medium mb-2">Overview</h4>
+          <div className="tr-stats-grid grid grid-cols-2 gap-3">
+            <div className="tr-stats-item tr-member-count-stat bg-gray-50 p-2 border border-gray-300">
+              <div className="tr-stat-value font-medium">{stats.memberCount}</div>
+              <div className="tr-stat-label text-xs text-gray-600">Total Members</div>
             </div>
-            <div className="bg-gray-50 p-2 border border-gray-300">
-              <div className="font-medium">{stats.postCount}</div>
-              <div className="text-xs text-gray-600">Total Posts</div>
+            <div className="tr-stats-item tr-post-count-stat bg-gray-50 p-2 border border-gray-300">
+              <div className="tr-stat-value font-medium">{stats.postCount}</div>
+              <div className="tr-stat-label text-xs text-gray-600">Total Posts</div>
             </div>
-            <div className="bg-gray-50 p-2 border border-gray-300">
-              <div className="font-medium">{stats.pinnedPostCount}</div>
-              <div className="text-xs text-gray-600">Pinned Posts</div>
+            <div className="tr-stats-item tr-pinned-count-stat bg-gray-50 p-2 border border-gray-300">
+              <div className="tr-stat-value font-medium">{stats.pinnedPostCount}</div>
+              <div className="tr-stat-label text-xs text-gray-600">Pinned Posts</div>
             </div>
-            <div className="bg-gray-50 p-2 border border-gray-300">
-              <div className="font-medium">{stats.moderatorCount}</div>
-              <div className="text-xs text-gray-600">Moderators</div>
+            <div className="tr-stats-item tr-moderator-count-stat bg-gray-50 p-2 border border-gray-300">
+              <div className="tr-stat-value font-medium">{stats.moderatorCount}</div>
+              <div className="tr-stat-label text-xs text-gray-600">Moderators</div>
             </div>
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div>
-          <h4 className="font-medium mb-2">This Week</h4>
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span>New Members:</span>
-              <span className="font-medium">{stats.recentActivity.newMembersThisWeek}</span>
+        <div className="tr-stats-activity">
+          <h4 className="tr-stats-section-title font-medium mb-2">This Week</h4>
+          <div className="tr-stats-activity-list space-y-1">
+            <div className="tr-stats-activity-item flex justify-between">
+              <span className="tr-activity-label">New Members:</span>
+              <span className="tr-activity-value font-medium">{stats.recentActivity.newMembersThisWeek}</span>
             </div>
-            <div className="flex justify-between">
-              <span>New Posts:</span>
-              <span className="font-medium">{stats.recentActivity.newPostsThisWeek}</span>
+            <div className="tr-stats-activity-item flex justify-between">
+              <span className="tr-activity-label">New Posts:</span>
+              <span className="tr-activity-value font-medium">{stats.recentActivity.newPostsThisWeek}</span>
             </div>
           </div>
         </div>

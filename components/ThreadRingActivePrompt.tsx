@@ -73,35 +73,35 @@ export default function ThreadRingActivePrompt({
   const isExpired = activePrompt.endsAt && new Date(activePrompt.endsAt) < new Date()
 
   return (
-    <div className={`mb-6 p-4 rounded-lg border-2 ${
+    <div className={`tr-active-prompt tr-widget mb-6 p-4 rounded-lg border-2 ${
       activePrompt.isActive && !isExpired 
-        ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-blue-400' 
-        : 'bg-gray-50 border-gray-300'
+        ? 'tr-prompt-active bg-gradient-to-r from-blue-50 to-purple-50 border-blue-400' 
+        : 'tr-prompt-inactive bg-gray-50 border-gray-300'
     }`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-2xl">💭</span>
-            <h3 className="text-lg font-bold text-gray-900">
+      <div className="tr-prompt-content flex items-start justify-between">
+        <div className="tr-prompt-main flex-1">
+          <div className="tr-prompt-header flex items-center gap-2 mb-2">
+            <span className="tr-prompt-icon text-2xl">💭</span>
+            <h3 className="tr-prompt-type text-lg font-bold text-gray-900">
               {activePrompt.isActive ? 'Current Challenge' : 'Featured Prompt'}
             </h3>
             {activePrompt.isActive && !isExpired && (
-              <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full animate-pulse">
+              <span className="tr-prompt-status tr-prompt-active-badge px-2 py-1 bg-blue-600 text-white text-xs rounded-full animate-pulse">
                 Active
               </span>
             )}
             {isExpired && (
-              <span className="px-2 py-1 bg-gray-500 text-white text-xs rounded-full">
+              <span className="tr-prompt-status tr-prompt-ended-badge px-2 py-1 bg-gray-500 text-white text-xs rounded-full">
                 Ended
               </span>
             )}
           </div>
           
-          <h4 className="text-xl font-semibold mb-2 text-gray-800">
+          <h4 className="tr-prompt-title text-xl font-semibold mb-2 text-gray-800">
             {activePrompt.title}
           </h4>
           
-          <p className="text-gray-700 mb-3 whitespace-pre-wrap">
+          <p className="tr-prompt-description text-gray-700 mb-3 whitespace-pre-wrap">
             {activePrompt.description}
           </p>
           
