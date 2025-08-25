@@ -2,6 +2,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { db } from '@/lib/db'
 import { UserBadgePreferences } from '@/pages/api/users/me/badge-preferences'
+import { featureFlags } from '@/lib/feature-flags'
+import { getPublicRingHubClient } from '@/lib/ringhub-client'
+import { getUserDID } from '@/lib/server-did-client'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -48,51 +51,68 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.json({ badges: [] })
     }
 
-    // Get the actual badge data
-    const badgeIds = eligibleBadges.map(b => b.badgeId)
+    // Use Ring Hub only (no local fallback)
+    if (!featureFlags.ringhub()) {
+      return res.json({ badges: [] })
+    }
 
-    const badges = await db.threadRingBadge.findMany({
-      where: { id: { in: badgeIds } },
-      include: {
-        threadRing: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            visibility: true
-          }
-        }
+    try {
+      // Get user's DID for Ring Hub lookup
+      const userDID = await getUserDID(userId)
+      if (!userDID) {
+        console.log(`No DID found for user ${userId}`)
+        return res.json({ badges: [] })
       }
-    })
 
-    // Filter out badges from private ThreadRings and sort by display order
-    const publicBadges = badges
-      .filter(badge => badge.threadRing.visibility === 'public')
-      .map(badge => {
-        const preference = eligibleBadges.find(p => p.badgeId === badge.id)
-        return {
-          ...badge,
-          displayOrder: preference?.displayOrder || 999
-        }
+      const publicClient = getPublicRingHubClient()
+      if (!publicClient) {
+        console.log('Ring Hub client not available')
+        return res.json({ badges: [] })
+      }
+
+      // Fetch all user's badges from Ring Hub
+      const ringHubBadges = await publicClient.getActorBadges(userDID, {
+        status: 'active',
+        limit: 100
       })
-      .sort((a, b) => a.displayOrder - b.displayOrder)
 
-    return res.json({ 
-      badges: publicBadges.map(badge => ({
-        id: badge.id,
-        title: badge.title,
-        subtitle: badge.subtitle,
-        imageUrl: badge.imageUrl,
-        templateId: badge.templateId,
-        backgroundColor: badge.backgroundColor,
-        textColor: badge.textColor,
-        threadRing: {
-          id: badge.threadRing.id,
-          name: badge.threadRing.name,
-          slug: badge.threadRing.slug
-        }
-      }))
-    })
+      // Filter to only the badges that match user's selected preferences
+      const selectedBadgeIds = new Set(eligibleBadges.map(b => b.badgeId))
+      const filteredBadges = ringHubBadges.badges
+        .filter(badge => {
+          const badgeId = `${badge.ring.slug}-badge`
+          return selectedBadgeIds.has(badgeId)
+        })
+        .map(badge => {
+          const achievement = badge.badge.credentialSubject?.achievement
+          const badgeId = `${badge.ring.slug}-badge`
+          const preference = eligibleBadges.find(p => p.badgeId === badgeId)
+          
+          return {
+            id: badgeId,
+            title: achievement?.name || badge.ring.name,
+            subtitle: badge.membership.role !== 'member' ? badge.membership.role : undefined,
+            imageUrl: achievement?.image,
+            templateId: undefined,
+            backgroundColor: '#4A90E2',
+            textColor: '#FFFFFF',
+            threadRing: {
+              id: badge.ring.slug,
+              name: badge.ring.name,
+              slug: badge.ring.slug
+            },
+            displayOrder: preference?.displayOrder || 999
+          }
+        })
+        .sort((a, b) => a.displayOrder - b.displayOrder)
+
+      return res.json({ 
+        badges: filteredBadges.map(({ displayOrder, ...badge }) => badge)
+      })
+    } catch (error) {
+      console.error('Ring Hub badges fetch failed:', error)
+      return res.json({ badges: [] })
+    }
   } catch (error) {
     console.error('Error fetching badges for display:', error)
     return res.status(500).json({ error: 'Failed to fetch badges' })
