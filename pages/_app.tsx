@@ -69,27 +69,19 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
-        {/* Override global styles only for profile pages with custom CSS */}
-        {needsCSSResets && (
+        {/* Only apply targeted CSS resets for advanced template mode */}
+        {pageProps.templateMode === 'advanced' && (
           <style dangerouslySetInnerHTML={{
             __html: `
-              /* Reset Tailwind classes that interfere with custom CSS on profile pages */
-              .profile-tab-button.px-4 { padding-left: unset; padding-right: unset; }
-              .profile-tab-button.py-3 { padding-top: unset; padding-bottom: unset; }
-              .profile-tab-button.border-r { border-right: unset; }
-              .profile-tab-list.flex { display: unset; }
-              .profile-tab-list.flex-wrap { flex-wrap: unset; }
-              .profile-tab-list.border-b { border-bottom: unset; }
-              .profile-tab-panel.p-6 { padding: unset; }
-              .ts-profile-tabs-wrapper .p-0 { padding: unset; }
-              .ts-profile-tabs-wrapper .overflow-hidden { overflow: unset; }
+              /* Advanced template mode - complete CSS control */
+              /* Only reset classes that advanced templates commonly override */
               
-              /* Let user custom CSS take full control */
+              /* Reset thread module styling for complete control */
               .thread-module.p-6 { padding: unset; }
               .thread-module.mb-6 { margin-bottom: unset; }
               .thread-module.p-0 { padding: unset; }
               
-              /* Reset any Tailwind colors */
+              /* Reset ThreadStead colors for complete control */  
               .bg-thread-cream { background-color: unset; }
               .bg-thread-paper { background-color: unset; }
               .text-thread-pine { color: unset; }

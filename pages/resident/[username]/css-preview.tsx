@@ -194,10 +194,8 @@ export default function CSSPreviewPage({
     },
   ];
 
-  // Filter badges tab if threadrings not enabled (same as actual profile)
-  const tabs: TabSpec[] = featureFlags.threadrings(null) 
-    ? baseTabs 
-    : baseTabs.filter(tab => tab.id !== 'badges');
+  // Always show all tabs in preview for consistent styling
+  const tabs: TabSpec[] = baseTabs;
 
   return (
     <ProfileLayout 
