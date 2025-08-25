@@ -124,7 +124,7 @@ export async function testRingHubAuth(): Promise<ConnectionTestResult> {
       postPolicy: 'CLOSED' as const
     }
     
-    await client.createRing(testRing)
+    await client.forkRing('spool', testRing)
     
     // Clean up by deleting the test ring
     try {

@@ -167,7 +167,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                 </Link>
               )}
               <Link
-                href="/threadrings/create"
+                href="/tr/spool/fork"
                 className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
               >
                 Create ThreadRing
@@ -222,7 +222,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
             </div>
             {!searchQuery && (
               <Link
-                href="/threadrings/create"
+                href="/tr/spool/fork"
                 className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] inline-block"
               >
                 Create the First ThreadRing

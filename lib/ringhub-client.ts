@@ -178,12 +178,6 @@ export class RingHubClient {
 
   // Ring Operations
 
-  /**
-   * Create a new ring
-   */
-  async createRing(ring: Partial<RingDescriptor>): Promise<RingDescriptor> {
-    return this.post('/trp/rings', ring)
-  }
 
   /**
    * Get ring by slug

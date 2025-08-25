@@ -106,7 +106,7 @@ export default function ThreadRingLineage({
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <Link 
-            href={`/threadrings/${ring.slug}`}
+            href={`/tr/${ring.slug}`}
             className="font-medium text-black hover:text-blue-700 hover:underline block"
           >
             {isParent ? "🌱" : "🍴"} {ring.name}
@@ -190,7 +190,7 @@ export default function ThreadRingLineage({
               <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
                 {lineageData.ancestors.map((ancestor, index) => (
                   <span key={ancestor.id}>
-                    <Link href={`/threadrings/${ancestor.slug}`} className="text-blue-600 hover:underline">
+                    <Link href={`/tr/${ancestor.slug}`} className="text-blue-600 hover:underline">
                       {ancestor.name}
                     </Link>
                     {index < lineageData.ancestors.length - 1 && ' → '}

@@ -147,31 +147,11 @@ export class AuthenticatedRingHubClient {
   }
 
   /**
-   * Create a ring as this user (using server DID for stability)
+   * Create a ring as this user (by forking from the spool)
    */
   async createRing(ring: Partial<RingDescriptor>): Promise<RingDescriptor> {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
-
-    // Get server DID for stable ring ownership
-    const serverDID = await getServerDID()
-    
-    // Create ring using server DID (Ring Hub client will handle server auth)
-    const createdRing = await this.client.createRing(ring)
-    
-    // Track ownership locally for user access control
-    await db.ringHubOwnership.create({
-      data: {
-        ringSlug: createdRing.slug,
-        ringUri: createdRing.uri,
-        ownerUserId: this.userId,
-        serverDID: serverDID
-      }
-    })
-    
-    console.log(`Created Ring Hub ownership tracking for user ${this.userId}, ring ${createdRing.slug}`)
-    return createdRing
+    // All ring creation is now done by forking from the spool
+    return this.forkRing('spool', ring)
   }
 
   /**

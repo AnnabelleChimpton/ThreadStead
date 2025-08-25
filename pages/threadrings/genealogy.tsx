@@ -32,7 +32,7 @@ export default function GenealogyPage({ siteConfig }: GenealogyPageProps) {
                   Browse All
                 </Link>
                 <Link 
-                  href="/threadrings/create"
+                  href="/tr/spool/fork"
                   className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
                 >
                   Create ThreadRing

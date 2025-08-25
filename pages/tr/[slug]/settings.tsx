@@ -73,7 +73,7 @@ export default function ThreadRingSettingsPage({
               Only the curator can access ThreadRing settings.
             </p>
             <button
-              onClick={() => router.push(`/threadrings/${ring.slug}`)}
+              onClick={() => router.push(`/tr/${ring.slug}`)}
               className="mt-4 border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
             >
               Back to ThreadRing
@@ -127,13 +127,13 @@ export default function ThreadRingSettingsPage({
             <h1 className="text-3xl font-bold">ThreadRing Settings</h1>
             <div className="flex gap-2">
               <button
-                onClick={() => router.push(`/threadrings/${ring.slug}/members`)}
+                onClick={() => router.push(`/tr/${ring.slug}/members`)}
                 className="border border-black px-4 py-2 bg-blue-100 hover:bg-blue-200 shadow-[2px_2px_0_#000]"
               >
                 Manage Members
               </button>
               <button
-                onClick={() => router.push(`/threadrings/${ring.slug}`)}
+                onClick={() => router.push(`/tr/${ring.slug}`)}
                 className="border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
               >
                 Back to ThreadRing

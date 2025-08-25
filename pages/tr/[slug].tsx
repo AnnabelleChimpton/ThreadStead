@@ -192,7 +192,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                       <div className="flex justify-center gap-2 mb-2">
                         <button 
                           onClick={() => {
-                            const badgeHtml = `<a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
+                            const badgeHtml = `<a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
                             navigator.clipboard.writeText(badgeHtml);
                             showSuccess('Spool badge HTML copied to clipboard!');
                           }}
@@ -202,7 +202,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                         </button>
                         <button 
                           onClick={() => {
-                            const badgeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}`;
+                            const badgeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/tr/${ring.slug}`;
                             navigator.clipboard.writeText(badgeUrl);
                             showSuccess('Spool URL copied to clipboard!');
                           }}
@@ -319,7 +319,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
               </button>
               
               <button 
-                onClick={() => window.location.href = '/threadrings/create'}
+                onClick={() => window.location.href = '/tr/spool/fork'}
                 className="w-full border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
               >
                 ➕ Create New Community
@@ -885,7 +885,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       {/* Curator Settings Button */}
                       {currentUserRole === "curator" && (
                         <button
-                          onClick={() => router.push(`/threadrings/${ring.slug}/settings`)}
+                          onClick={() => router.push(`/tr/${ring.slug}/settings`)}
                           className="w-full text-sm border border-black px-3 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
                         >
                           ⚙️ Manage Settings
@@ -894,7 +894,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
                       {/* Fork Button for Members */}
                       <button
-                        onClick={() => router.push(`/threadrings/${ring.slug}/fork`)}
+                        onClick={() => router.push(`/tr/${ring.slug}/fork`)}
                         className="w-full text-sm border border-black px-3 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
                       >
                         🍴 Fork ThreadRing
@@ -936,7 +936,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       {/* Fork button for non-members (if ring is public/unlisted) */}
                       {ring.visibility !== "private" && (
                         <button
-                          onClick={() => router.push(`/threadrings/${ring.slug}/fork`)}
+                          onClick={() => router.push(`/tr/${ring.slug}/fork`)}
                           className="w-full text-sm border border-black px-3 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
                         >
                           🍴 Fork ThreadRing
@@ -1000,7 +1000,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   <div className="bg-gray-50 border border-gray-200 rounded p-3 space-y-2">
                     <button 
                       onClick={() => {
-                        const badgeHtml = `<a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
+                        const badgeHtml = `<a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
                         navigator.clipboard.writeText(badgeHtml);
                         showSuccess('Badge HTML copied to clipboard!');
                       }}
@@ -1010,7 +1010,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     </button>
                     <button 
                       onClick={() => {
-                        const badgeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${ring.slug}`;
+                        const badgeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/tr/${ring.slug}`;
                         navigator.clipboard.writeText(badgeUrl);
                         showSuccess('ThreadRing URL copied to clipboard!');
                       }}

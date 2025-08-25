@@ -135,7 +135,7 @@ export default function ThreadRingGenealogy({
       .style("cursor", "pointer")
       .on("click", (event, d) => {
         event.stopPropagation();
-        router.push(`/threadrings/${d.data.slug}`);
+        router.push(`/tr/${d.data.slug}`);
       });
 
     // Add circles for nodes

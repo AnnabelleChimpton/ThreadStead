@@ -24,7 +24,7 @@ export default function ThreadRingBadge({ threadRing, size = "small", className 
 
   return (
     <Link
-      href={`/threadrings/${threadRing.slug}`}
+      href={`/tr/${threadRing.slug}`}
       className={`
         inline-flex items-center gap-1 
         bg-purple-100 hover:bg-purple-200 

@@ -76,7 +76,7 @@ async function testCreateRing() {
 
     console.log('   Creating ring...')
     console.log('   Ring data:', JSON.stringify(newRing, null, 2))
-    const createdRing = await client.createRing(newRing as any)
+    const createdRing = await client.forkRing('spool', newRing as any)
     
     if (createdRing && createdRing.slug) {
       testRingSlug = createdRing.slug // Use the server-generated slug

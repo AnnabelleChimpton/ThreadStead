@@ -153,7 +153,7 @@ export default function ThreadRingMembersPage({
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold">ThreadRing Members</h1>
             <button
-              onClick={() => router.push(`/threadrings/${ring.slug}`)}
+              onClick={() => router.push(`/tr/${ring.slug}`)}
               className="border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
             >
               Back to ThreadRing

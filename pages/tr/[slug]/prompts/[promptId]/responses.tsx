@@ -162,7 +162,7 @@ export default function PromptResponsesPage({
           <nav className="text-sm text-gray-600">
             <Link href="/threadrings" className="hover:underline">ThreadRings</Link>
             {' > '}
-            <Link href={`/threadrings/${threadRing.slug}`} className="hover:underline">
+            <Link href={`/tr/${threadRing.slug}`} className="hover:underline">
               {threadRing.name}
             </Link>
             {' > '}
@@ -305,7 +305,7 @@ export default function PromptResponsesPage({
                             <span key={tr.threadRing.id}>
                               {idx > 0 && ', '}
                               <Link 
-                                href={`/threadrings/${tr.threadRing.slug}`}
+                                href={`/tr/${tr.threadRing.slug}`}
                                 className="hover:underline"
                               >
                                 {tr.threadRing.name}

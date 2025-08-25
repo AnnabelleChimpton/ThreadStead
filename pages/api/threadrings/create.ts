@@ -157,8 +157,8 @@ export default withThreadRingSupport(async function handler(
           ...badgeUrls
         };
 
-        // Create ring in Ring Hub
-        const createdRing = await authenticatedClient.createRing(ringDescriptor);
+        // Create ring in Ring Hub by forking from spool
+        const createdRing = await authenticatedClient.forkRing('spool', ringDescriptor);
         
         console.log("ThreadRing created in Ring Hub:", createdRing.slug);
         return res.status(201).json({ ring: createdRing });

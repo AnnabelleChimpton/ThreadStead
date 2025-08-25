@@ -134,7 +134,7 @@ export default function ThreadRingInvites({
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="flex-1 min-w-0">
                 <Link 
-                  href={`/threadrings/${invite.threadRing.slug}`}
+                  href={`/tr/${invite.threadRing.slug}`}
                   className="font-medium text-black hover:text-blue-700 hover:underline block"
                 >
                   {invite.threadRing.name}

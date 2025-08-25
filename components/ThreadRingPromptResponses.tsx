@@ -187,7 +187,7 @@ export default function ThreadRingPromptResponses({
                       <span key={tr.threadRing.id}>
                         {idx > 0 && ', '}
                         <Link 
-                          href={`/threadrings/${tr.threadRing.slug}`}
+                          href={`/tr/${tr.threadRing.slug}`}
                           className="hover:underline"
                         >
                           {tr.threadRing.name}

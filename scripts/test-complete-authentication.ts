@@ -120,7 +120,7 @@ async function main() {
       joinPolicy: 'OPEN' as const
     }
     
-    const createdRing = await authClient.createRing(testRing)
+    const createdRing = await authClient.forkRing('spool', testRing)
     console.log(`   ✅ Ring created successfully: ${createdRing.name}`)
     console.log(`   ✅ Ring URI: ${createdRing.uri}`)
     

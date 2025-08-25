@@ -72,7 +72,7 @@ async function main() {
       curatorNote: 'Test ring - will be deleted immediately'
     }
 
-    const createdRing = await client.createRing(testRing as any)
+    const createdRing = await client.forkRing('spool', testRing as any)
     console.log('   ✅ Ring creation successful!')
     console.log('   🎯 Created ring:', createdRing.slug)
     console.log('   🏆 Actor is now VERIFIED!')

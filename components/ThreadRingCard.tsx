@@ -59,7 +59,7 @@ export default function ThreadRingCard({
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <Link 
-            href={`/threadrings/${threadRing.slug}`}
+            href={`/tr/${threadRing.slug}`}
             className="text-lg font-bold text-black hover:text-blue-700 hover:underline block"
           >
             {threadRing.name}

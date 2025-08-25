@@ -94,7 +94,7 @@ async function main() {
     console.log('   📝 Attempting minimal ring creation...')
     console.log('   📋 Request data:', JSON.stringify(minimalRing, null, 2))
     
-    const result = await client.createRing(minimalRing as any)
+    const result = await client.forkRing('spool', minimalRing as any)
     console.log('   ✅ SUCCESS! Actor verified and ring created!')
     console.log('   🎯 Ring slug:', result.slug)
     

@@ -60,7 +60,7 @@ export default function ForkThreadRingPage({
       <div className="max-w-2xl mx-auto py-8">
         <ForkThreadRingForm 
           originalRing={originalRing}
-          onCancel={() => router.push(`/threadrings/${originalRing.slug}`)}
+          onCancel={() => router.push(`/tr/${originalRing.slug}`)}
         />
       </div>
     </Layout>

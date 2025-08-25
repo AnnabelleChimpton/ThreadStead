@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { withThreadRingSupport } from "@/lib/ringhub-middleware";
 import { getRingHubClient } from "@/lib/ringhub-client";
-import { transformRingDescriptorToThreadRing } from "@/lib/ringhub-transformers";
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest, 
@@ -30,6 +29,28 @@ export default withThreadRingSupport(async function handler(
         return res.status(500).json({ error: "Ring Hub client not configured" });
       }
 
+      // Get viewer's memberships if logged in
+      const viewerMemberships: Map<string, any> = new Map();
+      if (viewer) {
+        try {
+          const membershipsResult = await client.getMyMemberships({
+            status: 'ACTIVE',
+            limit: 100 // Get all active memberships
+          });
+          
+          // Create a map of slug -> membership for quick lookup
+          membershipsResult.memberships.forEach(membership => {
+            viewerMemberships.set(membership.ringSlug, {
+              role: membership.role.toLowerCase(),
+              joinedAt: membership.joinedAt
+            });
+          });
+        } catch (error) {
+          console.error('Failed to fetch viewer memberships:', error);
+          // Continue without membership info if this fails
+        }
+      }
+
       // Map sort parameter to Ring Hub format
       let sortBy: 'trending' | 'newest' | 'members' | 'posts' | 'alphabetical' | undefined;
       switch (sort) {
@@ -54,19 +75,22 @@ export default withThreadRingSupport(async function handler(
       const result = await client.listRings(ringHubOptions);
 
       // Transform Ring Hub response to ThreadStead format
-      const transformedRings = result.rings.map((descriptor: any) => ({
-        id: descriptor.id,
-        name: descriptor.name,
-        slug: descriptor.slug,
-        description: descriptor.description,
-        visibility: descriptor.visibility.toLowerCase(), // PUBLIC -> public
-        joinType: descriptor.joinPolicy === 'OPEN' ? 'open' : 'closed', // OPEN/APPLICATION/CLOSED -> open/closed
-        memberCount: descriptor.memberCount,
-        postCount: descriptor.postCount,
-        createdAt: descriptor.createdAt,
-        curator: null, // Ring Hub doesn't include curator in list
-        viewerMembership: null // Will need separate API call
-      }));
+      const transformedRings = result.rings.map((descriptor: any) => {
+        const membership = viewerMemberships.get(descriptor.slug);
+        return {
+          id: descriptor.id,
+          name: descriptor.name,
+          slug: descriptor.slug,
+          description: descriptor.description,
+          visibility: descriptor.visibility.toLowerCase(), // PUBLIC -> public
+          joinType: descriptor.joinPolicy === 'OPEN' ? 'open' : 'closed', // OPEN/APPLICATION/CLOSED -> open/closed
+          memberCount: descriptor.memberCount,
+          postCount: descriptor.postCount,
+          createdAt: descriptor.createdAt,
+          curator: null, // Ring Hub doesn't include curator in list
+          viewerMembership: membership || null // Include membership if user is a member
+        };
+      });
 
       const hasMore = (offset + limit) < result.total;
       

@@ -74,7 +74,7 @@ export default function CompactBadgeDisplay({
       {badges.map((badge) => (
         <Link 
           key={badge.id} 
-          href={`/threadrings/${badge.threadRing.slug}`}
+          href={`/tr/${badge.threadRing.slug}`}
           className="block hover:scale-105 transition-transform duration-200"
           title={`Member of ${badge.threadRing.name}`}
         >
