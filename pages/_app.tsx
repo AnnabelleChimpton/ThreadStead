@@ -61,7 +61,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   // Check if we're on a user profile page that might have custom CSS
   const isProfilePage = router.pathname === '/resident/[username]' || router.pathname === '/resident/[username]/index';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
-  const isAdvancedTemplate = isProfilePage && pageProps.templateMode === 'advanced';
+  const needsCSSResets = isProfilePage && (pageProps.templateMode === 'enhanced' || pageProps.templateMode === 'advanced');
   const includeSiteCSS = pageProps.includeSiteCSS !== false; // Default to true if not specified
 
   return (
@@ -69,8 +69,8 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
-        {/* Override global styles for profile pages only */}
-        {isProfilePage && (
+        {/* Override global styles only for profile pages with custom CSS */}
+        {needsCSSResets && (
           <style dangerouslySetInnerHTML={{
             __html: `
               /* Reset Tailwind classes that interfere with custom CSS on profile pages */
@@ -116,7 +116,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   padding-top: 0;
 }
 
-${isAdvancedTemplate ? `
+${pageProps.templateMode === 'advanced' ? `
 /* Advanced Template Mode - CSS Override Helper */
 /* Users can target these classes to completely override defaults */
 
@@ -156,7 +156,7 @@ ${pageProps.customCSS}`
         )}
       </Head>
       <div className={`min-h-screen font-body ${
-        isAdvancedTemplate 
+        pageProps.templateMode === 'advanced'
           ? '' // No default classes for advanced templates - completely clean
           : 'thread-surface text-thread-charcoal' // Normal styling for everything else
       }`}>
