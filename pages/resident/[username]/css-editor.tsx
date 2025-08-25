@@ -6,6 +6,7 @@ import Head from "next/head";
 import Layout from "@/components/Layout";
 import { fetchResidentData, fetchCurrentUserResidentData } from '@/lib/template-data';
 import type { ResidentData } from '@/components/template/ResidentDataProvider';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 
 // Import CSS templates
 import { DEFAULT_CSS_TEMPLATE } from '@/lib/templates/default';
@@ -22,77 +23,22 @@ interface CSSEditorPageProps {
   existingCSS?: string;
   templateMode?: 'default' | 'enhanced' | 'advanced';
   templateEnabled?: boolean;
+  initialIncludeSiteCSS?: boolean;
 }
 
-// Default layout HTML for preview
-const DEFAULT_LAYOUT_HTML = `
-<div class="profile-container">
-  <div class="profile-content-wrapper">
-    <div class="profile-main-content">
-      <div class="thread-surface thread-module profile-header">
-        <div class="profile-header-layout">
-          <div class="profile-photo-section">
-            <div class="profile-photo-wrapper">
-              <div class="profile-photo-frame">
-                <img src="/assets/default-avatar.gif" alt="Profile" class="profile-photo-image" />
-              </div>
-            </div>
-          </div>
-          <div class="profile-info-section">
-            <div class="profile-identity">
-              <h2 class="profile-display-name thread-headline">{{displayName}}</h2>
-              <span class="profile-status thread-label">threadstead resident</span>
-            </div>
-            <div class="profile-bio-section">
-              <p class="profile-bio">{{bio}}</p>
-            </div>
-            <div class="profile-actions">
-              <button class="profile-button thread-button">Follow</button>
-              <button class="profile-button thread-button-secondary">Message</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="thread-surface thread-module">
-        <div class="profile-tabs">
-          <div class="profile-tab-list">
-            <button class="profile-tab-button active">Blog</button>
-            <button class="profile-tab-button">Friends</button>
-            <button class="profile-tab-button">Media</button>
-          </div>
-          <div class="profile-tab-panel">
-            <div class="blog-tab-content profile-tab-content">
-              <div class="blog-posts-list">
-                <div class="blog-post-card thread-surface">
-                  <div class="blog-post-header">
-                    <span class="blog-post-date thread-label">Recent</span>
-                  </div>
-                  <div class="blog-post-content">
-                    <h3 class="blog-post-title">Sample Blog Post</h3>
-                    <p>This is how your blog posts will look with your custom CSS applied to the default layout.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-`;
 
 export default function CSSEditorPage({
   username,
   isOwner,
   existingCSS = '',
   templateMode = 'default',
-  templateEnabled = false
+  templateEnabled = false,
+  initialIncludeSiteCSS = true
 }: CSSEditorPageProps) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { config: siteConfig } = useSiteConfig();
   
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
   const [css, setCSS] = useState(existingCSS);
@@ -100,6 +46,8 @@ export default function CSSEditorPage({
   const [dataLoading, setDataLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [includeSiteCSS, setIncludeSiteCSS] = useState(initialIncludeSiteCSS);
+  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   
   // Track the current layout mode
   const [layoutMode, setLayoutMode] = useState<'default' | 'custom-css'>(() => {
@@ -215,6 +163,7 @@ export default function CSSEditorPage({
     loadData();
   }, [username]);
 
+
   // Enhanced keyboard handling for tab indentation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Tab') {
@@ -311,7 +260,7 @@ export default function CSSEditorPage({
       // Update layout mode to match CSS content
       setLayoutMode(hasCustomCSS ? 'custom-css' : 'default');
       
-      // Save the layout mode preference
+      // Save the layout mode preference and includeSiteCSS setting
       const capRes = await fetch("/api/cap/profile", { method: "POST" });
       if (capRes.status === 401) {
         setSaveMessage("Error: Please log in.");
@@ -324,6 +273,7 @@ export default function CSSEditorPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           templateMode: autoLayoutMode,
+          includeSiteCSS: includeSiteCSS,
           cap: token 
         }),
       });
@@ -346,95 +296,88 @@ export default function CSSEditorPage({
     }
   };
 
-  // Update iframe content with default layout and custom CSS
+  // Track preview error state
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  // Update iframe src to use dedicated preview page
   const updateIframeContent = useCallback(() => {
     if (!iframeRef.current || !residentData) {
       return;
     }
 
     try {
-      // Replace template variables in HTML
-      const htmlContent = DEFAULT_LAYOUT_HTML
-        .replace('{{displayName}}', residentData.owner.displayName || residentData.owner.handle)
-        .replace('{{bio}}', residentData.capabilities?.bio || 'Welcome to my profile!');
+      const previewParams = new URLSearchParams({
+        customCSS: css,
+        includeSiteCSS: includeSiteCSS.toString(),
+        bio: residentData.capabilities?.bio || 'Welcome to my profile!',
+        photoUrl: residentData.owner.avatarUrl || '/assets/default-avatar.gif'
+      });
 
-      // Create complete HTML document for iframe
-      const iframeHtml = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-              /* Base ThreadStead styles for default layout */
-              * { box-sizing: border-box; }
-              body { 
-                margin: 0; 
-                padding: 20px; 
-                font-family: system-ui, sans-serif; 
-                font-size: 16px; 
-                line-height: 1.5; 
-                background: #f5f5f5; 
-                color: #333; 
-              }
-              
-              /* Default profile layout styles */
-              .profile-container { max-width: 900px; margin: 0 auto; }
-              .profile-content-wrapper { padding: 1rem; }
-              .thread-surface { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-              .thread-module { margin-bottom: 1.5rem; padding: 1.5rem; }
-              .profile-header-layout { display: flex; gap: 2rem; align-items: center; }
-              .profile-photo-frame { width: 120px; height: 120px; border-radius: 50%; overflow: hidden; }
-              .profile-photo-image { width: 100%; height: 100%; object-fit: cover; }
-              .profile-info-section { flex: 1; }
-              .profile-display-name { font-size: 2rem; margin: 0 0 0.5rem 0; }
-              .profile-status { color: #666; font-size: 0.9rem; }
-              .profile-bio { margin: 1rem 0; color: #555; }
-              .profile-actions { display: flex; gap: 1rem; margin-top: 1rem; }
-              .thread-button { padding: 0.5rem 1rem; background: #4a5568; color: white; border: none; border-radius: 4px; cursor: pointer; }
-              .thread-button:hover { background: #2d3748; }
-              .thread-button-secondary { background: transparent; color: #4a5568; border: 1px solid #4a5568; }
-              .thread-button-secondary:hover { background: #f7fafc; }
-              .profile-tabs { padding: 0; }
-              .profile-tab-list { display: flex; gap: 1rem; border-bottom: 2px solid #e2e8f0; padding: 0 1.5rem; }
-              .profile-tab-button { padding: 0.75rem 1rem; background: none; border: none; cursor: pointer; color: #718096; font-weight: 500; }
-              .profile-tab-button.active { color: #2d3748; border-bottom: 2px solid #4a5568; margin-bottom: -2px; }
-              .profile-tab-panel { padding: 1.5rem; }
-              .blog-post-card { padding: 1rem; margin-bottom: 1rem; }
-              .blog-post-date { color: #718096; font-size: 0.875rem; }
-              .blog-post-title { margin: 0.5rem 0; font-size: 1.25rem; }
-              .blog-post-content p { color: #4a5568; }
-              
-              /* User Custom CSS */
-              ${css}
-            </style>
-          </head>
-          <body>
-            ${htmlContent}
-          </body>
-        </html>
-      `;
+      const previewUrl = `/resident/${username}/css-preview?${previewParams.toString()}`;
+      
+      // Check if URL is too long (likely to cause 431 error)  
+      // Account for URL encoding expansion - be more generous with the limit
+      if (previewUrl.length > 16000) {
+        console.log('Preview URL too long:', previewUrl.length, 'characters');
+        setPreviewError("CSS is too large to preview. Your CSS will still work on your actual profile page, but cannot be shown in the preview panel.");
+        return;
+      }
 
-      // Safely update iframe content
+      // Clear any previous error
+      setPreviewError(null);
+      
+      // Update iframe src to use preview page instead of srcdoc
       if (iframeRef.current) {
-        iframeRef.current.srcdoc = iframeHtml;
+        // Add loading handler to detect successful loads
+        const handleLoad = () => {
+          // Clear any error state on successful load
+          setPreviewError(null);
+        };
+
+        const handleError = () => {
+          setPreviewError("Preview failed to load. Your CSS may be too large for the preview, but will still work on your profile.");
+        };
+
+        iframeRef.current.onload = handleLoad;
+        iframeRef.current.onerror = handleError;
+        iframeRef.current.src = previewUrl;
       }
     } catch (error) {
       console.error('Error updating iframe content:', error);
+      setPreviewError("Error loading preview. Your CSS will still work on your profile.");
     }
-  }, [residentData, css]);
+  }, [residentData, css, includeSiteCSS, username]);
 
-  // Update iframe when CSS or data changes and preview tab is active
+  // Update iframe when CSS, data, or includeSiteCSS changes and preview tab is active
   useEffect(() => {
     if (activeTab === 'preview') {
       updateIframeContent();
     }
-  }, [css, residentData, activeTab, updateIframeContent]);
+  }, [css, residentData, activeTab, includeSiteCSS, updateIframeContent]);
+
+  // Clear preview error when switching away from preview tab
+  useEffect(() => {
+    if (activeTab !== 'preview') {
+      setPreviewError(null);
+    }
+  }, [activeTab]);
+
+  // Close settings dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showSettingsDropdown && !(event.target as Element).closest('.relative')) {
+        setShowSettingsDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSettingsDropdown]);
 
   const renderPreview = () => {
     if (dataLoading) {
       return (
-        <div className="flex items-center justify-center h-full text-thread-sage">
+        <div className="flex items-center justify-center text-thread-sage" style={{ height: '800px' }}>
           <div className="text-center">
             <div className="animate-spin w-8 h-8 border-4 border-thread-pine border-t-transparent rounded-full mx-auto mb-4"></div>
             <p>Loading user data...</p>
@@ -443,13 +386,30 @@ export default function CSSEditorPage({
       );
     }
 
+    if (previewError) {
+      return (
+        <div className="flex items-center justify-center text-thread-sage bg-thread-paper" style={{ height: '800px' }}>
+          <div className="text-center max-w-md mx-auto p-8">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h3 className="text-lg font-bold text-thread-pine mb-2">Preview Not Available</h3>
+            <p className="text-thread-sage mb-4">{previewError}</p>
+            <div className="text-sm text-thread-stone">
+              <p className="mb-2">✅ Your CSS will still work on your profile</p>
+              <p>💡 Try reducing the CSS size to enable preview</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <iframe
         ref={iframeRef}
-        className="w-full h-full border-0"
+        className="w-full border-0"
         style={{ 
           backgroundColor: 'white',
-          minHeight: '100%'
+          height: '800px',
+          width: '100%'
         }}
         sandbox="allow-scripts allow-same-origin"
         title="CSS Preview"
@@ -489,32 +449,25 @@ export default function CSSEditorPage({
         <title>{`CSS Editor - ${username} | ThreadStead`}</title>
       </Head>
       <Layout fullWidth={true}>
-        <div className="flex flex-col bg-white css-editor-page w-full" style={{ height: 'calc(100vh - 120px)', maxWidth: '100vw', margin: '0', padding: '0' }}>
-          {/* Header - Full Width */}
-          <div className="bg-white border-b border-thread-sage/30 px-4 py-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold">CSS Editor</h1>
-                <span className="text-thread-sage">- {username}</span>
-                <span className={`px-2 py-1 rounded text-sm ${
-                  layoutMode === 'custom-css' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-blue-100 text-blue-800'
-                }`}>
-                  {layoutMode === 'custom-css' ? 'Default Layout + Custom CSS' : 'Default Layout Only'}
-                </span>
+        <div className="flex flex-col bg-white css-editor-page w-full" style={{ minHeight: '100vh', maxWidth: '100vw', margin: '0', padding: '0' }}>
+          {/* Header - Streamlined */}
+          <div className="bg-white border-b border-thread-sage/30 px-4 py-3 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <h1 className="text-lg font-semibold">CSS Editor</h1>
+                <span className="text-thread-sage text-sm">@{username}</span>
               </div>
               
               <div className="flex items-center gap-2">
                 <button 
                   onClick={handleBackToEdit} 
-                  className="thread-button-secondary text-sm"
+                  className="thread-button-secondary text-xs px-2 py-1"
                 >
-                  ← Back to Edit
+                  ← Edit Profile
                 </button>
                 <button 
                   onClick={handleBackToProfile} 
-                  className="thread-button text-sm"
+                  className="thread-button text-xs px-2 py-1"
                 >
                   View Profile
                 </button>
@@ -522,7 +475,7 @@ export default function CSSEditorPage({
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-1 mt-4">
+            <div className="flex gap-1">
               <button
                 onClick={() => setActiveTab('editor')}
                 className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
@@ -547,44 +500,102 @@ export default function CSSEditorPage({
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex overflow-hidden">
-            
+          <div className="flex-1">
             {/* Editor Tab */}
             {activeTab === 'editor' && (
               <div className="w-full flex flex-col">
-                {/* Editor Toolbar - Full Width */}
-                <div className="bg-thread-cream border-b border-thread-sage/30 px-4 py-3">
-                  <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-thread-sage">
-                        Customize the appearance of your default profile layout with CSS
-                      </span>
-                    </div>
-
+                {/* Editor Toolbar - Seamlessly connected to tabs */}
+                <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-2 -mt-px">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <a 
                         href="/design-css-tutorial" 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="thread-button-secondary text-sm"
+                        className="thread-button-secondary text-xs px-2 py-1"
                       >
-                        🎯 CSS Classes Guide
+                        🎯 Guide
                       </a>
                       <a 
                         href="https://developer.mozilla.org/en-US/docs/Web/CSS" 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="thread-button-secondary text-sm"
+                        className="thread-button-secondary text-xs px-2 py-1"
                       >
-                        📚 CSS Reference
+                        📚 Docs
                       </a>
+                      
+                      {/* Settings Dropdown */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
+                          className="thread-button-secondary text-xs px-2 py-1"
+                        >
+                          ⚙️ Settings
+                        </button>
+                        
+                        {showSettingsDropdown && (
+                          <div className="absolute top-full right-0 mt-1 bg-white border border-thread-sage rounded shadow-lg py-2 px-3 min-w-64 z-50">
+                            <div className="space-y-3">
+                              {/* Include Site CSS Toggle */}
+                              <div>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={includeSiteCSS}
+                                    onChange={(e) => setIncludeSiteCSS(e.target.checked)}
+                                    className="w-4 h-4 text-thread-pine rounded border-thread-sage focus:ring-thread-pine"
+                                  />
+                                  <span className="text-sm font-medium text-thread-charcoal">Include site styles</span>
+                                </label>
+                                <p className="text-xs text-thread-sage mt-1 ml-6">
+                                  {includeSiteCSS ? 'Includes admin customizations' : 'Clean canvas for full control'}
+                                </p>
+                              </div>
+                              
+                              {/* Layout Mode */}
+                              <div>
+                                <div className="text-sm font-medium text-thread-charcoal mb-2">Layout Mode:</div>
+                                <div className="space-y-2 ml-2">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name="cssLayoutMode"
+                                      value="default"
+                                      checked={layoutMode === 'default'}
+                                      onChange={() => setLayoutMode('default')}
+                                      className="text-thread-pine"
+                                    />
+                                    <span className="text-sm">Default Layout</span>
+                                  </label>
+                                  
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name="cssLayoutMode"
+                                      value="custom-css"
+                                      checked={layoutMode === 'custom-css'}
+                                      onChange={() => setLayoutMode('custom-css')}
+                                      className="text-thread-pine"
+                                    />
+                                    <span className="text-sm">Default + Custom CSS</span>
+                                  </label>
+                                </div>
+                                <p className="text-xs text-thread-sage mt-1 ml-2">
+                                  {layoutMode === 'default' ? 'CSS saved but not applied' : 'CSS applied to your profile'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       
                       <button 
                         onClick={handleSave} 
                         disabled={saving}
                         className="thread-button text-sm"
                       >
-                        {saving ? "Saving..." : "Save CSS"}
+                        {saving ? "Saving..." : "💾 Save"}
                       </button>
                     </div>
                   </div>
@@ -672,51 +683,11 @@ export default function CSSEditorPage({
                     )}
                   </div>
                   
-                  {/* Layout Mode Selection */}
-                  <div className="mt-4 pt-4 border-t border-thread-sage/20">
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm font-medium text-thread-charcoal">Layout Mode:</span>
-                      <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="cssLayoutMode"
-                            value="default"
-                            checked={layoutMode === 'default'}
-                            onChange={() => setLayoutMode('default')}
-                            className="text-thread-pine"
-                          />
-                          <span className="text-sm">Default Layout</span>
-                        </label>
-                        
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="cssLayoutMode"
-                            value="custom-css"
-                            checked={layoutMode === 'custom-css'}
-                            onChange={() => setLayoutMode('custom-css')}
-                            className="text-thread-pine"
-                          />
-                          <span className="text-sm">Default Layout + Custom CSS</span>
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-2">
-                      <p className="text-xs text-thread-sage">
-                        {layoutMode === 'default' 
-                          ? 'Your CSS will be saved but not applied to your profile page'
-                          : 'Your CSS will be applied to the default layout on your profile page'
-                        }
-                      </p>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Code Editor - Full Width */}
-                <div className="flex-1 flex">
-                  <div className="flex-1 px-4 py-4">
+                {/* Code Editor - Natural Height */}
+                <div className="w-full">
+                  <div className="px-4 py-4">
                     <label className="block mb-3">
                       <span className="thread-label text-lg">Custom CSS</span>
                       <span className="text-sm text-thread-sage ml-2">Use Tab/Shift+Tab for indentation</span>
@@ -726,11 +697,11 @@ export default function CSSEditorPage({
                       value={css}
                       onChange={(e) => setCSS(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="w-full h-full border border-thread-sage p-4 bg-thread-paper rounded font-mono text-sm resize-none focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                      className="w-full border border-thread-sage p-4 bg-thread-paper rounded font-mono text-sm resize-vertical focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
                       placeholder="/* Add your custom CSS here */\n\n.profile-container {\n  /* Your styles */\n}"
                       spellCheck={false}
+                      rows={25}
                       style={{ 
-                        minHeight: 'calc(100vh - 280px)',
                         fontFamily: "'Fira Code', 'Consolas', 'Monaco', 'Menlo', monospace",
                         lineHeight: '1.5',
                         tabSize: 2
@@ -741,16 +712,13 @@ export default function CSSEditorPage({
               </div>
             )}
 
-            {/* Preview Tab */}
+            {/* Preview Tab - Expanded */}
             {activeTab === 'preview' && (
               <div className="w-full flex flex-col">
-                <div className="bg-thread-cream border-b border-thread-sage/30 px-4 py-3">
+                <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-2 -mt-px">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <span className="thread-label text-lg">Live Preview</span>
-                      <span className="text-sm text-thread-sage">
-                        Default layout with your custom CSS applied
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <span className="thread-label text-sm">Live Preview</span>
                     </div>
                     
                     <button 
@@ -763,7 +731,7 @@ export default function CSSEditorPage({
                   </div>
                 </div>
 
-                <div className="flex-1 bg-white border border-thread-sage/30 mx-4 my-4 rounded overflow-hidden shadow-lg">
+                <div className="bg-white border border-thread-sage/30 mx-2 my-2 rounded overflow-hidden shadow-lg" style={{ minHeight: '800px' }}>
                   {renderPreview()}
                 </div>
               </div>
@@ -843,11 +811,13 @@ export const getServerSideProps: GetServerSideProps<CSSEditorPageProps> = async 
     let existingCSS = "";
     let templateMode: 'default' | 'enhanced' | 'advanced' = 'default';
     let templateEnabled = false;
+    let initialIncludeSiteCSS = true;
     
     if (isOwner) {
       existingCSS = profileData.profile?.customCSS || "";
       templateMode = profileData.profile?.templateMode || 'default';
       templateEnabled = profileData.profile?.templateEnabled || false;
+      initialIncludeSiteCSS = profileData.profile?.includeSiteCSS !== false; // Default to true
     }
 
     return {
@@ -857,6 +827,7 @@ export const getServerSideProps: GetServerSideProps<CSSEditorPageProps> = async 
         existingCSS,
         templateMode,
         templateEnabled,
+        initialIncludeSiteCSS,
       },
     };
   } catch (error) {

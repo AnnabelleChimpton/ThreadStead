@@ -30,5 +30,13 @@
     "publicKey": "nXqUzYQ2qSN7nd5KJBjAe-NGJs1XejMgZ9ygLvWwlCk",
     "secretKey": "1SyLm3GSRNYCBnS5rHGKkQLs6ufLI-nuRgAFiubKUXE",
     "created": "2025-08-23T15:56:12.700Z"
+  },
+  {
+    "userId": "cmericvhi00007p6g3cwpsq60",
+    "did": "did:web:homepageagain.com:users:060a982374b136f1",
+    "userHash": "060a982374b136f1",
+    "publicKey": "evnCWbVRRqVEcrA_bDHiTPyTqQ8MN5KMV34thIFYhG0",
+    "secretKey": "9yVLYCB6rtq4Rp0ECDo0w-nfh9SAABp-8CA0TIwqMWs",
+    "created": "2025-08-25T19:27:35.272Z"
   }
 ]

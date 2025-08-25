@@ -118,6 +118,7 @@ model Profile {
   templateEnabled    Boolean    @default(false) // whether custom template is active
   templateMode       TemplateMode @default(default) // template rendering mode
   hideNavigation     Boolean    @default(false) // hide navbar and footer on custom template
+  includeSiteCSS     Boolean    @default(true) // whether to include site-wide CSS on profile page
   blogroll           Json? // [{label,url,blurb}]
   featuredFriends    Json? // [{id,handle,displayName,avatarUrl}]
   badgePreferences   Json? // User badge display preferences

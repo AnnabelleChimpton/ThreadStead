@@ -7,6 +7,7 @@ interface ProfileLayoutProps {
   sidebarContent?: React.ReactNode;
   showSidebar?: boolean;
   hideNavigation?: boolean;
+  includeSiteCSS?: boolean;
 }
 
 export default function ProfileLayout({ 
@@ -14,7 +15,8 @@ export default function ProfileLayout({
   customCSS, 
   sidebarContent,
   showSidebar = false,
-  hideNavigation = false
+  hideNavigation = false,
+  includeSiteCSS = true
 }: ProfileLayoutProps) {
   if (hideNavigation) {
     // Render without Layout wrapper when hiding navigation

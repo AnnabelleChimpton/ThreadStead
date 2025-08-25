@@ -37,6 +37,7 @@ type ProfileProps = {
   residentData?: ResidentData;
   hideNavigation?: boolean;
   templateMode?: 'default' | 'enhanced' | 'advanced';
+  includeSiteCSS?: boolean;
 };
 
 /* ---------------- page ---------------- */
@@ -53,6 +54,7 @@ export default function ProfilePage({
   residentData,
   hideNavigation = false,
   templateMode = 'default',
+  includeSiteCSS = true,
 }: ProfileProps) {
   const [relStatus, setRelStatus] = React.useState<string>("loading");
   const { user: currentUser } = useCurrentUser();
@@ -181,7 +183,11 @@ export default function ProfilePage({
     : baseTabs.filter(tab => tab.id !== 'badges');
 
   return (
-    <ProfileLayout customCSS={customCSS} hideNavigation={hideNavigation}>
+    <ProfileLayout 
+      customCSS={customCSS} 
+      hideNavigation={hideNavigation}
+      includeSiteCSS={includeSiteCSS}
+    >
       <RetroCard>
         <ProfileHeader
           username={username}
@@ -250,6 +256,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       templateEnabled?: boolean;
       templateMode?: 'default' | 'enhanced' | 'advanced';
       hideNavigation?: boolean;
+      includeSiteCSS?: boolean;
       blogroll?: unknown[]; 
       featuredFriends?: unknown[] 
     };
@@ -452,6 +459,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (residentData != null) props.residentData = residentData;
   if (data.profile?.hideNavigation != null) props.hideNavigation = data.profile.hideNavigation;
   if (data.profile?.templateMode != null) props.templateMode = data.profile.templateMode;
+  if (data.profile?.includeSiteCSS != null) props.includeSiteCSS = data.profile.includeSiteCSS;
   
   // CSS Priority based on template mode
   const templateMode = data.profile?.templateMode || 'default';

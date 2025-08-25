@@ -379,14 +379,14 @@ const cssData = {
       name: 'Profile Containers',
       description: 'Main structural elements of profile pages',
       classes: [
-        { name: '.profile-container', description: 'Main wrapper for entire profile page' },
-        { name: '.profile-content-wrapper', description: 'Inner content wrapper with responsive padding' },
-        { name: '.profile-main-content', description: 'Contains main profile sections (header, tabs, etc.)' },
-        { name: '.profile-header', description: 'Profile header section' },
-        { name: '.profile-header-layout', description: 'Flex layout container for header elements' }
+        { name: '.ts-profile-container', description: 'Main wrapper for entire profile page' },
+        { name: '.ts-profile-content-wrapper', description: 'Inner content wrapper with responsive padding' },
+        { name: '.ts-profile-main-content', description: 'Contains main profile sections (header, tabs, etc.)' },
+        { name: '.ts-profile-header', description: 'Profile header section containing photo and info' },
+        { name: '.ts-profile-header-layout', description: 'Flex layout container for header elements' }
       ],
       example: `/* Create a glass morphism profile container */
-.profile-container {
+.ts-profile-container {
   background: rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(20px) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
@@ -394,7 +394,7 @@ const cssData = {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
 }
 
-.profile-header {
+.ts-profile-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
   color: white !important;
   border-radius: 15px !important;
@@ -411,7 +411,7 @@ const cssData = {
       name: 'Profile Photo Elements',
       description: 'Photo containers and styling elements',
       classes: [
-        { name: '.profile-photo-section', description: 'Container for profile photo area' },
+        { name: '.ts-profile-photo-section', description: 'Container for profile photo area' },
         { name: '.profile-photo-wrapper', description: 'Photo wrapper with positioning' },
         { name: '.profile-photo-frame', description: 'Photo frame/border styling' },
         { name: '.profile-photo-image', description: 'The actual profile image element' },
@@ -451,9 +451,9 @@ const cssData = {
         { name: '.site-title', description: 'Site title/logo text' },
         { name: '.site-tagline', description: 'Site tagline/subtitle' },
         { name: '.nav-link', description: 'Navigation menu links' },
-        { name: '.profile-tabs', description: 'Container for tab system' },
+        { name: '.ts-profile-tabs-wrapper', description: 'Container for tab system' },
         { name: '.profile-tab-button', description: 'Individual tab button' },
-        { name: '.profile-tab-button.active', description: 'Currently active tab' },
+        { name: '.profile-tab-button[aria-selected="true"]', description: 'Currently active tab' },
         { name: '.profile-tab-panel', description: 'Tab content container' }
       ],
       example: `/* Retro gaming style tabs */
@@ -474,7 +474,7 @@ const cssData = {
   box-shadow: 2px 2px 0 #000 !important;
 }
 
-.profile-tab-button.active {
+.profile-tab-button[aria-selected="true"] {
   background: #00ff00 !important;
   transform: translate(2px, 2px) !important;
 }`,
@@ -639,7 +639,7 @@ const cssData = {
         { name: 'bg-thread-charcoal', description: 'Dark charcoal background (#2F2F2F)' }
       ],
       example: `/* Using ThreadStead colors */
-.profile-header {
+.ts-profile-header {
   background: linear-gradient(135deg, 
     rgb(46, 75, 63), /* thread-pine */
     rgb(161, 132, 99) /* thread-sage */
@@ -684,12 +684,12 @@ const cssData = {
         { name: 'text-thread-charcoal', description: 'Dark charcoal text' }
       ],
       example: `/* Text color examples */
-.profile-display-name {
+.ts-profile-display-name {
   color: rgb(46, 75, 63) !important; /* text-thread-pine */
   font-weight: bold !important;
 }
 
-.profile-bio {
+.ts-profile-bio {
   color: rgb(161, 132, 99) !important; /* text-thread-sage */
   font-style: italic !important;
 }
@@ -727,7 +727,7 @@ const cssData = {
         { name: 'border-thread-charcoal', description: 'Dark charcoal border' }
       ],
       example: `/* Border styling examples */
-.profile-container {
+.ts-profile-container {
   border: 3px solid rgb(161, 132, 99) !important; /* border-thread-sage */
   border-radius: 12px !important;
 }
@@ -945,7 +945,7 @@ const cssData = {
     max-width: 100% !important;
   }
   
-  .profile-display-name {
+  .ts-profile-display-name {
     font-size: 1.75rem !important;
   }
 }
