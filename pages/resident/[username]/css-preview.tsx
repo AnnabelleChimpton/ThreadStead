@@ -227,15 +227,56 @@ export default function CSSPreviewPage({
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { username } = context.params!;
-  const { customCSS, includeSiteCSS, bio, photoUrl } = context.query;
+  const { id } = context.query;
 
-  return {
-    props: {
-      username: username as string,
-      bio: (bio as string) || "Welcome to my profile!",
-      photoUrl: (photoUrl as string) || "/assets/default-avatar.gif", 
-      customCSS: (customCSS as string) || "",
-      includeSiteCSS: includeSiteCSS !== "false",
-    },
-  };
+  // If no preview ID, return default props
+  if (!id || typeof id !== 'string') {
+    return {
+      props: {
+        username: username as string,
+        bio: "Welcome to my profile!",
+        photoUrl: "/assets/default-avatar.gif", 
+        customCSS: "",
+        includeSiteCSS: true,
+      },
+    };
+  }
+
+  try {
+    // Determine the base URL for API calls
+    const protocol = context.req.headers['x-forwarded-proto'] || 'http';
+    const host = context.req.headers.host;
+    const baseUrl = `${protocol}://${host}`;
+    
+    const response = await fetch(`${baseUrl}/api/css-preview-data?id=${id}`);
+    
+    if (!response.ok) {
+      throw new Error('Preview data not found');
+    }
+    
+    const data = await response.json();
+    
+    return {
+      props: {
+        username: username as string,
+        bio: data.bio || "Welcome to my profile!",
+        photoUrl: data.photoUrl || "/assets/default-avatar.gif", 
+        customCSS: data.customCSS || "",
+        includeSiteCSS: data.includeSiteCSS === 'true',
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching preview data:', error);
+    
+    // Return fallback props if preview data fetch fails
+    return {
+      props: {
+        username: username as string,
+        bio: "Welcome to my profile!",
+        photoUrl: "/assets/default-avatar.gif", 
+        customCSS: "",
+        includeSiteCSS: true,
+      },
+    };
+  }
 };

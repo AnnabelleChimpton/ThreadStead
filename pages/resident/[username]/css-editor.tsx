@@ -299,34 +299,38 @@ export default function CSSEditorPage({
   // Track preview error state
   const [previewError, setPreviewError] = useState<string | null>(null);
 
-  // Update iframe src to use dedicated preview page
-  const updateIframeContent = useCallback(() => {
+  // Update iframe src to use dedicated preview page with POST-based data storage
+  const updateIframeContent = useCallback(async () => {
     if (!iframeRef.current || !residentData) {
       return;
     }
 
     try {
-      const previewParams = new URLSearchParams({
-        customCSS: css,
-        includeSiteCSS: includeSiteCSS.toString(),
-        bio: residentData.capabilities?.bio || 'Welcome to my profile!',
-        photoUrl: residentData.owner.avatarUrl || '/assets/default-avatar.gif'
+      // Store preview data via POST to avoid URL length limits
+      const response = await fetch('/api/css-preview-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          customCSS: css,
+          includeSiteCSS: includeSiteCSS.toString(),
+          bio: residentData.capabilities?.bio || 'Welcome to my profile!',
+          photoUrl: residentData.owner.avatarUrl || '/assets/default-avatar.gif'
+        })
       });
 
-      const previewUrl = `/resident/${username}/css-preview?${previewParams.toString()}`;
-      
-      // Check if URL is too long (likely to cause 431 error)  
-      // Account for URL encoding expansion - be more generous with the limit
-      if (previewUrl.length > 16000) {
-        console.log('Preview URL too long:', previewUrl.length, 'characters');
-        setPreviewError("CSS is too large to preview. Your CSS will still work on your actual profile page, but cannot be shown in the preview panel.");
-        return;
+      if (!response.ok) {
+        throw new Error('Failed to store preview data');
       }
+
+      const { previewId } = await response.json();
+      const previewUrl = `/resident/${username}/css-preview?id=${previewId}`;
 
       // Clear any previous error
       setPreviewError(null);
       
-      // Update iframe src to use preview page instead of srcdoc
+      // Update iframe src to use preview page
       if (iframeRef.current) {
         // Add loading handler to detect successful loads
         const handleLoad = () => {
@@ -335,7 +339,7 @@ export default function CSSEditorPage({
         };
 
         const handleError = () => {
-          setPreviewError("Preview failed to load. Your CSS may be too large for the preview, but will still work on your profile.");
+          setPreviewError("Preview failed to load. Please try again.");
         };
 
         iframeRef.current.onload = handleLoad;
@@ -344,7 +348,7 @@ export default function CSSEditorPage({
       }
     } catch (error) {
       console.error('Error updating iframe content:', error);
-      setPreviewError("Error loading preview. Your CSS will still work on your profile.");
+      setPreviewError("Error loading preview. Please try again.");
     }
   }, [residentData, css, includeSiteCSS, username]);
 
