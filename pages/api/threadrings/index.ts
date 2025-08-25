@@ -51,16 +51,7 @@ export default withThreadRingSupport(async function handler(
         }
       }
 
-      // Map sort parameter to Ring Hub format
-      let sortBy: 'trending' | 'newest' | 'members' | 'posts' | 'alphabetical' | undefined;
-      switch (sort) {
-        case "newest": sortBy = "newest"; break;
-        case "members": sortBy = "members"; break;
-        case "posts": sortBy = "posts"; break;
-        case "alphabetical": sortBy = "alphabetical"; break;
-        case "trending": sortBy = "trending"; break;
-        default: sortBy = undefined; // Ring Hub uses default
-      }
+      // TODO: Map sort parameter to Ring Hub format when implemented
 
       // Build Ring Hub parameters with strict validation
       let ringHubOptions: { search?: string; limit?: number; offset?: number } | undefined;

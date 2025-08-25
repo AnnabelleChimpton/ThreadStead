@@ -183,7 +183,7 @@ export default async function handler(
 
           if (n.children) {
             for (const child of n.children) {
-              const childStats = calculateAverageChildren(child);
+              calculateAverageChildren(child);
               totalRings += 1; // Each child adds to ring count
               directChildrenSum += child.directChildrenCount;
             }

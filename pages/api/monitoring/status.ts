@@ -6,7 +6,7 @@
 
 import { NextApiRequest, NextApiResponse } from 'next'
 import { getKeyRotationStatus } from '@/lib/key-rotation-scheduler'
-import { ringHubRateLimiter, userOperationRateLimiter } from '@/lib/rate-limiting-config'
+import { ringHubRateLimiter } from '@/lib/rate-limiting-config'
 import { testRingHubConnection, validateRingHubConfig } from '@/lib/ringhub-test-utils'
 import { getOrCreateServerKeypair } from '@/lib/server-did-client'
 
@@ -63,7 +63,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(405).json({ error: 'Method not allowed' } as any)
   }
 
-  const startTime = Date.now()
   const issues: string[] = []
   const warnings: string[] = []
 
@@ -77,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     try {
       serverKeypair = await getOrCreateServerKeypair()
       keyRotationStatus = await getKeyRotationStatus()
-    } catch (error) {
+    } catch {
       issues.push('Failed to load server keypair')
       serverKeypair = null
       keyRotationStatus = null
@@ -96,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         if (!didDocumentAccessible) {
           warnings.push(`DID document not accessible: ${response.status}`)
         }
-      } catch (error) {
+      } catch {
         warnings.push('DID document accessibility check failed')
       }
     }

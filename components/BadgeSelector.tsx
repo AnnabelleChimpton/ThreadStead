@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BADGE_TEMPLATES, type BadgeTemplate } from '@/lib/threadring-badges';
+import { BADGE_TEMPLATES } from '@/lib/threadring-badges';
 import ThreadRing88x31Badge from './ThreadRing88x31Badge';
 
 interface BadgeSelectorProps {

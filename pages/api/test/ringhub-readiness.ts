@@ -178,7 +178,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       try {
         // Try a simple authenticated request
-        const result = await client.listRings({ limit: 1 })
+        await client.listRings({ limit: 1 })
         
         return {
           authenticated: true,

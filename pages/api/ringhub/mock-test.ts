@@ -93,7 +93,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       case 'lineage':
         // Mock /trp/rings/{slug}/lineage endpoint
-        const webDevRing = mockRings[0]
         const spoolRing = mockRings[1]
         return res.status(200).json({
           parent: spoolRing,

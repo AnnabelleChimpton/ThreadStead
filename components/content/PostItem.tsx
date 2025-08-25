@@ -3,7 +3,6 @@ import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import hljs from "highlight.js"; // Ensure highlight.js is imported
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../forms/NewCommentForm";
-import Link from "next/link";
 import ThreadRingBadge from "../ThreadRingBadge";
 import PostHeader from "../PostHeader";
 import { featureFlags, UserWithRole } from "@/lib/feature-flags";

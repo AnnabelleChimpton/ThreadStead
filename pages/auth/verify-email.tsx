@@ -36,7 +36,7 @@ export default function VerifyEmailPage() {
         const errorData = await response.json();
         setError(errorData.error || 'Invalid or expired verification link');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to verify email. Please try again.');
     } finally {
       setIsLoading(false);

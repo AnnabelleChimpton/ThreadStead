@@ -10,7 +10,6 @@ import Tabs, { TabSpec } from "@/components/navigation/Tabs";
 import WebsiteManager, { Website } from "@/components/WebsiteManager";
 import FriendManager, { SelectedFriend } from "@/components/FriendManager";
 // CSS Editor moved to dedicated page at /resident/[username]/css-editor
-import ProfilePreview from "@/components/ProfilePreview";
 import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 import ProfileBadgeSelector from "@/components/ProfileBadgeSelector";
 import type { TemplateNode } from "@/lib/template-parser";

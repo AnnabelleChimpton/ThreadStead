@@ -138,8 +138,7 @@ export default withThreadRingSupport(async function handler(
       moderatorCount,
       newMembersThisWeek,
       newPostsThisWeek,
-      topPosters,
-      membershipTrend
+      topPosters
     ] = await Promise.all([
       // Count pinned posts
       db.postThreadRing.count({
@@ -194,23 +193,6 @@ export default withThreadRingSupport(async function handler(
           }
         },
         take: 10
-      }),
-
-      // Membership trend (simplified - weekly snapshots for last month)
-      db.threadRingMember.groupBy({
-        by: ['joinedAt'],
-        where: {
-          threadRingId: threadRing.id,
-          joinedAt: {
-            gte: oneMonthAgo
-          }
-        },
-        _count: {
-          joinedAt: true
-        },
-        orderBy: {
-          joinedAt: 'asc'
-        }
       })
     ]);
 

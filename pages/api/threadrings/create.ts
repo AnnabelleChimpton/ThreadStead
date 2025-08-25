@@ -6,7 +6,6 @@ import { generateThreadRingBadge } from "@/lib/badge-generator";
 import { uploadBadgeImage } from "@/lib/badge-uploader";
 import { withThreadRingSupport } from "@/lib/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
-import { transformThreadRingToRingDescriptor } from "@/lib/ringhub-transformers";
 
 // Temporarily use string literals instead of Prisma types
 type ThreadRingJoinType = "open" | "invite" | "closed";

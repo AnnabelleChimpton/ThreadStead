@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { findUsersByEmail, encryptEmail } from "@/lib/email-encryption";
+import { findUsersByEmail } from "@/lib/email-encryption";
 import { createEmailLoginToken, sendLoginEmail, cleanupExpiredTokens } from "@/lib/email-login";
-import { db } from "@/lib/db";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {

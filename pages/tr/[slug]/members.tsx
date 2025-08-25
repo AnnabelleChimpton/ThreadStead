@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "../../../components/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";

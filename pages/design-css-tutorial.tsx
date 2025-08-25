@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import Head from "next/head";
-import Link from "next/link";
 import RetroFooter from "@/components/design-tutorial/RetroFooter";
 
 // CSS Class Categories

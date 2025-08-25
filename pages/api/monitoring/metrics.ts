@@ -56,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     let keyRotationStatus
     try {
       keyRotationStatus = await getKeyRotationStatus()
-    } catch (error) {
+    } catch {
       keyRotationStatus = null
     }
 

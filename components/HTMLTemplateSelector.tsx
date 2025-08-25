@@ -6,7 +6,7 @@ interface HTMLTemplateSelectorProps {
   onTemplateChange: (template: string) => void;
 }
 
-export default function HTMLTemplateSelector({ currentTemplate, onTemplateChange }: HTMLTemplateSelectorProps) {
+export default function HTMLTemplateSelector({ currentTemplate: _currentTemplate, onTemplateChange }: HTMLTemplateSelectorProps) {
   const [showTemplates, setShowTemplates] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'minimal' | 'modern' | 'classic'>('all');
 

@@ -4,7 +4,7 @@ import Layout from "../../components/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
-import PostItem, { Post } from "../../components/content/PostItem";
+import PostItem from "../../components/content/PostItem";
 import ThreadRingStats from "../../components/ThreadRingStats";
 import ThreadRingLineage from "../../components/ThreadRingLineage";
 import RandomMemberDiscovery from "../../components/RandomMemberDiscovery";

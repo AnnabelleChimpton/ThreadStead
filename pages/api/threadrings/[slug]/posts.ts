@@ -32,7 +32,7 @@ function isOurThreadSteadInstance(uri: string): boolean {
 /**
  * Resolve Ring Hub post references to actual ThreadStead post objects
  */
-async function resolveRingHubPosts(ringHubPosts: any[], viewer: any) {
+async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
   const resolvedPosts = [];
   
   for (const ringHubPost of ringHubPosts) {

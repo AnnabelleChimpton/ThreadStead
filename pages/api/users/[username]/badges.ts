@@ -4,7 +4,6 @@ import { db } from '@/lib/db'
 import { featureFlags } from '@/lib/feature-flags'
 import { getPublicRingHubClient } from '@/lib/ringhub-client'
 import { getUserDID } from '@/lib/server-did-client'
-import { UserBadgePreferences } from '@/pages/api/users/me/badge-preferences'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

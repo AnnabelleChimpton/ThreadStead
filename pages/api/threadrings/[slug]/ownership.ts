@@ -73,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let userDID = null;
     try {
       userDID = await getUserDID(viewer.id);
-    } catch (error) {
+    } catch {
       // User doesn't have a DID yet
     }
 

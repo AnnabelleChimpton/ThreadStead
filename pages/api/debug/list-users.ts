@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (user.encryptedEmail) {
         try {
           decryptedEmail = decryptEmail(user.encryptedEmail);
-        } catch (e) {
+        } catch {
           decryptError = 'Cannot decrypt (key mismatch or corruption)';
         }
       }

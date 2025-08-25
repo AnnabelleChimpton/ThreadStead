@@ -26,10 +26,8 @@ export default async function handler(
   try {
     const viewer = await getSessionUser(req);
     const { 
-      rootId, 
       maxDepth = 2,  // Default to shallow depth
-      expandPath,    // Comma-separated IDs to expand
-      compact = true // Use compact format by default
+      expandPath     // Comma-separated IDs to expand
     } = req.query;
 
     // Parse expand path if provided

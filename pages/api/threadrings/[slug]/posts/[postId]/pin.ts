@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === "POST") {
       // Pin the post
-      const updated = await db.postThreadRing.update({
+      await db.postThreadRing.update({
         where: {
           id: postAssociation.id
         },
@@ -80,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     } else {
       // Unpin the post (DELETE method)
-      const updated = await db.postThreadRing.update({
+      await db.postThreadRing.update({
         where: {
           id: postAssociation.id
         },

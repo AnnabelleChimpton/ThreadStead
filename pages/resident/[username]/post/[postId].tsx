@@ -3,7 +3,6 @@ import type { GetServerSideProps } from "next";
 import RetroCard from "@/components/layout/RetroCard";
 import PostItem, { Post as PostType } from "@/components/content/PostItem";
 import ProfileLayout from "@/components/layout/ProfileLayout";
-import Breadcrumb from "@/components/navigation/Breadcrumb";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type PostPageProps = {
@@ -33,11 +32,6 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
   }, [post.author?.id]);
 
   const displayName = authorDisplayName || username;
-
-  const breadcrumbItems = [
-    { label: displayName, href: `/resident/${username}` },
-    { label: "Post", active: true }
-  ];
 
   const sidebarContent = (
     <>

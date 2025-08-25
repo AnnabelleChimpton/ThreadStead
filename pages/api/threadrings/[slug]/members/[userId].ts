@@ -112,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Cannot promote to curator. Transfer ownership instead." });
       }
 
-      const updated = await db.threadRingMember.update({
+      await db.threadRingMember.update({
         where: {
           threadRingId_userId: {
             threadRingId: threadRing.id,

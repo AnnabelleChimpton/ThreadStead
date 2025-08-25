@@ -56,7 +56,7 @@ export default function EmailVerifyPage() {
         const errorData = await response.json();
         setError(errorData.error || 'Invalid or expired login link');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to verify login link. Please try again.');
     } finally {
       setIsLoading(false);
@@ -86,7 +86,7 @@ export default function EmailVerifyPage() {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to sign in to selected account');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to sign in. Please try again.');
     } finally {
       setIsVerifying(false);
