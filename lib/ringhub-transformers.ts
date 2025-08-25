@@ -47,6 +47,21 @@ export function mapJoinTypeToJoinPolicy(joinType: ThreadRingJoinType): 'OPEN' | 
 }
 
 /**
+ * Maps Ring Hub member role to ThreadStead ThreadRingRole
+ */
+function mapRingHubRoleToThreadRingRole(ringHubRole: string): ThreadRingRole {
+  switch (ringHubRole.toLowerCase()) {
+    case 'owner':
+      return 'curator';
+    case 'moderator':
+      return 'moderator';
+    case 'member':
+    default:
+      return 'member';
+  }
+}
+
+/**
  * Map Ring Hub post policy to display string
  */
 export function mapPostPolicy(policy: string): string {
@@ -164,7 +179,7 @@ export function transformRingMemberToThreadRingMember(
     id: generateMemberId(member.actorDid, threadRingId),
     threadRingId,
     userId: userId || member.actorDid, // Will need DID -> user mapping
-    role: member.role as ThreadRingRole,
+    role: mapRingHubRoleToThreadRingRole(member.role),
     joinedAt: member.joinedAt || new Date().toISOString(), // Default to now if null
     user: {
       id: userId || member.actorDid,
@@ -230,7 +245,7 @@ export async function transformRingMemberWithUserResolution(
     id: generateMemberId(member.actorDid, threadRingId),
     threadRingId,
     userId: resolvedUserId || member.actorDid,
-    role: member.role as ThreadRingRole,
+    role: mapRingHubRoleToThreadRingRole(member.role),
     joinedAt: member.joinedAt || new Date().toISOString(),
     user: {
       id: resolvedUserId || member.actorDid,

@@ -236,7 +236,7 @@ export default function ThreadRingMembersPage({
 
                     {isCurator && canManage && (
                       <span className="text-xs text-gray-500 italic">
-                        Ring owner
+                        Curator
                       </span>
                     )}
                   </div>
