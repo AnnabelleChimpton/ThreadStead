@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import FeedPost, { FeedPostData } from "./FeedPost";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 
@@ -23,12 +23,7 @@ export default function Feed({ type }: FeedProps) {
 
   const endpoint = type === "recent" ? "/api/feed/recent" : "/api/feed/active";
 
-  // Load initial posts
-  useEffect(() => {
-    loadPosts(true);
-  }, [type]);
-
-  async function loadPosts(isInitial = false) {
+  const loadPosts = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoadingMore(true);
     setError(null);
 
@@ -55,7 +50,14 @@ export default function Feed({ type }: FeedProps) {
       setLoading(false);
       setLoadingMore(false);
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // posts.length is used inside but intentionally omitted to prevent unnecessary recreations
+  }, [endpoint]);
+
+  // Load initial posts
+  useEffect(() => {
+    loadPosts(true);
+  }, [type, loadPosts]);
 
   function loadMore() {
     if (!hasMore || loadingMore) return;

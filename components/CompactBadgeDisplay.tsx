@@ -1,5 +1,5 @@
 // components/CompactBadgeDisplay.tsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import ThreadRing88x31Badge from './ThreadRing88x31Badge'
 
@@ -34,11 +34,7 @@ export default function CompactBadgeDisplay({
   const [badges, setBadges] = useState<CompactBadge[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadUserBadges()
-  }, [userId, context])
-
-  const loadUserBadges = async () => {
+  const loadUserBadges = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -54,7 +50,11 @@ export default function CompactBadgeDisplay({
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId, context])
+
+  useEffect(() => {
+    loadUserBadges()
+  }, [userId, context, loadUserBadges])
 
   if (loading) {
     return (

@@ -80,6 +80,8 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
 
   useEffect(() => {
     loadCurrentIdentity();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Intentionally only run once on mount to initialize user identity
   }, []);
 
   async function handleExport() {

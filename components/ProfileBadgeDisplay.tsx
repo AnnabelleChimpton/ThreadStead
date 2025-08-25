@@ -1,5 +1,5 @@
 // components/ProfileBadgeDisplay.tsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import ThreadRing88x31Badge from './ThreadRing88x31Badge'
 
@@ -37,11 +37,7 @@ export default function ProfileBadgeDisplay({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadUserBadges()
-  }, [username])
-
-  const loadUserBadges = async () => {
+  const loadUserBadges = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -64,7 +60,11 @@ export default function ProfileBadgeDisplay({
     } finally {
       setLoading(false)
     }
-  }
+  }, [username])
+
+  useEffect(() => {
+    loadUserBadges()
+  }, [username, loadUserBadges])
 
   if (loading) {
     return (

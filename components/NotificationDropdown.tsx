@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
@@ -23,7 +23,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     return handle.split('@')[0];
   };
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (loading) return;
     
     setLoading(true);
@@ -47,7 +47,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const markAsRead = async (notificationIds: string[]) => {
     try {
@@ -119,7 +119,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     if (isOpen) {
       fetchNotifications();
     }
-  }, [isOpen]);
+  }, [isOpen, fetchNotifications]);
 
   const getNotificationMessage = (notification: NotificationData): string => {
     const actorName = notification.actor.displayName || notification.actor.handle || "Someone";

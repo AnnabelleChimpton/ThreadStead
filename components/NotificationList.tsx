@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -41,7 +41,7 @@ export default function NotificationList({
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         limit: String(limit),
@@ -57,11 +57,11 @@ export default function NotificationList({
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, filter]);
 
   useEffect(() => {
     loadNotifications();
-  }, [limit, filter]);
+  }, [limit, filter, loadNotifications]);
 
   const markAsRead = async (notificationIds: string[]) => {
     try {

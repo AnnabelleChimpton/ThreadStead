@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import Layout from "@/components/Layout";
@@ -23,13 +23,7 @@ export default function EmailVerifyPage() {
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    if (token && typeof token === 'string') {
-      verifyToken();
-    }
-  }, [token]);
-
-  async function verifyToken() {
+  const verifyToken = useCallback(async () => {
     try {
       setIsLoading(true);
       setError('');
@@ -62,7 +56,13 @@ export default function EmailVerifyPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [token]);
+
+  useEffect(() => {
+    if (token && typeof token === 'string') {
+      verifyToken();
+    }
+  }, [token, verifyToken]);
 
   async function handleUserSelection(userId: string) {
     try {

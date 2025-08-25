@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import type { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -347,7 +347,7 @@ export default function CSSEditorPage({
   };
 
   // Update iframe content with default layout and custom CSS
-  const updateIframeContent = () => {
+  const updateIframeContent = useCallback(() => {
     if (!iframeRef.current || !residentData) {
       return;
     }
@@ -422,14 +422,14 @@ export default function CSSEditorPage({
     } catch (error) {
       console.error('Error updating iframe content:', error);
     }
-  };
+  }, [residentData, css]);
 
   // Update iframe when CSS or data changes and preview tab is active
   useEffect(() => {
     if (activeTab === 'preview') {
       updateIframeContent();
     }
-  }, [css, residentData, activeTab]);
+  }, [css, residentData, activeTab, updateIframeContent]);
 
   const renderPreview = () => {
     if (dataLoading) {
