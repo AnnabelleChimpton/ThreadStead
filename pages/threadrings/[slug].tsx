@@ -821,6 +821,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     threadRingContext={{ slug: ring.slug, name: ring.name }}
                     canModerateRing={currentUserRole === "curator" || currentUserRole === "moderator"}
                     currentUser={currentUser}
+                    userRole={currentUserRole as any}
+                    isUserMember={isMember}
                   />
                 ))}
                 

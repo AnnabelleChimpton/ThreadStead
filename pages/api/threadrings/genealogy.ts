@@ -22,6 +22,7 @@ interface GenealogyStats {
   totalRings: number;
   totalMembers: number;
   totalPosts: number;
+  totalActors?: number;
   maxDepth: number;
   averageChildren: number;
 }
@@ -195,6 +196,7 @@ export default async function handler(
           totalRings: ringHubStats.totalRings,
           totalMembers: ringHubStats.activeMemberships, // Use active memberships for member count
           totalPosts: ringHubStats.acceptedPosts, // Use accepted posts for post count
+          totalActors: ringHubStats.totalActors, // Total unique actors in the network
           maxDepth: calculateMaxDepth(root),
           averageChildren: calculateAverageChildren(root)
         };

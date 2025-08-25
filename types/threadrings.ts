@@ -202,9 +202,21 @@ export type ThreadRingAuditAction =
   | 'post_remove'
   | 'post_pin'
   | 'post_unpin'
+  | 'post_accept'
+  | 'post_reject'
   | 'ring_update'
   | 'user_block'
   | 'user_unblock';
+
+// Post moderation types
+export type PostModerationAction = 'accept' | 'reject' | 'pin' | 'unpin' | 'remove';
+export type PostModerationStatus = 'ACCEPTED' | 'REJECTED' | 'REMOVED' | 'PENDING';
+
+export interface PostModerationRequest {
+  action: PostModerationAction;
+  reason?: string;
+  metadata?: any;
+}
 
 export interface ThreadRingPrompt {
   id: string;

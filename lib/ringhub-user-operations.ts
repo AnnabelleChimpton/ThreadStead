@@ -286,6 +286,39 @@ export class AuthenticatedRingHubClient {
     const userClient = await this.getUserClient()
     return await userClient.getMyMemberships(options)
   }
+
+  /**
+   * Curate/moderate a post as this user (requires curator/moderator permissions)
+   */
+  async curatePost(postId: string, action: 'accept' | 'reject' | 'pin' | 'unpin' | 'remove', options?: {
+    reason?: string
+    metadata?: any
+  }) {
+    const userClient = await this.getUserClient()
+    const userDID = await this.ensureUserDID()
+    
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
+    
+    if (isLocalhost) {
+      console.log(`User ${userDID} curating post ${postId} with action ${action} via server DID proxy (dev mode)`)
+    } else {
+      console.log(`User ${userDID} curating post ${postId} with action ${action} directly (prod mode)`)
+    }
+    
+    try {
+      const result = await userClient.curatePost(postId, action, options)
+      console.log('✅ Ring Hub curation successful:', result)
+      return result
+    } catch (error: any) {
+      console.error('❌ Ring Hub curation error:', {
+        message: error.message,
+        status: error.status,
+        code: error.code
+      })
+      throw error
+    }
+  }
 }
 
 /**

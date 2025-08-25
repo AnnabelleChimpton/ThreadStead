@@ -21,6 +21,7 @@ interface GenealogyStats {
   totalRings: number;
   totalMembers: number;
   totalPosts: number;
+  totalActors?: number;
   maxDepth: number;
   averageChildren: number;
 }
@@ -271,19 +272,25 @@ export default function ThreadRingGenealogy({
     <div id="genealogy-container" className="w-full h-full">
       {stats && (
         <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">ThreadRing Network Statistics</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Ring Hub Network Statistics</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
             <div>
               <span className="text-gray-500">Total Rings:</span>
-              <span className="ml-2 font-semibold">{stats.totalRings}</span>
+              <span className="ml-2 font-semibold">{stats.totalRings.toLocaleString()}</span>
             </div>
+            {stats.totalActors !== undefined && (
+              <div>
+                <span className="text-gray-500">Total Users:</span>
+                <span className="ml-2 font-semibold">{stats.totalActors.toLocaleString()}</span>
+              </div>
+            )}
             <div>
-              <span className="text-gray-500">Total Members:</span>
-              <span className="ml-2 font-semibold">{stats.totalMembers}</span>
+              <span className="text-gray-500">Active Members:</span>
+              <span className="ml-2 font-semibold">{stats.totalMembers.toLocaleString()}</span>
             </div>
             <div>
               <span className="text-gray-500">Total Posts:</span>
-              <span className="ml-2 font-semibold">{stats.totalPosts}</span>
+              <span className="ml-2 font-semibold">{stats.totalPosts.toLocaleString()}</span>
             </div>
             <div>
               <span className="text-gray-500">Max Depth:</span>

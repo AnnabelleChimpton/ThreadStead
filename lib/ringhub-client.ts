@@ -57,11 +57,16 @@ export interface RingMember {
 }
 
 export interface PostRef {
+  id?: string              // Post ID (for curation operations)
   uri: string              // Post canonical URI
   digest: string           // Content hash
   submittedBy: string      // Author DID
   submittedAt: string      // ISO timestamp
   isPinned: boolean        // Pin status
+  status?: 'ACCEPTED' | 'REJECTED' | 'REMOVED' | 'PENDING'  // Moderation status
+  moderatedAt?: string     // ISO timestamp when moderated
+  moderatedBy?: string     // Moderator DID
+  moderationNote?: string  // Moderation reason/note
   metadata?: any           // Additional context
 }
 
@@ -344,6 +349,46 @@ export class RingHubClient {
       ...postSubmission
     }
     return await this.post('/trp/submit', requestBody)
+  }
+
+  /**
+   * Moderate/curate content posts in ThreadRings
+   */
+  async curatePost(postId: string, action: 'accept' | 'reject' | 'pin' | 'unpin' | 'remove', options?: {
+    reason?: string
+    metadata?: any
+  }): Promise<{
+    post: {
+      id: string
+      uri: string
+      actorDid: string
+      ringId: string
+      status: 'ACCEPTED' | 'REJECTED' | 'REMOVED' | 'PENDING'
+      pinned: boolean
+      createdAt: string
+      moderatedAt: string
+      moderatedBy: string
+      moderationNote?: string
+    }
+    action: string
+    moderator: string
+    moderatedAt: string
+    reason?: string
+  }> {
+    const requestBody: any = {
+      postId,
+      action
+    }
+    
+    if (options?.reason) {
+      requestBody.reason = options.reason
+    }
+    
+    if (options?.metadata) {
+      requestBody.metadata = options.metadata
+    }
+
+    return await this.post('/trp/curate', requestBody)
   }
 
   /**

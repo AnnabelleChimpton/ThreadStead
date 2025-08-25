@@ -198,34 +198,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       // Create Ring Hub client (authenticated if user available, otherwise unauthenticated)
       let posts;
+      
+      // Map our scope values to Ring Hub scope values
+      const mapScope = (scope: string) => {
+        switch (scope) {
+          case 'current': return 'ring';
+          case 'parent': return 'parent';
+          case 'children': return 'children';
+          case 'family': return 'family';
+          default: return 'ring';
+        }
+      };
+      
       const feedOptions = {
         limit: parseInt(limit as string),
-        offset: parseInt(offset as string)
+        offset: parseInt(offset as string),
+        scope: mapScope(scope as string) as 'ring' | 'parent' | 'children' | 'family'
       };
 
       if (viewer) {
         // Authenticated request - get enhanced data
-        const authenticatedClient = await createAuthenticatedRingHubClient(viewer.id);
-        
-        switch (scope) {
-          case 'current':
-            posts = await authenticatedClient.getRingFeed(slug, feedOptions);
-            break;
-          case 'parent':
-            // TODO: Implement parent ring feed if Ring Hub supports it
-            posts = { posts: [], total: 0 };
-            break;
-          case 'children':
-            // TODO: Implement children ring feed if Ring Hub supports it
-            posts = { posts: [], total: 0 };
-            break;
-          case 'family':
-            // TODO: Implement family ring feed if Ring Hub supports it
-            posts = { posts: [], total: 0 };
-            break;
-          default:
-            posts = await authenticatedClient.getRingFeed(slug, feedOptions);
-        }
+        const authenticatedClient = createAuthenticatedRingHubClient(viewer.id);
+        posts = await authenticatedClient.getRingFeed(slug, feedOptions);
       } else {
         // Unauthenticated request - get public data only
         const publicClient = getRingHubClient();
@@ -234,25 +228,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           throw new Error('Ring Hub client not available');
         }
         
-        switch (scope) {
-          case 'current':
-            posts = await publicClient.getRingFeed(slug, feedOptions);
-            break;
-          case 'parent':
-            // TODO: Implement parent ring feed if Ring Hub supports it  
-            posts = { posts: [], total: 0 };
-            break;
-          case 'children':
-            // TODO: Implement children ring feed if Ring Hub supports it
-            posts = { posts: [], total: 0 };
-            break;
-          case 'family':
-            // TODO: Implement family ring feed if Ring Hub supports it
-            posts = { posts: [], total: 0 };
-            break;
-          default:
-            posts = await publicClient.getRingFeed(slug, feedOptions);
-        }
+        posts = await publicClient.getRingFeed(slug, feedOptions);
       }
       
       console.log(`Fetched ${posts?.posts?.length || 0} posts for ${slug} (scope: ${scope})`);

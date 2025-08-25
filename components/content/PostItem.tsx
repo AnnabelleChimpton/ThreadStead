@@ -7,6 +7,9 @@ import Link from "next/link";
 import ThreadRingBadge from "../ThreadRingBadge";
 import PostHeader from "../PostHeader";
 import { featureFlags, UserWithRole } from "@/lib/feature-flags";
+import PostModerationActions from "../PostModerationActions";
+import { useModerationPermissions } from "../../hooks/useModerationPermissions";
+import { PostModerationAction, PostModerationStatus, ThreadRingRole } from "@/types/threadrings";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -29,6 +32,13 @@ export type Post = {
   excerpt?: string | null; // Max 500 chars - for detailed descriptions
   publishedAt?: string | null; // ISO string, can differ from createdAt
   platform?: string | null; // Source platform
+  
+  // Ring Hub moderation fields
+  ringHubPostId?: string | null; // Ring Hub post ID for moderation
+  moderationStatus?: PostModerationStatus; // Current moderation status
+  moderatedAt?: string | null; // ISO string when moderated
+  moderatedBy?: string | null; // DID of moderator
+  moderationNote?: string | null; // Moderation reason/note
   
   author?: { id: string; primaryHandle?: string; profile?: { displayName?: string } };
   threadRings?: Array<{
@@ -70,6 +80,8 @@ export default function PostItem({
   threadRingContext = null,
   canModerateRing = false,
   currentUser,
+  userRole,
+  isUserMember = false,
 }: {
   post: Post;
   isOwner: boolean;
@@ -80,6 +92,8 @@ export default function PostItem({
   currentUser?: UserWithRole | null;
   threadRingContext?: { slug: string; name: string } | null;
   canModerateRing?: boolean;
+  userRole?: ThreadRingRole;
+  isUserMember?: boolean;
 }) {
   const initialMode: Mode = post.bodyHtml ? "html" : "text";
 
@@ -95,6 +109,10 @@ export default function PostItem({
   const [commentsVersion, setCommentsVersion] = useState(0);
   const [commentCount, setCommentCount] = useState<number | null>(null);
   const [optimistic, setOptimistic] = useState<CommentWireList[]>([]);
+
+  // Ring Hub moderation permissions
+  const moderationPermissions = useModerationPermissions(userRole, isUserMember);
+  const showRingHubModeration = threadRingContext && post.ringHubPostId && moderationPermissions.canModerate;
 
 
   useEffect(() => {
@@ -291,6 +309,13 @@ const countLabel = hasServerCount
     }
   }
 
+  const handleRingHubModerationAction = async (action: PostModerationAction, reason?: string) => {
+    console.log(`Ring Hub moderation action: ${action} on post ${post.ringHubPostId}`, { reason });
+    
+    // Refresh the post data to reflect the moderation change
+    await onChanged?.();
+  };
+
   return (
     <article id={`post-${post.id.slice(-6)}`} className={`blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`} data-post-id={post.id.slice(-6)}>
       <div className="blog-post-header flex items-center justify-between gap-3 mb-2">
@@ -457,6 +482,17 @@ const countLabel = hasServerCount
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Ring Hub moderation actions */}
+            {showRingHubModeration && (
+              <PostModerationActions
+                postId={post.ringHubPostId!}
+                currentStatus={post.moderationStatus}
+                isPinned={post.isPinned}
+                canModerate={moderationPermissions.canModerate}
+                onModerationAction={handleRingHubModerationAction}
+              />
             )}
           </>
         ) : view === "write" ? (
