@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import BadgeSelector from "../BadgeSelector";
+import Toast from "../Toast";
+import { useToast } from "../../hooks/useToast";
 
 interface ForkThreadRingFormProps {
   originalRing: {
@@ -18,15 +20,92 @@ export default function ForkThreadRingForm({
   className = ""
 }: ForkThreadRingFormProps) {
   const router = useRouter();
+  
+  // Function to generate slug from name (moved up for initial state)
+  const generateSlugFromName = useCallback((name: string) => {
+    return name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric chars except spaces and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple consecutive hyphens with single hyphen
+      .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+      .substring(0, 25); // Limit to 25 characters
+  }, []);
+
+  const initialName = `${originalRing.name} Fork`;
   const [formData, setFormData] = useState({
-    name: `${originalRing.name} Fork`,
-    slug: `${originalRing.slug.slice(0, 20)}-fork`.slice(0, 25),
+    name: initialName,
+    slug: generateSlugFromName(initialName),
     description: originalRing.description || "",
     joinType: "open" as "open" | "invite" | "closed",
     visibility: "public" as "public" | "unlisted" | "private"
   });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  
+  // Toast notifications
+  const { toasts, showError, showWarning, hideToast } = useToast();
+
+  // Helper function to format rate limit error messages
+  const formatRateLimitError = useCallback((errorData: any) => {
+    const { details } = errorData;
+    
+    if (!details) {
+      return errorData.message || "Rate limit exceeded";
+    }
+
+    const resetDate = new Date(details.resetTime);
+    const now = new Date();
+    const timeDiff = resetDate.getTime() - now.getTime();
+    
+    switch (details.errorType) {
+      case 'quality_gate':
+        return {
+          title: "Quality Gate Not Met",
+          message: "Please add at least one post to your newest ThreadRing before creating another fork. This helps maintain community quality.",
+          type: 'warning' as const
+        };
+        
+      case 'cooldown':
+        const cooldownHours = Math.ceil(timeDiff / (1000 * 60 * 60));
+        return {
+          title: "Account Temporarily Restricted",
+          message: `Your account is in cooldown until ${resetDate.toLocaleDateString()} at ${resetDate.toLocaleTimeString()}. Please try again later.`,
+          type: 'error' as const
+        };
+        
+      case 'rate_limit':
+        if (details.remaining.hourly === 0) {
+          const minutesLeft = Math.ceil(timeDiff / (1000 * 60));
+          return {
+            title: "Hourly Fork Limit Reached",
+            message: `You've reached your hourly fork limit. Try again in ${minutesLeft} minutes.`,
+            type: 'warning' as const
+          };
+        } else if (details.remaining.daily === 0) {
+          return {
+            title: "Daily Fork Limit Reached", 
+            message: "You've reached today's fork limit. Come back tomorrow to create more forks!",
+            type: 'warning' as const
+          };
+        } else if (details.remaining.weekly === 0) {
+          return {
+            title: "Weekly Fork Limit Reached",
+            message: "You've used all your forks for this week. Limit resets next week.",
+            type: 'warning' as const
+          };
+        }
+        break;
+    }
+    
+    return {
+      title: "Fork Limit Exceeded",
+      message: errorData.message || "You've reached your fork limit. Please try again later.",
+      type: 'error' as const
+    };
+  }, []);
   const [badgeData, setBadgeData] = useState<{
     templateId?: string;
     backgroundColor?: string;
@@ -165,6 +244,19 @@ export default function ForkThreadRingForm({
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle rate limiting errors with friendly messages
+        if (response.status === 429) {
+          setError(null); // Clear any existing form errors
+          const errorInfo = formatRateLimitError(data);
+          if (errorInfo.type === 'warning') {
+            showWarning(errorInfo.message);
+          } else {
+            showError(errorInfo.message);
+          }
+          setCreating(false); // Make sure to stop the loading state
+          return; // Don't throw error for rate limits
+        }
+        
         throw new Error(data.error || "Failed to fork ThreadRing");
       }
 
@@ -180,7 +272,23 @@ export default function ForkThreadRingForm({
   };
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'name') {
+      // Always auto-generate slug from name when name changes
+      const newSlug = generateSlugFromName(value);
+      setFormData(prev => ({ 
+        ...prev, 
+        [field]: value,
+        slug: newSlug
+      }));
+      // Reset manual edit flag since we're now auto-generating again
+      setSlugManuallyEdited(false);
+    } else if (field === 'slug') {
+      // Mark slug as manually edited when user changes it directly
+      setSlugManuallyEdited(true);
+      setFormData(prev => ({ ...prev, [field]: value }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   return (
@@ -217,6 +325,11 @@ export default function ForkThreadRingForm({
         <div>
           <label htmlFor="slug" className="block text-sm font-medium mb-2">
             ThreadRing Slug (URL) *
+            {!slugManuallyEdited && (
+              <span className="ml-2 text-xs text-blue-600 font-normal">
+                (auto-generated from title)
+              </span>
+            )}
           </label>
           <div className="relative">
             <input
@@ -361,6 +474,17 @@ export default function ForkThreadRingForm({
           <li>• The fork relationship is tracked for lineage</li>
         </ul>
       </div>
+      
+      {/* Toast Notifications */}
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          onClose={() => hideToast(toast.id)}
+        />
+      ))}
     </div>
   );
 }

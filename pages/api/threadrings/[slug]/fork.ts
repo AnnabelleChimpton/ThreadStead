@@ -146,6 +146,44 @@ export default withThreadRingSupport(async function handler(
         // Fork ring via Ring Hub
         const forkedRing = await authenticatedClient.forkRing(slug as string, forkData);
         
+        // Create fork notification PostRef in parent ring
+        try {
+          const forkNotificationUri = `threadring://${new URL(process.env.RING_HUB_URL || 'https://ringhub.io').hostname}/rings/${forkedRing.slug}`;
+          
+          // Create metadata for the fork notification
+          const forkMetadata = {
+            type: "fork_notification",
+            forkedRing: {
+              id: forkedRing.id,
+              slug: forkedRing.slug,
+              name: forkedRing.name,
+              description: forkedRing.description
+            },
+            parentRing: {
+              slug: slug as string
+            },
+            forkedAt: new Date().toISOString()
+          };
+          
+          // Generate digest from the metadata
+          const crypto = require('crypto');
+          const metadataString = JSON.stringify(forkMetadata);
+          const digest = crypto.createHash('sha256').update(metadataString).digest('hex');
+          
+          // Submit fork notification PostRef to parent ring
+          // Note: AuthenticatedRingHubClient automatically includes the user's DID
+          const notificationPostRef = await authenticatedClient.submitPost(slug as string, {
+            uri: forkNotificationUri,
+            digest,
+            metadata: forkMetadata
+          });
+          
+          console.log('Fork notification PostRef created:', notificationPostRef.id);
+        } catch (notificationError) {
+          console.error('Failed to create fork notification:', notificationError);
+          // Don't fail the fork if notification creation fails
+        }
+        
         return res.json({
           success: true,
           threadRing: {
@@ -162,6 +200,13 @@ export default withThreadRingSupport(async function handler(
         
       } catch (ringHubError: any) {
         console.error("Ring Hub fork error:", ringHubError);
+        
+        // Handle rate limiting errors (429) - pass them through with proper structure
+        if (ringHubError.status === 429 && ringHubError.data) {
+          // Pass through the rate limit error data from RingHub
+          return res.status(429).json(ringHubError.data);
+        }
+        
         if (ringHubError.status === 404) {
           return res.status(404).json({ error: "ThreadRing not found" });
         }
@@ -171,9 +216,14 @@ export default withThreadRingSupport(async function handler(
         if (ringHubError.status === 400) {
           return res.status(400).json({ error: ringHubError.message || "Invalid fork data" });
         }
-        return res.status(500).json({ 
-          error: "Failed to fork ThreadRing via Ring Hub", 
-          details: ringHubError.message 
+        if (ringHubError.status === 401) {
+          return res.status(401).json({ error: "Authentication required" });
+        }
+        
+        // For any other error, return a generic error with details
+        return res.status(ringHubError.status || 500).json({ 
+          error: ringHubError.message || "Failed to fork ThreadRing via Ring Hub", 
+          details: ringHubError.data || ringHubError.message 
         });
       }
     }

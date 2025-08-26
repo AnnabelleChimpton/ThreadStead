@@ -82,10 +82,12 @@ export class RingHubClientError extends Error {
   constructor(
     message: string,
     public status?: number,
-    public code?: string
+    public code?: string,
+    public data?: any
   ) {
     super(message)
     this.name = 'RingHubClientError'
+    this.data = data
   }
 }
 
@@ -552,7 +554,8 @@ export class RingHubClient {
         throw new RingHubClientError(
           fullError,
           response.status,
-          errorData.code
+          errorData.code,
+          errorData // Pass the full error data
         )
       }
 

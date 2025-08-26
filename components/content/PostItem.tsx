@@ -49,6 +49,16 @@ export type Post = {
   }>;
   isPinned?: boolean;
   pinnedAt?: string | null;
+  // Ring Hub data for external posts and special post types
+  ringHubData?: {
+    id: string;
+    ringSlug: string;
+    submittedAt: string;
+    submittedBy: string;
+    status: string;
+    pinned: boolean;
+    metadata?: any;
+  };
 };
 
 const VIS_OPTS: { v: Visibility; label: string }[] = [
@@ -456,15 +466,53 @@ const countLabel = hasServerCount
       <div className="blog-post-content">
         {!editing ? (
           <>
-            {post.title && (
-              <PostHeader post={post} currentUser={currentUser} />
-            )}
-            {post.bodyHtml ? (
-              <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
-            ) : post.bodyText ? (
-              <p>{post.bodyText}</p>
+            {/* Check for fork notification */}
+            {post.ringHubData?.metadata?.type === 'fork_notification' ? (
+              <div className="border border-black bg-white p-4 shadow-[2px_2px_0_#000]">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-yellow-200 border border-black rounded-full flex items-center justify-center">
+                    <span className="text-sm">🍴</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="mb-2">
+                      <span className="font-semibold">
+                        {post.author?.profile?.displayName || post.author?.primaryHandle || 'Someone'}
+                      </span>
+                      <span className="text-gray-600"> forked this ring as </span>
+                      <a 
+                        href={`/tr/${post.ringHubData.metadata.forkedRing.slug}`}
+                        className="font-semibold hover:underline text-black"
+                      >
+                        {post.ringHubData.metadata.forkedRing.name}
+                      </a>
+                    </div>
+                    {post.ringHubData.metadata.forkedRing.description && (
+                      <div className="text-sm text-gray-700 mb-3 italic">
+                        "{post.ringHubData.metadata.forkedRing.description}"
+                      </div>
+                    )}
+                    <a 
+                      href={`/tr/${post.ringHubData.metadata.forkedRing.slug}`}
+                      className="inline-block text-xs bg-yellow-200 hover:bg-yellow-300 px-3 py-1 border border-black shadow-[1px_1px_0_#000] font-medium"
+                    >
+                      Visit Fork
+                    </a>
+                  </div>
+                </div>
+              </div>
             ) : (
-              <div className="italic opacity-70">(No content)</div>
+              <>
+                {post.title && (
+                  <PostHeader post={post} currentUser={currentUser} />
+                )}
+                {post.bodyHtml ? (
+                  <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
+                ) : post.bodyText ? (
+                  <p>{post.bodyText}</p>
+                ) : (
+                  <div className="italic opacity-70">(No content)</div>
+                )}
+              </>
             )}
             
             {/* ThreadRing badges */}
@@ -530,6 +578,8 @@ const countLabel = hasServerCount
       {err && <div className="text-red-700 text-sm mt-2">{err}</div>}
 
       {/* --- Comments --- */}
+      {/* Disable comments for fork notifications */}
+      {post.ringHubData?.metadata?.type !== 'fork_notification' && (
         <section className="mt-4 border-t border-black pt-3">
         <button
             type="button"
@@ -564,6 +614,7 @@ const countLabel = hasServerCount
             </div>
         )}
         </section>
+      )}
 
     </article>
   );
