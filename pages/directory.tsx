@@ -75,7 +75,7 @@ export default function Directory() {
     setLoading(true);
     setUsers([]);
     loadUsers(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     // loadUsers is intentionally omitted to prevent infinite loops (it depends on users.length)
   }, [sortBy, searchQuery]);
 

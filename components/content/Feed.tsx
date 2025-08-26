@@ -50,7 +50,7 @@ export default function Feed({ type }: FeedProps) {
       setLoading(false);
       setLoadingMore(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     // posts.length is used inside but intentionally omitted to prevent unnecessary recreations
   }, [endpoint]);
 

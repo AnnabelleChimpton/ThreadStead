@@ -54,7 +54,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         }
       }, 100);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     // We intentionally only want to respond to tab and pathname changes, not all query changes
   }, [router.query.tab, router.pathname]);
   
