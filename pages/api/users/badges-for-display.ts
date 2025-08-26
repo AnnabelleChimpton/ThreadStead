@@ -60,13 +60,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Get user's DID for Ring Hub lookup
       const userDID = await getUserDID(userId)
       if (!userDID) {
-        console.log(`No DID found for user ${userId}`)
         return res.json({ badges: [] })
       }
 
       const publicClient = getPublicRingHubClient()
       if (!publicClient) {
-        console.log('Ring Hub client not available')
         return res.json({ badges: [] })
       }
 

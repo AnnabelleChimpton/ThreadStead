@@ -34,12 +34,8 @@ export default async function handler(
       return res.status(400).json({ error: "Invalid ring slug format" });
     }
 
-    console.log(`Badge upload request for ring: ${ringSlug}`);
-
     // Upload badge image
     const badgeUrls = await uploadBadgeImage(imageDataUrl, ringSlug);
-
-    console.log('Badge upload successful:', badgeUrls);
 
     return res.json({
       success: true,

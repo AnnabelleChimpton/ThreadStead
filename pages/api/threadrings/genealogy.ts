@@ -163,7 +163,6 @@ export default async function handler(
       try {
         // Use Ring Hub stats for global network statistics
         const ringHubStats = await ringHubClient.getStats();
-        console.log('Using Ring Hub stats for genealogy:', ringHubStats);
         
         // Calculate max depth from the tree structure
         const calculateMaxDepth = (n: ThreadRingNode): number => {

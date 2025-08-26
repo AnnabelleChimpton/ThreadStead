@@ -80,24 +80,11 @@ export default function RingHubFeed({
 
       const data: RingHubFeedResponse = await res.json();
       
-      // Debug: Log raw RingHub response to see metadata structure
-      console.log('Raw RingHub feed data:', {
-        totalPosts: data.posts.length,
-        samplePost: data.posts[0],
-        notificationPosts: data.posts.filter(p => p.isNotification || p.metadata?.type === 'fork_notification'),
-        promptPosts: data.posts.filter(p => p.metadata?.type === 'threadring_prompt'),
-        allMetadataTypes: data.posts.map(p => ({ id: p.id, metadataType: p.metadata?.type }))
-      });
       
       // Client-side filtering if server doesn't properly filter notifications
       let filteredPosts = data.posts;
       if (!includeNotifications) {
         filteredPosts = data.posts.filter(post => !post.isNotification);
-        console.log('Filtered out notifications:', {
-          original: data.posts.length,
-          filtered: filteredPosts.length,
-          removed: data.posts.length - filteredPosts.length
-        });
       }
       
       if (isInitial) {
@@ -164,24 +151,6 @@ export default function RingHubFeed({
                               ringHubPost.notificationType === 'fork_notification' &&
                               ringHubPost.metadata?.type === 'fork_notification';
     
-    if (isForkNotification) {
-      console.log('Fork notification detected:', {
-        id: ringHubPost.id,
-        isNotification: ringHubPost.isNotification,
-        notificationType: ringHubPost.notificationType,
-        metadata: ringHubPost.metadata
-      });
-    }
-
-    // Always log what we're converting to help debug
-    console.log('Converting RingHub post:', {
-      id: ringHubPost.id,
-      isNotification: ringHubPost.isNotification,
-      notificationType: ringHubPost.notificationType,
-      metadataType: ringHubPost.metadata?.type,
-      hasForkedRingData: !!ringHubPost.metadata?.forkedRing,
-      ringHubPost: ringHubPost
-    });
 
     return {
       id: `ringhub-${ringHubPost.id}`,
@@ -304,17 +273,8 @@ export default function RingHubFeed({
         const isPrompt = ringHubPost.metadata?.type === 'threadring_prompt' || 
                           ringHubPost.notificationType === 'threadring_prompt';
         
-        // Debug log each post's metadata
-        console.log(`🔍 Processing post ${ringHubPost.id}:`, {
-          metadataType: ringHubPost.metadata?.type,
-          notificationType: ringHubPost.notificationType,
-          isPrompt,
-          fullMetadata: ringHubPost.metadata,
-          fullPost: ringHubPost
-        });
         
         if (isPrompt) {
-          console.log(`🎯 Rendering prompt: ${ringHubPost.id}`);
           
           // Extract prompt data from the correct location
           let promptData;

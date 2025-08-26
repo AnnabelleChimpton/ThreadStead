@@ -321,8 +321,6 @@ const countLabel = hasServerCount
   }
 
   const handleRingHubModerationAction = async (action: PostModerationAction, reason?: string) => {
-    console.log(`Ring Hub moderation action: ${action} on post ${post.ringHubPostId}`, { reason });
-    
     // Refresh the post data to reflect the moderation change
     await onChanged?.();
   };
@@ -474,17 +472,6 @@ const countLabel = hasServerCount
               const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
                                         (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
               
-              if (post.ringHubData?.metadata || post.ringHubData?.isNotification) {
-                console.log('PostItem checking fork notification:', {
-                  postId: post.id,
-                  hasRingHubData: !!post.ringHubData,
-                  hasMetadata: !!post.ringHubData?.metadata,
-                  metadataType: post.ringHubData?.metadata?.type,
-                  isNotification: post.ringHubData?.isNotification,
-                  notificationType: post.ringHubData?.notificationType,
-                  isForkNotification
-                });
-              }
               return isForkNotification;
             })() ? (
               <div className="border border-black bg-white p-4 shadow-[2px_2px_0_#000]">
@@ -516,15 +503,6 @@ const countLabel = hasServerCount
                         // Final fallback
                         if (!name) name = 'Fork';
                         if (!slug) slug = '#'; // Fallback for link
-                        
-                        console.log('Fork ring data extraction:', { 
-                          metadata, 
-                          forkedRingData, 
-                          extractedSlug: slug, 
-                          extractedName: name,
-                          threadRings: post.threadRings,
-                          ringSlug: post.ringHubData?.ringSlug
-                        });
                         
                         return (
                           <a 

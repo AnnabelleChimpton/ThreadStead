@@ -123,20 +123,12 @@ export class PromptService {
       throw new Error('Ring Hub client not available');
     }
 
-    console.log(`🔍 [PromptService] Fetching feed from Ring Hub for ring: ${this.ringSlug}`);
-    
     // Get ring feed and filter for prompts
     const feedResult = await client.getRingFeed(this.ringSlug, {
       limit: options.limit || 50,
       offset: options.offset || 0
     });
     
-    console.log(`🔍 [PromptService] Ring Hub returned ${feedResult.posts?.length || 0} total posts`);
-    console.log(`🔍 [PromptService] Feed posts:`, feedResult.posts?.map(p => ({
-      uri: p.uri,
-      type: p.metadata?.type,
-      promptId: (p.metadata as any)?.prompt?.promptId
-    })));
 
     // Filter for prompt PostRefs
     let prompts = feedResult.posts
@@ -145,7 +137,6 @@ export class PromptService {
         postRef.metadata?.type === 'threadring_prompt'
       ) as ThreadRingPostRef[];
       
-    console.log(`🔍 [PromptService] Filtered to ${prompts.length} prompts`);
 
     // Apply filters
     if (!options.includeInactive) {
@@ -197,26 +188,17 @@ export class PromptService {
    * Get a specific prompt by ID
    */
   async getPrompt(promptId: string): Promise<ThreadRingPostRef | null> {
-    console.log(`🔍 Getting prompt ${promptId} from ring ${this.ringSlug}`);
     const prompts = await this.getPrompts({ 
       includeInactive: true,
       includePinned: true  // Include pinned prompts when searching by ID
     });
-    console.log(`🔍 Found ${prompts.length} total prompts in ring`);
     
     const found = prompts.find(p => {
       const meta = p.metadata as PromptPostRefMetadata;
       const matches = meta.prompt.promptId === promptId;
-      if (matches) {
-        console.log(`✅ Found matching prompt: ${meta.prompt.title}`);
-      }
       return matches;
     });
     
-    if (!found) {
-      console.log(`❌ No prompt found with ID ${promptId} in ring ${this.ringSlug}`);
-      console.log(`Available prompt IDs:`, prompts.map(p => (p.metadata as PromptPostRefMetadata).prompt.promptId));
-    }
     
     return found || null;
   }
@@ -271,11 +253,8 @@ export class PromptService {
    * Get detailed prompt information including responses
    */
   async getPromptDetails(promptId: string): Promise<PromptDetails | null> {
-    console.log(`🔍 Getting prompt details for ${promptId} in ring ${this.ringSlug}`);
     const prompt = await this.getPrompt(promptId);
-    console.log(`🔍 Found prompt:`, prompt ? 'yes' : 'no', prompt?.metadata?.type);
     if (!prompt || prompt.metadata?.type !== 'threadring_prompt') {
-      console.log(`❌ Prompt ${promptId} not found or invalid type`);
       return null;
     }
 
@@ -283,7 +262,6 @@ export class PromptService {
     
     // Calculate actual response count dynamically since Ring Hub doesn't support metadata updates
     const actualResponseCount = responses.length;
-    console.log(`📊 Prompt ${promptId}: metadata says ${(prompt.metadata as PromptPostRefMetadata).prompt.responseCount}, actually has ${actualResponseCount} responses`);
     
     return {
       postRef: prompt,

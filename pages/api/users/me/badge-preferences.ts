@@ -70,7 +70,6 @@ async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, us
       // Get user's DID for Ring Hub lookup
       const userDID = await getUserDID(userId)
       if (!userDID) {
-        console.log(`No DID found for user ${userId}`)
         return res.json({
           preferences: {
             selectedBadges: existingPrefs?.selectedBadges || [],
@@ -84,7 +83,6 @@ async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, us
 
       const publicClient = getPublicRingHubClient()
       if (!publicClient) {
-        console.log('Ring Hub client not available')
         return res.json({
           preferences: {
             selectedBadges: existingPrefs?.selectedBadges || [],

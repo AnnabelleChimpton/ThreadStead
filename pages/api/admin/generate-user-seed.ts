@@ -17,7 +17,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { userId } = req.body;
-  console.log("Generate seed request for userId:", userId);
   
   if (!userId) {
     return res.status(400).json({ error: "User ID is required" });
@@ -42,11 +41,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Generate a new seed phrase
     const newSeedPhrase = await generateSeedPhrase();
-    console.log("Generated seed phrase:", newSeedPhrase.split(' ').slice(0, 3).join(' ') + "...");
 
     // Create the new keypair from the seed phrase
     const newKeypair = await createKeypairFromSeedPhrase(newSeedPhrase);
-    console.log("Created new DID:", newKeypair.did);
 
     // Update the user's DID in the database so they can recover with this seed phrase
     const updatedUser = await db.user.update({
@@ -60,15 +57,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       },
     });
-    
-    console.log("Updated user DID in database:", newKeypair.did);
 
     // Invalidate any existing sessions for this user since they now have a new identity
     await db.session.deleteMany({
       where: { userId: userId },
     });
-    
-    console.log("Invalidated existing sessions for user");
 
     // Return the seed phrase to the admin
     return res.status(200).json({ 

@@ -89,14 +89,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     promptId?: string; // Optional prompt ID to associate with post
   };
 
-  console.log('📝 POST /api/posts/create received:', {
-    hasTitle: !!title,
-    hasBody: !!(bodyText || bodyHtml || bodyMarkdown),
-    visibility,
-    threadRingIds,
-    promptId,
-    ringHubEnabled: featureFlags.ringhub()
-  });
 
   if (!bodyText && !bodyHtml && !bodyMarkdown) {
     return res.status(400).json({ error: "bodyText, bodyHtml, or bodyMarkdown required" });
@@ -152,10 +144,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Associate post with ThreadRings if provided
   if (threadRingIds && threadRingIds.length > 0) {
-    console.log('🔗 Processing ThreadRing associations for post:', post.id, 'rings:', threadRingIds);
     try {
       if (featureFlags.ringhub()) {
-        console.log('🌐 Using Ring Hub for ThreadRing associations');
         // Ring Hub integration for post association
         const authenticatedClient = createAuthenticatedRingHubClient(viewer.id);
         
@@ -163,18 +153,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const ringSlugs = threadRingIds;
         
         // Validate user membership by fetching from Ring Hub
-        console.log('📋 Fetching user memberships from Ring Hub...');
         const userMemberships = await authenticatedClient.getMyMemberships({
           status: 'ACTIVE'
         });
-        console.log('📋 Retrieved memberships:', userMemberships.memberships?.length || 0, 'rings');
-        console.log('📋 Membership details:', userMemberships.memberships?.map(m => ({ slug: m.ringSlug, status: m.status })));
         
         // Dev mode workaround: If responding to a prompt and no memberships found, 
         // assume the user can post (since all users share the server DID in dev)
         let validSlugs: string[];
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-        console.log('🔍 Base URL for localhost check:', baseUrl);
         const isLocalhost = baseUrl?.includes('localhost') || 
                            baseUrl?.includes('127.0.0.1') ||
                            !baseUrl ||
@@ -190,14 +176,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         // Dev mode workaround: If responding to a prompt but not a member of the ring,
         // allow submission anyway (since all users share the server DID in dev)
-        console.log('🔍 Dev mode check:', { isLocalhost, hasPromptId: !!promptId, validSlugsEmpty: validSlugs.length === 0, hasRingSlugs: ringSlugs.length > 0 });
         if (isLocalhost && promptId && validSlugs.length === 0 && ringSlugs.length > 0) {
-          console.log('⚠️ Dev mode: Not a member of requested rings but allowing prompt response submission');
-          console.log('   Requested rings:', ringSlugs);
-          console.log('   Server DID memberships:', userMemberships.memberships?.slice(0, 5).map(m => m.ringSlug));
           validSlugs = ringSlugs; // Allow all requested rings in dev mode for prompt responses
         }
-        console.log('✅ Valid rings for submission:', validSlugs);
         
         // Submit post to each Ring Hub ring using the correct Ring Hub API format
         for (const slug of validSlugs) {

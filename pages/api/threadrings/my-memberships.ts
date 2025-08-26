@@ -19,8 +19,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           status: 'ACTIVE' // Only get active memberships
         });
         
-        console.log(`Fetched ${ringHubMemberships.memberships?.length || 0} Ring Hub memberships for user ${viewer.id}`);
-        
         // Transform Ring Hub memberships to ThreadStead format
         const rings = ringHubMemberships.memberships.map(membership => ({
           id: membership.ringSlug, // Use slug as ID for Ring Hub rings

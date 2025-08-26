@@ -111,11 +111,6 @@ export async function uploadBadgeImage(
     const badgeImageUrl = `${publicUrl}/${standardKey}`;
     const badgeImageHighResUrl = `${publicUrl}/${highResKey}`;
 
-    console.log(`Badge images uploaded for ${ringSlug}:`, {
-      standard: badgeImageUrl,
-      highRes: badgeImageHighResUrl
-    });
-
     return {
       badgeImageUrl,
       badgeImageHighResUrl
