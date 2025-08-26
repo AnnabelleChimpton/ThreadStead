@@ -545,7 +545,8 @@ const cssData = {
         { name: '.thread-button-secondary', description: 'Secondary button variant' },
         { name: '.thread-headline', description: 'Serif headline with text shadow' },
         { name: '.thread-label', description: 'Monospace micro-labels' },
-        { name: '.thread-content', description: 'Enhanced content typography' }
+        { name: '.thread-content', description: 'Enhanced content typography' },
+        { name: '.thread-background', description: 'Background hover state for dropdown items' }
       ],
       example: `/* Customize thread components */
 .thread-module {
@@ -589,7 +590,8 @@ const cssData = {
         { name: '.line-clamp-3', description: 'Clamp text to 3 lines with ellipsis' },
         { name: '.site-layout', description: 'Overall page container' },
         { name: '.site-main', description: 'Main content area' },
-        { name: '.site-footer', description: 'Site footer area' },
+        { name: '.site-header', description: 'Site header with consistent background' },
+        { name: '.site-footer', description: 'Site footer with consistent background' },
         { name: '.footer-tagline', description: 'Footer tagline text' },
         { name: '.footer-copyright', description: 'Copyright text' }
       ],
@@ -971,6 +973,62 @@ const cssData = {
           <div className="bg-purple-100 p-2 rounded">🖥️ Desktop: padding: 2rem</div>
         </div>
       )
+    },
+    {
+      name: 'Component Utilities',
+      description: 'CSS classes for specific UI components and functionality',
+      classes: [
+        { name: '.nav-link-underline', description: 'Navigation link underline styling' },
+        { name: '.post-editor-container', description: 'Wide container for post editor' },
+        { name: '.tr-header-min-width', description: 'ThreadRing header minimum width' },
+        { name: '.tr-prompt-link-purple', description: 'Purple link styling for prompts' },
+        { name: '.tr-prompt-button-white', description: 'White text on colored buttons' },
+        { name: '.tr-prompt-host-purple', description: 'Purple styling for prompt hosts' },
+        { name: '.modal-overlay-high', description: 'High z-index for modal overlays' },
+        { name: '.username-input', description: 'Username input letter spacing' },
+        { name: '.preview-isolation', description: 'CSS isolation for previews' },
+        { name: '.threadring-badge-image', description: '88x31 badge image dimensions' },
+        { name: '.upload-progress-bar', description: 'Dynamic width progress bar' },
+        { name: '.template-editor-iframe', description: 'Template editor iframe styling' },
+        { name: '.media-modal-overlay', description: 'Media modal overlay positioning' },
+        { name: '.template-preview-wrapper', description: 'Template preview isolation' },
+        { name: '.code-editor-textarea', description: 'Code editor font family and styling' },
+        { name: '.profile-sidebar-hidden', description: 'Hidden profile sidebar' },
+        { name: '.profile-sidebar-visible', description: 'Visible profile sidebar' },
+        { name: '.user-select-all', description: 'Select all text utility' },
+        { name: '.toast-container', description: 'Toast notification z-index' }
+      ],
+      example: `/* Component-specific customizations */
+.post-editor-container {
+  width: 90vw !important;
+  margin-left: calc(-45vw + 50%) !important;
+  margin-right: calc(-45vw + 50%) !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1) !important;
+}
+
+.tr-prompt-button-white {
+  background: linear-gradient(45deg, #ff6b9d, #c44569) !important;
+  border: none !important;
+  box-shadow: 0 8px 15px rgba(196, 69, 105, 0.3) !important;
+  transform: translateY(-2px) !important;
+  transition: all 0.3s ease !important;
+}
+
+.code-editor-textarea {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+  background: #1e1e1e !important;
+  color: #d4d4d4 !important;
+  border-radius: 8px !important;
+}`,
+      preview: (
+        <div className="space-y-2 text-xs">
+          <div className="bg-gradient-to-r from-purple-400 to-pink-400 text-white p-2 rounded">Wide Editor Container</div>
+          <div className="bg-gray-800 text-green-400 p-2 rounded font-mono">Code Editor Styling</div>
+          <div className="border-2 border-gray-300 p-2 text-center">88×31 Badge Frame</div>
+        </div>
+      )
     }
   ]
 };
@@ -1128,8 +1186,7 @@ export default function DesignCSSTutorialPage() {
                             </h3>
                             <p className="text-gray-700">{section.description}</p>
                           </div>
-                          <div className="text-3xl font-bold text-black transform transition-transform duration-200" 
-                               style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+                          <div className={`text-3xl font-bold text-black transform transition-transform duration-200 ${isExpanded ? 'rotate-expanded' : 'rotate-collapsed'}`}>
                             ▶
                           </div>
                         </div>

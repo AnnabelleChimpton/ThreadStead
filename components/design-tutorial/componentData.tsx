@@ -549,7 +549,7 @@ export const componentData = {
   <div>Sharp neon box</div>
 </NeonBorder>`,
       preview: (
-        <div className="border-2 border-cyan-400 p-3 text-xs rounded" style={{boxShadow: '0 0 10px #00ffff'}}>
+        <div className="neon-box-shadow border-2 border-cyan-400 p-3 text-xs rounded">
           <span className="text-cyan-400">Neon Border</span>
         </div>
       )

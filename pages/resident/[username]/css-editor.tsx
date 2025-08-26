@@ -381,7 +381,7 @@ export default function CSSEditorPage({
   const renderPreview = () => {
     if (dataLoading) {
       return (
-        <div className="flex items-center justify-center text-thread-sage" style={{ height: '800px' }}>
+        <div className="editor-loading-container flex items-center justify-center text-thread-sage">
           <div className="text-center">
             <div className="animate-spin w-8 h-8 border-4 border-thread-pine border-t-transparent rounded-full mx-auto mb-4"></div>
             <p>Loading user data...</p>
@@ -392,7 +392,7 @@ export default function CSSEditorPage({
 
     if (previewError) {
       return (
-        <div className="flex items-center justify-center text-thread-sage bg-thread-paper" style={{ height: '800px' }}>
+        <div className="editor-loading-container flex items-center justify-center text-thread-sage bg-thread-paper">
           <div className="text-center max-w-md mx-auto p-8">
             <div className="text-4xl mb-4">⚠️</div>
             <h3 className="text-lg font-bold text-thread-pine mb-2">Preview Not Available</h3>
@@ -409,12 +409,7 @@ export default function CSSEditorPage({
     return (
       <iframe
         ref={iframeRef}
-        className="w-full border-0"
-        style={{ 
-          backgroundColor: 'white',
-          height: '800px',
-          width: '100%'
-        }}
+        className="css-editor-iframe w-full border-0"
         sandbox="allow-scripts allow-same-origin"
         title="CSS Preview"
       />
@@ -453,7 +448,7 @@ export default function CSSEditorPage({
         <title>{`CSS Editor - ${username} | ThreadStead`}</title>
       </Head>
       <Layout fullWidth={true}>
-        <div className="flex flex-col bg-white css-editor-page w-full" style={{ minHeight: '100vh', maxWidth: '100vw', margin: '0', padding: '0' }}>
+        <div className="editor-full-page flex flex-col bg-white css-editor-page w-full">
           {/* Header - Streamlined */}
           <div className="bg-white border-b border-thread-sage/30 px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between mb-3">
@@ -701,15 +696,10 @@ export default function CSSEditorPage({
                       value={css}
                       onChange={(e) => setCSS(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="w-full border border-thread-sage p-4 bg-thread-paper rounded font-mono text-sm resize-vertical focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                      className="code-editor-textarea w-full border border-thread-sage p-4 bg-thread-paper rounded font-mono text-sm resize-vertical focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
                       placeholder="/* Add your custom CSS here */\n\n.profile-container {\n  /* Your styles */\n}"
                       spellCheck={false}
                       rows={25}
-                      style={{ 
-                        fontFamily: "'Fira Code', 'Consolas', 'Monaco', 'Menlo', monospace",
-                        lineHeight: '1.5',
-                        tabSize: 2
-                      }}
                     />
                   </div>
                 </div>
@@ -735,7 +725,7 @@ export default function CSSEditorPage({
                   </div>
                 </div>
 
-                <div className="bg-white border border-thread-sage/30 mx-2 my-2 rounded overflow-hidden shadow-lg" style={{ minHeight: '800px' }}>
+                <div className="editor-preview-container bg-white border border-thread-sage/30 mx-2 my-2 rounded overflow-hidden shadow-lg">
                   {renderPreview()}
                 </div>
               </div>

@@ -231,17 +231,7 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
       {/* Full Size Image Modal */}
       {selectedImage && (
         <div 
-          className="fixed inset-0 bg-black/80 flex items-center justify-center p-4"
-          style={{ 
-            zIndex: 9999, 
-            position: 'fixed',
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            bottom: 0,
-            width: '100vw',
-            height: '100vh'
-          }}
+          className="media-modal-overlay bg-black/80 flex items-center justify-center p-4"
           onClick={() => {
             setSelectedImage(null);
             setShowComments(false);

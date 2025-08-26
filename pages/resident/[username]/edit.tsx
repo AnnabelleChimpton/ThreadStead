@@ -5,7 +5,7 @@ import Head from "next/head";
 
 // Template Editor moved to dedicated page at /resident/[username]/template-editor
 import RetroCard from "@/components/layout/RetroCard";
-import ProfileLayout from "@/components/layout/ProfileLayout";
+import Layout from "@/components/Layout";
 import Tabs, { TabSpec } from "@/components/navigation/Tabs";
 import WebsiteManager, { Website } from "@/components/WebsiteManager";
 import FriendManager, { SelectedFriend } from "@/components/FriendManager";
@@ -316,17 +316,17 @@ export default function ProfileEditPage({
 
   if (!isOwner) {
     return (
-      <ProfileLayout>
+      <Layout>
         <RetroCard>
           <div className="text-center py-8">
             <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
             <p className="mb-4">You can only edit your own profile.</p>
-            <button onClick={handleBackToProfile} className="thread-button">
+            <button onClick={handleBackToProfile} className="px-4 py-2 border border-black bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]">
               Back to Profile
             </button>
           </div>
         </RetroCard>
-      </ProfileLayout>
+      </Layout>
     );
   }
 
@@ -340,31 +340,31 @@ export default function ProfileEditPage({
           <div className="space-y-4">
             <div>
               <label className="block mb-2">
-                <span className="thread-label">Display Name</span>
+                <span className="font-bold text-black">Display Name</span>
               </label>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full max-w-md border border-thread-sage p-3 bg-thread-paper rounded focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                className="w-full max-w-md border border-black p-3 bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-black"
                 placeholder="Your display name"
               />
             </div>
             
             <div>
               <label className="block mb-2">
-                <span className="thread-label">Bio</span>
+                <span className="font-bold text-black">Bio</span>
               </label>
               <textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}
-                className="w-full max-w-xl border border-thread-sage p-3 bg-thread-paper rounded focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                className="w-full max-w-xl border border-black p-3 bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-black"
                 placeholder="Tell people about yourself..."
               />
             </div>
             
-            <div className="border-t border-thread-sage pt-6">
+            <div className="border-t border-black pt-6">
               <ProfilePhotoUpload 
                 currentAvatarUrl={avatarUrl}
                 onUploadSuccess={handlePhotoUploadSuccess}
@@ -372,7 +372,7 @@ export default function ProfileEditPage({
               />
             </div>
             
-            <div className="border-t border-thread-sage pt-6">
+            <div className="border-t border-black pt-6">
               <WebsiteManager 
                 websites={websites} 
                 onChange={setWebsites}
@@ -380,7 +380,7 @@ export default function ProfileEditPage({
               />
             </div>
             
-            <div className="border-t border-thread-sage pt-6">
+            <div className="border-t border-black pt-6">
               <FriendManager 
                 selectedFriends={featuredFriends} 
                 onChange={setFeaturedFriends}
@@ -391,7 +391,7 @@ export default function ProfileEditPage({
             <button
               onClick={handleSaveProfile}
               disabled={saving}
-              className="thread-button"
+              className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save Profile"}
             </button>
@@ -406,7 +406,7 @@ export default function ProfileEditPage({
         <div className="space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-3">Profile Layout Settings</h2>
-            <p className="text-thread-sage mb-6">
+            <p className="text-gray-700 mb-6">
               Choose how your profile is displayed: default layout, custom CSS styling, or advanced template.
             </p>
             
@@ -414,7 +414,7 @@ export default function ProfileEditPage({
             <div className="mb-6">
               <h3 className="text-lg font-medium mb-4">Layout Mode</h3>
               <div className="space-y-3">
-                <label className="flex items-start gap-3 p-4 border border-thread-sage/30 rounded-lg hover:bg-thread-cream/30 cursor-pointer transition-colors">
+                <label className="flex items-start gap-3 p-4 border border-black rounded-none hover:bg-gray-50 cursor-pointer transition-colors shadow-[2px_2px_0_#000]">
                   <input
                     type="radio"
                     name="layoutMode"
@@ -428,13 +428,13 @@ export default function ProfileEditPage({
                   />
                   <div className="flex-1">
                     <div className="font-medium">Default Layout</div>
-                    <div className="text-sm text-thread-sage mt-1">
+                    <div className="text-sm text-gray-600 mt-1">
                       Use the standard ThreadStead profile layout
                     </div>
                   </div>
                 </label>
                 
-                <label className="flex items-start gap-3 p-4 border border-thread-sage/30 rounded-lg hover:bg-thread-cream/30 cursor-pointer transition-colors">
+                <label className="flex items-start gap-3 p-4 border border-black rounded-none hover:bg-gray-50 cursor-pointer transition-colors shadow-[2px_2px_0_#000]">
                   <input
                     type="radio"
                     name="layoutMode"
@@ -448,18 +448,18 @@ export default function ProfileEditPage({
                   />
                   <div className="flex-1">
                     <div className="font-medium">Default Layout + Custom CSS</div>
-                    <div className="text-sm text-thread-sage mt-1">
+                    <div className="text-sm text-gray-600 mt-1">
                       Default layout styled with your custom CSS
                     </div>
                     {customCSSValue && (
-                      <div className="text-xs text-thread-pine mt-2">
+                      <div className="text-xs text-green-700 mt-2">
                         ✓ {customCSSValue.length} characters of CSS
                       </div>
                     )}
                   </div>
                 </label>
                 
-                <label className="flex items-start gap-3 p-4 border border-thread-sage/30 rounded-lg hover:bg-thread-cream/30 cursor-pointer transition-colors">
+                <label className="flex items-start gap-3 p-4 border border-black rounded-none hover:bg-gray-50 cursor-pointer transition-colors shadow-[2px_2px_0_#000]">
                   <input
                     type="radio"
                     name="layoutMode"
@@ -474,11 +474,11 @@ export default function ProfileEditPage({
                   />
                   <div className="flex-1">
                     <div className="font-medium">Advanced Template</div>
-                    <div className="text-sm text-thread-sage mt-1">
+                    <div className="text-sm text-gray-600 mt-1">
                       Completely custom layout with your template
                     </div>
                     {existingTemplateAst || currentTemplateAst ? (
-                      <div className="text-xs text-thread-pine mt-2">
+                      <div className="text-xs text-green-700 mt-2">
                         ✓ Template ready
                       </div>
                     ) : (
@@ -496,7 +496,7 @@ export default function ProfileEditPage({
               <button
                 onClick={handleSaveLayoutSettings}
                 disabled={saving}
-                className="thread-button"
+                className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Layout Settings"}
               </button>
@@ -504,11 +504,11 @@ export default function ProfileEditPage({
             
             {/* Navigation Toggle - Only show when template is enabled */}
             {isTemplateEnabled && (existingTemplateAst || currentTemplateAst) && (
-              <div className="mb-6 p-4 bg-thread-cream/50 border border-thread-sage rounded">
+              <div className="mb-6 p-4 bg-yellow-50 border border-black rounded-none shadow-[2px_2px_0_#000]">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium mb-1">Navigation Bar & Footer</h3>
-                    <p className="text-sm text-thread-sage">
+                    <p className="text-sm text-gray-600">
                       Hide the site navigation and footer for a full-screen template experience.
                     </p>
                   </div>
@@ -525,7 +525,7 @@ export default function ProfileEditPage({
                         className="sr-only"
                       />
                       <div className={`w-11 h-6 rounded-full shadow-inner transition-colors duration-200 ${
-                        isNavigationHidden ? 'bg-thread-pine' : 'bg-gray-300'
+                        isNavigationHidden ? 'bg-black' : 'bg-gray-300'
                       }`}>
                         <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
                           isNavigationHidden ? 'translate-x-5' : 'translate-x-0'
@@ -540,33 +540,33 @@ export default function ProfileEditPage({
             
             {/* Editor Links */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-thread-cream border border-thread-sage/30 rounded-lg p-6 text-center">
+              <div className="bg-white border border-black rounded-none p-6 text-center shadow-[3px_3px_0_#000]">
                 <div className="mb-4">
                   <span className="text-5xl">🎨</span>
                 </div>
                 <h3 className="text-lg font-bold mb-2">CSS Editor</h3>
-                <p className="text-sm text-thread-sage mb-4">
+                <p className="text-sm text-gray-600 mb-4">
                   Style your default layout with custom CSS
                 </p>
                 <a
                   href={`/resident/${username}/css-editor`}
-                  className="thread-button inline-block"
+                  className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline"
                 >
                   Open CSS Editor →
                 </a>
               </div>
               
-              <div className="bg-thread-cream border border-thread-sage/30 rounded-lg p-6 text-center">
+              <div className="bg-white border border-black rounded-none p-6 text-center shadow-[3px_3px_0_#000]">
                 <div className="mb-4">
                   <span className="text-5xl">📝</span>
                 </div>
                 <h3 className="text-lg font-bold mb-2">Template Editor</h3>
-                <p className="text-sm text-thread-sage mb-4">
+                <p className="text-sm text-gray-600 mb-4">
                   Create advanced layouts with templates
                 </p>
                 <a
                   href={`/resident/${username}/template-editor`}
-                  className="thread-button inline-block"
+                  className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline"
                 >
                   Open Template Editor →
                 </a>
@@ -597,12 +597,12 @@ export default function ProfileEditPage({
       <Head>
         <title>{`Edit Profile - ${username} | ThreadStead`}</title>
       </Head>
-      <ProfileLayout>
+      <Layout>
         <RetroCard>
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Edit Profile - {username}</h1>
             <div className="flex gap-2">
-              <button onClick={handleBackToProfile} className="thread-button-secondary">
+              <button onClick={handleBackToProfile} className="px-4 py-2 border border-black bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]">
                 Back to Profile
               </button>
             </div>
@@ -620,7 +620,7 @@ export default function ProfileEditPage({
 
           <Tabs tabs={featureFlags.threadrings(currentUser) ? editTabs : editTabs.filter(tab => tab.id !== 'badges')} initialId="profile" />
         </RetroCard>
-      </ProfileLayout>
+      </Layout>
     </>
   );
 }

@@ -718,7 +718,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       <div className="tr-page-container grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main content area - posts feed */}
         <div className="tr-main-content lg:col-span-3">
-          <div className="tr-header-card border border-black p-6 mb-6 bg-white shadow-[2px_2px_0_#000]" style={{ minWidth: 'auto' }}>
+          <div className="tr-header-card tr-header-min-width border border-black p-6 mb-6 bg-white shadow-[2px_2px_0_#000]">
             <div className="tr-header-content mb-4">
               <div className="tr-header-details flex flex-col gap-4">
                 <div className="tr-title-row flex items-center gap-4 flex-wrap sm:flex-nowrap">

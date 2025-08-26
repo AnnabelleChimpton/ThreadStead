@@ -113,8 +113,7 @@ export default function PromptItem({ post }: PromptItemProps) {
         <div className="flex gap-3">
           <Link
             href={`/tr/${post.ringSlug}/prompts/${prompt.promptId}/responses`}
-            className="inline-flex items-center px-3 py-2 text-sm bg-white border-2 border-purple-600 text-purple-800 font-medium rounded-lg hover:bg-purple-50 transition-colors shadow-sm no-underline hover:no-underline"
-            style={{ color: '#6B21A8' }}
+            className="tr-prompt-host-purple inline-flex items-center px-3 py-2 text-sm bg-white border-2 border-purple-600 font-medium rounded-lg hover:bg-purple-50 transition-colors shadow-sm no-underline hover:no-underline"
           >
             📝 View Responses
           </Link>
@@ -122,8 +121,7 @@ export default function PromptItem({ post }: PromptItemProps) {
           {isActive && (
             <Link
               href={`/post/new?promptId=${prompt.promptId}&threadRing=${post.ringSlug}&promptTitle=${encodeURIComponent(prompt.title)}`}
-              className="inline-flex items-center px-3 py-2 text-sm bg-purple-600 font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm no-underline hover:no-underline"
-              style={{ color: 'white' }}
+              className="tr-prompt-button-white inline-flex items-center px-3 py-2 text-sm bg-purple-600 font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm no-underline hover:no-underline"
             >
               ✍️ Respond
             </Link>

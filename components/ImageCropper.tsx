@@ -100,7 +100,7 @@ export default function ImageCropper({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+    <div className="modal-overlay-high fixed inset-0 bg-black/80 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto p-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">

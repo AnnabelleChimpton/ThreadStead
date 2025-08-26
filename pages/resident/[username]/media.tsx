@@ -310,8 +310,7 @@ export default function MediaGalleryPage({
         {/* Full Size Image Modal */}
         {selectedImage && (
           <div 
-            className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 pt-20"
-            style={{ zIndex: 9999 }}
+            className="modal-overlay-high fixed inset-0 bg-black/80 flex items-center justify-center p-4 pt-20"
             onClick={() => {
               setSelectedImage(null);
               setShowComments(false);

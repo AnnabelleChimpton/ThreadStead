@@ -28,20 +28,23 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+      
+      // Close dropdown if clicking outside
+      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setActiveDropdown(null);
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    // Use 'click' instead of 'mousedown' to let link clicks complete first
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, [setActiveDropdown]);
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className="nav-link text-thread-pine hover:text-thread-sunset font-medium flex items-center gap-1 underline hover:no-underline"
-        style={{textDecorationThickness: '1px', textDecorationColor: '#A18463'}}
+        className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium flex items-center gap-1 underline hover:no-underline"
         onClick={() => setActiveDropdown(isOpen ? null : dropdownKey)}
         onMouseEnter={() => setActiveDropdown(dropdownKey)}
       >
@@ -58,7 +61,7 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
       
       {isOpen && (
         <div 
-          className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+          className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[10000]"
           onMouseLeave={() => setActiveDropdown(null)}
         >
           {items.map((item, index) => (
@@ -66,7 +69,11 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
               key={index}
               href={item.href}
               className="block px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors"
-              onClick={() => setActiveDropdown(null)}
+              onClick={(e) => {
+                // Don't prevent the default navigation
+                // Just close the dropdown after a small delay to ensure navigation happens
+                setTimeout(() => setActiveDropdown(null), 50);
+              }}
             >
               {item.label}
             </Link>
@@ -129,14 +136,13 @@ export default function Layout({ children, siteConfig, fullWidth = false }: Layo
           </div>
           <div className="site-nav-container flex items-center gap-8">
             <div className="site-nav-links flex items-center gap-6">
-              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" style={{textDecorationThickness: '1px', textDecorationColor: '#A18463'}} href="/">Home</Link>
+              <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/">Home</Link>
               
               {/* Top level custom pages before dropdowns */}
               {topLevelPages.map(page => (
                 <Link 
                   key={page.id} 
-                  className="nav-link text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" 
-                  style={{textDecorationThickness: '1px', textDecorationColor: '#A18463'}}
+                  className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline"
                   href={`/page/${page.slug}`}
                 >
                   {page.title}
@@ -184,7 +190,7 @@ export default function Layout({ children, siteConfig, fullWidth = false }: Layo
               {me?.loggedIn && (
                 <Link 
                   href="/post/new"
-                  className="px-3 py-1.5 text-sm border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                  className="new-post-button"
                 >
                   ✏️ New Post
                 </Link>

@@ -33,8 +33,7 @@ export default function ProfileLayout({
                 </div>
                 
                 <div 
-                  className="ts-profile-sidebar" 
-                  style={{ display: showSidebar ? 'block' : 'none' }}
+                  className={`ts-profile-sidebar ${showSidebar ? 'profile-sidebar-visible' : 'profile-sidebar-hidden'}`}
                   data-sidebar-visible={showSidebar}
                 >
                   <div className="ts-sidebar-content">
@@ -67,8 +66,7 @@ export default function ProfileLayout({
             </div>
             
             <div 
-              className="ts-profile-sidebar" 
-              style={{ display: showSidebar ? 'block' : 'none' }}
+              className={`ts-profile-sidebar ${showSidebar ? 'profile-sidebar-visible' : 'profile-sidebar-hidden'}`}
               data-sidebar-visible={showSidebar}
             >
               <div className="ts-sidebar-content">

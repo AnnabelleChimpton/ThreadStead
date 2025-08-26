@@ -7,6 +7,17 @@
     #FCFAF7;
 }
 
+/* Background hover state for dropdown items */
+.thread-background {
+  background-color: #F5E9D4; /* thread-cream color */
+}
+
+/* Site header and footer backgrounds - default styling that users can override */
+.site-header,
+.site-footer {
+  background-color: #F5E9D4; /* thread-cream color - users can override this */
+}
+
 /* Stitched divider pattern */
 .thread-divider {
   border-top: 2px dashed #A18463;

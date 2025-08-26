@@ -61,10 +61,9 @@ export default function Toast({ message, type = 'info', duration = 5000, onClose
 
   return (
     <div
-      className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[9999] max-w-md w-full mx-4 transition-all duration-300 ${
+      className={`toast-container fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-md w-full mx-4 transition-all duration-300 ${
         isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
       }`}
-      style={{ zIndex: 9999 }}
     >
         <div className={`${colors.bg} ${colors.border} ${colors.text} border-2 rounded-xl shadow-2xl p-6`}>
           {/* Header */}

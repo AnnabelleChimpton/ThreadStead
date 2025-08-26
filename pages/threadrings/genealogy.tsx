@@ -57,7 +57,7 @@ export default function GenealogyPage({ siteConfig }: GenealogyPageProps) {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" style={{ minHeight: '600px' }}>
+          <div className="genealogy-container bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <ThreadRingGenealogy maxInitialDepth={5} />
           </div>
 

@@ -146,8 +146,7 @@ export default function ThreadRingActivePrompt({
             
             <Link 
               href={`/threadrings/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
-              className="text-purple-600 font-medium hover:text-purple-800 hover:underline"
-              style={{ color: '#9333EA' }}
+              className="tr-prompt-link-purple font-medium hover:text-purple-800 hover:underline"
             >
               📝 {activePrompt.responseCount} {activePrompt.responseCount === 1 ? 'response' : 'responses'}
             </Link>
@@ -158,8 +157,7 @@ export default function ThreadRingActivePrompt({
               {isMember && !isExpired && (
                 <Link 
                   href={`/post/new?promptId=${activePrompt.id}&threadRing=${threadRingSlug}&promptTitle=${encodeURIComponent(activePrompt.title)}`}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors no-underline hover:no-underline"
-                  style={{ color: 'white' }}
+                  className="tr-prompt-button-white inline-flex items-center px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors no-underline hover:no-underline"
                 >
                   <span className="mr-2">✍️</span>
                   Respond to Challenge
@@ -169,8 +167,7 @@ export default function ThreadRingActivePrompt({
               {activePrompt.responseCount > 0 && (
                 <Link 
                   href={`/threadrings/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
-                  className="inline-flex items-center px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors no-underline hover:no-underline"
-                  style={{ color: 'white' }}
+                  className="tr-prompt-button-white inline-flex items-center px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors no-underline hover:no-underline"
                 >
                   <span className="mr-2">👥</span>
                   View All {activePrompt.responseCount} Responses

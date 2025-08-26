@@ -261,13 +261,7 @@ export default function ProfilePreview({
         {/* Create an isolated preview environment with unique ID */}
         <div 
           id={previewId}
-          className="preview-isolation" 
-          style={{ 
-            isolation: 'isolate', 
-            position: 'relative',
-            height: '100%',
-            width: '100%'
-          }}
+          className="preview-isolation"
         >
           {renderPreviewContent()}
         </div>

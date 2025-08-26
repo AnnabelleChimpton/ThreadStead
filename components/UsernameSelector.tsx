@@ -428,9 +428,8 @@ export default function UsernameSelector({
             value={betaKey}
             onChange={(e) => setBetaKey(e.target.value.toUpperCase())}
             placeholder="BETA-XXXX-XXXX-XXXX"
-            className="border border-black p-2 bg-white w-full font-mono text-sm"
+            className="username-input border border-black p-2 bg-white w-full font-mono text-sm"
             disabled={isLoading}
-            style={{ letterSpacing: '0.05em' }}
           />
           {betaKey && (
             <div className={`text-xs mt-1 ${isValidBetaKeyFormat(betaKey) ? 'text-green-600' : 'text-red-600'}`}>

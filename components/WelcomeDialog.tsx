@@ -180,8 +180,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
                 <textarea
                   readOnly
                   value={backupToken}
-                  className="w-full h-20 text-xs font-mono border border-thread-sage p-3 resize-none bg-thread-paper rounded"
-                  style={{ userSelect: 'all' }}
+                  className="user-select-all w-full h-20 text-xs font-mono border border-thread-sage p-3 resize-none bg-thread-paper rounded"
                 />
               </div>
             )}

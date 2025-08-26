@@ -333,12 +333,6 @@ export default function TemplateEditor({
             <div 
               id={previewId}
               className="template-preview-wrapper"
-              style={{ 
-                isolation: 'isolate', 
-                position: 'relative',
-                height: '100%',
-                width: '100%'
-              }}
             >
               {renderPreview()}
             </div>

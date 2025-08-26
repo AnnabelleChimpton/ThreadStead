@@ -556,12 +556,12 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
       )}
       
       <div className="w-full p-4">
-        <div className="p-6 mb-4 bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463]" style={{width: '80vw', marginLeft: 'calc(-40vw + 50%)', marginRight: 'calc(-40vw + 50%)'}}>
+        <div className="post-editor-container p-6 mb-4 bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463]">
           <h1 className="thread-headline text-2xl font-bold mb-2">Create New Post</h1>
           <p className="text-[#A18463]">Write your post using Markdown formatting</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="border border-black bg-white shadow-[4px_4px_0_#000]" style={{width: '80vw', marginLeft: 'calc(-40vw + 50%)', marginRight: 'calc(-40vw + 50%)'}}>
+        <form onSubmit={handleSubmit} className="post-editor-container border border-black bg-white shadow-[4px_4px_0_#000]">
           {/* Tab Navigation */}
           <div className="border-b border-black bg-gray-50 p-3 flex items-center justify-between">
             <div className="flex gap-2">
@@ -737,7 +737,7 @@ code block
                       </div>
                       <div className="mt-2 w-48 bg-gray-200 rounded-full h-2">
                         <div 
-                          className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                          className="upload-progress-bar bg-green-500 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${uploadProgress}%` }}
                         ></div>
                       </div>
