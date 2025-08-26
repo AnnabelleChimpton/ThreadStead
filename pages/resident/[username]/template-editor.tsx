@@ -31,8 +31,24 @@ export default function TemplateEditorPage({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
-  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
-  const [template, setTemplate] = useState(existingTemplate || `<DisplayName />\n<Bio />`);
+  const [activeTab, setActiveTab] = useState<'html' | 'css' | 'preview'>('html');
+  // Separate HTML and CSS content
+  const [htmlContent, setHtmlContent] = useState(() => {
+    // Extract HTML content (remove style tags)
+    const cleanHTML = (existingTemplate || `<DisplayName />\n<Bio />`)
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .trim();
+    return cleanHTML || `<DisplayName />\n<Bio />`;
+  });
+  
+  const [cssContent, setCssContent] = useState(() => {
+    // Extract CSS from style tags
+    const styleMatch = (existingTemplate || '').match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+    return styleMatch ? styleMatch[1].trim() : '/* Add your custom CSS here */\n\n';
+  });
+  
+  // Combine HTML and CSS for processing
+  const template = `${htmlContent}${cssContent.trim() ? `\n<style>\n${cssContent}\n</style>` : ''}`;
   const [mode, setMode] = useState<'custom-tags' | 'data-attributes'>('custom-tags');
   const [compiledAst, setCompiledAst] = useState<TemplateNode | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -102,20 +118,22 @@ export default function TemplateEditorPage({
     }
   }, [template, mode]);
 
-  // Enhanced keyboard handling for tab indentation
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  // Enhanced keyboard handling for tab indentation (works with both HTML and CSS)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, contentType: 'html' | 'css') => {
     if (e.key === 'Tab') {
       e.preventDefault();
       
       const textarea = e.currentTarget;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
+      const currentValue = contentType === 'html' ? htmlContent : cssContent;
+      const setter = contentType === 'html' ? setHtmlContent : setCssContent;
       
       if (e.shiftKey) {
         // Shift+Tab: Remove indentation
-        const lines = textarea.value.split('\n');
-        const startLine = textarea.value.substring(0, start).split('\n').length - 1;
-        const endLine = textarea.value.substring(0, end).split('\n').length - 1;
+        const lines = currentValue.split('\n');
+        const startLine = currentValue.substring(0, start).split('\n').length - 1;
+        const endLine = currentValue.substring(0, end).split('\n').length - 1;
         
         let removedChars = 0;
         for (let i = startLine; i <= endLine; i++) {
@@ -129,7 +147,7 @@ export default function TemplateEditorPage({
         }
         
         const newValue = lines.join('\n');
-        setTemplate(newValue);
+        setter(newValue);
         
         // Restore selection
         setTimeout(() => {
@@ -140,8 +158,8 @@ export default function TemplateEditorPage({
         // Tab: Add indentation
         if (start === end) {
           // No selection, just insert tab
-          const newValue = template.substring(0, start) + '  ' + template.substring(end);
-          setTemplate(newValue);
+          const newValue = currentValue.substring(0, start) + '  ' + currentValue.substring(end);
+          setter(newValue);
           
           // Move cursor
           setTimeout(() => {
@@ -149,16 +167,16 @@ export default function TemplateEditorPage({
           });
         } else {
           // Multiple lines selected, indent all
-          const lines = textarea.value.split('\n');
-          const startLine = textarea.value.substring(0, start).split('\n').length - 1;
-          const endLine = textarea.value.substring(0, end).split('\n').length - 1;
+          const lines = currentValue.split('\n');
+          const startLine = currentValue.substring(0, start).split('\n').length - 1;
+          const endLine = currentValue.substring(0, end).split('\n').length - 1;
           
           for (let i = startLine; i <= endLine; i++) {
             lines[i] = '  ' + lines[i];
           }
           
           const newValue = lines.join('\n');
-          setTemplate(newValue);
+          setter(newValue);
           
           // Restore selection
           const addedChars = (endLine - startLine + 1) * 2;
@@ -258,12 +276,8 @@ export default function TemplateEditorPage({
     try {
       console.log('updateIframeContent: Rendering template', { ast: compiledAst, residentData });
       
-      // Only get CSS from the template itself - no custom CSS for templates
-      let allCSS = '';
-      const templateCSS = template.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-      if (templateCSS && templateCSS[1]) {
-        allCSS = templateCSS[1];
-      }
+      // Use the CSS from the CSS tab
+      const allCSS = cssContent || '';
 
       // Try to render the template directly with data provider context
       let htmlContent = '';
@@ -397,12 +411,12 @@ export default function TemplateEditorPage({
     if (activeTab === 'preview') {
       updateIframeContent();
     }
-  }, [compiledAst, residentData, template, activeTab]);
+  }, [compiledAst, residentData, template, cssContent, activeTab]);
 
   const renderPreview = () => {
     if (dataLoading) {
       return (
-        <div className="flex items-center justify-center h-full text-thread-sage">
+        <div className="flex items-center justify-center text-thread-sage" style={{ height: '800px' }}>
           <div className="text-center">
             <div className="animate-spin w-8 h-8 border-4 border-thread-pine border-t-transparent rounded-full mx-auto mb-4"></div>
             <p>Loading user data...</p>
@@ -413,7 +427,7 @@ export default function TemplateEditorPage({
 
     if (!compiledAst) {
       return (
-        <div className="flex items-center justify-center h-full text-thread-sage">
+        <div className="flex items-center justify-center text-thread-sage" style={{ height: '800px' }}>
           <div className="text-center">
             <p className="mb-4">No valid template to preview</p>
             <p className="text-sm">Write some template HTML in the editor to see a preview</p>
@@ -424,7 +438,7 @@ export default function TemplateEditorPage({
 
     if (!residentData) {
       return (
-        <div className="flex items-center justify-center h-full text-red-600">
+        <div className="flex items-center justify-center text-red-600" style={{ height: '800px' }}>
           <p>Failed to load user data</p>
         </div>
       );
@@ -433,10 +447,11 @@ export default function TemplateEditorPage({
     return (
       <iframe
         ref={iframeRef}
-        className="w-full h-full border-0"
+        className="w-full border-0"
         style={{ 
           backgroundColor: 'white',
-          minHeight: '100%'
+          height: '800px',
+          width: '100%'
         }}
         sandbox="allow-scripts allow-same-origin"
         title="Template Preview"
@@ -476,13 +491,13 @@ export default function TemplateEditorPage({
         <title>{`Template Editor - ${username} | ThreadStead`}</title>
       </Head>
       <Layout fullWidth={true}>
-        <div className="flex flex-col bg-white template-editor-page w-full" style={{ height: 'calc(100vh - 120px)', maxWidth: '100vw', margin: '0', padding: '0' }}>
-          {/* Header - Full Width */}
-          <div className="bg-white border-b border-thread-sage/30 px-4 py-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold">Template Editor</h1>
-                <span className="text-thread-sage">- {username}</span>
+        <div className="flex flex-col bg-white template-editor-page w-full" style={{ minHeight: '100vh', maxWidth: '100vw', margin: '0', padding: '0' }}>
+          {/* Header - Streamlined */}
+          <div className="bg-white border-b border-thread-sage/30 px-4 py-3 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <h1 className="text-lg font-semibold">Template Editor</h1>
+                <span className="text-thread-sage text-sm">@{username}</span>
                 {templateEnabled && (
                   <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
                     Template Active
@@ -493,13 +508,13 @@ export default function TemplateEditorPage({
               <div className="flex items-center gap-2">
                 <button 
                   onClick={handleBackToEdit} 
-                  className="thread-button-secondary text-sm"
+                  className="thread-button-secondary text-xs px-2 py-1"
                 >
-                  ← Back to Edit
+                  ← Edit Profile
                 </button>
                 <button 
                   onClick={handleBackToProfile} 
-                  className="thread-button text-sm"
+                  className="thread-button text-xs px-2 py-1"
                 >
                   View Profile
                 </button>
@@ -507,16 +522,26 @@ export default function TemplateEditorPage({
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-1 mt-4">
+            <div className="flex gap-1">
               <button
-                onClick={() => setActiveTab('editor')}
+                onClick={() => setActiveTab('html')}
                 className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                  activeTab === 'editor'
+                  activeTab === 'html'
                     ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
                     : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
                 }`}
               >
-                📝 Editor
+                📝 HTML
+              </button>
+              <button
+                onClick={() => setActiveTab('css')}
+                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                  activeTab === 'css'
+                    ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
+                    : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
+                }`}
+              >
+                🎨 CSS
               </button>
               <button
                 onClick={() => setActiveTab('preview')}
@@ -532,13 +557,13 @@ export default function TemplateEditorPage({
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1">
             
-            {/* Editor Tab */}
-            {activeTab === 'editor' && (
+            {/* HTML Editor Tab */}
+            {activeTab === 'html' && (
               <div className="w-full flex flex-col">
-                {/* Editor Toolbar - Full Width */}
-                <div className="bg-thread-cream border-b border-thread-sage/30 px-4 py-3">
+                {/* Editor Toolbar - Seamlessly connected to tabs */}
+                <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-2 -mt-px">
                   <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex items-center gap-4">
                       {/* Mode selector */}
@@ -568,8 +593,16 @@ export default function TemplateEditorPage({
                       {/* Template Selector */}
                       <div>
                         <HTMLTemplateSelector 
-                          currentTemplate={template}
-                          onTemplateChange={setTemplate}
+                          currentTemplate={htmlContent}
+                          onTemplateChange={(newTemplate) => {
+                            // Extract HTML and CSS from the new template
+                            const cleanHTML = newTemplate.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
+                            const styleMatch = newTemplate.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+                            setHtmlContent(cleanHTML || `<DisplayName />\n<Bio />`);
+                            if (styleMatch && styleMatch[1]) {
+                              setCssContent(styleMatch[1].trim());
+                            }
+                          }}
                         />
                       </div>
                     </div>
@@ -609,23 +642,23 @@ export default function TemplateEditorPage({
                   )}
                 </div>
 
-                {/* Code Editor - Full Width */}
-                <div className="flex-1 flex">
-                  <div className="flex-1 px-4 py-4">
+                {/* Code Editor - Natural Height */}
+                <div className="w-full">
+                  <div className="px-4 py-4">
                     <label className="block mb-3">
                       <span className="thread-label text-lg">Template HTML</span>
                       <span className="text-sm text-thread-sage ml-2">({mode}) - Use Tab/Shift+Tab for indentation</span>
                     </label>
                     <textarea
                       ref={textareaRef}
-                      value={template}
-                      onChange={(e) => setTemplate(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      className="w-full h-full border border-thread-sage p-4 bg-thread-paper rounded font-mono text-sm resize-none focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                      value={htmlContent}
+                      onChange={(e) => setHtmlContent(e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, 'html')}
+                      className="w-full border border-thread-sage p-4 bg-thread-paper rounded font-mono text-sm resize-vertical focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
                       placeholder={`Enter your template HTML using ${mode}...`}
                       spellCheck={false}
-                      style={{ 
-                        minHeight: 'calc(100vh - 280px)',
+                      rows={25}
+                      style={{
                         fontFamily: "'Fira Code', 'Consolas', 'Monaco', 'Menlo', monospace",
                         lineHeight: '1.5',
                         tabSize: 2
@@ -636,16 +669,84 @@ export default function TemplateEditorPage({
               </div>
             )}
 
-            {/* Preview Tab */}
+            {/* CSS Editor Tab */}
+            {activeTab === 'css' && (
+              <div className="w-full flex flex-col">
+                {/* CSS Editor Toolbar - Seamlessly connected to tabs */}
+                <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-2 -mt-px">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-thread-sage">
+                        Style your template components
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <a 
+                        href="/design-css-tutorial" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="thread-button-secondary text-sm"
+                      >
+                        🎨 CSS Guide
+                      </a>
+                      
+                      {compiledAst && (
+                        <button 
+                          onClick={handleSave} 
+                          disabled={saving}
+                          className="thread-button text-sm"
+                        >
+                          {saving ? "Saving..." : "Save Template"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* CSS Code Editor - Natural Height */}
+                <div className="w-full">
+                  <div className="px-4 py-4">
+                    <label className="block mb-3">
+                      <span className="thread-label text-lg">Template CSS</span>
+                      <span className="text-sm text-thread-sage ml-2">Use Tab/Shift+Tab for indentation</span>
+                    </label>
+                    <textarea
+                      value={cssContent}
+                      onChange={(e) => setCssContent(e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, 'css')}
+                      className="w-full border border-thread-sage p-4 bg-thread-paper rounded font-mono text-sm resize-vertical focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                      placeholder="/* Add your custom CSS here */
+
+.profile-bio {
+  font-size: 18px;
+  color: #333;
+}
+
+.profile-name {
+  font-weight: bold;
+  color: #1e40af;
+}"
+                      spellCheck={false}
+                      rows={25}
+                      style={{
+                        fontFamily: "'Fira Code', 'Consolas', 'Monaco', 'Menlo', monospace",
+                        lineHeight: '1.5',
+                        tabSize: 2
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Preview Tab - Expanded */}
             {activeTab === 'preview' && (
               <div className="w-full flex flex-col">
-                <div className="bg-thread-cream border-b border-thread-sage/30 px-4 py-3">
+                <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-2 -mt-px">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <span className="thread-label text-lg">Live Preview</span>
-                      <span className="text-sm text-thread-sage">
-                        {compiledAst ? 'Template compiled successfully' : 'No valid template'}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <span className="thread-label text-sm">Live Preview</span>
                     </div>
                     
                     {compiledAst && (
@@ -660,7 +761,7 @@ export default function TemplateEditorPage({
                   </div>
                 </div>
 
-                <div className="flex-1 bg-white border border-thread-sage/30 mx-4 my-4 rounded overflow-hidden shadow-lg">
+                <div className="bg-white border border-thread-sage/30 mx-2 my-2 rounded overflow-hidden shadow-lg" style={{ minHeight: '800px' }}>
                   {renderPreview()}
                 </div>
               </div>
