@@ -286,10 +286,8 @@ export default function ThreadRingPromptManager({
                   <p className="text-gray-700 mb-2 whitespace-pre-wrap">{prompt.description}</p>
                   
                   <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                    <span>
-                      By {prompt.createdBy?.profile?.displayName || prompt.createdBy?.handles[0]?.handle || 'Unknown User'}
-                    </span>
-                    <span>{formatDistanceToNow(new Date(prompt.createdAt))} ago</span>
+                    <span>ThreadRing Challenge</span>
+                    <span>Started {formatDistanceToNow(new Date(prompt.createdAt))} ago</span>
                     <span>{prompt.responseCount} responses</span>
                     {prompt.endsAt && (
                       <span className="text-orange-600">

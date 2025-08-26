@@ -20,7 +20,7 @@ interface SampleThreadRingData {
   forks: any[]
   invites: any[]
   blocks: any[]
-  prompts: any[]
+  prompts: any[] // Legacy field - now handled via Ring Hub PostRefs
   badges: any[]
   metadata: {
     exportDate: string
@@ -118,23 +118,6 @@ async function exportSampleData() {
             }
           }
         },
-        prompts: {
-          include: {
-            responses: {
-              include: {
-                post: {
-                  select: {
-                    id: true,
-                    title: true,
-                    bodyMarkdown: true,
-                    createdAt: true,
-                    authorId: true
-                  }
-                }
-              }
-            }
-          }
-        },
         badge: true
       },
       orderBy: {
@@ -154,7 +137,7 @@ async function exportSampleData() {
     const forks = rings.flatMap(ring => [...(ring.parentForks || []), ...(ring.childFork ? [ring.childFork] : [])])
     const invites = rings.flatMap(ring => ring.invites || [])
     const blocks = rings.flatMap(ring => ring.blocks || [])
-    const prompts = rings.flatMap(ring => ring.prompts || [])
+    // Prompts are now handled via Ring Hub PostRefs, not database tables
     const badges = rings.map(ring => ring.badge).filter(Boolean)
 
     // Determine implemented features
@@ -163,7 +146,7 @@ async function exportSampleData() {
     if (forks.length > 0) features.push('Fork System')
     if (invites.length > 0) features.push('Invitation System')
     if (blocks.length > 0) features.push('Block Lists')
-    if (prompts.length > 0) features.push('Ring Prompts/Challenges')
+    // Prompts are now Ring Hub PostRefs - would need to check via API
     if (badges.length > 0) features.push('88x31 Badge System')
     if (rings.some(r => r.lineageDepth !== undefined)) features.push('Genealogy System')
     if (rings.some(r => r.totalDescendantsCount > 0)) features.push('Hierarchical Counters')
@@ -180,7 +163,7 @@ async function exportSampleData() {
         forks: undefined,   // Moved to separate collection
         invites: undefined, // Moved to separate collection
         blocks: undefined,  // Moved to separate collection
-        prompts: undefined, // Moved to separate collection
+        prompts: undefined, // Legacy - now Ring Hub PostRefs
         badge: undefined    // Moved to separate collection
       })),
       members,
@@ -188,7 +171,7 @@ async function exportSampleData() {
       forks,
       invites,
       blocks,
-      prompts,
+      prompts: [], // Legacy - now handled via Ring Hub PostRefs
       badges,
       metadata: {
         exportDate: new Date().toISOString(),
@@ -212,7 +195,7 @@ async function exportSampleData() {
     console.log(`   - ${sampleData.forks.length} Forks`)
     console.log(`   - ${sampleData.invites.length} Invitations`)
     console.log(`   - ${sampleData.blocks.length} Blocks`)
-    console.log(`   - ${sampleData.prompts.length} Prompts`)
+    console.log(`   - ${sampleData.prompts.length} Prompts (now Ring Hub PostRefs)`)
     console.log(`   - ${sampleData.badges.length} Badges`)
     console.log(`🎯 Features Found: ${features.join(', ')}`)
 
@@ -258,7 +241,7 @@ Based on the exported ThreadStead data, Ring Hub should implement these features
 
 ### Phase 4: Advanced Features
 - **Moderation**: ${data.blocks.length} existing blocks
-- **Engagement**: ${data.prompts.length} existing prompts/challenges  
+- **Engagement**: ${data.prompts.length} existing prompts/challenges (migrated to Ring Hub PostRefs)  
 - **Badges**: ${data.badges.length} existing 88x31 badges
 
 ## 🗄️ Data Model Mapping
@@ -341,7 +324,7 @@ ${data.metadata.features.map(f => `- ✅ **${f}**: Ready for migration`).join('\
 - Preserve block reasons and audit trails
 - Implement API-level enforcement
 
-#### Ring Prompts (${data.prompts.length} existing prompts)
+#### Ring Prompts (${data.prompts.length} legacy prompts - now Ring Hub PostRefs)
 - Curator-driven engagement challenges
 - Post-prompt response associations
 - Time-limited prompt support

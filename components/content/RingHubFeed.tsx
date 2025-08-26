@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import PostItem from "./PostItem";
+import PromptItem from "./PromptItem";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 
 type RingHubFeedType = "my-rings" | "trending";
@@ -83,7 +84,9 @@ export default function RingHubFeed({
       console.log('Raw RingHub feed data:', {
         totalPosts: data.posts.length,
         samplePost: data.posts[0],
-        notificationPosts: data.posts.filter(p => p.isNotification || p.metadata?.type === 'fork_notification')
+        notificationPosts: data.posts.filter(p => p.isNotification || p.metadata?.type === 'fork_notification'),
+        promptPosts: data.posts.filter(p => p.metadata?.type === 'threadring_prompt'),
+        allMetadataTypes: data.posts.map(p => ({ id: p.id, metadataType: p.metadata?.type }))
       });
       
       // Client-side filtering if server doesn't properly filter notifications
@@ -297,6 +300,62 @@ export default function RingHubFeed({
   return (
     <div className="space-y-6">
       {posts.map((ringHubPost) => {
+        // Check if this is a prompt PostRef - check both possible locations
+        const isPrompt = ringHubPost.metadata?.type === 'threadring_prompt' || 
+                          ringHubPost.notificationType === 'threadring_prompt';
+        
+        // Debug log each post's metadata
+        console.log(`🔍 Processing post ${ringHubPost.id}:`, {
+          metadataType: ringHubPost.metadata?.type,
+          notificationType: ringHubPost.notificationType,
+          isPrompt,
+          fullMetadata: ringHubPost.metadata,
+          fullPost: ringHubPost
+        });
+        
+        if (isPrompt) {
+          console.log(`🎯 Rendering prompt: ${ringHubPost.id}`);
+          
+          // Extract prompt data from the correct location
+          let promptData;
+          if (ringHubPost.metadata?.type === 'threadring_prompt') {
+            promptData = ringHubPost.metadata.prompt;
+          } else if (ringHubPost.notificationType === 'threadring_prompt') {
+            // Handle case where prompt data is in a different structure
+            promptData = {
+              promptId: ringHubPost.id,
+              title: ringHubPost.metadata?.title || 'ThreadRing Challenge',
+              description: ringHubPost.metadata?.description || 'Join this challenge!',
+              startsAt: ringHubPost.submittedAt,
+              endsAt: ringHubPost.metadata?.endsAt,
+              isActive: true,
+              isPinned: ringHubPost.pinned,
+              responseCount: 0,
+              tags: ringHubPost.metadata?.tags
+            };
+          }
+          
+          // Render prompts with special PromptItem component
+          return (
+            <PromptItem
+              key={`prompt-${ringHubPost.id}`}
+              post={{
+                id: ringHubPost.id,
+                ringSlug: ringHubPost.ringSlug,
+                ringName: ringHubPost.ringName,
+                uri: ringHubPost.uri,
+                submittedAt: ringHubPost.submittedAt,
+                metadata: {
+                  type: 'threadring_prompt',
+                  prompt: promptData
+                } as any,
+                pinned: ringHubPost.pinned
+              }}
+            />
+          );
+        }
+
+        // Regular posts get the standard PostItem treatment
         const postItem = convertToPostItem(ringHubPost);
         return (
           <PostItem

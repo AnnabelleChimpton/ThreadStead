@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { GetServerSideProps } from 'next'
 import Link from 'next/link'
@@ -75,21 +75,61 @@ interface PromptResponsesPageProps {
   prompt: ThreadRingPrompt | null
   initialResponses: PromptResponse[]
   canAccess: boolean
-  error?: string
+  error?: string | null
 }
 
 export default function PromptResponsesPage({
   siteConfig,
   threadRing,
-  prompt,
+  prompt: initialPrompt,
   initialResponses,
   canAccess,
   error
 }: PromptResponsesPageProps) {
   const router = useRouter()
+  const { slug, promptId } = router.query
+  const [prompt, setPrompt] = useState<ThreadRingPrompt | null>(initialPrompt)
   const [responses, setResponses] = useState<PromptResponse[]>(initialResponses || [])
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(initialResponses?.length === 20)
+  const [dataLoading, setDataLoading] = useState(!initialPrompt && canAccess)
+
+  // Load prompt and responses client-side for Ring Hub
+  useEffect(() => {
+    if (!canAccess || !threadRing || !slug || !promptId || initialPrompt) return
+
+    const loadPromptData = async () => {
+      setDataLoading(true)
+      try {
+        // Load prompt details
+        const promptResponse = await fetch(`/api/threadrings/${slug}/prompts`)
+        if (promptResponse.ok) {
+          const prompts = await promptResponse.json()
+          const foundPrompt = Array.isArray(prompts) 
+            ? prompts.find(p => p.id === promptId)
+            : (prompts.id === promptId ? prompts : null)
+          
+          if (foundPrompt) {
+            setPrompt(foundPrompt)
+          }
+        }
+
+        // Load responses
+        const responsesResponse = await fetch(`/api/threadrings/${slug}/prompts/${promptId}/responses`)
+        if (responsesResponse.ok) {
+          const data = await responsesResponse.json()
+          setResponses(data.responses || [])
+          setHasMore(data.pagination?.totalCount > (data.responses?.length || 0))
+        }
+      } catch (error) {
+        console.error('Error loading prompt data:', error)
+      } finally {
+        setDataLoading(false)
+      }
+    }
+
+    loadPromptData()
+  }, [canAccess, threadRing, slug, promptId, initialPrompt])
 
   const loadMoreResponses = async () => {
     if (!threadRing || !prompt || loading) return
@@ -139,12 +179,36 @@ export default function PromptResponsesPage({
     )
   }
 
-  if (!threadRing || !prompt) {
+  if (!threadRing) {
     return (
       <Layout siteConfig={siteConfig}>
         <div className="max-w-4xl mx-auto py-8 px-4">
           <div className="text-center text-gray-600">
-            Prompt or ThreadRing not found.
+            ThreadRing not found.
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (dataLoading) {
+    return (
+      <Layout siteConfig={siteConfig}>
+        <div className="max-w-4xl mx-auto py-8 px-4">
+          <div className="text-center text-gray-600">
+            Loading prompt data...
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (!prompt) {
+    return (
+      <Layout siteConfig={siteConfig}>
+        <div className="max-w-4xl mx-auto py-8 px-4">
+          <div className="text-center text-gray-600">
+            Prompt not found.
           </div>
         </div>
       </Layout>
@@ -198,14 +262,7 @@ export default function PromptResponsesPage({
               </p>
               
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <span>
-                  Posted by {getUserDisplayName({ 
-                    id: prompt.createdBy.id,
-                    handles: prompt.createdBy.handles, 
-                    profile: prompt.createdBy.profile 
-                  })}
-                </span>
-                <span>{formatDistanceToNow(new Date(prompt.startsAt))} ago</span>
+                <span>ThreadRing Challenge • Started {formatDistanceToNow(new Date(prompt.startsAt))} ago</span>
                 <span className="font-medium text-purple-600">
                   {prompt.responseCount} {prompt.responseCount === 1 ? 'response' : 'responses'}
                 </span>
@@ -352,25 +409,66 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
   try {
     console.log('Loading responses page for:', slug, promptId)
 
-    // Note: Prompts/Responses are currently local-only features
-    // Even with Ring Hub enabled, we use local ThreadRing data for prompts
-    // TODO: Integrate prompts/responses with Ring Hub in future
-    
-    // Verify ThreadRing exists (check Ring Hub first if enabled, then local)
-    let threadRingExists = false;
+    // Use Ring Hub-based prompt system
     if (featureFlags.ringhub()) {
       const client = getRingHubClient();
       if (client) {
         try {
+          // Get Ring from Ring Hub
           const ringDescriptor = await client.getRing(slug);
-          threadRingExists = !!ringDescriptor;
+          if (!ringDescriptor) {
+            return {
+              props: {
+                siteConfig,
+                threadRing: null,
+                prompt: null,
+                initialResponses: [],
+                canAccess: false,
+                error: 'ThreadRing not found'
+              }
+            }
+          }
+
+          // Create basic ThreadRing object from Ring Hub data
+          const threadRing = {
+            id: ringDescriptor.slug, // Use slug as ID for Ring Hub rings
+            name: ringDescriptor.name,
+            slug: ringDescriptor.slug,
+            description: ringDescriptor.description || '',
+            visibility: 'public' as const // Ring Hub rings are typically public
+          }
+
+          // Try to fetch the prompt and responses via API (which uses promptService)
+          // We can't use promptService directly in SSR due to authentication requirements
+          console.log('ThreadRing found via Ring Hub:', threadRing)
+          
+          return {
+            props: {
+              siteConfig,
+              threadRing,
+              prompt: null, // Will be loaded client-side
+              initialResponses: [],
+              canAccess: true,
+              error: null
+            }
+          }
         } catch (ringHubError) {
-          console.log('Ring Hub check failed, falling back to local:', ringHubError instanceof Error ? ringHubError.message : ringHubError);
+          console.log('Ring Hub error:', ringHubError instanceof Error ? ringHubError.message : ringHubError);
+          return {
+            props: {
+              siteConfig,
+              threadRing: null,
+              prompt: null,
+              initialResponses: [],
+              canAccess: false,
+              error: 'Failed to load ThreadRing data'
+            }
+          }
         }
       }
     }
 
-    // Find the ThreadRing in local database (for prompts data)
+    // Fallback to local database (deprecated path)
     const threadRing = await db.threadRing.findUnique({
       where: { slug },
       select: {
@@ -381,20 +479,6 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
         visibility: true
       }
     })
-
-    // If Ring Hub is enabled but ThreadRing doesn't exist there, show error
-    if (featureFlags.ringhub() && !threadRingExists) {
-      return {
-        props: {
-          siteConfig,
-          threadRing: null,
-          prompt: null,
-          initialResponses: [],
-          canAccess: false,
-          error: 'ThreadRing not found in Ring Hub'
-        }
-      }
-    }
 
     console.log('ThreadRing found:', !!threadRing)
 
@@ -411,146 +495,58 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
       }
     }
 
-    // Simple prompt query without complex includes
-    const prompt = await db.threadRingPrompt.findFirst({
-      where: {
-        id: promptId,
-        threadRingId: threadRing.id
+    // Use API to get prompt and responses (works with new PostRef system)
+    let prompt: ThreadRingPrompt | null = null;
+    let responses: PromptResponse[] = [];
+
+    try {
+      // Get prompt details from API
+      const promptResponse = await fetch(`http://localhost:3000/api/threadrings/${slug}/prompts/${promptId}`, {
+        headers: {
+          'User-Agent': 'ThreadStead-SSR/1.0'
+        }
+      });
+      
+      if (promptResponse.ok) {
+        prompt = await promptResponse.json();
       }
-    })
 
-    console.log('Prompt found:', !!prompt)
+      console.log('Prompt found via API:', !!prompt);
 
-    if (!prompt) {
-      return {
-        props: {
-          siteConfig,
-          threadRing,
-          prompt: null,
-          initialResponses: [],
-          canAccess: true,
-          error: 'Prompt not found'
+      if (!prompt) {
+        return {
+          props: {
+            siteConfig,
+            threadRing,
+            prompt: null,
+            initialResponses: [],
+            canAccess: true,
+            error: 'Prompt not found'
+          }
         }
       }
-    }
 
-    // Get the user who created the prompt
-    let promptCreator = null
-    try {
-      promptCreator = await db.user.findUnique({
-        where: { id: prompt.createdById },
-        select: {
-          id: true,
-          handles: {
-            take: 1,
-            select: { handle: true }
-          },
-          profile: {
-            select: { 
-              displayName: true,
-              avatarUrl: true
-            }
-          }
+      // Get responses from API
+      const responsesResponse = await fetch(`http://localhost:3000/api/threadrings/${slug}/prompts/${promptId}/responses?page=1&limit=20`, {
+        headers: {
+          'User-Agent': 'ThreadStead-SSR/1.0'
         }
-      })
+      });
+
+      if (responsesResponse.ok) {
+        const responsesData = await responsesResponse.json();
+        responses = responsesData.responses || [];
+      }
     } catch (err) {
-      console.error('Error fetching prompt creator:', err)
-    }
-
-    // Get the responses with full data in a single query
-    let responses: PromptResponse[] = []
-    try {
-      const rawResponses = await db.postThreadRingPrompt.findMany({
-        where: { promptId },
-        include: {
-          post: {
-            include: {
-              author: {
-                select: {
-                  id: true,
-                  handles: {
-                    take: 1,
-                    select: { handle: true }
-                  },
-                  profile: {
-                    select: {
-                      displayName: true,
-                      avatarUrl: true
-                    }
-                  }
-                }
-              },
-              _count: {
-                select: { comments: true }
-              },
-              threadRings: {
-                include: {
-                  threadRing: {
-                    select: {
-                      id: true,
-                      name: true,
-                      slug: true
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 20
-      })
-
-      console.log('Raw responses found:', rawResponses.length)
-
-      // Filter and format responses
-      responses = rawResponses
-        .filter(response => response.post.visibility === 'public')
-        .map(response => ({
-          id: response.id,
-          createdAt: response.createdAt.toISOString(),
-          post: {
-            id: response.post.id,
-            title: response.post.title,
-            bodyText: response.post.bodyText,
-            bodyHtml: response.post.bodyHtml,
-            bodyMarkdown: response.post.bodyMarkdown,
-            visibility: response.post.visibility,
-            createdAt: response.post.createdAt.toISOString(),
-            author: response.post.author,
-            threadRings: response.post.threadRings.map(tr => ({
-              threadRing: tr.threadRing,
-              addedAt: tr.addedAt ? tr.addedAt.toISOString() : null
-            })),
-            _count: response.post._count
-          }
-        }))
-
-      console.log('Filtered responses:', responses.length)
-    } catch (err) {
-      console.error('Error fetching responses:', err)
+      console.error('Error fetching prompt/responses via API:', err);
+      // Continue with empty data - the page will show appropriate error messages
     }
 
     return {
       props: {
         siteConfig,
         threadRing,
-        prompt: {
-          id: prompt.id,
-          title: prompt.title,
-          description: prompt.description,
-          startsAt: prompt.startsAt.toISOString(),
-          endsAt: prompt.endsAt?.toISOString() || null,
-          isActive: prompt.isActive,
-          isPinned: prompt.isPinned,
-          responseCount: prompt.responseCount,
-          createdById: prompt.createdById,
-          createdBy: promptCreator || {
-            id: prompt.createdById,
-            handles: [{ handle: 'Unknown User' }],
-            profile: { displayName: null, avatarUrl: null }
-          }
-        },
+        prompt,
         initialResponses: responses,
         canAccess: true
       }

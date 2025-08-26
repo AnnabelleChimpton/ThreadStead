@@ -89,6 +89,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     promptId?: string; // Optional prompt ID to associate with post
   };
 
+  console.log('📝 POST /api/posts/create received:', {
+    hasTitle: !!title,
+    hasBody: !!(bodyText || bodyHtml || bodyMarkdown),
+    visibility,
+    threadRingIds,
+    promptId,
+    ringHubEnabled: featureFlags.ringhub()
+  });
+
   if (!bodyText && !bodyHtml && !bodyMarkdown) {
     return res.status(400).json({ error: "bodyText, bodyHtml, or bodyMarkdown required" });
   }
@@ -159,13 +168,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           status: 'ACTIVE'
         });
         console.log('📋 Retrieved memberships:', userMemberships.memberships?.length || 0, 'rings');
+        console.log('📋 Membership details:', userMemberships.memberships?.map(m => ({ slug: m.ringSlug, status: m.status })));
         
-        // Filter to only rings the user is actually a member of
-        const validSlugs = ringSlugs.filter(slug => 
+        // Dev mode workaround: If responding to a prompt and no memberships found, 
+        // assume the user can post (since all users share the server DID in dev)
+        let validSlugs: string[];
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        console.log('🔍 Base URL for localhost check:', baseUrl);
+        const isLocalhost = baseUrl?.includes('localhost') || 
+                           baseUrl?.includes('127.0.0.1') ||
+                           !baseUrl ||
+                           baseUrl?.includes('localhost:3000') ||
+                           baseUrl?.includes('localhost:3001');
+        
+        // Normal validation: Filter to only rings the user is actually a member of
+        validSlugs = ringSlugs.filter(slug => 
           userMemberships.memberships.some(membership => 
             membership.ringSlug === slug && membership.status === 'ACTIVE'
           )
         );
+        
+        // Dev mode workaround: If responding to a prompt but not a member of the ring,
+        // allow submission anyway (since all users share the server DID in dev)
+        console.log('🔍 Dev mode check:', { isLocalhost, hasPromptId: !!promptId, validSlugsEmpty: validSlugs.length === 0, hasRingSlugs: ringSlugs.length > 0 });
+        if (isLocalhost && promptId && validSlugs.length === 0 && ringSlugs.length > 0) {
+          console.log('⚠️ Dev mode: Not a member of requested rings but allowing prompt response submission');
+          console.log('   Requested rings:', ringSlugs);
+          console.log('   Server DID memberships:', userMemberships.memberships?.slice(0, 5).map(m => m.ringSlug));
+          validSlugs = ringSlugs; // Allow all requested rings in dev mode for prompt responses
+        }
         console.log('✅ Valid rings for submission:', validSlugs);
         
         // Submit post to each Ring Hub ring using the correct Ring Hub API format
@@ -178,24 +209,120 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const textPreview = generateTextPreview(post.bodyText, post.bodyHtml, post.bodyMarkdown);
             const excerpt = generateExcerpt(post.bodyText, post.bodyHtml, post.bodyMarkdown);
             
+            // Check if this is a prompt response
+            let isPromptResponse = false;
+            let promptDetails = null;
+            
+            if (promptId) {
+              console.log(`🎯 Checking if post is response to prompt ${promptId} in ring ${slug}`);
+              try {
+                const { createPromptService } = await import('@/lib/prompt-service');
+                const promptService = createPromptService(slug);
+                promptDetails = await promptService.getPromptDetails(promptId);
+                isPromptResponse = !!promptDetails;
+                console.log(`${isPromptResponse ? '✅' : '❌'} Prompt ${promptId} ${isPromptResponse ? 'found' : 'not found'} in ring ${slug}`);
+                
+                // Dev mode workaround: If prompt not found but we have a promptId, treat as prompt response anyway
+                if (!isPromptResponse && isLocalhost) {
+                  console.log(`⚠️ Dev mode: Prompt not found in Ring Hub, but treating as prompt response anyway`);
+                  isPromptResponse = true;
+                  // Create minimal prompt details for metadata
+                  promptDetails = {
+                    prompt: {
+                      promptId: promptId!,
+                      title: 'Dev Mode Prompt' // Will be overridden if we have the title from URL
+                    }
+                  } as any;
+                }
+              } catch (promptError) {
+                console.log(`⚠️ Error checking prompt ${promptId} in ring ${slug}:`, promptError);
+                
+                // Dev mode workaround: On error, still treat as prompt response
+                if (isLocalhost) {
+                  console.log(`⚠️ Dev mode: Error checking prompt, treating as response anyway`);
+                  isPromptResponse = true;
+                  promptDetails = {
+                    prompt: {
+                      promptId: promptId!,
+                      title: 'Dev Mode Prompt'
+                    }
+                  } as any;
+                }
+              }
+            }
+            
+            // Prepare metadata based on whether this is a prompt response
+            let metadata;
+            
+            if (isPromptResponse && promptDetails) {
+              // This is a prompt response - use prompt response metadata
+              console.log(`📝 Creating prompt response PostRef for prompt: ${promptDetails.prompt.title}`);
+              metadata = {
+                type: 'prompt_response',
+                response: {
+                  promptId: promptId,
+                  promptTitle: promptDetails.prompt.title,
+                  responseType: 'direct',
+                  respondedAt: new Date().toISOString(),
+                  // Add user identification for dev mode workaround
+                  threadsteadUserId: viewer.id
+                },
+                // Include base post metadata as well
+                title: post.title.length > 200 ? post.title.substring(0, 197) + '...' : post.title,
+                textPreview: textPreview,
+                excerpt: excerpt,
+                publishedAt: new Date().toISOString(),
+                platform: "blog",
+                threadRingSlug: slug,
+                threadRingName: membership?.ringName || slug,
+                // Add user identification for dev mode workaround
+                threadsteadUserId: viewer.id,
+                authorHandle: postWithAuthor?.author?.primaryHandle
+              };
+            } else {
+              // Regular post metadata
+              metadata = {
+                title: post.title.length > 200 ? post.title.substring(0, 197) + '...' : post.title,
+                textPreview: textPreview,
+                excerpt: excerpt,
+                publishedAt: new Date().toISOString(),
+                platform: "blog",
+                threadRingSlug: slug,
+                threadRingName: membership?.ringName || slug,
+                // Add user identification for dev mode workaround
+                threadsteadUserId: viewer.id,
+                authorHandle: postWithAuthor?.author?.primaryHandle
+              };
+            }
+            
+            // Create the post submission with the appropriate metadata
             const postSubmission = {
               uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/resident/${postWithAuthor?.author?.primaryHandle?.split('@')[0]}/post/${post.id}`,
-              digest: `sha256:${post.id}`, // Use proper digest format as per Ring Hub spec
-              metadata: {
-                title: post.title.length > 200 ? post.title.substring(0, 197) + '...' : post.title, // Max 200 chars
-                textPreview: textPreview, // Max 300 chars (handled by function)
-                excerpt: excerpt, // Max 500 chars (handled by function)
-                publishedAt: new Date().toISOString(), // ISO datetime
-                platform: "blog", // ThreadStead posts are blog-style
-                // Note: Not including tags for now as requested
-                threadRingSlug: slug, // Keep for backward compatibility
-                threadRingName: membership?.ringName || slug // Keep for backward compatibility
-              }
+              digest: `sha256:${post.id}`,
+              metadata: metadata
             };
             
-            console.log(`📤 Submitting post to Ring Hub ring: ${slug}`, postSubmission);
+            console.log(`📤 Submitting post to Ring Hub ring: ${slug} (isPromptResponse: ${isPromptResponse})`, postSubmission);
             const result = await authenticatedClient.submitPost(slug, postSubmission);
             console.log(`✅ Post ${post.id} successfully submitted to Ring Hub ring: ${slug}`, result);
+            
+            // If this was a prompt response, update the response count
+            if (isPromptResponse && promptDetails) {
+              try {
+                const { createPromptService } = await import('@/lib/prompt-service');
+                const promptService = createPromptService(slug);
+                await promptService.associatePostWithPrompt(
+                  viewer.id,
+                  postSubmission.uri,
+                  promptId!,
+                  promptDetails.prompt.title
+                );
+                console.log(`✅ Updated response count for prompt ${promptId} in ring ${slug}`);
+              } catch (countError) {
+                console.error(`⚠️ Failed to update response count for prompt ${promptId} in ring ${slug}:`, countError);
+              }
+            }
+            
           } catch (ringHubError) {
             console.error(`❌ Failed to submit post to Ring Hub ring ${slug}:`, ringHubError);
             // Continue with other rings
@@ -241,58 +368,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  // Associate post with prompt if provided
-  if (promptId) {
-    try {
-      // Verify the prompt exists and is active
-      const prompt = await db.threadRingPrompt.findFirst({
-        where: {
-          id: promptId,
-          isActive: true
-        },
-        include: {
-          threadRing: {
-            select: {
-              id: true
-            }
-          }
-        }
-      });
-
-      if (prompt) {
-        // Verify user is member of the ThreadRing that owns this prompt
-        const isMember = await db.threadRingMember.findFirst({
-          where: {
-            userId: viewer.id,
-            threadRingId: prompt.threadRing.id
-          }
-        });
-
-        if (isMember) {
-          // Create the prompt response association
-          await db.postThreadRingPrompt.create({
-            data: {
-              postId: post.id,
-              promptId: prompt.id
-            }
-          });
-
-          // Update response count on the prompt
-          await db.threadRingPrompt.update({
-            where: { id: prompt.id },
-            data: {
-              responseCount: {
-                increment: 1
-              }
-            }
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error associating post with prompt:', error);
-      // Continue without failing the post creation
-    }
-  }
+  // Note: Prompt response logic is now integrated into the main Ring Hub submission loop above
 
   res.status(201).json({ 
     post: {

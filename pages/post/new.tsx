@@ -118,10 +118,26 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
 
   // Update selected rings when prompt data is available and threadrings are loaded
   useEffect(() => {
-    if (respondingToPrompt && threadRings.length > 0) {
-      const ring = threadRings.find(r => r.slug === respondingToPrompt.threadRingSlug);
-      if (ring && !selectedRings.includes(ring.id)) {
-        setSelectedRings([ring.id]);
+    console.log('🔍 ThreadRing selection effect:', {
+      hasPrompt: !!respondingToPrompt,
+      promptSlug: respondingToPrompt?.threadRingSlug,
+      threadRingsCount: threadRings.length,
+      selectedRings
+    });
+    
+    if (respondingToPrompt) {
+      // In dev mode, if we have no memberships, just use the ThreadRing from the prompt
+      if (threadRings.length === 0 && respondingToPrompt.threadRingSlug) {
+        console.log('⚠️ No ThreadRing memberships found (dev mode issue), using prompt ThreadRing directly');
+        setSelectedRings([respondingToPrompt.threadRingSlug]);
+      } else if (threadRings.length > 0) {
+        const ring = threadRings.find(r => r.slug === respondingToPrompt.threadRingSlug);
+        console.log('🔍 Found matching ring:', ring?.slug);
+        
+        if (ring && !selectedRings.includes(ring.slug)) {
+          console.log('✅ Setting selected rings to:', [ring.slug]);
+          setSelectedRings([ring.slug]); // Use slug for Ring Hub compatibility
+        }
       }
     }
   }, [respondingToPrompt, threadRings, selectedRings]);
@@ -145,6 +161,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
       const response = await fetch("/api/threadrings/my-memberships");
       if (response.ok) {
         const { rings } = await response.json();
+        console.log('🔍 Loaded ThreadRings:', rings.map((tr: any) => ({ id: tr.id, name: tr.name, slug: tr.slug })));
         setThreadRings(rings);
       }
     } catch (error) {
@@ -480,13 +497,21 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
         payload.intent = intent;
       }
       
+      // Debug selected rings
+      console.log('🔍 Form submission - selectedRings:', selectedRings);
+      console.log('🔍 Form submission - respondingToPrompt:', respondingToPrompt);
+      
       if (selectedRings.length > 0) {
         payload.threadRingIds = selectedRings;
+        console.log('✅ Added threadRingIds to payload:', selectedRings);
+      } else {
+        console.log('❌ No selected rings, threadRingIds not added to payload');
       }
       
       // Add prompt ID if responding to a prompt
       if (respondingToPrompt) {
         payload.promptId = respondingToPrompt.id;
+        console.log('✅ Added promptId to payload:', respondingToPrompt.id);
       }
 
       const res = await fetch("/api/posts/create", {
@@ -779,19 +804,19 @@ code block
                         <label 
                           key={ring.id} 
                           className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-all ${
-                            selectedRings.includes(ring.id) 
+                            selectedRings.includes(ring.slug) 
                               ? 'bg-blue-100 border border-blue-300' 
                               : 'hover:bg-gray-50 border border-transparent'
                           }`}
                         >
                           <input
                             type="checkbox"
-                            checked={selectedRings.includes(ring.id)}
+                            checked={selectedRings.includes(ring.slug)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedRings([...selectedRings, ring.id]);
+                                setSelectedRings([...selectedRings, ring.slug]);
                               } else {
-                                setSelectedRings(selectedRings.filter(id => id !== ring.id));
+                                setSelectedRings(selectedRings.filter(id => id !== ring.slug));
                               }
                             }}
                             disabled={busy || uploadingImage || !!respondingToPrompt}

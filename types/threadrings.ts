@@ -227,6 +227,59 @@ export interface ThreadRingPrompt {
   isActive: boolean;
 }
 
+// PostRef-based prompt types for Ring Hub integration
+export interface PromptPostRefMetadata {
+  type: 'threadring_prompt';
+  prompt: {
+    promptId: string;          // Unique identifier for the prompt
+    title: string;             // Short title for the prompt
+    description: string;       // Full prompt description/challenge
+    createdBy: string;         // DID of prompt creator
+    createdById?: string;      // ThreadStead user ID (for backward compatibility)
+    startsAt: string;          // ISO timestamp when prompt becomes active
+    endsAt?: string;           // Optional deadline for responses
+    isActive: boolean;         // Whether this is the current active prompt
+    isPinned: boolean;         // Keep visible even after new prompts
+    responseCount: number;     // Denormalized count of responses
+    tags?: string[];           // Optional categorization tags
+    parentPromptId?: string;   // For prompt variations/continuations
+    version?: number;          // For prompt versioning
+  };
+}
+
+export interface PromptResponsePostRefMetadata {
+  type: 'prompt_response';
+  response: {
+    promptId: string;          // Links back to the prompt
+    promptTitle: string;       // For display purposes
+    responseType?: 'direct' | 'inspired_by' | 'continuation'; // Relationship type
+    respondedAt: string;       // ISO timestamp of response
+    tags?: string[];           // Response-specific tags
+  };
+}
+
+// Union type for PostRef metadata
+export type ThreadRingPostRefMetadata = 
+  | PromptPostRefMetadata 
+  | PromptResponsePostRefMetadata
+  | { type: 'fork_notification'; [key: string]: any }
+  | { type: 'regular_post'; [key: string]: any };
+
+// Enhanced PostRef interface for ThreadRing usage
+export interface ThreadRingPostRef {
+  id?: string;
+  uri: string;
+  digest: string;
+  submittedBy: string;
+  submittedAt: string;
+  isPinned: boolean;
+  status?: 'ACCEPTED' | 'REJECTED' | 'REMOVED' | 'PENDING';
+  moderatedAt?: string;
+  moderatedBy?: string;
+  moderationNote?: string;
+  metadata?: ThreadRingPostRefMetadata;
+}
+
 export interface TrendingRingsResponse {
   rings: Array<ThreadRing & {
     recentActivity: number;

@@ -7,227 +7,157 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Visibility {
-  public
-  followers
-  friends
-  private
-}
-
-enum TemplateMode {
-  default  // uses ProfileLayout with site CSS (default behavior)
-  enhanced // custom template with site CSS applied  
-  advanced // complete CSS control, no wrapper classes
-}
-
-enum UserRole {
-  member
-  admin
-}
-
-enum PostIntent {
-  sharing      // "I am sharing..."
-  asking       // "I am asking..."
-  feeling      // "I am feeling..."
-  announcing   // "I am announcing..."
-  showing      // "I am showing..."
-  teaching     // "I am teaching..."
-  looking      // "I am looking for..."
-  celebrating  // "I am celebrating..."
-  recommending // "I am recommending..."
-}
-
 model User {
-  id            String   @id @default(cuid()) // internal id
-  did           String   @unique // did:key:... (portable identity)
-  createdAt     DateTime @default(now())
-  role          UserRole @default(member)
-  // human handles (a user can have several; one primary)
-  handles       Handle[]
-  primaryHandle String?
-
-  // optional email for login (encrypted at rest)
-  encryptedEmail String? // AES-256-GCM encrypted email
-  emailVerifiedAt DateTime? // when email was verified
-
-  // storage pointers (future: let users point to their own stores)
-  publicBaseUrl  String?
-  sharedBaseUrl  String?
-  privateBaseUrl String?
-
-  profile   Profile?
-  posts     Post[]
-  guestbook GuestbookEntry[] @relation("EntriesToOwner") // entries left on *their* page
-  installs  PluginInstall[]
-
-  // --- auth & caps ---
-  sessions     Session[]
-  capabilities CapabilityGrant[]
-
-  // --- social graph ---
-  following Follow[] @relation("follows_follower") // I follow others
-  followers Follow[] @relation("follows_followee") // others follow me
-
-  comments Comment[] @relation("UserComments")
-  photoComments PhotoComment[] @relation("PhotoCommentAuthor")
-  betaKey  BetaKey?
-  media    Media[]
-
-  // notifications
-  notificationsReceived Notification[] @relation("NotificationRecipient")
-  notificationsActedOn  Notification[] @relation("NotificationActor")
-
-  // threadrings
-  curatedThreadRings     ThreadRing[]       @relation("ThreadRingCurator")
-  threadRingMemberships  ThreadRingMember[] @relation("ThreadRingMemberships")
-  postThreadRingAdditions PostThreadRing[]  @relation("PostThreadRingAdditions")
-  threadRingInvitesSent     ThreadRingInvite[] @relation("ThreadRingInvitationsSent")
+  id                        String             @id @default(cuid())
+  did                       String             @unique
+  createdAt                 DateTime           @default(now())
+  primaryHandle             String?
+  publicBaseUrl             String?
+  sharedBaseUrl             String?
+  privateBaseUrl            String?
+  role                      UserRole           @default(member)
+  emailVerifiedAt           DateTime?
+  encryptedEmail            String?
+  betaKey                   BetaKey?
+  capabilities              CapabilityGrant[]
+  comments                  Comment[]          @relation("UserComments")
+  followers                 Follow[]           @relation("follows_followee")
+  following                 Follow[]           @relation("follows_follower")
+  guestbook                 GuestbookEntry[]   @relation("EntriesToOwner")
+  handles                   Handle[]
+  media                     Media[]
+  notificationsActedOn      Notification[]     @relation("NotificationActor")
+  notificationsReceived     Notification[]     @relation("NotificationRecipient")
+  photoComments             PhotoComment[]     @relation("PhotoCommentAuthor")
+  installs                  PluginInstall[]
+  posts                     Post[]
+  postThreadRingAdditions   PostThreadRing[]   @relation("PostThreadRingAdditions")
+  profile                   Profile?
+  ringHubOwnerships         RingHubOwnership[] @relation("RingHubOwnerships")
+  sessions                  Session[]
+  curatedThreadRings        ThreadRing[]       @relation("ThreadRingCurator")
+  threadRingBlocksReceived  ThreadRingBlock[]  @relation("ThreadRingBlockedUsers")
+  threadRingBlocksCreated   ThreadRingBlock[]  @relation("ThreadRingBlockCreators")
+  threadRingForks           ThreadRingFork[]   @relation("ThreadRingForks")
   threadRingInvitesReceived ThreadRingInvite[] @relation("ThreadRingInvitationsReceived")
-  threadRingForks        ThreadRingFork[]   @relation("ThreadRingForks")
-  threadRingPrompts      ThreadRingPrompt[] // Prompts created by this user
-  threadRingBlocksReceived ThreadRingBlock[] @relation("ThreadRingBlockedUsers") // Blocks targeting this user
-  threadRingBlocksCreated  ThreadRingBlock[] @relation("ThreadRingBlockCreators") // Blocks created by this user
-  ringHubOwnerships        RingHubOwnership[] @relation("RingHubOwnerships") // Ring Hub rings owned by this user
+  threadRingInvitesSent     ThreadRingInvite[] @relation("ThreadRingInvitationsSent")
+  threadRingMemberships     ThreadRingMember[] @relation("ThreadRingMemberships")
 }
 
 model Handle {
   id         String    @id @default(cuid())
   userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  handle     String // e.g. "alice"
-  host       String // e.g. "retro.social" or "local"
+  handle     String
+  host       String
   verifiedAt DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([handle, host])
 }
 
 model Profile {
-  id                 String     @id @default(cuid())
-  userId             String     @unique
-  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String       @id @default(cuid())
+  userId             String       @unique
   displayName        String?
   bio                String?
   avatarUrl          String?
-  avatarThumbnailUrl String? // 64x64 thumbnail
-  avatarMediumUrl    String? // 200x200 medium
-  avatarFullUrl      String? // 800x800 full size
   bannerUrl          String?
-  customCSS          String? // store sanitized CSS or a pointer
-  customTemplate     String? // raw template HTML
-  customTemplateAst  String? // JSON-serialized template AST
-  templateEnabled    Boolean    @default(false) // whether custom template is active
-  templateMode       TemplateMode @default(default) // template rendering mode
-  hideNavigation     Boolean    @default(false) // hide navbar and footer on custom template
-  includeSiteCSS     Boolean    @default(true) // whether to include site-wide CSS on profile page
-  blogroll           Json? // [{label,url,blurb}]
-  featuredFriends    Json? // [{id,handle,displayName,avatarUrl}]
-  badgePreferences   Json? // User badge display preferences
-  visibility         Visibility @default(public)
-  updatedAt          DateTime   @updatedAt
+  customCSS          String?
+  blogroll           Json?
+  visibility         Visibility   @default(public)
+  updatedAt          DateTime     @updatedAt
+  featuredFriends    Json?
+  avatarFullUrl      String?
+  avatarMediumUrl    String?
+  avatarThumbnailUrl String?
+  customTemplate     String?
+  customTemplateAst  String?
+  hideNavigation     Boolean      @default(false)
+  templateEnabled    Boolean      @default(false)
+  templateMode       TemplateMode @default(default)
+  badgePreferences   Json?
+  includeSiteCSS     Boolean      @default(true)
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Post {
-  id           String      @id @default(cuid())
+  id           String           @id @default(cuid())
   authorId     String
-  author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  title        String      @default("Untitled Post")
-  intent       PostIntent? // Optional intent stamp
-  createdAt    DateTime    @default(now())
+  createdAt    DateTime         @default(now())
   updatedAt    DateTime?
   bodyHtml     String?
   bodyText     String?
-  bodyMarkdown String?
-  media        Json? // [{url,mime,width,height}]
+  media        Json?
   tags         String[]
-  visibility   Visibility  @default(public)
-  
-  // Ring Hub metadata alignment
-  textPreview  String?     // Max 300 chars - for social/feed previews
-  excerpt      String?     // Max 500 chars - for detailed descriptions
-  publishedAt  DateTime?   // Can differ from createdAt for scheduled posts
-  platform     String?     @default("blog") // Source platform
-  
-  comments     Comment[]   @relation("PostComments")
+  visibility   Visibility       @default(public)
+  bodyMarkdown String?
+  title        String           @default("Untitled Post")
+  intent       PostIntent?
+  excerpt      String?
+  platform     String?          @default("blog")
+  publishedAt  DateTime?
+  textPreview  String?
+  comments     Comment[]        @relation("PostComments")
+  author       User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
   threadRings  PostThreadRing[] @relation("PostThreadRings")
-  promptResponses PostThreadRingPrompt[] // Prompt responses
-  // future: signature, cid
-}
-
-// schema.prisma
-enum CommentStatus {
-  visible
-  hidden   // removed by moderator/author
 }
 
 model Comment {
-  id        String         @id @default(cuid())
+  id        String        @id @default(cuid())
   content   String
-  createdAt DateTime       @default(now())
-
-  // existing FKs
+  createdAt DateTime      @default(now())
   postId    String
   authorId  String
-
-  // relations (as you already have)
-  post      Post           @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
-  author    User           @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
-
-  // NEW: nested comments support
+  status    CommentStatus @default(visible)
   parentId  String?
-  parent    Comment?       @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Comment[]      @relation("CommentReplies")
-  
-  status    CommentStatus  @default(visible)
+  author    User          @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]     @relation("CommentReplies")
+  post      Post          @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model GuestbookEntry {
   id           String   @id @default(cuid())
-  profileOwner String // whose page the entry lives on
-  owner        User     @relation("EntriesToOwner", fields: [profileOwner], references: [id], onDelete: Cascade)
-  authorId     String? // DID owner or null for anonymous (we'll map DID → user later)
+  profileOwner String
+  authorId     String?
   message      String
   createdAt    DateTime @default(now())
-  status       String   @default("visible") // visible|hidden|removed
-  signature    String? // optional
+  status       String   @default("visible")
+  signature    String?
+  owner        User     @relation("EntriesToOwner", fields: [profileOwner], references: [id], onDelete: Cascade)
 }
 
 model PluginInstall {
   id        String   @id @default(cuid())
   ownerId   String
-  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  pluginId  String // "com.example.hello"
-  mode      String // "trusted" | "iframe"
-  settings  Json? // plugin-specific config
+  pluginId  String
+  mode      String
+  settings  Json?
   enabled   Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }
 
 model Session {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   issuedAt  DateTime @default(now())
   expiresAt DateTime
-  // store a random secret to bind cookie to server state
   secret    String   @unique
-}
-
-enum EmailTokenType {
-  login        // For magic link login
-  verification // For email verification
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model EmailLoginToken {
-  id        String   @id @default(cuid())
-  token     String   @unique // secure random token for email login
-  encryptedEmail String // encrypted email this token is for
-  type      EmailTokenType @default(login) // token type
-  userId    String?  // for verification tokens, the user setting the email
-  expiresAt DateTime // short expiration (15 minutes)
-  usedAt    DateTime? // when token was used (null = unused)
-  createdAt DateTime @default(now())
-  
+  id             String         @id @default(cuid())
+  token          String         @unique
+  encryptedEmail String
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime       @default(now())
+  type           EmailTokenType @default(login)
+  userId         String?
+
   @@index([token])
   @@index([encryptedEmail, expiresAt])
   @@index([userId, type])
@@ -236,263 +166,172 @@ model EmailLoginToken {
 model CapabilityGrant {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  audience  String // "origin/service" that this token is for (e.g. "retro.local")
-  actions   String[] // ["read:shared","write:post"]
-  resource  String // e.g. "did:.../posts/*"
+  audience  String
+  actions   String[]
+  resource  String
   expiresAt DateTime
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Follow {
   followerId String
   followeeId String
-  follower   User     @relation("follows_follower", fields: [followerId], references: [id], onDelete: Cascade)
-  followee   User     @relation("follows_followee", fields: [followeeId], references: [id], onDelete: Cascade)
-  status     String   @default("accepted") // requested | accepted | blocked
+  status     String   @default("accepted")
   createdAt  DateTime @default(now())
+  followee   User     @relation("follows_followee", fields: [followeeId], references: [id], onDelete: Cascade)
+  follower   User     @relation("follows_follower", fields: [followerId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followeeId])
 }
 
 model BetaKey {
   id        String    @id @default(cuid())
-  key       String    @unique // the actual beta key string
-  usedBy    String?   @unique // user ID who used this key
-  user      User?     @relation(fields: [usedBy], references: [id])
+  key       String    @unique
+  usedBy    String?   @unique
   createdAt DateTime  @default(now())
   usedAt    DateTime?
-}
-
-enum NotificationType {
-  comment       // someone commented on your post
-  reply         // someone replied to your comment
-  photo_comment // someone commented on your photo
-  photo_reply   // someone replied to your photo comment
-  follow        // someone followed you
-  friend        // someone became mutual friend
-  guestbook     // someone signed your guestbook
-  threadring_invite // invited to join a threadring
-  threadring_join   // someone joined your threadring
-  threadring_post   // new post in a threadring you're in
-  threadring_fork   // someone forked your threadring
-}
-
-enum NotificationStatus {
-  unread
-  read
-  dismissed
+  user      User?     @relation(fields: [usedBy], references: [id])
 }
 
 model Notification {
   id          String             @id @default(cuid())
-  recipientId String             // who receives this notification
-  recipient   User               @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  
-  actorId     String             // who performed the action
-  actor       User               @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
-  
+  recipientId String
+  actorId     String
   type        NotificationType
   status      NotificationStatus @default(unread)
-  
-  // contextual data (JSON for flexibility)
-  data        Json?              // {postId, commentId, etc.}
-  
+  data        Json?
   createdAt   DateTime           @default(now())
   readAt      DateTime?
-  
+  actor       User               @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  recipient   User               @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
   @@index([recipientId, status, createdAt])
   @@index([recipientId, actorId, type])
 }
 
 model SiteConfig {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String
-  
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([key])
 }
 
 model CustomPage {
-  id          String   @id @default(cuid())
-  slug        String   @unique // URL slug like "about", "rules", etc.
-  title       String
-  content     String   // HTML content
-  published   Boolean  @default(false)
-  showInNav   Boolean  @default(false) // Show in navigation menu
-  navOrder    Int      @default(0)     // Order in navigation (lower = earlier)
-  hideNavbar  Boolean  @default(false) // Hide navigation bar on this page
-  isHomepage  Boolean  @default(false) // Use this page as the site homepage
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  title      String
+  content    String
+  published  Boolean  @default(false)
+  showInNav  Boolean  @default(false)
+  navOrder   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  hideNavbar Boolean  @default(false)
+  isHomepage Boolean  @default(false)
+
   @@index([published, showInNav, navOrder])
   @@index([isHomepage])
 }
 
 model Media {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Personal story/caption
-  caption      String?  // The story behind the image
-  title        String?  // Optional title
-  
-  // Image URLs (multiple sizes)
-  thumbnailUrl String   // Small thumbnail
-  mediumUrl    String   // Medium size for gallery
-  fullUrl      String   // Full size for viewing
-  originalName String?  // Original filename
-  
-  // Metadata
-  fileSize     Int?     // File size in bytes
-  mimeType     String?  // image/jpeg, etc.
-  width        Int?     // Image width
-  height       Int?     // Image height
-  
-  // Display settings
-  featured     Boolean  @default(false) // Show in media tab (max 6)
-  featuredOrder Int?    // Order in featured media (1-6)
-  visibility   Visibility @default(public)
-  
-  // Comments
-  comments     PhotoComment[]
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
+  id            String         @id @default(cuid())
+  userId        String
+  caption       String?
+  title         String?
+  thumbnailUrl  String
+  mediumUrl     String
+  fullUrl       String
+  originalName  String?
+  fileSize      Int?
+  mimeType      String?
+  width         Int?
+  height        Int?
+  featured      Boolean        @default(false)
+  featuredOrder Int?
+  visibility    Visibility     @default(public)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments      PhotoComment[]
+
   @@index([userId, featured, featuredOrder])
   @@index([userId, createdAt])
   @@index([userId, visibility])
 }
 
 model PhotoComment {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   content   String
-  createdAt DateTime @default(now())
-  
-  // Relations
+  createdAt DateTime       @default(now())
   mediaId   String
-  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   authorId  String
-  author    User     @relation("PhotoCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  
-  // Nested comments support
   parentId  String?
-  parent    PhotoComment? @relation("PhotoCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  status    CommentStatus  @default(visible)
+  author    User           @relation("PhotoCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  media     Media          @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  parent    PhotoComment?  @relation("PhotoCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   PhotoComment[] @relation("PhotoCommentReplies")
-  
-  status    CommentStatus @default(visible)
-  
+
   @@index([mediaId, createdAt])
   @@index([authorId, createdAt])
   @@index([parentId])
 }
 
-enum ThreadRingJoinType {
-  open     // Anyone can join
-  invite   // Invitation only
-  closed   // No new members
-}
-
-enum ThreadRingVisibility {
-  public   // Visible in directory, searchable
-  unlisted // Direct link only
-  private  // Members only
-}
-
-enum ThreadRingRole {
-  member
-  moderator
-  curator
-}
-
 model ThreadRing {
-  id          String   @id @default(cuid())
-  uri         String   @unique // Canonical URI for federation
-  curatorId   String   // User who created/manages the ring
-  curator     User     @relation("ThreadRingCurator", fields: [curatorId], references: [id], onDelete: Cascade)
-  
-  name        String   // Display name of the ring
-  slug        String   @unique // URL-friendly identifier
-  description String?  // Optional description/rules
-  
-  // Ring settings
-  joinType    ThreadRingJoinType @default(open)
-  visibility  ThreadRingVisibility @default(public)
-  
-  // Hierarchical fields for The Spool architecture
-  parentId          String?    // Direct parent ThreadRing (null only for The Spool)
-  parent            ThreadRing? @relation("ThreadRingHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children          ThreadRing[] @relation("ThreadRingHierarchy")
-  
-  // Denormalized counters for performance
-  memberCount           Int    @default(1) // Start with 1 (the curator)
-  postCount             Int    @default(0)
-  directChildrenCount   Int    @default(0) // Immediate children only
-  totalDescendantsCount Int    @default(0) // ALL descendants (recursive)
-  
-  // Cached lineage data for efficient queries
-  lineageDepth    Int    @default(0)    // How deep in the tree (Spool = 0)
-  lineagePath     String @default("")   // Comma-separated ancestor IDs for quick queries
-  
-  // Special system flags
-  isSystemRing    Boolean @default(false) // True for The Spool
-  
-  // Ring content
-  currentPrompt    String?  // Current prompt/challenge for members
-  curatorNote      String?  // Pinned curator's note
-  
-  // Ring members
-  members     ThreadRingMember[]
-  
-  // Posts associated with this ring
-  posts       PostThreadRing[]
-  
-  // Invitations
-  invites     ThreadRingInvite[]
-  
-  // Fork relationships
-  parentForks ThreadRingFork[] @relation("ThreadRingParent")
-  childFork   ThreadRingFork?  @relation("ThreadRingChild")
-  
-  // Badge
-  badge       ThreadRingBadge?
-  
-  // Prompts/Challenges
-  prompts     ThreadRingPrompt[]
-  
-  // Block lists
-  blocks      ThreadRingBlock[] @relation("ThreadRingBlocks")
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id                    String               @id @default(cuid())
+  uri                   String               @unique
+  curatorId             String
+  name                  String
+  slug                  String               @unique
+  description           String?
+  joinType              ThreadRingJoinType   @default(open)
+  visibility            ThreadRingVisibility @default(public)
+  memberCount           Int                  @default(1)
+  postCount             Int                  @default(0)
+  currentPrompt         String?
+  curatorNote           String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  directChildrenCount   Int                  @default(0)
+  isSystemRing          Boolean              @default(false)
+  lineageDepth          Int                  @default(0)
+  lineagePath           String               @default("")
+  parentId              String?
+  totalDescendantsCount Int                  @default(0)
+  posts                 PostThreadRing[]
+  curator               User                 @relation("ThreadRingCurator", fields: [curatorId], references: [id], onDelete: Cascade)
+  parent                ThreadRing?          @relation("ThreadRingHierarchy", fields: [parentId], references: [id])
+  children              ThreadRing[]         @relation("ThreadRingHierarchy")
+  badge                 ThreadRingBadge?
+  blocks                ThreadRingBlock[]    @relation("ThreadRingBlocks")
+  childFork             ThreadRingFork?      @relation("ThreadRingChild")
+  parentForks           ThreadRingFork[]     @relation("ThreadRingParent")
+  invites               ThreadRingInvite[]
+  members               ThreadRingMember[]
+
   @@index([curatorId])
   @@index([slug])
   @@index([uri])
   @@index([visibility, joinType])
-  @@index([memberCount, postCount]) // For trending calculation
-  @@index([parentId]) // For hierarchical queries
-  @@index([lineageDepth]) // For depth-based queries
-  @@index([isSystemRing]) // For system ring queries
+  @@index([memberCount, postCount])
+  @@index([parentId])
+  @@index([lineageDepth])
+  @@index([isSystemRing])
 }
 
 model ThreadRingMember {
-  id           String     @id @default(cuid())
+  id           String         @id @default(cuid())
   threadRingId String
-  threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
   userId       String
-  user         User       @relation("ThreadRingMemberships", fields: [userId], references: [id], onDelete: Cascade)
-  
   role         ThreadRingRole @default(member)
   joinedAt     DateTime       @default(now())
-  
+  threadRing   ThreadRing     @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+  user         User           @relation("ThreadRingMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([threadRingId, userId])
   @@index([userId])
   @@index([threadRingId, role])
@@ -501,41 +340,186 @@ model ThreadRingMember {
 model PostThreadRing {
   id           String     @id @default(cuid())
   postId       String
-  post         Post       @relation("PostThreadRings", fields: [postId], references: [id], onDelete: Cascade)
   threadRingId String
-  threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
-  
   addedAt      DateTime   @default(now())
-  addedBy      String     // User who associated the post with the ring
-  addedByUser  User       @relation("PostThreadRingAdditions", fields: [addedBy], references: [id], onDelete: Cascade)
-  
-  // Moderation
-  isPinned     Boolean    @default(false) // Curator can pin/feature posts
+  addedBy      String
+  isPinned     Boolean    @default(false)
   pinnedAt     DateTime?
   pinnedBy     String?
-  
+  addedByUser  User       @relation("PostThreadRingAdditions", fields: [addedBy], references: [id], onDelete: Cascade)
+  post         Post       @relation("PostThreadRings", fields: [postId], references: [id], onDelete: Cascade)
+  threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+
   @@unique([postId, threadRingId])
   @@index([threadRingId, addedAt])
-  @@index([threadRingId, isPinned, pinnedAt]) // For pinned posts query
+  @@index([threadRingId, isPinned, pinnedAt])
   @@index([postId])
 }
 
 model ThreadRingInvite {
-  id           String     @id @default(cuid())
+  id           String                 @id @default(cuid())
   threadRingId String
-  threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
   inviterId    String
-  inviter      User       @relation("ThreadRingInvitationsSent", fields: [inviterId], references: [id], onDelete: Cascade)
   inviteeId    String
-  invitee      User       @relation("ThreadRingInvitationsReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
-  
   status       ThreadRingInviteStatus @default(pending)
   createdAt    DateTime               @default(now())
   respondedAt  DateTime?
-  
+  invitee      User                   @relation("ThreadRingInvitationsReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
+  inviter      User                   @relation("ThreadRingInvitationsSent", fields: [inviterId], references: [id], onDelete: Cascade)
+  threadRing   ThreadRing             @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+
   @@unique([threadRingId, inviteeId])
   @@index([inviteeId, status])
   @@index([threadRingId])
+}
+
+model ThreadRingFork {
+  id            String     @id @default(cuid())
+  parentId      String
+  childId       String     @unique
+  createdBy     String
+  forkReason    String?
+  createdAt     DateTime   @default(now())
+  child         ThreadRing @relation("ThreadRingChild", fields: [childId], references: [id], onDelete: Cascade)
+  createdByUser User       @relation("ThreadRingForks", fields: [createdBy], references: [id], onDelete: Cascade)
+  parent        ThreadRing @relation("ThreadRingParent", fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([parentId])
+  @@index([createdBy])
+}
+
+model ThreadRingBadge {
+  id              String     @id @default(cuid())
+  threadRingId    String     @unique
+  title           String
+  subtitle        String?
+  imageUrl        String?
+  templateId      String?
+  backgroundColor String     @default("#4A90E2")
+  textColor       String     @default("#FFFFFF")
+  isGenerated     Boolean    @default(true)
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  threadRing      ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
+
+  @@index([threadRingId])
+  @@index([isActive])
+}
+
+model ThreadRingBlock {
+  id              String              @id @default(cuid())
+  threadRingId    String
+  blockedUserId   String?
+  blockedInstance String?
+  blockedActorUri String?
+  blockType       ThreadRingBlockType
+  reason          String?
+  createdBy       String
+  createdAt       DateTime            @default(now())
+  blockedUser     User?               @relation("ThreadRingBlockedUsers", fields: [blockedUserId], references: [id], onDelete: Cascade)
+  createdByUser   User                @relation("ThreadRingBlockCreators", fields: [createdBy], references: [id], onDelete: Cascade)
+  threadRing      ThreadRing          @relation("ThreadRingBlocks", fields: [threadRingId], references: [id], onDelete: Cascade)
+
+  @@unique([threadRingId, blockedUserId])
+  @@unique([threadRingId, blockedInstance])
+  @@unique([threadRingId, blockedActorUri])
+  @@index([threadRingId, blockType])
+  @@index([blockedUserId])
+  @@index([blockedInstance])
+  @@index([createdBy])
+}
+
+model RingHubOwnership {
+  id          String   @id @default(cuid())
+  ringSlug    String   @unique
+  ringUri     String
+  ownerUserId String
+  serverDID   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  owner       User     @relation("RingHubOwnerships", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId])
+  @@index([serverDID])
+}
+
+enum Visibility {
+  public
+  followers
+  friends
+  private
+}
+
+enum TemplateMode {
+  default
+  enhanced
+  advanced
+}
+
+enum UserRole {
+  member
+  admin
+}
+
+enum PostIntent {
+  sharing
+  asking
+  feeling
+  announcing
+  showing
+  teaching
+  looking
+  celebrating
+  recommending
+}
+
+enum CommentStatus {
+  visible
+  hidden
+}
+
+enum EmailTokenType {
+  login
+  verification
+}
+
+enum NotificationType {
+  comment
+  reply
+  follow
+  friend
+  guestbook
+  photo_comment
+  photo_reply
+  threadring_invite
+  threadring_join
+  threadring_post
+  threadring_fork
+}
+
+enum NotificationStatus {
+  unread
+  read
+  dismissed
+}
+
+enum ThreadRingJoinType {
+  open
+  invite
+  closed
+}
+
+enum ThreadRingVisibility {
+  public
+  unlisted
+  private
+}
+
+enum ThreadRingRole {
+  member
+  moderator
+  curator
 }
 
 enum ThreadRingInviteStatus {
@@ -545,203 +529,9 @@ enum ThreadRingInviteStatus {
   revoked
 }
 
-// =====================================================
-// THREADRINGS FEATURE PLANNING NOTES
-// =====================================================
-// 
-// ThreadRings are communities reminiscent of old webrings but with a modern twist.
-// Each ThreadRing has:
-// - A curator (creator/owner) who manages the ring
-// - Members who can post to the ring
-// - Posts that members can associate with one or more rings
-// - A dedicated page showing ring posts, member list, and ring info
-// - Join settings: open join, invite only, or closed
-//
-// DATABASE SCHEMA ADDITIONS NEEDED:
-//
-// model ThreadRing {
-//   id          String   @id @default(cuid())
-//   uri         String   @unique // Canonical URI for federation (e.g. "threadstead.local/rings/webdev")
-//   curatorId   String   // User who created/manages the ring
-//   curator     User     @relation("ThreadRingCurator", fields: [curatorId], references: [id], onDelete: Cascade)
-//   
-//   name        String   // Display name of the ring
-//   slug        String   @unique // URL-friendly identifier
-//   description String?  // Optional description/rules
-//   
-//   // Ring settings
-//   joinType    ThreadRingJoinType @default(open) // open, invite, closed
-//   visibility  ThreadRingVisibility @default(public) // public, unlisted, private
-//   
-//   // Denormalized counters for performance
-//   memberCount Int      @default(0)
-//   postCount   Int      @default(0)
-//   
-//   // Ring content
-//   currentPrompt    String?  // Current prompt/challenge for members
-//   curatorNote      String?  // Pinned curator's note
-//   themeCss         String?  // Custom CSS theme (future)
-//   
-//   // Ring members
-//   members     ThreadRingMember[]
-//   
-//   // Posts associated with this ring
-//   posts       PostThreadRing[]
-//   
-//   // Invitations
-//   invites     ThreadRingInvite[]
-//   
-//   // Moderation
-//   blockedActors String[]  // URIs of blocked actors/instances
-//   auditLogs     ThreadRingAuditLog[]
-//   
-//   createdAt   DateTime @default(now())
-//   updatedAt   DateTime @updatedAt
-//   
-//   @@index([curatorId])
-//   @@index([slug])
-//   @@index([uri])
-//   @@index([visibility, joinType])
-//   @@index([memberCount, postCount]) // For trending calculation
-// }
-//
-// enum ThreadRingJoinType {
-//   open     // Anyone can join
-//   invite   // Invitation only
-//   closed   // No new members
-// }
-//
-// enum ThreadRingVisibility {
-//   public   // Visible in directory, searchable
-//   unlisted // Direct link only
-//   private  // Members only
-// }
-//
-// model ThreadRingMember {
-//   id           String     @id @default(cuid())
-//   threadRingId String
-//   threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
-//   userId       String
-//   user         User       @relation("ThreadRingMemberships", fields: [userId], references: [id], onDelete: Cascade)
-//   
-//   role         ThreadRingRole @default(member)
-//   joinedAt     DateTime       @default(now())
-//   
-//   @@unique([threadRingId, userId])
-//   @@index([userId])
-//   @@index([threadRingId, role])
-// }
-//
-// enum ThreadRingRole {
-//   member
-//   moderator
-//   curator
-// }
-//
-// model PostThreadRing {
-//   id           String     @id @default(cuid())
-//   postId       String
-//   post         Post       @relation("PostThreadRings", fields: [postId], references: [id], onDelete: Cascade)
-//   threadRingId String
-//   threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
-//   
-//   addedAt      DateTime   @default(now())
-//   addedBy      String     // User who associated the post with the ring
-//   addedByUser  User       @relation("PostThreadRingAdditions", fields: [addedBy], references: [id], onDelete: Cascade)
-//   
-//   // Moderation
-//   isPinned     Boolean    @default(false) // Curator can pin/feature posts
-//   pinnedAt     DateTime?
-//   pinnedBy     String?
-//   
-//   @@unique([postId, threadRingId])
-//   @@index([threadRingId, addedAt])
-//   @@index([threadRingId, isPinned, pinnedAt]) // For pinned posts query
-//   @@index([postId])
-// }
-//
-// model ThreadRingInvite {
-//   id           String     @id @default(cuid())
-//   threadRingId String
-//   threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
-//   inviterId    String
-//   inviter      User       @relation("ThreadRingInvitationsSent", fields: [inviterId], references: [id], onDelete: Cascade)
-//   inviteeId    String
-//   invitee      User       @relation("ThreadRingInvitationsReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
-//   
-//   status       ThreadRingInviteStatus @default(pending)
-//   createdAt    DateTime               @default(now())
-//   respondedAt  DateTime?
-//   
-//   @@unique([threadRingId, inviteeId])
-//   @@index([inviteeId, status])
-//   @@index([threadRingId])
-// }
-//
-// enum ThreadRingInviteStatus {
-//   pending
-//   accepted
-//   declined
-//   revoked
-// }
-//
-// UPDATES TO EXISTING MODELS:
-//
-// Add to User model:
-//   curatedThreadRings     ThreadRing[]       @relation("ThreadRingCurator")
-//   threadRingMemberships  ThreadRingMember[] @relation("ThreadRingMemberships")
-//   postThreadRingAdditions PostThreadRing[]  @relation("PostThreadRingAdditions")
-//   threadRingInvitesSent     ThreadRingInvite[] @relation("ThreadRingInvitationsSent")
-//   threadRingInvitesReceived ThreadRingInvite[] @relation("ThreadRingInvitationsReceived")
-//
-// Add to Post model:
-//   threadRings PostThreadRing[] @relation("PostThreadRings")
-//
-model ThreadRingFork {
-  id               String     @id @default(cuid())
-  parentId         String     // The ring that was forked (parent)
-  parent           ThreadRing @relation("ThreadRingParent", fields: [parentId], references: [id], onDelete: Cascade)
-  childId          String     @unique // The new ring created from the fork (child)
-  child            ThreadRing @relation("ThreadRingChild", fields: [childId], references: [id], onDelete: Cascade)
-  createdBy        String     // User who performed the fork
-  createdByUser    User       @relation("ThreadRingForks", fields: [createdBy], references: [id], onDelete: Cascade)
-  
-  forkReason       String?    // Optional reason/description for the fork
-  createdAt        DateTime   @default(now())
-  
-  @@index([parentId])
-  @@index([createdBy])
-}
-
-model ThreadRingBadge {
-  id           String     @id @default(cuid())
-  threadRingId String     @unique // One badge per ThreadRing
-  threadRing   ThreadRing @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
-  
-  // Badge content
-  title        String     // Text displayed on badge (ThreadRing name)
-  subtitle     String?    // Optional subtitle/tagline
-  
-  // Badge image options
-  imageUrl     String?    // Custom uploaded image URL
-  templateId   String?    // Reference to badge template
-  backgroundColor String  @default("#4A90E2") // Hex color for background
-  textColor       String  @default("#FFFFFF") // Hex color for text
-  
-  // Badge metadata
-  isGenerated  Boolean    @default(true)  // Auto-generated vs custom
-  isActive     Boolean    @default(true)  // Whether badge is currently displayed
-  
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  
-  @@index([threadRingId])
-  @@index([isActive])
-}
-
 enum BadgeTemplate {
   classic_blue
-  retro_green  
+  retro_green
   sunset_orange
   midnight_purple
   matrix_green
@@ -750,234 +540,8 @@ enum BadgeTemplate {
   cyber_teal
 }
 
-//
-// model ThreadRingAuditLog {
-//   id           String               @id @default(cuid())
-//   threadRingId String
-//   threadRing   ThreadRing           @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
-//   actorId      String               // User who performed the action
-//   actor        User                 @relation("ThreadRingAuditActor", fields: [actorId], references: [id], onDelete: Cascade)
-//   
-//   action       ThreadRingAuditAction
-//   targetType   String?              // "user", "post", "ring"
-//   targetId     String?              // ID of the target
-//   targetUri    String?              // URI for federation
-//   oldValue     Json?                // Previous state
-//   newValue     Json?                // New state
-//   reason       String?              // Reason for the action
-//   
-//   createdAt    DateTime             @default(now())
-//   
-//   @@index([threadRingId, createdAt])
-//   @@index([actorId, createdAt])
-// }
-//
-// enum ThreadRingAuditAction {
-//   member_add
-//   member_remove
-//   member_role_change
-//   post_remove
-//   post_pin
-//   post_unpin
-//   ring_update
-//   user_block
-//   user_unblock
-// }
-//
-// UPDATES TO EXISTING MODELS (ADDITIONAL):
-//
-// Add to ThreadRing model:
-//   originalForks    ThreadRingFork[] @relation("ThreadRingOriginal")  // Rings forked from this one
-//   forkedFrom       ThreadRingFork?  @relation("ThreadRingForked")    // If this ring is a fork
-//
-// Add to User model:
-//   threadRingForks     ThreadRingFork[]     @relation("ThreadRingForks")
-//   threadRingAudits    ThreadRingAuditLog[] @relation("ThreadRingAuditActor")
-//
-// Add to Post model:
-//   uri          String?  @unique // Canonical URI for federation
-//
-// FEDERATION-READY MODELS (Optional now, saves migration pain later):
-//
-// model Actor {
-//   id        String    @id @default(cuid())
-//   uri       String    @unique // Actor URI (local or remote)
-//   type      ActorType // Person, Group, etc.
-//   inbox     String?   // ActivityPub inbox URL
-//   outbox    String?   // ActivityPub outbox URL
-//   publicKey String?   // PEM-encoded public key
-//   
-//   // Local actor details (null for remote actors)
-//   userId    String?   @unique
-//   user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-//   
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-//   
-//   @@index([uri])
-//   @@index([type])
-// }
-//
-// enum ActorType {
-//   Person
-//   Group
-//   Service
-// }
-//
-// model OutboxEvent {
-//   id        String   @id @default(cuid())
-//   actorUri  String   // Actor who generated this event
-//   type      String   // ActivityPub activity type
-//   object    Json     // Activity object
-//   published DateTime @default(now())
-//   
-//   // Delivery tracking
-//   deliveries Delivery[]
-//   
-//   @@index([actorUri, published])
-// }
-//
-// model InboxMessage {
-//   id        String   @id @default(cuid())
-//   targetUri String   // Actor who should receive this
-//   type      String   // ActivityPub activity type
-//   object    Json     // Activity object
-//   signature String?  // HTTP signature for verification
-//   processed Boolean  @default(false)
-//   
-//   receivedAt DateTime @default(now())
-//   processedAt DateTime?
-//   
-//   @@index([targetUri, processed])
-//   @@index([receivedAt])
-// }
-//
-// model Delivery {
-//   id           String        @id @default(cuid())
-//   eventId      String
-//   event        OutboxEvent   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-//   targetInbox  String        // Remote inbox URL
-//   attempts     Int           @default(0)
-//   status       DeliveryStatus @default(pending)
-//   lastAttempt  DateTime?
-//   nextAttempt  DateTime?
-//   error        String?
-//   
-//   @@index([status, nextAttempt])
-//   @@index([eventId])
-// }
-//
-// enum DeliveryStatus {
-//   pending
-//   delivered
-//   failed
-//   permanent_failure
-// }
-//
-model ThreadRingPrompt {
-  id           String      @id @default(cuid())
-  threadRingId String
-  threadRing   ThreadRing  @relation(fields: [threadRingId], references: [id], onDelete: Cascade)
-  
-  // Prompt details
-  title        String      // Short title for the prompt
-  description  String      // Full prompt description/challenge
-  
-  // Timing
-  startsAt     DateTime    @default(now()) // When the prompt becomes active
-  endsAt       DateTime?   // Optional deadline for responses
-  
-  // Status
-  isActive     Boolean     @default(true) // Whether this is the current active prompt
-  isPinned     Boolean     @default(false) // Keep visible even after new prompts
-  
-  // Response tracking
-  responseCount Int        @default(0) // Denormalized count of responses
-  
-  // Creator tracking
-  createdById  String      // User who created the prompt (usually curator)
-  createdBy    User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  
-  // Responses (posts associated with this prompt)
-  responses    PostThreadRingPrompt[]
-  
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  
-  @@index([threadRingId, isActive])
-  @@index([threadRingId, startsAt])
-  @@index([threadRingId, isPinned])
-}
-
-model PostThreadRingPrompt {
-  id         String           @id @default(cuid())
-  postId     String
-  post       Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
-  promptId   String
-  prompt     ThreadRingPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  
-  createdAt  DateTime         @default(now())
-  
-  @@unique([postId, promptId])
-  @@index([promptId, createdAt]) // For fetching prompt responses
-  @@index([postId])
-}
-
-model ThreadRingBlock {
-  id           String     @id @default(cuid())
-  threadRingId String
-  threadRing   ThreadRing @relation("ThreadRingBlocks", fields: [threadRingId], references: [id], onDelete: Cascade)
-  
-  // Block target (user or instance)
-  blockedUserId    String?   // User ID if blocking a specific user
-  blockedUser      User?     @relation("ThreadRingBlockedUsers", fields: [blockedUserId], references: [id], onDelete: Cascade)
-  blockedInstance  String?   // Instance domain if blocking an entire instance (e.g. "spam.example.com")
-  blockedActorUri  String?   // Full actor URI for federated blocks (e.g. "https://remote.com/users/spammer")
-  
-  // Block metadata
-  blockType    ThreadRingBlockType
-  reason       String?               // Optional reason for the block
-  createdBy    String                // Curator/moderator who created the block
-  createdByUser User                 @relation("ThreadRingBlockCreators", fields: [createdBy], references: [id], onDelete: Cascade)
-  
-  createdAt    DateTime              @default(now())
-  
-  @@unique([threadRingId, blockedUserId])          // One block per user per ring
-  @@unique([threadRingId, blockedInstance])        // One block per instance per ring
-  @@unique([threadRingId, blockedActorUri])        // One block per actor URI per ring
-  @@index([threadRingId, blockType])
-  @@index([blockedUserId])
-  @@index([blockedInstance])
-  @@index([createdBy])
-}
-
 enum ThreadRingBlockType {
-  user      // Block specific user
-  instance  // Block entire instance/domain
-  actor     // Block federated actor by URI
+  user
+  instance
+  actor
 }
-
-// Ring Hub Integration Models
-model RingHubOwnership {
-  id           String   @id @default(cuid())
-  ringSlug     String   @unique // Ring Hub slug
-  ringUri      String   // Ring Hub URI  
-  ownerUserId  String   // ThreadStead user who owns this ring
-  owner        User     @relation("RingHubOwnerships", fields: [ownerUserId], references: [id], onDelete: Cascade)
-  serverDID    String   // DID used to create ring in Ring Hub
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  @@index([ownerUserId])
-  @@index([serverDID])
-}
-
-// NOTIFICATION UPDATES:
-// Add to NotificationType enum:
-//   threadring_invite    // invited to join a threadring
-//   threadring_join      // someone joined your threadring
-//   threadring_post      // new post in a threadring you're in
-//   threadring_fork      // someone forked your threadring (soft notification)
-//
-// =====================================================

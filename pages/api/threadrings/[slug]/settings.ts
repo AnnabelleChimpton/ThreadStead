@@ -45,7 +45,7 @@ export default withThreadRingSupport(async function handler(
     return res.status(400).json({ error: "Description must be 500 characters or less" });
   }
 
-  if (shortCode !== undefined) {
+  if (shortCode !== undefined && shortCode !== null && shortCode !== "") {
     if (typeof shortCode !== "string" || shortCode.length < 2 || shortCode.length > 10) {
       return res.status(400).json({ error: "Short code must be 2-10 characters" });
     }
@@ -102,7 +102,7 @@ export default withThreadRingSupport(async function handler(
         
         if (name !== undefined) updates.name = name.trim();
         if (description !== undefined) updates.description = description.trim() || undefined;
-        if (shortCode !== undefined) updates.shortCode = shortCode.trim();
+        if (shortCode !== undefined) updates.shortCode = shortCode.trim() || undefined;
         if (joinType !== undefined) updates.joinPolicy = joinPolicyMap[joinType as keyof typeof joinPolicyMap];
         if (visibility !== undefined) updates.visibility = visibility.toUpperCase() as 'PUBLIC' | 'UNLISTED' | 'PRIVATE';
         if (postPolicy !== undefined) updates.postPolicy = postPolicyMap[postPolicy as keyof typeof postPolicyMap];

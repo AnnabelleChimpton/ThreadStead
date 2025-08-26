@@ -1,10 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getSessionUser } from '@/lib/auth-server'
-import { db } from '@/lib/db'
+import { createPromptService } from '@/lib/prompt-service'
+import { withThreadRingSupport } from '@/lib/ringhub-middleware'
 
-export default async function handler(
+export default withThreadRingSupport(async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
+  system: 'ringhub' | 'local'
 ) {
   const { slug, promptId } = req.query
 
@@ -14,210 +16,73 @@ export default async function handler(
 
   const viewer = await getSessionUser(req)
 
-  if (req.method === 'GET') {
-    // Get a specific prompt with its responses
-    try {
-      const threadRing = await db.threadRing.findUnique({
-        where: { slug },
-        select: { 
-          id: true,
-          visibility: true
-        }
-      })
+  // Ring Hub system - use PostRef-based prompts
+  if (system === 'ringhub') {
+    const promptService = createPromptService(slug)
 
-      if (!threadRing) {
-        return res.status(404).json({ error: 'ThreadRing not found' })
-      }
-
-      // Check visibility
-      if (threadRing.visibility === 'private') {
-        if (!viewer) {
-          return res.status(401).json({ error: 'Authentication required' })
+    if (req.method === 'GET') {
+      try {
+        const promptDetails = await promptService.getPromptDetails(promptId)
+        
+        if (!promptDetails) {
+          return res.status(404).json({ error: 'Prompt not found' })
         }
 
-        const isMember = await db.threadRingMember.findFirst({
-          where: {
-            threadRingId: threadRing.id,
-            userId: viewer.id
-          }
-        })
-
-        if (!isMember) {
-          return res.status(403).json({ error: 'Access denied - private ThreadRing' })
-        }
-      }
-
-      const prompt = await db.threadRingPrompt.findFirst({
-        where: {
-          id: promptId,
-          threadRingId: threadRing.id
-        },
-        include: {
+        // Transform to match old API format for frontend compatibility
+        const response = {
+          id: promptDetails.prompt.promptId,
+          title: promptDetails.prompt.title,
+          description: promptDetails.prompt.description,
+          startsAt: promptDetails.prompt.startsAt,
+          endsAt: promptDetails.prompt.endsAt,
+          isActive: promptDetails.prompt.isActive,
+          isPinned: promptDetails.prompt.isPinned,
+          responseCount: promptDetails.responseCount,
+          createdById: promptDetails.prompt.createdById,
           createdBy: {
-            select: {
-              id: true,
-              handles: {
-                take: 1,
-                select: { handle: true }
-              },
-              profile: {
-                select: { displayName: true }
+            id: promptDetails.prompt.createdBy,
+            // Note: DID-based user info would need resolution
+            handles: [],
+            profile: { displayName: null }
+          },
+          responses: promptDetails.responses.map(response => ({
+            id: response.id,
+            postId: response.uri.split('/').pop(), // Extract post ID from URI
+            createdAt: response.submittedAt,
+            post: {
+              // This would need to be resolved from the post URI
+              title: 'Response Post',
+              author: {
+                id: response.submittedBy,
+                handles: [],
+                profile: { displayName: null, avatarUrl: null }
               }
             }
-          },
-          responses: {
-            include: {
-              post: {
-                include: {
-                  author: {
-                    select: {
-                      id: true,
-                      handles: {
-                        take: 1,
-                        select: { handle: true }
-                      },
-                      profile: {
-                        select: { 
-                          displayName: true,
-                          avatarUrl: true
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 20 // Initial batch of responses
-          }
+          }))
         }
-      })
 
-      if (!prompt) {
-        return res.status(404).json({ error: 'Prompt not found' })
+        return res.status(200).json(response)
+      } catch (error) {
+        console.error('Error fetching prompt:', error)
+        return res.status(500).json({ error: 'Failed to fetch prompt' })
       }
-
-      return res.status(200).json(prompt)
-    } catch (error) {
-      console.error('Error fetching prompt:', error)
-      return res.status(500).json({ error: 'Failed to fetch prompt' })
     }
+
+    if (req.method === 'PUT') {
+      return res.status(501).json({ 
+        error: 'Prompt updates not yet supported in Ring Hub system' 
+      })
+    }
+
+    if (req.method === 'DELETE') {
+      return res.status(501).json({ 
+        error: 'Prompt deletion not yet supported in Ring Hub system' 
+      })
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  if (req.method === 'PUT') {
-    // Update a prompt (curator/moderator only)
-    if (!viewer) {
-      return res.status(401).json({ error: 'Authentication required' })
-    }
-
-    try {
-      const threadRing = await db.threadRing.findUnique({
-        where: { slug },
-        select: { 
-          id: true,
-          curatorId: true
-        }
-      })
-
-      if (!threadRing) {
-        return res.status(404).json({ error: 'ThreadRing not found' })
-      }
-
-      // Check if user is curator or moderator
-      const member = await db.threadRingMember.findFirst({
-        where: {
-          threadRingId: threadRing.id,
-          userId: viewer.id,
-          role: { in: ['curator', 'moderator'] }
-        }
-      })
-
-      if (!member) {
-        return res.status(403).json({ error: 'Only curators and moderators can update prompts' })
-      }
-
-      const { title, description, endsAt, isActive, isPinned } = req.body
-
-      // If setting as active, deactivate other prompts
-      if (isActive) {
-        await db.threadRingPrompt.updateMany({
-          where: {
-            threadRingId: threadRing.id,
-            isActive: true,
-            id: { not: promptId }
-          },
-          data: { isActive: false }
-        })
-      }
-
-      // Update the prompt
-      const prompt = await db.threadRingPrompt.update({
-        where: { id: promptId },
-        data: {
-          ...(title !== undefined && { title }),
-          ...(description !== undefined && { description }),
-          ...(endsAt !== undefined && { endsAt: endsAt ? new Date(endsAt) : null }),
-          ...(isActive !== undefined && { isActive }),
-          ...(isPinned !== undefined && { isPinned })
-        },
-        include: {
-          createdBy: {
-            select: {
-              id: true,
-              handles: {
-                take: 1,
-                select: { handle: true }
-              },
-              profile: {
-                select: { displayName: true }
-              }
-            }
-          }
-        }
-      })
-
-      return res.status(200).json(prompt)
-    } catch (error) {
-      console.error('Error updating prompt:', error)
-      return res.status(500).json({ error: 'Failed to update prompt' })
-    }
-  }
-
-  if (req.method === 'DELETE') {
-    // Delete a prompt (curator only)
-    if (!viewer) {
-      return res.status(401).json({ error: 'Authentication required' })
-    }
-
-    try {
-      const threadRing = await db.threadRing.findUnique({
-        where: { slug },
-        select: { 
-          id: true,
-          curatorId: true
-        }
-      })
-
-      if (!threadRing) {
-        return res.status(404).json({ error: 'ThreadRing not found' })
-      }
-
-      // Check if user is curator
-      if (threadRing.curatorId !== viewer.id) {
-        return res.status(403).json({ error: 'Only curators can delete prompts' })
-      }
-
-      // Delete the prompt (cascades to responses)
-      await db.threadRingPrompt.delete({
-        where: { id: promptId }
-      })
-
-      return res.status(200).json({ message: 'Prompt deleted successfully' })
-    } catch (error) {
-      console.error('Error deleting prompt:', error)
-      return res.status(500).json({ error: 'Failed to delete prompt' })
-    }
-  }
-
-  return res.status(405).json({ error: 'Method not allowed' })
-}
+  // Local system fallback (deprecated)
+  return res.status(404).json({ error: 'Local prompt system no longer supported' })
+})

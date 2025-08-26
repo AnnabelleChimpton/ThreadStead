@@ -35,6 +35,7 @@ export default function ThreadRingActivePrompt({
   const [activePrompt, setActivePrompt] = useState<ThreadRingPrompt | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const fetchActivePrompt = useCallback(async () => {
     try {
@@ -49,11 +50,18 @@ export default function ThreadRingActivePrompt({
       }
       
       const prompts = await response.json()
-      // Find the active prompt or the most recent pinned prompt
-      const active = prompts.find((p: ThreadRingPrompt) => p.isActive) || 
-                     prompts.find((p: ThreadRingPrompt) => p.isPinned) ||
-                     null
-      setActivePrompt(active)
+      
+      // Handle both old format and new PostRef format
+      if (Array.isArray(prompts)) {
+        // Find the active prompt or the most recent pinned prompt
+        const active = prompts.find((p: ThreadRingPrompt) => p.isActive) || 
+                       prompts.find((p: ThreadRingPrompt) => p.isPinned) ||
+                       null
+        setActivePrompt(active)
+      } else {
+        // Handle single prompt response
+        setActivePrompt(prompts)
+      }
     } catch (err) {
       console.error('Error fetching active prompt:', err)
       setError(err instanceof Error ? err.message : 'Failed to load prompt')
@@ -73,41 +81,61 @@ export default function ThreadRingActivePrompt({
   const isExpired = activePrompt.endsAt && new Date(activePrompt.endsAt) < new Date()
 
   return (
-    <div className={`tr-active-prompt tr-widget mb-6 p-4 rounded-lg border-2 ${
+    <div className={`tr-active-prompt tr-widget mb-6 rounded-lg border-2 ${
       activePrompt.isActive && !isExpired 
         ? 'tr-prompt-active bg-gradient-to-r from-blue-50 to-purple-50 border-blue-400' 
         : 'tr-prompt-inactive bg-gray-50 border-gray-300'
     }`}>
-      <div className="tr-prompt-content flex items-start justify-between">
-        <div className="tr-prompt-main flex-1">
-          <div className="tr-prompt-header flex items-center gap-2 mb-2">
-            <span className="tr-prompt-icon text-2xl">💭</span>
+      {/* Collapsible Header */}
+      <div 
+        className="tr-prompt-header flex items-center justify-between p-4 cursor-pointer hover:bg-black hover:bg-opacity-5 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-3">
+          <span className="tr-prompt-icon text-2xl">💭</span>
+          <div>
             <h3 className="tr-prompt-type text-lg font-bold text-gray-900">
               {activePrompt.isActive ? 'Current Challenge' : 'Featured Prompt'}
             </h3>
-            {activePrompt.isActive && !isExpired && (
-              <span className="tr-prompt-status tr-prompt-active-badge px-2 py-1 bg-blue-600 text-white text-xs rounded-full animate-pulse">
-                Active
-              </span>
-            )}
-            {isExpired && (
-              <span className="tr-prompt-status tr-prompt-ended-badge px-2 py-1 bg-gray-500 text-white text-xs rounded-full">
-                Ended
-              </span>
-            )}
+            <h4 className="tr-prompt-title text-base font-medium text-gray-700">
+              {activePrompt.title}
+            </h4>
           </div>
-          
-          <h4 className="tr-prompt-title text-xl font-semibold mb-2 text-gray-800">
-            {activePrompt.title}
-          </h4>
-          
-          <p className="tr-prompt-description text-gray-700 mb-3 whitespace-pre-wrap">
+          {activePrompt.isActive && !isExpired && (
+            <span className="tr-prompt-status tr-prompt-active-badge px-2 py-1 bg-blue-600 text-white text-xs rounded-full animate-pulse">
+              Active
+            </span>
+          )}
+          {isExpired && (
+            <span className="tr-prompt-status tr-prompt-ended-badge px-2 py-1 bg-gray-500 text-white text-xs rounded-full">
+              Ended
+            </span>
+          )}
+        </div>
+        
+        {/* Expand/Collapse Icon */}
+        <div className="flex items-center gap-2">
+          <span className="text-purple-600 text-sm font-medium">
+            📝 {activePrompt.responseCount} {activePrompt.responseCount === 1 ? 'response' : 'responses'}
+          </span>
+          <span className={`text-gray-400 text-lg transition-transform duration-200 ${
+            isExpanded ? 'rotate-180' : ''
+          }`}>
+            ▼
+          </span>
+        </div>
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="tr-prompt-content px-4 pb-4">
+          <p className="tr-prompt-description text-gray-700 mb-4 whitespace-pre-wrap">
             {activePrompt.description}
           </p>
           
-          <div className="flex flex-wrap items-center gap-4 text-sm">
+          <div className="flex flex-wrap items-center gap-4 text-sm mb-4">
             <span className="text-gray-500">
-              Posted by {activePrompt.createdBy?.profile?.displayName || activePrompt.createdBy?.handles[0]?.handle || 'Unknown User'}
+              ThreadRing Challenge • Started {formatDistanceToNow(new Date(activePrompt.startsAt))} ago
             </span>
             
             {activePrompt.endsAt && !isExpired && (
@@ -119,33 +147,36 @@ export default function ThreadRingActivePrompt({
             <Link 
               href={`/threadrings/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
               className="text-purple-600 font-medium hover:text-purple-800 hover:underline"
+              style={{ color: '#9333EA' }}
             >
               📝 {activePrompt.responseCount} {activePrompt.responseCount === 1 ? 'response' : 'responses'}
             </Link>
           </div>
-        </div>
-      </div>
-      
-      {(isMember || activePrompt.responseCount > 0) && (
-        <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-3">
-          {isMember && !isExpired && (
-            <Link 
-              href={`/post/new?promptId=${activePrompt.id}&threadRing=${threadRingSlug}&promptTitle=${encodeURIComponent(activePrompt.title)}`}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <span className="mr-2">✍️</span>
-              Respond to Challenge
-            </Link>
-          )}
           
-          {activePrompt.responseCount > 0 && (
-            <Link 
-              href={`/threadrings/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              <span className="mr-2">👥</span>
-              View All {activePrompt.responseCount} Responses
-            </Link>
+          {(isMember || activePrompt.responseCount > 0) && (
+            <div className="flex flex-wrap gap-3">
+              {isMember && !isExpired && (
+                <Link 
+                  href={`/post/new?promptId=${activePrompt.id}&threadRing=${threadRingSlug}&promptTitle=${encodeURIComponent(activePrompt.title)}`}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors no-underline hover:no-underline"
+                  style={{ color: 'white' }}
+                >
+                  <span className="mr-2">✍️</span>
+                  Respond to Challenge
+                </Link>
+              )}
+              
+              {activePrompt.responseCount > 0 && (
+                <Link 
+                  href={`/threadrings/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
+                  className="inline-flex items-center px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors no-underline hover:no-underline"
+                  style={{ color: 'white' }}
+                >
+                  <span className="mr-2">👥</span>
+                  View All {activePrompt.responseCount} Responses
+                </Link>
+              )}
+            </div>
           )}
         </div>
       )}

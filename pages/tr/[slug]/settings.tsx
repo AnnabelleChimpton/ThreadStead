@@ -182,6 +182,7 @@ export default function ThreadRingSettingsPage({
                   </div>
                 </div>
 
+                {/* Short Code field hidden for now - not commonly used
                 <div>
                   <label htmlFor="shortCode" className="block text-sm font-medium mb-2">
                     Short Code (Optional)
@@ -200,6 +201,7 @@ export default function ThreadRingSettingsPage({
                     2-10 alphanumeric characters and hyphens ({formData.shortCode.length}/10)
                   </div>
                 </div>
+                */}
 
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium mb-2">
