@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import crypto from "crypto";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
@@ -103,7 +104,16 @@ export default withThreadRingSupport(async function handler(
         } else {
           // Generate badge for the fork using user's badge preferences
           try {
-            const badgeOptions: any = {};
+            interface BadgeOptions {
+              templateId?: string;
+              backgroundColor?: string;
+              textColor?: string;
+              title?: string;
+              subtitle?: string;
+              autoColor?: boolean;
+            }
+            
+            const badgeOptions: BadgeOptions = {};
             
             // If user provided badge preferences, use them
             if (badge) {
@@ -166,7 +176,6 @@ export default withThreadRingSupport(async function handler(
           };
           
           // Generate digest from the metadata
-          const crypto = require('crypto');
           const metadataString = JSON.stringify(forkMetadata);
           const digest = crypto.createHash('sha256').update(metadataString).digest('hex');
           

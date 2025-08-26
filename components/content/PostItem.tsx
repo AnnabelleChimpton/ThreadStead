@@ -488,7 +488,7 @@ const countLabel = hasServerCount
                     </div>
                     {post.ringHubData.metadata.forkedRing.description && (
                       <div className="text-sm text-gray-700 mb-3 italic">
-                        "{post.ringHubData.metadata.forkedRing.description}"
+                        &quot;{post.ringHubData.metadata.forkedRing.description}&quot;
                       </div>
                     )}
                     <a 
