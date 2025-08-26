@@ -107,6 +107,13 @@ export class RingHubClient {
     this.instanceDID = options.instanceDID
     this.publicKeyMultibase = options.publicKeyMultibase
 
+    // Skip private key processing for public clients
+    if (options.instanceDID === 'public-client') {
+      // Create a dummy private key that won't be used
+      this.privateKey = {} as crypto.KeyObject;
+      return;
+    }
+
     // Convert Base64URL private key to crypto.KeyObject
     try {
       const privateKeyBytes = this.base64UrlToBytes(options.privateKeyBase64Url)
@@ -169,13 +176,18 @@ export class RingHubClient {
     }
 
     // Create a minimal client that can only make public GET requests
-    // We'll need to modify the request method to handle this
-    return new RingHubClient({
+    // Use properly formatted 32-byte base64url dummy key
+    const client = new RingHubClient({
       baseUrl: process.env.RING_HUB_URL!,
       instanceDID: 'public-client',
-      privateKeyBase64Url: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', // Dummy key, won't be used
-      publicKeyMultibase: 'zAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' // Dummy key, won't be used
+      privateKeyBase64Url: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA_', // 32-byte base64url dummy key
+      publicKeyMultibase: 'z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' // Valid multibase dummy
     })
+    
+    // Mark this client as public to skip authentication
+    ;(client as any).isPublicClient = true
+    
+    return client
   }
 
   // Ring Operations
@@ -486,6 +498,101 @@ export class RingHubClient {
     return this.post(`/trp/fork`, requestData)
   }
 
+  // Feed Operations
+
+  /**
+   * Get authenticated user's feed from their rings
+   */
+  async getMyFeed(options?: {
+    limit?: number;
+    offset?: number;
+    since?: string;
+    until?: string;
+    includeNotifications?: boolean;
+    ringId?: string;
+    sort?: 'newest' | 'oldest';
+  }): Promise<{
+    posts: Array<{
+      id: string;
+      ringId: string;
+      ringSlug: string;
+      ringName: string;
+      actorDid: string;
+      actorName: string | null;
+      uri: string;
+      digest: string;
+      submittedAt: string;
+      submittedBy: string;
+      status: 'ACCEPTED';
+      metadata: any | null;
+      pinned: boolean;
+      isNotification: boolean;
+      notificationType: string | null;
+    }>;
+    pagination: {
+      total: number;
+      limit: number;
+      offset: number;
+      hasMore: boolean;
+    };
+    generatedAt: string;
+  }> {
+    const params = new URLSearchParams();
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.offset) params.append('offset', options.offset.toString());
+    if (options?.since) params.append('since', options.since);
+    if (options?.until) params.append('until', options.until);
+    if (options?.includeNotifications !== undefined) {
+      params.append('includeNotifications', options.includeNotifications.toString());
+    }
+    if (options?.ringId) params.append('ringId', options.ringId);
+    if (options?.sort) params.append('sort', options.sort);
+
+    const queryString = params.toString();
+    return this.get(`/trp/my/feed${queryString ? `?${queryString}` : ''}`);
+  }
+
+  /**
+   * Get trending posts feed (public endpoint)
+   */
+  async getTrendingFeed(options?: {
+    limit?: number;
+    timeWindow?: 'hour' | 'day' | 'week';
+    includeNotifications?: boolean;
+  }): Promise<{
+    posts: Array<{
+      id: string;
+      ringId: string;
+      ringSlug: string;
+      ringName: string;
+      actorDid: string;
+      actorName: string | null;
+      uri: string;
+      digest: string;
+      submittedAt: string;
+      submittedBy: string;
+      status: 'ACCEPTED';
+      metadata: any | null;
+      pinned: boolean;
+      isNotification: boolean;
+      notificationType: string | null;
+    }>;
+    timeWindow: string;
+    generatedAt: string;
+  }> {
+    const params = new URLSearchParams();
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.timeWindow) params.append('timeWindow', options.timeWindow);
+    // Only include includeNotifications if explicitly set to true
+    // Some RingHub instances may not handle false values correctly
+    if (options?.includeNotifications === true) {
+      params.append('includeNotifications', 'true');
+    }
+
+    const queryString = params.toString();
+    return this.get(`/trp/trending/feed${queryString ? `?${queryString}` : ''}`);
+  }
+
   // HTTP Helper Methods with Signature Authentication
 
   private async request(
@@ -514,7 +621,9 @@ export class RingHubClient {
     }
 
     // Generate HTTP signature for write operations and specific authenticated GET endpoints
-    const requiresAuth = method !== 'GET' || path.includes('/trp/my/')
+    const isPublicClient = (this as any).isPublicClient === true
+    const requiresAuth = !isPublicClient && (method !== 'GET' || path.includes('/trp/my/'))
+    
     if (requiresAuth) {
       try {
         const signature = await this.generateHttpSignature(method, path, headers)

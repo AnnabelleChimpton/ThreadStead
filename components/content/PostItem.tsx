@@ -58,6 +58,8 @@ export type Post = {
     status: string;
     pinned: boolean;
     metadata?: any;
+    isNotification?: boolean;
+    notificationType?: string;
   };
 };
 
@@ -467,7 +469,24 @@ const countLabel = hasServerCount
         {!editing ? (
           <>
             {/* Check for fork notification */}
-            {post.ringHubData?.metadata?.type === 'fork_notification' ? (
+            {(() => {
+              // Check both metadata.type and notificationType for fork notifications
+              const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
+                                        (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
+              
+              if (post.ringHubData?.metadata || post.ringHubData?.isNotification) {
+                console.log('PostItem checking fork notification:', {
+                  postId: post.id,
+                  hasRingHubData: !!post.ringHubData,
+                  hasMetadata: !!post.ringHubData?.metadata,
+                  metadataType: post.ringHubData?.metadata?.type,
+                  isNotification: post.ringHubData?.isNotification,
+                  notificationType: post.ringHubData?.notificationType,
+                  isForkNotification
+                });
+              }
+              return isForkNotification;
+            })() ? (
               <div className="border border-black bg-white p-4 shadow-[2px_2px_0_#000]">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-8 h-8 bg-yellow-200 border border-black rounded-full flex items-center justify-center">
@@ -479,20 +498,54 @@ const countLabel = hasServerCount
                         {post.author?.profile?.displayName || post.author?.primaryHandle || 'Someone'}
                       </span>
                       <span className="text-gray-600"> forked this ring as </span>
-                      <a 
-                        href={`/tr/${post.ringHubData.metadata.forkedRing.slug}`}
-                        className="font-semibold hover:underline text-black"
-                      >
-                        {post.ringHubData.metadata.forkedRing.name}
-                      </a>
+                      {(() => {
+                        // Handle different metadata structures and extract fork ring information
+                        const metadata = post.ringHubData?.metadata || {};
+                        const forkedRingData = metadata.forkedRing || {};
+                        
+                        // Try multiple sources for the ring slug and name
+                        let slug = forkedRingData.slug || post.ringHubData?.ringSlug;
+                        let name = forkedRingData.name || post.threadRings?.[0]?.threadRing?.name;
+                        
+                        // If we don't have a name but have a slug, try to derive it
+                        if (!name && slug) {
+                          // Convert slug to readable name (capitalize and replace hyphens with spaces)
+                          name = slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+                        }
+                        
+                        // Final fallback
+                        if (!name) name = 'Fork';
+                        if (!slug) slug = '#'; // Fallback for link
+                        
+                        console.log('Fork ring data extraction:', { 
+                          metadata, 
+                          forkedRingData, 
+                          extractedSlug: slug, 
+                          extractedName: name,
+                          threadRings: post.threadRings,
+                          ringSlug: post.ringHubData?.ringSlug
+                        });
+                        
+                        return (
+                          <a 
+                            href={`/tr/${slug}`}
+                            className="font-semibold hover:underline text-black"
+                          >
+                            {name}
+                          </a>
+                        );
+                      })()}
                     </div>
-                    {post.ringHubData.metadata.forkedRing.description && (
-                      <div className="text-sm text-gray-700 mb-3 italic">
-                        &quot;{post.ringHubData.metadata.forkedRing.description}&quot;
-                      </div>
-                    )}
+                    {(() => {
+                      const forkedRingData = post.ringHubData?.metadata?.forkedRing || post.ringHubData?.metadata || {};
+                      return forkedRingData.description && (
+                        <div className="text-sm text-gray-700 mb-3 italic">
+                          &quot;{forkedRingData.description}&quot;
+                        </div>
+                      );
+                    })()}
                     <a 
-                      href={`/tr/${post.ringHubData.metadata.forkedRing.slug}`}
+                      href={`/tr/${post.ringHubData?.metadata?.forkedRing?.slug || post.ringHubData?.ringSlug}`}
                       className="inline-block text-xs bg-yellow-200 hover:bg-yellow-300 px-3 py-1 border border-black shadow-[1px_1px_0_#000] font-medium"
                     >
                       Visit Fork
@@ -579,7 +632,11 @@ const countLabel = hasServerCount
 
       {/* --- Comments --- */}
       {/* Disable comments for fork notifications */}
-      {post.ringHubData?.metadata?.type !== 'fork_notification' && (
+      {(() => {
+        const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
+                                  (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
+        return !isForkNotification;
+      })() && (
         <section className="mt-4 border-t border-black pt-3">
         <button
             type="button"

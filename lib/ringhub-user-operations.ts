@@ -267,6 +267,18 @@ export class AuthenticatedRingHubClient {
     return await userClient.getMyMemberships(options)
   }
 
+  async getMyFeed(options?: Parameters<RingHubClient['getMyFeed']>[0]) {
+    const userClient = await this.getUserClient()
+    return await userClient.getMyFeed(options)
+  }
+
+  async getTrendingFeed(options?: Parameters<RingHubClient['getTrendingFeed']>[0]) {
+    if (!this.client) {
+      throw new Error('Ring Hub client not available')
+    }
+    return await this.client.getTrendingFeed(options)
+  }
+
   /**
    * Curate/moderate a post as this user (requires curator/moderator permissions)
    */
