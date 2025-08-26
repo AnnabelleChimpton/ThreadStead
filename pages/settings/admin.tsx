@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import RetroCard from "@/components/layout/RetroCard";
-import DesignPatternsGuide from "@/components/DesignPatternsGuide";
 import { useMe } from "@/hooks/useMe";
 import { getSiteTemplate, SITE_TEMPLATE_INFO } from "@/lib/site-css-templates";
 import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO } from "@/lib/default-profile-templates";
@@ -61,6 +60,7 @@ function PageForm({
     published: page?.published || false,
     showInNav: page?.showInNav || false,
     navOrder: page?.navOrder || 0,
+    navDropdown: page?.navDropdown || null,
     hideNavbar: page?.hideNavbar || false,
     isHomepage: page?.isHomepage || false,
   });
@@ -74,6 +74,7 @@ function PageForm({
       published: page?.published || false,
       showInNav: page?.showInNav || false,
       navOrder: page?.navOrder || 0,
+      navDropdown: page?.navDropdown || null,
       hideNavbar: page?.hideNavbar || false,
       isHomepage: page?.isHomepage || false,
     });
@@ -139,7 +140,6 @@ function PageForm({
               <li>• Toggle navbar visibility for full-screen experiences</li>
               <li>• Footer stays at the bottom of the page regardless of content height</li>
               <li>• No post-style containers - complete design freedom!</li>
-              <li>• <strong>📚 Check the &quot;Design Patterns Guide&quot; section above for copy-paste examples!</strong></li>
             </ul>
           </div>
         </div>
@@ -167,6 +167,22 @@ function PageForm({
               <span className="text-sm">Show in Navigation</span>
             </label>
             <p className="text-xs text-gray-500">Add to main navigation menu</p>
+            
+            {formData.showInNav && (
+              <div className="mt-2 ml-6">
+                <label className="block text-sm font-medium mb-1">Navigation Placement</label>
+                <select
+                  value={formData.navDropdown || ''}
+                  onChange={(e) => setFormData({...formData, navDropdown: e.target.value || null})}
+                  className="w-full px-2 py-1 border border-black"
+                >
+                  <option value="">Top Level (no dropdown)</option>
+                  <option value="discovery">Discovery Dropdown</option>
+                  <option value="help">Help Dropdown</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Choose where this page appears in the navigation</p>
+              </div>
+            )}
           </div>
           
           <div>
@@ -262,6 +278,7 @@ type CustomPage = {
   published: boolean;
   showInNav: boolean;
   navOrder: number;
+  navDropdown: string | null;
   hideNavbar: boolean;
   isHomepage: boolean;
   createdAt: string;
@@ -908,13 +925,8 @@ export default function AdminPage() {
           <p>Welcome to the admin panel. Manage your site&apos;s content, appearance, and users with the organized sections below.</p>
         </RetroCard>
 
-        {/* DESIGN PATTERNS GUIDE */}
-        <CollapsibleSection title="Design Patterns Guide" defaultOpen={false} icon="📚">
-          <DesignPatternsGuide />
-        </CollapsibleSection>
-
         {/* CONTENT MANAGEMENT */}
-        <CollapsibleSection title="Content Management" defaultOpen={true} icon="📝">
+        <CollapsibleSection title="Content Management" defaultOpen={false} icon="📝">
           
           {/* Custom Pages */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
@@ -922,7 +934,7 @@ export default function AdminPage() {
               📄 Custom Pages
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Create fully customizable pages with complete design freedom. Pages appear with navbar and footer but no containers - you control everything else! Published pages can be accessed at /page/[slug]. Use the <strong>Design Patterns Guide</strong> above for ready-to-use examples.
+              Create fully customizable pages with complete design freedom. Pages appear with navbar and footer but no containers - you control everything else! Published pages can be accessed at /page/[slug].
             </p>
             
             <div className="border border-blue-300 bg-blue-50 p-3 rounded mb-4">
@@ -1013,7 +1025,7 @@ export default function AdminPage() {
                             </span>
                             {page.showInNav && (
                               <span className="text-xs px-2 py-1 rounded bg-blue-200">
-                                In Navigation
+                                {page.navDropdown ? `In ${page.navDropdown} dropdown` : 'In Navigation'}
                               </span>
                             )}
                             {page.hideNavbar && (

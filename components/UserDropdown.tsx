@@ -48,7 +48,7 @@ export default function UserDropdown() {
         <div className="absolute right-0 top-full mt-1 w-48 border border-thread-sage bg-thread-paper shadow-cozy rounded z-50">
           <div className="p-2 border-b border-thread-sage bg-thread-cream">
             <div className="text-xs thread-label">signed in as</div>
-            <div className="font-medium text-thread-pine text-sm">@{userDisplayName}</div>
+            <div className="font-medium text-thread-pine text-sm">{userDisplayName}</div>
           </div>
           
           <div className="py-1">

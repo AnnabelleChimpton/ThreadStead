@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === "PUT") {
     try {
-      const { slug, title, content, published, showInNav, navOrder, hideNavbar, isHomepage } = req.body;
+      const { slug, title, content, published, showInNav, navOrder, navDropdown, hideNavbar, isHomepage } = req.body;
       
       if (!slug || !title) {
         return res.status(400).json({ error: "Slug and title are required" });
@@ -65,6 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           published: Boolean(published),
           showInNav: Boolean(showInNav),
           navOrder: Number(navOrder) || 0,
+          navDropdown: navDropdown || null,
           hideNavbar: hideNavbar !== undefined ? Boolean(hideNavbar) : false,
           isHomepage: Boolean(isHomepage),
         },

@@ -5,6 +5,7 @@ type NavPage = {
   slug: string;
   title: string;
   navOrder: number;
+  navDropdown: string | null;
 };
 
 export function useNavPages() {

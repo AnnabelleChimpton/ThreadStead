@@ -228,6 +228,7 @@ model CustomPage {
   published  Boolean  @default(false)
   showInNav  Boolean  @default(false)
   navOrder   Int      @default(0)
+  navDropdown String?  // Which dropdown menu (e.g., "discovery", "help", null for top-level)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   hideNavbar Boolean  @default(false)
@@ -235,6 +236,7 @@ model CustomPage {
 
   @@index([published, showInNav, navOrder])
   @@index([isHomepage])
+  @@index([navDropdown])
 }
 
 model Media {

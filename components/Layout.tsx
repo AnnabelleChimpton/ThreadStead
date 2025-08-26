@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import LoginStatus from "./LoginStatus";
 import NotificationDropdown from "./NotificationDropdown";
@@ -14,12 +14,83 @@ interface LayoutProps {
   fullWidth?: boolean;
 }
 
+interface DropdownMenuProps {
+  title: string;
+  items: { href: string; label: string }[];
+  dropdownKey: string;
+  activeDropdown: string | null;
+  setActiveDropdown: (key: string | null) => void;
+}
+
+function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDropdown }: DropdownMenuProps) {
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const isOpen = activeDropdown === dropdownKey;
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [setActiveDropdown]);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        className="nav-link text-thread-pine hover:text-thread-sunset font-medium flex items-center gap-1 underline hover:no-underline"
+        style={{textDecorationThickness: '1px', textDecorationColor: '#A18463'}}
+        onClick={() => setActiveDropdown(isOpen ? null : dropdownKey)}
+        onMouseEnter={() => setActiveDropdown(dropdownKey)}
+      >
+        {title}
+        <svg 
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      
+      {isOpen && (
+        <div 
+          className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+          onMouseLeave={() => setActiveDropdown(null)}
+        >
+          {items.map((item, index) => (
+            <Link
+              key={index}
+              href={item.href}
+              className="block px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors"
+              onClick={() => setActiveDropdown(null)}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Layout({ children, siteConfig, fullWidth = false }: LayoutProps) {
   const { config: hookConfig } = useSiteConfig();
   const { pages: navPages } = useNavPages();
   const { hasMismatch, fixMismatch } = useIdentitySync();
   const { me } = useMe();
   const config = siteConfig || hookConfig;
+  
+  // State to track which dropdown is open (only one at a time)
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  
+  // Organize navigation pages by dropdown
+  const topLevelPages = navPages.filter(page => !page.navDropdown);
+  const discoveryPages = navPages.filter(page => page.navDropdown === 'discovery');
+  const helpPages = navPages.filter(page => page.navDropdown === 'help');
   return (
     <div className="site-layout min-h-screen thread-surface flex flex-col">
       {/* Identity Sync Issue Banner */}
@@ -58,22 +129,56 @@ export default function Layout({ children, siteConfig, fullWidth = false }: Layo
           </div>
           <div className="site-nav-container flex items-center gap-8">
             <div className="site-nav-links flex items-center gap-6">
-              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/">Home</Link>
-              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/getting-started">Getting Started</Link>
-              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/feed">Feed</Link>
-              {featureFlags.threadrings(me?.user) && (
-                <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/threadrings/spool">The Spool</Link>
-              )}
-              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/directory">Directory</Link>
-              {navPages.map(page => (
+              <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" style={{textDecorationThickness: '1px', textDecorationColor: '#A18463'}} href="/">Home</Link>
+              
+              {/* Top level custom pages before dropdowns */}
+              {topLevelPages.map(page => (
                 <Link 
                   key={page.id} 
-                  className="nav-link text-thread-pine hover:text-thread-sunset font-medium" 
+                  className="nav-link text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" 
+                  style={{textDecorationThickness: '1px', textDecorationColor: '#A18463'}}
                   href={`/page/${page.slug}`}
                 >
                   {page.title}
                 </Link>
               ))}
+              
+              {/* Discovery dropdown - show only if there are items */}
+              {(discoveryPages.length > 0 || featureFlags.threadrings(me?.user)) && (
+                <DropdownMenu 
+                  title="Discovery"
+                  dropdownKey="discovery"
+                  activeDropdown={activeDropdown}
+                  setActiveDropdown={setActiveDropdown}
+                  items={[
+                    { href: "/feed", label: "Feed" },
+                    { href: "/directory", label: "Directory" },
+                    ...(featureFlags.threadrings(me?.user) ? [{ href: "/threadrings", label: "ThreadRings" }] : []),
+                    ...(featureFlags.threadrings(me?.user) ? [{ href: "/threadrings/spool", label: "The Spool" }] : []),
+                    ...discoveryPages.map(page => ({
+                      href: `/page/${page.slug}`,
+                      label: page.title
+                    }))
+                  ]}
+                />
+              )}
+              
+              {/* Help dropdown - always show */}
+              <DropdownMenu 
+                title="Help"
+                dropdownKey="help"
+                activeDropdown={activeDropdown}
+                setActiveDropdown={setActiveDropdown}
+                items={[
+                  { href: "/getting-started", label: "Getting Started" },
+                  { href: "/design-tutorial", label: "Design Tutorial" },
+                  { href: "/design-css-tutorial", label: "Design CSS Tutorial" },
+                  ...helpPages.map(page => ({
+                    href: `/page/${page.slug}`,
+                    label: page.title
+                  }))
+                ]}
+              />
             </div>
             <div className="site-nav-actions flex items-center gap-4">
               {me?.loggedIn && (

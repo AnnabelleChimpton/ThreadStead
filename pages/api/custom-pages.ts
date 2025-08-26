@@ -15,6 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           title: true,
           showInNav: true,
           navOrder: true,
+          navDropdown: true,
         },
         orderBy: [
           { navOrder: "asc" },
