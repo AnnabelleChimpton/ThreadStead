@@ -71,7 +71,7 @@ async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDi
     where: { 
       handle: newHandle, 
       host: SITE_NAME,
-      userId: { not: userId } // Allow user to keep their current handle
+      userId: { not: existingUser.id } // Allow user to keep their current handle
     }
   });
 
@@ -98,7 +98,7 @@ async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDi
   await db.$transaction(async (tx) => {
     console.log('   📝 Updating User.primaryHandle...');
     await tx.user.update({
-      where: { id: userId },
+      where: { id: existingUser.id },
       data: { primaryHandle: newPrimaryHandle }
     });
 
@@ -106,7 +106,7 @@ async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDi
     // Remove old handle for this host (if it exists)
     await tx.handle.deleteMany({
       where: { 
-        userId: userId, 
+        userId: existingUser.id, 
         host: SITE_NAME 
       }
     });
@@ -114,7 +114,7 @@ async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDi
     // Create new handle
     await tx.handle.create({
       data: {
-        userId: userId,
+        userId: existingUser.id,
         handle: newHandle,
         host: SITE_NAME,
         verifiedAt: new Date()
@@ -125,10 +125,10 @@ async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDi
     if (newDisplayName) {
       console.log('   📝 Updating Profile.displayName...');
       await tx.profile.upsert({
-        where: { userId: userId },
+        where: { userId: existingUser.id },
         update: { displayName: newDisplayName },
         create: {
-          userId: userId,
+          userId: existingUser.id,
           displayName: newDisplayName,
           bio: `Hi, I'm ${newDisplayName}! Welcome to my retro page.`,
           avatarUrl: "/assets/default-avatar.gif",
