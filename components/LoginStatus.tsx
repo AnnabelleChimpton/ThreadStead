@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import LoginButton from "@/components/LoginButton";
+import AuthenticationDropdown from "@/components/AuthenticationDropdown";
 import UserDropdown from "@/components/UserDropdown";
 
 type Me = { loggedIn: boolean; user?: { id: string; did: string; primaryHandle: string | null } };
@@ -20,8 +20,8 @@ export default function LoginStatus() {
   if (!me.loggedIn) {
     return (
       <div className="flex items-center gap-3">
-        <span className="thread-label text-sm">visitor mode</span>
-        <LoginButton />
+        <span className="text-sm text-gray-600">visitor mode</span>
+        <AuthenticationDropdown />
       </div>
     );
   }

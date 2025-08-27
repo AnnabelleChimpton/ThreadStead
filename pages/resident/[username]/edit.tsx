@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -12,6 +12,7 @@ import FriendManager, { SelectedFriend } from "@/components/FriendManager";
 // CSS Editor moved to dedicated page at /resident/[username]/css-editor
 import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 import ProfileBadgeSelector from "@/components/ProfileBadgeSelector";
+import BetaInviteCodesManager from "@/components/BetaInviteCodesManager";
 import type { TemplateNode } from "@/lib/template-parser";
 import { TemplateEngine } from "@/lib/template-engine";
 import { featureFlags } from "@/lib/feature-flags";
@@ -47,11 +48,11 @@ export default function ProfileEditPage({
   featuredFriends: initialFeaturedFriends = []
 }: ProfileEditProps) {
   const router = useRouter();
+  
+  // All hooks must be called before any conditional logic
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const { user: currentUser } = useCurrentUser();
-  // CSS is now edited in the dedicated CSS editor page
-  const customCSSValue = customCSS || "";
   const [isTemplateEnabled, setIsTemplateEnabled] = useState(templateEnabled);
   const [isNavigationHidden, setIsNavigationHidden] = useState(hideNavigation);
   
@@ -87,6 +88,32 @@ export default function ProfileEditPage({
       return null;
     }
   }, [existingTemplate]);
+
+  // CSS is now edited in the dedicated CSS editor page
+  const customCSSValue = customCSS || "";
+
+  // Redirect to unified settings page
+  useEffect(() => {
+    if (isOwner) {
+      router.push('/settings');
+    }
+  }, [isOwner, router]);
+
+  // If user is being redirected, show a loading state
+  if (isOwner) {
+    return (
+      <Layout>
+        <RetroCard title="Redirecting...">
+          <div className="text-center py-8">
+            <p className="mb-4">Redirecting to the unified settings page...</p>
+            <p className="text-sm text-thread-sage">
+              Profile editing has been moved to a centralized settings location.
+            </p>
+          </div>
+        </RetroCard>
+      </Layout>
+    );
+  }
 
   const _handleSaveTemplate = async (template: string, ast: TemplateNode) => {
     setSaving(true);
@@ -587,6 +614,15 @@ export default function ProfileEditPage({
               setTimeout(() => setSaveMessage(null), 3000);
             }}
           />
+        </div>
+      )
+    },
+    {
+      id: "beta-codes",
+      label: "Beta Invite Codes",
+      content: (
+        <div className="space-y-6">
+          <BetaInviteCodesManager />
         </div>
       )
     }

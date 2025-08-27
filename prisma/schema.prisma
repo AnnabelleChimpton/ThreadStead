@@ -47,6 +47,8 @@ model User {
   reportsReviewed           UserReport[]       @relation("UserReportsReviewed")
   blocksCreated             UserBlock[]        @relation("UserBlocksCreated")
   blocksReceived            UserBlock[]        @relation("UserBlocksReceived")
+  betaInviteCodesGenerated  BetaInviteCode[]   @relation("BetaInviteCodesGenerated")
+  betaInviteCodesUsed       BetaInviteCode[]   @relation("BetaInviteCodesUsed")
 }
 
 model Handle {
@@ -197,6 +199,20 @@ model BetaKey {
   createdAt DateTime  @default(now())
   usedAt    DateTime?
   user      User?     @relation(fields: [usedBy], references: [id])
+}
+
+model BetaInviteCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  generatedBy String
+  usedBy      String?
+  createdAt   DateTime  @default(now())
+  usedAt      DateTime?
+  generator   User      @relation("BetaInviteCodesGenerated", fields: [generatedBy], references: [id], onDelete: Cascade)
+  user        User?     @relation("BetaInviteCodesUsed", fields: [usedBy], references: [id], onDelete: SetNull)
+
+  @@index([generatedBy])
+  @@index([code])
 }
 
 model Notification {

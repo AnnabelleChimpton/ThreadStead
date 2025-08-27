@@ -62,30 +62,12 @@ export default function UserDropdown() {
             </Link>
             
             <Link
-              href="/identity"
+              href="/settings"
               className="flex items-center gap-2 px-3 py-2 text-sm text-thread-charcoal hover:bg-thread-cream"
               onClick={() => setIsOpen(false)}
             >
-              <span>🔑</span>
-              Identity
-            </Link>
-            
-            <Link
-              href={`/resident/${username}/edit`}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-thread-charcoal hover:bg-thread-cream"
-              onClick={() => setIsOpen(false)}
-            >
-              <span>✏️</span>
-              Edit Profile
-            </Link>
-            
-            <Link
-              href="/settings/blocks"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-thread-charcoal hover:bg-thread-cream"
-              onClick={() => setIsOpen(false)}
-            >
-              <span>🚫</span>
-              Blocked Users
+              <span>⚙️</span>
+              Settings
             </Link>
             
             {isAdmin && (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { GetServerSidePropsContext } from "next";
 import { NextApiRequest } from "next";
+import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import { getSessionUser } from "@/lib/auth-server";
 import { 
@@ -18,12 +19,14 @@ import {
 import UsernameSelector from "@/components/UsernameSelector";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
 import Modal from "@/components/ui/Modal";
+import Link from "next/link";
 
 interface IdentityPageProps {
   initialUser?: { id: string; did: string; primaryHandle: string | null } | null;
 }
 
 export default function IdentityPage({ initialUser }: IdentityPageProps) {
+  const router = useRouter();
   const { hasMismatch, fixMismatch } = useIdentitySync();
   const [currentIdentity, setCurrentIdentity] = useState<LocalKeypair | null>(null);
   const [currentSeedPhrase, setCurrentSeedPhrase] = useState<SeedPhrase | null>(null);
@@ -40,6 +43,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
   const [showOptionalEmailStep, setShowOptionalEmailStep] = useState(false);
   const [newAccountEmail, setNewAccountEmail] = useState('');
   const [isNewAccountFlow, setIsNewAccountFlow] = useState(false);
+  const [urlBetaKey, setUrlBetaKey] = useState<string>('');
   
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -83,6 +87,13 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
    
   // Intentionally only run once on mount to initialize user identity
   }, []);
+
+  // Read beta key from URL parameters
+  useEffect(() => {
+    if (router.isReady && router.query.beta && typeof router.query.beta === 'string') {
+      setUrlBetaKey(router.query.beta);
+    }
+  }, [router.isReady, router.query.beta]);
 
   async function handleExport() {
     try {
@@ -392,6 +403,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
             subtitle="Create your decentralized identity with seed phrase recovery"
             confirmButtonText="Create Account"
             isLoading={isLoading}
+            initialBetaKey={urlBetaKey}
           />
         </div>
       </Layout>
@@ -627,6 +639,16 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto p-6 space-y-8">
+        {initialUser && (
+          <div className="flex justify-center">
+            <Link
+              href="/settings"
+              className="px-3 py-2 border border-black bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] no-underline text-sm"
+            >
+              ← Back to Settings
+            </Link>
+          </div>
+        )}
         <div className="text-center">
           <h1 className="thread-headline text-2xl mb-2">Identity Management</h1>
           <p className="text-thread-sage">

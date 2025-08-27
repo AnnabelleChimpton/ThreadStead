@@ -18,8 +18,14 @@ export function useIdentitySync() {
     if (me?.loggedIn && me.user) {
       const localIdentity = getExistingDid();
       
-      // Check for mismatch: user logged in on server but no local identity or DID mismatch
-      const mismatch = !localIdentity || localIdentity.did !== me.user.did;
+      // More intelligent mismatch detection:
+      // 1. If no local identity exists, this might be:
+      //    - An email-only login (legitimate)  
+      //    - A fresh session after clearing storage (legitimate)
+      //    - A device without stored keys (legitimate)
+      // 2. Only show mismatch if we have local identity but wrong DID
+      const mismatch = Boolean(localIdentity && localIdentity.did !== me.user.did);
+      
       setHasMismatch(mismatch);
     } else {
       setHasMismatch(false);

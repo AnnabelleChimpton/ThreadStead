@@ -74,10 +74,10 @@ export default function VerifyEmailPage() {
             </div>
             <div className="space-y-3">
               <button
-                onClick={() => window.location.href = '/identity'}
+                onClick={() => window.location.href = '/settings'}
                 className="thread-button"
               >
-                Go to Identity Management
+                Go to Account Settings
               </button>
               <div>
                 <button
@@ -107,14 +107,14 @@ export default function VerifyEmailPage() {
             <div className="space-y-3">
               <p className="text-thread-sage text-sm">
                 This verification link may have expired or already been used. 
-                You can try setting your email address again from your Identity page.
+                You can try setting your email address again from your Account Settings.
               </p>
               <div className="space-y-3">
                 <button
-                  onClick={() => window.location.href = '/identity'}
+                  onClick={() => window.location.href = '/login'}
                   className="thread-button"
                 >
-                  Go to Identity Management
+                  Try Signing In Again
                 </button>
                 <div>
                   <button

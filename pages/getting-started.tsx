@@ -386,10 +386,10 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                   <div className="border-t pt-4">
                     <Link 
-                      href="/identity" 
+                      href="/settings" 
                       className="block text-center border border-black px-3 py-2 bg-green-100 hover:bg-green-200 shadow-[1px_1px_0_#000] font-medium text-sm"
                     >
-                      🔧 Manage Your Identity
+                      🔧 Account Settings
                     </Link>
                   </div>
                 </div>

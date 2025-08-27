@@ -1,0 +1,337 @@
+#!/usr/bin/env npx tsx
+
+/**
+ * Script to safely delete a user and all associated data
+ * Usage: npx tsx scripts/delete-user.ts <user-id-or-handle>
+ * 
+ * This script:
+ * - Finds user by ID or handle
+ * - Shows what will be deleted
+ * - Requires confirmation
+ * - Performs cascading deletion in proper order
+ * - Handles foreign key constraints safely
+ */
+
+import { db } from '../lib/db';
+import { SITE_NAME } from '../lib/site-config';
+
+interface UserDeletionSummary {
+  user: {
+    id: string;
+    primaryHandle: string | null;
+    displayName: string | null;
+    createdAt: Date;
+  };
+  counts: {
+    handles: number;
+    posts: number;
+    comments: number;
+    photoComments: number;
+    guestbookEntries: number;
+    media: number;
+    sessions: number;
+    notifications: number;
+    follows: number;
+    followers: number;
+    threadRingMemberships: number;
+    threadRingsCurated: number;
+    reports: number;
+    blocks: number;
+  };
+}
+
+async function findUser(identifier: string) {
+  console.log(`🔍 Looking for user: ${identifier}`);
+  
+  // Try to find by ID first
+  let user = await db.user.findUnique({
+    where: { id: identifier },
+    include: {
+      handles: true,
+      profile: true
+    }
+  });
+
+  // If not found by ID, try to find by handle
+  if (!user) {
+    const handle = await db.handle.findFirst({
+      where: {
+        OR: [
+          { handle: identifier, host: SITE_NAME },
+          { handle: identifier.replace(`@${SITE_NAME}`, ''), host: SITE_NAME }
+        ]
+      },
+      include: {
+        user: {
+          include: {
+            handles: true,
+            profile: true
+          }
+        }
+      }
+    });
+    
+    if (handle) {
+      user = handle.user;
+    }
+  }
+
+  return user;
+}
+
+async function getUserDeletionSummary(userId: string): Promise<UserDeletionSummary> {
+  console.log('📊 Analyzing user data...');
+
+  const [
+    user,
+    handles,
+    posts,
+    comments,
+    photoComments,
+    guestbookEntries,
+    media,
+    sessions,
+    notificationsReceived,
+    notificationsActed,
+    following,
+    followers,
+    threadRingMemberships,
+    threadRingsCurated,
+    reportsCreated,
+    reportsReceived,
+    blocksCreated,
+    blocksReceived
+  ] = await Promise.all([
+    db.user.findUnique({ 
+      where: { id: userId },
+      include: { profile: true }
+    }),
+    db.handle.findMany({ where: { userId } }),
+    db.post.findMany({ where: { authorId: userId } }),
+    db.comment.findMany({ where: { authorId: userId } }),
+    db.photoComment.findMany({ where: { authorId: userId } }),
+    db.guestbookEntry.findMany({ where: { profileOwner: userId } }),
+    db.media.findMany({ where: { userId } }),
+    db.session.findMany({ where: { userId } }),
+    db.notification.findMany({ where: { recipientId: userId } }),
+    db.notification.findMany({ where: { actorId: userId } }),
+    db.follow.findMany({ where: { followerId: userId } }),
+    db.follow.findMany({ where: { followeeId: userId } }),
+    db.threadRingMember.findMany({ where: { userId } }),
+    db.threadRing.findMany({ where: { curatorId: userId } }),
+    db.userReport.findMany({ where: { reporterId: userId } }),
+    db.userReport.findMany({ where: { reportedUserId: userId } }),
+    db.userBlock.findMany({ where: { blockerId: userId } }),
+    db.userBlock.findMany({ where: { blockedUserId: userId } })
+  ]);
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return {
+    user: {
+      id: user.id,
+      primaryHandle: user.primaryHandle,
+      displayName: user.profile?.displayName || null,
+      createdAt: user.createdAt
+    },
+    counts: {
+      handles: handles.length,
+      posts: posts.length,
+      comments: comments.length,
+      photoComments: photoComments.length,
+      guestbookEntries: guestbookEntries.length,
+      media: media.length,
+      sessions: sessions.length,
+      notifications: notificationsReceived.length + notificationsActed.length,
+      follows: following.length,
+      followers: followers.length,
+      threadRingMemberships: threadRingMemberships.length,
+      threadRingsCurated: threadRingsCurated.length,
+      reports: reportsCreated.length + reportsReceived.length,
+      blocks: blocksCreated.length + blocksReceived.length
+    }
+  };
+}
+
+function displayDeletionSummary(summary: UserDeletionSummary) {
+  console.log('');
+  console.log('👤 USER TO DELETE:');
+  console.log(`   ID: ${summary.user.id}`);
+  console.log(`   Handle: ${summary.user.primaryHandle || 'None'}`);
+  console.log(`   Display Name: ${summary.user.displayName || 'None'}`);
+  console.log(`   Created: ${summary.user.createdAt.toISOString()}`);
+  console.log('');
+  console.log('📊 DATA TO DELETE:');
+  console.log(`   Handles: ${summary.counts.handles}`);
+  console.log(`   Posts: ${summary.counts.posts}`);
+  console.log(`   Comments: ${summary.counts.comments}`);
+  console.log(`   Photo Comments: ${summary.counts.photoComments}`);
+  console.log(`   Guestbook Entries: ${summary.counts.guestbookEntries}`);
+  console.log(`   Media Files: ${summary.counts.media}`);
+  console.log(`   Sessions: ${summary.counts.sessions}`);
+  console.log(`   Notifications: ${summary.counts.notifications}`);
+  console.log(`   Following: ${summary.counts.follows}`);
+  console.log(`   Followers: ${summary.counts.followers}`);
+  console.log(`   ThreadRing Memberships: ${summary.counts.threadRingMemberships}`);
+  console.log(`   ThreadRings Curated: ${summary.counts.threadRingsCurated}`);
+  console.log(`   Reports: ${summary.counts.reports}`);
+  console.log(`   Blocks: ${summary.counts.blocks}`);
+}
+
+async function deleteUser(userId: string) {
+  console.log('');
+  console.log('🗑️  Starting user deletion...');
+  
+  await db.$transaction(async (tx) => {
+    // Delete in reverse dependency order to avoid foreign key constraint issues
+    
+    console.log('   🔄 Deleting user blocks...');
+    await tx.userBlock.deleteMany({ where: { OR: [{ blockerId: userId }, { blockedUserId: userId }] } });
+    
+    console.log('   🔄 Deleting user reports...');
+    await tx.userReport.deleteMany({ where: { OR: [{ reporterId: userId }, { reportedUserId: userId }] } });
+    
+    console.log('   🔄 Deleting notifications...');
+    await tx.notification.deleteMany({ where: { OR: [{ recipientId: userId }, { actorId: userId }] } });
+    
+    console.log('   🔄 Deleting follows...');
+    await tx.follow.deleteMany({ where: { OR: [{ followerId: userId }, { followeeId: userId }] } });
+    
+    console.log('   🔄 Deleting sessions...');
+    await tx.session.deleteMany({ where: { userId } });
+    
+    console.log('   🔄 Deleting capability grants...');
+    await tx.capabilityGrant.deleteMany({ where: { userId } });
+    
+    console.log('   🔄 Deleting plugin installs...');
+    await tx.pluginInstall.deleteMany({ where: { ownerId: userId } });
+    
+    console.log('   🔄 Deleting photo comments...');
+    await tx.photoComment.deleteMany({ where: { authorId: userId } });
+    
+    console.log('   🔄 Deleting media...');
+    await tx.media.deleteMany({ where: { userId } });
+    
+    console.log('   🔄 Deleting comments...');
+    await tx.comment.deleteMany({ where: { authorId: userId } });
+    
+    console.log('   🔄 Deleting post-threadring associations...');
+    await tx.postThreadRing.deleteMany({ where: { addedBy: userId } });
+    
+    console.log('   🔄 Deleting posts...');
+    await tx.post.deleteMany({ where: { authorId: userId } });
+    
+    console.log('   🔄 Deleting guestbook entries...');
+    await tx.guestbookEntry.deleteMany({ where: { profileOwner: userId } });
+    
+    console.log('   🔄 Deleting threadring memberships...');
+    await tx.threadRingMember.deleteMany({ where: { userId } });
+    
+    console.log('   🔄 Deleting threadring blocks...');
+    await tx.threadRingBlock.deleteMany({ where: { OR: [{ blockedUserId: userId }, { createdBy: userId }] } });
+    
+    console.log('   🔄 Deleting threadring invites...');
+    await tx.threadRingInvite.deleteMany({ where: { OR: [{ inviterId: userId }, { inviteeId: userId }] } });
+    
+    console.log('   🔄 Deleting threadring forks...');
+    await tx.threadRingFork.deleteMany({ where: { createdBy: userId } });
+    
+    console.log('   🔄 Deleting ring hub ownerships...');
+    await tx.ringHubOwnership.deleteMany({ where: { ownerUserId: userId } });
+    
+    // Handle ThreadRings curated by this user - reassign or delete
+    const curatedRings = await tx.threadRing.findMany({ where: { curatorId: userId } });
+    if (curatedRings.length > 0) {
+      console.log(`   🔄 Handling ${curatedRings.length} curated ThreadRings...`);
+      // For now, we'll delete them. In production, you might want to reassign to another admin
+      for (const ring of curatedRings) {
+        await tx.threadRing.delete({ where: { id: ring.id } });
+      }
+    }
+    
+    console.log('   🔄 Deleting beta invite codes...');
+    await tx.betaInviteCode.deleteMany({ where: { OR: [{ generatedBy: userId }, { usedBy: userId }] } });
+    
+    console.log('   🔄 Deleting beta keys...');
+    await tx.betaKey.deleteMany({ where: { usedBy: userId } });
+    
+    console.log('   🔄 Deleting profile...');
+    await tx.profile.deleteMany({ where: { userId } });
+    
+    console.log('   🔄 Deleting handles...');
+    await tx.handle.deleteMany({ where: { userId } });
+    
+    console.log('   🔄 Deleting user record...');
+    await tx.user.delete({ where: { id: userId } });
+  }, {
+    timeout: 60000 // 60 second timeout for large deletions
+  });
+  
+  console.log('');
+  console.log('✅ User deleted successfully!');
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  
+  if (args.length !== 1) {
+    console.error('Usage: npx tsx scripts/delete-user.ts <user-id-or-handle>');
+    console.error('');
+    console.error('Examples:');
+    console.error('  npx tsx scripts/delete-user.ts clxyz123');
+    console.error('  npx tsx scripts/delete-user.ts johnsmith');
+    console.error('  npx tsx scripts/delete-user.ts johnsmith@yoursite.com');
+    process.exit(1);
+  }
+
+  const [identifier] = args;
+
+  try {
+    // Find the user
+    const user = await findUser(identifier);
+    if (!user) {
+      throw new Error(`User not found: ${identifier}`);
+    }
+
+    console.log(`✅ Found user: ${user.id}`);
+
+    // Get deletion summary
+    const summary = await getUserDeletionSummary(user.id);
+    displayDeletionSummary(summary);
+
+    // Warning and confirmation
+    console.log('');
+    console.log('⚠️  DANGER: PERMANENT DELETION');
+    console.log('   This action cannot be undone!');
+    console.log('   All user data, posts, comments, and relationships will be permanently deleted.');
+    console.log('');
+    console.log('   Type "DELETE" to confirm, or Ctrl+C to cancel:');
+    
+    // In a production script, add readline for proper confirmation
+    // For now, we'll add a safety check
+    console.log('');
+    console.log('❌ SAFETY CHECK: This script requires manual confirmation.');
+    console.log('   To proceed, modify the script to remove this safety check.');
+    console.log('   Or use the admin interface for safer user management.');
+    
+    // Uncomment the line below and add proper readline confirmation to enable deletion
+    // await deleteUser(user.id);
+    
+    console.log('');
+    console.log('🛡️  Script completed safely (no deletion performed).');
+    
+  } catch (error) {
+    console.error('');
+    console.error('❌ Error:');
+    console.error(`   ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  } finally {
+    await db.$disconnect();
+  }
+}
+
+if (require.main === module) {
+  main().catch(console.error);
+}

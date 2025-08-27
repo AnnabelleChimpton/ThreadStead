@@ -27,7 +27,7 @@ export default function CustomPageLayout({ children, siteConfig, hideNavbar = fa
             <div className="flex items-center gap-2 text-sm">
               <span className="text-amber-600">⚠️</span>
               <span className="text-amber-800">
-                Identity sync issue detected. Your browser data needs to be refreshed.
+                Identity conflict detected. Your browser has keys for a different account than you&apos;re logged in as.
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -38,10 +38,10 @@ export default function CustomPageLayout({ children, siteConfig, hideNavbar = fa
                 Fix Now
               </button>
               <Link
-                href="/identity"
+                href="/settings"
                 className="px-3 py-1 text-xs bg-amber-200 hover:bg-amber-300 text-amber-800 rounded"
               >
-                Learn More
+                Account Settings
               </Link>
             </div>
           </div>

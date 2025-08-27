@@ -11,7 +11,7 @@ export default function SettingsProfile() {
     (async () => {
       const me = await fetch("/api/auth/me").then(r => r.json());
       if (!me?.loggedIn) {
-        router.push("/identity");
+        router.push("/login");
         return;
       }
       const handle = me.user?.primaryHandle?.split("@")[0];
@@ -19,7 +19,7 @@ export default function SettingsProfile() {
         router.push("/");
         return;
       }
-      router.push(`/resident/${handle}/edit`);
+      router.push(`/settings`);
     })();
   }, [router]);
 
@@ -27,9 +27,9 @@ export default function SettingsProfile() {
     <Layout>
       <RetroCard title="Redirecting...">
         <div className="text-center py-8">
-          <p className="mb-4">Redirecting to the new unified edit page...</p>
+          <p className="mb-4">Redirecting to the unified settings page...</p>
           <p className="text-sm text-thread-sage">
-            Profile editing has been moved to a unified location with template editing.
+            All user settings have been consolidated into a single, intuitive location.
           </p>
         </div>
       </RetroCard>

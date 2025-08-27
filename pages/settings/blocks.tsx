@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import RetroCard from "@/components/layout/RetroCard";
 import { useMe } from "@/hooks/useMe";
+import Link from "next/link";
 
 interface BlockedUser {
   id: string;
@@ -111,6 +112,14 @@ export default function BlocksPage() {
   return (
     <Layout>
       <div className="space-y-4">
+        <div className="flex items-center gap-4 mb-4">
+          <Link
+            href="/settings"
+            className="px-3 py-2 border border-black bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] no-underline text-sm"
+          >
+            ← Back to Settings
+          </Link>
+        </div>
         <RetroCard title="Blocked Users & Communities">
           <p className="mb-4 text-gray-600">
             Manage the users and ThreadRings you&apos;ve blocked. Blocked users&apos; posts and comments won&apos;t appear in your feeds, 

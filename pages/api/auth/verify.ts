@@ -58,54 +58,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   // If creating a new user, check beta key requirements
   else if (!user) {
-    const betaEnabled = process.env.BETA_KEYS_ENABLED === "true";
+    // Import beta invite code utilities
+    const { checkBetaAccess, generateUserBetaInviteCodes } = await import("@/lib/beta-invite-codes");
     
-    if (betaEnabled) {
-      if (!betaKey) {
-        return res.status(400).json({ error: "Beta key required for account creation" });
+    // Check beta access (handles both admin keys and user invite codes)
+    const betaCheck = await checkBetaAccess(betaKey);
+    if (!betaCheck.valid) {
+      return res.status(400).json({ error: betaCheck.error });
+    }
+    
+    // Use transaction to prevent race conditions
+    try {
+      user = await db.$transaction(async (tx) => {
+        // Create user first
+        const newUser = await tx.user.create({ data: { did } });
+        
+        // If beta key was required, consume it within the transaction
+        if (betaKey && betaCheck.valid) {
+          if (betaCheck.type === 'admin') {
+            // Traditional admin beta key
+            await tx.betaKey.update({
+              where: { key: betaKey },
+              data: { 
+                usedBy: newUser.id,
+                usedAt: new Date()
+              }
+            });
+          } else if (betaCheck.type === 'invite') {
+            // User-generated beta invite code
+            await tx.betaInviteCode.update({
+              where: { code: betaKey },
+              data: {
+                usedBy: newUser.id,
+                usedAt: new Date()
+              }
+            });
+          }
+        }
+        
+        return newUser;
+      });
+      
+      // Generate 5 beta invite codes for the new user (outside transaction)
+      try {
+        await generateUserBetaInviteCodes(user.id);
+      } catch (codeError) {
+        // Log error but don't fail user creation
+        console.error('Failed to generate beta invite codes for new user:', codeError);
       }
       
-      // Use transaction to prevent race conditions with beta key usage
-      try {
-        user = await db.$transaction(async (tx) => {
-          // Validate and consume the beta key atomically
-          const validBetaKey = await tx.betaKey.findUnique({ 
-            where: { key: betaKey } 
-          });
-          
-          if (!validBetaKey) {
-            throw new Error("Invalid beta key");
-          }
-          
-          if (validBetaKey.usedBy) {
-            throw new Error("Beta key has already been used");
-          }
-          
-          // Create user first
-          const newUser = await tx.user.create({ data: { did } });
-          
-          // Mark beta key as used
-          await tx.betaKey.update({
-            where: { key: betaKey },
-            data: { 
-              usedBy: newUser.id,
-              usedAt: new Date()
-            }
-          });
-          
-          return newUser;
-        });
-      } catch (error: unknown) {
-        const errorMessage = (error as Error).message;
-        if (errorMessage === "Invalid beta key" || errorMessage === "Beta key has already been used") {
-          return res.status(400).json({ error: errorMessage });
-        }
-        // Re-throw unexpected errors
-        throw error;
-      }
-    } else {
-      // No beta key required, create user normally
-      user = await db.user.create({ data: { did } });
+    } catch (error: unknown) {
+      const errorMessage = (error as Error).message;
+      return res.status(400).json({ error: errorMessage });
     }
   }
 

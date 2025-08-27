@@ -14,6 +14,7 @@ interface UsernameSelectorProps {
   subtitle?: string;
   confirmButtonText?: string;
   isLoading?: boolean;
+  initialBetaKey?: string;
 }
 
 export default function UsernameSelector({ 
@@ -22,7 +23,8 @@ export default function UsernameSelector({
   title = "Choose your username",
   subtitle = "Pick a unique username for your new identity",
   confirmButtonText = "Confirm",
-  isLoading = false
+  isLoading = false,
+  initialBetaKey = ""
 }: UsernameSelectorProps) {
   const [step, setStep] = useState<'username' | 'policies' | 'beta'>('username');
   const [username, setUsername] = useState("");
@@ -33,7 +35,7 @@ export default function UsernameSelector({
   
   // Beta key state
   const [isBetaEnabled, setIsBetaEnabled] = useState<boolean>(false);
-  const [betaKey, setBetaKey] = useState<string>("");
+  const [betaKey, setBetaKey] = useState<string>(initialBetaKey);
   const [betaStatusError, setBetaStatusError] = useState<string | null>(null);
   const [betaStatusRetryCount, setBetaStatusRetryCount] = useState<number>(0);
 

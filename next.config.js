@@ -21,9 +21,17 @@ const nextConfig = {
     ]
   },
   
-  // Redirects from old threadring URLs to new /tr/ pattern
+  // Redirects from old URLs to new patterns
   async redirects() {
     return [
+      // Deprecated identity page redirects to settings
+      {
+        source: '/identity',
+        destination: '/settings',
+        permanent: true,
+      },
+      
+      // Threadrings redirects
       {
         source: '/threadrings/create',
         destination: '/tr/spool/fork',
