@@ -7,6 +7,7 @@ import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { featureFlags } from "@/lib/feature-flags";
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import Link from "next/link";
 
 interface FeedPageProps {
   siteConfig: SiteConfig;
@@ -42,12 +43,12 @@ export default function FeedPage({ siteConfig }: FeedPageProps) {
           <div className="text-yellow-700 text-sm mb-4">
             You need to be logged in to see posts from your ThreadRings.
           </div>
-          <a
+          <Link
             href="/login"
             className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] inline-block"
           >
             Login
-          </a>
+          </Link>
         </div>
       )
     },
