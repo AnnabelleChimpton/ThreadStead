@@ -63,7 +63,7 @@ export default function FeedPage({ siteConfig }: FeedPageProps) {
 
   return (
     <Layout siteConfig={siteConfig}>
-      <div className="thread-module p-6 mb-6">
+      <div className="thread-module p-4 sm:p-5 md:p-6 mb-3 sm:mb-4 md:mb-6">
         <div className="mb-4">
           <h1 className="thread-headline text-3xl font-bold mb-2">Community Feed</h1>
           <p className="text-thread-sage leading-relaxed">

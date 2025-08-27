@@ -74,7 +74,7 @@ export default function Feed({ type }: FeedProps) {
 
   if (error) {
     return (
-      <div className="thread-module p-6">
+      <div className="thread-module p-4 sm:p-5 md:p-6">
         <div className="text-thread-sunset bg-red-50 border border-red-200 p-3 rounded-cozy">
           <span className="thread-label">error</span>
           <p className="mt-1">{error}</p>
@@ -85,7 +85,7 @@ export default function Feed({ type }: FeedProps) {
 
   if (posts.length === 0) {
     return (
-      <div className="thread-module p-8 text-center">
+      <div className="thread-module p-4 sm:p-6 md:p-8 text-center">
         <h3 className="thread-headline text-lg mb-2">No posts yet</h3>
         <p className="text-thread-sage">
           {type === "recent" 

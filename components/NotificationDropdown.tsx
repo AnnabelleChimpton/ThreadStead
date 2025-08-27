@@ -191,7 +191,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative inline-flex items-center gap-2 p-2 hover:bg-thread-cream rounded"
+        className="notification-button relative inline-flex items-center gap-2 p-1 sm:p-2 hover:bg-thread-cream rounded"
         title={unreadCount !== null ? `${unreadCount} unread notifications` : "Notifications"}
       >
         <span className="text-xl">🔔</span>
@@ -203,13 +203,13 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-black shadow-[4px_4px_0_#000] rounded-cozy z-50 max-h-96 overflow-hidden">
+        <div className="notification-dropdown-menu absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white border border-black shadow-[4px_4px_0_#000] rounded-cozy z-50 max-h-96 overflow-hidden">
           <div className="p-3 border-b border-thread-sage/20 bg-thread-cream">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-thread-pine">Notifications</h3>
+              <h3 className="font-semibold text-thread-pine text-sm sm:text-base">Notifications</h3>
               <Link
                 href="/notifications"
-                className="text-sm text-thread-sage hover:text-thread-sunset"
+                className="text-xs sm:text-sm text-thread-sage hover:text-thread-sunset"
                 onClick={() => setIsOpen(false)}
               >
                 View all
@@ -219,18 +219,18 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
 
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
-              <div className="p-4 text-center text-thread-sage">
+              <div className="notification-dropdown-item text-center text-thread-sage">
                 Loading...
               </div>
             ) : notifications.length === 0 ? (
-              <div className="p-4 text-center text-thread-sage">
+              <div className="notification-dropdown-item text-center text-thread-sage">
                 No notifications yet
               </div>
             ) : (
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-3 border-b border-thread-sage/10 hover:bg-thread-cream cursor-pointer ${
+                  className={`notification-dropdown-item border-b border-thread-sage/10 hover:bg-thread-cream cursor-pointer ${
                     notification.status === "unread" ? "bg-thread-cream/50" : ""
                   }`}
                   onClick={() => {
@@ -283,7 +283,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
             <div className="p-2 border-t border-thread-sage/20 bg-thread-cream">
               <Link
                 href="/notifications"
-                className="block w-full text-center py-2 text-sm text-thread-pine hover:text-thread-sunset"
+                className="block w-full text-center py-3 text-xs sm:text-sm text-thread-pine hover:text-thread-sunset"
                 onClick={() => setIsOpen(false)}
               >
                 View all notifications

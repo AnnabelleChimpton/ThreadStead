@@ -147,7 +147,7 @@ async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDi
   
   // Verify the update
   const updatedUser = await db.user.findUnique({
-    where: { id: userId },
+    where: { id: existingUser.id },
     include: {
       handles: true,
       profile: true

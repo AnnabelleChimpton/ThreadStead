@@ -231,6 +231,47 @@ textarea:focus {
 
 /* Mobile optimizations */
 @media (max-width: 767px) {
+  /* Hide scrollbar on mobile to give more space and prevent border clipping */
+  html {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  html::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+  
+  body {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    overflow-x: hidden; /* Prevent horizontal scroll */
+  }
+  
+  body::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+  
+  /* Ensure container elements don't exceed viewport */
+  .mx-auto.max-w-5xl {
+    max-width: 100% !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Make site-main children use full width on mobile */
+  .site-main > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* But keep some padding for readability */
+  .site-main {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
   /* Header navigation adjustments */
   .site-header {
     padding: 0.75rem 1rem;
@@ -272,8 +313,10 @@ textarea:focus {
   
   /* Cards and modules mobile adjustments */
   .thread-module {
-    margin: 0.5rem 0;
+    margin: 1.5rem 0; /* Vertical spacing only, full width on mobile */
     padding: 1rem;
+    width: 100%; /* Explicit full width */
+    max-width: 100%; /* Within site-main padding */
   }
   
   /* Form elements touch-friendly sizing */
@@ -310,6 +353,158 @@ textarea:focus {
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.5rem;
+  }
+  
+  /* Profile tabs mobile optimizations - padding only */
+  .profile-tabs {
+    padding: 0; /* Remove any default padding */
+  }
+  
+  .profile-tab-list {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap; /* Prevent wrapping on mobile */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  }
+  
+  .profile-tab-list::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for webkit browsers */
+  }
+  
+  .profile-tab-button {
+    min-width: fit-content; /* Ensure buttons don't shrink too much */
+    padding: 0.75rem 1rem; /* Larger touch targets */
+    font-size: 0.9rem;
+    white-space: nowrap; /* Prevent text wrapping */
+    flex-shrink: 0; /* Prevent shrinking in flex container */
+  }
+  
+  .profile-tab-panel {
+    padding: 1rem; /* Reduced padding for mobile */
+  }
+  
+  /* Add subtle scroll indicators for tab list on mobile */
+  .profile-tab-list::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to left, rgba(245, 233, 212, 0.8) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  
+  .profile-tabs {
+    position: relative; /* For scroll indicator positioning */
+    margin: 1.5rem 0; /* Full width on mobile, vertical spacing only */
+    max-width: 100%; /* Full width within site-main padding */
+    width: 100%; /* Explicit full width */
+  }
+  
+  /* Mobile-friendly user dropdowns - use better positioning */
+  .user-dropdown-menu,
+  .notification-dropdown-menu {
+    max-width: calc(100vw - 1rem);
+    width: min(20rem, calc(100vw - 1rem));
+    max-height: 70vh;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  }
+  
+  .user-dropdown-menu::-webkit-scrollbar,
+  .notification-dropdown-menu::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for webkit browsers */
+  }
+  
+  /* Ensure dropdowns don't cause horizontal overflow */
+  .user-dropdown-menu {
+    right: 0;
+    left: auto;
+    transform: translateX(0);
+  }
+  
+  .notification-dropdown-menu {
+    right: 0;
+    left: auto;
+    transform: translateX(0);
+  }
+  
+  /* Larger touch targets for dropdown items on mobile */
+  .user-dropdown-item,
+  .notification-dropdown-item {
+    padding: 0.75rem !important;
+    min-height: 44px; /* iOS minimum touch target */
+    font-size: 0.95rem;
+  }
+  
+  /* Authentication buttons - stack on very small screens */
+  .auth-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  
+  .auth-button {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.9rem;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* User dropdown trigger button mobile styling */
+  .user-dropdown-trigger {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.85rem;
+    max-width: 7rem; /* Reduced to prevent overflow */
+    overflow: hidden;
+  }
+  
+  .user-dropdown-trigger .thread-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 5rem; /* Reduced further */
+  }
+  
+  /* Notification button mobile adjustments */
+  .notification-button {
+    padding: 0.5rem !important;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Prevent any element from causing horizontal overflow */
+  * {
+    box-sizing: border-box;
+  }
+  
+  /* Ensure nav container doesn't overflow */
+  .site-nav-container {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  
+  .site-nav-links {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  
+  .site-nav-actions {
+    flex-shrink: 0;
+  }
+  
+  /* Make sure dropdowns stay within viewport */
+  .user-dropdown-menu,
+  .notification-dropdown-menu {
+    max-width: calc(100vw - 2rem) !important;
+    left: auto !important;
+    right: 1rem !important;
   }
   
   /* Directory grid mobile */
@@ -601,14 +796,120 @@ textarea:focus {
 /* Mobile responsiveness for thread modules */
 @media (max-width: 768px) {
   .thread-module {
-    min-width: 280px; /* Smaller minimum on mobile */
-    max-width: 100%; /* Full width on mobile */
-    margin: 0 auto;
+    min-width: unset; /* Remove minimum width on mobile */
+    max-width: 100%; /* Full width within site-main padding */
+    margin: 1.5rem 0; /* Vertical spacing only, let site-main handle horizontal */
+    padding: 1rem; /* Reduced padding on mobile */
+    border-radius: 6px; /* Slightly smaller radius */
+    box-shadow: 2px 2px 0 #A18463; /* Smaller shadow */
+  }
+  
+  /* Reduce font sizes and spacing in thread modules on mobile */
+  .thread-module h1,
+  .thread-module .thread-headline {
+    font-size: 1.5rem; /* Down from 2rem+ */
+    margin-bottom: 0.5rem;
+  }
+  
+  .thread-module h2 {
+    font-size: 1.25rem; /* Down from 1.5rem */
+    margin-bottom: 0.5rem;
+  }
+  
+  .thread-module h3 {
+    font-size: 1.1rem; /* Down from 1.25rem */
+    margin-bottom: 0.5rem;
+  }
+  
+  .thread-module p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+  }
+  
+  /* Reduce label sizes */
+  .thread-module .thread-label {
+    font-size: 0.65rem; /* Down from 0.75rem */
+    letter-spacing: 0.3px;
+  }
+  
+  /* Reduce divider spacing */
+  .thread-module .thread-divider {
+    margin: 1rem 0; /* Down from 1.5rem */
+  }
+  
+  /* Compact form elements in modules */
+  .thread-module input,
+  .thread-module select,
+  .thread-module textarea,
+  .thread-module .thread-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+  }
+  
+  /* Reduce internal spacing */
+  .thread-module > div {
+    padding: 0; /* Remove any extra internal padding */
+  }
+  
+  /* Compact list items */
+  .thread-module ul,
+  .thread-module ol {
+    padding-left: 1.25rem;
+  }
+  
+  .thread-module li {
+    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
   }
 }
 
 @media (max-width: 640px) {
   .thread-module {
-    min-width: 260px; /* Even smaller on very small screens */
+    min-width: unset;
+    max-width: 100%; /* Full width within site-main padding */
+    padding: 0.75rem; /* Even less padding on very small screens */
+    margin: 1.5rem 0; /* Vertical spacing only */
+    box-shadow: 1px 1px 0 #A18463; /* Minimal shadow */
+  }
+  
+  /* Extra compact profile tabs for very small screens */
+  .profile-tab-button {
+    padding: 0.5rem 0.75rem; /* Even more compact */
+    font-size: 0.85rem;
+    min-width: auto; /* Allow more compactness */
+  }
+  
+  .profile-tab-panel {
+    padding: 0.75rem; /* Match thread-module padding */
+  }
+  
+  .profile-tabs {
+    margin: 1.5rem 0; /* Full width on small screens, vertical spacing only */
+  }
+  
+  .thread-module h1,
+  .thread-module .thread-headline {
+    font-size: 1.25rem;
+  }
+  
+  .thread-module h2 {
+    font-size: 1.1rem;
+  }
+  
+  .thread-module h3 {
+    font-size: 1rem;
+  }
+  
+  .thread-module p {
+    font-size: 0.9rem;
+  }
+  
+  .thread-module .thread-label {
+    font-size: 0.6rem;
+  }
+  
+  .thread-module .thread-divider {
+    margin: 0.75rem 0;
   }
 }

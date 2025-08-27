@@ -91,7 +91,7 @@ export default function Directory() {
   return (
     <Layout>
       {/* Header */}
-      <div className="thread-module p-6 mb-6">
+      <div className="thread-module p-4 sm:p-5 md:p-6 mb-3 sm:mb-4 md:mb-6">
         <div className="mb-4">
           <h1 className="thread-headline text-3xl font-bold mb-2">{config.directory_title}</h1>
           <p className="text-thread-sage leading-relaxed">
@@ -108,7 +108,7 @@ export default function Directory() {
       </div>
 
       {/* Search and Filters */}
-      <div className="thread-module p-6 mb-6">
+      <div className="thread-module p-4 sm:p-5 md:p-6 mb-3 sm:mb-4 md:mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
@@ -148,14 +148,14 @@ export default function Directory() {
           <span className="thread-label">Loading residents…</span>
         </div>
       ) : error ? (
-        <div className="thread-module p-6">
+        <div className="thread-module p-4 sm:p-5 md:p-6">
           <div className="text-thread-sunset bg-red-50 border border-red-200 p-4 rounded-cozy">
             <span className="thread-label">error</span>
             <p className="mt-1">{error}</p>
           </div>
         </div>
       ) : users.length === 0 ? (
-        <div className="thread-module p-8 text-center">
+        <div className="thread-module p-4 sm:p-6 md:p-8 text-center">
           <h3 className="thread-headline text-lg mb-2">No residents found</h3>
           <p className="text-thread-sage">
             {searchQuery 

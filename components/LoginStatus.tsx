@@ -19,8 +19,8 @@ export default function LoginStatus() {
 
   if (!me.loggedIn) {
     return (
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-gray-600">visitor mode</span>
+      <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+        <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">visitor mode</span>
         <AuthenticationDropdown />
       </div>
     );

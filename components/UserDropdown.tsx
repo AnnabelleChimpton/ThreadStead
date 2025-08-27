@@ -36,7 +36,7 @@ export default function UserDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm text-thread-charcoal"
+        className="user-dropdown-trigger flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm text-thread-charcoal"
       >
         <span className="thread-label">{userDisplayName}</span>
         <span className="text-xs text-thread-sage">
@@ -45,16 +45,16 @@ export default function UserDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-48 border border-thread-sage bg-thread-paper shadow-cozy rounded z-50">
+        <div className="user-dropdown-menu absolute right-0 top-full mt-1 w-44 sm:w-48 border border-thread-sage bg-thread-paper shadow-cozy rounded z-50">
           <div className="p-2 border-b border-thread-sage bg-thread-cream">
             <div className="text-xs thread-label">signed in as</div>
-            <div className="font-medium text-thread-pine text-sm">{userDisplayName}</div>
+            <div className="font-medium text-thread-pine text-xs sm:text-sm overflow-hidden text-ellipsis">{userDisplayName}</div>
           </div>
           
           <div className="py-1">
             <Link
               href="/me"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-thread-charcoal hover:bg-thread-cream"
+              className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
               onClick={() => setIsOpen(false)}
             >
               <span>👤</span>
@@ -63,7 +63,7 @@ export default function UserDropdown() {
             
             <Link
               href="/settings"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-thread-charcoal hover:bg-thread-cream"
+              className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
               onClick={() => setIsOpen(false)}
             >
               <span>⚙️</span>
@@ -73,7 +73,7 @@ export default function UserDropdown() {
             {isAdmin && (
               <Link
                 href="/settings/admin"
-                className="flex items-center gap-2 px-3 py-2 text-sm text-thread-charcoal hover:bg-thread-cream"
+                className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
                 onClick={() => setIsOpen(false)}
               >
                 <span>⚙️</span>
@@ -88,7 +88,7 @@ export default function UserDropdown() {
                 setIsOpen(false);
                 logout();
               }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-thread-charcoal hover:bg-thread-cream text-left"
+              className="user-dropdown-item flex items-center gap-2 w-full px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream text-left"
             >
               <span>🚪</span>
               Log Out
