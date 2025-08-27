@@ -36,16 +36,42 @@ async function testSpecificUser() {
     console.log('  Created:', userMapping.created)
 
     // Get user details from database
+    console.log('')
+    console.log('👤 Looking up user in database...')
+    
     const user = await db.user.findUnique({
       where: { id: userMapping.userId },
-      select: { id: true, primaryHandle: true, createdAt: true }
+      select: { id: true, primaryHandle: true, createdAt: true, profile: { select: { displayName: true } } }
     })
 
     if (user) {
-      console.log('')
-      console.log('👤 User details:')
+      console.log('✅ User found in database:')
       console.log('  Handle:', user.primaryHandle || 'none')
+      console.log('  Display Name:', user.profile?.displayName || 'none')
       console.log('  Created:', user.createdAt)
+    } else {
+      console.log('❌ User not found in database with ID:', userMapping.userId)
+      console.log('   This suggests the user ID in the DID mapping doesn\'t match the database')
+      
+      // Try to find user by searching for chimpton
+      console.log('   🔍 Searching for chimpton...')
+      const chimptonUser = await db.user.findFirst({
+        where: {
+          OR: [
+            { primaryHandle: { contains: 'chimpton' } },
+            { profile: { displayName: { contains: 'chimpton' } } }
+          ]
+        },
+        select: { id: true, primaryHandle: true, createdAt: true, profile: { select: { displayName: true } } }
+      })
+      
+      if (chimptonUser) {
+        console.log('   ✅ Found chimpton user:')
+        console.log('     ID:', chimptonUser.id)
+        console.log('     Handle:', chimptonUser.primaryHandle)
+        console.log('     Display Name:', chimptonUser.profile?.displayName)
+        console.log('     Created:', chimptonUser.createdAt)
+      }
     }
 
     // Test RingHub authentication for this user
