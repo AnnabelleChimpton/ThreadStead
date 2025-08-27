@@ -787,12 +787,13 @@ export function shouldUseRingHub(): boolean {
 
 /**
  * Create a Ring Hub client with your specific credentials
+ * NOTE: Use environment variables instead of hardcoded values for production
  */
 export function createThreadSteadRingHubClient(): RingHubClient {
-  return new RingHubClient({
-    baseUrl: "https://ringhub.io",
-    instanceDID: "did:web:homepageagain.com",
-    privateKeyBase64Url: "UimoIIlEt_XaweDHW2sg4g26YuEjc2OYJL3ztbPZz0Y",
-    publicKeyMultibase: "z6Mkge2qRL1zoZdrD4XjUjjrF4vQpheVopXu1Fc3j36pooTY"
-  })
+  // Use environment variables to match DID document
+  const client = RingHubClient.fromEnvironment();
+  if (!client) {
+    throw new Error('Ring Hub not configured - missing environment variables');
+  }
+  return client;
 }

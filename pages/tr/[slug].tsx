@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Layout from "../../components/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
@@ -292,12 +293,12 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
               <p className="text-sm text-gray-600 mt-1">Visualize the entire ThreadRing ecosystem</p>
             </div>
             
-            <button 
-              onClick={() => window.location.href = '/threadrings/genealogy'}
-              className="w-full border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+            <Link 
+              href="/threadrings/genealogy"
+              className="block w-full text-center border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
             >
               🌳 Explore Family Tree
-            </button>
+            </Link>
           </div>
 
           {/* Community Discovery */}
