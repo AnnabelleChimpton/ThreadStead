@@ -194,10 +194,7 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async
   // Get current user to check if they're an admin
   const currentUser = await getSessionUser(req as any)
   
-  // Check if ThreadRings feature is enabled (or user is admin)
-  if (!featureFlags.threadrings(currentUser)) {
-    return { notFound: true }
-  }
+  // ThreadRings are now always enabled
 
   const usernameParam = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "")
   

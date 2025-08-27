@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to HomePageAgain Beta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles matching your site's retro aesthetic */
+        .thread-module {
+            background-color: white;
+            border: 2px solid #000000;
+            box-shadow: 4px 4px 0 #000000;
+        }
+        
+        .thread-headline {
+            color: #1f2937;
+        }
+        
+        .retro-button {
+            border: 2px solid #000000;
+            box-shadow: 2px 2px 0 #000000;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .retro-button:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0 #000000;
+            text-decoration: none;
+        }
+        
+        .feature-card {
+            border: 1px solid #d1d5db;
+            background-color: #f9fafb;
+        }
+        
+        body {
+            background-color: #fef7ed;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-orange-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Hero Section -->
+        <section class="thread-module p-8 mb-8 text-center">
+            <div class="text-6xl mb-6">🏠</div>
+            <h1 class="thread-headline text-4xl font-bold mb-6">
+                Welcome to the beta of HomePageAgain
+            </h1>
+            <p class="text-xl text-gray-700 mb-4 leading-relaxed">
+                I'm so excited you're here.
+            </p>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                This project is still in early development, but several features are ready for you to explore.
+            </p>
+        </section>
+
+        <!-- Features Section -->
+        <section class="thread-module p-6 mb-8">
+            <h2 class="thread-headline text-2xl font-bold mb-6 text-center"> Ready to Explore</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="feature-card p-4 rounded">
+                    <h3 class="font-bold text-lg mb-2">Posting blogs</h3>
+                    <p class="text-gray-600 text-sm">Share your thoughts and stories with the community.</p>
+                </div>
+                
+                <div class="feature-card p-4 rounded">
+                    <h3 class="font-bold text-lg mb-2">Social features</h3>
+                    <p class="text-gray-600 text-sm">Following, commenting, signing guestbooks, becoming friends (yes, there's a Top 8)</p>
+                </div>
+                
+                <div class="feature-card p-4 rounded">
+                    <h3 class="font-bold text-lg mb-2">Personal page customization</h3>
+                    <p class="text-gray-600 text-sm">Make your profile uniquely yours with custom CSS and design.</p>
+                </div>
+                
+                <div class="feature-card p-4 rounded">
+                    <h3 class="font-bold text-lg mb-2">ThreadRings</h3>
+                    <p class="text-gray-600 text-sm">Join communities that can evolve and fork into new directions.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Getting Started Section -->
+        <section class="thread-module p-6 mb-8">
+            <h2 class="thread-headline text-2xl font-bold mb-4 text-center">Not sure where to begin?</h2>
+            <p class="text-gray-700 text-center mb-6">
+                We've got you covered with comprehensive guides to help you get started.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/getting-started" class="retro-button bg-blue-200 hover:bg-blue-100 px-6 py-3 font-medium text-center">
+                    Getting Started Guide
+                </a>
+                <a href="/design-css-tutorial" class="retro-button bg-purple-200 hover:bg-purple-100 px-6 py-3 font-medium text-center">
+                    Design Documentation
+                </a>
+            </div>
+        </section>
+
+        <!-- Personal Message Section -->
+        <section class="thread-module p-6 mb-8">
+            <h2 class="thread-headline text-2xl font-bold mb-4 text-center">A Personal Note</h2>
+            <div class="max-w-2xl mx-auto text-center">
+                <p class="text-gray-700 mb-4 leading-relaxed">
+                    This is a passion project, built in every bit of free time I can muster. I'm a one-woman team 
+                    trying to bring back the kind of social internet we all miss—and your feedback means the world to me.
+                </p>
+            </div>
+        </section>
+
+        <!-- Beta Key Request Section -->
+        <section class="thread-module p-6 mb-8">
+            <h2 class="thread-headline text-2xl font-bold mb-4 text-center">Need Beta Access?</h2>
+            <div class="text-center">
+                <p class="text-gray-700 mb-6 max-w-2xl mx-auto leading-relaxed">
+                    Don't have access yet? Request a beta key to join the HomePageAgain community and help shape the future of social internet.
+                </p>
+                <a href="https://forms.gle/SRusBTEhcEaJiSJB6" target="_blank" class="retro-button bg-indigo-200 hover:bg-indigo-100 px-8 py-4 font-bold text-lg">
+                    Request Beta Key
+                </a>
+                <p class="text-sm text-gray-500 mt-3">
+                    Beta access form • Join the community
+                </p>
+            </div>
+        </section>
+
+        <!-- Feedback Section -->
+        <section class="thread-module p-6 mb-8">
+            <h2 class="thread-headline text-2xl font-bold mb-4 text-center">Your Voice Matters</h2>
+            <div class="text-center">
+                <p class="text-gray-700 mb-6 max-w-2xl mx-auto leading-relaxed">
+                    You can use this Google form to anonymously share bugs, feature ideas, or anything that feels confusing or unintuitive. 
+                    I'll do my best to keep improving.
+                </p>
+                <a href="https://forms.gle/cNJssqoKs9yJTspG6" class="retro-button bg-green-200 hover:bg-green-100 px-8 py-4 font-bold text-lg">
+                    Share Feedback
+                </a>
+                <p class="text-sm text-gray-500 mt-3">
+                    Anonymous feedback form • Help shape the future of HomePageAgain
+                </p>
+            </div>
+        </section>
+
+        <!-- Call to Action -->
+        <section class="thread-module p-8 text-center">
+            <h2 class="thread-headline text-3xl font-bold mb-4">Ready to dive in?</h2>
+            <p class="text-gray-600 mb-6">
+                Join the community and start exploring what HomePageAgain has to offer.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/onboarding" class="retro-button bg-yellow-200 hover:bg-yellow-100 px-8 py-4 font-bold text-lg">
+                    Create Your Profile
+                </a>
+                <a href="/feed" class="retro-button bg-orange-200 hover:bg-orange-100 px-8 py-4 font-bold text-lg">
+                    Explore the Community
+                </a>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-sm mt-8">
+            <p>Built with ❤️ for the community • HomePageAgain Beta</p>
+        </footer>
+    </div>
+</body>
+</html>

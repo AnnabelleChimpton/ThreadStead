@@ -5,7 +5,6 @@ import Layout from "@/components/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { markdownToSafeHtml } from "@/lib/sanitize";
 import Preview from "@/components/forms/PreviewForm";
-import { featureFlags } from "@/lib/feature-flags";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { validatePostTitle } from "@/lib/validation";
@@ -791,7 +790,6 @@ code block
             )}
 
             {/* ThreadRing Selection */}
-            {featureFlags.threadrings(currentUser) && (
             <div className="mt-6 border border-black p-4 bg-gradient-to-r from-blue-50 to-purple-50">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">🔗</span>
@@ -906,7 +904,6 @@ code block
                   </div>
                 )}
               </div>
-            )}
           </div>
 
           {/* Action Buttons */}

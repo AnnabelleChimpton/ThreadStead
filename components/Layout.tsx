@@ -6,7 +6,6 @@ import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
 import { useMe } from "@/hooks/useMe";
-import { featureFlags } from "@/lib/feature-flags";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -150,7 +149,7 @@ export default function Layout({ children, siteConfig, fullWidth = false }: Layo
               ))}
               
               {/* Discovery dropdown - show only if there are items */}
-              {(discoveryPages.length > 0 || featureFlags.threadrings(me?.user)) && (
+              {(discoveryPages.length > 0 || true) && (
                 <DropdownMenu 
                   title="Discovery"
                   dropdownKey="discovery"
@@ -159,8 +158,8 @@ export default function Layout({ children, siteConfig, fullWidth = false }: Layo
                   items={[
                     { href: "/feed", label: "Feed" },
                     { href: "/directory", label: "Directory" },
-                    ...(featureFlags.threadrings(me?.user) ? [{ href: "/threadrings", label: "ThreadRings" }] : []),
-                    ...(featureFlags.threadrings(me?.user) ? [{ href: "/threadrings/spool", label: "The Spool" }] : []),
+                    { href: "/threadrings", label: "ThreadRings" },
+                    { href: "/tr/spool", label: "The Spool" },
                     ...discoveryPages.map(page => ({
                       href: `/page/${page.slug}`,
                       label: page.title

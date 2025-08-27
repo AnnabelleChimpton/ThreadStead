@@ -4,8 +4,6 @@ import ThreadRingCard from "../../components/ThreadRingCard";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
-import { featureFlags } from "@/lib/feature-flags";
-import { getSessionUser } from "@/lib/auth-server";
 
 interface ThreadRingsPageProps {
   siteConfig: SiteConfig;
@@ -158,14 +156,12 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
               </p>
             </div>
             <div className="flex gap-2">
-              {featureFlags.threadrings() && (
-                <Link
-                  href="/threadrings/genealogy"
-                  className="border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
-                >
-                  🌳 Genealogy
-                </Link>
-              )}
+              <Link
+                href="/threadrings/genealogy"
+                className="border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+              >
+                🌳 Genealogy
+              </Link>
               <Link
                 href="/tr/spool/fork"
                 className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
@@ -262,15 +258,6 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  // Get current user for feature flag check
-  const user = await getSessionUser(context.req as any);
-  
-  if (!featureFlags.threadrings(user)) {
-    return {
-      notFound: true,
-    };
-  }
-
   const siteConfig = await getSiteConfig();
   
   return {

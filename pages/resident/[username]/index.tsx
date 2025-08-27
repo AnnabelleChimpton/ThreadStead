@@ -178,9 +178,7 @@ export default function ProfilePage({
   */
 
   // const tabs: TabSpec[] = [...baseTabs, ...pluginTabs];
-  const tabs: TabSpec[] = featureFlags.threadrings(currentUser) 
-    ? baseTabs 
-    : baseTabs.filter(tab => tab.id !== 'badges');
+  const tabs: TabSpec[] = baseTabs;
 
   return (
     <ProfileLayout 

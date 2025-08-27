@@ -654,7 +654,7 @@ export default function ProfileEditPage({
             </div>
           )}
 
-          <Tabs tabs={featureFlags.threadrings(currentUser) ? editTabs : editTabs.filter(tab => tab.id !== 'badges')} initialId="profile" />
+          <Tabs tabs={editTabs} initialId="profile" />
         </RetroCard>
       </Layout>
     </>

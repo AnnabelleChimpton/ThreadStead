@@ -5,7 +5,7 @@ import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../forms/NewCommentForm";
 import ThreadRingBadge from "../ThreadRingBadge";
 import PostHeader from "../PostHeader";
-import { featureFlags, UserWithRole } from "@/lib/feature-flags";
+import { UserWithRole } from "@/lib/feature-flags";
 import PostModerationActions from "../PostModerationActions";
 import { useModerationPermissions } from "../../hooks/useModerationPermissions";
 import { PostModerationAction, PostModerationStatus, ThreadRingRole } from "@/types/threadrings";
@@ -522,7 +522,7 @@ const countLabel = hasServerCount
             )}
             
             {/* ThreadRing badges */}
-            {featureFlags.threadrings(currentUser) && post.threadRings && post.threadRings.length > 0 && (
+            {post.threadRings && post.threadRings.length > 0 && (
               <div className="mt-3 pt-2 border-t border-gray-200">
                 <div className="flex flex-wrap gap-2 items-center">
                   <span className="text-xs text-gray-600 font-medium">Posted to:</span>

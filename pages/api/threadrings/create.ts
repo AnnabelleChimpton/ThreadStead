@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
-import { featureFlags } from "@/lib/feature-flags";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
 import { uploadBadgeImage } from "@/lib/badge-uploader";
 import { withThreadRingSupport } from "@/lib/ringhub-middleware";
@@ -18,9 +17,6 @@ export default withThreadRingSupport(async function handler(
   res: NextApiResponse,
   system: 'ringhub' | 'local'
 ) {
-  if (!featureFlags.threadrings()) {
-    return res.status(404).json({ error: "Feature not available" });
-  }
 
   try {
     console.log("ThreadRing create API called");

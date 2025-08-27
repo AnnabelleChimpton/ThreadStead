@@ -30,7 +30,7 @@ export function shouldUseRingHub(): boolean {
  * During migration, some operations might need to fall back to local
  */
 export function shouldUseLocalThreadRings(): boolean {
-  return featureFlags.threadrings() && !featureFlags.ringhub();
+  return !featureFlags.ringhub();
 }
 
 /**
@@ -41,10 +41,8 @@ export function getThreadRingSystem(user?: any): 'ringhub' | 'local' | 'none' {
   if (featureFlags.ringhub()) {
     return 'ringhub';
   }
-  if (featureFlags.threadrings(user)) {
-    return 'local';
-  }
-  return 'none';
+  // ThreadRings are now always enabled locally
+  return 'local';
 }
 
 /**

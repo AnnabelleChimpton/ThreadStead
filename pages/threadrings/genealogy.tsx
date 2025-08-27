@@ -1,11 +1,9 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { GetServerSideProps } from 'next';
-import { featureFlags } from '@/lib/feature-flags';
 import ThreadRingGenealogy from '@/components/ThreadRingGenealogy';
 import Layout from '@/components/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/get-site-config';
-import { getSessionUser } from '@/lib/auth-server';
 
 interface GenealogyPageProps {
   siteConfig: SiteConfig;
@@ -77,16 +75,6 @@ export default function GenealogyPage({ siteConfig }: GenealogyPageProps) {
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  // Get current user for feature flag check
-  const user = await getSessionUser(context.req as any);
-  
-  // Check if ThreadRings feature is enabled for this user
-  if (!featureFlags.threadrings(user)) {
-    return {
-      notFound: true,
-    };
-  }
-
   const siteConfig = await getSiteConfig();
 
   return {

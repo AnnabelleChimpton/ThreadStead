@@ -704,8 +704,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     );
   }
 
-  // Check if this is The Spool and feature flag is enabled
-  if (ring.isSystemRing && featureFlags.threadrings()) {
+  // Check if this is The Spool
+  if (ring.isSystemRing) {
     return <SpoolLandingPage ring={ring} siteConfig={siteConfig} />;
   }
 
@@ -780,7 +780,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           />
 
           {/* Feed Scope Selector */}
-          {featureFlags.threadrings() && (ring.parentId || (lineageData.directChildrenCount || ring.directChildrenCount || 0) > 0) && (
+          {(ring.parentId || (lineageData.directChildrenCount || ring.directChildrenCount || 0) > 0) && (
             <ThreadRingFeedScope
               threadRingSlug={ring.slug}
               hasParent={!!ring.parentId}
@@ -1036,7 +1036,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           )}
 
           {/* Random Member Discovery */}
-          {featureFlags.threadrings() && ring.memberCount > 1 && (
+          {ring.memberCount > 1 && (
             <div className="border border-black bg-white shadow-[2px_2px_0_#000]">
               <button
                 onClick={() => setDiscoveryCollapsed(!discoveryCollapsed)}
