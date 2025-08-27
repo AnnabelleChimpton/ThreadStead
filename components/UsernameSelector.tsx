@@ -45,7 +45,8 @@ export default function UsernameSelector({
   const [showFullTerms, setShowFullTerms] = useState(false);
   const [showFullPrivacy, setShowFullPrivacy] = useState(false);
 
-  const isValidFormat = /^[a-z0-9\-_.]{3,20}$/.test(username);
+  // Basic client-side validation (server will do full validation)
+  const isValidFormat = username.length >= 3 && username.length <= 32 && /^[a-z][a-z0-9_-]*$/.test(username);
   
   // Beta key format validation
   function isValidBetaKeyFormat(key: string): boolean {
@@ -194,7 +195,7 @@ export default function UsernameSelector({
 
   const getStatusMessage = () => {
     if (!username) return null;
-    if (!isValidFormat) return <span className="text-red-600 text-xs">Use 3–20 chars: a–z, 0–9, - _ .</span>;
+    if (!isValidFormat) return <span className="text-red-600 text-xs">Use 3–32 chars: start with letter, then a–z, 0–9, - _</span>;
     if (isChecking) return <span className="text-gray-500 text-xs">Checking availability...</span>;
     if (error) return <span className="text-red-600 text-xs">{error}</span>;
     if (isAvailable === true) return <span className="text-green-600 text-xs">Username is available!</span>;
@@ -224,7 +225,7 @@ export default function UsernameSelector({
                 placeholder="yourname"
                 className="border border-black p-2 bg-white w-full pr-8"
                 disabled={isLoading}
-                maxLength={20}
+                maxLength={32}
               />
               <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
                 {getStatusIcon()}

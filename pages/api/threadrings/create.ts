@@ -6,18 +6,12 @@ import { generateThreadRingBadge } from "@/lib/badge-generator";
 import { uploadBadgeImage } from "@/lib/badge-uploader";
 import { withThreadRingSupport } from "@/lib/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { validateThreadRingName, generateThreadRingSlug } from "@/lib/validation";
 
 // Temporarily use string literals instead of Prisma types
 type ThreadRingJoinType = "open" | "invite" | "closed";
 type ThreadRingVisibility = "public" | "unlisted" | "private";
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest,
@@ -60,8 +54,17 @@ export default withThreadRingSupport(async function handler(
     return res.status(400).json({ error: "name is required" });
   }
 
+  // Validate ThreadRing name
+  const nameValidation = validateThreadRingName(name.trim());
+  if (!nameValidation.ok) {
+    return res.status(400).json({ 
+      error: nameValidation.message, 
+      code: nameValidation.code 
+    });
+  }
+
   // Generate or validate slug
-  const finalSlug = slug?.trim() || slugify(name.trim());
+  const finalSlug = slug?.trim() || generateThreadRingSlug(nameValidation.normalized);
   if (!finalSlug) {
     return res.status(400).json({ error: "Invalid name for slug generation" });
   }

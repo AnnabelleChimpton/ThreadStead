@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 
 import { getSessionUser } from "@/lib/auth-server";
 import { SITE_NAME } from "@/lib/site-config";
+import { getUserBlockedIds, addBlockFiltersToWhere } from "@/lib/user-blocks";
 
 
 
@@ -41,8 +42,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (isFriend) allowed.add("friends");
   }
 
+  // Get blocked users/ThreadRings for the viewer (if logged in)
+  let blockedUserIds: string[] = [];
+  let blockedThreadRingIds: string[] = [];
+  
+  if (viewer) {
+    const blockData = await getUserBlockedIds(viewer.id);
+    blockedUserIds = blockData.blockedUserIds;
+    blockedThreadRingIds = blockData.blockedThreadRingIds;
+  }
+
+  // Build the where clause with block filters
+  let whereClause: any = { 
+    authorId, 
+    visibility: { in: Array.from(allowed) as any } 
+  };
+
+  // Apply block filters if viewer is logged in
+  if (viewer) {
+    whereClause = addBlockFiltersToWhere(whereClause, blockedUserIds, blockedThreadRingIds);
+  }
+
   const posts = await db.post.findMany({
-    where: { authorId, visibility: { in: Array.from(allowed) as any } },
+    where: whereClause,
     orderBy: { createdAt: "desc" },
     take: 20,
     include: {

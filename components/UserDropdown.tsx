@@ -79,6 +79,15 @@ export default function UserDropdown() {
               Edit Profile
             </Link>
             
+            <Link
+              href="/settings/blocks"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-thread-charcoal hover:bg-thread-cream"
+              onClick={() => setIsOpen(false)}
+            >
+              <span>🚫</span>
+              Blocked Users
+            </Link>
+            
             {isAdmin && (
               <Link
                 href="/settings/admin"

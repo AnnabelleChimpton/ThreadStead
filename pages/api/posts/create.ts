@@ -6,6 +6,7 @@ import { getSessionUser } from "@/lib/auth-server";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import { featureFlags } from "@/lib/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { validatePostTitle } from "@/lib/validation";
 
 /**
  * Generate a text preview from post content (max 300 chars for Ring Hub)
@@ -94,6 +95,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "bodyText, bodyHtml, or bodyMarkdown required" });
   }
 
+  // Validate post title if provided
+  const finalTitle = title || "Untitled Post";
+  const titleValidation = validatePostTitle(finalTitle);
+  if (!titleValidation.ok) {
+    return res.status(400).json({ 
+      error: titleValidation.message, 
+      code: titleValidation.code 
+    });
+  }
+
   let safeHtml: string | null = null;
   if (typeof bodyMarkdown === "string") {
     safeHtml = markdownToSafeHtml(bodyMarkdown); // Convert markdown to HTML for preview
@@ -114,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const post = await db.post.create({
     data: {
       authorId: viewer.id,
-      title: title || "Untitled Post", // Title is now required
+      title: titleValidation.normalized, // Use validated title
       intent: intent ?? null,
       bodyText: bodyText ?? null,
       bodyHtml: safeHtml,

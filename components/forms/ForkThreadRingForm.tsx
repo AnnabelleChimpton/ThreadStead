@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import BadgeSelector from "../BadgeSelector";
 import Toast from "../Toast";
 import { useToast } from "../../hooks/useToast";
+import { validateThreadRingName } from "@/lib/validation";
 
 interface ForkThreadRingFormProps {
   originalRing: {
@@ -43,6 +44,7 @@ export default function ForkThreadRingForm({
   });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   
   // Toast notifications
@@ -221,6 +223,13 @@ export default function ForkThreadRingForm({
       return;
     }
 
+    // Validate ThreadRing name for offensive content
+    const nameValidation = validateThreadRingName(formData.name.trim());
+    if (!nameValidation.ok) {
+      setError(nameValidation.message);
+      return;
+    }
+
     if (!slugStatus.isValid || slugStatus.isAvailable === false) {
       setError("Please fix the slug issues before submitting");
       return;
@@ -273,6 +282,10 @@ export default function ForkThreadRingForm({
 
   const handleChange = (field: string, value: string) => {
     if (field === 'name') {
+      // Validate name for offensive content
+      const nameValidation = validateThreadRingName(value.trim());
+      setNameError(nameValidation.ok ? null : nameValidation.message);
+      
       // Always auto-generate slug from name when name changes
       const newSlug = generateSlugFromName(value);
       setFormData(prev => ({ 
@@ -311,11 +324,16 @@ export default function ForkThreadRingForm({
             id="name"
             value={formData.name}
             onChange={(e) => handleChange("name", e.target.value)}
-            className="w-full border border-black p-3 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000]"
+            className={`w-full border p-3 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000] ${
+              nameError ? 'border-red-500' : 'border-black'
+            }`}
             placeholder="My Awesome ThreadRing"
             maxLength={100}
             required
           />
+          {nameError && (
+            <div className="text-red-600 text-sm mt-1">{nameError}</div>
+          )}
           <div className="text-xs text-gray-600 mt-1">
             {formData.name.length}/100 characters
           </div>
@@ -447,7 +465,7 @@ export default function ForkThreadRingForm({
         <div className="flex gap-3 pt-4">
           <button
             type="submit"
-            disabled={creating}
+            disabled={creating || !!nameError}
             className="flex-1 border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
             {creating ? "Creating Fork..." : "Create Fork"}

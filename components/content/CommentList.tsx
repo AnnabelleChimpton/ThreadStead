@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import NewCommentForm from "../forms/NewCommentForm";
 import CompactBadgeDisplay from "../CompactBadgeDisplay";
+import ReportButton from "../ReportButton";
 
 export type CommentWire = {
   id: string;
@@ -269,6 +270,19 @@ export default function CommentList({
                   {removing === comment.id ? "Deleting…" : "🛡️ Delete"}
                 </button>
               )}
+              
+              {/* Report Button - show for non-owners */}
+              {!isOwner && comment.author?.id && (
+                <div className="ml-2">
+                  <ReportButton
+                    reportType="comment"
+                    targetId={comment.id}
+                    reportedUserId={comment.author.id}
+                    contentPreview={comment.content.length > 100 ? comment.content.substring(0, 100) + "..." : comment.content}
+                    size="small"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Mobile action buttons */}
@@ -303,6 +317,18 @@ export default function CommentList({
                   >
                     {removing === comment.id ? "Deleting…" : "🛡️ Delete"}
                   </button>
+                )}
+                
+                {/* Report Button - mobile version */}
+                {!isOwner && comment.author?.id && (
+                  <ReportButton
+                    reportType="comment"
+                    targetId={comment.id}
+                    reportedUserId={comment.author.id}
+                    contentPreview={comment.content.length > 100 ? comment.content.substring(0, 100) + "..." : comment.content}
+                    size="small"
+                    className="comment-button"
+                  />
                 )}
               </div>
             </div>

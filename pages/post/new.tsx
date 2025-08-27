@@ -8,6 +8,7 @@ import Preview from "@/components/forms/PreviewForm";
 import { featureFlags } from "@/lib/feature-flags";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { validatePostTitle } from "@/lib/validation";
 
 interface PostEditorPageProps {
   siteConfig: SiteConfig;
@@ -72,6 +73,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -90,6 +92,28 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
   // Site config for intent stamps
   const [intentStampsEnabled, setIntentStampsEnabled] = useState(true);
   const [postTitlesRequired, setPostTitlesRequired] = useState(true);
+  
+  // Comprehensive client-side title validation
+  const validateTitle = (titleText: string) => {
+    if (!titleText && postTitlesRequired) {
+      return "Post title is required";
+    }
+    
+    if (titleText) {
+      // Use our comprehensive validation system
+      const validation = validatePostTitle(titleText);
+      if (!validation.ok) {
+        return validation.message;
+      }
+    }
+    
+    return null;
+  };
+  
+  // Validate title when it changes
+  React.useEffect(() => {
+    setTitleError(validateTitle(title));
+  }, [title, postTitlesRequired]);
   
   const previewHtml = useMemo(() => {
     if (!content.trim()) return "<p class='opacity-60'>(Nothing to preview)</p>";
@@ -634,13 +658,19 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
               
               <input
                 type="text"
-                className="w-full border border-black p-3 text-lg font-semibold"
+                className={`w-full border p-3 text-lg font-semibold ${
+                  titleError ? 'border-red-500' : 'border-black'
+                }`}
                 placeholder={postTitlesRequired ? "Post title (required)" : "Post title (optional)"}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 disabled={busy}
                 required={postTitlesRequired}
+                maxLength={200}
               />
+              {titleError && (
+                <div className="text-red-600 text-sm mt-1">{titleError}</div>
+              )}
             </div>
 
             {activeTab === "write" ? (

@@ -42,6 +42,11 @@ model User {
   threadRingInvitesReceived ThreadRingInvite[] @relation("ThreadRingInvitationsReceived")
   threadRingInvitesSent     ThreadRingInvite[] @relation("ThreadRingInvitationsSent")
   threadRingMemberships     ThreadRingMember[] @relation("ThreadRingMemberships")
+  reportsCreated            UserReport[]       @relation("UserReportsCreated")
+  reportsReceived           UserReport[]       @relation("UserReportsReceived") 
+  reportsReviewed           UserReport[]       @relation("UserReportsReviewed")
+  blocksCreated             UserBlock[]        @relation("UserBlocksCreated")
+  blocksReceived            UserBlock[]        @relation("UserBlocksReceived")
 }
 
 model Handle {
@@ -310,6 +315,7 @@ model ThreadRing {
   children              ThreadRing[]         @relation("ThreadRingHierarchy")
   badge                 ThreadRingBadge?
   blocks                ThreadRingBlock[]    @relation("ThreadRingBlocks")
+  userBlocks            UserBlock[]          @relation("UserBlockedThreadRings")
   childFork             ThreadRingFork?      @relation("ThreadRingChild")
   parentForks           ThreadRingFork[]     @relation("ThreadRingParent")
   invites               ThreadRingInvite[]
@@ -446,6 +452,50 @@ model RingHubOwnership {
   @@index([serverDID])
 }
 
+model UserReport {
+  id              String       @id @default(cuid())
+  reporterId      String
+  reportedUserId  String?
+  reportType      ReportType
+  targetId        String       // ID of the reported content (post, comment, etc.)
+  reason          ReportReason
+  customReason    String?
+  description     String?
+  status          ReportStatus @default(pending)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  resolution      String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  reporter        User         @relation("UserReportsCreated", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser    User?        @relation("UserReportsReceived", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reviewer        User?        @relation("UserReportsReviewed", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([status, createdAt])
+  @@index([targetId, reportType])
+  @@index([reviewedBy])
+}
+
+model UserBlock {
+  id                  String      @id @default(cuid())
+  blockerId           String
+  blockedUserId       String?
+  blockedThreadRingId String?
+  reason              String?
+  createdAt           DateTime    @default(now())
+  blocker             User        @relation("UserBlocksCreated", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser         User?       @relation("UserBlocksReceived", fields: [blockedUserId], references: [id], onDelete: Cascade)
+  blockedThreadRing   ThreadRing? @relation("UserBlockedThreadRings", fields: [blockedThreadRingId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@unique([blockerId, blockedThreadRingId])
+  @@index([blockerId])
+  @@index([blockedUserId])
+  @@index([blockedThreadRingId])
+}
+
 enum Visibility {
   public
   followers
@@ -546,4 +596,31 @@ enum ThreadRingBlockType {
   user
   instance
   actor
+}
+
+enum ReportType {
+  user
+  post
+  comment
+  threadring
+  guestbook_entry
+  photo_comment
+}
+
+enum ReportStatus {
+  pending
+  reviewed
+  resolved
+  dismissed
+}
+
+enum ReportReason {
+  spam
+  harassment
+  hate_speech
+  violence
+  misinformation
+  sexual_content
+  copyright
+  other
 }

@@ -1,7 +1,7 @@
 // pages/api/account/claim-handle.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-
+import { validateUsername } from "@/lib/validation";
 import { getSessionUser } from "@/lib/auth-server";
 import { SITE_NAME } from "@/lib/site-config";
 
@@ -15,8 +15,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!user) return res.status(401).json({ error: "not logged in" });
 
   const { handle } = req.body || {};
-  if (typeof handle !== "string" || !/^[a-z0-9\-_.]{3,20}$/.test(handle)) {
-    return res.status(400).json({ error: "invalid handle" });
+  if (typeof handle !== "string") {
+    return res.status(400).json({ error: "handle must be a string" });
+  }
+
+  const validation = validateUsername(handle);
+  if (!validation.ok) {
+    return res.status(400).json({ 
+      error: validation.message, 
+      code: validation.code 
+    });
   }
 
   // Ensure it's free on this host

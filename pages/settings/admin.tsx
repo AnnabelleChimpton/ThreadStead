@@ -4,6 +4,8 @@ import RetroCard from "@/components/layout/RetroCard";
 import { useMe } from "@/hooks/useMe";
 import { getSiteTemplate, SITE_TEMPLATE_INFO } from "@/lib/site-css-templates";
 import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO } from "@/lib/default-profile-templates";
+import ReportsSection from "@/components/admin/ReportsSection";
+import PostsSection from "@/components/admin/PostsSection";
 
 // Collapsible Section Component
 function CollapsibleSection({ 
@@ -1551,6 +1553,12 @@ We collect information you provide when creating an account..."
               </div>
             )}
           </div>
+        </CollapsibleSection>
+
+        {/* CONTENT MODERATION */}
+        <CollapsibleSection title="Content Moderation" defaultOpen={false} icon="🛡️">
+          <ReportsSection />
+          <PostsSection />
         </CollapsibleSection>
 
         {/* USER & ACCESS MANAGEMENT */}

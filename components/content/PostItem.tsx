@@ -9,6 +9,8 @@ import { featureFlags, UserWithRole } from "@/lib/feature-flags";
 import PostModerationActions from "../PostModerationActions";
 import { useModerationPermissions } from "../../hooks/useModerationPermissions";
 import { PostModerationAction, PostModerationStatus, ThreadRingRole } from "@/types/threadrings";
+import ReportButton from "../ReportButton";
+import PostActionsDropdown from "./PostActionsDropdown";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -342,54 +344,27 @@ const countLabel = hasServerCount
         <div className="blog-post-actions flex items-center gap-2">
           {!editing ? (
             <>
-              {isOwner && (
-                <>
-                  <button
-                    className="profile-button blog-post-edit-button border border-black px-2 py-0.5 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] text-xs"
-                    onClick={() => setEditing(true)}
-                    disabled={busy}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="profile-button blog-post-delete-button border border-black px-2 py-0.5 bg-white hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs"
-                    onClick={remove}
-                    disabled={busy}
-                  >
-                    Delete
-                  </button>
-                </>
-              )}
-              {isAdmin && !isOwner && (
-                <button
-                  className="profile-button admin-delete-button border border-black px-2 py-0.5 bg-red-200 hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs"
-                  onClick={adminDelete}
-                  disabled={busy}
-                  title="Admin: Delete post"
-                >
-                  🛡️ Delete
-                </button>
-              )}
-              {threadRingContext && canModerateRing && (
-                <>
-                  <button
-                    className="profile-button ring-moderate-button border border-black px-2 py-0.5 bg-purple-100 hover:bg-purple-200 shadow-[2px_2px_0_#000] text-xs"
-                    onClick={handlePinToggle}
-                    disabled={busy}
-                    title={post.isPinned ? "Unpin post" : "Pin post"}
-                  >
-                    {post.isPinned ? "Unpin" : "Pin"}
-                  </button>
-                  <button
-                    className="profile-button ring-moderate-button border border-black px-2 py-0.5 bg-orange-100 hover:bg-orange-200 shadow-[2px_2px_0_#000] text-xs"
-                    onClick={handleRemoveFromRing}
-                    disabled={busy}
-                    title="Remove from ThreadRing"
-                  >
-                    Remove
-                  </button>
-                </>
-              )}
+              {/* Check if this is a fork notification - if so, don't show actions dropdown */}
+              {(() => {
+                const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
+                                          (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
+                
+                return !isForkNotification && (
+                  <PostActionsDropdown
+                    post={post}
+                    isOwner={isOwner}
+                    isAdmin={isAdmin}
+                    busy={busy}
+                    threadRingContext={threadRingContext}
+                    canModerateRing={canModerateRing}
+                    onEdit={() => setEditing(true)}
+                    onDelete={remove}
+                    onAdminDelete={adminDelete}
+                    onPinToggle={handlePinToggle}
+                    onRemoveFromRing={handleRemoveFromRing}
+                  />
+                );
+              })()}
             </>
           ) : (
             <>
