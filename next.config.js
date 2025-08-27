@@ -7,9 +7,15 @@ const nextConfig = {
     domains: ['cdn.homepageagain.com'],
   },
   
-  // Rewrite user DID document paths to API routes
+  // Rewrite DID document paths to API routes
   async rewrites() {
     return [
+      // Server DID document
+      {
+        source: '/.well-known/did.json',
+        destination: '/api/.well-known/did.json',
+      },
+      // User DID documents
       {
         source: '/users/:hash/did.json',
         destination: '/api/did/:hash/document',
