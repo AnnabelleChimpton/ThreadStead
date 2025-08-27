@@ -2,9 +2,10 @@
 
 /**
  * Script to safely update a user's handle
- * Usage: npx tsx scripts/update-user-handle.ts <user-id> <new-handle> [new-display-name]
+ * Usage: npx tsx scripts/update-user-handle.ts <user-id-or-handle> <new-handle> [new-display-name]
  * 
  * This script:
+ * - Finds user by ID or current handle
  * - Validates the new handle format
  * - Checks handle availability 
  * - Updates User.primaryHandle, Handle records, and optionally Profile.displayName
@@ -15,9 +16,9 @@ import { db } from '../lib/db';
 import { validateUsername } from '../lib/validation';
 import { SITE_NAME } from '../lib/site-config';
 
-async function updateUserHandle(userId: string, newHandle: string, newDisplayName?: string) {
+async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDisplayName?: string) {
   console.log('🔄 Starting user handle update...');
-  console.log(`   User ID: ${userId}`);
+  console.log(`   User ID or Handle: ${userIdOrHandle}`);
   console.log(`   New Handle: ${newHandle}`);
   if (newDisplayName) console.log(`   New Display Name: ${newDisplayName}`);
   console.log(`   Host: ${SITE_NAME}`);
@@ -26,8 +27,8 @@ async function updateUserHandle(userId: string, newHandle: string, newDisplayNam
   // Step 1: Validate inputs
   console.log('📋 Validating inputs...');
   
-  if (!userId || typeof userId !== 'string') {
-    throw new Error('Invalid user ID provided');
+  if (!userIdOrHandle || typeof userIdOrHandle !== 'string') {
+    throw new Error('Invalid user ID or handle provided');
   }
 
   const validation = validateUsername(newHandle);
@@ -35,18 +36,29 @@ async function updateUserHandle(userId: string, newHandle: string, newDisplayNam
     throw new Error(`Invalid handle format: ${validation.message}`);
   }
 
-  // Step 2: Check if user exists
-  console.log('👤 Checking if user exists...');
-  const existingUser = await db.user.findUnique({
-    where: { id: userId },
+  // Step 2: Find user by ID or handle
+  console.log('👤 Finding user...');
+  let existingUser = await db.user.findUnique({
+    where: { id: userIdOrHandle },
     include: {
       handles: true,
       profile: true
     }
   });
 
+  // If not found by ID, try to find by handle
   if (!existingUser) {
-    throw new Error(`User with ID ${userId} not found`);
+    existingUser = await db.user.findFirst({
+      where: { primaryHandle: userIdOrHandle },
+      include: {
+        handles: true,
+        profile: true
+      }
+    });
+  }
+
+  if (!existingUser) {
+    throw new Error(`User with ID or handle "${userIdOrHandle}" not found`);
   }
 
   console.log(`   Current Primary Handle: ${existingUser.primaryHandle || 'None'}`);
