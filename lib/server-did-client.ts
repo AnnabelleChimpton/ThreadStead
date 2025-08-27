@@ -220,8 +220,9 @@ export async function generateDIDDocument(): Promise<DIDDocument> {
   const keypair = await getOrCreateServerKeypair();
   const publicKeyBytes = fromBase64Url(keypair.publicKey);
   
-  // RingHub spec requires only base64 format, not multibase
+  // Support both base64 and multibase formats for compatibility
   const publicKeyBase64 = Buffer.from(publicKeyBytes).toString('base64');
+  const publicKeyMultibase = publicKeyToMultibase(keypair.publicKey);
   
   return {
     "@context": [
@@ -233,7 +234,8 @@ export async function generateDIDDocument(): Promise<DIDDocument> {
       "id": `${keypair.did}#key-1`,
       "type": "Ed25519VerificationKey2020",
       "controller": keypair.did,
-      "publicKeyBase64": publicKeyBase64
+      "publicKeyBase64": publicKeyBase64,
+      "publicKeyMultibase": publicKeyMultibase
     }],
     "authentication": [`${keypair.did}#key-1`],
     "assertionMethod": [`${keypair.did}#key-1`],
