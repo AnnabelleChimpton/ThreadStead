@@ -83,7 +83,7 @@ async function fixChimptonDID() {
     console.log('  New User ID:', chimptonUser.id)
     console.log('  User Handle:', chimptonUser.primaryHandle)
     
-    console.log('\\n🎉 chimpton\\'s RingHub identity is now properly linked!')
+    console.log('\\n🎉 chimpton\'s RingHub identity is now properly linked!')
     console.log('   RingHub memberships: Pets (owner), Cats (owner), Spool (member), HomePageAgain (member)')
 
   } catch (error) {
