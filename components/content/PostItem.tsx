@@ -116,12 +116,14 @@ export default function PostItem({
 
   // Helper function to check if post has spoiler content from any source
   const isSpoilerPost = () => {
-    return (post.ringHubData?.metadata?.isSpoiler) || (post.isSpoiler && !post.ringHubData);
+    // Check both the main post field and RingHub metadata
+    return post.isSpoiler || post.ringHubData?.metadata?.isSpoiler || false;
   };
 
   // Helper function to get spoiler warning text from any source
   const getSpoilerWarning = () => {
-    return post.ringHubData?.metadata?.contentWarning || post.contentWarning;
+    // Check both the main post field and RingHub metadata
+    return post.contentWarning || post.ringHubData?.metadata?.contentWarning || null;
   };
 
   const [editing, setEditing] = useState(false);
