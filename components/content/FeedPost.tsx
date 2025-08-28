@@ -6,6 +6,7 @@ import CommentList, { CommentWire } from "./CommentList";
 import NewCommentForm from "../forms/NewCommentForm";
 import PostActionsDropdown from "./PostActionsDropdown";
 import ThreadRingBadge from "../ThreadRingBadge";
+import CompactBadgeDisplay from "../CompactBadgeDisplay";
 import { useMe } from "@/hooks/useMe";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
@@ -184,6 +185,14 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
               <span className="font-medium text-thread-pine">{authorName}</span>
             )}
             <span className="thread-label">{postDate}</span>
+          </div>
+          {/* User badges */}
+          <div className="mt-1">
+            <CompactBadgeDisplay 
+              userId={post.authorId} 
+              context="posts" 
+              size="small"
+            />
           </div>
           {showActivity && post.lastCommentAt && (
             <div className="thread-label text-xs mt-1">

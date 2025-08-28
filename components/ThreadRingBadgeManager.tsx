@@ -144,8 +144,9 @@ export default function ThreadRingBadgeManager({
       title: editedBadge.title || threadRingName,
       subtitle: editedBadge.subtitle,
       templateId: editedBadge.templateId,
-      backgroundColor: editedBadge.backgroundColor || '#4A90E2',
-      textColor: editedBadge.textColor || '#FFFFFF',
+      // Only provide fallback colors when no template is selected
+      backgroundColor: editedBadge.templateId ? editedBadge.backgroundColor : (editedBadge.backgroundColor || '#4A90E2'),
+      textColor: editedBadge.templateId ? editedBadge.textColor : (editedBadge.textColor || '#FFFFFF'),
       imageUrl: editedBadge.imageUrl,
       isGenerated: false,
       isActive: true

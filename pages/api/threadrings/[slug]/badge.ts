@@ -70,7 +70,7 @@ export default withThreadRingSupport(async function handler(
 
           try {
             // Create authenticated client to update the ring
-            const authenticatedClient = await createAuthenticatedRingHubClient(user.id);
+            const authenticatedClient = createAuthenticatedRingHubClient(user.id);
             if (!authenticatedClient) {
               return res.status(503).json({ 
                 error: "Service unavailable", 
@@ -78,8 +78,29 @@ export default withThreadRingSupport(async function handler(
               });
             }
 
-            // Prepare the badge image URL for RingHub
-            const badgeImageUrl = imageDataUrl || imageUrl;
+            // Generate badge image if we have custom styling but no image URL
+            let badgeImageUrl = imageDataUrl || imageUrl;
+            
+            if (!badgeImageUrl && (title || backgroundColor || textColor || templateId)) {
+              try {
+                // Generate badge image using our badge generator
+                const generatedBadge = await generateThreadRingBadge(
+                  title || ringDescriptor.name,
+                  slug,
+                  {
+                    subtitle,
+                    templateId,
+                    backgroundColor,
+                    textColor,
+                    autoColor: !backgroundColor && !templateId
+                  }
+                );
+                badgeImageUrl = generatedBadge.imageDataUrl;
+              } catch (imageGenError) {
+                console.warn('Failed to generate badge image:', imageGenError);
+                // Continue without generated image - will use default badge
+              }
+            }
 
             // Update the ring's badge in RingHub
             const updatedRing = await authenticatedClient.updateRing(slug, {
