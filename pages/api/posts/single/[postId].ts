@@ -42,6 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         },
       },
+      // Explicitly include all post fields including content warning fields
     });
 
     if (!post) {
