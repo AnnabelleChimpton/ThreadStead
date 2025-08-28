@@ -200,7 +200,7 @@ export default function NavBar({ siteConfig, fullWidth = false }: NavBarProps) {
                   href="/post/new"
                   className="new-post-button"
                 >
-                  ✏️ New Post
+                  New Post
                 </Link>
               )}
               <NotificationDropdown className="nav-link" />
@@ -417,7 +417,7 @@ export default function NavBar({ siteConfig, fullWidth = false }: NavBarProps) {
                   className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  ✏️ New Post
+                  New Post
                 </Link>
               )}
               <div className="px-3 py-2">

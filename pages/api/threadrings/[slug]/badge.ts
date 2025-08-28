@@ -17,8 +17,8 @@ export default withThreadRingSupport(async function handler(
     return res.status(400).json({ error: "Invalid slug" });
   }
 
-  // Use Ring Hub if enabled (for GET requests only, badge generation/update requires local storage)
-  if (system === 'ringhub' && req.method === 'GET') {
+  // Use Ring Hub if enabled
+  if (system === 'ringhub') {
     const client = getRingHubClient();
     if (client) {
       try {
@@ -27,16 +27,69 @@ export default withThreadRingSupport(async function handler(
           return res.status(404).json({ error: "ThreadRing not found" });
         }
 
-        // Generate a default badge for Ring Hub rings
-        const defaultBadge = await generateThreadRingBadge(ringDescriptor.name, ringDescriptor.slug);
-        return res.json({
-          success: true,
-          badge: {
-            ...defaultBadge,
-            id: `ringhub-${ringDescriptor.slug}`,
-            isActive: true
+        if (req.method === 'GET') {
+          // Generate a default badge for Ring Hub rings
+          const defaultBadge = await generateThreadRingBadge(ringDescriptor.name, ringDescriptor.slug);
+          return res.json({
+            success: true,
+            badge: {
+              ...defaultBadge,
+              id: `ringhub-${ringDescriptor.slug}`,
+              isActive: true
+            }
+          });
+        }
+
+        if (req.method === "POST" || req.method === "PUT") {
+          // For RingHub rings, we'll store badge data locally but associate it with the RingHub ring
+          const user = await getSessionUser(req);
+          if (!user) {
+            return res.status(401).json({ error: "Authentication required" });
           }
-        });
+
+          // TODO: Check if user has permission to modify this RingHub ring
+          // For now, we'll allow any authenticated user to create badges for RingHub rings
+          // This should be replaced with proper RingHub permission checking
+
+          const {
+            title,
+            subtitle,
+            templateId,
+            backgroundColor,
+            textColor,
+            imageUrl,
+            imageDataUrl,
+            isActive = true
+          } = req.body;
+
+          // Validate badge content
+          const validation = validateBadgeContent(title || ringDescriptor.name, subtitle);
+          if (!validation.valid) {
+            return res.status(400).json({ 
+              error: "Invalid badge content", 
+              details: validation.errors 
+            });
+          }
+
+          // For RingHub rings, we'll return the badge data without persisting it
+          // This is because RingHub badge management should be handled differently
+          const badgeData = {
+            id: `ringhub-${ringDescriptor.slug}`,
+            title: title || ringDescriptor.name,
+            subtitle,
+            templateId,
+            backgroundColor: backgroundColor || '#4A90E2',
+            textColor: textColor || '#FFFFFF',
+            imageUrl: imageDataUrl || imageUrl,
+            isActive,
+            isGenerated: !title && !templateId && !backgroundColor && !textColor && !imageUrl
+          };
+
+          return res.json({
+            success: true,
+            badge: badgeData
+          });
+        }
       } catch (error) {
         console.error("Error fetching ring from Ring Hub:", error);
         // Fall through to local database

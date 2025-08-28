@@ -5,6 +5,7 @@ import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import CommentList, { CommentWire } from "./CommentList";
 import NewCommentForm from "../forms/NewCommentForm";
 import PostActionsDropdown from "./PostActionsDropdown";
+import ThreadRingBadge from "../ThreadRingBadge";
 import { useMe } from "@/hooks/useMe";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
@@ -27,6 +28,13 @@ export type FeedPostData = {
   commentCount: number;
   lastCommentAt?: string | null;
   lastCommenterUsername?: string | null;
+  threadRings?: Array<{
+    threadRing: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }>;
 };
 
 type FeedPostProps = {
@@ -262,6 +270,22 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
               #{tag}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* ThreadRing badges */}
+      {post.threadRings && post.threadRings.length > 0 && (
+        <div className="mb-4 pt-2 border-t border-thread-sage/20">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs text-thread-sage font-medium">Posted to:</span>
+            {post.threadRings.map((association) => (
+              <ThreadRingBadge
+                key={association.threadRing.id}
+                threadRing={association.threadRing}
+                size="small"
+              />
+            ))}
+          </div>
         </div>
       )}
 
