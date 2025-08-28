@@ -79,7 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const viewer = await getSessionUser(req);
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
-  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds, intent, promptId } = (req.body || {}) as {
+  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds, intent, promptId, isSpoiler, contentWarning } = (req.body || {}) as {
     title?: string;
     bodyText?: string;
     bodyHtml?: string;
@@ -88,6 +88,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     threadRingIds?: string[]; // Array of ThreadRing IDs to associate with post
     intent?: PostIntent;
     promptId?: string; // Optional prompt ID to associate with post
+    isSpoiler?: boolean;
+    contentWarning?: string;
   };
 
 
@@ -132,6 +134,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bodyMarkdown: bodyMarkdown ?? null, // Store raw markdown
       visibility: vis,
       tags: [],
+      
+      // Spoiler/Content Warning fields
+      isSpoiler: isSpoiler ?? false,
+      contentWarning: contentWarning ?? null,
       
       // Ring Hub metadata alignment
       textPreview: textPreview,
@@ -321,8 +327,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
         
-        // Note: When Ring Hub is enabled, we don't create local PostThreadRing associations
-        // since the authoritative data is in Ring Hub
+        // Create local PostThreadRing associations for feed display
+        // even when using Ring Hub (maintains compatibility with existing feed APIs)
+        if (validSlugs.length > 0) {
+          try {
+            // Get ring IDs from slugs for local database
+            const localRings = await db.threadRing.findMany({
+              where: { slug: { in: validSlugs } },
+              select: { id: true, slug: true }
+            });
+            
+            if (localRings.length > 0) {
+              await db.postThreadRing.createMany({
+                data: localRings.map(ring => ({
+                  postId: post.id,
+                  threadRingId: ring.id,
+                  addedBy: viewer.id
+                }))
+              });
+              console.log(`✅ Created local PostThreadRing associations for feed display`);
+            }
+          } catch (localAssocError) {
+            console.error("Failed to create local PostThreadRing associations:", localAssocError);
+            // Don't fail post creation if this fails
+          }
+        }
       } else {
         console.log('🏠 Using local database for ThreadRing associations');
         // Original local-only logic

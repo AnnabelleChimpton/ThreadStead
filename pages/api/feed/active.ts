@@ -113,7 +113,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       commentCount: post._count.comments,
       lastCommentAt: post.comments[0]?.createdAt || null,
       lastCommenterUsername: post.comments[0]?.author?.handles[0]?.handle || null,
-      threadRings: post.threadRings
+      threadRings: post.threadRings,
+      isSpoiler: post.isSpoiler,
+      contentWarning: post.contentWarning
     }));
 
     return res.json({ 

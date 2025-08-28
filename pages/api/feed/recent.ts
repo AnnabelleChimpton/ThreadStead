@@ -75,7 +75,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       media: post.media,
       tags: post.tags,
       commentCount: post.comments.length,
-      threadRings: post.threadRings
+      threadRings: post.threadRings,
+      isSpoiler: post.isSpoiler,
+      contentWarning: post.contentWarning
     }));
 
     return res.json({ 

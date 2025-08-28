@@ -76,6 +76,8 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSpoiler, setIsSpoiler] = useState(false);
+  const [contentWarning, setContentWarning] = useState("");
   
   const [threadRings, setThreadRings] = useState<ThreadRingMembership[]>([]);
   const [selectedRings, setSelectedRings] = useState<string[]>([]);
@@ -520,6 +522,12 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
         payload.intent = intent;
       }
       
+      // Add spoiler/content warning data
+      if (isSpoiler) {
+        payload.isSpoiler = true;
+        payload.contentWarning = contentWarning.trim() || null;
+      }
+      
       // Debug selected rings
       console.log('🔍 Form submission - selectedRings:', selectedRings);
       console.log('🔍 Form submission - respondingToPrompt:', respondingToPrompt);
@@ -670,6 +678,51 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
               {titleError && (
                 <div className="text-red-600 text-sm mt-1">{titleError}</div>
               )}
+            </div>
+
+            {/* Spoiler/Content Warning Section */}
+            <div className="mb-4 border border-black p-3 bg-orange-50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">⚠️</span>
+                <h3 className="text-sm font-semibold text-gray-800">Content Warning</h3>
+              </div>
+              
+              <div className="space-y-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isSpoiler}
+                    onChange={(e) => {
+                      setIsSpoiler(e.target.checked);
+                      if (!e.target.checked) {
+                        setContentWarning("");
+                      }
+                    }}
+                    disabled={busy}
+                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                  />
+                  <span className="text-sm text-gray-800">
+                    Mark this post as containing spoilers
+                  </span>
+                </label>
+                
+                {isSpoiler && (
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      className="w-full border border-black p-2 text-sm rounded"
+                      placeholder="Warning description (e.g. Episode 5 spoilers, Season 2 finale)"
+                      value={contentWarning}
+                      onChange={(e) => setContentWarning(e.target.value)}
+                      disabled={busy}
+                      maxLength={100}
+                    />
+                    <div className="text-xs text-gray-600 mt-1">
+                      This will blur the post content until readers choose to reveal it
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {activeTab === "write" ? (

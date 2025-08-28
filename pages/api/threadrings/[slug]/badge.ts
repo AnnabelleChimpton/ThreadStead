@@ -5,6 +5,7 @@ import { generateThreadRingBadge, validateBadgeContent } from "@/lib/badge-gener
 import { BADGE_TEMPLATES } from "@/lib/threadring-badges";
 import { withThreadRingSupport } from "@/lib/ringhub-middleware";
 import { getRingHubClient } from "@/lib/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest, 
@@ -41,15 +42,11 @@ export default withThreadRingSupport(async function handler(
         }
 
         if (req.method === "POST" || req.method === "PUT") {
-          // For RingHub rings, we'll store badge data locally but associate it with the RingHub ring
+          // Update RingHub ring badge
           const user = await getSessionUser(req);
           if (!user) {
             return res.status(401).json({ error: "Authentication required" });
           }
-
-          // TODO: Check if user has permission to modify this RingHub ring
-          // For now, we'll allow any authenticated user to create badges for RingHub rings
-          // This should be replaced with proper RingHub permission checking
 
           const {
             title,
@@ -71,24 +68,53 @@ export default withThreadRingSupport(async function handler(
             });
           }
 
-          // For RingHub rings, we'll return the badge data without persisting it
-          // This is because RingHub badge management should be handled differently
-          const badgeData = {
-            id: `ringhub-${ringDescriptor.slug}`,
-            title: title || ringDescriptor.name,
-            subtitle,
-            templateId,
-            backgroundColor: backgroundColor || '#4A90E2',
-            textColor: textColor || '#FFFFFF',
-            imageUrl: imageDataUrl || imageUrl,
-            isActive,
-            isGenerated: !title && !templateId && !backgroundColor && !textColor && !imageUrl
-          };
+          try {
+            // Create authenticated client to update the ring
+            const authenticatedClient = await createAuthenticatedRingHubClient(user.id);
+            if (!authenticatedClient) {
+              return res.status(503).json({ 
+                error: "Service unavailable", 
+                message: "Could not connect to RingHub service" 
+              });
+            }
 
-          return res.json({
-            success: true,
-            badge: badgeData
-          });
+            // Prepare the badge image URL for RingHub
+            const badgeImageUrl = imageDataUrl || imageUrl;
+
+            // Update the ring's badge in RingHub
+            const updatedRing = await authenticatedClient.updateRing(slug, {
+              badgeImageUrl,
+              // Note: RingHub stores the actual badge image, not individual styling properties
+              // The title, colors, etc. are embedded in the image itself
+            });
+
+            console.log(`✅ Successfully updated badge for RingHub ring: ${slug}`);
+
+            // Return the updated badge data
+            const badgeData = {
+              id: `ringhub-${ringDescriptor.slug}`,
+              title: title || ringDescriptor.name,
+              subtitle,
+              templateId,
+              backgroundColor: backgroundColor || '#4A90E2',
+              textColor: textColor || '#FFFFFF',
+              imageUrl: updatedRing.badgeImageUrl,
+              isActive,
+              isGenerated: !title && !templateId && !backgroundColor && !textColor && !imageUrl
+            };
+
+            return res.json({
+              success: true,
+              badge: badgeData
+            });
+
+          } catch (ringHubError) {
+            console.error(`❌ Failed to update badge for RingHub ring ${slug}:`, ringHubError);
+            return res.status(500).json({
+              error: "Failed to update badge in RingHub",
+              message: ringHubError instanceof Error ? ringHubError.message : "Unknown error"
+            });
+          }
         }
       } catch (error) {
         console.error("Error fetching ring from Ring Hub:", error);

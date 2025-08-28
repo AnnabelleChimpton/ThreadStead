@@ -35,6 +35,8 @@ export type FeedPostData = {
       slug: string;
     };
   }>;
+  isSpoiler?: boolean;
+  contentWarning?: string | null;
 };
 
 type FeedPostProps = {
@@ -48,6 +50,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
   const [commentsVersion, setCommentsVersion] = useState(0);
   const [actualCommentCount, setActualCommentCount] = useState<number | null>(null);
   const [optimistic, setOptimistic] = useState<CommentWire[]>([]);
+  const [spoilerRevealed, setSpoilerRevealed] = useState(false);
 
   // Determine the content to display
   const content = React.useMemo(() => {
@@ -212,9 +215,28 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
         />
       </header>
 
+      {/* Spoiler Warning */}
+      {post.isSpoiler && !spoilerRevealed && (
+        <div className="mb-4 p-4 spoiler-warning rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xl">⚠️</span>
+            <h3 className="font-bold text-lg">Content Warning</h3>
+          </div>
+          {post.contentWarning && (
+            <p className="mb-3 text-sm">{post.contentWarning}</p>
+          )}
+          <button
+            onClick={() => setSpoilerRevealed(true)}
+            className="px-4 py-2 bg-white text-black font-bold border-2 border-black hover:bg-yellow-200 shadow-[2px_2px_0_#000] transition-all"
+          >
+            👁️ Click to Reveal Spoilers
+          </button>
+        </div>
+      )}
+
       {/* Post Title with Intent */}
       {post.title && (
-        <div className="mb-4">
+        <div className={`mb-4 ${post.isSpoiler && !spoilerRevealed ? 'spoiler-content' : ''}`}>
           {post.authorUsername ? (
             <Link 
               href={`/resident/${post.authorUsername}/post/${post.id}`}
@@ -251,7 +273,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
       )}
 
       {/* Post Content */}
-      <div className="thread-content mb-4">
+      <div className={`thread-content mb-4 ${post.isSpoiler && !spoilerRevealed ? 'spoiler-content' : ''}`}>
         {content ? (
           <div dangerouslySetInnerHTML={{ __html: content }} />
         ) : (
