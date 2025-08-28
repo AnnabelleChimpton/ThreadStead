@@ -103,15 +103,6 @@ export default function RingHubFeed({
               const postRes = await fetch(`/api/posts/single/${postIdMatch[1]}`);
               if (postRes.ok) {
                 const { post } = await postRes.json();
-                
-                // Debug: Log content warning fields
-                console.log('RingHub Feed - Post content warning fields:', {
-                  postId: post.id,
-                  isSpoiler: post.isSpoiler,
-                  contentWarning: post.contentWarning,
-                  hasFields: 'isSpoiler' in post && 'contentWarning' in post
-                });
-                
                 // Merge the actual post content with RingHub metadata
                 return {
                   ...ringHubPost,
@@ -192,7 +183,7 @@ export default function RingHubFeed({
                               ringHubPost.metadata?.type === 'fork_notification';
     
     // Use actual post content if available
-    const hasPostContent = ringHubPost.postContent && !ringHubPost.isNotification;
+    const hasPostContent = !!(ringHubPost.postContent && !ringHubPost.isNotification);
 
     // Debug: Check what we're about to return
     const finalPost = {
@@ -212,8 +203,8 @@ export default function RingHubFeed({
       pinnedAt: ringHubPost.pinned ? ringHubPost.submittedAt : null,
       
       // CRITICAL: Content warning/spoiler fields - absolutely required for user safety
-      isSpoiler: hasPostContent ? ringHubPost.postContent.isSpoiler : false,
-      contentWarning: hasPostContent ? ringHubPost.postContent.contentWarning : null,
+      isSpoiler: hasPostContent ? ringHubPost.postContent.isSpoiler : (ringHubPost.metadata?.isSpoiler || false),
+      contentWarning: hasPostContent ? ringHubPost.postContent.contentWarning : (ringHubPost.metadata?.contentWarning || null),
       
       // Author info - use actual post author when available
       author: hasPostContent && ringHubPost.postContent.author ? {
@@ -268,18 +259,6 @@ export default function RingHubFeed({
             }
           }]
     };
-    
-    // Debug: Log the final post data being passed to PostItem
-    console.log('RingHub Feed - Final post data for PostItem:', {
-      postId: finalPost.id,
-      hasPostContent,
-      isSpoiler: finalPost.isSpoiler,
-      contentWarning: finalPost.contentWarning,
-      originalData: hasPostContent ? {
-        isSpoiler: ringHubPost.postContent.isSpoiler,
-        contentWarning: ringHubPost.postContent.contentWarning
-      } : 'no post content'
-    });
     
     return finalPost;
   }, [resolvedUsernames]);
