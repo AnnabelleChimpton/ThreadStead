@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import CompactBadgeDisplay from "../CompactBadgeDisplay";
 
 interface Post {
   id: string;
@@ -238,6 +239,15 @@ export default function PostsSection() {
                   {/* Author */}
                   <div className="text-sm mb-2">
                     <strong>Author:</strong> {post.author.profile?.displayName || post.author.primaryHandle || "Unknown"}
+                    
+                    {/* User badges */}
+                    <div className="mt-1">
+                      <CompactBadgeDisplay 
+                        userId={post.author.id} 
+                        context="posts" 
+                        size="small"
+                      />
+                    </div>
                   </div>
 
                   {/* ThreadRings */}

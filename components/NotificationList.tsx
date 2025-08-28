@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import CompactBadgeDisplay from "./CompactBadgeDisplay";
 
 export type NotificationData = {
   id: string;
@@ -333,7 +334,17 @@ export default function NotificationList({
                     <div className="text-sm leading-relaxed">
                       {getNotificationMessage(notification)}
                     </div>
-                    <div className="text-xs text-thread-sage mt-1">
+                    
+                    {/* User badges */}
+                    <div className="mt-1 mb-1">
+                      <CompactBadgeDisplay 
+                        userId={notification.actor.id} 
+                        context="comments" 
+                        size="small"
+                      />
+                    </div>
+                    
+                    <div className="text-xs text-thread-sage">
                       {new Date(notification.createdAt).toLocaleString()}
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 // components/Guestbook.tsx
 import React, { useEffect, useState } from "react";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
+import CompactBadgeDisplay from "./CompactBadgeDisplay";
 
 type Entry = {
   id: string;
@@ -235,6 +236,18 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
                       })}
                       {e.authorUsername ? ` · by ${e.authorUsername}` : " · anonymous visitor"}
                     </div>
+                    
+                    {/* User badges for authenticated users */}
+                    {e.authorId && (
+                      <div className="mb-2">
+                        <CompactBadgeDisplay 
+                          userId={e.authorId} 
+                          context="comments" 
+                          size="small"
+                        />
+                      </div>
+                    )}
+                    
                     <p className="text-thread-charcoal leading-relaxed">{e.message}</p>
                   </div>
                   <div className="flex gap-2">

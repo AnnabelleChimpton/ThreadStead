@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import CompactBadgeDisplay from './CompactBadgeDisplay';
 
 interface PhotoComment {
   id: string;
@@ -175,6 +176,15 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
               <span className="text-thread-sage text-xs">
                 {formatDate(comment.createdAt)}
               </span>
+            </div>
+            
+            {/* User badges */}
+            <div className="mb-1">
+              <CompactBadgeDisplay 
+                userId={comment.author.id} 
+                context="comments" 
+                size="small"
+              />
             </div>
 
             {/* Comment content */}

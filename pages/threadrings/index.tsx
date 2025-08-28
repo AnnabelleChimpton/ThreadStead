@@ -38,6 +38,9 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
   const [total, setTotal] = useState<number | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'discover' | 'mine'>('discover');
+
   // Filters
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("trending");
@@ -55,7 +58,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
   // Fetch ThreadRings
   useEffect(() => {
     fetchThreadRings(true);
-  }, [searchQuery, sort]);
+  }, [searchQuery, sort, activeTab]);
 
   const fetchThreadRings = async (reset = false) => {
     try {
@@ -74,6 +77,11 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
 
       if (searchQuery) {
         params.set("search", searchQuery);
+      }
+
+      // Add membership filter for "My ThreadRings" tab
+      if (activeTab === 'mine') {
+        params.set("membership", "true");
       }
 
       const response = await fetch(`/api/threadrings?${params}`);
@@ -149,9 +157,9 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold">ThreadRings Directory</h1>
+              <h1 className="text-3xl font-bold">ThreadRings</h1>
               <p className="text-gray-600 mt-1">
-                Discover communities and join the conversation
+                {activeTab === 'mine' ? 'Your ThreadRing memberships' : 'Discover communities and join the conversation'}
                 {total !== null && ` • ${total} total rings`}
               </p>
             </div>
@@ -171,12 +179,36 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
             </div>
           </div>
 
+          {/* Tabs */}
+          <div className="flex border-b border-gray-300 mb-4">
+            <button
+              onClick={() => setActiveTab('discover')}
+              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                activeTab === 'discover'
+                  ? 'border-black text-black'
+                  : 'border-transparent text-gray-600 hover:text-black hover:border-gray-300'
+              }`}
+            >
+              Discover ThreadRings
+            </button>
+            <button
+              onClick={() => setActiveTab('mine')}
+              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                activeTab === 'mine'
+                  ? 'border-black text-black'
+                  : 'border-transparent text-gray-600 hover:text-black hover:border-gray-300'
+              }`}
+            >
+              My ThreadRings
+            </button>
+          </div>
+
           {/* Search and Filters */}
           <div className="flex gap-3 items-center flex-wrap">
             <div className="flex-1 min-w-0">
               <input
                 type="text"
-                placeholder="Search ThreadRings..."
+                placeholder={`Search ${activeTab === 'mine' ? 'my' : ''} ThreadRings...`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full border border-black px-3 py-2 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000]"
@@ -214,15 +246,34 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
         ) : threadRings.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-gray-600 mb-4">
-              {searchQuery ? `No ThreadRings found for "${searchQuery}"` : "No ThreadRings found"}
+              {searchQuery ? (
+                activeTab === 'mine' 
+                  ? `No ThreadRing memberships found for "${searchQuery}"`
+                  : `No ThreadRings found for "${searchQuery}"`
+              ) : (
+                activeTab === 'mine'
+                  ? "You haven't joined any ThreadRings yet"
+                  : "No ThreadRings found"
+              )}
             </div>
             {!searchQuery && (
-              <Link
-                href="/tr/spool/fork"
-                className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] inline-block"
-              >
-                Create the First ThreadRing
-              </Link>
+              <div className="flex gap-2 justify-center flex-wrap">
+                {activeTab === 'mine' ? (
+                  <button
+                    onClick={() => setActiveTab('discover')}
+                    className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-300 shadow-[2px_2px_0_#000] inline-block"
+                  >
+                    Discover ThreadRings
+                  </button>
+                ) : (
+                  <Link
+                    href="/tr/spool/fork"
+                    className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] inline-block"
+                  >
+                    Create the First ThreadRing
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         ) : (
@@ -233,6 +284,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                 <ThreadRingCard
                   key={ring.id}
                   threadRing={ring}
+                  showJoinButton={activeTab === 'discover'}
                   onJoin={handleJoin}
                 />
               ))}

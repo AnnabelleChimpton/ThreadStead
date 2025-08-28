@@ -19,6 +19,7 @@ export default withThreadRingSupport(async function handler(
     const offset = parseInt(String(req.query.offset || "0"));
     const search = String(req.query.search || "").trim();
     const sort = String(req.query.sort || "trending"); // trending, newest, members, posts, alphabetical
+    const membership = String(req.query.membership || "").trim() === "true"; // Filter to only user's memberships
 
     const viewer = await getSessionUser(req);
 
@@ -66,7 +67,7 @@ export default withThreadRingSupport(async function handler(
       const result = await client.listRings(ringHubOptions);
 
       // Transform Ring Hub response to ThreadStead format
-      const transformedRings = result.rings.map((descriptor: any) => {
+      let transformedRings = result.rings.map((descriptor: any) => {
         const membership = viewerMemberships.get(descriptor.slug);
         return {
           id: descriptor.id,
@@ -83,12 +84,19 @@ export default withThreadRingSupport(async function handler(
         };
       });
 
-      const hasMore = (offset + limit) < result.total;
+      // Filter to only user's memberships if requested
+      if (membership && viewer) {
+        transformedRings = transformedRings.filter(ring => ring.viewerMembership !== null);
+      }
+
+      // Recalculate pagination after filtering
+      const filteredTotal = membership && viewer ? viewerMemberships.size : result.total;
+      const hasMore = (offset + limit) < filteredTotal;
       
       return res.json({
         threadRings: transformedRings,
         hasMore,
-        total: result.total
+        total: filteredTotal
       });
     }
 
@@ -100,6 +108,18 @@ export default withThreadRingSupport(async function handler(
         in: ["public", "unlisted"]
       }
     };
+
+    // If membership filter is requested and user is logged in, filter to only their memberships
+    if (membership && viewer) {
+      whereClause = {
+        ...whereClause,
+        members: {
+          some: {
+            userId: viewer.id
+          }
+        }
+      };
+    }
 
     // Add search filter if provided
     if (search) {
