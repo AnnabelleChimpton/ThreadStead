@@ -28,6 +28,10 @@ export type Post = {
   bodyMarkdown?: string | null; // Ensure bodyMarkdown is available for edit
   visibility: Visibility;
   
+  // Spoiler content warning fields
+  isSpoiler?: boolean;
+  contentWarning?: string | null;
+  
   // Ring Hub metadata alignment (all optional)
   textPreview?: string | null; // Max 300 chars - for social/feed previews
   excerpt?: string | null; // Max 500 chars - for detailed descriptions
@@ -110,6 +114,16 @@ export default function PostItem({
 }) {
   const initialMode: Mode = post.bodyHtml ? "html" : "text";
 
+  // Helper function to check if post has spoiler content from any source
+  const isSpoilerPost = () => {
+    return (post.ringHubData?.metadata?.isSpoiler) || (post.isSpoiler && !post.ringHubData);
+  };
+
+  // Helper function to get spoiler warning text from any source
+  const getSpoilerWarning = () => {
+    return post.ringHubData?.metadata?.contentWarning || post.contentWarning;
+  };
+
   const [editing, setEditing] = useState(false);
   const [mode, setMode] = useState<Mode>(initialMode);
   const [view, setView] = useState<View>("write");
@@ -122,6 +136,7 @@ export default function PostItem({
   const [commentsVersion, setCommentsVersion] = useState(0);
   const [commentCount, setCommentCount] = useState<number | null>(null);
   const [optimistic, setOptimistic] = useState<CommentWireList[]>([]);
+  const [spoilerRevealed, setSpoilerRevealed] = useState(false);
 
   // Ring Hub moderation permissions
   const moderationPermissions = useModerationPermissions(userRole, isUserMember);
@@ -508,16 +523,42 @@ const countLabel = hasServerCount
               </div>
             ) : (
               <>
+                {/* Spoiler Warning - Works for both local and external posts */}
+                {isSpoilerPost() && !spoilerRevealed && (
+                  <div className="mb-4 p-4 spoiler-warning rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">⚠️</span>
+                      <h3 className="font-bold text-lg">Content Warning</h3>
+                    </div>
+                    {getSpoilerWarning() && (
+                      <p className="mb-3 text-sm">{getSpoilerWarning()}</p>
+                    )}
+                    <button
+                      onClick={() => setSpoilerRevealed(true)}
+                      className="px-4 py-2 bg-white text-black font-bold border-2 border-black hover:bg-yellow-200 shadow-[2px_2px_0_#000] transition-all"
+                    >
+                      👁️ Click to Reveal Spoilers
+                    </button>
+                  </div>
+                )}
+
+                {/* Post Header */}
                 {post.title && (
-                  <PostHeader post={post} currentUser={currentUser} />
+                  <div className={isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}>
+                    <PostHeader post={post} currentUser={currentUser} />
+                  </div>
                 )}
-                {post.bodyHtml ? (
-                  <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
-                ) : post.bodyText ? (
-                  <p>{post.bodyText}</p>
-                ) : (
-                  <div className="italic opacity-70">(No content)</div>
-                )}
+
+                {/* Post Content */}
+                <div className={isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}>
+                  {post.bodyHtml ? (
+                    <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
+                  ) : post.bodyText ? (
+                    <p>{post.bodyText}</p>
+                  ) : (
+                    <div className="italic opacity-70">(No content)</div>
+                  )}
+                </div>
               </>
             )}
             

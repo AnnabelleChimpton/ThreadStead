@@ -275,7 +275,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 threadRingName: membership?.ringName || slug,
                 // Add user identification for dev mode workaround
                 threadsteadUserId: viewer.id,
-                authorHandle: postWithAuthor?.author?.primaryHandle
+                authorHandle: postWithAuthor?.author?.primaryHandle,
+                // Spoiler content warning information
+                isSpoiler: post.isSpoiler || false,
+                contentWarning: post.contentWarning || null
               };
             } else {
               // Regular post metadata
@@ -289,7 +292,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 threadRingName: membership?.ringName || slug,
                 // Add user identification for dev mode workaround
                 threadsteadUserId: viewer.id,
-                authorHandle: postWithAuthor?.author?.primaryHandle
+                authorHandle: postWithAuthor?.author?.primaryHandle,
+                // Spoiler content warning information
+                isSpoiler: post.isSpoiler || false,
+                contentWarning: post.contentWarning || null
               };
             }
             
@@ -331,21 +337,65 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // even when using Ring Hub (maintains compatibility with existing feed APIs)
         if (validSlugs.length > 0) {
           try {
-            // Get ring IDs from slugs for local database
-            const localRings = await db.threadRing.findMany({
+            // Get existing local ThreadRing records
+            const existingLocalRings = await db.threadRing.findMany({
               where: { slug: { in: validSlugs } },
-              select: { id: true, slug: true }
+              select: { id: true, slug: true, name: true }
             });
             
-            if (localRings.length > 0) {
+            // Create map of existing rings by slug
+            const existingRingsMap = new Map(
+              existingLocalRings.map(ring => [ring.slug, ring])
+            );
+            
+            // Create missing local ThreadRing records for RingHub rings
+            const missingRingSlugs = validSlugs.filter(slug => !existingRingsMap.has(slug));
+            
+            for (const slug of missingRingSlugs) {
+              try {
+                // Find the membership data to get the ring name
+                const membership = userMemberships.memberships.find(m => m.ringSlug === slug);
+                const ringName = membership?.ringName || slug;
+                
+                // Generate a unique URI for the RingHub ThreadRing
+                const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
+                const ringUri = `${baseUrl}/tr/${slug}`;
+                
+                console.log(`🔧 Creating missing local ThreadRing record for RingHub ring: ${slug}`);
+                const newLocalRing = await db.threadRing.create({
+                  data: {
+                    uri: ringUri,
+                    name: ringName,
+                    slug: slug,
+                    description: `RingHub ThreadRing: ${ringName}`,
+                    visibility: "public",
+                    curatorId: viewer.id, // Use current user as curator
+                    joinType: "open",
+                    postCount: 0,
+                    memberCount: 1
+                  },
+                  select: { id: true, slug: true, name: true }
+                });
+                
+                existingRingsMap.set(slug, newLocalRing);
+                console.log(`✅ Created local ThreadRing record for ${slug}`);
+              } catch (createError) {
+                console.error(`❌ Failed to create local ThreadRing ${slug}:`, createError);
+                // Continue with other rings
+              }
+            }
+            
+            // Create PostThreadRing associations for all valid rings (existing + newly created)
+            const allLocalRings = Array.from(existingRingsMap.values());
+            if (allLocalRings.length > 0) {
               await db.postThreadRing.createMany({
-                data: localRings.map(ring => ({
+                data: allLocalRings.map(ring => ({
                   postId: post.id,
                   threadRingId: ring.id,
                   addedBy: viewer.id
                 }))
               });
-              console.log(`✅ Created local PostThreadRing associations for feed display`);
+              console.log(`✅ Created local PostThreadRing associations for ${allLocalRings.length} rings`);
             }
           } catch (localAssocError) {
             console.error("Failed to create local PostThreadRing associations:", localAssocError);
