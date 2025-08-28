@@ -59,6 +59,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
   const [displayName, setDisplayName] = useState(initialUser.profile?.displayName || "");
   const [bio, setBio] = useState(initialUser.profile?.bio || "");
   const [avatarUrl, setAvatarUrl] = useState(initialUser.profile?.avatarUrl || "");
+  const [templateMode, setTemplateMode] = useState<'default' | 'enhanced' | 'advanced'>(initialUser.profile?.templateMode || 'default');
   const [websites, setWebsites] = useState<Website[]>(
     initialUser.profile?.blogroll?.map((item: any, index: number) => ({
       id: item.id || index.toString(),
@@ -135,6 +136,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
           bio, 
           blogroll, 
           featuredFriends: featuredFriendsData,
+          templateMode,
           cap: token 
         }),
       });
@@ -464,12 +466,68 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
           </div>
 
           <div className="border-t border-black pt-6">
-            <ProfileBadgeSelector 
-              onSave={(preferences) => {
-                setSaveMessage("Badge preferences saved successfully!");
-                setTimeout(() => setSaveMessage(null), 3000);
-              }}
-            />
+            <div className="mb-8">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <span>🎯</span>
+                Profile Layout Mode
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Choose how your profile should be displayed and what customization options are available.
+              </p>
+              
+              <div className="space-y-4">
+                <label className="flex items-start space-x-3 p-4 border border-black rounded-none bg-white hover:bg-gray-50 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="templateMode"
+                    value="default"
+                    checked={templateMode === 'default'}
+                    onChange={(e) => setTemplateMode(e.target.value as 'default' | 'enhanced' | 'advanced')}
+                    className="mt-1 w-4 h-4 border border-black"
+                  />
+                  <div>
+                    <div className="font-bold text-gray-900">🏠 Default Layout</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Clean, simple profile layout with your basic info, posts, and badges. Perfect for getting started.
+                    </div>
+                  </div>
+                </label>
+                
+                <label className="flex items-start space-x-3 p-4 border border-black rounded-none bg-white hover:bg-gray-50 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="templateMode"
+                    value="enhanced"
+                    checked={templateMode === 'enhanced'}
+                    onChange={(e) => setTemplateMode(e.target.value as 'default' | 'enhanced' | 'advanced')}
+                    className="mt-1 w-4 h-4 border border-black"
+                  />
+                  <div>
+                    <div className="font-bold text-gray-900">🎨 Enhanced (Default + CSS)</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Default layout enhanced with custom CSS styling. Add your own colors, fonts, and visual tweaks while keeping the standard structure.
+                    </div>
+                  </div>
+                </label>
+                
+                <label className="flex items-start space-x-3 p-4 border border-black rounded-none bg-white hover:bg-gray-50 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="templateMode"
+                    value="advanced"
+                    checked={templateMode === 'advanced'}
+                    onChange={(e) => setTemplateMode(e.target.value as 'default' | 'enhanced' | 'advanced')}
+                    className="mt-1 w-4 h-4 border border-black"
+                  />
+                  <div>
+                    <div className="font-bold text-gray-900">⚡ Advanced Template</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Full control with custom HTML templates and CSS. Design your profile exactly how you want it with complete creative freedom.
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       )
@@ -706,6 +764,27 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
             </div>
           </div>
 
+        </div>
+      )
+    },
+    {
+      id: "badges",
+      label: "🏆 Badges",
+      content: (
+        <div className="space-y-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold mb-2">ThreadRing Badges</h2>
+            <p className="text-gray-600 mb-6">
+              Manage which badges from your ThreadRings are displayed on your profile and posts.
+            </p>
+          </div>
+
+          <ProfileBadgeSelector 
+            onSave={(preferences) => {
+              setSaveMessage("Badge preferences saved successfully!");
+              setTimeout(() => setSaveMessage(null), 3000);
+            }}
+          />
         </div>
       )
     },

@@ -135,7 +135,7 @@ async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, us
 
     // Apply existing preferences or create defaults
     const selectedBadges = existingPrefs?.selectedBadges || 
-      availableBadges.slice(0, 3).map((badge, index) => ({
+      availableBadges.map((badge, index) => ({
         threadRingId: badge.threadRingId,
         threadRingSlug: badge.threadRingSlug,
         threadRingName: badge.threadRingName,
