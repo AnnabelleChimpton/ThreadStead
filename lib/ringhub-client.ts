@@ -634,7 +634,12 @@ export class RingHubClient {
 
     // Generate HTTP signature for write operations and specific authenticated GET endpoints
     const isPublicClient = (this as any).isPublicClient === true
-    const requiresAuth = !isPublicClient && (method !== 'GET' || path.includes('/trp/my/'))
+    const requiresAuth = !isPublicClient && (
+      method !== 'GET' || 
+      path.includes('/trp/my/') ||
+      path.startsWith('/trp/rings') || // Sign ring list requests to get membership info
+      path.match(/^\/trp\/rings\/[^\/]+$/) // Sign individual ring requests
+    )
     
     if (requiresAuth) {
       try {
