@@ -80,6 +80,21 @@ export default withThreadRingSupport(async function handler(
 
       const result = await ringHubClient.listRings(ringHubOptions);
 
+      // Temporary debug: Check if user has any memberships via the old method
+      let debugMemberships = null;
+      if (viewer) {
+        try {
+          const debugResult = await ringHubClient.getMyMemberships({ status: 'ACTIVE', limit: 10 });
+          debugMemberships = {
+            total: debugResult.total,
+            count: debugResult.memberships.length,
+            rings: debugResult.memberships.slice(0, 3).map(m => ({ slug: m.ringSlug, role: m.role }))
+          };
+        } catch (e) {
+          debugMemberships = { error: e.message };
+        }
+      }
+
       console.log('🔍 RingHub API Response Debug:', {
         authenticated: !!viewer,
         totalRings: result.rings?.length || 0,
@@ -88,7 +103,9 @@ export default withThreadRingSupport(async function handler(
           slug: result.rings[0].slug,
           name: result.rings[0].name,
           currentUserMembership: result.rings[0].currentUserMembership
-        } : null
+        } : null,
+        // Debug: Check memberships via old API
+        debugMemberships
       });
 
       // Transform Ring Hub response to ThreadStead format
