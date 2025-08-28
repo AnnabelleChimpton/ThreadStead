@@ -89,16 +89,16 @@ async function getAllThreadSteadPostsFromRingHub(): Promise<RingHubPost[]> {
           post.uri.includes('localhost') || 
           post.uri.includes('127.0.0.1')
         ).map(post => ({
-          id: post.id,
+          id: post.id || `${ring.slug}-${post.uri}`, // Fallback ID if not provided
           ringId: ring.id,
           ringSlug: ring.slug,
           ringName: ring.name,
-          actorDid: post.actorDid,
+          actorDid: post.submittedBy, // Use submittedBy as the actor DID
           uri: post.uri,
           submittedAt: post.submittedAt,
           submittedBy: post.submittedBy,
-          status: post.status as "ACCEPTED",
-          metadata: post.metadata
+          status: (post.status || "ACCEPTED") as "ACCEPTED",
+          metadata: post.metadata || null
         }));
         
         allPosts.push(...threadSteadPosts);
