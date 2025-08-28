@@ -21,6 +21,7 @@ interface RingHubPost {
   pinned: boolean;
   isNotification: boolean;
   notificationType: string | null;
+  postContent?: any; // Actual post content from ThreadStead
 }
 
 interface RingHubFeedResponse {
@@ -87,10 +88,40 @@ export default function RingHubFeed({
         filteredPosts = data.posts.filter(post => !post.isNotification);
       }
       
+      // Fetch actual post content for ThreadStead posts
+      const enrichedPosts = await Promise.all(
+        filteredPosts.map(async (ringHubPost) => {
+          // Skip notifications and special post types
+          if (ringHubPost.isNotification || ringHubPost.metadata?.type === 'threadring_prompt') {
+            return ringHubPost;
+          }
+          
+          // Extract post ID from URI for ThreadStead posts
+          const postIdMatch = ringHubPost.uri.match(/\/posts?\/([^\/\?]+)/);
+          if (postIdMatch && postIdMatch[1]) {
+            try {
+              const postRes = await fetch(`/api/posts/single/${postIdMatch[1]}`);
+              if (postRes.ok) {
+                const { post } = await postRes.json();
+                // Merge the actual post content with RingHub metadata
+                return {
+                  ...ringHubPost,
+                  postContent: post
+                };
+              }
+            } catch (err) {
+              console.error(`Failed to fetch post content for ${ringHubPost.uri}:`, err);
+            }
+          }
+          
+          return ringHubPost;
+        })
+      );
+      
       if (isInitial) {
-        setPosts(filteredPosts);
+        setPosts(enrichedPosts);
       } else {
-        setPosts(prev => [...prev, ...filteredPosts]);
+        setPosts(prev => [...prev, ...enrichedPosts]);
       }
       
       // Resolve DIDs to usernames for posts we don't have resolved yet
@@ -151,25 +182,31 @@ export default function RingHubFeed({
                               ringHubPost.notificationType === 'fork_notification' &&
                               ringHubPost.metadata?.type === 'fork_notification';
     
+    // Use actual post content if available
+    const hasPostContent = ringHubPost.postContent && !ringHubPost.isNotification;
 
     return {
-      id: `ringhub-${ringHubPost.id}`,
-      title: null,
-      intent: null,
-      createdAt: ringHubPost.submittedAt,
-      bodyText: null,
-      bodyHtml: null,
-      bodyMarkdown: null,
-      visibility: "public" as const,
-      textPreview: null,
-      excerpt: null,
-      publishedAt: ringHubPost.submittedAt,
-      platform: "RingHub",
+      id: hasPostContent ? ringHubPost.postContent.id : `ringhub-${ringHubPost.id}`,
+      title: hasPostContent ? ringHubPost.postContent.title : null,
+      intent: hasPostContent ? ringHubPost.postContent.intent : null,
+      createdAt: hasPostContent ? ringHubPost.postContent.createdAt : ringHubPost.submittedAt,
+      bodyText: hasPostContent ? ringHubPost.postContent.bodyText : null,
+      bodyHtml: hasPostContent ? ringHubPost.postContent.bodyHtml : null,
+      bodyMarkdown: hasPostContent ? ringHubPost.postContent.bodyMarkdown : null,
+      visibility: hasPostContent ? ringHubPost.postContent.visibility : "public" as const,
+      textPreview: hasPostContent ? ringHubPost.postContent.textPreview : null,
+      excerpt: hasPostContent ? ringHubPost.postContent.excerpt : null,
+      publishedAt: hasPostContent ? ringHubPost.postContent.publishedAt : ringHubPost.submittedAt,
+      platform: hasPostContent ? "ThreadStead" : "RingHub",
       isPinned: ringHubPost.pinned,
       pinnedAt: ringHubPost.pinned ? ringHubPost.submittedAt : null,
       
-      // Author info from RingHub - improve DID handling
-      author: {
+      // Author info - use actual post author when available
+      author: hasPostContent && ringHubPost.postContent.author ? {
+        id: ringHubPost.postContent.author.id,
+        primaryHandle: ringHubPost.postContent.author.primaryHandle,
+        profile: ringHubPost.postContent.author.profile
+      } : {
         id: ringHubPost.actorDid,
         primaryHandle: (() => {
           // Extract readable part from DID
@@ -206,14 +243,16 @@ export default function RingHubFeed({
         notificationType: ringHubPost.notificationType || undefined
       },
 
-      // ThreadRing context for display
-      threadRings: [{
-        threadRing: {
-          id: ringHubPost.ringId,
-          name: ringHubPost.ringName,
-          slug: ringHubPost.ringSlug
-        }
-      }]
+      // ThreadRing context - use actual post threadRings if available, otherwise use RingHub data
+      threadRings: hasPostContent && ringHubPost.postContent.threadRings 
+        ? ringHubPost.postContent.threadRings
+        : [{
+            threadRing: {
+              id: ringHubPost.ringId,
+              name: ringHubPost.ringName,
+              slug: ringHubPost.ringSlug
+            }
+          }]
     };
   }, [resolvedUsernames]);
 
