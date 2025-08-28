@@ -95,10 +95,20 @@ async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, us
       }
 
       // Fetch badges from Ring Hub
+      // Use 'active' status to get all active badges (should include member, curator, owner roles)
       const ringHubBadges = await publicClient.getActorBadges(userDID, {
         status: 'active',
-        limit: 100 // Get all active badges
+        limit: 100 // Get all active badges for this user
       })
+
+      // Debug: Log badge data to understand what's being returned
+      console.log(`[Badge Debug] User DID: ${userDID}`)
+      console.log(`[Badge Debug] Total badges returned: ${ringHubBadges.badges.length}`)
+      console.log(`[Badge Debug] Badge roles:`, ringHubBadges.badges.map(b => ({ 
+        ring: b.ring.name, 
+        role: b.membership.role,
+        status: b.membership.status
+      })))
 
       // Transform Ring Hub badges to our expected format
       availableBadges = ringHubBadges.badges.map(badge => {
