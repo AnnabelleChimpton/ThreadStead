@@ -39,14 +39,17 @@ export default function BadgeSelector({
     subtitle: initialBadge?.subtitle || ''
   });
   const [mode, setMode] = useState<'template' | 'custom'>('template');
+  const [hasUserEditedTitle, setHasUserEditedTitle] = useState(false);
 
-  // Update badge text when threadRingName changes
+  // Update badge text when threadRingName changes (unless user has manually edited it)
   useEffect(() => {
-    setBadgeText(prev => ({
-      ...prev,
-      title: prev.title === threadRingName ? threadRingName : prev.title || threadRingName
-    }));
-  }, [threadRingName]);
+    if (!hasUserEditedTitle) {
+      setBadgeText(prev => ({
+        ...prev,
+        title: threadRingName || ''
+      }));
+    }
+  }, [threadRingName, hasUserEditedTitle]);
 
   // Notify parent of changes
   useEffect(() => {
@@ -80,17 +83,20 @@ export default function BadgeSelector({
   };
 
   const getCurrentBadgeProps = () => {
+    // Use threadRingName as fallback if title is empty (for better preview)
+    const displayTitle = badgeText.title || threadRingName || 'ThreadRing';
+    
     if (mode === 'template' && selectedTemplate) {
       return {
         templateId: selectedTemplate,
-        title: badgeText.title,
+        title: displayTitle,
         subtitle: badgeText.subtitle
       };
     } else {
       return {
         backgroundColor: customColors.backgroundColor,
         textColor: customColors.textColor,
-        title: badgeText.title,
+        title: displayTitle,
         subtitle: badgeText.subtitle
       };
     }
@@ -263,7 +269,11 @@ export default function BadgeSelector({
             placeholder={threadRingName}
             maxLength={15}
             value={badgeText.title}
-            onChange={(e) => setBadgeText(prev => ({ ...prev, title: e.target.value }))}
+            onChange={(e) => {
+              setBadgeText(prev => ({ ...prev, title: e.target.value }));
+              // If user clears the field, let it sync with threadRingName again
+              setHasUserEditedTitle(e.target.value !== '');
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded"
           />
           <p className="text-xs text-gray-500 mt-1">Max 15 characters</p>

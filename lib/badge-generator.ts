@@ -207,10 +207,13 @@ export async function generateThreadRingBadge(
   const title = threadRingName;
   const subtitle = options.subtitle;
 
+  // Only use autoColor if no template or backgroundColor is specified
+  const shouldAutoColor = !options.templateId && !options.backgroundColor && !options.autoColor;
+
   return generateBadge({
     title,
     subtitle,
-    autoColor: true,
+    autoColor: shouldAutoColor,
     ...options
   });
 }

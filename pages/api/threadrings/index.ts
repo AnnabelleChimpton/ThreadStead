@@ -138,7 +138,9 @@ export default withThreadRingSupport(async function handler(
           postCount: descriptor.postCount || 0,
           createdAt: descriptor.createdAt,
           curator: null, // Ring Hub doesn't include curator in list responses
-          viewerMembership
+          viewerMembership,
+          badgeImageUrl: descriptor.badgeImageUrl,
+          badgeImageHighResUrl: descriptor.badgeImageHighResUrl
         };
         
         return transformed;
@@ -268,6 +270,18 @@ export default withThreadRingSupport(async function handler(
             },
           },
         },
+        badge: {
+          select: {
+            id: true,
+            title: true,
+            subtitle: true,
+            backgroundColor: true,
+            textColor: true,
+            templateId: true,
+            imageUrl: true,
+            isActive: true
+          }
+        },
         // Include viewer's membership status if logged in
         ...(viewer ? {
           members: {
@@ -308,6 +322,7 @@ export default withThreadRingSupport(async function handler(
           displayName: ring.curator.profile?.displayName,
           avatarUrl: ring.curator.profile?.avatarUrl
         },
+        badge: ring.badge?.isActive ? ring.badge : null,
         // Include viewer's membership info if available
         ...(viewer && "members" in ring ? {
           viewerMembership: ring.members.length > 0 ? {

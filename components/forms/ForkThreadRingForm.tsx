@@ -34,10 +34,9 @@ export default function ForkThreadRingForm({
       .substring(0, 25); // Limit to 25 characters
   }, []);
 
-  const initialName = `${originalRing.name} Fork`;
   const [formData, setFormData] = useState({
-    name: initialName,
-    slug: generateSlugFromName(initialName),
+    name: "",
+    slug: "",
     description: originalRing.description || "",
     joinType: "open" as "open" | "invite" | "closed",
     visibility: "public" as "public" | "unlisted" | "private"
@@ -327,7 +326,7 @@ export default function ForkThreadRingForm({
             className={`w-full border p-3 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000] ${
               nameError ? 'border-red-500' : 'border-black'
             }`}
-            placeholder="My Awesome ThreadRing"
+            placeholder={`e.g. "${originalRing.name} Community" or your own creative name`}
             maxLength={100}
             required
           />
@@ -447,7 +446,7 @@ export default function ForkThreadRingForm({
         {/* Badge Selection */}
         <div>
           <BadgeSelector
-            threadRingName={formData.name || "ThreadRing Fork"}
+            threadRingName={formData.name}
             onBadgeChange={setBadgeData}
             initialBadge={badgeData}
             compact={true}

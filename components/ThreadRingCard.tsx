@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { useState } from "react";
+import ThreadRing88x31Badge from "./ThreadRing88x31Badge";
 
 interface ThreadRingCardProps {
   threadRing: {
@@ -21,6 +22,18 @@ interface ThreadRingCardProps {
       role: string;
       joinedAt: string;
     } | null;
+    badge?: {
+      id: string;
+      title: string;
+      subtitle?: string | null;
+      backgroundColor: string;
+      textColor: string;
+      templateId?: string | null;
+      imageUrl?: string | null;
+      isActive: boolean;
+    } | null;
+    badgeImageUrl?: string | null;
+    badgeImageHighResUrl?: string | null;
   };
   showJoinButton?: boolean;
   onJoin?: (ringSlug: string) => Promise<void>;
@@ -53,6 +66,10 @@ export default function ThreadRingCard({
                   !threadRing.viewerMembership && 
                   threadRing.joinType === "open";
 
+  // Determine badge source - prioritize local badge over RingHub badge
+  const hasBadge = threadRing.badge || threadRing.badgeImageUrl;
+  const badgeImageUrl = threadRing.badge?.imageUrl || threadRing.badgeImageUrl;
+
   return (
     <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-shadow">
       {/* Header */}
@@ -64,6 +81,20 @@ export default function ThreadRingCard({
           >
             {threadRing.name}
           </Link>
+          {/* Badge Display - directly below the name */}
+          {hasBadge && (
+            <div className="mt-2 mb-2">
+              <ThreadRing88x31Badge
+                title={threadRing.badge?.title || threadRing.name}
+                subtitle={threadRing.badge?.subtitle || undefined}
+                templateId={threadRing.badge?.templateId || undefined}
+                backgroundColor={threadRing.badge?.backgroundColor}
+                textColor={threadRing.badge?.textColor}
+                imageUrl={badgeImageUrl || undefined}
+                linkUrl={`/tr/${threadRing.slug}`}
+              />
+            </div>
+          )}
           {threadRing.curator && (
             <div className="text-sm text-gray-600 mt-1">
               curated by{" "}

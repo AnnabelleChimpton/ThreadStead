@@ -69,15 +69,34 @@ export default function ThreadRingBadgeManager({
     setError(null);
 
     try {
+      // Prepare the data to send - only include relevant fields based on mode
+      const badgeData: any = {
+        title: editedBadge.title || threadRingName,
+        subtitle: editedBadge.subtitle,
+        isActive: true
+      };
+
+      // If using a template, only send the templateId
+      if (editedBadge.templateId) {
+        badgeData.templateId = editedBadge.templateId;
+      } 
+      // If using custom colors, send the colors
+      else if (editedBadge.backgroundColor || editedBadge.textColor) {
+        badgeData.backgroundColor = editedBadge.backgroundColor;
+        badgeData.textColor = editedBadge.textColor;
+      }
+      
+      // Include image URL if provided
+      if (editedBadge.imageUrl) {
+        badgeData.imageUrl = editedBadge.imageUrl;
+      }
+
       const response = await fetch(`/api/threadrings/${threadRingSlug}/badge`, {
         method: currentBadge?.id ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...editedBadge,
-          title: editedBadge.title || threadRingName
-        }),
+        body: JSON.stringify(badgeData),
       });
 
       if (response.ok) {
@@ -140,17 +159,25 @@ export default function ThreadRingBadgeManager({
   };
 
   const getPreviewBadge = () => {
-    return {
+    const badge: any = {
       title: editedBadge.title || threadRingName,
       subtitle: editedBadge.subtitle,
-      templateId: editedBadge.templateId,
-      // Only provide fallback colors when no template is selected
-      backgroundColor: editedBadge.templateId ? editedBadge.backgroundColor : (editedBadge.backgroundColor || '#4A90E2'),
-      textColor: editedBadge.templateId ? editedBadge.textColor : (editedBadge.textColor || '#FFFFFF'),
       imageUrl: editedBadge.imageUrl,
       isGenerated: false,
       isActive: true
     };
+
+    // If using a template, only include templateId
+    if (editedBadge.templateId) {
+      badge.templateId = editedBadge.templateId;
+    } 
+    // Otherwise include custom colors
+    else {
+      badge.backgroundColor = editedBadge.backgroundColor || '#4A90E2';
+      badge.textColor = editedBadge.textColor || '#FFFFFF';
+    }
+
+    return badge;
   };
 
   return (

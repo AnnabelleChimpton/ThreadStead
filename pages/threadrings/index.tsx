@@ -23,11 +23,23 @@ interface ThreadRing {
     handle: string;
     displayName?: string | null;
     avatarUrl?: string | null;
-  };
+  } | null;
   viewerMembership?: {
     role: string;
     joinedAt: string;
   } | null;
+  badge?: {
+    id: string;
+    title: string;
+    subtitle?: string | null;
+    backgroundColor: string;
+    textColor: string;
+    templateId?: string | null;
+    imageUrl?: string | null;
+    isActive: boolean;
+  } | null;
+  badgeImageUrl?: string | null;
+  badgeImageHighResUrl?: string | null;
 }
 
 export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
