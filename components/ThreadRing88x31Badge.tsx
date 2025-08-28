@@ -17,8 +17,8 @@ export default function ThreadRing88x31Badge({
   templateId,
   title,
   subtitle,
-  backgroundColor = '#4A90E2',
-  textColor = '#FFFFFF',
+  backgroundColor,
+  textColor,
   imageUrl,
   linkUrl,
   className = '',
@@ -54,16 +54,23 @@ export default function ThreadRing88x31Badge({
   let template;
   if (templateId) {
     template = getBadgeTemplate(templateId);
+    if (!template) {
+      console.warn(`Badge template '${templateId}' not found, available templates:`, 
+        ['classic_blue', 'retro_green', 'neon_pink', 'sunset_orange', 'deep_purple', 'matrix_black', 'cyber_teal', 'golden_yellow']);
+      console.warn('Using default colors instead');
+    } else {
+      console.log(`Using template '${templateId}':`, template);
+    }
   }
 
-  // If no template found, create a basic one with provided colors
+  // If no template found, create a basic one with provided colors or defaults
   if (!template) {
     template = {
       id: 'custom',
       name: 'Custom',
       description: 'Custom badge',
-      backgroundColor,
-      textColor,
+      backgroundColor: backgroundColor || '#4A90E2',
+      textColor: textColor || '#FFFFFF',
       textStyle: {
         fontSize: '10px',
         fontWeight: 'bold',

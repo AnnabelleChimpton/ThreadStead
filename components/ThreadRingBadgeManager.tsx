@@ -130,8 +130,9 @@ export default function ThreadRingBadgeManager({
       setEditedBadge({
         ...editedBadge,
         templateId: template.id,
-        backgroundColor: template.backgroundColor,
-        textColor: template.textColor,
+        // Don't set backgroundColor/textColor - let template handle styling
+        backgroundColor: undefined,
+        textColor: undefined,
         imageUrl: undefined // Clear custom image when using template
       });
       setPreviewMode('template');
