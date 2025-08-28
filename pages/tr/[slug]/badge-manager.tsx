@@ -10,6 +10,7 @@ import { featureFlags } from '@/lib/feature-flags';
 import { getRingHubClient } from '@/lib/ringhub-client';
 import { db } from '@/lib/db';
 import { BADGE_TEMPLATES, type BadgeTemplate } from '@/lib/threadring-badges';
+import { generateBadge, type BadgeGenerationOptions } from '@/lib/badge-generator';
 
 interface BadgeManagerPageProps {
   ring: {
@@ -27,39 +28,27 @@ interface BadgeManagerPageProps {
 }
 
 interface BadgeDesign {
-  badgeImageUrl?: string;
-  badgeImageHighResUrl?: string;
+  title: string;
+  subtitle?: string;
+  templateId?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  customImageUrl?: string;
   description?: string;
   criteria?: string;
 }
 
-interface LocalBadgeData {
-  id?: string;
-  title: string;
-  subtitle?: string;
-  templateId?: string;
-  backgroundColor: string;
-  textColor: string;
-  imageUrl?: string;
-  isGenerated: boolean;
-  isActive: boolean;
-}
-
 export default function BadgeManagerPage({ ring, user, canManage }: BadgeManagerPageProps) {
   const router = useRouter();
+  
+  // Unified badge state
   const [currentBadge, setCurrentBadge] = useState<BadgeDesign | null>(null);
-  const [editedBadge, setEditedBadge] = useState<BadgeDesign>({});
+  const [editedBadge, setEditedBadge] = useState<Partial<BadgeDesign>>({});
+  const [templates] = useState<BadgeTemplate[]>(BADGE_TEMPLATES);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-
-  // Local badge template state
-  const [currentLocalBadge, setCurrentLocalBadge] = useState<LocalBadgeData | null>(null);
-  const [editedLocalBadge, setEditedLocalBadge] = useState<Partial<LocalBadgeData>>({});
-  const [templates] = useState<BadgeTemplate[]>(BADGE_TEMPLATES);
-  const [isLocalEditing, setIsLocalEditing] = useState(false);
-  const [localLoading, setLocalLoading] = useState(false);
   const [previewMode, setPreviewMode] = useState<'template' | 'custom' | 'upload'>('template');
 
   // Access control based on server-side permission check
@@ -68,22 +57,40 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
   useEffect(() => {
     if (canManageBadge) {
       loadCurrentBadge();
-      loadLocalBadge();
     }
   }, [ring.slug, canManageBadge]);
 
   const loadCurrentBadge = async () => {
     try {
-      // For now, we'll start with empty badge data since we're transitioning to RingHub
-      // In the future, we could fetch current badge info from RingHub if available
-      setCurrentBadge({
+      // Try to load existing local badge configuration
+      const response = await fetch(`/api/threadrings/${ring.slug}/badge`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.badge) {
+          const badge: BadgeDesign = {
+            title: data.badge.title || ring.name,
+            subtitle: data.badge.subtitle,
+            templateId: data.badge.templateId,
+            backgroundColor: data.badge.backgroundColor,
+            textColor: data.badge.textColor,
+            customImageUrl: data.badge.imageUrl,
+            description: `Badge for ${ring.name} ThreadRing`,
+            criteria: 'Active participation in the ThreadRing community'
+          };
+          setCurrentBadge(badge);
+          setEditedBadge(badge);
+          return;
+        }
+      }
+      
+      // If no existing badge, set up default
+      const defaultBadge: BadgeDesign = {
+        title: ring.name,
         description: `Badge for ${ring.name} ThreadRing`,
         criteria: 'Active participation in the ThreadRing community'
-      });
-      setEditedBadge({
-        description: `Badge for ${ring.name} ThreadRing`,
-        criteria: 'Active participation in the ThreadRing community'
-      });
+      };
+      setCurrentBadge(defaultBadge);
+      setEditedBadge(defaultBadge);
     } catch (error) {
       console.error('Failed to load current badge:', error);
     }
@@ -95,149 +102,123 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
     setSuccess(null);
 
     try {
-      // Prepare the badge update data
-      const updateData: any = {};
+      // Step 1: Generate the badge (either from template or use custom image)
+      let generatedBadgeUrl: string | undefined;
+      let generatedHighResUrl: string | undefined;
+
+      if (editedBadge.customImageUrl) {
+        // User provided custom image URL - validate and use it
+        const isValidUrl = editedBadge.customImageUrl.startsWith('https://');
+        if (!isValidUrl) {
+          setError('Custom image URL must be a valid HTTPS URL');
+          return;
+        }
+        generatedBadgeUrl = editedBadge.customImageUrl;
+      } else {
+        // Generate badge from template/colors and upload to S3
+        const response = await fetch(`/api/threadrings/${ring.slug}/generate-and-upload-badge`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: editedBadge.title || ring.name,
+            subtitle: editedBadge.subtitle,
+            templateId: editedBadge.templateId,
+            backgroundColor: editedBadge.backgroundColor,
+            textColor: editedBadge.textColor,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          setError(errorData.error || 'Failed to generate badge');
+          return;
+        }
+
+        const uploadResult = await response.json();
+        generatedBadgeUrl = uploadResult.badgeImageUrl;
+        generatedHighResUrl = uploadResult.badgeImageHighResUrl;
+      }
+
+      // Step 2: Update RingHub with the generated/provided image URL
+      const ringHubUpdateData: any = {};
       
-      if (editedBadge.badgeImageUrl?.trim()) {
-        updateData.badgeImageUrl = editedBadge.badgeImageUrl.trim();
+      if (generatedBadgeUrl) {
+        ringHubUpdateData.badgeImageUrl = generatedBadgeUrl;
       }
       
-      if (editedBadge.badgeImageHighResUrl?.trim()) {
-        updateData.badgeImageHighResUrl = editedBadge.badgeImageHighResUrl.trim();
+      if (generatedHighResUrl) {
+        ringHubUpdateData.badgeImageHighResUrl = generatedHighResUrl;
       }
       
       if (editedBadge.description?.trim()) {
-        updateData.description = editedBadge.description.trim();
+        ringHubUpdateData.description = editedBadge.description.trim();
       }
       
       if (editedBadge.criteria?.trim()) {
-        updateData.criteria = editedBadge.criteria.trim();
+        ringHubUpdateData.criteria = editedBadge.criteria.trim();
       }
 
       // Always regenerate existing badges when updating
-      updateData.updateExistingBadges = true;
+      ringHubUpdateData.updateExistingBadges = true;
 
-      const response = await fetch(`/api/threadrings/${ring.slug}/update-badge`, {
+      const ringHubResponse = await fetch(`/api/threadrings/${ring.slug}/update-badge`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify(ringHubUpdateData),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        setCurrentBadge(editedBadge);
+      if (ringHubResponse.ok) {
+        const result = await ringHubResponse.json();
+        
+        // Step 3: Save the badge configuration locally for future editing
+        const localBadgeData = {
+          title: editedBadge.title || ring.name,
+          subtitle: editedBadge.subtitle,
+          templateId: editedBadge.templateId,
+          backgroundColor: editedBadge.backgroundColor,
+          textColor: editedBadge.textColor,
+          imageUrl: editedBadge.customImageUrl || generatedBadgeUrl,
+          isActive: true
+        };
+
+        await fetch(`/api/threadrings/${ring.slug}/badge`, {
+          method: currentBadge ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(localBadgeData),
+        });
+
+        setCurrentBadge(editedBadge as BadgeDesign);
         setIsEditing(false);
-        setSuccess(`${result.message}${result.badgesUpdated ? ` (${result.badgesUpdated} existing badges updated)` : ''}`);
+        setSuccess(`Badge updated successfully! ${result.badgesUpdated ? `(${result.badgesUpdated} member badges regenerated)` : ''}`);
       } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to update badge');
+        const errorData = await ringHubResponse.json();
+        setError(errorData.error || 'Failed to update RingHub badge');
       }
     } catch (error) {
+      console.error('Badge save error:', error);
       setError('Network error occurred while updating badge');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Local badge management functions
-  const loadLocalBadge = async () => {
-    try {
-      const response = await fetch(`/api/threadrings/${ring.slug}/badge`);
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentLocalBadge(data.badge);
-        setEditedLocalBadge(data.badge || {});
-      }
-    } catch (error) {
-      console.error('Failed to load local badge:', error);
-    }
-  };
-
-  const handleLocalSave = async () => {
-    setLocalLoading(true);
-    setError(null);
-
-    try {
-      const badgeData: any = {
-        title: editedLocalBadge.title || ring.name,
-        subtitle: editedLocalBadge.subtitle,
-        isActive: true
-      };
-
-      if (editedLocalBadge.templateId) {
-        badgeData.templateId = editedLocalBadge.templateId;
-      } else if (editedLocalBadge.backgroundColor || editedLocalBadge.textColor) {
-        badgeData.backgroundColor = editedLocalBadge.backgroundColor;
-        badgeData.textColor = editedLocalBadge.textColor;
-      }
-      
-      if (editedLocalBadge.imageUrl) {
-        badgeData.imageUrl = editedLocalBadge.imageUrl;
-      }
-
-      const response = await fetch(`/api/threadrings/${ring.slug}/badge`, {
-        method: currentLocalBadge?.id ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(badgeData),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentLocalBadge(data.badge);
-        setEditedLocalBadge(data.badge);
-        setIsLocalEditing(false);
-        setSuccess('Local badge template updated successfully!');
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to save local badge');
-      }
-    } catch (error) {
-      setError('Network error occurred while saving local badge');
-    } finally {
-      setLocalLoading(false);
-    }
-  };
-
-  const handleLocalDelete = async () => {
-    if (!currentLocalBadge?.id || !confirm('Are you sure you want to delete this local badge template?')) {
-      return;
-    }
-
-    setLocalLoading(true);
-    try {
-      const response = await fetch(`/api/threadrings/${ring.slug}/badge`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setCurrentLocalBadge(null);
-        setEditedLocalBadge({});
-        setIsLocalEditing(false);
-        setSuccess('Local badge template deleted successfully!');
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to delete local badge');
-      }
-    } catch (error) {
-      setError('Network error occurred while deleting local badge');
-    } finally {
-      setLocalLoading(false);
-    }
-  };
+  // Helper functions
 
   const handleTemplateSelect = (templateId: string) => {
     const template = templates.find(t => t.id === templateId);
     if (template) {
-      setEditedLocalBadge({
-        ...editedLocalBadge,
+      setEditedBadge({
+        ...editedBadge,
         templateId: template.id,
         backgroundColor: undefined,
         textColor: undefined,
-        imageUrl: undefined
+        customImageUrl: undefined
       });
       setPreviewMode('template');
     }
@@ -245,18 +226,18 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
 
   const getPreviewBadge = () => {
     const badge: any = {
-      title: editedLocalBadge.title || ring.name,
-      subtitle: editedLocalBadge.subtitle,
-      imageUrl: editedLocalBadge.imageUrl,
+      title: editedBadge.title || ring.name,
+      subtitle: editedBadge.subtitle,
+      imageUrl: editedBadge.customImageUrl,
       isGenerated: false,
       isActive: true
     };
 
-    if (editedLocalBadge.templateId) {
-      badge.templateId = editedLocalBadge.templateId;
+    if (editedBadge.templateId) {
+      badge.templateId = editedBadge.templateId;
     } else {
-      badge.backgroundColor = editedLocalBadge.backgroundColor || '#4A90E2';
-      badge.textColor = editedLocalBadge.textColor || '#FFFFFF';
+      badge.backgroundColor = editedBadge.backgroundColor || '#4A90E2';
+      badge.textColor = editedBadge.textColor || '#FFFFFF';
     }
 
     return badge;
@@ -328,213 +309,59 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
           <div className="bg-white border border-black rounded-none shadow-[3px_3px_0_#000]">
             {/* Header */}
             <div className="border-b border-black p-6 bg-yellow-50">
-              <h3 className="text-xl font-bold text-black mb-2">ThreadRing Badge Design</h3>
+              <h3 className="text-xl font-bold text-black mb-2">🎨 ThreadRing Badge Designer</h3>
               <p className="text-gray-700">
-                Update the badge that members of this ThreadRing will receive. Changes will regenerate all existing member badges.
+                Design your ThreadRing badge using templates, custom colors, or upload your own image. 
+                The badge will be uploaded to our servers and sent to RingHub to update all member badges.
               </p>
             </div>
 
             <div className="p-6 space-y-6">
               {/* Current Badge Preview */}
-              <div>
-                <h4 className="font-bold text-lg mb-3">Current Badge Preview</h4>
-                <div className="flex items-center gap-4">
-                  <ThreadRing88x31Badge
-                    title={ring.name}
-                    subtitle="member"
-                    imageUrl={currentBadge?.badgeImageUrl}
-                    backgroundColor="#4A90E2"
-                    textColor="#FFFFFF"
-                  />
-                  <div className="text-sm text-gray-600">
-                    <p><strong>ThreadRing:</strong> {ring.name}</p>
-                    <p><strong>Badge Type:</strong> Member Badge</p>
-                    {currentBadge?.description && <p><strong>Description:</strong> {currentBadge.description}</p>}
+              {currentBadge && !isEditing && (
+                <div>
+                  <h4 className="font-bold text-lg mb-3">Current Badge</h4>
+                  <div className="flex items-center gap-4">
+                    <ThreadRing88x31Badge
+                      title={currentBadge.title}
+                      subtitle={currentBadge.subtitle}
+                      templateId={currentBadge.templateId}
+                      backgroundColor={currentBadge.backgroundColor}
+                      textColor={currentBadge.textColor}
+                      imageUrl={currentBadge.customImageUrl}
+                    />
+                    <div className="text-sm text-gray-600">
+                      <p><strong>Title:</strong> {currentBadge.title}</p>
+                      {currentBadge.subtitle && <p><strong>Subtitle:</strong> {currentBadge.subtitle}</p>}
+                      <p><strong>Template:</strong> {currentBadge.templateId || 'Custom'}</p>
+                      {currentBadge.description && <p><strong>Description:</strong> {currentBadge.description}</p>}
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Badge Configuration */}
-              <div className="border-t border-gray-200 pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-bold text-lg">Badge Configuration</h4>
-                  {!isEditing && (
+                  <div className="mt-4">
                     <button
                       onClick={() => setIsEditing(true)}
                       className="px-4 py-2 border border-black bg-blue-100 hover:bg-blue-200 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
                     >
                       ✏️ Edit Badge Design
                     </button>
-                  )}
-                </div>
-
-                {!isEditing ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block font-bold text-gray-800 mb-1">Badge Image URL:</label>
-                      <p className="text-gray-600">{currentBadge?.badgeImageUrl || 'Not set (using default design)'}</p>
-                    </div>
-                    <div>
-                      <label className="block font-bold text-gray-800 mb-1">High-Resolution Image URL:</label>
-                      <p className="text-gray-600">{currentBadge?.badgeImageHighResUrl || 'Not set'}</p>
-                    </div>
-                    <div>
-                      <label className="block font-bold text-gray-800 mb-1">Description:</label>
-                      <p className="text-gray-600">{currentBadge?.description || 'Not set'}</p>
-                    </div>
-                    <div>
-                      <label className="block font-bold text-gray-800 mb-1">Criteria:</label>
-                      <p className="text-gray-600">{currentBadge?.criteria || 'Not set'}</p>
-                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block font-bold text-gray-800 mb-2">Badge Image URL (HTTPS required):</label>
-                      <input
-                        type="url"
-                        placeholder="https://example.com/badge.png"
-                        value={editedBadge.badgeImageUrl || ''}
-                        onChange={(e) => setEditedBadge({ ...editedBadge, badgeImageUrl: e.target.value })}
-                        className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <p className="text-sm text-gray-600 mt-1">
-                        Upload your badge image to a hosting service and paste the HTTPS URL here. Recommended size: 88x31 pixels.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-gray-800 mb-2">High-Resolution Image URL (optional):</label>
-                      <input
-                        type="url"
-                        placeholder="https://example.com/badge-2x.png"
-                        value={editedBadge.badgeImageHighResUrl || ''}
-                        onChange={(e) => setEditedBadge({ ...editedBadge, badgeImageHighResUrl: e.target.value })}
-                        className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <p className="text-sm text-gray-600 mt-1">
-                        Higher resolution version for retina displays. Recommended size: 176x62 pixels.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-gray-800 mb-2">Badge Description:</label>
-                      <textarea
-                        placeholder="Description of what this badge represents"
-                        value={editedBadge.description || ''}
-                        onChange={(e) => setEditedBadge({ ...editedBadge, description: e.target.value })}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-gray-800 mb-2">Badge Criteria:</label>
-                      <textarea
-                        placeholder="What does someone need to do to earn this badge?"
-                        value={editedBadge.criteria || ''}
-                        onChange={(e) => setEditedBadge({ ...editedBadge, criteria: e.target.value })}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div className="flex gap-3 pt-4">
-                      <button
-                        onClick={handleSave}
-                        disabled={isLoading}
-                        className="px-6 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_#000]"
-                      >
-                        {isLoading ? '💾 Updating...' : '💾 Update Badge Design'}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsEditing(false);
-                          setEditedBadge(currentBadge || {});
-                          setError(null);
-                        }}
-                        className="px-4 py-2 border border-black bg-gray-200 hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Information */}
-              <div className="border-t border-gray-200 pt-6">
-                <div className="bg-blue-50 border border-blue-200 rounded p-4">
-                  <h5 className="font-bold text-blue-900 mb-2">🔄 Badge Regeneration</h5>
-                  <p className="text-sm text-blue-800">
-                    When you update the badge design, all existing member badges will be automatically regenerated with the new design. 
-                    This ensures all members have the latest badge artwork.
-                  </p>
                 </div>
-              </div>
-            </div>
-          </div>
+              )}
 
-          {/* Local Badge Template Generator */}
-          <div className="mt-8">
-            <div className="bg-white border border-black rounded-none shadow-[3px_3px_0_#000]">
-              {/* Header */}
-              <div className="border-b border-black p-6 bg-green-50">
-                <h3 className="text-xl font-bold text-black mb-2">🎨 Local Badge Template Generator</h3>
-                <p className="text-gray-700">
-                  Create a local badge template with pre-designed templates, custom colors, or uploaded images. 
-                  This is separate from the RingHub badge system above.
-                </p>
-              </div>
-
-              <div className="p-6 space-y-6">
-                {/* Current Local Badge Display */}
-                {currentLocalBadge && !isLocalEditing && (
+              {/* Badge Designer */}
+              {(!currentBadge || isEditing) && (
+                <div className="space-y-6">
+                  {/* Live Preview */}
                   <div>
-                    <h4 className="font-bold text-lg mb-3">Current Local Badge Template</h4>
-                    <div className="flex items-center gap-4">
-                      <ThreadRing88x31Badge
-                        templateId={currentLocalBadge.templateId}
-                        title={currentLocalBadge.title}
-                        subtitle={currentLocalBadge.subtitle}
-                        backgroundColor={currentLocalBadge.backgroundColor}
-                        textColor={currentLocalBadge.textColor}
-                        imageUrl={currentLocalBadge.imageUrl}
-                      />
-                      <div className="text-sm text-gray-600">
-                        <p><strong>Title:</strong> {currentLocalBadge.title}</p>
-                        {currentLocalBadge.subtitle && <p><strong>Subtitle:</strong> {currentLocalBadge.subtitle}</p>}
-                        <p><strong>Template:</strong> {currentLocalBadge.templateId || 'Custom'}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        onClick={() => setIsLocalEditing(true)}
-                        className="px-4 py-2 border border-black bg-blue-100 hover:bg-blue-200 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
-                      >
-                        ✏️ Edit Template
-                      </button>
-                      <button
-                        onClick={handleLocalDelete}
-                        disabled={localLoading}
-                        className="px-4 py-2 border border-black bg-red-100 hover:bg-red-200 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50"
-                      >
-                        🗑️ Delete Template
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Badge Template Editor */}
-                {(!currentLocalBadge || isLocalEditing) && (
-                  <div className="space-y-6">
-                    {/* Preview */}
-                    <div>
-                      <h4 className="font-bold text-lg mb-3">Template Preview</h4>
+                    <h4 className="font-bold text-lg mb-3">Badge Preview</h4>
+                    <div className="bg-gray-50 border border-gray-200 rounded p-4 inline-block">
                       <ThreadRing88x31Badge {...getPreviewBadge()} />
                     </div>
+                  </div>
 
-                    {/* Mode Selection */}
+                  {/* Design Mode Selection */}
+                  <div>
+                    <h4 className="font-bold text-lg mb-3">Design Mode</h4>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setPreviewMode('template')}
@@ -567,44 +394,47 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                         🖼️ Upload Image
                       </button>
                     </div>
+                  </div>
 
-                    {/* Template Selection */}
-                    {previewMode === 'template' && (
-                      <div>
-                        <label className="block font-bold text-gray-800 mb-3">Choose Template:</label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {templates.map((template) => (
-                            <div
-                              key={template.id}
-                              onClick={() => handleTemplateSelect(template.id)}
-                              className={`p-3 border border-black rounded-none cursor-pointer text-center shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${
-                                editedLocalBadge.templateId === template.id
-                                  ? 'bg-yellow-100'
-                                  : 'bg-white hover:bg-gray-50'
-                              }`}
-                            >
-                              <ThreadRing88x31Badge
-                                templateId={template.id}
-                                title={editedLocalBadge.title || ring.name}
-                                subtitle={editedLocalBadge.subtitle}
-                              />
-                              <p className="text-xs mt-2 font-medium">{template.name}</p>
-                            </div>
-                          ))}
-                        </div>
+                  {/* Template Selection */}
+                  {previewMode === 'template' && (
+                    <div>
+                      <h4 className="font-bold text-lg mb-3">Choose Template</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {templates.map((template) => (
+                          <div
+                            key={template.id}
+                            onClick={() => handleTemplateSelect(template.id)}
+                            className={`p-3 border border-black rounded-none cursor-pointer text-center shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${
+                              editedBadge.templateId === template.id
+                                ? 'bg-yellow-100'
+                                : 'bg-white hover:bg-gray-50'
+                            }`}
+                          >
+                            <ThreadRing88x31Badge
+                              templateId={template.id}
+                              title={editedBadge.title || ring.name}
+                              subtitle={editedBadge.subtitle}
+                            />
+                            <p className="text-xs mt-2 font-medium">{template.name}</p>
+                          </div>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {/* Custom Colors */}
-                    {previewMode === 'custom' && (
+                  {/* Custom Colors */}
+                  {previewMode === 'custom' && (
+                    <div>
+                      <h4 className="font-bold text-lg mb-3">Custom Colors</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block font-bold text-gray-800 mb-2">Background Color:</label>
                           <input
                             type="color"
-                            value={editedLocalBadge.backgroundColor || '#4A90E2'}
-                            onChange={(e) => setEditedLocalBadge({
-                              ...editedLocalBadge,
+                            value={editedBadge.backgroundColor || '#4A90E2'}
+                            onChange={(e) => setEditedBadge({
+                              ...editedBadge,
                               backgroundColor: e.target.value,
                               templateId: undefined
                             })}
@@ -615,9 +445,9 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                           <label className="block font-bold text-gray-800 mb-2">Text Color:</label>
                           <input
                             type="color"
-                            value={editedLocalBadge.textColor || '#FFFFFF'}
-                            onChange={(e) => setEditedLocalBadge({
-                              ...editedLocalBadge,
+                            value={editedBadge.textColor || '#FFFFFF'}
+                            onChange={(e) => setEditedBadge({
+                              ...editedBadge,
                               textColor: e.target.value,
                               templateId: undefined
                             })}
@@ -625,30 +455,36 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                           />
                         </div>
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {/* Image Upload */}
-                    {previewMode === 'upload' && (
+                  {/* Custom Image Upload */}
+                  {previewMode === 'upload' && (
+                    <div>
+                      <h4 className="font-bold text-lg mb-3">Custom Image</h4>
                       <div>
-                        <label className="block font-bold text-gray-800 mb-2">Custom Badge Image (88x31 pixels):</label>
+                        <label className="block font-bold text-gray-800 mb-2">Badge Image URL (HTTPS required):</label>
                         <input
                           type="url"
                           placeholder="https://example.com/badge.png"
-                          value={editedLocalBadge.imageUrl || ''}
-                          onChange={(e) => setEditedLocalBadge({
-                            ...editedLocalBadge,
-                            imageUrl: e.target.value,
+                          value={editedBadge.customImageUrl || ''}
+                          onChange={(e) => setEditedBadge({
+                            ...editedBadge,
+                            customImageUrl: e.target.value,
                             templateId: undefined
                           })}
                           className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <p className="text-sm text-gray-600 mt-2">
-                          Upload your image to a hosting service and paste the URL here. Recommended size: 88x31 pixels.
+                          Provide a direct HTTPS link to your 88x31 pixel badge image. We&apos;ll use this URL directly.
                         </p>
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {/* Text Content */}
+                  {/* Text Content */}
+                  <div>
+                    <h4 className="font-bold text-lg mb-3">Badge Text</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block font-bold text-gray-800 mb-2">Title:</label>
@@ -656,9 +492,9 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                           type="text"
                           placeholder={ring.name}
                           maxLength={15}
-                          value={editedLocalBadge.title || ''}
-                          onChange={(e) => setEditedLocalBadge({
-                            ...editedLocalBadge,
+                          value={editedBadge.title || ''}
+                          onChange={(e) => setEditedBadge({
+                            ...editedBadge,
                             title: e.target.value
                           })}
                           className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -671,9 +507,9 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                           type="text"
                           placeholder="@threadring"
                           maxLength={12}
-                          value={editedLocalBadge.subtitle || ''}
-                          onChange={(e) => setEditedLocalBadge({
-                            ...editedLocalBadge,
+                          value={editedBadge.subtitle || ''}
+                          onChange={(e) => setEditedBadge({
+                            ...editedBadge,
                             subtitle: e.target.value
                           })}
                           className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -681,45 +517,74 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                         <p className="text-sm text-gray-600 mt-1">Max 12 characters</p>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex gap-3 pt-4">
-                      <button
-                        onClick={handleLocalSave}
-                        disabled={localLoading}
-                        className="px-6 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_#000]"
-                      >
-                        {localLoading ? '💾 Saving...' : '💾 Save Template'}
-                      </button>
-                      {isLocalEditing && (
-                        <button
-                          onClick={() => {
-                            setIsLocalEditing(false);
-                            setEditedLocalBadge(currentLocalBadge || {});
-                            setError(null);
-                          }}
-                          className="px-4 py-2 border border-black bg-gray-200 hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
-                        >
-                          Cancel
-                        </button>
-                      )}
+                  {/* Badge Metadata */}
+                  <div>
+                    <h4 className="font-bold text-lg mb-3">Badge Information</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block font-bold text-gray-800 mb-2">Description:</label>
+                        <textarea
+                          placeholder="Description of what this badge represents"
+                          value={editedBadge.description || ''}
+                          onChange={(e) => setEditedBadge({ ...editedBadge, description: e.target.value })}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-bold text-gray-800 mb-2">Criteria:</label>
+                        <textarea
+                          placeholder="What does someone need to do to earn this badge?"
+                          value={editedBadge.criteria || ''}
+                          onChange={(e) => setEditedBadge({ ...editedBadge, criteria: e.target.value })}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
                     </div>
                   </div>
-                )}
 
-                {/* Local Badge Information */}
-                <div className="border-t border-gray-200 pt-6">
-                  <div className="bg-amber-50 border border-amber-200 rounded p-4">
-                    <h5 className="font-bold text-amber-900 mb-2">🎨 About Local Templates</h5>
-                    <p className="text-sm text-amber-800">
-                      Local badge templates are stored on ThreadStead and can be displayed on your ThreadRing page. 
-                      These are separate from RingHub member badges and are used for visual decoration of your ThreadRing.
-                    </p>
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={handleSave}
+                      disabled={isLoading}
+                      className="px-6 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_#000]"
+                    >
+                      {isLoading ? '🔄 Generating & Uploading...' : '🚀 Generate & Update Badge'}
+                    </button>
+                    {isEditing && (
+                      <button
+                        onClick={() => {
+                          setIsEditing(false);
+                          setEditedBadge(currentBadge || {});
+                          setError(null);
+                        }}
+                        className="px-4 py-2 border border-black bg-gray-200 hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </div>
+                </div>
+              )}
+              </div>
+
+              {/* Information */}
+              <div className="border-t border-gray-200 pt-6">
+                <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                  <h5 className="font-bold text-blue-900 mb-2">🚀 How It Works</h5>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• <strong>Design</strong>: Choose a template, set custom colors, or upload your own image</li>
+                    <li>• <strong>Generate</strong>: We create an 88x31 badge image and upload it to our S3 storage</li>
+                    <li>• <strong>Update RingHub</strong>: The S3 URL is sent to RingHub to update all member badges</li>
+                    <li>• <strong>Synchronization</strong>: Local and RingHub always use the same badge image</li>
+                  </ul>
                 </div>
               </div>
             </div>
-          </div>
         </RetroCard>
       </Layout>
     </>
