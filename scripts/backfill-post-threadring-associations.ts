@@ -173,7 +173,8 @@ async function backfillPostThreadRingAssociations() {
           console.log(`🔧 Creating missing local ThreadRing: ${ringHubPost.ringSlug}`);
           try {
             // Generate a unique URI for the RingHub ThreadRing
-            const ringUri = `${baseUrl}/tr/${ringHubPost.ringSlug}`;
+            const currentBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://homepageagain.com';
+            const ringUri = `${currentBaseUrl}/tr/${ringHubPost.ringSlug}`;
             
             // Create a basic local ThreadRing record to support feed associations
             localRing = await db.threadRing.create({
