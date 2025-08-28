@@ -90,8 +90,8 @@ export default withThreadRingSupport(async function handler(
             count: debugResult.memberships.length,
             rings: debugResult.memberships.slice(0, 3).map(m => ({ slug: m.ringSlug, role: m.role }))
           };
-        } catch (e) {
-          debugMemberships = { error: e.message };
+        } catch (e: any) {
+          debugMemberships = { error: e?.message || 'Unknown error' };
         }
       }
 
