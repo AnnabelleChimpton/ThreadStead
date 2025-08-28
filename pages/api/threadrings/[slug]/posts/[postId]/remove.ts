@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { getRingHubClient } from "@/lib/ringhub-client";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "DELETE") {
@@ -9,6 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { slug, postId } = req.query;
+  const { reason, metadata } = req.body || {};
   
   if (typeof slug !== "string" || typeof postId !== "string") {
     return res.status(400).json({ error: "Invalid parameters" });
@@ -64,7 +66,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Post is not associated with this ThreadRing" });
     }
 
-    // Remove the association and update count
+    // Sync with RingHub for ring-specific removal
+    const ringHubClient = getRingHubClient();
+    let ringHubResponse = null;
+    
+    if (ringHubClient) {
+      try {
+        // This is a moderator action, so it's ring-specific
+        // The remove action will only affect this specific ring
+        ringHubResponse = await ringHubClient.curatePost(
+          postId,
+          'remove',
+          {
+            reason: reason || `Removed by ${viewerMembership.role}`,
+            metadata: metadata || {}
+          }
+        );
+        
+        console.log(`Moderator removed post ${postId} from ring ${slug}:`, {
+          ringSpecific: ringHubResponse.ringSpecific,
+          isAuthorAction: ringHubResponse.isAuthorAction,
+          moderator: ringHubResponse.moderator
+        });
+      } catch (ringHubError) {
+        // Log the error but continue with local removal
+        console.error("Failed to sync removal with RingHub:", ringHubError);
+        console.error("Continuing with local removal despite RingHub sync failure");
+      }
+    } else {
+      console.log("RingHub client not available, skipping RingHub sync");
+    }
+
+    // Remove the association and update count locally
     await db.$transaction([
       // Delete the association
       db.postThreadRing.delete({
@@ -85,7 +118,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.json({
       success: true,
-      message: `Post removed from ${threadRing.name}`
+      message: `Post removed from ${threadRing.name}`,
+      ringSpecific: true,
+      ringHubSynced: !!ringHubResponse,
+      reason: reason
     });
 
   } catch (error) {

@@ -390,18 +390,31 @@ export class RingHubClient {
       id: string
       uri: string
       actorDid: string
-      ringId: string
+      ringId?: string
+      ringSlug?: string
       status: 'ACCEPTED' | 'REJECTED' | 'REMOVED' | 'PENDING'
       pinned: boolean
-      createdAt: string
+      createdAt?: string
+      submittedAt?: string
+      submittedBy?: string
       moderatedAt: string
       moderatedBy: string
       moderationNote?: string
+      digest?: string
+      metadata?: any
     }
     action: string
     moderator: string
     moderatedAt: string
     reason?: string
+    isAuthorAction?: boolean
+    globalRemoval?: boolean
+    ringSpecific?: boolean
+    affectedRings?: Array<{
+      id: string
+      slug: string
+    }>
+    totalRemoved?: number
   }> {
     const requestBody: any = {
       postId,

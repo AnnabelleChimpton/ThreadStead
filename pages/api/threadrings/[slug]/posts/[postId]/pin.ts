@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
+import { getRingHubClient } from "@/lib/ringhub-client";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST" && req.method !== "DELETE") {
@@ -59,8 +60,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Post is not associated with this ThreadRing" });
     }
 
+    const action = req.method === "POST" ? "pin" : "unpin";
+    
+    // Sync with RingHub
+    const ringHubClient = getRingHubClient();
+    let ringHubResponse = null;
+    
+    if (ringHubClient) {
+      try {
+        ringHubResponse = await ringHubClient.curatePost(
+          postId,
+          action,
+          {
+            reason: `${action === 'pin' ? 'Pinned' : 'Unpinned'} by curator`
+          }
+        );
+        
+        console.log(`Curator ${action}ned post ${postId} in ring ${slug}:`, {
+          ringSpecific: ringHubResponse.ringSpecific,
+          moderator: ringHubResponse.moderator
+        });
+      } catch (ringHubError) {
+        // Log the error but continue with local operation
+        console.error(`Failed to sync ${action} with RingHub:`, ringHubError);
+        console.error(`Continuing with local ${action} despite RingHub sync failure`);
+      }
+    } else {
+      console.log("RingHub client not available, skipping RingHub sync");
+    }
+
     if (req.method === "POST") {
-      // Pin the post
+      // Pin the post locally
       await db.postThreadRing.update({
         where: {
           id: postAssociation.id
@@ -75,11 +105,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.json({
         success: true,
         message: "Post pinned successfully",
-        isPinned: true
+        isPinned: true,
+        ringHubSynced: !!ringHubResponse
       });
 
     } else {
-      // Unpin the post (DELETE method)
+      // Unpin the post locally (DELETE method)
       await db.postThreadRing.update({
         where: {
           id: postAssociation.id
@@ -94,7 +125,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.json({
         success: true,
         message: "Post unpinned successfully",
-        isPinned: false
+        isPinned: false,
+        ringHubSynced: !!ringHubResponse
       });
     }
 

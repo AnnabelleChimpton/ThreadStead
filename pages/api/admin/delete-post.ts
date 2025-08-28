@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-
+import { getRingHubClient } from "@/lib/ringhub-client";
 import { requireAdmin } from "@/lib/auth-server";
 
 
@@ -34,6 +34,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
           },
         },
+        threadRings: {
+          include: {
+            threadRing: {
+              select: {
+                id: true,
+                slug: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -41,6 +52,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Post not found" });
     }
 
+    // If post is associated with ThreadRings, notify RingHub about the removal
+    if (post.threadRings.length > 0) {
+      const ringHubClient = getRingHubClient();
+      
+      if (ringHubClient) {
+        try {
+          // Use the global author removal endpoint
+          // This will remove the post from ALL rings where it exists
+          const ringHubResponse = await ringHubClient.curatePost(
+            postId, 
+            'remove',
+            {
+              reason: `Post deleted by admin: ${adminUser.primaryHandle || adminUser.id}`
+            }
+          );
+          
+          console.log(`Successfully removed post ${postId} from RingHub:`, {
+            affectedRings: ringHubResponse.affectedRings,
+            totalRemoved: ringHubResponse.totalRemoved,
+          });
+        } catch (ringHubError) {
+          // Log the error but continue with local deletion
+          // We don't want to block local deletion if RingHub is unavailable
+          console.error("Failed to remove post from RingHub:", ringHubError);
+          console.error("Continuing with local deletion despite RingHub sync failure");
+        }
+      } else {
+        console.log("RingHub client not available, skipping RingHub sync");
+      }
+    }
+
+    // Delete the post from local database (cascade will handle PostThreadRing associations)
     await db.post.delete({
       where: { id: postId },
     });
@@ -50,6 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       deletedPost: {
         id: post.id,
         author: post.author.profile?.displayName || post.author.primaryHandle || "Unknown",
+        threadRingsRemoved: post.threadRings.map(ptr => ptr.threadRing.name),
       },
     });
   } catch (error) {

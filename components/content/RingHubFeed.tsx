@@ -201,6 +201,10 @@ export default function RingHubFeed({
       isPinned: ringHubPost.pinned,
       pinnedAt: ringHubPost.pinned ? ringHubPost.submittedAt : null,
       
+      // CRITICAL: Content warning/spoiler fields - absolutely required for user safety
+      isSpoiler: hasPostContent ? ringHubPost.postContent.isSpoiler : false,
+      contentWarning: hasPostContent ? ringHubPost.postContent.contentWarning : null,
+      
       // Author info - use actual post author when available
       author: hasPostContent && ringHubPost.postContent.author ? {
         id: ringHubPost.postContent.author.id,
