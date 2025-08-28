@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 
 export type CommentWire = {
   id: string;
@@ -19,8 +19,69 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const disabled = loading || !content.trim();
+
+  // Helper function to insert text at cursor position
+  const insertAtCursor = (beforeText: string, afterText = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+    
+    const newContent = 
+      content.substring(0, start) + 
+      beforeText + 
+      selectedText + 
+      afterText + 
+      content.substring(end);
+    
+    setContent(newContent);
+    
+    // Restore cursor position
+    setTimeout(() => {
+      const newCursorPos = start + beforeText.length + selectedText.length;
+      textarea.focus();
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
+
+  const formatActions = [
+    {
+      label: 'Bold',
+      icon: 'B',
+      action: () => insertAtCursor('**', '**'),
+      title: 'Bold text (**text**)'
+    },
+    {
+      label: 'Italic', 
+      icon: 'I',
+      action: () => insertAtCursor('*', '*'),
+      title: 'Italic text (*text*)'
+    },
+    {
+      label: 'Link',
+      icon: '🔗',
+      action: () => insertAtCursor('[', '](https://example.com)'),
+      title: 'Add link ([text](url))'
+    },
+    {
+      label: 'Quote',
+      icon: '"',
+      action: () => insertAtCursor('> ', ''),
+      title: 'Add quote (> text)'
+    },
+    {
+      label: 'List',
+      icon: '•',
+      action: () => insertAtCursor('- ', ''),
+      title: 'Add bullet point (- text)'
+    }
+  ];
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +123,46 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
 
   return (
     <form onSubmit={submit} className="comment-form flex flex-col gap-2">
+      {/* Formatting toolbar */}
+      <div className="formatting-toolbar flex flex-wrap gap-1 p-2 bg-gray-50 border border-gray-300 rounded-t">
+        {formatActions.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            onClick={action.action}
+            title={action.title}
+            className="formatting-button px-2 py-1 text-xs border border-gray-400 bg-white hover:bg-gray-100 rounded font-mono"
+          >
+            {action.icon}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setShowHelp(!showHelp)}
+          title="Formatting help"
+          className="formatting-help-button px-2 py-1 text-xs border border-gray-400 bg-blue-50 hover:bg-blue-100 rounded ml-auto"
+        >
+          ?
+        </button>
+      </div>
+
+      {/* Help text */}
+      {showHelp && (
+        <div className="formatting-help text-xs bg-blue-50 border border-blue-200 rounded p-3">
+          <div className="font-medium mb-2">Formatting options:</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-gray-700">
+            <div><code>**bold text**</code> → <strong>bold text</strong></div>
+            <div><code>*italic text*</code> → <em>italic text</em></div>
+            <div><code>[link text](url)</code> → <a href="#" className="text-blue-600 underline">link text</a></div>
+            <div><code>&gt; quote text</code> → blockquote</div>
+            <div><code>- list item</code> → • list item</div>
+          </div>
+        </div>
+      )}
+
       <textarea
-        className="comment-form-textarea border border-black md:border-black p-2 md:p-2 bg-white rounded"
+        ref={textareaRef}
+        className="comment-form-textarea border border-black md:border-black p-2 md:p-2 bg-white rounded-b"
         rows={3}
         value={content}
         onChange={(e) => setContent(e.target.value)}

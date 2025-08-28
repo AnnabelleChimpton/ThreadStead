@@ -3,6 +3,7 @@ import Image from "next/image";
 import NewCommentForm from "../forms/NewCommentForm";
 import CompactBadgeDisplay from "../CompactBadgeDisplay";
 import ReportButton from "../ReportButton";
+import { renderCommentMarkup } from "../../lib/comment-markup";
 
 export type CommentWire = {
   id: string;
@@ -334,7 +335,9 @@ export default function CommentList({
             </div>
           </div>
 
-          <p className="comment-content text-sm md:text-sm leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+          <div className="comment-content text-sm md:text-sm leading-relaxed">
+            {renderCommentMarkup(comment.content)}
+          </div>
           
           {isReplying && (
             <div className="comment-form mt-3 pt-3 border-t border-white/10 md:border-white/10">

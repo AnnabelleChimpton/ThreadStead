@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CompactBadgeDisplay from './CompactBadgeDisplay';
+import { renderCommentMarkup } from '../lib/comment-markup';
 
 interface PhotoComment {
   id: string;
@@ -188,9 +189,9 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
             </div>
 
             {/* Comment content */}
-            <p className="text-thread-charcoal text-sm leading-relaxed">
-              {comment.content}
-            </p>
+            <div className="text-thread-charcoal text-sm leading-relaxed">
+              {renderCommentMarkup(comment.content)}
+            </div>
 
             {/* Reply button */}
             {!isReply && (
