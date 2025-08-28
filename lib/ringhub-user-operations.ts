@@ -229,10 +229,8 @@ export class AuthenticatedRingHubClient {
   }
 
   async listRings(options?: Parameters<RingHubClient['listRings']>[0]) {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
-    return await this.client.listRings(options)
+    const userClient = await this.getUserClient()
+    return await userClient.listRings(options)
   }
 
   async getRingMembers(slug: string) {
