@@ -80,64 +80,87 @@ export default withThreadRingSupport(async function handler(
 
       const result = await ringHubClient.listRings(ringHubOptions);
 
-      // Temporary debug: Check if user has any memberships via the old method
-      let debugMemberships = null;
+      // Fallback: Get memberships via old API if new API doesn't include them
+      const viewerMemberships: Map<string, any> = new Map();
       if (viewer) {
-        try {
-          const debugResult = await ringHubClient.getMyMemberships({ status: 'ACTIVE', limit: 10 });
-          debugMemberships = {
-            total: debugResult.total,
-            count: debugResult.memberships.length,
-            rings: debugResult.memberships.slice(0, 3).map(m => ({ slug: m.ringSlug, role: m.role }))
-          };
-        } catch (e: any) {
-          debugMemberships = { error: e?.message || 'Unknown error' };
+        const hasNewMembershipAPI = result.rings.some(ring => ring.currentUserMembership !== undefined);
+        
+        if (!hasNewMembershipAPI) {
+          console.log('⚠️ RingHub new API not available yet, using fallback method');
+          try {
+            const membershipsResult = await ringHubClient.getMyMemberships({ status: 'ACTIVE', limit: 100 });
+            membershipsResult.memberships.forEach(membership => {
+              viewerMemberships.set(membership.ringSlug, {
+                role: membership.role.toLowerCase(),
+                joinedAt: membership.joinedAt
+              });
+            });
+            console.log(`✅ Loaded ${viewerMemberships.size} memberships via fallback API`);
+          } catch (e: any) {
+            console.error('❌ Failed to fetch memberships via fallback:', e?.message);
+          }
+        } else {
+          console.log('✅ Using new RingHub API with built-in membership info');
         }
       }
 
-      console.log('🔍 RingHub API Response Debug:', {
-        authenticated: !!viewer,
-        totalRings: result.rings?.length || 0,
-        firstRingHasCurrentUserMembership: result.rings?.[0]?.currentUserMembership !== undefined,
-        sampleRing: result.rings?.[0] ? {
-          slug: result.rings[0].slug,
-          name: result.rings[0].name,
-          currentUserMembership: result.rings[0].currentUserMembership
-        } : null,
-        // Debug: Check memberships via old API
-        debugMemberships
-      });
-
       // Transform Ring Hub response to ThreadStead format
       let transformedRings = result.rings.map((descriptor: any) => {
+        // Use new API data if available, otherwise fallback to old API data
+        let viewerMembership = null;
+        if (descriptor.currentUserMembership) {
+          // New API has membership data with updated structure
+          if (descriptor.currentUserMembership.status === 'ACTIVE') {
+            viewerMembership = {
+              role: descriptor.currentUserMembership.role?.toLowerCase() || 'member',
+              joinedAt: descriptor.currentUserMembership.joinedAt
+            };
+          }
+        } else if (viewerMemberships.has(descriptor.slug)) {
+          // Fallback to old API data
+          viewerMembership = viewerMemberships.get(descriptor.slug);
+        }
+
+        // Map visibility from RingHub format (PUBLIC/UNLISTED/PRIVATE) to ThreadStead format
+        let visibility = 'public';
+        if (descriptor.visibility === 'UNLISTED') {
+          visibility = 'unlisted';
+        } else if (descriptor.visibility === 'PRIVATE') {
+          visibility = 'private';
+        }
+
+        // Map joinPolicy from RingHub format to ThreadStead joinType
+        let joinType = 'open';
+        if (descriptor.joinPolicy === 'CLOSED') {
+          joinType = 'closed';
+        } else if (descriptor.joinPolicy === 'INVITATION') {
+          joinType = 'invite';
+        } else if (descriptor.joinPolicy === 'APPLICATION') {
+          joinType = 'application';
+        }
+
         const transformed = {
           id: descriptor.id,
           name: descriptor.name,
           slug: descriptor.slug,
           description: descriptor.description,
-          visibility: descriptor.visibility?.toLowerCase() || 'public', // PUBLIC -> public
-          joinType: descriptor.joinPolicy === 'OPEN' ? 'open' : 'closed', // OPEN -> open
+          visibility,
+          joinType,
           memberCount: descriptor.memberCount || 0,
           postCount: descriptor.postCount || 0,
           createdAt: descriptor.createdAt,
           curator: null, // Ring Hub doesn't include curator in list responses
-          // Map RingHub currentUserMembership to ThreadStead viewerMembership format
-          viewerMembership: descriptor.currentUserMembership ? {
-            role: descriptor.currentUserMembership.role.toLowerCase(),
-            joinedAt: descriptor.currentUserMembership.joinedAt
-          } : null
+          viewerMembership
         };
         
-        // Debug log first ring transformation
-        if (descriptor === result.rings[0]) {
-          console.log('🔄 First Ring Transformation:', {
-            originalSlug: descriptor.slug,
-            originalCurrentUserMembership: descriptor.currentUserMembership,
-            transformedViewerMembership: transformed.viewerMembership
-          });
-        }
-        
         return transformed;
+      });
+
+      console.log('🔄 Ring Transformation Summary:', {
+        totalRings: transformedRings.length,
+        ringsWithMembership: transformedRings.filter(r => r.viewerMembership !== null).length,
+        fallbackUsed: viewerMemberships.size > 0,
+        newAPIUsed: result.rings.some(ring => ring.currentUserMembership !== undefined)
       });
 
       // Filter to only user's memberships if requested

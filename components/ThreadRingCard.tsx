@@ -88,6 +88,10 @@ export default function ThreadRingCard({
             >
               {joining ? "Joining..." : "Join"}
             </button>
+          ) : threadRing.joinType === "application" ? (
+            <span className="text-xs bg-blue-200 px-2 py-1 border border-black rounded">
+              Apply to Join
+            </span>
           ) : threadRing.joinType === "invite" ? (
             <span className="text-xs bg-gray-200 px-2 py-1 border border-black rounded">
               Invite Only
@@ -113,7 +117,11 @@ export default function ThreadRingCard({
         <span>•</span>
         <span>{threadRing.postCount} post{threadRing.postCount !== 1 ? 's' : ''}</span>
         <span>•</span>
-        <span className="capitalize">{threadRing.joinType} joining</span>
+        <span>{threadRing.joinType === 'open' ? 'Open joining' : 
+               threadRing.joinType === 'application' ? 'Apply to join' :
+               threadRing.joinType === 'invite' ? 'Invite only' :
+               threadRing.joinType === 'closed' ? 'Closed' :
+               threadRing.joinType}</span>
         {threadRing.visibility === "unlisted" && (
           <>
             <span>•</span>

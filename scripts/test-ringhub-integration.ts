@@ -135,19 +135,30 @@ async function main() {
   try {
     // Create mock Ring Hub data
     const mockRingDescriptor = {
-      uri: 'https://homepageagain.com/threadrings/test-ring',
+      id: 'test-ring-id',
       name: 'Test Ring',
       description: 'A test ring for integration testing',
       slug: 'test-ring',
+      shortCode: null,
       joinPolicy: 'OPEN' as const,
       visibility: 'PUBLIC' as const,
-      spoolUri: 'https://homepageagain.com/threadrings/spool',
-      lineageDepth: 0,
+      postPolicy: 'OPEN' as const,
+      ownerDid: 'did:web:homepageagain.com:user:test',
+      parentId: null,
       memberCount: 5,
       postCount: 12,
-      descendantCount: 2,
       createdAt: '2025-08-22T10:00:00Z',
       updatedAt: '2025-08-22T12:00:00Z',
+      curatorNote: 'Welcome to our test ring!',
+      badgeImageUrl: null,
+      badgeImageHighResUrl: null,
+      metadata: null,
+      policies: null,
+      // Legacy fields for compatibility
+      uri: 'https://homepageagain.com/threadrings/test-ring',
+      spoolUri: 'https://homepageagain.com/threadrings/spool',
+      lineageDepth: 0,
+      descendantCount: 2,
       curatorNotes: 'Welcome to our test ring!'
     }
 

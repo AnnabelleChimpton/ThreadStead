@@ -10,49 +10,57 @@ import { featureFlags } from '@/lib/feature-flags'
 
 // Types for Ring Hub API compatibility
 export interface RingDescriptor {
-  id?: string              // Ring ID (returned by API, not settable)
-  uri: string              // Canonical URI for the ring
-  name: string             // Display name
-  description?: string     // Optional description
-  slug: string             // URL-friendly identifier
-  shortCode?: string       // Short code (2-10 alphanumeric + hyphens)
+  // Basic ring info
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  shortCode: string | null
+  visibility: "PUBLIC" | "UNLISTED" | "PRIVATE"
+  joinPolicy: "OPEN" | "APPLICATION" | "INVITATION" | "CLOSED"
+  postPolicy: "OPEN" | "MEMBERS" | "CURATED" | "CLOSED"
+  ownerDid: string
+  parentId: string | null
+  createdAt: string        // ISO timestamp
+  updatedAt: string        // ISO timestamp
+  curatorNote: string | null
+  badgeImageUrl: string | null
+  badgeImageHighResUrl: string | null
+  metadata: Record<string, any> | null
+  policies: Record<string, any> | null
 
-  // Settings
-  joinPolicy: 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED'
-  visibility: 'PUBLIC' | 'UNLISTED' | 'PRIVATE'
-  postPolicy?: 'OPEN' | 'MEMBERS' | 'CURATED' | 'CLOSED'
+  // Computed fields (always included)
+  memberCount: number
+  postCount: number
 
-  // Hierarchical (The Spool Architecture)
-  parentUri?: string       // Parent ring URI
-  parentId?: string        // Parent ring ID
-  spoolUri: string         // Spool URI for this instance
-  lineageDepth: number     // Depth in genealogy tree
-  ownerDid?: string        // Owner's DID
+  // Optional fields (based on query parameters)
+  lineage?: Array<{
+    id: string
+    slug: string
+    name: string
+  }>
+  children?: Array<{
+    id: string
+    slug: string
+    name: string
+    memberCount: number
+  }>
 
-  // Counters
-  memberCount: number      // Current member count
-  postCount: number        // Associated post count
-  descendantCount: number  // Total descendant rings
-
-  // Badge fields
-  badgeImageUrl?: string   // 88x31 badge image URL
-  badgeImageHighResUrl?: string // High-res badge image URL
-
-  // Current user membership (only present when authenticated)
+  // 🔥 KEY FIELD: Current user's membership (only if authenticated)
   currentUserMembership?: {
-    status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'REVOKED'
-    role: string
-    joinedAt: string
-    badgeId?: string
+    status: "PENDING" | "ACTIVE" | "SUSPENDED" | "REVOKED"
+    role: string | null
+    joinedAt: string | null  // ISO timestamp
+    badgeId: string | null
   }
 
-  // Metadata
-  createdAt: string        // ISO timestamp
-  updatedAt?: string       // ISO timestamp
-  curatorNote?: string     // Curator's note (singular, matching API)
-  curatorNotes?: string    // Curator's notes (legacy, for compatibility)
-  metadata?: any           // Additional metadata
-  policies?: any           // Ring policies
+  // Legacy/compatibility fields for ThreadStead
+  uri?: string             // Canonical URI for the ring (computed)
+  spoolUri?: string        // Spool URI for this instance (computed)
+  lineageDepth?: number    // Depth in genealogy tree (computed)
+  descendantCount?: number // Total descendant rings (computed)
+  parentUri?: string       // Parent ring URI (computed from parentId)
+  curatorNotes?: string    // Legacy alias for curatorNote
 }
 
 export interface RingMember {

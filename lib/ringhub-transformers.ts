@@ -126,7 +126,7 @@ export function transformRingDescriptorToThreadRing(
     curatorId: curatorId || 'unknown', // Will need DID -> user mapping
     name: descriptor.name,
     slug: descriptor.slug,
-    description: descriptor.description,
+    description: descriptor.description || undefined,
     joinType: mapJoinPolicyToJoinType(descriptor.joinPolicy || 'CLOSED'),
     visibility: mapVisibility(descriptor.visibility),
     memberCount: descriptor.memberCount,
