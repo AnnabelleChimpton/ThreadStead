@@ -8,6 +8,7 @@ import ThreadRing88x31Badge from '@/components/ThreadRing88x31Badge';
 import { getSessionUser } from '@/lib/auth-server';
 import { featureFlags } from '@/lib/feature-flags';
 import { getRingHubClient } from '@/lib/ringhub-client';
+import { db } from '@/lib/db';
 
 interface BadgeManagerPageProps {
   ring: {
@@ -16,15 +17,12 @@ interface BadgeManagerPageProps {
     name: string;
     description: string;
     visibility: string;
-    currentUserMembership?: {
-      role: string | null;
-      status: string;
-    };
   };
   user: {
     id: string;
     primaryHandle: string;
   };
+  canManage: boolean;
 }
 
 interface BadgeDesign {
@@ -34,7 +32,7 @@ interface BadgeDesign {
   criteria?: string;
 }
 
-export default function BadgeManagerPage({ ring, user }: BadgeManagerPageProps) {
+export default function BadgeManagerPage({ ring, user, canManage }: BadgeManagerPageProps) {
   const router = useRouter();
   const [currentBadge, setCurrentBadge] = useState<BadgeDesign | null>(null);
   const [editedBadge, setEditedBadge] = useState<BadgeDesign>({});
@@ -43,8 +41,8 @@ export default function BadgeManagerPage({ ring, user }: BadgeManagerPageProps) 
   const [success, setSuccess] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Check if user can manage this badge
-  const canManageBadge = ring.currentUserMembership?.role === 'owner' || ring.currentUserMembership?.role === 'curator';
+  // Access control based on server-side permission check
+  const canManageBadge = canManage;
 
   useEffect(() => {
     if (canManageBadge) {
@@ -365,42 +363,66 @@ export const getServerSideProps: GetServerSideProps<BadgeManagerPageProps> = asy
   }
 
   try {
-    const ringHubClient = getRingHubClient();
-    if (!ringHubClient) {
-      return {
-        notFound: true,
-      };
+    // Try Ring Hub first if enabled
+    if (featureFlags.ringhub()) {
+      const ringHubClient = getRingHubClient();
+      if (ringHubClient) {
+        try {
+          console.log('[Badge Manager SSR] Fetching ring from RingHub:', slug);
+          const ring = await ringHubClient.getRing(slug);
+          
+          if (ring) {
+            console.log('[Badge Manager SSR] Found RingHub ring:', ring.slug);
+            
+            // Check ownership via local database tracking (source of truth)
+            let canManage = false;
+            
+            try {
+              const ringHubOwnership = await db.ringHubOwnership.findUnique({
+                where: { ringSlug: slug }
+              });
+              console.log('[Badge Manager SSR] Local ownership record:', ringHubOwnership);
+              
+              if (ringHubOwnership && ringHubOwnership.ownerUserId === user.id) {
+                canManage = true;
+                console.log('[Badge Manager SSR] User is owner via local ownership tracking');
+              } else {
+                console.log('[Badge Manager SSR] User is not owner of this ring');
+              }
+              
+            } catch (ownershipError) {
+              console.warn('[Badge Manager SSR] Error checking local ownership:', ownershipError);
+            }
+            
+            return {
+              props: {
+                ring: {
+                  id: ring.id,
+                  slug: ring.slug,
+                  name: ring.name,
+                  description: ring.description || '',
+                  visibility: ring.visibility,
+                },
+                user: {
+                  id: user.id,
+                  primaryHandle: user.primaryHandle || '',
+                },
+                canManage,
+              },
+            };
+          }
+        } catch (ringHubError) {
+          console.error('[Badge Manager SSR] RingHub error:', ringHubError);
+        }
+      }
     }
-    
-    const ring = await ringHubClient.getRing(slug);
 
-    if (!ring) {
-      return {
-        notFound: true,
-      };
-    }
-
+    // If we get here, ring was not found
     return {
-      props: {
-        ring: {
-          id: ring.id,
-          slug: ring.slug,
-          name: ring.name,
-          description: ring.description || '',
-          visibility: ring.visibility,
-          currentUserMembership: ring.currentUserMembership ? {
-            role: ring.currentUserMembership.role,
-            status: ring.currentUserMembership.status,
-          } : undefined,
-        },
-        user: {
-          id: user.id,
-          primaryHandle: user.primaryHandle || '',
-        },
-      },
+      notFound: true,
     };
   } catch (error) {
-    console.error('Error loading ring for badge manager:', error);
+    console.error('[Badge Manager SSR] Error loading ring for badge manager:', error);
     return {
       notFound: true,
     };
