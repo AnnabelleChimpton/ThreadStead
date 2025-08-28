@@ -500,11 +500,71 @@ textarea:focus {
   }
   
   /* Make sure dropdowns stay within viewport */
-  .user-dropdown-menu,
-  .notification-dropdown-menu {
+  .user-dropdown-menu {
     max-width: calc(100vw - 2rem) !important;
     left: auto !important;
     right: 1rem !important;
+  }
+  
+  /* Mobile-specific notification dropdown improvements - centered */
+  .notification-dropdown-menu {
+    position: fixed !important; /* Use fixed positioning for centering */
+    left: 50% !important; /* Start from center */
+    right: auto !important; /* Reset right positioning */
+    transform: translateX(-50%) !important; /* Center horizontally */
+    width: calc(100vw - 2rem) !important; /* Use most of the screen width */
+    max-width: 400px !important; /* But don't get too wide on larger mobiles */
+    max-height: 60vh !important; /* Don't take up entire screen */
+    border-radius: 8px !important; /* Slightly more rounded for mobile */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important; /* Better mobile shadow */
+    margin-top: 0 !important; /* Remove margin-top since we're using fixed positioning */
+    top: 100px !important; /* Position well below header and notification button */
+  }
+  
+  /* Notification items mobile styling */
+  .notification-dropdown-item {
+    padding: 1rem !important; /* Larger touch targets */
+    border-bottom: 1px solid rgba(161, 132, 99, 0.1) !important;
+    min-height: 60px !important; /* Ensure good touch target size */
+  }
+  
+  /* Notification header mobile styling */
+  .notification-dropdown-menu .p-3 {
+    padding: 1rem !important;
+  }
+  
+  /* Notification avatar mobile sizing */
+  .notification-dropdown-item img,
+  .notification-dropdown-item .w-8 {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
+  /* Notification text mobile improvements */
+  .notification-dropdown-item .text-sm {
+    font-size: 0.95rem !important;
+    line-height: 1.4 !important;
+  }
+  
+  .notification-dropdown-item .text-xs {
+    font-size: 0.8rem !important;
+    margin-top: 0.5rem !important;
+  }
+  
+  /* Notification footer mobile styling */
+  .notification-dropdown-menu .border-t {
+    border-color: rgba(161, 132, 99, 0.2) !important;
+  }
+  
+  .notification-dropdown-menu .border-t .py-3 {
+    padding: 1rem !important;
+  }
+  
+  /* View all notifications button mobile styling */
+  .notification-dropdown-menu a[href="/notifications"] {
+    font-size: 0.9rem !important;
+    padding: 0.75rem 1rem !important;
+    font-weight: 500 !important;
   }
   
   /* Directory grid mobile */
