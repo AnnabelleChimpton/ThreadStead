@@ -26,19 +26,11 @@ export default withThreadRingSupport(async function handler(
 
     // Use Ring Hub if enabled
     if (system === 'ringhub') {
-      console.log('🔐 ThreadRings API Auth Debug:', {
-        hasViewer: !!viewer,
-        viewerUserId: viewer?.id,
-        membershipFilter: membership
-      });
-      
       // Use authenticated client if user is logged in for membership info
       let ringHubClient;
       if (viewer) {
-        console.log('✅ Using authenticated RingHub client for user:', viewer.id);
         ringHubClient = createAuthenticatedRingHubClient(viewer.id);
       } else {
-        console.log('🌐 Using unauthenticated RingHub client');
         ringHubClient = getRingHubClient();
         if (!ringHubClient) {
           return res.status(500).json({ error: "Ring Hub client not configured" });
@@ -86,7 +78,6 @@ export default withThreadRingSupport(async function handler(
         const hasNewMembershipAPI = result.rings.some(ring => ring.currentUserMembership !== undefined);
         
         if (!hasNewMembershipAPI) {
-          console.log('⚠️ RingHub new API not available yet, using fallback method');
           try {
             const membershipsResult = await ringHubClient.getMyMemberships({ status: 'ACTIVE', limit: 100 });
             membershipsResult.memberships.forEach(membership => {
@@ -95,12 +86,9 @@ export default withThreadRingSupport(async function handler(
                 joinedAt: membership.joinedAt
               });
             });
-            console.log(`✅ Loaded ${viewerMemberships.size} memberships via fallback API`);
           } catch (e: any) {
-            console.error('❌ Failed to fetch memberships via fallback:', e?.message);
+            console.error('Failed to fetch memberships via fallback:', e?.message);
           }
-        } else {
-          console.log('✅ Using new RingHub API with built-in membership info');
         }
       }
 
@@ -156,12 +144,6 @@ export default withThreadRingSupport(async function handler(
         return transformed;
       });
 
-      console.log('🔄 Ring Transformation Summary:', {
-        totalRings: transformedRings.length,
-        ringsWithMembership: transformedRings.filter(r => r.viewerMembership !== null).length,
-        fallbackUsed: viewerMemberships.size > 0,
-        newAPIUsed: result.rings.some(ring => ring.currentUserMembership !== undefined)
-      });
 
       // Filter based on tab selection
       if (viewer) {
@@ -182,13 +164,6 @@ export default withThreadRingSupport(async function handler(
       
       const hasMore = !membership && (offset + limit) < result.total;
       
-      console.log('📤 Final Response Debug:', {
-        totalRings: transformedRings.length,
-        ringsWithMembership: transformedRings.filter(r => r.viewerMembership !== null).length,
-        membershipFilter: membership,
-        filteredTotal,
-        hasMore
-      });
       
       return res.json({
         threadRings: transformedRings,
