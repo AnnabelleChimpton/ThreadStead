@@ -19,10 +19,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const ok = await requireAction("write:post", (resStr) => resStr === `user:${me.id}/posts`)(cap).catch(() => null);
   if (!ok) return res.status(403).json({ error: "invalid capability" });
 
-  // Fetch the post with ThreadRing associations
+  // Fetch the post with ThreadRing associations and author data
   const post = await db.post.findUnique({ 
     where: { id },
     include: {
+      author: {
+        select: {
+          id: true,
+          primaryHandle: true,
+        },
+      },
       threadRings: {
         include: {
           threadRing: {
@@ -41,32 +47,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // If post is associated with ThreadRings, notify RingHub about the author removal
   let ringHubSynced = false;
-  let affectedRings: string[] = [];
+  let affectedRingsResult: string[] = [];
   
   if (post.threadRings.length > 0) {
     try {
       // Use user-authenticated client for author deletion
       const authenticatedClient = createAuthenticatedRingHubClient(me.id);
       
-      // Use the global author removal endpoint
-      // This will remove the post from ALL rings where it exists
-      const ringHubResponse = await authenticatedClient.curatePost(
-        id, 
-        'remove',
-        {
-          reason: reason || "Author removed their own content"
+      // We need to find the RingHub PostRef IDs for this post
+      // Since we don't store them locally, we'll iterate through each ThreadRing
+      // and find the corresponding PostRef ID by URI matching
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const postUri = `${baseUrl}/resident/${post.author.primaryHandle}/post/${id}`;
+      
+      let totalRemovedCount = 0;
+      const affectedRings: string[] = [];
+      
+      for (const threadRingAssociation of post.threadRings) {
+        try {
+          // Get the ring's posts to find our PostRef ID
+          const ringSlug = threadRingAssociation.threadRing.slug;
+          const ringPosts = await authenticatedClient.getRingFeed(ringSlug);
+          
+          // Find the PostRef that matches our post URI
+          const matchingPostRef = ringPosts.posts.find((postRef: any) => 
+            postRef.uri === postUri
+          );
+          
+          if (matchingPostRef && matchingPostRef.id) {
+            // Now we can delete using the correct RingHub PostRef ID
+            const ringHubResponse = await authenticatedClient.curatePost(
+              matchingPostRef.id, 
+              'remove',
+              {
+                reason: reason || "Author removed their own content"
+              }
+            );
+            
+            console.log(`Removed post from RingHub ring ${ringSlug}:`, {
+              threadSteadPostId: id,
+              ringHubPostRefId: matchingPostRef.id,
+              ringSlug
+            });
+            
+            totalRemovedCount++;
+            affectedRings.push(ringSlug);
+          } else {
+            console.warn(`Could not find PostRef for post ${id} in ring ${ringSlug}`);
+          }
+        } catch (ringError: any) {
+          console.error(`Failed to remove post from ring ${threadRingAssociation.threadRing.slug}:`, {
+            error: ringError.message,
+            status: ringError.status
+          });
         }
-      );
-        
+      }
+      
       console.log(`Author ${me.primaryHandle || me.id} removed their post ${id} from RingHub:`, {
-        isAuthorAction: ringHubResponse.isAuthorAction,
-        globalRemoval: ringHubResponse.globalRemoval,
-        affectedRings: ringHubResponse.affectedRings,
-        totalRemoved: ringHubResponse.totalRemoved,
+        totalRemoved: totalRemovedCount,
+        affectedRings: affectedRings
       });
       
-      ringHubSynced = true;
-      affectedRings = ringHubResponse.affectedRings?.map(r => r.slug) || [];
+      ringHubSynced = totalRemovedCount > 0;
+      affectedRingsResult = affectedRings;
       
     } catch (ringHubError: any) {
       // Check if it's a permission error (author can only remove their own posts)
@@ -101,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.json({ 
     ok: true,
     ringHubSynced,
-    affectedRings,
+    affectedRings: affectedRingsResult,
     threadRingsRemoved: post.threadRings.map(ptr => ptr.threadRing.name),
   });
 }

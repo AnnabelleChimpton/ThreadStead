@@ -46,7 +46,7 @@ export default async function handler(
     const sortValue = sort === "oldest" ? "oldest" : "newest";
 
     // Create authenticated RingHub client
-    const authenticatedClient = await createAuthenticatedRingHubClient(user.id);
+    const authenticatedClient = createAuthenticatedRingHubClient(user.id);
     if (!authenticatedClient) {
       return res.status(503).json({ 
         error: "Service unavailable", 

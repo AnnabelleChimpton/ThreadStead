@@ -169,7 +169,16 @@ export default function RingHubFeed({
         setHasMore(data.pagination.hasMore);
       } else {
         // For trending feed without pagination, check if we got fewer posts than requested
+        // Use original data.posts length, not filtered length, to avoid infinite loops
         setHasMore(data.posts.length === 20);
+      }
+      
+      // Safety check: if we filtered out all posts but RingHub thinks there are more,
+      // we might be in an infinite loop scenario. Set hasMore to false if we have no valid posts
+      // but received posts from the API (meaning they were all filtered out)
+      if (validPosts.length === 0 && data.posts.length > 0 && isInitial) {
+        console.warn('All posts were filtered out (likely orphaned), stopping pagination to prevent infinite loop');
+        setHasMore(false);
       }
     } catch (err) {
       console.error("RingHub feed error:", err);
