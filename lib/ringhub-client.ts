@@ -38,6 +38,14 @@ export interface RingDescriptor {
   badgeImageUrl?: string   // 88x31 badge image URL
   badgeImageHighResUrl?: string // High-res badge image URL
 
+  // Current user membership (only present when authenticated)
+  currentUserMembership?: {
+    status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'REVOKED'
+    role: string
+    joinedAt: string
+    badgeId?: string
+  }
+
   // Metadata
   createdAt: string        // ISO timestamp
   updatedAt?: string       // ISO timestamp
@@ -226,13 +234,17 @@ export class RingHubClient {
    */
   async listRings(options?: {
     search?: string
-    sort?: 'trending' | 'newest' | 'members' | 'posts' | 'alphabetical'
+    sort?: 'created' | 'updated' | 'name' | 'members' | 'posts'
+    order?: 'asc' | 'desc'
+    visibility?: 'PUBLIC' | 'UNLISTED' | 'PRIVATE'
     limit?: number
     offset?: number
   }): Promise<{ rings: RingDescriptor[], total: number }> {
     const params = new URLSearchParams()
     if (options?.search) params.append('search', options.search)
     if (options?.sort) params.append('sort', options.sort)
+    if (options?.order) params.append('order', options.order)
+    if (options?.visibility) params.append('visibility', options.visibility)
     if (options?.limit) params.append('limit', options.limit.toString())
     if (options?.offset) params.append('offset', options.offset.toString())
 
