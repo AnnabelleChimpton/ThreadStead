@@ -94,6 +94,9 @@ async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, us
         })
       }
 
+      // Note: We can't use getMyMemberships() here since we're using the public client
+      // The badges endpoint should include all the membership info we need
+
       // Fetch badges from Ring Hub
       // Use 'active' status to get all active badges (should include member, curator, owner roles)
       const ringHubBadges = await publicClient.getActorBadges(userDID, {
@@ -104,11 +107,27 @@ async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, us
       // Debug: Log badge data to understand what's being returned
       console.log(`[Badge Debug] User DID: ${userDID}`)
       console.log(`[Badge Debug] Total badges returned: ${ringHubBadges.badges.length}`)
-      console.log(`[Badge Debug] Badge roles:`, ringHubBadges.badges.map(b => ({ 
+      console.log(`[Badge Debug] Badge details:`, ringHubBadges.badges.map(b => ({ 
         ring: b.ring.name, 
+        ringSlug: b.ring.slug,
+        visibility: b.ring.visibility,
         role: b.membership.role,
-        status: b.membership.status
+        status: b.membership.status,
+        joinedAt: b.membership.joinedAt,
+        isRevoked: b.isRevoked
       })))
+      
+      // Additional debugging: Check if we're missing any owner/curator roles
+      const memberCount = ringHubBadges.badges.filter(b => b.membership.role === 'member').length
+      const ownerCount = ringHubBadges.badges.filter(b => b.membership.role === 'owner').length  
+      const curatorCount = ringHubBadges.badges.filter(b => b.membership.role === 'curator').length
+      const moderatorCount = ringHubBadges.badges.filter(b => b.membership.role === 'moderator').length
+      console.log(`[Badge Debug] Role breakdown: member=${memberCount}, owner=${ownerCount}, curator=${curatorCount}, moderator=${moderatorCount}`)
+      
+      const privateRings = ringHubBadges.badges.filter(b => b.ring.visibility === 'PRIVATE')
+      if (privateRings.length > 0) {
+        console.log(`[Badge Debug] Found ${privateRings.length} badges from PRIVATE rings (these should NOT be filtered out by our client)`)
+      }
 
       // Transform Ring Hub badges to our expected format
       availableBadges = ringHubBadges.badges.map(badge => {
