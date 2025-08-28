@@ -163,9 +163,15 @@ export default withThreadRingSupport(async function handler(
         newAPIUsed: result.rings.some(ring => ring.currentUserMembership !== undefined)
       });
 
-      // Filter to only user's memberships if requested
-      if (membership && viewer) {
-        transformedRings = transformedRings.filter(ring => ring.viewerMembership !== null);
+      // Filter based on tab selection
+      if (viewer) {
+        if (membership) {
+          // "My ThreadRings" tab - show only rings where user IS a member
+          transformedRings = transformedRings.filter(ring => ring.viewerMembership !== null);
+        } else {
+          // "Discover ThreadRings" tab - show only rings where user is NOT a member
+          transformedRings = transformedRings.filter(ring => ring.viewerMembership === null);
+        }
       }
 
       // For "My ThreadRings" tab, we need to estimate total since we're filtering after fetch
