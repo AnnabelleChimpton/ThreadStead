@@ -300,13 +300,15 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
         <div className="mb-4 pt-2 border-t border-thread-sage/20">
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-xs text-thread-sage font-medium">Posted to:</span>
-            {post.threadRings.map((association) => (
-              <ThreadRingBadge
-                key={association.threadRing.id}
-                threadRing={association.threadRing}
-                size="small"
-              />
-            ))}
+            {post.threadRings
+              .filter((association) => association && association.threadRing && association.threadRing.id)
+              .map((association) => (
+                <ThreadRingBadge
+                  key={association.threadRing.id}
+                  threadRing={association.threadRing}
+                  size="small"
+                />
+              ))}
           </div>
         </div>
       )}
