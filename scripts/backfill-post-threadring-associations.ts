@@ -163,16 +163,35 @@ async function backfillPostThreadRingAssociations() {
           continue;
         }
         
-        // Check if the ThreadRing exists in our database
-        const localRing = await db.threadRing.findUnique({
+        // Check if the ThreadRing exists in our database, create if missing
+        let localRing = await db.threadRing.findUnique({
           where: { slug: ringHubPost.ringSlug },
           select: { id: true, name: true }
         });
         
         if (!localRing) {
-          console.log(`⚠️ ThreadRing ${ringHubPost.ringSlug} not found in local database`);
-          errorCount++;
-          continue;
+          console.log(`🔧 Creating missing local ThreadRing: ${ringHubPost.ringSlug}`);
+          try {
+            // Create a basic local ThreadRing record to support feed associations
+            localRing = await db.threadRing.create({
+              data: {
+                name: ringHubPost.ringName,
+                slug: ringHubPost.ringSlug,
+                description: `RingHub ThreadRing: ${ringHubPost.ringName}`,
+                visibility: "public",
+                curatorId: localPost.authorId, // Use post author as temporary curator
+                membershipPolicy: "open",
+                postCount: 0,
+                memberCount: 1
+              },
+              select: { id: true, name: true }
+            });
+            console.log(`✅ Created local ThreadRing record for ${ringHubPost.ringSlug}`);
+          } catch (createError) {
+            console.error(`❌ Failed to create local ThreadRing ${ringHubPost.ringSlug}:`, createError);
+            errorCount++;
+            continue;
+          }
         }
         
         // Check if PostThreadRing association already exists
