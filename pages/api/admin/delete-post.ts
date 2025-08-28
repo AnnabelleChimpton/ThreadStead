@@ -72,11 +72,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             affectedRings: ringHubResponse.affectedRings,
             totalRemoved: ringHubResponse.totalRemoved,
           });
-        } catch (ringHubError) {
+        } catch (ringHubError: any) {
           // Log the error but continue with local deletion
           // We don't want to block local deletion if RingHub is unavailable
-          console.error("Failed to remove post from RingHub:", ringHubError);
-          console.error("Continuing with local deletion despite RingHub sync failure");
+          console.error("Failed to remove post from RingHub:", {
+            postId: postId,
+            error: ringHubError.message,
+            status: ringHubError.status,
+            fullError: ringHubError
+          });
+          console.error("Continuing with local deletion despite RingHub sync failure for post:", postId);
         }
       } else {
         console.log("RingHub client not available, skipping RingHub sync");

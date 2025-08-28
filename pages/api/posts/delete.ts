@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-import { getRingHubClient } from "@/lib/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
 import { getSessionUser } from "@/lib/auth-server";
 import { requireAction } from "@/lib/capabilities";
 
@@ -44,42 +44,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let affectedRings: string[] = [];
   
   if (post.threadRings.length > 0) {
-    const ringHubClient = getRingHubClient();
-    
-    if (ringHubClient) {
-      try {
-        // Use the global author removal endpoint
-        // This will remove the post from ALL rings where it exists
-        const ringHubResponse = await ringHubClient.curatePost(
-          id, 
-          'remove',
-          {
-            reason: reason || "Author removed their own content"
-          }
-        );
-        
-        console.log(`Author ${me.primaryHandle || me.id} removed their post ${id} from RingHub:`, {
-          isAuthorAction: ringHubResponse.isAuthorAction,
-          globalRemoval: ringHubResponse.globalRemoval,
-          affectedRings: ringHubResponse.affectedRings,
-          totalRemoved: ringHubResponse.totalRemoved,
-        });
-        
-        ringHubSynced = true;
-        affectedRings = ringHubResponse.affectedRings?.map(r => r.slug) || [];
-        
-      } catch (ringHubError: any) {
-        // Check if it's a permission error (author can only remove their own posts)
-        if (ringHubError.status === 403) {
-          console.error("RingHub rejected author removal - may not be the original author on RingHub:", ringHubError);
-        } else {
-          console.error("Failed to remove post from RingHub:", ringHubError);
+    try {
+      // Use user-authenticated client for author deletion
+      const authenticatedClient = createAuthenticatedRingHubClient(me.id);
+      
+      // Use the global author removal endpoint
+      // This will remove the post from ALL rings where it exists
+      const ringHubResponse = await authenticatedClient.curatePost(
+        id, 
+        'remove',
+        {
+          reason: reason || "Author removed their own content"
         }
-        // Continue with local deletion even if RingHub sync fails
-        console.error("Continuing with local deletion despite RingHub sync failure");
+      );
+        
+      console.log(`Author ${me.primaryHandle || me.id} removed their post ${id} from RingHub:`, {
+        isAuthorAction: ringHubResponse.isAuthorAction,
+        globalRemoval: ringHubResponse.globalRemoval,
+        affectedRings: ringHubResponse.affectedRings,
+        totalRemoved: ringHubResponse.totalRemoved,
+      });
+      
+      ringHubSynced = true;
+      affectedRings = ringHubResponse.affectedRings?.map(r => r.slug) || [];
+      
+    } catch (ringHubError: any) {
+      // Check if it's a permission error (author can only remove their own posts)
+      if (ringHubError.status === 403) {
+        console.error("RingHub rejected author removal - may not be the original author on RingHub:", {
+          postId: id,
+          error: ringHubError.message,
+          status: ringHubError.status
+        });
+      } else if (ringHubError.status === 404) {
+        console.error("RingHub could not find post for removal:", {
+          postId: id,
+          error: ringHubError.message,
+          status: ringHubError.status
+        });
+      } else {
+        console.error("Failed to remove post from RingHub:", {
+          postId: id,
+          error: ringHubError.message,
+          status: ringHubError.status,
+          fullError: ringHubError
+        });
       }
-    } else {
-      console.log("RingHub client not available, skipping RingHub sync");
+      // Continue with local deletion even if RingHub sync fails
+      console.error("Continuing with local deletion despite RingHub sync failure for post:", id);
     }
   }
 

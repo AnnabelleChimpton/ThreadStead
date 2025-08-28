@@ -108,6 +108,15 @@ export default function RingHubFeed({
                   ...ringHubPost,
                   postContent: post
                 };
+              } else if (postRes.status === 404) {
+                // Post was deleted locally but still exists in RingHub
+                console.warn(`Orphaned PostRef detected: Post ${postIdMatch[1]} deleted locally but still in RingHub`, {
+                  postId: postIdMatch[1],
+                  ringSlug: ringHubPost.ringSlug,
+                  ringHubPostId: ringHubPost.id
+                });
+                // Return null to filter this out
+                return null;
               }
             } catch (err) {
               console.error(`Failed to fetch post content for ${ringHubPost.uri}:`, err);
@@ -118,10 +127,13 @@ export default function RingHubFeed({
         })
       );
       
+      // Filter out null entries (orphaned posts)
+      const validPosts = enrichedPosts.filter(post => post !== null);
+      
       if (isInitial) {
-        setPosts(enrichedPosts);
+        setPosts(validPosts);
       } else {
-        setPosts(prev => [...prev, ...enrichedPosts]);
+        setPosts(prev => [...prev, ...validPosts]);
       }
       
       // Resolve DIDs to usernames for posts we don't have resolved yet
