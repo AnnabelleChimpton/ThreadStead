@@ -241,15 +241,17 @@ export default function PostsSection() {
                   </div>
 
                   {/* ThreadRings */}
-                  {post.threadRings.length > 0 && (
+                  {post.threadRings && post.threadRings.length > 0 && (
                     <div className="text-sm mb-2">
                       <strong>ThreadRings:</strong>{" "}
-                      {post.threadRings.map((tr, index) => (
-                        <span key={tr.threadRing.id}>
-                          {index > 0 && ", "}
-                          <span className="text-blue-600">{tr.threadRing.name}</span>
-                        </span>
-                      ))}
+                      {post.threadRings
+                        .filter((tr) => tr && tr.threadRing && tr.threadRing.id)
+                        .map((tr, index) => (
+                          <span key={tr.threadRing.id}>
+                            {index > 0 && ", "}
+                            <span className="text-blue-600">{tr.threadRing.name}</span>
+                          </span>
+                        ))}
                     </div>
                   )}
 

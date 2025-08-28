@@ -526,13 +526,15 @@ const countLabel = hasServerCount
               <div className="mt-3 pt-2 border-t border-gray-200">
                 <div className="flex flex-wrap gap-2 items-center">
                   <span className="text-xs text-gray-600 font-medium">Posted to:</span>
-                  {post.threadRings.map((association) => (
-                    <ThreadRingBadge
-                      key={association.threadRing.id}
-                      threadRing={association.threadRing}
-                      size="small"
-                    />
-                  ))}
+                  {post.threadRings
+                    .filter((association) => association && association.threadRing && association.threadRing.id)
+                    .map((association) => (
+                      <ThreadRingBadge
+                        key={association.threadRing.id}
+                        threadRing={association.threadRing}
+                        size="small"
+                      />
+                    ))}
                 </div>
               </div>
             )}

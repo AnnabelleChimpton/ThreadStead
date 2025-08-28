@@ -354,20 +354,22 @@ export default function PromptResponsesPage({
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span>💬 {response.post._count.comments} comments</span>
                       
-                      {response.post.threadRings.length > 0 && (
+                      {response.post.threadRings && response.post.threadRings.length > 0 && (
                         <div className="flex items-center gap-1">
                           <span>📍</span>
-                          {response.post.threadRings.map((tr, idx) => (
-                            <span key={tr.threadRing.id}>
-                              {idx > 0 && ', '}
-                              <Link 
-                                href={`/tr/${tr.threadRing.slug}`}
-                                className="hover:underline"
-                              >
-                                {tr.threadRing.name}
-                              </Link>
-                            </span>
-                          ))}
+                          {response.post.threadRings
+                            .filter((tr) => tr && tr.threadRing && tr.threadRing.id)
+                            .map((tr, idx) => (
+                              <span key={tr.threadRing.id}>
+                                {idx > 0 && ', '}
+                                <Link 
+                                  href={`/tr/${tr.threadRing.slug}`}
+                                  className="hover:underline"
+                                >
+                                  {tr.threadRing.name}
+                                </Link>
+                              </span>
+                            ))}
                         </div>
                       )}
                     </div>
