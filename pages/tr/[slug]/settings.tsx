@@ -471,9 +471,25 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   slug: ringHubRing.slug,
                   description: ringHubRing.description,
                   shortCode: ringHubRing.shortCode || null,
-                  joinType: ringHubRing.joinPolicy?.toLowerCase() || 'open',
+                  joinType: (() => {
+                    const policyMap = {
+                      'OPEN': 'open',
+                      'INVITATION': 'invite', 
+                      'APPLICATION': 'application',
+                      'CLOSED': 'closed'
+                    } as const;
+                    return policyMap[ringHubRing.joinPolicy as keyof typeof policyMap] || 'open';
+                  })(),
                   visibility: ringHubRing.visibility?.toLowerCase() || 'public',
-                  postPolicy: ringHubRing.postPolicy?.toLowerCase() || 'members',
+                  postPolicy: (() => {
+                    const policyMap = {
+                      'OPEN': 'open',
+                      'MEMBERS': 'members',
+                      'CURATED': 'curated',
+                      'CLOSED': 'closed'
+                    } as const;
+                    return policyMap[ringHubRing.postPolicy as keyof typeof policyMap] || 'members';
+                  })(),
                   curatorNote: ringHubRing.curatorNote || null,
                   memberCount: ringHubRing.memberCount || 0,
                   postCount: ringHubRing.postCount || 0

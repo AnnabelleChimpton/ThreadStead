@@ -123,8 +123,24 @@ export default withThreadRingSupport(async function handler(
             description: updatedRing.description,
             shortCode: updatedRing.shortCode,
             visibility: updatedRing.visibility?.toLowerCase(),
-            joinType: updatedRing.joinPolicy?.toLowerCase(),
-            postPolicy: updatedRing.postPolicy?.toLowerCase(),
+            joinType: (() => {
+              const policyMap = {
+                'OPEN': 'open',
+                'INVITATION': 'invite',
+                'APPLICATION': 'application', 
+                'CLOSED': 'closed'
+              } as const;
+              return policyMap[updatedRing.joinPolicy as keyof typeof policyMap] || 'open';
+            })(),
+            postPolicy: (() => {
+              const policyMap = {
+                'OPEN': 'open',
+                'MEMBERS': 'members',
+                'CURATED': 'curated',
+                'CLOSED': 'closed'
+              } as const;
+              return policyMap[updatedRing.postPolicy as keyof typeof policyMap] || 'members';
+            })(),
             curatorNote: updatedRing.curatorNote || updatedRing.curatorNotes,
             badgeImageUrl: updatedRing.badgeImageUrl,
             badgeImageHighResUrl: updatedRing.badgeImageHighResUrl
