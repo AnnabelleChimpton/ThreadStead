@@ -231,6 +231,27 @@ export class RingHubClient {
   }
 
   /**
+   * Update ring badge design (owner/curator only)
+   */
+  async updateRingBadge(slug: string, updates: {
+    badgeImageUrl?: string;
+    badgeImageHighResUrl?: string;
+    description?: string;
+    criteria?: string;
+    updateExistingBadges?: boolean; // Default: false
+  }): Promise<{
+    success: boolean;
+    message: string;
+    badgeImageUrl?: string;
+    badgeImageHighResUrl?: string;
+    description?: string;
+    criteria?: string;
+    badgesUpdated?: number; // Number of existing badges regenerated
+  }> {
+    return this.put(`/trp/rings/${slug}/badge`, updates)
+  }
+
+  /**
    * Delete ring
    */
   async deleteRing(slug: string): Promise<void> {

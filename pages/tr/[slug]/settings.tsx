@@ -8,7 +8,6 @@ import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
 import { getRingHubClient } from "@/lib/ringhub-client";
 import ThreadRingInviteForm from "../../../components/forms/ThreadRingInviteForm";
-import ThreadRingBadgeManager from "../../../components/ThreadRingBadgeManager";
 import ThreadRingPromptManager from "../../../components/ThreadRingPromptManager";
 import ThreadRingBlockManager from "../../../components/ThreadRingBlockManager";
 
@@ -297,15 +296,22 @@ export default function ThreadRingSettingsPage({
               </div>
             </div>
 
-            {/* Badge Manager */}
-            <ThreadRingBadgeManager
-              threadRingSlug={ring.slug}
-              threadRingName={ring.name}
-              onBadgeUpdate={() => {
-                // Could add refresh logic here if needed
-                console.log('Badge updated');
-              }}
-            />
+            {/* Badge Manager Link */}
+            <div className="bg-white border border-black rounded-none shadow-[3px_3px_0_#000] p-6 text-center">
+              <div className="mb-4">
+                <span className="text-5xl">🏆</span>
+              </div>
+              <h3 className="text-lg font-bold mb-2">ThreadRing Badge Design</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Manage the badge design and artwork for this ThreadRing
+              </p>
+              <a
+                href={`/tr/${ring.slug}/badge-manager`}
+                className="px-6 py-3 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline"
+              >
+                Manage Badge Design →
+              </a>
+            </div>
 
             {/* Prompts & Challenges Manager */}
             <div className="border-t pt-6">
