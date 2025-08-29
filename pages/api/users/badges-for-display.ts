@@ -74,6 +74,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         limit: 100
       })
 
+      // Fetch all unique rings to get their current badge designs
+      const uniqueRingSlugs = [...new Set(ringHubBadges.badges.map(b => b.ring.slug))]
+      const ringDataMap = new Map<string, any>()
+      
+      // Fetch ring data in parallel for all unique rings
+      const ringFetchPromises = uniqueRingSlugs.map(async slug => {
+        try {
+          const ring = await publicClient.getRing(slug)
+          if (ring) {
+            ringDataMap.set(slug, ring)
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch ring data for ${slug}:`, error)
+        }
+      })
+      
+      await Promise.all(ringFetchPromises)
+
       // Filter to only the badges that match user's selected preferences
       const selectedBadgeIds = new Set(eligibleBadges.map(b => b.badgeId))
       const filteredBadges = ringHubBadges.badges
@@ -82,15 +100,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return selectedBadgeIds.has(badgeId)
         })
         .map(badge => {
+          const ring = ringDataMap.get(badge.ring.slug)
           const achievement = badge.badge.credentialSubject?.achievement
           const badgeId = `${badge.ring.slug}-badge`
           const preference = eligibleBadges.find(p => p.badgeId === badgeId)
           
           return {
             id: badgeId,
-            title: achievement?.name || badge.ring.name,
+            title: ring?.name || achievement?.name || badge.ring.name,
             subtitle: badge.membership.role !== 'member' ? badge.membership.role : undefined,
-            imageUrl: achievement?.image,
+            // Use the ring's current badge URL if available, fallback to achievement image
+            imageUrl: ring?.badgeImageUrl || ring?.badgeImageHighResUrl || achievement?.image,
             templateId: undefined,
             backgroundColor: '#4A90E2',
             textColor: '#FFFFFF',

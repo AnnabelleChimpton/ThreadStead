@@ -244,14 +244,34 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async
               limit: 100 // Get all active badges
             })
 
+            // Fetch all unique rings to get their current badge designs
+            const uniqueRingSlugs = [...new Set(ringHubBadges.badges.map(b => b.ring.slug))]
+            const ringDataMap = new Map<string, any>()
+            
+            // Fetch ring data in parallel for all unique rings
+            const ringFetchPromises = uniqueRingSlugs.map(async slug => {
+              try {
+                const ring = await publicClient.getRing(slug)
+                if (ring) {
+                  ringDataMap.set(slug, ring)
+                }
+              } catch (error) {
+                console.warn(`Failed to fetch ring data for ${slug}:`, error)
+              }
+            })
+            
+            await Promise.all(ringFetchPromises)
+
             // Transform Ring Hub badges to our expected format
             const transformedBadges: BadgeWithThreadRing[] = ringHubBadges.badges.map(badge => {
+              const ring = ringDataMap.get(badge.ring.slug)
               const achievement = badge.badge.credentialSubject?.achievement
               return {
                 id: badge.ring.slug,
-                title: achievement?.name || badge.ring.name,
+                title: ring?.name || achievement?.name || badge.ring.name,
                 subtitle: badge.membership.role !== 'member' ? badge.membership.role : undefined,
-                imageUrl: achievement?.image,
+                // Use the ring's current badge URL if available, fallback to achievement image
+                imageUrl: ring?.badgeImageUrl || ring?.badgeImageHighResUrl || achievement?.image,
                 templateId: undefined, // Not available from Ring Hub
                 backgroundColor: '#4A90E2', // Default color
                 textColor: '#FFFFFF', // Default color
@@ -259,8 +279,8 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async
                   id: badge.ring.slug,
                   name: badge.ring.name,
                   slug: badge.ring.slug,
-                  description: achievement?.description,
-                  memberCount: 0, // Not available in badges endpoint
+                  description: ring?.description || achievement?.description,
+                  memberCount: ring?.memberCount || 0,
                   visibility: badge.ring.visibility.toLowerCase() as 'public' | 'unlisted' | 'private'
                 },
                 userMembership: {
