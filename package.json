@@ -37,6 +37,7 @@
     "@noble/ed25519": "^2.3.0",
     "@noble/hashes": "^1.8.0",
     "@prisma/client": "^6.13.0",
+    "@tonejs/midi": "^2.0.28",
     "@types/bip39": "^2.4.2",
     "@types/d3": "^7.4.3",
     "@types/multer": "^2.0.0",
@@ -59,6 +60,7 @@
     "rehype-sanitize": "^6.0.0",
     "resend": "^6.0.1",
     "sharp": "^0.34.3",
+    "tone": "^15.1.22",
     "unified": "^11.0.5"
   },
   "devDependencies": {

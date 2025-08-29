@@ -3,7 +3,7 @@ import Link from "next/link";
 import MediaUpload from "@/components/MediaUpload";
 import PhotoComments from "@/components/PhotoComments";
 
-interface MediaItem {
+interface PhotoItem {
   id: string;
   thumbnailUrl: string;
   mediumUrl: string;
@@ -16,6 +16,7 @@ interface MediaItem {
   width?: number;
   height?: number;
   fileSize?: number;
+  mediaType?: string; // Add mediaType for type checking
 }
 
 interface MediaGridProps {
@@ -24,31 +25,31 @@ interface MediaGridProps {
 }
 
 export default function MediaGrid({ username, isOwner = false }: MediaGridProps) {
-  const [featuredMedia, setFeaturedMedia] = useState<MediaItem[]>([]);
+  const [featuredPhotos, setFeaturedPhotos] = useState<PhotoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<MediaItem | null>(null);
+  const [selectedImage, setSelectedImage] = useState<PhotoItem | null>(null);
   const [showComments, setShowComments] = useState(false);
 
-  const loadFeaturedMedia = async () => {
+  const loadFeaturedPhotos = async () => {
     try {
       const response = await fetch(`/api/photos/featured/${username}`);
       if (response.ok) {
         const data = await response.json();
-        setFeaturedMedia(data.media || []);
+        setFeaturedPhotos(data.media || []);
       } else {
-        setError("Failed to load media");
+        setError("Failed to load photos");
       }
     } catch (err) {
-      setError("Failed to load media");
+      setError("Failed to load photos");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadFeaturedMedia();
+    loadFeaturedPhotos();
   }, [username]);
 
   // Handle keyboard shortcuts for modal
@@ -72,10 +73,10 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
     };
   }, [selectedImage]);
 
-  const handleUploadSuccess = (newMedia: MediaItem) => {
-    // Add to featured media if it was marked as featured
-    if (newMedia.featured) {
-      setFeaturedMedia(prev => [...prev, newMedia].sort((a, b) => 
+  const handleUploadSuccess = (newPhoto: any) => {
+    // Add to featured photos if it was marked as featured and is an image
+    if (newPhoto.featured && newPhoto.mediaType === 'image') {
+      setFeaturedPhotos(prev => [...prev, newPhoto].sort((a, b) => 
         (a.featuredOrder || 0) - (b.featuredOrder || 0)
       ));
     }
@@ -96,30 +97,30 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
     });
   };
 
-  // Create display grid - only show actual media items
-  const createDisplayGrid = () => {
-    const sortedMedia = featuredMedia.sort((a, b) => 
+  // Create display grid - only show actual photo items
+  const createPhotoGrid = () => {
+    const sortedPhotos = featuredPhotos.sort((a, b) => 
       (a.featuredOrder || 0) - (b.featuredOrder || 0)
     );
     
-    return sortedMedia.slice(0, 6).map(media => (
+    return sortedPhotos.slice(0, 6).map(photo => (
       <div
-        key={media.id}
+        key={photo.id}
         className="ts-media-item border border-thread-sage bg-thread-paper shadow-cozy aspect-square overflow-hidden group relative cursor-pointer hover:shadow-cozyLg transition-all"
-        onClick={() => setSelectedImage(media)}
+        onClick={() => setSelectedImage(photo)}
       >
         <img 
-          src={media.mediumUrl} 
-          alt={media.title || media.caption || 'Media item'} 
+          src={photo.mediumUrl} 
+          alt={photo.title || photo.caption || 'Photo'} 
           className="w-full h-full object-cover transition-transform group-hover:scale-105"
         />
         {/* Overlay with caption */}
-        {(media.title || media.caption) && (
+        {(photo.title || photo.caption) && (
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
             <div className="text-white text-xs">
-              {media.title && <div className="font-medium">{media.title}</div>}
-              {media.caption && (
-                <div className="line-clamp-2">{media.caption}</div>
+              {photo.title && <div className="font-medium">{photo.title}</div>}
+              {photo.caption && (
+                <div className="line-clamp-2">{photo.caption}</div>
               )}
             </div>
           </div>
@@ -144,13 +145,13 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-thread-pine">Featured Media</h3>
+          <h3 className="text-lg font-semibold text-thread-pine">Featured Photos</h3>
           <p className="text-sm text-thread-sage">
-            {isOwner ? "Share your favorite moments (up to 6)" : `${username}'s favorite moments`}
+            {isOwner ? "Share your favorite photos (up to 6)" : `${username}'s favorite photos`}
           </p>
         </div>
         <div className="flex gap-2">
-          {featuredMedia.length > 0 && (
+          {featuredPhotos.length > 0 && (
             <Link 
               href={`/resident/${username}/media`}
               className="thread-button-secondary text-sm"
@@ -175,10 +176,10 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
       )}
 
       {/* Media Grid - only show when there are photos */}
-      {featuredMedia.length > 0 ? (
+      {featuredPhotos.length > 0 ? (
         <>
           <div className="ts-media-gallery grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {createDisplayGrid()}
+            {createPhotoGrid()}
           </div>
 
           {/* Link to full gallery */}
@@ -187,7 +188,7 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
               href={`/resident/${username}/media`}
               className="text-thread-pine hover:text-thread-sunset transition-colors text-sm"
             >
-              Explore {isOwner ? "your" : `${username}'s`} complete media collection →
+              Explore {isOwner ? "your" : `${username}'s`} complete photo collection →
             </Link>
           </div>
         </>

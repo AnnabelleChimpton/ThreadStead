@@ -19,6 +19,13 @@ import type { TemplateNode } from "@/lib/template-parser";
 import type { ResidentData } from "@/components/template/ResidentDataProvider";
 import { featureFlags } from "@/lib/feature-flags";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import dynamic from 'next/dynamic';
+
+// Dynamically import MidiPlayer to avoid SSR issues with Tone.js
+const MidiPlayer = dynamic(() => import('@/components/MidiPlayer'), { 
+  ssr: false,
+  loading: () => <div className="hidden" />
+});
 
 /* ---------------- helpers ---------------- */
 
@@ -38,6 +45,12 @@ type ProfileProps = {
   hideNavigation?: boolean;
   templateMode?: 'default' | 'enhanced' | 'advanced';
   includeSiteCSS?: boolean;
+  profileMidi?: {
+    url: string;
+    title?: string;
+    autoplay?: boolean;
+    loop?: boolean;
+  };
 };
 
 /* ---------------- page ---------------- */
@@ -55,6 +68,7 @@ export default function ProfilePage({
   hideNavigation = false,
   templateMode = 'default',
   includeSiteCSS = true,
+  profileMidi,
 }: ProfileProps) {
   const [relStatus, setRelStatus] = React.useState<string>("loading");
   const { user: currentUser } = useCurrentUser();
@@ -178,6 +192,17 @@ export default function ProfilePage({
       <div className="ts-profile-tabs-wrapper">
         <Tabs tabs={tabs} initialId={initialTabId} />
       </div>
+
+      {/* MIDI Player - Compact floating player */}
+      {profileMidi && (
+        <MidiPlayer
+          midiUrl={profileMidi.url}
+          title={profileMidi.title}
+          autoplay={profileMidi.autoplay}
+          loop={profileMidi.loop}
+          compact={true}
+        />
+      )}
     </ProfileLayout>
   );
 }
@@ -236,6 +261,12 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       includeSiteCSS?: boolean;
       blogroll?: unknown[]; 
       featuredFriends?: unknown[] 
+    };
+    profileMidi?: {
+      url: string;
+      title?: string;
+      autoplay?: boolean;
+      loop?: boolean;
     };
   } = await res.json();
 
@@ -461,6 +492,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   
   if (websites.length > 0) props.websites = websites;
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
+  if (data.profileMidi) props.profileMidi = data.profileMidi;
 
   return { props };
 };

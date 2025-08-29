@@ -24,12 +24,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!handle) return res.status(404).json({ error: "not found" });
 
   const u = handle.user;
+  
+  // Get profile MIDI if set
+  let profileMidi = null;
+  if (u.profile?.profileMidiId) {
+    const midiFile = await db.media.findUnique({
+      where: { id: u.profile.profileMidiId },
+      select: {
+        id: true,
+        title: true,
+        fullUrl: true,
+      }
+    });
+    if (midiFile) {
+      profileMidi = {
+        url: `/api/media/serve/${midiFile.id}`, // Use proxy to avoid CORS issues
+        title: midiFile.title || 'Background Music',
+        autoplay: u.profile.midiAutoplay || false,
+        loop: u.profile.midiLoop || false,
+      };
+    }
+  }
+  
   return res.json({
     did: u.did,
     userId: u.id,                       // <-- add this
     username,
     primaryHandle: u.primaryHandle ?? null, // optional, handy later
     profile: u.profile,
+    profileMidi,
     plugins: u.installs
       .filter(i => i.enabled)
       .map(i => ({ id: i.pluginId, mode: i.mode, label: undefined })),

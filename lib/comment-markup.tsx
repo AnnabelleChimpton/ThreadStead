@@ -8,29 +8,43 @@ import React from 'react';
 // Global emoji cache
 let emojiMap: Map<string, string> = new Map();
 let emojiMapLoaded = false;
+let emojiMapPromise: Promise<Map<string, string>> | null = null;
 
-// Load emojis from API
+// Load emojis from API with singleton pattern to prevent multiple concurrent requests
 export async function loadEmojiMap(): Promise<Map<string, string>> {
   if (emojiMapLoaded) {
     return emojiMap;
   }
 
-  try {
-    const response = await fetch('/api/emojis');
-    if (response.ok) {
-      const data = await response.json();
-      const newEmojiMap = new Map<string, string>();
-      data.emojis.forEach((emoji: any) => {
-        newEmojiMap.set(emoji.name, emoji.imageUrl);
-      });
-      emojiMap = newEmojiMap;
-      emojiMapLoaded = true;
-    }
-  } catch (error) {
-    console.error('Failed to load emoji map:', error);
+  // If already loading, return the existing promise
+  if (emojiMapPromise) {
+    return emojiMapPromise;
   }
 
-  return emojiMap;
+  // Create a single promise for loading emojis
+  emojiMapPromise = (async () => {
+    try {
+      const response = await fetch('/api/emojis');
+      if (response.ok) {
+        const data = await response.json();
+        const newEmojiMap = new Map<string, string>();
+        data.emojis.forEach((emoji: any) => {
+          newEmojiMap.set(emoji.name, emoji.imageUrl);
+        });
+        emojiMap = newEmojiMap;
+        emojiMapLoaded = true;
+      }
+    } catch (error) {
+      console.error('Failed to load emoji map:', error);
+      emojiMapLoaded = true; // Mark as loaded to prevent infinite retries
+    } finally {
+      emojiMapPromise = null; // Reset promise for future loads if needed
+    }
+
+    return emojiMap;
+  })();
+
+  return emojiMapPromise;
 }
 
 export interface ParsedContent {
@@ -340,6 +354,16 @@ export function CommentMarkupWithEmojis({ text }: { text: string }): React.React
 
     async function parseWithEmojis() {
       try {
+        // If emojis are already loaded, parse immediately without async call
+        if (emojiMapLoaded) {
+          if (!cancelled) {
+            const parsed = parseCommentMarkup(text);
+            setParsedContent(parsed);
+            setIsLoading(false);
+          }
+          return;
+        }
+
         const parsed = await parseCommentMarkupWithEmojis(text);
         if (!cancelled) {
           setParsedContent(parsed);
@@ -388,6 +412,16 @@ export function HtmlWithEmojis({ html }: { html: string }): React.ReactNode {
 
     async function processEmojis() {
       try {
+        // If emojis are already loaded, process immediately without async call
+        if (emojiMapLoaded) {
+          if (!cancelled) {
+            const processed = processHtmlWithEmojis(html);
+            setProcessedHtml(processed);
+            setIsLoading(false);
+          }
+          return;
+        }
+
         await loadEmojiMap();
         if (!cancelled) {
           const processed = processHtmlWithEmojis(html);
@@ -427,6 +461,16 @@ export function TextWithEmojis({ text }: { text: string }): React.ReactNode {
 
     async function processEmojis() {
       try {
+        // If emojis are already loaded, process immediately without async call
+        if (emojiMapLoaded) {
+          if (!cancelled) {
+            const processedText = parseEmojiText(text);
+            setRenderedText(processedText);
+            setIsLoading(false);
+          }
+          return;
+        }
+
         await loadEmojiMap();
         if (!cancelled) {
           const processedText = parseEmojiText(text);

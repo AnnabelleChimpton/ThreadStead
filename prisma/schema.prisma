@@ -85,6 +85,9 @@ model Profile {
   templateMode       TemplateMode @default(default)
   badgePreferences   Json?
   includeSiteCSS     Boolean      @default(true)
+  profileMidiId      String?
+  midiAutoplay       Boolean      @default(false)
+  midiLoop           Boolean      @default(false)
   user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -275,6 +278,7 @@ model Media {
   originalName  String?
   fileSize      Int?
   mimeType      String?
+  mediaType     String         @default("image")
   width         Int?
   height        Int?
   featured      Boolean        @default(false)

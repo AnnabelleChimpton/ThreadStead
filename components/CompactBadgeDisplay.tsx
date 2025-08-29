@@ -18,6 +18,53 @@ interface CompactBadge {
   }
 }
 
+// Global cache for badge data to prevent multiple API calls
+const badgeCache = new Map<string, CompactBadge[]>();
+const badgeLoadingPromises = new Map<string, Promise<CompactBadge[]>>();
+
+// Cached badge loading function
+async function loadUserBadgesWithCache(userId: string, context: 'posts' | 'comments'): Promise<CompactBadge[]> {
+  const cacheKey = `${userId}:${context}`;
+  
+  // Return cached data if available
+  if (badgeCache.has(cacheKey)) {
+    return badgeCache.get(cacheKey)!;
+  }
+
+  // Return existing promise if already loading
+  if (badgeLoadingPromises.has(cacheKey)) {
+    return badgeLoadingPromises.get(cacheKey)!;
+  }
+
+  // Create new loading promise
+  const loadingPromise = (async () => {
+    try {
+      const response = await fetch(`/api/users/badges-for-display?userId=${encodeURIComponent(userId)}&context=${context}`);
+      
+      let badges: CompactBadge[] = [];
+      if (response.ok) {
+        const data = await response.json();
+        badges = data.badges || [];
+      }
+      
+      // Cache the result
+      badgeCache.set(cacheKey, badges);
+      return badges;
+    } catch (err) {
+      console.error('Failed to load compact badges:', err);
+      // Cache empty result to prevent retries
+      badgeCache.set(cacheKey, []);
+      return [];
+    } finally {
+      // Remove from loading promises
+      badgeLoadingPromises.delete(cacheKey);
+    }
+  })();
+
+  badgeLoadingPromises.set(cacheKey, loadingPromise);
+  return loadingPromise;
+}
+
 interface CompactBadgeDisplayProps {
   userId: string
   context: 'posts' | 'comments'
@@ -34,27 +81,33 @@ export default function CompactBadgeDisplay({
   const [badges, setBadges] = useState<CompactBadge[]>([])
   const [loading, setLoading] = useState(true)
 
-  const loadUserBadges = useCallback(async () => {
-    try {
-      setLoading(true)
-      
-      const response = await fetch(`/api/users/badges-for-display?userId=${encodeURIComponent(userId)}&context=${context}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        setBadges(data.badges || [])
-      }
-    } catch (err) {
-      console.error('Failed to load compact badges:', err)
-      setBadges([])
-    } finally {
-      setLoading(false)
-    }
-  }, [userId, context])
-
   useEffect(() => {
-    loadUserBadges()
-  }, [userId, context, loadUserBadges])
+    let cancelled = false;
+
+    const loadBadges = async () => {
+      try {
+        setLoading(true);
+        const badges = await loadUserBadgesWithCache(userId, context);
+        
+        if (!cancelled) {
+          setBadges(badges);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to load compact badges:', err);
+        if (!cancelled) {
+          setBadges([]);
+          setLoading(false);
+        }
+      }
+    };
+
+    loadBadges();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, context])
 
   if (loading) {
     return (

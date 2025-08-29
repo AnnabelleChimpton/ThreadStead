@@ -37,11 +37,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Calculate offset for pagination
     const offset = (page - 1) * limit;
 
-    // Get all media for this user
+    // Get all media for this user (images only)
     const [media, totalCount] = await Promise.all([
       db.media.findMany({
         where: {
           userId: handle.user.id,
+          mediaType: "image", // Only images, not MIDI files
           visibility: "public" // Only show public media for now
         },
         orderBy: {
@@ -68,6 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       db.media.count({
         where: {
           userId: handle.user.id,
+          mediaType: "image", // Only count images
           visibility: "public"
         }
       })

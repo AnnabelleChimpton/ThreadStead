@@ -14,6 +14,7 @@ import WebsiteManager, { Website } from "@/components/WebsiteManager";
 import FriendManager, { SelectedFriend } from "@/components/FriendManager";
 import ProfileBadgeSelector from "@/components/ProfileBadgeSelector";
 import BetaInviteCodesManager from "@/components/BetaInviteCodesManager";
+import MidiManager from "@/components/MidiManager";
 // Full identity management imports
 import { 
   getExistingDid, 
@@ -93,7 +94,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
   const [isEmailLoading, setIsEmailLoading] = useState(false);
 
   const isAdmin = initialUser.role === "admin";
-  const username = initialUser.primaryHandle?.split("@")[0] || "";
+  const username = React.useMemo(() => initialUser.primaryHandle?.split("@")[0] || "", [initialUser.primaryHandle]);
 
   const handlePhotoUploadSuccess = (urls: { thumbnailUrl: string; mediumUrl: string; fullUrl: string }) => {
     setAvatarUrl(urls.mediumUrl);
@@ -551,6 +552,11 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* MIDI Music Section */}
+          <div className="border-t border-black pt-6">
+            <MidiManager username={username} />
           </div>
         </div>
       )

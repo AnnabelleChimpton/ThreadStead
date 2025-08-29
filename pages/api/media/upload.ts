@@ -42,11 +42,22 @@ const upload = multer({
     fileSize: 15 * 1024 * 1024, // 15MB limit for media
   },
   fileFilter: (req, file, cb) => {
-    // Only allow image files
+    // Allow image files
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
+      return;
+    }
+    
+    // Allow MIDI files (check both MIME type and extension)
+    const midiMimeTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi', 'audio/mid'];
+    const isMidiByMime = midiMimeTypes.includes(file.mimetype);
+    const isMidiByExtension = file.originalname.toLowerCase().endsWith('.mid') || 
+                              file.originalname.toLowerCase().endsWith('.midi');
+    
+    if (isMidiByMime || isMidiByExtension) {
+      cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      cb(new Error('Only image and MIDI files are allowed'));
     }
   },
 });
@@ -95,53 +106,84 @@ async function checkUserQuota(userId: string): Promise<boolean> {
 
 async function processAndUploadMedia(
   buffer: Buffer,
-  userId: string
+  userId: string,
+  mimeType: string,
+  originalName: string
 ): Promise<{
   thumbnailUrl: string;
   mediumUrl: string;
   fullUrl: string;
-  metadata: { width: number; height: number; fileSize: number };
+  metadata: { width?: number; height?: number; fileSize: number };
+  mediaType: string;
 }> {
   const timestamp = Date.now();
   const baseKey = `media/${userId}/${timestamp}`;
   
-  // Get image metadata
-  const imageInfo = await sharp(buffer).metadata();
-  const originalWidth = imageInfo.width || 0;
-  const originalHeight = imageInfo.height || 0;
+  // Check if this is a MIDI file (check both MIME type and extension)
+  const midiMimeTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi', 'audio/mid'];
+  const isMidiByMime = midiMimeTypes.includes(mimeType);
+  const isMidiByExtension = originalName.toLowerCase().endsWith('.mid') || 
+                            originalName.toLowerCase().endsWith('.midi');
+  const isMidi = isMidiByMime || isMidiByExtension;
   
-  // Process images in different sizes
-  const thumbnail = await sharp(buffer)
-    .resize(150, 150, { fit: 'cover' })
-    .jpeg({ quality: 80 })
-    .toBuffer();
+  let uploads: Array<{ key: string; buffer: Buffer; size: string }>;
+  let metadata: { width?: number; height?: number; fileSize: number };
+  
+  if (isMidi) {
+    // For MIDI files, just upload the original file
+    const extension = originalName.split('.').pop() || 'mid';
+    uploads = [
+      { key: `${baseKey}.${extension}`, buffer: buffer, size: 'full' },
+      // Create placeholder entries for thumbnails (we'll use a MIDI icon on frontend)
+      { key: `${baseKey}_thumb.${extension}`, buffer: buffer, size: 'thumbnail' },
+      { key: `${baseKey}_medium.${extension}`, buffer: buffer, size: 'medium' },
+    ];
+    metadata = { fileSize: buffer.length };
+  } else {
+    // Get image metadata
+    const imageInfo = await sharp(buffer).metadata();
+    const originalWidth = imageInfo.width || 0;
+    const originalHeight = imageInfo.height || 0;
     
-  const medium = await sharp(buffer)
-    .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: 85 })
-    .toBuffer();
-    
-  const full = await sharp(buffer)
-    .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: 90 })
-    .toBuffer();
+    // Process images in different sizes
+    const thumbnail = await sharp(buffer)
+      .resize(150, 150, { fit: 'cover' })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+      
+    const medium = await sharp(buffer)
+      .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+      
+    const full = await sharp(buffer)
+      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 90 })
+      .toBuffer();
 
-  // Upload all sizes to R2
-  const uploads = [
-    { key: `${baseKey}_thumb.jpg`, buffer: thumbnail, size: 'thumbnail' },
-    { key: `${baseKey}_medium.jpg`, buffer: medium, size: 'medium' },
-    { key: `${baseKey}_full.jpg`, buffer: full, size: 'full' },
-  ];
+    uploads = [
+      { key: `${baseKey}_thumb.jpg`, buffer: thumbnail, size: 'thumbnail' },
+      { key: `${baseKey}_medium.jpg`, buffer: medium, size: 'medium' },
+      { key: `${baseKey}_full.jpg`, buffer: full, size: 'full' },
+    ];
+    
+    metadata = {
+      width: originalWidth,
+      height: originalHeight,
+      fileSize: buffer.length,
+    };
+  }
 
   const urls: Record<string, string> = {};
 
   for (const { key, buffer: imageBuffer, size } of uploads) {
+    const contentType = isMidi ? mimeType : 'image/jpeg';
     await getS3Client().send(
       new PutObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME!,
         Key: key,
         Body: imageBuffer,
-        ContentType: 'image/jpeg',
+        ContentType: contentType,
         CacheControl: 'public, max-age=31536000', // 1 year cache
       })
     );
@@ -155,11 +197,8 @@ async function processAndUploadMedia(
     thumbnailUrl: urls.thumbnailUrl,
     mediumUrl: urls.mediumUrl,
     fullUrl: urls.fullUrl,
-    metadata: {
-      width: originalWidth,
-      height: originalHeight,
-      fileSize: buffer.length,
-    },
+    metadata,
+    mediaType: isMidi ? 'midi' : 'image',
   };
 }
 
@@ -197,10 +236,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Validate file type and size
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.mimetype)) {
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedMidiTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi', 'audio/mid'];
+    const allowedTypes = [...allowedImageTypes, ...allowedMidiTypes];
+    
+    // Check by MIME type first
+    const isAllowedByMime = allowedTypes.includes(file.mimetype);
+    
+    // For MIDI files, also check by extension as fallback
+    const isMidiByExtension = file.originalname.toLowerCase().endsWith('.mid') || 
+                              file.originalname.toLowerCase().endsWith('.midi');
+    
+    if (!isAllowedByMime && !isMidiByExtension) {
       return res.status(400).json({ 
-        error: "Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed." 
+        error: "Invalid file type. Only JPEG, PNG, WebP, GIF, and MIDI files are allowed." 
       });
     }
 
@@ -216,10 +265,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: "Invalid capability" });
     }
 
-    // Process and upload image
-    const { thumbnailUrl, mediumUrl, fullUrl, metadata } = await processAndUploadMedia(
+    // Process and upload media
+    const { thumbnailUrl, mediumUrl, fullUrl, metadata, mediaType } = await processAndUploadMedia(
       file.buffer, 
-      me.id
+      me.id,
+      file.mimetype,
+      file.originalname
     );
 
     // Check if this should be featured (if user has < 6 featured media)
@@ -242,8 +293,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         originalName: file.originalname,
         fileSize: metadata.fileSize,
         mimeType: file.mimetype,
-        width: metadata.width,
-        height: metadata.height,
+        mediaType,
+        width: metadata.width || null,
+        height: metadata.height || null,
         featured: shouldFeature,
         featuredOrder,
       },
@@ -259,6 +311,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         mediumUrl: mediaRecord.mediumUrl,
         fullUrl: mediaRecord.fullUrl,
         featured: mediaRecord.featured,
+        mediaType: mediaRecord.mediaType,
         createdAt: mediaRecord.createdAt,
       },
       message: shouldFeature 
@@ -270,7 +323,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Media upload error:", error);
     
     if (error instanceof Error) {
-      if (error.message === 'Only image files are allowed') {
+      if (error.message === 'Only image and MIDI files are allowed') {
         return res.status(400).json({ error: error.message });
       }
       if (error.message.includes('File too large')) {

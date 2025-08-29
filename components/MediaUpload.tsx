@@ -44,11 +44,17 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
     if (!file) return;
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedMidiTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi'];
+    const allowedTypes = [...allowedImageTypes, ...allowedMidiTypes];
+    
     if (!allowedTypes.includes(file.type)) {
-      setError('Please select a valid image file (JPEG, PNG, WebP, or GIF)');
+      setError('Please select a valid image file (JPEG, PNG, WebP, GIF) or MIDI file');
       return;
     }
+    
+    // Check if it's a MIDI file
+    const isMidi = allowedMidiTypes.includes(file.type);
 
     // Validate file size (15MB limit)
     if (file.size > 15 * 1024 * 1024) {
@@ -59,12 +65,17 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
     setSelectedFile(file);
     setError(null);
     
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Create preview (only for images)
+    if (!isMidi) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // Set a placeholder for MIDI files
+      setPreviewUrl('midi-placeholder');
+    }
   };
 
   const handleUpload = async (skipCaptionCheck = false) => {
@@ -222,7 +233,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,.mid,.midi,audio/midi"
             onChange={handleFileInputChange}
             className="hidden"
             disabled={disabled || uploading}
@@ -232,23 +243,31 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
             <div className="text-thread-sage text-5xl">📷</div>
             <div>
               <p className="text-thread-pine font-medium mb-1">
-                {dragOver ? 'Drop your image here!' : currentButtonText}
+                {dragOver ? 'Drop your file here!' : currentButtonText}
               </p>
               <p className="text-xs text-thread-sage">
-                JPEG, PNG, WebP, or GIF • Max 15MB
+                JPEG, PNG, WebP, GIF, or MIDI • Max 15MB
               </p>
             </div>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Image Preview */}
+          {/* Preview */}
           <div className="relative">
-            <img 
-              src={previewUrl || ''} 
-              alt="Preview" 
-              className="w-full max-w-md mx-auto rounded-lg shadow-sm border border-thread-sage"
-            />
+            {previewUrl === 'midi-placeholder' ? (
+              <div className="w-full max-w-md mx-auto rounded-lg shadow-sm border border-thread-sage bg-thread-paper p-8 text-center">
+                <div className="text-6xl mb-2">🎵</div>
+                <p className="text-thread-pine font-medium">MIDI File</p>
+                <p className="text-sm text-thread-sage mt-1">Ready to upload</p>
+              </div>
+            ) : (
+              <img 
+                src={previewUrl || ''} 
+                alt="Preview" 
+                className="w-full max-w-md mx-auto rounded-lg shadow-sm border border-thread-sage"
+              />
+            )}
             <button
               onClick={handleRemoveFile}
               className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"

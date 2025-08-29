@@ -1,9 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-
 import { SITE_NAME } from "@/lib/site-config";
-
-
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -31,44 +28,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Get featured media for this user (images only)
-    const featuredMedia = await db.media.findMany({
+    // Get MIDI files for this user
+    const midiFiles = await db.media.findMany({
       where: {
         userId: handle.user.id,
-        featured: true,
-        mediaType: "image", // Only images, not MIDI files
-        visibility: "public" // Only show public media for now
+        mediaType: "midi",
+        visibility: "public"
       },
       orderBy: {
-        featuredOrder: "asc"
+        createdAt: "desc"
       },
-      take: 6, // Maximum 6 featured items
       select: {
         id: true,
         title: true,
         caption: true,
-        thumbnailUrl: true,
-        mediumUrl: true,
         fullUrl: true,
+        originalName: true,
+        fileSize: true,
+        createdAt: true,
         featured: true,
         featuredOrder: true,
-        mediaType: true,
-        mimeType: true,
-        fileSize: true,
-        width: true,
-        height: true,
-        createdAt: true,
-        visibility: true
       }
     });
 
     return res.status(200).json({
-      media: featuredMedia,
-      count: featuredMedia.length
+      files: midiFiles,
+      count: midiFiles.length
     });
 
   } catch (error) {
-    console.error("Error fetching featured media:", error);
+    console.error("Error fetching MIDI files:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
