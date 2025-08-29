@@ -61,46 +61,25 @@ export default function ProfilePage({
 
   const isOwner = currentUser?.id === ownerUserId;
 
-  // If there's a custom template, render it based on template mode
-  if (customTemplateAst && residentData) {
+  // Render based on template mode
+  if (templateMode === 'advanced' && customTemplateAst && residentData) {
+    // Advanced mode with custom template
     try {
       const templateContent = transformNodeToReact(customTemplateAst);
       
-      if (templateMode === 'advanced') {
-        // Complete CSS control - templates use only their own CSS, no user custom CSS
-        return (
-          <>
-            <ResidentDataProvider data={residentData}>
-              {templateContent}
-            </ResidentDataProvider>
-          </>
-        );
-      } else if (templateMode === 'enhanced') {
-        // Custom template with site CSS - templates use only their own CSS, no user custom CSS
-        return (
-          <>
-            <div className="min-h-screen thread-surface">
-              <ResidentDataProvider data={residentData}>
-                {templateContent}
-              </ResidentDataProvider>
-            </div>
-          </>
-        );
-      } else {
-        // Default mode - use standard profile layout
-        return (
-          <ProfileLayout customCSS={customCSS} hideNavigation={hideNavigation}>
-            <ResidentDataProvider data={residentData}>
-              {templateContent}
-            </ResidentDataProvider>
-          </ProfileLayout>
-        );
-      }
+      return (
+        <>
+          <ResidentDataProvider data={residentData}>
+            {templateContent}
+          </ResidentDataProvider>
+        </>
+      );
     } catch (error) {
       console.error('Error rendering custom template:', error);
-      // Fall back to default layout if template fails
+      // Fallback to default layout if template rendering fails
     }
   }
+  
 
   // built-in tabs
   const baseTabs: TabSpec[] = [
@@ -305,7 +284,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   let customTemplateAst: TemplateNode | undefined;
   let residentData: ResidentData | undefined;
 
-  if (data.profile?.customTemplate && data.profile?.customTemplateAst && data.profile?.templateEnabled) {
+  // Only load custom template in advanced mode
+  if (data.profile?.templateMode === 'advanced' && data.profile?.customTemplate && data.profile?.customTemplateAst && data.profile?.templateEnabled) {
     try {
       // Parse the stored AST
       customTemplateAst = JSON.parse(data.profile.customTemplateAst);
