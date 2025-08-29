@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getSessionUser } from '@/lib/auth-server'
-import { getRingHubClient } from '@/lib/ringhub-client'
+import { AuthenticatedRingHubClient } from '@/lib/ringhub-user-operations'
 
 interface BadgeUpdateRequest {
   badgeImageUrl?: string;
@@ -62,14 +62,11 @@ async function updateRingBadge(
       return res.status(400).json({ error: 'High-res badge image URL must be a valid HTTPS URL' })
     }
 
-    // Get authenticated RingHub client
-    const ringHubClient = getRingHubClient()
-    if (!ringHubClient) {
-      return res.status(500).json({ error: 'RingHub not available' })
-    }
+    // Get user-authenticated RingHub client
+    const authenticatedClient = new AuthenticatedRingHubClient(userId)
 
-    // Update the badge via RingHub
-    const result = await ringHubClient.updateRingBadge(slug, updateData)
+    // Update the badge via RingHub using the user's DID
+    const result = await authenticatedClient.updateRingBadge(slug, updateData)
 
     return res.json(result)
   } catch (error) {
