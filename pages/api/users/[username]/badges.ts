@@ -80,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return {
           id: badge.ring.slug,
           title: ring?.name || achievement?.name || badge.ring.name,
-          subtitle: badge.membership.role !== 'member' ? badge.membership.role : undefined,
+          subtitle: badge.membership.role !== 'member' ? (badge.membership.role.toLowerCase() === 'owner' ? 'curator' : badge.membership.role.toLowerCase()) : undefined,
           // Use the ring's current badge URL if available, fallback to achievement image
           imageUrl: ring?.badgeImageUrl || ring?.badgeImageHighResUrl || achievement?.image,
           templateId: undefined, // Not available from Ring Hub
@@ -95,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             visibility: badge.ring.visibility.toLowerCase() as 'public' | 'unlisted' | 'private'
           },
           userMembership: {
-            role: badge.membership.role.toLowerCase() as 'member' | 'moderator' | 'curator',
+            role: (badge.membership.role.toLowerCase() === 'owner' ? 'curator' : badge.membership.role.toLowerCase()) as 'member' | 'moderator' | 'curator',
             joinedAt: badge.membership.joinedAt
           }
         }
