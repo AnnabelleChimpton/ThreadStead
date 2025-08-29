@@ -294,6 +294,22 @@ type PolicyDocuments = {
   privacy_full: string;
 };
 
+type Emoji = {
+  id: string;
+  name: string;
+  imageUrl: string;
+  createdAt: string;
+  creator: {
+    id: string;
+    profile: {
+      displayName: string | null;
+    } | null;
+    handles: {
+      handle: string;
+    }[];
+  };
+};
+
 export default function AdminPage() {
   const { me, isLoading } = useMe();
   const [users, setUsers] = useState<User[]>([]);
@@ -344,6 +360,18 @@ export default function AdminPage() {
   const [savingPolicies, setSavingPolicies] = useState(false);
   const [policyMessage, setPolicyMessage] = useState<string | null>(null);
 
+  // Emoji management state
+  const [emojis, setEmojis] = useState<Emoji[]>([]);
+  const [loadingEmojis, setLoadingEmojis] = useState(false);
+  const [savingEmoji, setSavingEmoji] = useState(false);
+  const [emojiMessage, setEmojiMessage] = useState<string | null>(null);
+  const [newEmojiName, setNewEmojiName] = useState("");
+  const [newEmojiUrl, setNewEmojiUrl] = useState("");
+  const [editingEmoji, setEditingEmoji] = useState<Emoji | null>(null);
+  const [uploadingEmoji, setUploadingEmoji] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadMode, setUploadMode] = useState<'url' | 'file'>('url');
+
   useEffect(() => {
     if (me?.loggedIn && me.user?.role === "admin") {
       loadUsers();
@@ -353,6 +381,7 @@ export default function AdminPage() {
       loadHomeSetting();
       loadDefaultProfileCSS();
       loadPolicies();
+      loadEmojis();
     }
   }, [me]);
 
@@ -886,6 +915,118 @@ export default function AdminPage() {
     });
   }
 
+  async function loadEmojis() {
+    setLoadingEmojis(true);
+    try {
+      const res = await fetch("/api/admin/emojis");
+      if (res.ok) {
+        const data = await res.json();
+        setEmojis(data.emojis);
+      }
+    } catch (error) {
+      console.error("Failed to load emojis:", error);
+      setEmojiMessage("Failed to load emojis");
+    } finally {
+      setLoadingEmojis(false);
+    }
+  }
+
+  async function createEmoji() {
+    if (!newEmojiName.trim() || !newEmojiUrl.trim()) {
+      setEmojiMessage("❌ Name and image URL are required");
+      return;
+    }
+
+    setSavingEmoji(true);
+    setEmojiMessage(null);
+    try {
+      const res = await fetch("/api/admin/emojis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          name: newEmojiName.trim(), 
+          imageUrl: newEmojiUrl.trim() 
+        }),
+      });
+
+      if (res.ok) {
+        await loadEmojis();
+        setNewEmojiName("");
+        setNewEmojiUrl("");
+        setEmojiMessage("✅ Emoji created successfully!");
+        setTimeout(() => setEmojiMessage(null), 3000);
+      } else {
+        const error = await res.json();
+        setEmojiMessage(`❌ ${error.error || "Failed to create emoji"}`);
+      }
+    } catch (error) {
+      console.error("Failed to create emoji:", error);
+      setEmojiMessage("❌ Failed to create emoji");
+    } finally {
+      setSavingEmoji(false);
+    }
+  }
+
+  async function uploadEmojiFile() {
+    if (!selectedFile || !newEmojiName.trim()) {
+      setEmojiMessage("❌ Name and image file are required");
+      return;
+    }
+
+    setUploadingEmoji(true);
+    setEmojiMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append('emoji', selectedFile);
+      formData.append('name', newEmojiName.trim());
+
+      const res = await fetch("/api/admin/emojis/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        await loadEmojis();
+        setNewEmojiName("");
+        setSelectedFile(null);
+        setEmojiMessage("✅ Emoji uploaded successfully!");
+        setTimeout(() => setEmojiMessage(null), 3000);
+      } else {
+        const error = await res.json();
+        setEmojiMessage(`❌ ${error.error || "Failed to upload emoji"}`);
+      }
+    } catch (error) {
+      console.error("Failed to upload emoji:", error);
+      setEmojiMessage("❌ Failed to upload emoji");
+    } finally {
+      setUploadingEmoji(false);
+    }
+  }
+
+  async function deleteEmoji(emojiId: string, emojiName: string) {
+    if (!confirm(`Are you sure you want to delete the emoji ":${emojiName}:"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/emojis/${emojiId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        await loadEmojis();
+        setEmojiMessage("✅ Emoji deleted successfully!");
+        setTimeout(() => setEmojiMessage(null), 3000);
+      } else {
+        const error = await res.json();
+        setEmojiMessage(`❌ ${error.error || "Failed to delete emoji"}`);
+      }
+    } catch (error) {
+      console.error("Failed to delete emoji:", error);
+      setEmojiMessage("❌ Failed to delete emoji");
+    }
+  }
+
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
       alert("Copied to clipboard!");
@@ -1352,6 +1493,193 @@ We collect information you provide when creating an account..."
             ) : (
               <div>Failed to load policy documents</div>
             )}
+          </div>
+          
+          {/* Emoji Management */}
+          <div className="border border-gray-300 rounded p-4 bg-gray-50">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              😀 Custom Emojis
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Upload and manage custom emojis that users can use in posts and comments with the :emojiName: format.
+            </p>
+            
+            <div className="space-y-4">
+              {/* Add New Emoji Form */}
+              <div className="border border-blue-300 bg-blue-50 p-4 rounded">
+                <h4 className="font-bold mb-3">Add New Emoji</h4>
+                
+                {/* Upload Mode Toggle */}
+                <div className="mb-4">
+                  <div className="flex gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode('url')}
+                      className={`px-3 py-1 text-sm border border-black shadow-[1px_1px_0_#000] ${uploadMode === 'url' ? 'bg-blue-200' : 'bg-gray-100 hover:bg-gray-50'}`}
+                    >
+                      From URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode('file')}
+                      className={`px-3 py-1 text-sm border border-black shadow-[1px_1px_0_#000] ${uploadMode === 'file' ? 'bg-blue-200' : 'bg-gray-100 hover:bg-gray-50'}`}
+                    >
+                      Upload File
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500">Choose how to add your emoji</p>
+                </div>
+
+                {uploadMode === 'url' ? (
+                  /* URL Mode */
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Emoji Name</label>
+                      <input
+                        type="text"
+                        value={newEmojiName}
+                        onChange={(e) => setNewEmojiName(e.target.value)}
+                        className="w-full border border-black p-2 bg-white text-sm"
+                        placeholder="heart_eyes"
+                        pattern="[a-zA-Z0-9_-]+"
+                        title="Letters, numbers, underscores, and hyphens only"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Used as :{newEmojiName || 'name'}:</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Image URL</label>
+                      <input
+                        type="url"
+                        value={newEmojiUrl}
+                        onChange={(e) => setNewEmojiUrl(e.target.value)}
+                        className="w-full border border-black p-2 bg-white text-sm"
+                        placeholder="https://example.com/emoji.png"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Direct link to emoji image</p>
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={createEmoji}
+                        disabled={savingEmoji}
+                        className="w-full border border-black px-3 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] disabled:opacity-50"
+                      >
+                        {savingEmoji ? "Adding..." : "Add Emoji"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* File Upload Mode */
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Emoji Name</label>
+                      <input
+                        type="text"
+                        value={newEmojiName}
+                        onChange={(e) => setNewEmojiName(e.target.value)}
+                        className="w-full border border-black p-2 bg-white text-sm"
+                        placeholder="heart_eyes"
+                        pattern="[a-zA-Z0-9_-]+"
+                        title="Letters, numbers, underscores, and hyphens only"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Used as :{newEmojiName || 'name'}:</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Image File</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        className="w-full border border-black p-2 bg-white text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Max 2MB, PNG/JPG/WebP/GIF/SVG</p>
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={uploadEmojiFile}
+                        disabled={uploadingEmoji}
+                        className="w-full border border-black px-3 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] disabled:opacity-50"
+                      >
+                        {uploadingEmoji ? "Uploading..." : "Upload Emoji"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {emojiMessage && (
+                  <div className="mb-3">
+                    <span className="text-sm">{emojiMessage}</span>
+                  </div>
+                )}
+                
+                <div className="text-xs text-gray-600 bg-yellow-50 border border-yellow-200 rounded p-2">
+                  <strong>Tips:</strong> Emojis will be automatically resized to 64x64 pixels. PNG format with transparency recommended. Emoji names must be unique.
+                </div>
+              </div>
+
+              {/* Existing Emojis List */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-bold">Existing Emojis ({emojis.length})</h4>
+                  <button
+                    type="button"
+                    onClick={loadEmojis}
+                    disabled={loadingEmojis}
+                    className="border border-black px-2 py-1 bg-blue-200 hover:bg-blue-100 shadow-[1px_1px_0_#000] text-sm disabled:opacity-50"
+                  >
+                    {loadingEmojis ? "Loading..." : "Refresh"}
+                  </button>
+                </div>
+                
+                {loadingEmojis ? (
+                  <div className="text-center p-4">Loading emojis...</div>
+                ) : emojis.length === 0 ? (
+                  <div className="text-gray-500 italic p-4 border border-gray-200 rounded bg-gray-100">
+                    No custom emojis created yet. Add your first emoji above!
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {emojis.map(emoji => (
+                      <div key={emoji.id} className="border border-black p-3 bg-white flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={emoji.imageUrl} 
+                            alt={emoji.name}
+                            className="w-8 h-8 object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                          <div>
+                            <div className="font-bold">:{emoji.name}:</div>
+                            <div className="text-xs text-gray-500">
+                              Created by {emoji.creator.profile?.displayName || emoji.creator.handles[0]?.handle || 'Unknown'} 
+                              on {new Date(emoji.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => navigator.clipboard.writeText(`:${emoji.name}:`)}
+                            className="border border-black px-2 py-1 bg-blue-200 hover:bg-blue-100 shadow-[1px_1px_0_#000] text-xs"
+                            title="Copy emoji code"
+                          >
+                            Copy
+                          </button>
+                          <button
+                            onClick={() => deleteEmoji(emoji.id, emoji.name)}
+                            className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </CollapsibleSection>
 

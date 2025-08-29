@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
+import { TextWithEmojis, HtmlWithEmojis, markdownToSafeHtmlWithEmojis, processHtmlWithEmojis } from "@/lib/comment-markup";
 import hljs from "highlight.js"; // Ensure highlight.js is imported
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../forms/NewCommentForm";
@@ -175,12 +176,56 @@ const countLabel = hasServerCount
   ? String((commentCount ?? 0) + optimistic.length)
   : (optimistic.length ? `${optimistic.length}+` : "…");
 
-  // Convert text to HTML when necessary
-  const previewHtml = useMemo(() => {
-    if (!text.trim()) return "<p class='opacity-60'>(Nothing to preview)</p>";
-    if (mode === "markdown") return markdownToSafeHtml(text);
-    if (mode === "html") return cleanAndNormalizeHtml(text);
-    return textToHtml(text);
+  // Convert text to HTML when necessary (with emoji processing state)
+  const [previewHtml, setPreviewHtml] = useState("<p class='opacity-60'>(Nothing to preview)</p>");
+  
+  useEffect(() => {
+    let cancelled = false;
+    
+    async function updatePreview() {
+      if (!text.trim()) {
+        setPreviewHtml("<p class='opacity-60'>(Nothing to preview)</p>");
+        return;
+      }
+      
+      try {
+        let html: string;
+        if (mode === "markdown") {
+          html = await markdownToSafeHtmlWithEmojis(text);
+        } else if (mode === "html") {
+          html = cleanAndNormalizeHtml(text);
+        } else {
+          html = textToHtml(text);
+        }
+        
+        // Process emojis for HTML and text content
+        if (mode === "html" || mode === "text") {
+          const { loadEmojiMap } = await import("@/lib/comment-markup");
+          await loadEmojiMap();
+          html = processHtmlWithEmojis(html);
+        }
+        
+        if (!cancelled) {
+          setPreviewHtml(html);
+        }
+      } catch (error) {
+        console.error('Failed to process post content:', error);
+        if (!cancelled) {
+          // Fallback to original processing without emojis
+          let fallbackHtml: string;
+          if (mode === "markdown") fallbackHtml = markdownToSafeHtml(text);
+          else if (mode === "html") fallbackHtml = cleanAndNormalizeHtml(text);
+          else fallbackHtml = textToHtml(text);
+          setPreviewHtml(fallbackHtml);
+        }
+      }
+    }
+    
+    updatePreview();
+    
+    return () => {
+      cancelled = true;
+    };
   }, [text, mode]);
 
   // Function to apply syntax highlighting
@@ -554,9 +599,9 @@ const countLabel = hasServerCount
                 {/* Post Content */}
                 <div className={isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}>
                   {post.bodyHtml ? (
-                    <div dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
+                    <HtmlWithEmojis html={post.bodyHtml} />
                   ) : post.bodyText ? (
-                    <p>{post.bodyText}</p>
+                    <p><TextWithEmojis text={post.bodyText} /></p>
                   ) : (
                     <div className="italic opacity-70">(No content)</div>
                   )}

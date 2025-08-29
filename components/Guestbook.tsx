@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 import CompactBadgeDisplay from "./CompactBadgeDisplay";
-import { renderCommentMarkup } from "../lib/comment-markup";
+import { CommentMarkupWithEmojis } from "../lib/comment-markup";
 
 type Entry = {
   id: string;
@@ -250,7 +250,7 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
                     )}
                     
                     <div className="text-thread-charcoal leading-relaxed">
-                      {renderCommentMarkup(e.message)}
+                      <CommentMarkupWithEmojis text={e.message} />
                     </div>
                   </div>
                   <div className="flex gap-2">

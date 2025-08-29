@@ -2,13 +2,43 @@ import React from 'react';
 
 /**
  * Simple markup parser for comments
- * Supports: **bold**, *italic*, [links](url), > quotes, - bullet points
+ * Supports: **bold**, *italic*, [links](url), > quotes, - bullet points, :emojis:
  */
 
+// Global emoji cache
+let emojiMap: Map<string, string> = new Map();
+let emojiMapLoaded = false;
+
+// Load emojis from API
+export async function loadEmojiMap(): Promise<Map<string, string>> {
+  if (emojiMapLoaded) {
+    return emojiMap;
+  }
+
+  try {
+    const response = await fetch('/api/emojis');
+    if (response.ok) {
+      const data = await response.json();
+      const newEmojiMap = new Map<string, string>();
+      data.emojis.forEach((emoji: any) => {
+        newEmojiMap.set(emoji.name, emoji.imageUrl);
+      });
+      emojiMap = newEmojiMap;
+      emojiMapLoaded = true;
+    }
+  } catch (error) {
+    console.error('Failed to load emoji map:', error);
+  }
+
+  return emojiMap;
+}
+
 export interface ParsedContent {
-  type: 'text' | 'bold' | 'italic' | 'link' | 'quote' | 'list-item';
+  type: 'text' | 'bold' | 'italic' | 'link' | 'quote' | 'list-item' | 'emoji';
   content: string;
   url?: string;
+  emojiName?: string;
+  emojiUrl?: string;
   children?: ParsedContent[];
 }
 
@@ -32,7 +62,7 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-// Parse inline markup (bold, italic, links)
+// Parse inline markup (bold, italic, links, emojis)
 function parseInline(text: string): (string | ParsedContent)[] {
   const parts: (string | ParsedContent)[] = [];
   let current = '';
@@ -103,6 +133,32 @@ function parseInline(text: string): (string | ParsedContent)[] {
         continue;
       }
     }
+    
+    // Emojis: :emojiName:
+    else if (char === ':') {
+      const emojiMatch = rest.match(/^:([a-zA-Z0-9_-]+):/);
+      if (emojiMatch) {
+        const [fullMatch, emojiName] = emojiMatch;
+        const emojiUrl = emojiMap.get(emojiName);
+        
+        if (emojiUrl) {
+          if (current) {
+            parts.push(current);
+            current = '';
+          }
+          
+          parts.push({
+            type: 'emoji',
+            content: fullMatch,
+            emojiName,
+            emojiUrl,
+          });
+          i += fullMatch.length;
+          continue;
+        }
+        // If emoji not found, continue as regular text
+      }
+    }
 
     current += char;
     i++;
@@ -113,6 +169,33 @@ function parseInline(text: string): (string | ParsedContent)[] {
   }
 
   return parts;
+}
+
+// Process HTML content for emoji replacements
+export function processHtmlWithEmojis(html: string): string {
+  // First load emojis if needed
+  if (!emojiMapLoaded) {
+    return html; // Return original if emojis not loaded
+  }
+
+  return html.replace(/:([a-zA-Z0-9_-]+):/g, (match, emojiName) => {
+    const emojiUrl = emojiMap.get(emojiName);
+    if (emojiUrl) {
+      return `<img src="${emojiUrl}" alt="${match}" title="${match}" class="inline-block w-5 h-5 mx-1 align-text-bottom" style="display: inline-block; width: 1.25rem; height: 1.25rem; margin: 0 0.25rem; vertical-align: text-bottom;" />`;
+    }
+    return match;
+  });
+}
+
+// Enhanced markdown processor with emoji support
+export async function markdownToSafeHtmlWithEmojis(markdown: string): Promise<string> {
+  // First convert markdown to HTML
+  const { markdownToSafeHtml } = await import('@/lib/sanitize');
+  const html = markdownToSafeHtml(markdown);
+  
+  // Then process emojis
+  await loadEmojiMap();
+  return processHtmlWithEmojis(html);
 }
 
 // Parse a single line and determine its type
@@ -152,6 +235,13 @@ function parseLine(line: string): ParsedContent | string {
 
 // Parse the full comment text
 export function parseCommentMarkup(text: string): (ParsedContent | string)[] {
+  const lines = text.split('\n');
+  return lines.map(parseLine);
+}
+
+// Parse the full comment text with emoji support (async)
+export async function parseCommentMarkupWithEmojis(text: string): Promise<(ParsedContent | string)[]> {
+  await loadEmojiMap();
   const lines = text.split('\n');
   return lines.map(parseLine);
 }
@@ -207,6 +297,23 @@ export function renderParsedContent(content: (ParsedContent | string)[], keyPref
           </span>
         );
         
+      case 'emoji':
+        return (
+          <img 
+            key={itemKey}
+            src={item.emojiUrl} 
+            alt={item.content}
+            title={item.content}
+            className="inline-block w-5 h-5 mx-1 align-text-bottom"
+            onError={(e) => {
+              // If emoji fails to load, replace with text
+              const span = document.createElement('span');
+              span.textContent = item.content;
+              e.currentTarget.parentNode?.replaceChild(span, e.currentTarget);
+            }}
+          />
+        );
+        
       default:
         return <span key={itemKey}>{item.content}</span>;
     }
@@ -221,4 +328,187 @@ export function renderCommentMarkup(text: string): React.ReactNode {
       {renderParsedContent(parsed)}
     </div>
   );
+}
+
+// React component for emoji-aware comment rendering
+export function CommentMarkupWithEmojis({ text }: { text: string }): React.ReactNode {
+  const [parsedContent, setParsedContent] = React.useState<(ParsedContent | string)[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function parseWithEmojis() {
+      try {
+        const parsed = await parseCommentMarkupWithEmojis(text);
+        if (!cancelled) {
+          setParsedContent(parsed);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Failed to parse comment with emojis:', error);
+        if (!cancelled) {
+          // Fall back to regular parsing without emojis
+          const parsed = parseCommentMarkup(text);
+          setParsedContent(parsed);
+          setIsLoading(false);
+        }
+      }
+    }
+
+    parseWithEmojis();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [text]);
+
+  if (isLoading) {
+    return (
+      <div className="comment-markup">
+        <span className="text-gray-500">Loading...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="comment-markup">
+      {renderParsedContent(parsedContent)}
+    </div>
+  );
+}
+
+// HTML renderer with emoji support (for posts with HTML content)
+export function HtmlWithEmojis({ html }: { html: string }): React.ReactNode {
+  const [processedHtml, setProcessedHtml] = React.useState<string>(html);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function processEmojis() {
+      try {
+        await loadEmojiMap();
+        if (!cancelled) {
+          const processed = processHtmlWithEmojis(html);
+          setProcessedHtml(processed);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Failed to process HTML emojis:', error);
+        if (!cancelled) {
+          setProcessedHtml(html);
+          setIsLoading(false);
+        }
+      }
+    }
+
+    processEmojis();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [html]);
+
+  if (isLoading) {
+    return <div className="text-gray-500">Loading...</div>;
+  }
+
+  return <div dangerouslySetInnerHTML={{ __html: processedHtml }} />;
+}
+
+// Simple text renderer with emoji support only (for posts)
+export function TextWithEmojis({ text }: { text: string }): React.ReactNode {
+  const [renderedText, setRenderedText] = React.useState<React.ReactNode>(text);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function processEmojis() {
+      try {
+        await loadEmojiMap();
+        if (!cancelled) {
+          const processedText = parseEmojiText(text);
+          setRenderedText(processedText);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Failed to process emojis:', error);
+        if (!cancelled) {
+          setRenderedText(text);
+          setIsLoading(false);
+        }
+      }
+    }
+
+    processEmojis();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [text]);
+
+  if (isLoading) {
+    return <span className="text-gray-500">Loading...</span>;
+  }
+
+  return <span>{renderedText}</span>;
+}
+
+// Parse text for emoji replacements only
+function parseEmojiText(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let current = '';
+  let i = 0;
+  let key = 0;
+
+  while (i < text.length) {
+    const char = text[i];
+    const rest = text.slice(i);
+
+    // Emojis: :emojiName:
+    if (char === ':') {
+      const emojiMatch = rest.match(/^:([a-zA-Z0-9_-]+):/);
+      if (emojiMatch) {
+        const [fullMatch, emojiName] = emojiMatch;
+        const emojiUrl = emojiMap.get(emojiName);
+        
+        if (emojiUrl) {
+          if (current) {
+            parts.push(current);
+            current = '';
+          }
+          
+          parts.push(
+            <img 
+              key={key++}
+              src={emojiUrl} 
+              alt={fullMatch}
+              title={fullMatch}
+              className="inline-block w-5 h-5 mx-1 align-text-bottom"
+              onError={(e) => {
+                // If emoji fails to load, replace with text
+                const span = document.createElement('span');
+                span.textContent = fullMatch;
+                e.currentTarget.parentNode?.replaceChild(span, e.currentTarget);
+              }}
+            />
+          );
+          i += fullMatch.length;
+          continue;
+        }
+        // If emoji not found, continue as regular text
+      }
+    }
+
+    current += char;
+    i++;
+  }
+
+  if (current) {
+    parts.push(current);
+  }
+
+  return parts;
 }

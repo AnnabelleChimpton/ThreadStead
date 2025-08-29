@@ -49,6 +49,7 @@ model User {
   blocksReceived            UserBlock[]        @relation("UserBlocksReceived")
   betaInviteCodesGenerated  BetaInviteCode[]   @relation("BetaInviteCodesGenerated")
   betaInviteCodesUsed       BetaInviteCode[]   @relation("BetaInviteCodesUsed")
+  emojisCreated             Emoji[]            @relation("EmojiCreator")
 }
 
 model Handle {
@@ -642,4 +643,17 @@ enum ReportReason {
   sexual_content
   copyright
   other
+}
+
+model Emoji {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  imageUrl  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+  creator   User     @relation("EmojiCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([name])
+  @@index([createdBy])
 }

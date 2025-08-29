@@ -4,10 +4,12 @@ import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { markdownToSafeHtml } from "@/lib/sanitize";
+import { markdownToSafeHtmlWithEmojis } from "@/lib/comment-markup";
 import Preview from "@/components/forms/PreviewForm";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { validatePostTitle } from "@/lib/validation";
+import EmojiPicker from "@/components/EmojiPicker";
 
 interface PostEditorPageProps {
   siteConfig: SiteConfig;
@@ -116,9 +118,37 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
     setTitleError(validateTitle(title));
   }, [title, postTitlesRequired]);
   
-  const previewHtml = useMemo(() => {
-    if (!content.trim()) return "<p class='opacity-60'>(Nothing to preview)</p>";
-    return markdownToSafeHtml(content);
+  const [previewHtml, setPreviewHtml] = useState("<p class='opacity-60'>(Nothing to preview)</p>");
+  
+  // Update preview when content changes
+  useEffect(() => {
+    let cancelled = false;
+    
+    async function updatePreview() {
+      if (!content.trim()) {
+        setPreviewHtml("<p class='opacity-60'>(Nothing to preview)</p>");
+        return;
+      }
+      
+      try {
+        const html = await markdownToSafeHtmlWithEmojis(content);
+        if (!cancelled) {
+          setPreviewHtml(html);
+        }
+      } catch (error) {
+        console.error('Failed to process preview:', error);
+        if (!cancelled) {
+          // Fallback to regular markdown without emojis
+          setPreviewHtml(markdownToSafeHtml(content));
+        }
+      }
+    }
+    
+    updatePreview();
+    
+    return () => {
+      cancelled = true;
+    };
   }, [content]);
 
   useEffect(() => {
@@ -475,6 +505,25 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
     }, 0);
   }, []);
 
+  // Handle emoji selection
+  const handleEmojiSelect = useCallback((emojiName: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    const emojiText = `:${emojiName}:`;
+    
+    const newValue = value.substring(0, start) + emojiText + value.substring(end);
+    setContent(newValue);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + emojiText.length;
+    }, 0);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const body = content.trim();
@@ -741,6 +790,9 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
                       {item.icon}
                     </button>
                   ))}
+                  
+                  {/* Emoji Picker */}
+                  <EmojiPicker onEmojiSelect={handleEmojiSelect} />
                   
                   <div className="ml-2 border-l border-black pl-2">
                     <button

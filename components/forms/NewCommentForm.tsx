@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import EmojiPicker from "../EmojiPicker";
 
 export type CommentWire = {
   id: string;
@@ -48,6 +49,11 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
       textarea.focus();
       textarea.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
+  };
+
+  // Handle emoji selection
+  const handleEmojiSelect = (emojiName: string) => {
+    insertAtCursor(`:${emojiName}:`);
   };
 
   const formatActions = [
@@ -136,6 +142,9 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
             {action.icon}
           </button>
         ))}
+        
+        {/* Emoji Picker */}
+        <EmojiPicker onEmojiSelect={handleEmojiSelect} />
         <button
           type="button"
           onClick={() => setShowHelp(!showHelp)}

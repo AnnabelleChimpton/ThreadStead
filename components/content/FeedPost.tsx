@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
+import { markdownToSafeHtmlWithEmojis, processHtmlWithEmojis, loadEmojiMap } from "@/lib/comment-markup";
 import CommentList, { CommentWire } from "./CommentList";
 import NewCommentForm from "../forms/NewCommentForm";
 import PostActionsDropdown from "./PostActionsDropdown";
@@ -54,17 +55,55 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
 
   // Determine the content to display
-  const content = React.useMemo(() => {
-    if (post.bodyHtml) {
-      return cleanAndNormalizeHtml(post.bodyHtml);
+  const [content, setContent] = React.useState("");
+  
+  React.useEffect(() => {
+    let cancelled = false;
+    
+    async function processContent() {
+      try {
+        let html: string;
+        if (post.bodyHtml) {
+          html = cleanAndNormalizeHtml(post.bodyHtml);
+          await loadEmojiMap();
+          html = processHtmlWithEmojis(html);
+        } else if (post.bodyMarkdown) {
+          html = await markdownToSafeHtmlWithEmojis(post.bodyMarkdown);
+        } else if (post.bodyText) {
+          html = post.bodyText.replace(/\n/g, "<br>");
+          await loadEmojiMap();
+          html = processHtmlWithEmojis(html);
+        } else {
+          html = "";
+        }
+        
+        if (!cancelled) {
+          setContent(html);
+        }
+      } catch (error) {
+        console.error('Failed to process feed post content:', error);
+        if (!cancelled) {
+          // Fallback to original processing
+          let fallbackHtml: string;
+          if (post.bodyHtml) {
+            fallbackHtml = cleanAndNormalizeHtml(post.bodyHtml);
+          } else if (post.bodyMarkdown) {
+            fallbackHtml = markdownToSafeHtml(post.bodyMarkdown);
+          } else if (post.bodyText) {
+            fallbackHtml = post.bodyText.replace(/\n/g, "<br>");
+          } else {
+            fallbackHtml = "";
+          }
+          setContent(fallbackHtml);
+        }
+      }
     }
-    if (post.bodyMarkdown) {
-      return markdownToSafeHtml(post.bodyMarkdown);
-    }
-    if (post.bodyText) {
-      return post.bodyText.replace(/\n/g, "<br>");
-    }
-    return "";
+    
+    processContent();
+    
+    return () => {
+      cancelled = true;
+    };
   }, [post.bodyHtml, post.bodyMarkdown, post.bodyText]);
 
   const authorName = post.authorDisplayName || post.authorUsername || "Anonymous";
