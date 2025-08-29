@@ -195,19 +195,11 @@ export class AuthenticatedRingHubClient {
     criteria?: string;
     badgesUpdated?: number;
   }> {
-    console.log(`Starting badge update operation for ring: ${slug}`)
-    
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
     
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-    
-    if (isLocalhost) {
-      console.log(`User ${userDID} updating badge for ring ${slug} via server DID proxy (dev mode)`)
-    } else {
-      console.log(`User ${userDID} updating badge for ring ${slug} directly (prod mode)`)
-    }
     
     // Update badge via Ring Hub using user-authenticated client
     // Ring Hub will verify the user owns the ring (ownerDid matches actorDid)

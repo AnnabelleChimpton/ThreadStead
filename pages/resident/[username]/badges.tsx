@@ -256,7 +256,7 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async
                   ringDataMap.set(slug, ring)
                 }
               } catch (error) {
-                console.warn(`Failed to fetch ring data for ${slug}:`, error)
+                // Silently continue if ring data fetch fails
               }
             })
             

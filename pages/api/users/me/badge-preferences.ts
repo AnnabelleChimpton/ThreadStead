@@ -104,30 +104,6 @@ async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, us
         limit: 100 // Get all active badges for this user
       })
 
-      // Debug: Log badge data to understand what's being returned
-      console.log(`[Badge Debug] User DID: ${userDID}`)
-      console.log(`[Badge Debug] Total badges returned: ${ringHubBadges.badges.length}`)
-      console.log(`[Badge Debug] Badge details:`, ringHubBadges.badges.map(b => ({ 
-        ring: b.ring.name, 
-        ringSlug: b.ring.slug,
-        visibility: b.ring.visibility,
-        role: b.membership.role,
-        status: b.membership.status,
-        joinedAt: b.membership.joinedAt,
-        isRevoked: b.isRevoked
-      })))
-      
-      // Additional debugging: Check if we're missing any owner/curator roles
-      const memberCount = ringHubBadges.badges.filter(b => b.membership.role === 'member').length
-      const ownerCount = ringHubBadges.badges.filter(b => b.membership.role === 'owner').length  
-      const curatorCount = ringHubBadges.badges.filter(b => b.membership.role === 'curator').length
-      const moderatorCount = ringHubBadges.badges.filter(b => b.membership.role === 'moderator').length
-      console.log(`[Badge Debug] Role breakdown: member=${memberCount}, owner=${ownerCount}, curator=${curatorCount}, moderator=${moderatorCount}`)
-      
-      const privateRings = ringHubBadges.badges.filter(b => b.ring.visibility === 'PRIVATE')
-      if (privateRings.length > 0) {
-        console.log(`[Badge Debug] Found ${privateRings.length} badges from PRIVATE rings (these should NOT be filtered out by our client)`)
-      }
 
       // Transform Ring Hub badges to our expected format
       // Fetch all unique rings to get their current badge designs
@@ -142,7 +118,7 @@ async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, us
             ringDataMap.set(slug, ring)
           }
         } catch (error) {
-          console.warn(`Failed to fetch ring data for ${slug}:`, error)
+          // Silently continue if ring data fetch fails
         }
       })
       

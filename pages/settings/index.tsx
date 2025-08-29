@@ -471,6 +471,18 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
                 <span>🎯</span>
                 Profile Layout Mode
               </h3>
+              <div className="bg-blue-50 border border-blue-200 rounded-none p-4 mb-4">
+                <p className="text-blue-900 font-medium">
+                  Current Mode: <span className="font-bold">
+                    {templateMode === 'default' && '🏠 Default Layout'}
+                    {templateMode === 'enhanced' && '🎨 Enhanced (Default + CSS)'}
+                    {templateMode === 'advanced' && '⚡ Advanced Template'}
+                  </span>
+                </p>
+                <p className="text-blue-800 text-sm mt-1">
+                  Select a different mode below and click Apply to change it.
+                </p>
+              </div>
               <p className="text-gray-600 mb-4">
                 Choose how your profile should be displayed and what customization options are available.
               </p>
@@ -526,6 +538,17 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
                     </div>
                   </div>
                 </label>
+              </div>
+
+              {/* Apply Button */}
+              <div className="mt-6">
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="px-6 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_#000]"
+                >
+                  {saving ? '💾 Applying Changes...' : '💾 Apply Profile Layout Mode'}
+                </button>
               </div>
             </div>
           </div>
