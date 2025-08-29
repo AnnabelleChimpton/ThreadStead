@@ -88,27 +88,28 @@ model Profile {
 }
 
 model Post {
-  id             String           @id @default(cuid())
-  authorId       String
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime?
-  bodyHtml       String?
-  bodyText       String?
-  media          Json?
-  tags           String[]
-  visibility     Visibility       @default(public)
-  bodyMarkdown   String?
-  title          String           @default("Untitled Post")
-  intent         PostIntent?
-  excerpt        String?
-  platform       String?          @default("blog")
-  publishedAt    DateTime?
-  textPreview    String?
-  contentWarning String?          // Custom spoiler warning text
-  isSpoiler      Boolean          @default(false) // Quick flag for filtering
-  comments       Comment[]        @relation("PostComments")
-  author         User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  threadRings    PostThreadRing[] @relation("PostThreadRings")
+  id                String           @id @default(cuid())
+  authorId          String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime?
+  bodyHtml          String?
+  bodyText          String?
+  media             Json?
+  tags              String[]
+  visibility        Visibility       @default(public)
+  bodyMarkdown      String?
+  title             String           @default("Untitled Post")
+  intent            PostIntent?
+  excerpt           String?
+  platform          String?          @default("blog")
+  publishedAt       DateTime?
+  textPreview       String?
+  contentWarning    String?          // Custom spoiler warning text
+  isSpoiler         Boolean          @default(false) // Quick flag for filtering
+  threadRingPostIds Json?            // Store ThreadRing database UUIDs mapped by ring slug
+  comments          Comment[]        @relation("PostComments")
+  author            User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  threadRings       PostThreadRing[] @relation("PostThreadRings")
 }
 
 model Comment {

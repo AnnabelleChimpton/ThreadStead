@@ -310,6 +310,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const result = await authenticatedClient.submitPost(slug, postSubmission);
             console.log(`✅ Post ${post.id} successfully submitted to Ring Hub ring: ${slug}`, result);
             
+            // Store the ThreadRing database UUID from the response
+            if (result.id) {
+              const currentThreadRingPostIds = post.threadRingPostIds as Record<string, string> || {};
+              currentThreadRingPostIds[slug] = result.id;
+              
+              // Update the post with the ThreadRing post ID
+              await db.post.update({
+                where: { id: post.id },
+                data: { threadRingPostIds: currentThreadRingPostIds }
+              });
+              
+              console.log(`💾 Stored ThreadRing post ID ${result.id} for ring ${slug}`);
+            }
+            
             // If this was a prompt response, update the response count
             if (isPromptResponse && promptDetails) {
               try {

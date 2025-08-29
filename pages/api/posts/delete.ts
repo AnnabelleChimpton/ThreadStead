@@ -54,46 +54,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Use user-authenticated client for author deletion
       const authenticatedClient = createAuthenticatedRingHubClient(me.id);
       
-      // We need to find the RingHub PostRef IDs for this post
-      // Since we don't store them locally, we'll iterate through each ThreadRing
-      // and find the corresponding PostRef ID by URI matching
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-      const postUri = `${baseUrl}/resident/${post.author.primaryHandle}/post/${id}`;
-      
       let totalRemovedCount = 0;
       const affectedRings: string[] = [];
       
+      // Check if we have stored ThreadRing post IDs
+      const threadRingPostIds = post.threadRingPostIds as Record<string, string> || {};
+      
       for (const threadRingAssociation of post.threadRings) {
         try {
-          // Get the ring's posts to find our PostRef ID
           const ringSlug = threadRingAssociation.threadRing.slug;
-          const ringPosts = await authenticatedClient.getRingFeed(ringSlug);
+          const threadRingPostId = threadRingPostIds[ringSlug];
           
-          // Find the PostRef that matches our post URI
-          const matchingPostRef = ringPosts.posts.find((postRef: any) => 
-            postRef.uri === postUri
-          );
-          
-          if (matchingPostRef && matchingPostRef.id) {
-            // Now we can delete using the correct RingHub PostRef ID
+          if (threadRingPostId) {
+            // Use the stored database UUID directly
+            console.log(`🎯 Using stored ThreadRing post ID ${threadRingPostId} for ring ${ringSlug}`);
+            
             const ringHubResponse = await authenticatedClient.curatePost(
-              matchingPostRef.id, 
+              threadRingPostId, 
               'remove',
               {
                 reason: reason || "Author removed their own content"
               }
             );
             
-            console.log(`Removed post from RingHub ring ${ringSlug}:`, {
+            console.log(`✅ Removed post from RingHub ring ${ringSlug}:`, {
               threadSteadPostId: id,
-              ringHubPostRefId: matchingPostRef.id,
+              threadRingPostId: threadRingPostId,
               ringSlug
             });
             
             totalRemovedCount++;
             affectedRings.push(ringSlug);
           } else {
-            console.warn(`Could not find PostRef for post ${id} in ring ${ringSlug}`);
+            // Fallback to old URI matching method for posts created before this fix
+            console.warn(`❌ No stored ThreadRing post ID for ring ${ringSlug}, falling back to URI matching`);
+            
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+            const postUri = `${baseUrl}/resident/${post.author.primaryHandle}/post/${id}`;
+            
+            const ringPosts = await authenticatedClient.getRingFeed(ringSlug);
+            const matchingPostRef = ringPosts.posts.find((postRef: any) => 
+              postRef.uri === postUri
+            );
+            
+            if (matchingPostRef && matchingPostRef.id) {
+              const ringHubResponse = await authenticatedClient.curatePost(
+                matchingPostRef.id, 
+                'remove',
+                {
+                  reason: reason || "Author removed their own content"
+                }
+              );
+              
+              console.log(`⚠️ Removed post using URI fallback from ring ${ringSlug}:`, {
+                threadSteadPostId: id,
+                ringHubPostRefId: matchingPostRef.id,
+                ringSlug
+              });
+              
+              totalRemovedCount++;
+              affectedRings.push(ringSlug);
+            } else {
+              console.warn(`❌ Could not find PostRef for post ${id} in ring ${ringSlug}`);
+            }
           }
         } catch (ringError: any) {
           console.error(`Failed to remove post from ring ${threadRingAssociation.threadRing.slug}:`, {
