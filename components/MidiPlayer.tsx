@@ -128,8 +128,7 @@ export default function MidiPlayer({
           notes: track.notes.length,
           instrument: `${instrumentName} (Program ${programNumber})`,
           controlChanges: track.controlChanges ? Object.keys(track.controlChanges).length : 0,
-          pitchBends: track.pitchBends?.length || 0,
-          programChanges: track.programChanges?.length || 0
+          pitchBends: track.pitchBends?.length || 0
         });
         
         // Log control changes for debugging
