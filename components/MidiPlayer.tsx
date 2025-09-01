@@ -28,82 +28,63 @@ export default function MidiPlayer({
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   
   const synthRef = useRef<Tone.PolySynth | null>(null);
-  const channelSynthsRef = useRef<Map<number, Tone.PolySynth>>(new Map());
+  const channelSynthsRef = useRef<Map<number, any>>(new Map());
+  const channelInstrumentsRef = useRef<Map<number, number>>(new Map());
+  const drumSynthsRef = useRef<Map<number, any>>(new Map());
   const midiDataRef = useRef<Midi | null>(null);
   const scheduledEventsRef = useRef<any[]>([]);
   const startTimeRef = useRef<number>(0);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize synth
+  // Simple initialization
   useEffect(() => {
-    // BitMIDI-style synthesizer - bright, clean, simple
-    synthRef.current = new Tone.PolySynth(Tone.Synth, {
-      oscillator: {
-        type: "triangle" // BitMIDI uses softer, rounder sounds
-      },
-      envelope: {
-        attack: 0.02,    // Slightly slower attack for smoother sound
-        decay: 0.3,      // BitMIDI has longer decay for fuller sound
-        sustain: 0.6,    // Higher sustain for more "held" notes
-        release: 1.0,    // Longer release for smoother note endings
-      },
-      volume: -8         // BitMIDI keeps volumes moderate to prevent distortion
-    }).toDestination();
-    
-    // BitMIDI uses higher polyphony for complex classical pieces
-    synthRef.current.maxPolyphony = 32;
-    
-    // Set initial volume
-    Tone.Destination.volume.value = Tone.gainToDb(volume / 100);
+    // Just set a reasonable master volume
+    Tone.Destination.volume.value = 0; // 0dB - let individual synths control their levels
 
-    console.log('Initialized BitMIDI-style synthesizer');
+    console.log('MIDI Player initialized');
 
     return () => {
-      // Clean up main synth
-      if (synthRef.current) {
-        synthRef.current.dispose();
-      }
-      
-      // Clean up channel synths
-      channelSynthsRef.current.forEach(synth => synth.dispose());
+      // Clean up any synths
+      channelSynthsRef.current.forEach(synth => {
+        if (synth && synth.dispose) {
+          synth.dispose();
+        }
+      });
       channelSynthsRef.current.clear();
     };
   }, []);
 
-  // Create or get synthesizer for specific channel - BitMIDI style
-  const getSynthForChannel = (channel: number): Tone.PolySynth => {
-    if (channelSynthsRef.current.has(channel)) {
-      return channelSynthsRef.current.get(channel)!;
-    }
-    
-    // BitMIDI uses consistent, simple sounds across channels
-    // with only subtle differences for drums vs melodic instruments
-    const channelSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: {
-        // BitMIDI uses triangle waves for everything, with slight variations
-        type: channel === 9 ? "triangle4" : "triangle2" // Drums get slightly more harmonics
-      },
-      envelope: {
-        attack: channel === 9 ? 0.005 : 0.02,  // Drums slightly faster
-        decay: channel === 9 ? 0.15 : 0.3,     // Drums shorter decay
-        sustain: channel === 9 ? 0.1 : 0.6,    // Drums much less sustain
-        release: channel === 9 ? 0.3 : 1.0,    // Drums quicker release
-      },
-      volume: channel === 9 ? -6 : -8  // Drums slightly louder like BitMIDI
-    }).toDestination();
-    
-    // BitMIDI uses moderate polyphony per channel
-    channelSynth.maxPolyphony = 12;
-    channelSynthsRef.current.set(channel, channelSynth);
-    
-    console.log(`Created BitMIDI-style synth for channel ${channel}`);
-    return channelSynth;
+  // Simplified drum kit - louder levels for audibility
+  const createDrumKit = () => {
+    return {
+      // Louder drums with better settings
+      kick: new Tone.MembraneSynth({ 
+        pitchDecay: 0.08, 
+        octaves: 6, 
+        envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.5 },
+        volume: 6 // Much louder
+      }).toDestination(),
+      snare: new Tone.MembraneSynth({ 
+        pitchDecay: 0.02, 
+        octaves: 4, 
+        envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.2 },
+        volume: 3 // Louder
+      }).toDestination(),
+      hihat: new Tone.Synth({ 
+        oscillator: { type: 'square' },
+        envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.1 },
+        volume: 0 // Normal level
+      }).toDestination()
+    };
   };
 
   // Update volume
   useEffect(() => {
     if (Tone.Destination) {
-      Tone.Destination.volume.value = Tone.gainToDb(volume / 100);
+      // Convert volume slider (0-100) to reasonable dB range (-20 to 0)
+      const dbValue = -20 + (volume / 100) * 20;
+      Tone.Destination.volume.value = dbValue;
+      console.log('Master volume set to:', dbValue, 'dB');
     }
   }, [volume]);
 
@@ -135,21 +116,38 @@ export default function MidiPlayer({
       console.log('- PPQ (ticks per quarter):', midi.header.ppq);
       console.log('- Tempo changes:', midi.header.tempos?.length || 0);
       
-      // Analyze each track
+      // Analyze each track and detect instruments
       midi.tracks.forEach((track, i) => {
+        const instrumentInfo = track.instrument;
+        const programNumber = instrumentInfo?.number ?? 0;
+        const instrumentName = instrumentInfo?.name || `Program ${programNumber}`;
+        
         console.log(`Track ${i}:`, {
           name: track.name || 'Unnamed',
-          channel: track.channel || 0,
+          channel: track.channel ?? 0,
           notes: track.notes.length,
-          instrument: track.instrument?.name || 'Unknown',
+          instrument: `${instrumentName} (Program ${programNumber})`,
           controlChanges: track.controlChanges ? Object.keys(track.controlChanges).length : 0,
-          pitchBends: track.pitchBends?.length || 0
+          pitchBends: track.pitchBends?.length || 0,
+          programChanges: track.programChanges?.length || 0
         });
+        
+        // Log control changes for debugging
+        if (track.controlChanges) {
+          Object.entries(track.controlChanges).forEach(([cc, changes]) => {
+            if (changes.length > 0) {
+              console.log(`  CC${cc}: ${changes.length} changes`);
+            }
+          });
+        }
+        
+        // We'll create synths during playback now, no pre-loading needed
         
         // Log first few notes for debugging
         if (track.notes.length > 0) {
           console.log(`First 3 notes:`, track.notes.slice(0, 3).map(n => ({
             name: n.name,
+            midi: n.midi,
             time: n.time.toFixed(3),
             duration: n.duration.toFixed(3),
             velocity: n.velocity
@@ -177,15 +175,21 @@ export default function MidiPlayer({
     } catch (err) {
       console.error('Error loading MIDI:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to load MIDI file';
-      setError(`MIDI Load Error: ${errorMessage}`);
+      console.error('Full error details:', err);
+      setError(`Load Error: ${errorMessage}`);
       setIsLoading(false);
     }
   };
 
   // Play MIDI
   const play = async () => {
-    if (!midiDataRef.current || !synthRef.current) {
-      setError('MIDI not loaded or synthesizer not ready');
+    if (!midiDataRef.current) {
+      setError('MIDI not loaded');
+      return;
+    }
+
+    if (isPlaying) {
+      console.log('Already playing, ignoring play request');
       return;
     }
     
@@ -198,6 +202,9 @@ export default function MidiPlayer({
         await Tone.start();
       }
       
+      // Clear any existing error
+      setError(null);
+      
       const midi = midiDataRef.current;
       const now = Tone.now();
       startTimeRef.current = now;
@@ -208,39 +215,61 @@ export default function MidiPlayer({
       
       let totalNotes = 0;
       
-      // Schedule all notes with channel-specific handling
+      // Simple approach: Use one synth per track, schedule all notes directly
       midi.tracks.forEach((track, trackIndex) => {
+        if (track.notes.length === 0) return; // Skip empty tracks
+        
         console.log(`Track ${trackIndex}: ${track.notes.length} notes, channel: ${track.channel}`);
         
-        // Get or create synth for this track's channel
-        const trackChannel = track.channel || 0;
-        const channelSynth = getSynthForChannel(trackChannel);
+        // Create one synth per track - much simpler approach
+        let trackSynth: any;
         
+        if (track.channel === 9) {
+          // Drum track - create a collection of drum sounds
+          trackSynth = createDrumKit();
+        } else {
+          // Melodic track - use simple PolySynth
+          trackSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.02, decay: 0.3, sustain: 0.6, release: 1.0 }
+          }).toDestination();
+          trackSynth.maxPolyphony = 16;
+        }
+        
+        // Store synth for cleanup
+        channelSynthsRef.current.set(trackIndex, trackSynth);
+        
+        // Schedule all notes for this track
         track.notes.forEach(note => {
-          // Filter out invalid notes
-          if (!note.name || note.name === 'undefined' || isNaN(note.time)) {
-            console.warn('Skipping invalid note:', note);
-            return;
-          }
+          if (!note.name || isNaN(note.time)) return;
           
           const eventId = Tone.Transport.schedule((time) => {
             try {
-              // Standard MIDI duration handling
-              const duration = Math.max(0.05, Math.min(note.duration, 8));
+              const duration = Math.max(0.1, note.duration);
+              const velocity = note.velocity || 0.8;
               
-              // Standard MIDI velocity curve (0-127 -> 0.1-1.0)
-              const rawVelocity = note.velocity || 0.7;
-              const velocity = 0.1 + (rawVelocity * 0.9);
-              
-              // Use channel-specific synthesizer
-              channelSynth.triggerAttackRelease(
-                note.name,
-                duration,
-                time,
-                velocity
-              );
-            } catch (noteErr) {
-              console.warn('Error playing note:', note.name, noteErr);
+              if (track.channel === 9) {
+                // Drums - simple mapping to 3 basic sounds with boosted velocity
+                let drumSound, drumPitch;
+                if (note.midi >= 35 && note.midi <= 36) {
+                  drumSound = trackSynth.kick; // Bass drums
+                  drumPitch = 'C2'; // Low pitch for kick
+                } else if (note.midi >= 38 && note.midi <= 40) {
+                  drumSound = trackSynth.snare; // Snare drums
+                  drumPitch = 'D3'; // Mid pitch for snare
+                } else {
+                  drumSound = trackSynth.hihat; // Everything else (hi-hats, cymbals, etc.)
+                  drumPitch = 'F#4'; // High pitch for hihat
+                }
+                // Boost drum velocity to make them more audible
+                const drumVelocity = Math.min(1.0, velocity * 1.5);
+                drumSound.triggerAttackRelease(drumPitch, duration, time, drumVelocity);
+              } else {
+                // Melodic - use note name
+                trackSynth.triggerAttackRelease(note.name, duration, time, velocity);
+              }
+            } catch (err) {
+              console.warn('Note error:', err);
             }
           }, now + note.time);
           
@@ -314,8 +343,9 @@ export default function MidiPlayer({
       
     } catch (err) {
       console.error('Error playing MIDI:', err);
+      console.error('Full playback error details:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown playback error';
-      setError(`Playback Error: ${errorMessage}`);
+      setError(`Play Error: ${errorMessage}`);
       setIsPlaying(false);
     }
   };
@@ -336,13 +366,11 @@ export default function MidiPlayer({
     Tone.Transport.stop();
     Tone.Transport.position = 0;
     
-    // Immediately silence all synthesizers to stop any currently playing notes
-    if (synthRef.current) {
-      synthRef.current.releaseAll();
-    }
-    
+    // Simple cleanup - just release all notes
     channelSynthsRef.current.forEach(synth => {
-      synth.releaseAll();
+      if (synth && synth.releaseAll) {
+        synth.releaseAll();
+      }
     });
     
     setIsPlaying(false);
