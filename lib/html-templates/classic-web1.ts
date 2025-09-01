@@ -297,109 +297,109 @@ a:visited {
 }
 </style>
 
-<div className="retro-main-container">
-  <div className="marquee-container">
-    <div className="marquee-text">✨ WELCOME TO THE WORLD WIDE WEB ✨ UNDER CONSTRUCTION ✨ GEOCITIES FOREVER ✨</div>
+<div class="retro-main-container">
+  <div class="marquee-container">
+    <div class="marquee-text">✨ WELCOME TO THE WORLD WIDE WEB ✨ UNDER CONSTRUCTION ✨ GEOCITIES FOREVER ✨</div>
   </div>
 
-  <div className="retro-header-container">
+  <div class="retro-header-container">
     <DisplayName as="h1" />
-    <div className="blink homepage-subtitle">
+    <div class="blink homepage-subtitle">
       🌐 Personal Homepage Since 1999 🌐
     </div>
   </div>
 
-  <div className="vintage-table">
-    <div className="retro-flex-row">
-      <div className="vintage-cell">📖 About Me</div>
-      <div className="vintage-cell">📝 My Diary</div>
-      <div className="vintage-cell">📷 Photo Album</div>
-      <div className="vintage-cell">🔗 Cool Sites</div>
+  <div class="vintage-table">
+    <div class="retro-flex-row">
+      <div class="vintage-cell">📖 About Me</div>
+      <div class="vintage-cell">📝 My Diary</div>
+      <div class="vintage-cell">📷 Photo Album</div>
+      <div class="vintage-cell">🔗 Cool Sites</div>
     </div>
   </div>
 
-  <div className="construction">
+  <div class="construction">
     🚧 UNDER CONSTRUCTION 🚧 BEST VIEWED IN NETSCAPE NAVIGATOR 🚧
   </div>
 
-  <div className="retro-split-layout">
-    <div className="retro-split-left">
-      <div className="gif-border">
+  <div class="retro-split-layout">
+    <div class="retro-split-left">
+      <div class="gif-border">
         <ProfilePhoto size="lg" shape="square" />
       </div>
-      <div className="retro-counter cool-factor">
+      <div class="retro-counter cool-factor">
         COOL FACTOR: 9000
       </div>
     </div>
     
-    <div className="retro-split-right">
-      <h2 className="flame-text">👤 About This Awesome Person 👤</h2>
+    <div class="retro-split-right">
+      <h2 class="flame-text">👤 About This Awesome Person 👤</h2>
       <Bio />
-      <div className="webmaster-info">
+      <div class="webmaster-info">
         💻 Webmaster Status: ELITE<br/>
         🎵 Now Playing: Darude - Sandstorm<br/>
-        📧 Email: <span className="blink">CHECK GUESTBOOK!</span>
+        📧 Email: <span class="blink">CHECK GUESTBOOK!</span>
       </div>
     </div>
   </div>
 
-  <div className="retro-centered-container">
-    <h2 className="flame-text">📔 My Internet Diary 📔</h2>
+  <div class="retro-centered-container">
+    <h2 class="flame-text">📔 My Internet Diary 📔</h2>
     <BlogPosts limit="2" />
   </div>
 
-  <div className="retro-centered-container">
-    <div className="retro-flex-row">
-      <div className="retro-counter">
-        VISITOR NUMBER: <span className="blink">001337</span>
+  <div class="retro-centered-container">
+    <div class="retro-flex-row">
+      <div class="retro-counter">
+        VISITOR NUMBER: <span class="blink">001337</span>
       </div>
-      <div className="retro-counter">
+      <div class="retro-counter">
         LAST UPDATED: TODAY!
       </div>
     </div>
   </div>
 
-  <div className="retro-centered-container">
-    <h2 className="flame-text">🌈 KOOL LINKS ON THE WEB 🌈</h2>
-    <div className="vintage-table">
-      <div className="retro-links-grid">
-        <div className="retro-links-row">
-          <div className="vintage-cell">🔍 Yahoo! - THE BEST SEARCH!</div>
-          <div className="vintage-cell">🏠 GeoCities - Free Homepages!</div>
+  <div class="retro-centered-container">
+    <h2 class="flame-text">🌈 KOOL LINKS ON THE WEB 🌈</h2>
+    <div class="vintage-table">
+      <div class="retro-links-grid">
+        <div class="retro-links-row">
+          <div class="vintage-cell">🔍 Yahoo! - THE BEST SEARCH!</div>
+          <div class="vintage-cell">🏠 GeoCities - Free Homepages!</div>
         </div>
-        <div className="retro-links-row">
-          <div className="vintage-cell">🔎 AltaVista - Search Engine</div>
-          <div className="vintage-cell">🔥 Angelfire - Make Your Site!</div>
+        <div class="retro-links-row">
+          <div class="vintage-cell">🔎 AltaVista - Search Engine</div>
+          <div class="vintage-cell">🔥 Angelfire - Make Your Site!</div>
         </div>
-        <div className="retro-links-row">
-          <div className="vintage-cell">🎮 My Friend's Gaming Page</div>
-          <div className="vintage-cell">🎵 MIDI Music Collection</div>
+        <div class="retro-links-row">
+          <div class="vintage-cell">🎮 My Friend's Gaming Page</div>
+          <div class="vintage-cell">🎵 MIDI Music Collection</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div className="retro-centered-container">
-    <div className="webring-banner">
+  <div class="retro-centered-container">
+    <div class="webring-banner">
       🔗 GEOCITIES NEIGHBORHOOD WEBRING 🔗<br/>
       [← PREV] | [RANDOM] | [NEXT →] | [LIST ALL]
     </div>
   </div>
 
-  <div className="retro-centered-container">
-    <h3 className="blink awards-title">🏆 WEBSITE AWARDS WON 🏆</h3>
-    <div className="retro-flex-row">
-      <div className="award-badge best-site">BEST SITE</div>
-      <div className="award-badge cool-page">COOL PAGE</div>
-      <div className="award-badge awesome">AWESOME</div>
+  <div class="retro-centered-container">
+    <h3 class="blink awards-title">🏆 WEBSITE AWARDS WON 🏆</h3>
+    <div class="retro-flex-row">
+      <div class="award-badge best-site">BEST SITE</div>
+      <div class="award-badge cool-page">COOL PAGE</div>
+      <div class="award-badge awesome">AWESOME</div>
     </div>
   </div>
 
-  <div className="retro-centered-container">
-    <div className="copyright-footer">
+  <div class="retro-centered-container">
+    <div class="copyright-footer">
       Copyright © 1999 <DisplayName as="span" />. All rights reserved.<br/>
       Made with ❤️ on Windows 98 | Best viewed with 800x600 resolution<br/>
-      <span className="blink">This site is Netscape Enhanced!</span>
+      <span class="blink">This site is Netscape Enhanced!</span>
     </div>
   </div>
 </div>`;

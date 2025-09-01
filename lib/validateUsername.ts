@@ -48,7 +48,7 @@ if (process.env.NODE_ENV === "test") {
     "nice-name",
   ];
   for (const s of samples) {
-    // eslint-disable-next-line no-console
+     
     console.log(s, "=>", validateUsername(s));
   }
 }

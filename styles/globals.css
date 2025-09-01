@@ -3,6 +3,7 @@
 
 @import "./retro.css";
 @import "./components.css";
+@import "./islands.css";
 
 html, body { height: 100%; }
 body {

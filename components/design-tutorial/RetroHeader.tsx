@@ -22,7 +22,7 @@ export default function RetroHeader() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-yellow-100 border-4 border-black shadow-[6px_6px_0_#000] p-6 transform rotate-1">
           <p className="text-xl text-gray-800 font-medium leading-relaxed">
-            🎨 Create amazing personal pages with our drag-and-drop components! 
+            Create amazing personal pages with our drag-and-drop components! 
             Mix, match, and customize to build your perfect retro digital space.
           </p>
         </div>
@@ -31,17 +31,14 @@ export default function RetroHeader() {
       {/* Quick tips */}
       <div className="mt-8 grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
         <div className="bg-green-200 border-4 border-black shadow-[4px_4px_0_#000] p-4">
-          <div className="text-2xl mb-2">🧩</div>
           <div className="font-bold text-black">Mix & Match</div>
           <div className="text-sm text-gray-700">Combine components freely</div>
         </div>
         <div className="bg-pink-200 border-4 border-black shadow-[4px_4px_0_#000] p-4">
-          <div className="text-2xl mb-2">🎨</div>
           <div className="font-bold text-black">Custom Styling</div>
           <div className="text-sm text-gray-700">Override with your own CSS</div>
         </div>
         <div className="bg-cyan-200 border-4 border-black shadow-[4px_4px_0_#000] p-4">
-          <div className="text-2xl mb-2">📱</div>
           <div className="font-bold text-black">Mobile Ready</div>
           <div className="text-sm text-gray-700">Looks great everywhere</div>
         </div>

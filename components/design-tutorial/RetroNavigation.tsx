@@ -18,7 +18,7 @@ export default function RetroNavigation({
   return (
     <div className="bg-blue-300 border-4 border-black shadow-[8px_8px_0_#000] p-4 mb-8">
       <h3 className="font-bold text-black text-lg mb-4 text-center">
-        🎮 Choose Your Adventure
+        Choose Your Adventure
       </h3>
       <div className="grid md:grid-cols-4 gap-3">
         {categories.map((category) => (
@@ -31,7 +31,7 @@ export default function RetroNavigation({
                 : 'bg-white text-gray-700 hover:bg-gray-100 shadow-[2px_2px_0_#000]'
             }`}
           >
-            <div className="text-3xl mb-2">{category.icon}</div>
+            <div className="text-lg font-bold mb-2">{category.icon}</div>
             <div className="text-sm">{category.title}</div>
           </button>
         ))}

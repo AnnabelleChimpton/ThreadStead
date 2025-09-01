@@ -1,5 +1,6 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
+import PostItem, { Post as PostType } from '../content/PostItem';
 
 interface BlogPostsProps {
   limit?: number;
@@ -7,12 +8,12 @@ interface BlogPostsProps {
 }
 
 export default function BlogPosts({ limit = 5, className: customClassName }: BlogPostsProps) {
-  const { posts } = useResidentData();
+  const { posts, owner } = useResidentData();
   
   const displayPosts = posts.slice(0, limit);
 
   if (displayPosts.length === 0) {
-    const emptyClassName = customClassName ? `ts-blog-posts-empty italic opacity-70 text-center py-4 ${customClassName}` : "ts-blog-posts-empty italic opacity-70 text-center py-4";
+    const emptyClassName = customClassName ? `blog-posts-empty profile-tab-content italic opacity-70 text-center py-4 ${customClassName}` : "blog-posts-empty profile-tab-content italic opacity-70 text-center py-4";
     return (
       <div className={emptyClassName}>
         No posts yet.
@@ -20,25 +21,36 @@ export default function BlogPosts({ limit = 5, className: customClassName }: Blo
     );
   }
 
-  const containerClassName = customClassName ? `ts-blog-posts space-y-4 ${customClassName}` : "ts-blog-posts space-y-4";
+  const containerClassName = customClassName ? `blog-posts profile-tab-content space-y-4 ${customClassName}` : "blog-posts profile-tab-content space-y-4";
 
   return (
     <div className={containerClassName}>
-      <h3 className="ts-blog-posts-title thread-headline text-xl font-bold mb-3">Recent Posts</h3>
-      <div className="ts-blog-posts-list space-y-3">
+      <h3 className="blog-posts-title thread-headline text-xl font-bold mb-3">Recent Posts</h3>
+      <div className="blog-posts-list space-y-3">
         {displayPosts.map((post) => (
-          <article key={post.id} className="ts-blog-post bg-thread-paper border border-thread-sage/30 p-4 rounded-cozy shadow-cozySm">
-            <div className="ts-blog-post-meta text-sm text-thread-sage mb-2">
-              {new Date(post.createdAt).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              })}
-            </div>
-            <div className="ts-blog-post-content text-thread-charcoal leading-relaxed">
-              <div dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
-            </div>
-          </article>
+          <PostItem 
+            key={post.id} 
+            post={{
+              ...post,
+              visibility: 'public',
+              authorId: '',
+              author: { id: '', primaryHandle: '', profile: { displayName: '' } },
+              upvoteCount: 0,
+              downvoteCount: 0,
+              commentCount: 0,
+              bookmarkCount: 0,
+              editedAt: null,
+              originalPost: null,
+              threadRingId: null,
+              threadRing: null,
+              isBookmarked: false,
+              userVote: null
+            } as PostType} 
+            isOwner={false} // Template preview is always read-only
+            isAdmin={false}
+            onChanged={() => {}} // No refresh needed in preview
+            currentUser={null} // No current user in template preview
+          />
         ))}
       </div>
     </div>

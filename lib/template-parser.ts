@@ -1,49 +1,37 @@
 import { unified } from 'unified';
 import rehypeParse from 'rehype-parse';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import type { Element, Root } from 'hast';
-import { componentRegistry, validateAndCoerceProps } from './template-registry';
+import type { Root } from 'hast';
+import { componentRegistry } from './template-registry';
 
 // Define our custom sanitization schema
 function createCustomSchema() {
-  const allowedTags = componentRegistry.getAllowedTags();
+  const schema = { ...defaultSchema };
   
-  // Add both original case and lowercase versions of tags
-  const allTagVariations = [
-    ...allowedTags,
-    ...allowedTags.map(tag => tag.toLowerCase())
-  ];
-  
-  return {
-    ...defaultSchema,
-    tagNames: [
-      ...(defaultSchema.tagNames || []).filter(tag => tag !== 'img'), // Remove standard img tag to avoid conflicts
-      ...allTagVariations,
-      'style' // Allow style tags for user custom CSS
-    ],
-    attributes: {
-      ...defaultSchema.attributes,
-      // Add component-specific attributes for all variations
-      '*': ['data-component', 'data-size', 'data-shape', 'data-limit', 'data-variant', 'data-title', 'data-when', 'data-condition', 'data-equals', 'data-exists', 'style', 'id', 'href', 'target', 'rel', 'class', 'className'],
-      // Allow specific attributes for each component (both cases)
-      ...Object.fromEntries(
-        allowedTags.flatMap(tag => [
-          [tag, componentRegistry.getAllowedAttributes(tag)],
-          [tag.toLowerCase(), componentRegistry.getAllowedAttributes(tag)]
-        ])
-      )
+  // Allow custom component tags from the registry
+  if (componentRegistry) {
+    if (!schema.tagNames) schema.tagNames = [];
+    
+    // Add all registered component names as allowed tags
+    const allowedTags = componentRegistry.getAllowedTags();
+    for (const tagName of allowedTags) {
+      if (!schema.tagNames.includes(tagName)) {
+        schema.tagNames.push(tagName);
+      }
     }
-  };
+  }
+  
+  return schema;
 }
 
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
 export function parseTemplate(htmlString: string): Root {
   // Always convert self-closing custom tags to opening/closing pairs for better parsing
-  let processedHtml = htmlString.replace(/<([^>\/]+)\s*\/>/g, '<$1></$1>');
+  let processedHtml = htmlString.replace(/<([^>\s/]+)([^>]*?)\s*\/>/g, '<$1$2></$1>');
   
   // Detect if we have multiple root-level components after conversion and wrap them
   const trimmedHtml = processedHtml.trim();
-  const hasMultipleRootElements = /<[^>]+><\/[^>]+>.*<[^>]+><\/[^>]+>/s.test(trimmedHtml) && 
+  const hasMultipleRootElements = /<[^>]+><\/[^>]+>[\s\S]*<[^>]+><\/[^>]+>/.test(trimmedHtml) && 
                                   !trimmedHtml.startsWith('<div') && 
                                   !trimmedHtml.startsWith('<section') &&
                                   !trimmedHtml.startsWith('<main');
@@ -51,43 +39,47 @@ export function parseTemplate(htmlString: string): Root {
   if (hasMultipleRootElements) {
     processedHtml = `<div>${processedHtml}</div>`;
   }
-  
+
+  // Test with basic sanitization 
   const processor = unified()
     .use(rehypeParse, { fragment: true })
     .use(rehypeSanitize, createCustomSchema());
 
   const tree = processor.parse(processedHtml);
-  return processor.runSync(tree) as Root;
+  const processed = processor.runSync(tree);
+  
+  return processed as Root;
 }
 
 // Convert HAST to a serializable AST for storage
 export interface TemplateNode {
   type: 'element' | 'text' | 'root';
   tagName?: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
   children?: TemplateNode[];
   value?: string;
 }
 
-export function astToJson(node: any): TemplateNode {
-  if (node.type === 'text') {
+export function astToJson(node: unknown): TemplateNode {
+  const typedNode = node as { type: string; value?: string; tagName?: string; properties?: Record<string, unknown>; children?: unknown[] };
+  if (typedNode.type === 'text') {
     return {
       type: 'text',
-      value: node.value
+      value: typedNode.value
     };
   }
 
-  if (node.type === 'element') {
+  if (typedNode.type === 'element') {
     return {
       type: 'element',
-      tagName: node.tagName,
-      properties: node.properties || {},
-      children: node.children?.map(astToJson) || []
+      tagName: typedNode.tagName,
+      properties: typedNode.properties || {},
+      children: typedNode.children?.map(astToJson) || []
     };
   }
 
-  if (node.type === 'root') {
-    const children = node.children?.map(astToJson) || [];
+  if (typedNode.type === 'root') {
+    const children = typedNode.children?.map(astToJson) || [];
     
     // Check if we have a single auto-added div wrapper to unwrap
     if (children.length === 1 && 
@@ -100,9 +92,9 @@ export function astToJson(node: any): TemplateNode {
       
       if (hasEmptyProperties && hasMultipleChildren) {
         // This looks like our auto-added wrapper, unwrap it
-        const divChildren = divElement.children.filter((child: any) => 
+        const divChildren = divElement.children?.filter((child) => 
           child.type !== 'text' || (child.value && child.value.trim())
-        );
+        ) || [];
         
         return {
           type: 'root',

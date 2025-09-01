@@ -6,12 +6,23 @@ import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
+// Import Layout to ensure CSS dependencies are always available
+import Layout from "@/components/Layout";
+
 // Initialize ThreadRing reconciliation scheduler (server-side only)
 import "@/lib/threadring-reconciliation-bootstrap";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
-  const { css } = useSiteCSS();
+  const { css, loading } = useSiteCSS();
   const router = useRouter();
+
+  // Ensure Layout component is bundled to include its CSS dependencies
+  // This fixes CSS loading issues for dynamically imported components
+  useEffect(() => {
+    if (typeof Layout === 'function') {
+      // Layout component and its dependencies are available
+    }
+  }, []);
 
   // Handle browser back/forward navigation to ensure proper page refresh
   useEffect(() => {
@@ -61,16 +72,58 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   // Check if we're on a user profile page that might have custom CSS
   const isProfilePage = router.pathname === '/resident/[username]' || router.pathname === '/resident/[username]/index';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
-  const needsCSSResets = isProfilePage && (pageProps.templateMode === 'enhanced' || pageProps.templateMode === 'advanced');
+  
+  // Extract CSS mode from custom CSS to determine if resets are needed
+  const extractCSSMode = (css: string | undefined): 'inherit' | 'override' | 'disable' => {
+    if (!css) return 'inherit';
+    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
+    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
+      return modeMatch[1] as 'inherit' | 'override' | 'disable';
+    }
+    // Default based on includeSiteCSS
+    return pageProps.includeSiteCSS === false ? 'disable' : 'inherit';
+  };
+  
+  const cssMode = extractCSSMode(pageProps.customCSS);
+  const needsCSSResets = isProfilePage && pageProps.templateMode === 'advanced' && cssMode !== 'inherit';
   const includeSiteCSS = pageProps.includeSiteCSS !== false; // Default to true if not specified
+  
+  // Debug site CSS loading (wrapped in useEffect to prevent infinite loops)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && isProfilePage) {
+      console.log('_app.tsx Site CSS Debug:', {
+        isProfilePage,
+        templateMode: pageProps.templateMode,
+        cssMode,
+        includeSiteCSS,
+        'pageProps.includeSiteCSS': pageProps.includeSiteCSS,
+        needsCSSResets,
+        'css length': css.length,
+        loading,
+        shouldLoadSiteCSS: (!isProfilePage || includeSiteCSS)
+      });
+      
+      // Check DOM state
+      const checkDOM = setTimeout(() => {
+        const siteStyleElement = document.getElementById('site-wide-css');
+        console.log('DOM Site CSS Element:', {
+          exists: !!siteStyleElement,
+          innerHTML: siteStyleElement?.innerHTML?.substring(0, 100) + '...',
+          innerHTMLLength: siteStyleElement?.innerHTML?.length
+        });
+      }, 100);
+
+      return () => clearTimeout(checkDOM);
+    }
+  }, [isProfilePage, cssMode, includeSiteCSS, css.length, loading, needsCSSResets]);
 
   return (
     <>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
-        {/* Only apply targeted CSS resets for advanced template mode */}
-        {pageProps.templateMode === 'advanced' && (
+        {/* Only apply targeted CSS resets for advanced templates that need override/disable control */}
+        {needsCSSResets && (
           <style dangerouslySetInnerHTML={{
             __html: `
               /* Advanced template mode - complete CSS control */
@@ -92,11 +145,34 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         )}
         
         {/* Load site-wide CSS based on page type and user preference */}
-        {css && (!isProfilePage || includeSiteCSS) && (
+        {(!isProfilePage || includeSiteCSS) && (
           <style 
             id="site-wide-css"
-            dangerouslySetInnerHTML={{ __html: css }} 
+            key="site-css"
+            dangerouslySetInnerHTML={{ __html: css || '/* Site CSS loading... */' }} 
           />
+        )}
+        
+        {/* Debug CSS injection for development */}
+        {process.env.NODE_ENV === 'development' && isProfilePage && (
+          <script dangerouslySetInnerHTML={{
+            __html: `
+              console.log('🎯 Style tag injected with CSS:', {
+                shouldInject: ${!isProfilePage || includeSiteCSS},
+                cssLength: ${css.length},
+                cssPreview: ${JSON.stringify(css.substring(0, 50) + '...')}
+              });
+              
+              setTimeout(() => {
+                const el = document.getElementById('site-wide-css');
+                console.log('🔍 DOM check:', {
+                  elementExists: !!el,
+                  innerHTML: el ? el.innerHTML.substring(0, 100) + '...' : 'NOT FOUND',
+                  innerHTMLLength: el ? el.innerHTML.length : 0
+                });
+              }, 50);
+            `
+          }} />
         )}
         {isProfilePage && hasCustomCSS && (
           <style 

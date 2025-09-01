@@ -60,7 +60,6 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
   const [displayName, setDisplayName] = useState(initialUser.profile?.displayName || "");
   const [bio, setBio] = useState(initialUser.profile?.bio || "");
   const [avatarUrl, setAvatarUrl] = useState(initialUser.profile?.avatarUrl || "");
-  const [templateMode, setTemplateMode] = useState<'default' | 'enhanced' | 'advanced'>(initialUser.profile?.templateMode || 'default');
   const [websites, setWebsites] = useState<Website[]>(
     initialUser.profile?.blogroll?.map((item: any, index: number) => ({
       id: item.id || index.toString(),
@@ -137,7 +136,6 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
           bio, 
           blogroll, 
           featuredFriends: featuredFriendsData,
-          templateMode,
           cap: token 
         }),
       });
@@ -432,127 +430,24 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="max-w-md mx-auto">
             <div className="bg-white border border-black rounded-none p-6 text-center shadow-[3px_3px_0_#000]">
               <div className="mb-4">
-                <span className="text-5xl">🎨</span>
+                <span className="text-5xl">Profile Editor</span>
               </div>
-              <h3 className="text-lg font-bold mb-2">CSS Editor</h3>
+              <h3 className="text-lg font-bold mb-2">Profile Layout Editor</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Style your profile with custom CSS
-              </p>
-              <a
-                href={`/resident/${username}/css-editor`}
-                className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline"
-              >
-                Open CSS Editor →
-              </a>
-            </div>
-            
-            <div className="bg-white border border-black rounded-none p-6 text-center shadow-[3px_3px_0_#000]">
-              <div className="mb-4">
-                <span className="text-5xl">📝</span>
-              </div>
-              <h3 className="text-lg font-bold mb-2">Template Editor</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Create advanced layouts with templates
+                Design your profile with templates, components, and custom CSS - all in one place
               </p>
               <a
                 href={`/resident/${username}/template-editor`}
                 className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline"
               >
-                Open Template Editor →
+                Open Profile Layout Editor →
               </a>
             </div>
           </div>
 
-          <div className="border-t border-black pt-6">
-            <div className="mb-8">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <span>🎯</span>
-                Profile Layout Mode
-              </h3>
-              <div className="bg-blue-50 border border-blue-200 rounded-none p-4 mb-4">
-                <p className="text-blue-900 font-medium">
-                  Current Mode: <span className="font-bold">
-                    {templateMode === 'default' && '🏠 Default Layout'}
-                    {templateMode === 'enhanced' && '🎨 Enhanced (Default + CSS)'}
-                    {templateMode === 'advanced' && '⚡ Advanced Template'}
-                  </span>
-                </p>
-                <p className="text-blue-800 text-sm mt-1">
-                  Select a different mode below and click Apply to change it.
-                </p>
-              </div>
-              <p className="text-gray-600 mb-4">
-                Choose how your profile should be displayed and what customization options are available.
-              </p>
-              
-              <div className="space-y-4">
-                <label className="flex items-start space-x-3 p-4 border border-black rounded-none bg-white hover:bg-gray-50 cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="templateMode"
-                    value="default"
-                    checked={templateMode === 'default'}
-                    onChange={(e) => setTemplateMode(e.target.value as 'default' | 'enhanced' | 'advanced')}
-                    className="mt-1 w-4 h-4 border border-black"
-                  />
-                  <div>
-                    <div className="font-bold text-gray-900">🏠 Default Layout</div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      Clean, simple profile layout with your basic info, posts, and badges. Perfect for getting started.
-                    </div>
-                  </div>
-                </label>
-                
-                <label className="flex items-start space-x-3 p-4 border border-black rounded-none bg-white hover:bg-gray-50 cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="templateMode"
-                    value="enhanced"
-                    checked={templateMode === 'enhanced'}
-                    onChange={(e) => setTemplateMode(e.target.value as 'default' | 'enhanced' | 'advanced')}
-                    className="mt-1 w-4 h-4 border border-black"
-                  />
-                  <div>
-                    <div className="font-bold text-gray-900">🎨 Enhanced (Default + CSS)</div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      Default layout enhanced with custom CSS styling. Add your own colors, fonts, and visual tweaks while keeping the standard structure.
-                    </div>
-                  </div>
-                </label>
-                
-                <label className="flex items-start space-x-3 p-4 border border-black rounded-none bg-white hover:bg-gray-50 cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="templateMode"
-                    value="advanced"
-                    checked={templateMode === 'advanced'}
-                    onChange={(e) => setTemplateMode(e.target.value as 'default' | 'enhanced' | 'advanced')}
-                    className="mt-1 w-4 h-4 border border-black"
-                  />
-                  <div>
-                    <div className="font-bold text-gray-900">⚡ Advanced Template</div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      Full control with custom HTML templates and CSS. Design your profile exactly how you want it with complete creative freedom.
-                    </div>
-                  </div>
-                </label>
-              </div>
-
-              {/* Apply Button */}
-              <div className="mt-6">
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={saving}
-                  className="px-6 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_#000]"
-                >
-                  {saving ? '💾 Applying Changes...' : '💾 Apply Profile Layout Mode'}
-                </button>
-              </div>
-            </div>
-          </div>
 
           {/* MIDI Music Section */}
           <div className="border-t border-black pt-6">

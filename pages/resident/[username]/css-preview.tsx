@@ -199,8 +199,7 @@ export default function CSSPreviewPage({
 
   return (
     <ProfileLayout 
-      customCSS={customCSS} 
-      hideNavigation={false}
+      customCSS={customCSS}
       includeSiteCSS={includeSiteCSS}
     >
       <section className="thread-module p-6 mb-6">
@@ -213,7 +212,7 @@ export default function CSSPreviewPage({
         />
       </section>
 
-      <div className="ts-profile-tabs-wrapper">
+      <div className="profile-tabs-wrapper">
         <Tabs
           tabs={tabs}
           initialId="blog"

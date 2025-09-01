@@ -4,38 +4,32 @@ export const componentCategories = [
   {
     id: 'content',
     title: 'Content',
-    icon: '📝',
+    icon: 'Content',
     description: 'Display your personal information, posts, and media with style'
   },
   {
     id: 'layout',
     title: 'Layout',
-    icon: '🏗️',
+    icon: 'Layout',
     description: 'Structure and organize your content with flexible containers'
   },
   {
     id: 'visual',
     title: 'Visual',
-    icon: '🎨',
+    icon: 'Visual',
     description: 'Eye-catching design elements and visual effects'
   },
   {
     id: 'interactive',
     title: 'Interactive',
-    icon: '⚡',
+    icon: 'Interactive',
     description: 'Dynamic components that respond and engage'
   },
   {
     id: 'utility',
     title: 'Utility',
-    icon: '🔧',
+    icon: 'Utility',
     description: 'Helper components for data display, navigation, and conditional rendering'
-  },
-  {
-    id: 'css-classes',
-    title: 'CSS Classes',
-    icon: '🎯',
-    description: 'Target these CSS classes to style the default profile layout'
   }
 ];
 

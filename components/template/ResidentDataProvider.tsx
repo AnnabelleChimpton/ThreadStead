@@ -51,6 +51,20 @@ export interface ResidentData {
     alt?: string;
     type: 'avatar' | 'banner' | 'gallery';
   }>;
+  badges?: Array<{
+    id: string;
+    title: string;
+    subtitle?: string;
+    imageUrl?: string;
+    templateId?: string;
+    backgroundColor: string;
+    textColor: string;
+    threadRing: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }>;
 }
 
 const ResidentDataContext = createContext<ResidentData | null>(null);

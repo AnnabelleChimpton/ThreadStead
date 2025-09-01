@@ -17,6 +17,7 @@ import NotificationBell from '@/components/template/NotificationBell';
 import UserAccount from '@/components/template/UserAccount';
 import SiteBranding from '@/components/template/SiteBranding';
 import NavigationLinks from '@/components/template/NavigationLinks';
+import SimpleNavigationBar from '@/components/template/SimpleNavigationBar';
 import Breadcrumb from '@/components/template/Breadcrumb';
 import FlexContainer from '@/components/template/FlexContainer';
 import GridLayout from '@/components/template/GridLayout';
@@ -33,6 +34,9 @@ import WaveText from '@/components/template/WaveText';
 import GlitchText from '@/components/template/GlitchText';
 import Tabs, { Tab } from '@/components/template/Tabs';
 import ProfileHero from '@/components/template/ProfileHero';
+import ProfileHeader from '@/components/template/ProfileHeader';
+import MediaGrid from '@/components/template/MediaGrid';
+import ProfileBadges from '@/components/template/ProfileBadges';
 import RetroCard from '@/components/layout/RetroCard';
 import UserImage from '@/components/template/UserImage';
 
@@ -47,21 +51,22 @@ export type PropType = 'string' | 'number' | 'boolean' | 'enum';
 export interface PropSchema {
   type: PropType;
   required?: boolean;
-  default?: any;
+  default?: unknown;
   values?: readonly string[]; // for enum type
   min?: number; // for number type
   max?: number; // for number type
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ComponentRegistration {
   name: string;
-  component: React.ComponentType<any>;
+  component: React.ComponentType<any>; // Components have varying prop types
   props: Record<string, PropSchema>;
-  fromAttrs?: (attrs: Record<string, string>) => Record<string, any>;
+  fromAttrs?: (attrs: Record<string, string>) => Record<string, unknown>;
 }
 
 // Prop validation and coercion utilities
-export function validateAndCoerceProp(value: any, schema: PropSchema): any {
+export function validateAndCoerceProp(value: unknown, schema: PropSchema): unknown {
   if (value === undefined || value === null) {
     if (schema.required) {
       throw new Error(`Required prop is missing`);
@@ -102,10 +107,10 @@ export function validateAndCoerceProp(value: any, schema: PropSchema): any {
 }
 
 export function validateAndCoerceProps(
-  attrs: Record<string, any>, 
+  attrs: Record<string, unknown>, 
   propSchemas: Record<string, PropSchema>
-): Record<string, any> {
-  const result: Record<string, any> = {};
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
   const warnings: string[] = [];
 
   // Validate provided attrs
@@ -179,7 +184,7 @@ componentRegistry.register({
   name: 'ProfilePhoto',
   component: ProfilePhoto,
   props: {
-    size: { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md' },
+    size: { type: 'enum', values: ['xs', 'sm', 'md', 'lg'], default: 'md' },
     shape: { type: 'enum', values: ['circle', 'square'], default: 'circle' }
   }
 });
@@ -274,6 +279,14 @@ componentRegistry.register({
 });
 
 componentRegistry.register({
+  name: 'NavigationBar',
+  component: SimpleNavigationBar,
+  props: {
+    fullWidth: { type: 'boolean', default: false }
+  }
+});
+
+componentRegistry.register({
   name: 'Breadcrumb',
   component: Breadcrumb,
   props: {}
@@ -326,10 +339,14 @@ componentRegistry.register({
   name: 'GradientBox',
   component: GradientBox,
   props: {
+    // Legacy props (backward compatibility)
     gradient: { type: 'enum', values: ['sunset', 'ocean', 'forest', 'neon', 'rainbow', 'fire'], default: 'sunset' },
     direction: { type: 'enum', values: ['r', 'l', 'b', 't', 'br', 'bl', 'tr', 'tl'], default: 'br' },
     padding: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
-    rounded: { type: 'boolean', default: true }
+    rounded: { type: 'boolean', default: true },
+    // New flexible props
+    colors: { type: 'string' },
+    opacity: { type: 'string' }
   }
 });
 
@@ -441,11 +458,39 @@ componentRegistry.register({
   }
 });
 
+componentRegistry.register({
+  name: 'ProfileHeader',
+  component: ProfileHeader,
+  props: {
+    showPhoto: { type: 'boolean', default: true },
+    showBio: { type: 'boolean', default: true },
+    showActions: { type: 'boolean', default: true },
+    photoSize: { type: 'enum', values: ['xs', 'sm', 'md', 'lg'], default: 'md' }
+  }
+});
+
+componentRegistry.register({
+  name: 'MediaGrid',
+  component: MediaGrid,
+  props: {}
+});
+
+componentRegistry.register({
+  name: 'ProfileBadges',
+  component: ProfileBadges,
+  props: {
+    showTitle: { type: 'boolean', default: false },
+    layout: { type: 'enum', values: ['grid', 'list'], default: 'grid' }
+  }
+});
+
 
 componentRegistry.register({
   name: 'RetroCard',
   component: RetroCard,
-  props: {}
+  props: {
+    title: { type: 'string' }
+  }
 });
 
 componentRegistry.register({

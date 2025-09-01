@@ -9,7 +9,7 @@ import Layout from "@/components/Layout";
 import Tabs, { TabSpec } from "@/components/navigation/Tabs";
 import WebsiteManager, { Website } from "@/components/WebsiteManager";
 import FriendManager, { SelectedFriend } from "@/components/FriendManager";
-// CSS Editor moved to dedicated page at /resident/[username]/css-editor
+// Profile Layout Editor (unified CSS and template editor) at /resident/[username]/template-editor
 import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 import ProfileBadgeSelector from "@/components/ProfileBadgeSelector";
 import BetaInviteCodesManager from "@/components/BetaInviteCodesManager";
@@ -566,36 +566,20 @@ export default function ProfileEditPage({
             
             
             {/* Editor Links */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="max-w-md mx-auto">
               <div className="bg-white border border-black rounded-none p-6 text-center shadow-[3px_3px_0_#000]">
                 <div className="mb-4">
-                  <span className="text-5xl">🎨</span>
+                  <span className="text-5xl">Profile Editor</span>
                 </div>
-                <h3 className="text-lg font-bold mb-2">CSS Editor</h3>
+                <h3 className="text-lg font-bold mb-2">Profile Layout Editor</h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Style your default layout with custom CSS
-                </p>
-                <a
-                  href={`/resident/${username}/css-editor`}
-                  className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline"
-                >
-                  Open CSS Editor →
-                </a>
-              </div>
-              
-              <div className="bg-white border border-black rounded-none p-6 text-center shadow-[3px_3px_0_#000]">
-                <div className="mb-4">
-                  <span className="text-5xl">📝</span>
-                </div>
-                <h3 className="text-lg font-bold mb-2">Template Editor</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Create advanced layouts with templates
+                  Design your profile with templates, components, and custom CSS - all in one place
                 </p>
                 <a
                   href={`/resident/${username}/template-editor`}
                   className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline"
                 >
-                  Open Template Editor →
+                  Open Profile Layout Editor →
                 </a>
               </div>
             </div>

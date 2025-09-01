@@ -257,36 +257,36 @@ a:hover {
 }
 </style>
 
-<div className="template-container">
+<div class="template-container">
   
-  <div className="template-profile-header">
-    <div className="template-photo-container">
+  <div class="template-profile-header">
+    <div class="template-photo-container">
       <ProfilePhoto size="xl" shape="circle" />
     </div>
     <DisplayName as="h1" />
-    <div className="welcome-subtitle">
+    <div class="welcome-subtitle">
       Welcome to my space on the web
     </div>
   </div>
   
-  <div className="template-bio-container">
+  <div class="template-bio-container">
     <Bio />
   </div>
   
-  <div className="main-content">
+  <div class="main-content">
     <Choose>
       <When data="posts">
         <h2>Recent Posts</h2>
         <BlogPosts limit="5" />
       </When>
       <Otherwise>
-        <div className="welcome-message">
+        <div class="welcome-message">
           <IfOwner>
-            <h3 className="welcome-title">Welcome to your new profile!</h3>
+            <h3 class="welcome-title">Welcome to your new profile!</h3>
             <p>Start by adding some posts or customizing your page to make it uniquely yours.</p>
           </IfOwner>
           <IfVisitor>
-            <h3 className="welcome-title">This profile is just getting started</h3>
+            <h3 class="welcome-title">This profile is just getting started</h3>
             <p>Check back soon for updates and new content!</p>
           </IfVisitor>
         </div>
@@ -295,17 +295,17 @@ a:hover {
   </div>
   
   <IfVisitor>
-    <div className="template-social-container">
-      <div className="template-social-flex">
+    <div class="template-social-container">
+      <div class="template-social-flex">
         <FollowButton />
         <MutualFriends />
       </div>
     </div>
     
-    <div className="guestbook-section">
-      <div className="template-guestbook-container">
-        <h3 className="guestbook-title">Leave a Message</h3>
-        <div className="guestbook-subtitle">
+    <div class="guestbook-section">
+      <div class="template-guestbook-container">
+        <h3 class="guestbook-title">Leave a Message</h3>
+        <div class="guestbook-subtitle">
           Share your thoughts or just say hello!
         </div>
         <Guestbook />
@@ -313,8 +313,8 @@ a:hover {
     </div>
   </IfVisitor>
   
-  <div className="template-footer-container">
-    <div className="footer-text">
+  <div class="template-footer-container">
+    <div class="footer-text">
       Powered by <SiteBranding />
     </div>
   </div>

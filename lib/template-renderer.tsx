@@ -68,7 +68,7 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
     } else {
       // Handle data-attribute syntax for components
       if (node.properties?.['data-component']) {
-        const componentName = node.properties['data-component'];
+        const componentName = String(node.properties['data-component']);
         let componentRegistration = componentRegistry.get(componentName);
         
         // Try capitalized version if not found

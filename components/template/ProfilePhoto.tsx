@@ -2,7 +2,7 @@ import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
 
 interface ProfilePhotoProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   shape?: 'circle' | 'square';
   className?: string;
 }
@@ -16,6 +16,7 @@ export default function ProfilePhoto({ size = 'md', shape = 'circle', className:
     : customClassName;
   
   const sizeClasses = {
+    xs: 'w-8 h-8',
     sm: 'w-16 h-16',
     md: 'w-32 h-32', 
     lg: 'w-48 h-48'
@@ -27,20 +28,20 @@ export default function ProfilePhoto({ size = 'md', shape = 'circle', className:
   };
 
   const wrapperClassName = normalizedCustomClassName 
-    ? `ts-profile-photo-wrapper profile-photo-wrapper flex flex-col items-center mb-4 ${normalizedCustomClassName}`
-    : "ts-profile-photo-wrapper profile-photo-wrapper flex flex-col items-center mb-4";
+    ? `profile-photo-wrapper flex flex-col items-center mb-4 ${normalizedCustomClassName}`
+    : "profile-photo-wrapper flex flex-col items-center mb-4";
 
   return (
     <div className={wrapperClassName}>
-      <div className="ts-profile-photo-frame profile-photo-frame border-4 border-black shadow-[4px_4px_0_#000] bg-white p-1">
+      <div className="profile-photo-frame border-4 border-black shadow-[4px_4px_0_#000] bg-white p-1">
         {owner.avatarUrl ? (
           <img
             src={owner.avatarUrl}
             alt={`${owner.displayName}'s profile photo`}
-            className={`ts-profile-photo-image profile-photo-image object-cover ${sizeClasses[size]} ${shapeClasses[shape]}`}
+            className={`profile-photo-image object-cover ${sizeClasses[size]} ${shapeClasses[shape]}`}
           />
         ) : (
-          <div className={`ts-profile-photo-placeholder profile-photo-placeholder flex items-center justify-center bg-yellow-200 text-black text-sm ${sizeClasses[size]} ${shapeClasses[shape]}`}>
+          <div className={`profile-photo-placeholder flex items-center justify-center bg-yellow-200 text-black text-sm ${sizeClasses[size]} ${shapeClasses[shape]}`}>
             No Photo
           </div>
         )}

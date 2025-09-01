@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from "@/lib/db";
+import { Prisma } from '@prisma/client';
 
 import { SITE_NAME } from '@/lib/site-config';
 
@@ -54,7 +55,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const { template, ast, customCSS } = req.body;
+      const { template, ast, customCSS, cssMode } = req.body;
+      
+      // Store CSS mode as a comment in the CSS for retrieval
+      let processedCSS = customCSS;
+      if (customCSS && cssMode) {
+        // Add CSS mode as a comment at the beginning if not already present
+        if (!customCSS.startsWith('/* CSS_MODE:')) {
+          processedCSS = `/* CSS_MODE:${cssMode} */\n${customCSS}`;
+        } else {
+          // Update existing mode comment
+          processedCSS = customCSS.replace(/\/\* CSS_MODE:\w+ \*\//, `/* CSS_MODE:${cssMode} */`);
+        }
+      }
+      
+      // Debug logging to see what data we're receiving
+      console.log('Template API: Received save request', {
+        templateLength: template?.length || 0,
+        hasAst: !!ast,
+        astType: typeof ast,
+        astHasIslands: ast?.islands?.length || 0,
+        customCSSLength: customCSS?.length || 0,
+        cssMode,
+        customCSSPreview: customCSS?.substring(0, 100),
+        processedCSSLength: processedCSS?.length || 0,
+        processedCSSPreview: processedCSS?.substring(0, 100)
+      });
 
       if (typeof template !== 'string') {
         return res.status(400).json({ error: 'Invalid template data' });
@@ -75,19 +101,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      // Update or create profile with template
+      // Update or create profile with template and islands data
       await db.profile.upsert({
         where: { userId: handle.user.id },
         update: {
           customTemplate: template,
           customTemplateAst: ast ? JSON.stringify(ast) : null,
-          ...(customCSS !== undefined && { customCSS })
+          // Save the full compiled template for Islands architecture
+          compiledTemplate: ast || null,
+          templateIslands: ast?.islands || null,
+          templateCompiledAt: ast ? new Date() : null,
+          ...(processedCSS !== undefined && { customCSS: processedCSS }),
+          ...(cssMode !== undefined && { 
+            includeSiteCSS: cssMode !== 'disable'
+            // Note: cssMode is stored in customCSS as a comment for now
+          })
         },
         create: {
           userId: handle.user.id,
           customTemplate: template,
           customTemplateAst: ast ? JSON.stringify(ast) : null,
-          ...(customCSS !== undefined && { customCSS })
+          // Save the full compiled template for Islands architecture
+          compiledTemplate: ast || null,
+          templateIslands: ast?.islands || null,
+          templateCompiledAt: ast ? new Date() : null,
+          ...(processedCSS !== undefined && { customCSS: processedCSS }),
+          ...(cssMode !== undefined && { 
+            includeSiteCSS: cssMode !== 'disable'
+            // Note: cssMode is stored in customCSS as a comment for now
+          })
         }
       });
 
@@ -114,12 +156,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      // Remove template from profile
+      // Remove template and islands data from profile
       await db.profile.updateMany({
         where: { userId: handle.user.id },
         data: {
           customTemplate: null,
-          customTemplateAst: null
+          customTemplateAst: null,
+          compiledTemplate: Prisma.JsonNull,
+          templateIslands: Prisma.JsonNull,
+          templateCompiledAt: null
         }
       });
 

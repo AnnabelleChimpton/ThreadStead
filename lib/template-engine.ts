@@ -1,6 +1,6 @@
 // Complete template compilation and rendering pipeline
-import { compileTemplate, type CompilationResult, type TemplateNode } from './template-parser';
-import { renderTemplate, PreviewRenderer, type RenderOptions } from './template-renderer';
+import { compileTemplate, type TemplateNode } from './template-parser';
+import { renderTemplate, PreviewRenderer } from './template-renderer';
 import type { ResidentData } from '@/components/template/ResidentDataProvider';
 
 export interface TemplateCompileRequest {

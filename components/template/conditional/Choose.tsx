@@ -73,8 +73,12 @@ export default function Choose({ children }: ChooseProps) {
   
   for (const child of childArray) {
     if (React.isValidElement(child)) {
-      // Check if this is a When component
-      if (child.type === When) {
+      // Check if this is a When component - try both direct comparison and name-based comparison
+      const isWhenComponent = child.type === When || 
+                             (typeof child.type === 'function' && child.type.name === 'When') ||
+                             (typeof child.type === 'function' && (child.type as any).displayName === 'When');
+      
+      if (isWhenComponent) {
         const props = child.props as WhenProps;
         let shouldShow = false;
         
@@ -94,9 +98,16 @@ export default function Choose({ children }: ChooseProps) {
         if (shouldShow) {
           return <>{props.children}</>;
         }
-      } else if (child.type === Otherwise) {
-        // If we reach Otherwise, no When conditions were met
-        return <>{(child.props as OtherwiseProps).children}</>;
+      } else {
+        // Check if this is an Otherwise component
+        const isOtherwiseComponent = child.type === Otherwise || 
+                                   (typeof child.type === 'function' && child.type.name === 'Otherwise') ||
+                                   (typeof child.type === 'function' && (child.type as any).displayName === 'Otherwise');
+        
+        if (isOtherwiseComponent) {
+          // If we reach Otherwise, no When conditions were met
+          return <>{(child.props as OtherwiseProps).children}</>;
+        }
       }
     }
   }

@@ -1,7 +1,7 @@
 import React from "react";
 
 interface CenteredBoxProps {
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full' | string;
   padding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   children: React.ReactNode;
 }
@@ -18,7 +18,7 @@ export default function CenteredBox({
     'xl': 'max-w-xl',
     '2xl': 'max-w-2xl',
     'full': 'max-w-full'
-  }[maxWidth];
+  }[maxWidth as string];
 
   const paddingClass = {
     'xs': 'p-2',
@@ -28,8 +28,22 @@ export default function CenteredBox({
     'xl': 'p-12'
   }[padding];
 
+  // Handle custom maxWidth values
+  const customStyle: React.CSSProperties = {};
+  if (!maxWidthClass && maxWidth) {
+    if (maxWidth.includes('px') || maxWidth.includes('rem') || maxWidth.includes('%')) {
+      customStyle.maxWidth = maxWidth;
+    } else if (!isNaN(Number(maxWidth))) {
+      // Handle numeric values like "900" as pixels
+      customStyle.maxWidth = `${maxWidth}px`;
+    }
+  }
+
   return (
-    <div className={`mx-auto ${maxWidthClass} ${paddingClass}`}>
+    <div 
+      className={`mx-auto ${maxWidthClass || ''} ${paddingClass}`}
+      style={Object.keys(customStyle).length > 0 ? customStyle : undefined}
+    >
       {children}
     </div>
   );

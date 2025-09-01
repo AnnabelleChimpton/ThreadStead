@@ -428,28 +428,28 @@ a:hover::after {
 }
 </style>
 
-<div className="cyber-main-container">
+<div class="cyber-main-container">
   
-  <div className="cyber-header">
-    <div className="cyber-split-layout">
-      <div className="cyber-flex-row">
+  <div class="cyber-header">
+    <div class="cyber-split-layout">
+      <div class="cyber-flex-row">
         <ProfilePhoto size="xl" shape="circle" />
         <div>
           <DisplayName as="h1" />
-          <div className="status-online">
+          <div class="status-online">
             STATUS: ONLINE
           </div>
-          <div className="access-level">
+          <div class="access-level">
             ACCESS LEVEL: PUBLIC
           </div>
         </div>
       </div>
       
-      <div className="cyber-flex-end">
-        <div className="cyber-terminal connection-status">
+      <div class="cyber-flex-end">
+        <div class="cyber-terminal connection-status">
           CONNECTION: SECURE
         </div>
-        <div className="cyber-flex-social">
+        <div class="cyber-flex-social">
           <FollowButton />
           <MutualFriends />
         </div>
@@ -457,47 +457,47 @@ a:hover::after {
     </div>
   </div>
 
-  <div className="cyber-split-layout">
+  <div class="cyber-split-layout">
     
-    <div className="cyber-split-main">
-      <div className="cyber-flex-col">
+    <div class="cyber-split-main">
+      <div class="cyber-flex-col">
         <div>
-          <h2 className="section-title">PERSONAL_DATA.txt</h2>
+          <h2 class="section-title">PERSONAL_DATA.txt</h2>
           <Bio />
         </div>
         
         <div>
-          <h2 className="section-title">RECENT_TRANSMISSIONS</h2>
+          <h2 class="section-title">RECENT_TRANSMISSIONS</h2>
           <BlogPosts limit="4" />
         </div>
       </div>
     </div>
     
-    <div className="cyber-split-sidebar">
-      <div className="cyber-flex-col">
+    <div class="cyber-split-sidebar">
+      <div class="cyber-flex-col">
         
-        <div className="cyber-terminal">
-          <div className="terminal-prompt">$ whoami</div>
-          <div className="terminal-output"><DisplayName as="span" /></div>
-          <div className="terminal-prompt network-cmd">$ network_status</div>
-          <div className="terminal-output">CONNECTED TO THREADSTEAD</div>
-          <div className="terminal-prompt social-cmd">$ social_links</div>
-          <div className="terminal-output">
+        <div class="cyber-terminal">
+          <div class="terminal-prompt">$ whoami</div>
+          <div class="terminal-output"><DisplayName as="span" /></div>
+          <div class="terminal-prompt network-cmd">$ network_status</div>
+          <div class="terminal-output">CONNECTED TO THREADSTEAD</div>
+          <div class="terminal-prompt social-cmd">$ social_links</div>
+          <div class="terminal-output">
             <FriendDisplay />
           </div>
         </div>
         
-        <div className="quick-access-panel">
-          <h3 className="panel-title quick-access-title">QUICK_ACCESS</h3>
-          <div className="cyber-flex-col">
+        <div class="quick-access-panel">
+          <h3 class="panel-title quick-access-title">QUICK_ACCESS</h3>
+          <div class="cyber-flex-col">
             <NotificationBell />
             <NavigationLinks />
           </div>
         </div>
         
-        <div className="visitor-log-panel">
-          <h3 className="panel-title visitor-log-title">VISITOR_LOG</h3>
-          <div className="visitor-prompt">
+        <div class="visitor-log-panel">
+          <h3 class="panel-title visitor-log-title">VISITOR_LOG</h3>
+          <div class="visitor-prompt">
             &gt; Leave your mark in the digital void...
           </div>
           <Guestbook />
@@ -508,11 +508,11 @@ a:hover::after {
     
   </div>
 
-  <div className="cyber-footer">
-    <div className="footer-system">
-      &gt; SYSTEM MAINTAINED BY <DisplayName as="span" className="footer-highlight" />
+  <div class="cyber-footer">
+    <div class="footer-system">
+      &gt; SYSTEM MAINTAINED BY <DisplayName as="span" class="footer-highlight" />
     </div>
-    <div className="footer-powered">
+    <div class="footer-powered">
       &gt; POWERED BY THREADSTEAD NEURAL NETWORK
     </div>
     <SiteBranding />

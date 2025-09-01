@@ -8,6 +8,7 @@ interface ProfileLayoutProps {
   showSidebar?: boolean;
   hideNavigation?: boolean;
   includeSiteCSS?: boolean;
+  templateMode?: 'default' | 'enhanced' | 'advanced';
 }
 
 export default function ProfileLayout({ 
@@ -16,15 +17,31 @@ export default function ProfileLayout({
   sidebarContent,
   showSidebar = false,
   hideNavigation = false,
-  includeSiteCSS = true
+  includeSiteCSS = true,
+  templateMode
 }: ProfileLayoutProps) {
   if (hideNavigation) {
-    // Render without Layout wrapper when hiding navigation
+    // Check if site CSS is disabled - if so, render without any styling
+    if (!includeSiteCSS) {
+      return (
+        <>
+          {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
+          {/* No wrapper styling when CSS is disabled */}
+          {children}
+        </>
+      );
+    }
+    
+    // Render without Layout wrapper when hiding navigation but keeping site CSS
     return (
       <>
         {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
         {/* Hide nav/footer but keep responsive structure */}
-        <div className="min-h-screen thread-surface flex flex-col">
+        {/* For advanced templates, don't apply thread-surface to allow custom backgrounds */}
+        <div className={templateMode === 'advanced' 
+          ? "min-h-screen flex flex-col"
+          : "min-h-screen thread-surface flex flex-col"
+        }>
           <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
             <div className="ts-profile-container" data-component="profile-layout">
               <div className="ts-profile-content-wrapper">

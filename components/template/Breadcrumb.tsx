@@ -52,23 +52,23 @@ export default function Breadcrumb() {
   }
 
   return (
-    <nav className="ts-breadcrumb mb-4" data-component="breadcrumb">
+    <nav className="breadcrumb mb-4" data-component="breadcrumb">
       {breadcrumbs.map((item, index) => (
         <React.Fragment key={index}>
           {index > 0 && (
-            <span className="ts-breadcrumb-separator mx-2 text-thread-sage">
+            <span className="breadcrumb-separator mx-2 text-thread-sage">
               ›
             </span>
           )}
           {item.href ? (
             <Link 
               href={item.href} 
-              className="ts-breadcrumb-link text-thread-pine hover:text-thread-sunset transition-colors"
+              className="breadcrumb-link text-thread-pine hover:text-thread-sunset transition-colors"
             >
               {item.label}
             </Link>
           ) : (
-            <span className="ts-breadcrumb-active text-thread-charcoal font-medium">
+            <span className="breadcrumb-active text-thread-charcoal font-medium">
               {item.label}
             </span>
           )}

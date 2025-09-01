@@ -1,0 +1,411 @@
+/* Island component styles */
+
+.profile-island {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Island skeleton loading states */
+.island-skeleton {
+  background: #f0f0f0;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.island-skeleton--default {
+  background: #f8f9fa;
+}
+
+.island-skeleton--enhanced {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+}
+
+.island-skeleton--advanced {
+  background: linear-gradient(45deg, #f0f0f0, #e8e8e8, #f0f0f0);
+}
+
+.skeleton-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.skeleton-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Island error states */
+.island-error {
+  border: 1px solid #ff6b6b;
+  border-radius: 4px;
+  padding: 12px;
+  background: #fff5f5;
+  color: #c53030;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.island-error--default {
+  background: #fff5f5;
+  border-color: #fed7d7;
+}
+
+.island-error--enhanced {
+  background: #fef5e7;
+  border-color: #fbd38d;
+  color: #c05621;
+}
+
+.island-error--advanced {
+  background: linear-gradient(135deg, #fff5f5, #fef5e7);
+  border: 2px solid #ff6b6b;
+  box-shadow: 0 2px 4px rgba(255, 107, 107, 0.1);
+}
+
+.error-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+
+.error-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.error-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.error-details {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.error-stack {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.error-stack summary {
+  cursor: pointer;
+  color: #666;
+}
+
+.error-stack pre {
+  margin: 4px 0 0 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 2px;
+  overflow-x: auto;
+}
+
+/* Runtime error boundary styles */
+.island-runtime-error {
+  border: 1px solid #e53e3e;
+  border-radius: 4px;
+  padding: 8px 12px;
+  background: #fed7d7;
+  color: #742a2a;
+  font-size: 14px;
+}
+
+.island-runtime-error details {
+  margin-top: 8px;
+}
+
+.island-runtime-error summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.island-runtime-error pre {
+  margin: 4px 0 0 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+/* Island hydration indicators */
+[data-island][data-state="loading"] {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+[data-island][data-state="error"] {
+  opacity: 0.9;
+}
+
+[data-island]:not([data-state]) {
+  /* Successfully hydrated island */
+  opacity: 1;
+}
+
+/* Profile mode specific island containers */
+.advanced-profile-islands {
+  /* Base container for islands in advanced mode */
+  position: relative;
+}
+
+.advanced-profile-islands [data-island] {
+  /* Individual island styling in advanced mode */
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Static HTML content */
+.static-html-content {
+  /* Ensure static content renders correctly */
+  width: 100%;
+}
+
+/* Islands container - primary rendering container for advanced profiles */
+.islands-container {
+  /* Container for rendered islands */
+  display: block; /* Always visible as it's the main content container */
+}
+
+.islands-container .island-mount {
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+}
+
+/* Advanced profile fallback */
+.advanced-profile-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.fallback-content {
+  max-width: 400px;
+}
+
+.fallback-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.fallback-message h3 {
+  margin: 0 0 0.5rem 0;
+  color: #666;
+}
+
+.fallback-message p {
+  margin: 0 0 1rem 0;
+  color: #888;
+}
+
+.fallback-details {
+  text-align: left;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+.fallback-details summary {
+  cursor: pointer;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+/* Development debug info */
+.hydration-debug-info {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 12px;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.debug-toggle {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.debug-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.debug-panel {
+  padding: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.debug-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.debug-stats div {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.debug-failures,
+.debug-loaded {
+  margin-top: 12px;
+}
+
+.debug-failures h4,
+.debug-loaded h4 {
+  margin: 0 0 8px 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.debug-failure {
+  padding: 4px 0;
+  color: #ff6b6b;
+  word-break: break-word;
+}
+
+.debug-loaded-item {
+  padding: 2px 0;
+  color: #51cf66;
+}
+
+/* Advanced profile loading states */
+.advanced-profile-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #666;
+  font-style: italic;
+}
+
+.island-loading {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #f0f0f0;
+  border-radius: 2px;
+  font-size: 12px;
+  color: #888;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Optional development mode indicators (can be removed if not needed) */
+body[data-env="development"] .islands-container {
+  /* Islands container is already visible, no need to override display */
+  /* Optional: Add subtle development indicators if desired */
+}
+
+/* Remove development mode label since islands are now production-ready */
+body[data-env="development"] .islands-container::before {
+  /* Removed development mode label - islands are now the primary rendering method */
+  display: none;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .island-skeleton {
+    background: #2d3748;
+  }
+  
+  .island-skeleton--default {
+    background: #2d3748;
+  }
+  
+  .island-skeleton--enhanced {
+    background: linear-gradient(90deg, #2d3748 25%, #4a5568 50%, #2d3748 75%);
+  }
+  
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+  }
+  
+  .island-error {
+    background: #2d3748;
+    border-color: #e53e3e;
+    color: #fed7d7;
+  }
+  
+  .island-runtime-error {
+    background: #2d3748;
+    color: #fed7d7;
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .island-skeleton {
+    border-radius: 2px;
+  }
+  
+  .island-error {
+    padding: 8px;
+    font-size: 14px;
+  }
+  
+  .error-content {
+    gap: 6px;
+  }
+  
+  .error-icon {
+    font-size: 16px;
+  }
+}

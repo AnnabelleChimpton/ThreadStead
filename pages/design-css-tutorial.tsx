@@ -7,44 +7,312 @@ import RetroFooter from "@/components/design-tutorial/RetroFooter";
 // CSS Class Categories
 const cssCategories = [
   {
-    id: 'threadring-pages',
-    title: 'ThreadRing Pages',
-    icon: '🔗',
-    description: 'ThreadRing community page styling and components'
-  },
-  {
     id: 'profile-structure',
     title: 'Profile Structure',
-    icon: '🏗️',
+    icon: 'Structure',
     description: 'Main containers and layout elements for profile pages'
+  },
+  {
+    id: 'profile-components',
+    title: 'Profile Components',
+    icon: 'Components',
+    description: 'Header, tabs, blog posts, media, and badge styling'
+  },
+  {
+    id: 'threadring-pages',
+    title: 'ThreadRing Pages',
+    icon: 'ThreadRings',
+    description: 'ThreadRing community page styling and components'
   },
   {
     id: 'thread-utilities',
     title: 'Thread Utilities',
-    icon: '🧵',
+    icon: 'Utilities',
     description: 'ThreadStead design system classes and components'
   },
   {
     id: 'colors-themes',
     title: 'Colors & Themes',
-    icon: '🎨',
+    icon: 'Colors',
     description: 'Color palette and theming utilities'
   },
   {
     id: 'typography',
     title: 'Typography',
-    icon: '📝',
+    icon: 'Typography',
     description: 'Text styling and content formatting'
-  },
-  {
-    id: 'layout-responsive',
-    title: 'Layout & Responsive',
-    icon: '📱',
-    description: 'Layout utilities and responsive design classes'
   }
 ];
 
 const cssData = {
+  'profile-components': [
+    {
+      name: 'Profile Header Components',
+      description: 'Header section containing profile photo, display name, and bio',
+      classes: [
+        { name: '.ts-profile-header', description: 'Main profile header container' },
+        { name: '.ts-profile-header-layout', description: 'Flex layout for header elements' },
+        { name: '.ts-profile-photo-section', description: 'Profile photo container' },
+        { name: '.ts-profile-info-section', description: 'Name and bio container' },
+        { name: '.ts-profile-display-name', description: 'Profile display name' },
+        { name: '.ts-profile-bio', description: 'Profile bio text' },
+        { name: '.ts-profile-bio-section', description: 'Bio container section' }
+      ],
+      example: `/* Modern glass morphism header */
+.ts-profile-header {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  padding: 2rem !important;
+}
+
+.ts-profile-display-name {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-size: 3rem !important;
+  text-align: center !important;
+}
+
+.ts-profile-bio {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-style: italic !important;
+  text-align: center !important;
+  font-size: 1.2rem !important;
+  line-height: 1.6 !important;
+}`,
+      preview: (
+        <div className="bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-xl p-4">
+          <div className="text-center">
+            <div className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+              Profile Name
+            </div>
+            <div className="text-sm text-gray-600 italic">This is a sample bio that appears in the header section</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'Profile Tabs System',
+      description: 'Tab navigation and content areas for different profile sections',
+      classes: [
+        { name: '.profile-tabs-wrapper', description: 'Main tabs container' },
+        { name: '.profile-tabs', description: 'Tab navigation container' },
+        { name: '.profile-tab-list', description: 'List of tab buttons' },
+        { name: '.profile-tab-button', description: 'Individual tab button' },
+        { name: '.profile-tab-button[aria-selected="true"]', description: 'Active/selected tab' },
+        { name: '.profile-tab-content', description: 'Tab content container' },
+        { name: '.profile-tab-panel', description: 'Individual tab panel' }
+      ],
+      example: `/* Retro 90s style tabs */
+.profile-tab-button {
+  background: linear-gradient(145deg, #ff6b9d, #c44569) !important;
+  border: none !important;
+  color: white !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  border-radius: 20px 20px 0 0 !important;
+  box-shadow: inset 2px 2px 5px rgba(255,255,255,0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.profile-tab-button[aria-selected="true"] {
+  background: linear-gradient(145deg, #4ecdc4, #44a08d) !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4) !important;
+}
+
+.profile-tab-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border-radius: 0 15px 15px 15px !important;
+  padding: 2rem !important;
+  color: white !important;
+}`,
+      preview: (
+        <div className="space-y-2">
+          <div className="flex gap-1">
+            <div className="bg-gradient-to-br from-pink-400 to-red-400 text-white px-3 py-2 rounded-t-lg text-xs font-bold">BLOG</div>
+            <div className="bg-gradient-to-br from-teal-400 to-green-400 text-white px-3 py-2 rounded-t-lg text-xs font-bold transform scale-110">MEDIA</div>
+            <div className="bg-gray-300 px-3 py-2 rounded-t-lg text-xs">BADGES</div>
+          </div>
+          <div className="bg-gradient-to-br from-blue-400 to-purple-600 text-white p-4 rounded-b-lg rounded-tr-lg">
+            <div className="text-xs">Tab content appears here...</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'Blog Post Components', 
+      description: 'Blog post display and styling components',
+      classes: [
+        { name: '.blog-tab-content', description: 'Blog posts tab container' },
+        { name: '.blog-posts-list', description: 'List container for posts' },
+        { name: '.blog-post', description: 'Individual blog post' },
+        { name: '.blog-post-header', description: 'Post header with date/meta' },
+        { name: '.blog-post-content', description: 'Post content area' },
+        { name: '.blog-post-meta', description: 'Post metadata' },
+        { name: '.ts-blog-posts', description: 'Blog posts container' },
+        { name: '.ts-blog-post-content', description: 'Individual post content' }
+      ],
+      example: `/* Card-based blog posts */
+.blog-post {
+  background: white !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+  margin-bottom: 2rem !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  transition: transform 0.3s ease !important;
+}
+
+.blog-post:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.blog-post-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  padding: 1.5rem !important;
+  border-bottom: none !important;
+}
+
+.blog-post-content {
+  padding: 1.5rem !important;
+  line-height: 1.7 !important;
+  color: #333 !important;
+}`,
+      preview: (
+        <div className="space-y-3">
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3">
+              <div className="font-bold text-sm">Blog Post Title</div>
+              <div className="text-xs opacity-75">October 15, 2024</div>
+            </div>
+            <div className="p-3">
+              <div className="text-xs text-gray-700">Post content preview with enhanced styling...</div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'Media Grid Components',
+      description: 'Image gallery and media display components',
+      classes: [
+        { name: '.media-tab-content', description: 'Media tab container' },
+        { name: '.media-grid', description: 'Grid layout for media items' },
+        { name: '.media-item', description: 'Individual media item' },
+        { name: '.media-image', description: 'Media image element' },
+        { name: '.media-overlay', description: 'Hover overlay on media items' },
+        { name: '.media-caption', description: 'Media item caption' }
+      ],
+      example: `/* Instagram-style media grid */
+.media-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  gap: 1rem !important;
+  padding: 1rem !important;
+}
+
+.media-item {
+  position: relative !important;
+  aspect-ratio: 1 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+}
+
+.media-item:hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
+}
+
+.media-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(45deg, rgba(255, 107, 107, 0.8), rgba(78, 205, 196, 0.8)) !important;
+  opacity: 0 !important;
+  transition: opacity 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: white !important;
+  font-weight: bold !important;
+}
+
+.media-item:hover .media-overlay {
+  opacity: 1 !important;
+}`,
+      preview: (
+        <div className="grid grid-cols-3 gap-2">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="aspect-square bg-gray-200 rounded-lg relative group overflow-hidden">
+              <div className="w-full h-full bg-gradient-to-br from-blue-300 to-purple-400"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-teal-500 opacity-0 group-hover:opacity-80 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                View
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    },
+    {
+      name: 'Profile Badges Components',
+      description: 'ThreadRing badges display and styling',
+      classes: [
+        { name: '.profile-badges', description: 'Main badges container' },
+        { name: '.badges-grid', description: 'Grid layout for badges' },
+        { name: '.badge-item', description: 'Individual badge container' },
+        { name: '.threadring-badge', description: '88x31 badge styling' },
+        { name: '.badge-collection-link', description: 'Link to full badge collection' }
+      ],
+      example: `/* Floating badge collection */
+.profile-badges {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05)) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 20px !important;
+  padding: 2rem !important;
+}
+
+.badge-item {
+  transition: all 0.3s ease !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.badge-item:hover {
+  transform: translateY(-8px) rotate(5deg) !important;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2) !important;
+  z-index: 10 !important;
+}
+
+.threadring-badge {
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+}`,
+      preview: (
+        <div className="bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-xl p-4">
+          <div className="text-sm font-bold mb-3">ThreadRing Badges</div>
+          <div className="grid grid-cols-3 gap-2">
+            {['Community', 'Creator', 'Helper'].map(badge => (
+              <div key={badge} className="bg-gradient-to-r from-purple-400 to-pink-400 text-white text-xs p-2 rounded border-2 border-white border-opacity-30 hover:transform hover:scale-110 transition-transform">
+                {badge}
+              </div>
+            ))}
+          </div>
+          <div className="text-xs text-center mt-2 opacity-75">View Full Collection →</div>
+        </div>
+      )
+    }
+  ],
   'threadring-pages': [
     {
       name: 'ThreadRing Page Layout',
@@ -451,7 +719,7 @@ const cssData = {
         { name: '.site-title', description: 'Site title/logo text' },
         { name: '.site-tagline', description: 'Site tagline/subtitle' },
         { name: '.nav-link', description: 'Navigation menu links' },
-        { name: '.ts-profile-tabs-wrapper', description: 'Container for tab system' },
+        { name: '.profile-tabs-wrapper', description: 'Container for tab system' },
         { name: '.profile-tab-button', description: 'Individual tab button' },
         { name: '.profile-tab-button[aria-selected="true"]', description: 'Currently active tab' },
         { name: '.profile-tab-panel', description: 'Tab content container' }
@@ -1035,7 +1303,7 @@ const cssData = {
 
 export default function DesignCSSTutorialPage() {
   const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState('threadring-pages');
+  const [activeCategory, setActiveCategory] = useState('profile-components');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   // Get active category data
@@ -1087,7 +1355,7 @@ export default function DesignCSSTutorialPage() {
             <div className="relative mb-8">
               <div className="inline-block bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 p-2 border-4 border-black shadow-[12px_12px_0_#000] transform -rotate-1">
                 <h1 className="text-5xl font-black text-black px-6 py-4 bg-white border-4 border-black">
-                  🎯 CSS CLASSES
+                  CSS CLASSES
                   <br />
                   <span className="text-3xl">GUIDE</span>
                 </h1>
@@ -1102,7 +1370,7 @@ export default function DesignCSSTutorialPage() {
             <div className="max-w-4xl mx-auto">
               <div className="bg-yellow-100 border-4 border-black shadow-[6px_6px_0_#000] p-6 transform rotate-1">
                 <p className="text-xl text-gray-800 font-medium leading-relaxed">
-                  🎨 Master ThreadStead styling with our comprehensive CSS class reference! 
+                  Master ThreadStead styling with our comprehensive CSS class reference! 
                   Target these classes to completely customize your profile page design.
                 </p>
               </div>
@@ -1111,17 +1379,14 @@ export default function DesignCSSTutorialPage() {
             {/* Quick tips */}
             <div className="mt-8 grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
               <div className="bg-green-200 border-4 border-black shadow-[4px_4px_0_#000] p-4">
-                <div className="text-2xl mb-2">🎯</div>
                 <div className="font-bold text-black">Target Classes</div>
                 <div className="text-sm text-gray-700">Use specific CSS selectors</div>
               </div>
               <div className="bg-pink-200 border-4 border-black shadow-[4px_4px_0_#000] p-4">
-                <div className="text-2xl mb-2">🎨</div>
                 <div className="font-bold text-black">Override Styles</div>
                 <div className="text-sm text-gray-700">Use !important for control</div>
               </div>
               <div className="bg-cyan-200 border-4 border-black shadow-[4px_4px_0_#000] p-4">
-                <div className="text-2xl mb-2">📱</div>
                 <div className="font-bold text-black">Mobile Ready</div>
                 <div className="text-sm text-gray-700">Responsive design tips</div>
               </div>
@@ -1131,7 +1396,7 @@ export default function DesignCSSTutorialPage() {
           {/* Navigation */}
           <div className="bg-blue-300 border-4 border-black shadow-[8px_8px_0_#000] p-6 mb-8">
             <h2 className="font-bold text-black text-lg mb-4 text-center">
-              🎮 Choose Your CSS Category
+              Choose Your CSS Category
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {cssCategories.map((category) => (
@@ -1144,7 +1409,7 @@ export default function DesignCSSTutorialPage() {
                       : 'bg-white text-gray-700 hover:bg-gray-100 shadow-[2px_2px_0_#000]'
                   }`}
                 >
-                  <div className="text-3xl mb-2">{category.icon}</div>
+                  <div className="font-bold text-sm mb-2">{category.icon}</div>
                   <h3 className="font-semibold text-sm mb-1">{category.title}</h3>
                   <p className="text-xs opacity-80">{category.description}</p>
                 </button>
@@ -1158,7 +1423,7 @@ export default function DesignCSSTutorialPage() {
               {/* Category Header */}
               <div className="text-center mb-12">
                 <div className="inline-block bg-red-400 border-4 border-black shadow-[8px_8px_0_#000] p-6 transform rotate-1">
-                  <div className="text-6xl mb-4">{activeData.icon}</div>
+                  <div className="text-2xl font-bold mb-4">{activeData.icon}</div>
                   <h2 className="text-4xl font-black text-black mb-2">
                     {activeData.title}
                   </h2>
@@ -1200,7 +1465,7 @@ export default function DesignCSSTutorialPage() {
                             {/* CSS Classes List */}
                             {section.classes && (
                               <div className="space-y-3">
-                                <h4 className="font-bold text-black text-lg">🎯 Available Classes</h4>
+                                <h4 className="font-bold text-black text-lg">Available Classes</h4>
                                 <div className="space-y-2">
                                   {section.classes.map((cls, clsIndex) => (
                                     <div key={clsIndex} className="bg-yellow-100 border-2 border-black p-3 shadow-[2px_2px_0_#000]">
@@ -1218,7 +1483,7 @@ export default function DesignCSSTutorialPage() {
                             {/* Preview */}
                             {section.preview && (
                               <div>
-                                <h4 className="font-bold text-black text-lg mb-3">👁️ Preview</h4>
+                                <h4 className="font-bold text-black text-lg mb-3">Preview</h4>
                                 <div className="bg-gray-50 border-2 border-black p-4 shadow-[2px_2px_0_#000]">
                                   {section.preview}
                                 </div>
@@ -1227,7 +1492,7 @@ export default function DesignCSSTutorialPage() {
 
                             {/* Code Example */}
                             <div>
-                              <h4 className="font-bold text-black text-lg mb-3">💻 Example CSS</h4>
+                              <h4 className="font-bold text-black text-lg mb-3">Example CSS</h4>
                               <div className="bg-black text-green-400 border-2 border-black p-4 overflow-x-auto shadow-[2px_2px_0_#000]">
                                 <pre className="text-sm font-mono">
                                   <code>{section.example}</code>

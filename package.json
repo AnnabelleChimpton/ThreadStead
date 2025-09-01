@@ -30,7 +30,12 @@
     "user-did:migrate": "tsx scripts/migrate-user-dids-to-web.ts",
     "user-did:register-sql": "tsx scripts/generate-ringhub-did-registration.ts",
     "user-did:test-verification": "tsx scripts/test-user-did-verification.ts",
-    "user-did:test-fork": "tsx scripts/test-user-did-fork.ts"
+    "user-did:test-fork": "tsx scripts/test-user-did-fork.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:template-compiler": "jest lib/template-compiler",
+    "test:profile-renderer": "jest components/profile/ProfileModeRenderer"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
@@ -66,6 +71,10 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -73,9 +82,12 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "isomorphic-dompurify": "^2.26.0",
+    "jest": "^30.1.1",
+    "jest-environment-jsdom": "^30.1.1",
     "postcss": "^8.5.6",
     "prisma": "^6.13.0",
     "tailwindcss": "^4.1.11",
+    "ts-jest": "^29.4.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5"

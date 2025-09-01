@@ -2,6 +2,7 @@
 import React from "react";
 import type { GetServerSideProps } from "next";
 
+import Layout from "@/components/Layout";
 import RetroCard from "@/components/layout/RetroCard";
 import Guestbook from "@/components/Guestbook";
 import Tabs, { TabSpec } from "@/components/navigation/Tabs";
@@ -13,11 +14,10 @@ import BlogTab from "@/components/profile/tabs/BlogTab";
 import MediaGrid from "@/components/profile/tabs/MediaGrid";
 import FriendsWebsitesGrid from "@/components/profile/tabs/FriendsWebsitesGrid";
 import ProfileBadgeDisplay from "@/components/ProfileBadgeDisplay";
-import { transformNodeToReact } from "@/lib/template-renderer";
-import { ResidentDataProvider } from "@/components/template/ResidentDataProvider";
-import type { TemplateNode } from "@/lib/template-parser";
+import ProfileModeRenderer from "@/components/profile/ProfileModeRenderer";
+import type { ProfileUser } from "@/components/profile/ProfileModeRenderer";
 import type { ResidentData } from "@/components/template/ResidentDataProvider";
-import { featureFlags } from "@/lib/feature-flags";
+import type { TemplateNode } from "@/lib/template-parser";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import dynamic from 'next/dynamic';
 
@@ -40,11 +40,16 @@ type ProfileProps = {
   websites?: Website[];
   featuredFriends?: SelectedFriend[];
   initialTabId?: string;
-  customTemplateAst?: TemplateNode;
+  customTemplateAst?: any; // Legacy compatibility
   residentData?: ResidentData;
   hideNavigation?: boolean;
   templateMode?: 'default' | 'enhanced' | 'advanced';
   includeSiteCSS?: boolean;
+  cssMode?: 'inherit' | 'override' | 'disable';
+  // Islands compilation data
+  compiledTemplate?: any;
+  templateIslands?: any[];
+  templateCompiledAt?: string | null;
   profileMidi?: {
     url: string;
     title?: string;
@@ -68,6 +73,10 @@ export default function ProfilePage({
   hideNavigation = false,
   templateMode = 'default',
   includeSiteCSS = true,
+  cssMode = 'inherit',
+  compiledTemplate,
+  templateIslands,
+  templateCompiledAt,
   profileMidi,
 }: ProfileProps) {
   const [relStatus, setRelStatus] = React.useState<string>("loading");
@@ -75,25 +84,109 @@ export default function ProfilePage({
 
   const isOwner = currentUser?.id === ownerUserId;
 
-  // Render based on template mode
-  if (templateMode === 'advanced' && customTemplateAst && residentData) {
-    // Advanced mode with custom template
-    try {
-      const templateContent = transformNodeToReact(customTemplateAst);
-      
-      return (
-        <>
-          <ResidentDataProvider data={residentData}>
-            {templateContent}
-          </ResidentDataProvider>
-        </>
-      );
-    } catch (error) {
-      console.error('Error rendering custom template:', error);
-      // Fallback to default layout if template rendering fails
+  // Extract CSS mode from custom CSS to determine rendering approach
+  const extractCSSMode = (css: string | null | undefined): 'inherit' | 'override' | 'disable' => {
+    if (!css) return 'inherit';
+    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
+    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
+      return modeMatch[1] as 'inherit' | 'override' | 'disable';
     }
-  }
+    // Default to inherit
+    return 'inherit';
+  };
   
+  const currentCSSMode = extractCSSMode(customCSS);
+
+  // Templates with "Inherit" CSS mode should use the standard layout with site styling
+  // This includes "Load Default Template" results which are designed to recreate the standard profile
+  const shouldUseStandardLayout = currentCSSMode === 'inherit' || templateMode !== 'advanced';
+
+  // Use advanced renderer only for templates that need full control (override or disable CSS modes)
+  if (templateMode === 'advanced' && residentData && !shouldUseStandardLayout) {
+    // Create ProfileUser object with Islands data
+    const profileUser: ProfileUser = {
+      id: ownerUserId,
+      handle: username,
+      profile: {
+        templateMode,
+        customCSS,
+        customTemplate: null, // Not needed for Islands rendering
+        customTemplateAst: customTemplateAst ? JSON.stringify(customTemplateAst) : null,
+        cssMode: currentCSSMode,
+        compiledTemplate,
+        templateIslands,
+        templateCompiledAt: templateCompiledAt ? new Date(templateCompiledAt) : null
+      }
+    };
+
+    // Islands mode: Handle CSS based on navigation and CSS settings
+    if (hideNavigation) {
+      if (includeSiteCSS) {
+        // Hide navigation but keep site CSS
+        // For advanced templates, don't apply thread-surface to allow custom backgrounds
+        const wrapperClass = templateMode === 'advanced' 
+          ? "min-h-screen flex flex-col"
+          : "min-h-screen thread-surface flex flex-col";
+          
+        return (
+          <div className={wrapperClass}>
+            <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
+              <ProfileModeRenderer
+                user={profileUser}
+                residentData={residentData}
+                useIslands={true}
+                fallbackContent={
+                  <div className="p-8 text-center text-gray-500">
+                    <p>Template failed to load</p>
+                  </div>
+                }
+              />
+            </main>
+          </div>
+        );
+      } else {
+        // Hide navigation and disable site CSS - no wrapper constraints
+        return (
+          <div style={{ margin: 0, padding: 0 }}>
+            <ProfileModeRenderer
+              user={profileUser}
+              residentData={residentData}
+              useIslands={true}
+              fallbackContent={
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+                  <p>Template failed to load</p>
+                </div>
+              }
+            />
+          </div>
+        );
+      }
+    } else {
+      // Show navigation and site layout
+      return (
+        <Layout>
+          <div className="mx-auto max-w-5xl px-6 py-8">
+            <ProfileModeRenderer
+              user={profileUser}
+              residentData={residentData}
+              useIslands={true}
+              fallbackContent={
+                <div className="p-8 text-center text-gray-500">
+                  <p>Template failed to load</p>
+                </div>
+              }
+            />
+          </div>
+        </Layout>
+      );
+    }
+  } else if (templateMode === 'advanced' && currentCSSMode === 'inherit' && residentData) {
+    // For inherit mode advanced templates (like "Load Default Template"), treat as enhanced mode
+    // This ensures navigation and site CSS load properly
+    // Note: This effectively treats the template as "enhanced" mode while preserving the islands data
+    
+    // We'll fall through to the default profile rendering which uses ProfileLayout
+  }
 
   // built-in tabs
   const baseTabs: TabSpec[] = [
@@ -175,9 +268,10 @@ export default function ProfilePage({
 
   return (
     <ProfileLayout 
-      customCSS={customCSS} 
+      customCSS={customCSS}
       hideNavigation={hideNavigation}
       includeSiteCSS={includeSiteCSS}
+      templateMode={templateMode}
     >
       <RetroCard>
         <ProfileHeader
@@ -189,7 +283,7 @@ export default function ProfilePage({
         />
       </RetroCard>
 
-      <div className="ts-profile-tabs-wrapper">
+      <div className="profile-tabs-wrapper">
         <Tabs tabs={tabs} initialId={initialTabId} />
       </div>
 
@@ -259,6 +353,10 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       templateMode?: 'default' | 'enhanced' | 'advanced';
       hideNavigation?: boolean;
       includeSiteCSS?: boolean;
+      // Islands compilation data
+      compiledTemplate?: any;
+      templateIslands?: any[];
+      templateCompiledAt?: string;
       blogroll?: unknown[]; 
       featuredFriends?: unknown[] 
     };
@@ -315,35 +413,33 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   let customTemplateAst: TemplateNode | undefined;
   let residentData: ResidentData | undefined;
 
-  // Only load custom template in advanced mode
-  if (data.profile?.templateMode === 'advanced' && data.profile?.customTemplate && data.profile?.customTemplateAst && data.profile?.templateEnabled) {
+  // Load custom template data for advanced mode (legacy AST or Islands compilation)
+  if (data.profile?.templateMode === 'advanced' && 
+      (data.profile?.customTemplateAst || data.profile?.compiledTemplate) && 
+      data.profile?.templateEnabled) {
     try {
-      // Parse the stored AST
-      customTemplateAst = JSON.parse(data.profile.customTemplateAst);
+      // Parse the stored AST (if available - legacy compatibility)
+      if (data.profile.customTemplateAst) {
+        customTemplateAst = JSON.parse(data.profile.customTemplateAst);
+      }
       
       // Migration: Check if AST has img tags but template has Image or UserImage tags (indicates corrupted AST)
-      const hasImageComponents = data.profile.customTemplate.includes('<Image') || data.profile.customTemplate.includes('<UserImage');
-      const astString = JSON.stringify(customTemplateAst);
+      const hasImageComponents = data.profile.customTemplate?.includes('<Image') || data.profile.customTemplate?.includes('<UserImage');
+      const astString = customTemplateAst ? JSON.stringify(customTemplateAst) : '';
       const hasImgInAst = astString.includes('"tagName":"img"');
       
-      if (hasImageComponents && hasImgInAst) {
-        console.log('Detected corrupted AST with img tags instead of UserImage components. Recompiling...');
+      if (customTemplateAst && hasImageComponents && hasImgInAst) {
         // Convert old <Image> tags to <UserImage> for backward compatibility
-        const updatedTemplate = data.profile.customTemplate.replace(/<Image\b/g, '<UserImage').replace(/<\/Image>/g, '</UserImage>');
+        const updatedTemplate = data.profile.customTemplate?.replace(/<Image\b/g, '<UserImage').replace(/<\/Image>/g, '</UserImage>');
         
-        // Recompile the template to fix the AST
-        const { compileTemplate } = await import('@/lib/template-parser');
-        const compilationResult = compileTemplate(updatedTemplate);
-        
-        if (compilationResult.success && compilationResult.ast) {
-          console.log('Successfully recompiled template with correct AST');
-          console.log('AST contains RetroTerminal:', JSON.stringify(compilationResult.ast).includes('"tagName":"retroterminal"'));
-          customTemplateAst = compilationResult.ast;
+        if (updatedTemplate) {
+          // Recompile the template to fix the AST
+          const { compileTemplate } = await import('@/lib/template-parser');
+          const compilationResult = compileTemplate(updatedTemplate);
           
-          // TODO: Optionally save the corrected AST back to the database
-          // This would require an API call to update the user's profile
-        } else {
-          console.log('Failed to recompile template:', compilationResult.errors);
+          if (compilationResult.success) {
+            customTemplateAst = compilationResult.ast!;
+          }
         }
       }
       
@@ -468,10 +564,39 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (residentData != null) props.residentData = residentData;
   if (data.profile?.hideNavigation != null) props.hideNavigation = data.profile.hideNavigation;
   if (data.profile?.templateMode != null) props.templateMode = data.profile.templateMode;
-  if (data.profile?.includeSiteCSS != null) props.includeSiteCSS = data.profile.includeSiteCSS;
   
-  // CSS Priority based on template mode
+  
+  // Islands compilation data
+  if (data.profile?.compiledTemplate != null) {
+    props.compiledTemplate = data.profile.compiledTemplate;
+  }
+  if (data.profile?.templateIslands != null) props.templateIslands = data.profile.templateIslands;
+  if (data.profile?.templateCompiledAt != null) props.templateCompiledAt = new Date(data.profile.templateCompiledAt).toISOString();
+  
+  // CSS Priority based on template mode and CSS mode
   const templateMode = data.profile?.templateMode || 'default';
+  const extractCSSModeFromProfile = (css: string | null | undefined): 'inherit' | 'override' | 'disable' => {
+    if (!css) return 'inherit';
+    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
+    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
+      return modeMatch[1] as 'inherit' | 'override' | 'disable';
+    }
+    return data.profile?.includeSiteCSS === false ? 'disable' : 'inherit';
+  };
+  
+  const cssMode = extractCSSModeFromProfile(data.profile?.customCSS);
+  props.cssMode = cssMode;
+  
+  // Ensure includeSiteCSS is properly set based on CSS mode
+  if (cssMode === 'inherit') {
+    // Inherit mode must always load site CSS
+    props.includeSiteCSS = true;
+  } else if (data.profile?.includeSiteCSS != null) {
+    props.includeSiteCSS = data.profile.includeSiteCSS;
+  } else {
+    // Default to true unless explicitly disabled
+    props.includeSiteCSS = true;
+  }
   
   if (templateMode === 'enhanced' && data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
     // Enhanced mode (Default Layout + Custom CSS) - use user's custom CSS
@@ -481,8 +606,12 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
       props.customCSS = adminDefaultCSS;
     }
+  } else if (templateMode === 'advanced' && cssMode === 'inherit' && data.profile?.customCSS != null) {
+    // Advanced template with inherit mode (like "Load Default Template") - treat like enhanced mode
+    // This ensures proper CSS handling while preserving islands data
+    props.customCSS = data.profile.customCSS;
   } else if (templateMode === 'advanced' && data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
-    // Advanced template mode - use user's custom CSS (legacy compatibility)
+    // Advanced template mode - use user's custom CSS (for override/disable modes)
     props.customCSS = data.profile.customCSS;
   } else if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
     // Fallback to admin default CSS if available

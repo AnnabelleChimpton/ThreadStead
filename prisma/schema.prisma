@@ -88,6 +88,9 @@ model Profile {
   profileMidiId      String?
   midiAutoplay       Boolean      @default(false)
   midiLoop           Boolean      @default(false)
+  compiledTemplate   Json?
+  templateIslands    Json?
+  templateCompiledAt DateTime?
   user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
