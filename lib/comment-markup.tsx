@@ -195,7 +195,7 @@ export function processHtmlWithEmojis(html: string): string {
   return html.replace(/:([a-zA-Z0-9_-]+):/g, (match, emojiName) => {
     const emojiUrl = emojiMap.get(emojiName);
     if (emojiUrl) {
-      return `<img src="${emojiUrl}" alt="${match}" title="${match}" class="inline-block mx-1 align-text-bottom" style="display: inline-block; width: 20px; height: 20px; margin: 0 0.25rem; vertical-align: text-bottom;" />`;
+      return `<img src="${emojiUrl}" alt="${match}" title="${match}" class="inline-block mx-1 align-text-bottom" style="display: inline-block; width: 20px; height: 20px; margin: 0 0.25rem; vertical-align: text-bottom; object-fit: contain; image-rendering: -webkit-optimize-contrast; -webkit-backface-visibility: hidden; transform: translateZ(0); filter: contrast(1.05);" />`;
     }
     return match;
   });
@@ -319,7 +319,16 @@ export function renderParsedContent(content: (ParsedContent | string)[], keyPref
             alt={item.content}
             title={item.content}
             className="inline-block mx-1 align-text-bottom"
-            style={{ width: '20px', height: '20px', display: 'inline-block' }}
+            style={{ 
+              width: '20px', 
+              height: '20px', 
+              display: 'inline-block',
+              objectFit: 'contain',
+              imageRendering: '-webkit-optimize-contrast',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'translateZ(0)',
+              filter: 'contrast(1.05)'
+            }}
             onError={(e) => {
               // If emoji fails to load, replace with text
               const span = document.createElement('span');
@@ -532,7 +541,16 @@ function parseEmojiText(text: string): React.ReactNode {
               alt={fullMatch}
               title={fullMatch}
               className="inline-block mx-1 align-text-bottom"
-              style={{ width: '20px', height: '20px', display: 'inline-block' }}
+              style={{ 
+                width: '20px', 
+                height: '20px', 
+                display: 'inline-block',
+                objectFit: 'contain',
+                imageRendering: '-webkit-optimize-contrast',
+                WebkitBackfaceVisibility: 'hidden',
+                transform: 'translateZ(0)',
+                filter: 'contrast(1.05)'
+              }}
               onError={(e) => {
                 // If emoji fails to load, replace with text
                 const span = document.createElement('span');

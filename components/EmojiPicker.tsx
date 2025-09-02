@@ -97,14 +97,22 @@ export default function EmojiPicker({ onEmojiSelect, className = "" }: EmojiPick
                     key={emoji.id}
                     type="button"
                     onClick={() => handleEmojiClick(emoji)}
-                    className="p-2 hover:bg-gray-100 border border-transparent hover:border-gray-300 rounded transition-all group"
+                    className="hover:bg-gray-100 border border-transparent hover:border-gray-300 rounded transition-all group flex items-center justify-center"
+                    style={{ width: '40px', height: '40px', padding: '8px' }}
                     title={`:${emoji.name}:`}
                   >
                     <img
                       src={emoji.imageUrl}
                       alt={emoji.name}
-                      className="mx-auto"
-                      style={{ width: '24px', height: '24px', display: 'block' }}
+                      style={{ 
+                        width: '24px', 
+                        height: '24px', 
+                        objectFit: 'contain',
+                        imageRendering: '-webkit-optimize-contrast',
+                        WebkitBackfaceVisibility: 'hidden',
+                        transform: 'translateZ(0)',
+                        filter: 'contrast(1.05)'
+                      }}
                       onError={(e) => {
                         // Hide broken images
                         e.currentTarget.style.display = 'none';
