@@ -290,8 +290,22 @@ export class AuthenticatedRingHubClient {
   }
 
   async getMyMemberships(options?: Parameters<RingHubClient['getMyMemberships']>[0]) {
-    const userClient = await this.getUserClient()
-    return await userClient.getMyMemberships(options)
+    try {
+      const userClient = await this.getUserClient()
+      return await userClient.getMyMemberships(options)
+    } catch (error: any) {
+      // If this is a new user without Ring Hub identity, return empty memberships
+      if (error.status === 401 || error.message?.includes('Authentication required')) {
+        console.log(`User ${this.userId} doesn't have Ring Hub identity yet, returning empty memberships`);
+        return {
+          memberships: [],
+          total: 0,
+          page: 1,
+          limit: options?.limit || 20
+        };
+      }
+      throw error;
+    }
   }
 
   async getMyFeed(options?: Parameters<RingHubClient['getMyFeed']>[0]) {

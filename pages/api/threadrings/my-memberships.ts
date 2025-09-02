@@ -29,9 +29,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }));
         
         return res.status(200).json({ rings });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to fetch Ring Hub memberships:', error);
-        // Fall back to empty array if Ring Hub fails
+        
+        // Check if this is an authentication error for a new user
+        if (error.status === 401 || error.message?.includes('Authentication required')) {
+          console.log('User may not have Ring Hub identity yet, returning empty memberships');
+          // This is expected for new users who haven't interacted with Ring Hub yet
+          return res.status(200).json({ rings: [] });
+        }
+        
+        // For other errors, still return empty array but log the issue
+        console.error('Unexpected Ring Hub error:', error.message || error);
         return res.status(200).json({ rings: [] });
       }
     }
