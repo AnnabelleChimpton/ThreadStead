@@ -10,6 +10,9 @@ import { TEMPLATE_EXAMPLES } from '@/lib/default-profile-template';
 import { HTML_TEMPLATES, getHTMLTemplate } from '@/lib/default-html-templates';
 import Link from 'next/link';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/css-layers';
+import { useSiteCSS } from '@/hooks/useSiteCSS';
+import MinimalNavBar from '@/components/MinimalNavBar';
 
 // Warning dialog for data loss prevention
 interface DataLossWarningProps {
@@ -74,6 +77,7 @@ interface StandardLayoutPreviewProps {
   onError: (error: string) => void;
   defaultTemplate?: string | null;
   loadingDefaultTemplate: boolean;
+  siteWideCSS?: string;
 }
 
 // Simplified NavBar for preview that doesn't require data fetching
@@ -121,14 +125,17 @@ function PreviewNavBar({ siteConfig }: { siteConfig: any }) {
 // Scoped component wrapper for navigation/footer with isolated CSS
 function ScopedNavFooterWrapper({ 
   children, 
-  customCSS 
+  customCSS,
+  cssMode = 'inherit' 
 }: { 
   children: React.ReactNode; 
   customCSS: string;
+  cssMode?: CSSMode;
 }) {
   const shadowHostRef = React.useRef<HTMLDivElement>(null);
   const shadowRootRef = React.useRef<ShadowRoot | null>(null);
   const [shadowReady, setShadowReady] = React.useState(false);
+  const { css: siteWideCSS } = useSiteCSS();
 
   React.useEffect(() => {
     if (shadowHostRef.current && !shadowRootRef.current) {
@@ -158,28 +165,19 @@ function ScopedNavFooterWrapper({
     const styleElement = document.createElement('style');
     styleElement.id = 'nav-footer-styles';
     
-    // Get site CSS from existing stylesheets
-    const siteCSS = Array.from(document.styleSheets)
-      .map(stylesheet => {
-        try {
-          return Array.from(stylesheet.cssRules || [])
-            .map(rule => rule.cssText)
-            .join('\n');
-        } catch (e) {
-          // Cross-origin stylesheets can't be accessed
-          return '';
-        }
-      })
-      .join('\n');
+    // Generate layered CSS for shadow DOM
+    const layeredCSS = generatePreviewCSS({
+      cssMode,
+      templateMode: 'enhanced',
+      siteWideCSS,
+      userCustomCSS: customCSS,
+      profileId: 'nav-footer-preview'
+    });
 
     styleElement.textContent = `
-      /* Site CSS for proper navigation styling */
-      ${siteCSS}
+      ${layeredCSS}
       
-      /* Apply custom CSS */
-      ${customCSS}
-      
-      /* Ensure proper styling */
+      /* Ensure proper styling for shadow DOM */
       #nav-footer-content {
         width: 100%;
         display: block;
@@ -187,7 +185,7 @@ function ScopedNavFooterWrapper({
     `;
 
     shadowRootRef.current.insertBefore(styleElement, shadowRootRef.current.firstChild);
-  }, [customCSS, shadowReady]);
+  }, [customCSS, cssMode, siteWideCSS, shadowReady]);
 
   return (
     <div 
@@ -217,7 +215,8 @@ function StandardLayoutPreview({
   onCompile,
   onError,
   defaultTemplate,
-  loadingDefaultTemplate
+  loadingDefaultTemplate,
+  siteWideCSS
 }: StandardLayoutPreviewProps) {
   const { config } = useSiteConfig();
   
@@ -244,16 +243,24 @@ function StandardLayoutPreview({
       )}
       
       {/* Navigation context for realistic preview with scoped CSS */}
-      <div className="preview-with-context">
-        {/* Scoped Navigation - show based on toggle */}
+      <div className={`preview-with-context ${useStandardLayout ? 'thread-surface min-h-screen preview-standard-layout' : ''}`}>
+        {/* Navigation - show appropriate navbar based on template mode */}
         {showNavigation && (
-          <ScopedNavFooterWrapper customCSS={customCSS}>
-            <PreviewNavBar siteConfig={config} />
-          </ScopedNavFooterWrapper>
+          <>
+            {useStandardLayout ? (
+              // Standard layout: Show PreviewNavBar with full site CSS (no shadow DOM isolation)
+              <PreviewNavBar siteConfig={config} />
+            ) : (
+              // Advanced template: Show MinimalNavBar with user's custom CSS applied
+              <ScopedNavFooterWrapper customCSS={customCSS} cssMode={cssMode}>
+                <MinimalNavBar />
+              </ScopedNavFooterWrapper>
+            )}
+          </>
         )}
         
         {/* Template content */}
-        <div className="template-content-preview">
+        <div className={`template-content-preview ${useStandardLayout ? 'mx-auto max-w-5xl px-6 py-8' : ''}`}>
           <TemplatePreview
             user={user}
             template={previewTemplate}
@@ -263,19 +270,34 @@ function StandardLayoutPreview({
             residentData={residentData}
             onCompile={onCompile}
             onError={onError}
+            siteWideCSS={siteWideCSS}
+            useStandardLayout={useStandardLayout}
           />
         </div>
         
-        {/* Scoped Footer - show based on toggle */}
+        {/* Footer - show based on toggle */}
         {showNavigation && (
-          <ScopedNavFooterWrapper customCSS={customCSS}>
-            <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
-              <div className="footer-content mx-auto max-w-5xl text-center">
-                <span className="footer-tagline thread-label">{config.site_description}</span>
-                <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
-              </div>
-            </footer>
-          </ScopedNavFooterWrapper>
+          <>
+            {useStandardLayout ? (
+              // Standard layout: Show footer with full site CSS (no shadow DOM isolation)
+              <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
+                <div className="footer-content mx-auto max-w-5xl text-center">
+                  <span className="footer-tagline thread-label">{config.site_description}</span>
+                  <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
+                </div>
+              </footer>
+            ) : (
+              // Advanced template: Apply user's custom CSS to footer
+              <ScopedNavFooterWrapper customCSS={customCSS} cssMode={cssMode}>
+                <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
+                  <div className="footer-content mx-auto max-w-5xl text-center">
+                    <span className="footer-tagline thread-label">{config.site_description}</span>
+                    <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
+                  </div>
+                </footer>
+              </ScopedNavFooterWrapper>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -287,6 +309,7 @@ interface EnhancedTemplateEditorProps {
   initialTemplate?: string;
   initialCSS?: string;
   initialCSSMode?: 'inherit' | 'override' | 'disable';
+  initialShowNavigation?: boolean;
   onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', showNavigation?: boolean) => void;
 }
 
@@ -295,11 +318,31 @@ export default function EnhancedTemplateEditor({
   initialTemplate = '',
   initialCSS = '',
   initialCSSMode = 'inherit',
+  initialShowNavigation = true,
   onSave
 }: EnhancedTemplateEditorProps) {
   const [template, setTemplate] = useState(initialTemplate);
   const [customCSS, setCustomCSS] = useState(initialCSS);
   const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
+  
+  // Get site-wide CSS without triggering DOM updates (read-only)
+  const [siteWideCSS, setSiteWideCSS] = useState<string>('');
+  
+  // Fetch site-wide CSS for preview without updating global DOM
+  React.useEffect(() => {
+    async function fetchSiteCSS() {
+      try {
+        const res = await fetch("/api/site-css");
+        if (res.ok) {
+          const data = await res.json();
+          setSiteWideCSS(data.css || '');
+        }
+      } catch (error) {
+        console.error("Failed to load site CSS for preview:", error);
+      }
+    }
+    fetchSiteCSS();
+  }, []);
   
   // Detect if user is currently using standard layout
   const [useStandardLayout, setUseStandardLayout] = useState(() => {
@@ -322,7 +365,7 @@ export default function EnhancedTemplateEditor({
   const [loadingDefaultTemplate, setLoadingDefaultTemplate] = useState(false);
   
   // Navigation toggle for custom templates
-  const [showNavigation, setShowNavigation] = useState(true);
+  const [showNavigation, setShowNavigation] = useState(initialShowNavigation);
   
   // Always use islands mode - legacy mode removed
   const [residentData, setResidentData] = useState<ResidentData | null>(null);
@@ -538,8 +581,8 @@ export default function EnhancedTemplateEditor({
       // Handle standard layout mode differently
       if (useStandardLayout) {
         // For standard layout, we save with empty template to indicate using default layout
-        // Standard layout never hides navigation
-        await onSave('', customCSS, undefined, cssMode, false);
+        // Standard layout always shows navigation (showNavigation = true)
+        await onSave('', customCSS, undefined, cssMode, true);
         setSaveMessage('✓ Standard layout saved!');
         return;
       }
@@ -795,69 +838,81 @@ export default function EnhancedTemplateEditor({
           <div className="w-full flex flex-col">
             {/* Editor Toolbar - matching original seamless style */}
             <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-3 -mt-px">
-              {/* Getting Started Guide */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="font-semibold text-blue-900">Choose Your Starting Point</h3>
-                  <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">New to profile building? Start here!</span>
-                </div>
+              {/* Getting Started Guide - only show when NOT in standard layout */}
+              {!useStandardLayout && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="font-semibold text-purple-900">Advanced Layout Mode</h3>
+                    <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">Full HTML Control</span>
+                  </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                  <button
-                    onClick={useStandardLayoutOption}
-                    className={`p-4 rounded-lg border text-left transition-all ${
-                      useStandardLayout 
-                        ? 'bg-blue-500 text-white border-blue-500 shadow-lg' 
-                        : 'bg-white border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                    }`}
-                  >
-                    <div className="font-semibold">
-                      Start Fresh
-                    </div>
-                    <div className="text-sm mt-2 opacity-90">
-                      Clean slate with CSS styling only. Perfect for beginners!
-                    </div>
-                  </button>
-                  
-                  <button
-                    onClick={loadDefaultTemplate}
-                    disabled={loadingDefault}
-                    className={`p-4 rounded-lg border text-left transition-all ${
-                      !useStandardLayout && !template 
-                        ? 'bg-green-500 text-white border-green-500 shadow-lg' 
-                        : 'bg-white border-gray-300 hover:border-green-400 hover:bg-green-50'
-                    }`}
-                  >
-                    <div className="font-semibold">
-                      Default Profile
-                    </div>
-                    <div className="text-sm mt-2 opacity-90">
-                      {loadingDefault ? 'Loading...' : 'Edit our standard template structure'}
-                    </div>
-                  </button>
-                  
-                  <div className="p-4 rounded-lg border bg-purple-50 border-purple-200 text-left">
-                    <div className="font-semibold text-purple-800">
-                      Pick a Theme
-                    </div>
-                    <div className="text-sm mt-2 text-purple-700">
-                      Choose from pre-made templates below
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <button
+                      onClick={useStandardLayoutOption}
+                      className="p-4 rounded-lg border bg-white border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-left transition-all"
+                    >
+                      <div className="font-semibold">
+                        🎨 Switch to Fresh Start
+                      </div>
+                      <div className="text-sm mt-1 opacity-80">
+                        Use CSS styling instead
+                      </div>
+                    </button>
+                    
+                    <div className="p-4 rounded-lg border bg-purple-50 border-purple-200 text-left">
+                      <div className="font-semibold text-purple-800">
+                        Pick a Theme
+                      </div>
+                      <div className="text-sm mt-1 text-purple-700">
+                        Choose from templates below
+                      </div>
                     </div>
                   </div>
+                  
+                  <div className="bg-purple-100 rounded-lg p-3 text-sm text-purple-900">
+                    <strong>Advanced Mode:</strong> Full control! You can modify the page structure and use our components.
+                  </div>
                 </div>
-                
-                {useStandardLayout && (
+              )}
+
+              {/* Fresh Start Guide - only show when in standard layout */}
+              {useStandardLayout && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="font-semibold text-blue-900">Fresh Start Mode</h3>
+                    <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">New to profile building? Start here! ⭐</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <button
+                      onClick={loadDefaultTemplate}
+                      disabled={loadingDefault}
+                      className="p-4 rounded-lg border bg-white border-gray-300 hover:border-green-400 hover:bg-green-50 text-left transition-all"
+                    >
+                      <div className="font-semibold">
+                        ⚙️ Advanced Layouts
+                      </div>
+                      <div className="text-sm mt-1 opacity-80">
+                        {loadingDefault ? 'Loading...' : 'Edit HTML structure directly'}
+                      </div>
+                    </button>
+                    
+                    <div className="p-4 rounded-lg border bg-blue-50 border-blue-200 text-left">
+                      <div className="font-semibold text-blue-800">
+                        Pick a Theme
+                      </div>
+                      <div className="text-sm mt-1 text-blue-700">
+                        Choose from CSS templates below
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div className="bg-blue-100 rounded-lg p-3 text-sm text-blue-900">
                     <strong>Fresh Start Mode:</strong> Perfect for CSS styling! The page layout is handled for you - just add your custom styles in the CSS tab.
+                    Great for beginners and those who want to focus on colors, fonts, and visual design.
                   </div>
-                )}
-                
-                {!useStandardLayout && (
-                  <div className="bg-purple-100 rounded-lg p-3 text-sm text-purple-900">
-                    <strong>Custom HTML Mode:</strong> Full control! You can modify the page structure and use our components.
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Template Gallery */}
               <div className="flex items-center justify-between flex-wrap gap-4">
@@ -887,13 +942,11 @@ export default function EnhancedTemplateEditor({
                       defaultValue=""
                     >
                       <option value="">Modern Templates</option>
-                      <option value="minimal">Minimal Profile</option>
-                      <option value="standard">Standard Profile</option>
-                      <option value="blogFocused">Blog-Focused</option>
-                      <option value="social">Social Profile</option>
-                      <option value="modernMinimal">Modern Minimal</option>
-                      <option value="cyberpunkSocial">Cyberpunk Social</option>
-                      <option value="vintageWeb">Vintage Web</option>
+                      {Object.entries(TEMPLATE_EXAMPLES).map(([key, template]) => (
+                        <option key={key} value={key}>
+                          {template.name}
+                        </option>
+                      ))}
                     </select>
 
                     <select
@@ -1139,6 +1192,12 @@ export default function EnhancedTemplateEditor({
                       <strong>⚠️ Override Mode:</strong> Your CSS takes precedence over site styles. 
                       You can completely change colors, fonts, and layout while keeping navigation functional.
                       {useStandardLayout && ' Note: This affects the entire profile page appearance.'}
+                      {!useStandardLayout && (
+                        <>
+                          <br/><br/>
+                          <strong>💡 Styling Help:</strong> See the <a href="/examples/advanced-template-styling-guide.md" target="_blank" className="text-blue-600 hover:text-blue-800 underline">Advanced Template Styling Guide</a> for examples of how to style ThreadStead components.
+                        </>
+                      )}
                     </>
                   )}
                   {cssMode === 'disable' && (
@@ -1146,6 +1205,12 @@ export default function EnhancedTemplateEditor({
                       <strong>🚫 Disable Mode:</strong> Complete CSS control - site styles are disabled. 
                       You must style everything from scratch. Consider hiding navigation for full template control.
                       {useStandardLayout && ' Warning: Standard layout requires site CSS to function properly.'}
+                      {!useStandardLayout && (
+                        <>
+                          <br/><br/>
+                          <strong>💡 Styling Help:</strong> Check out our <a href="/examples/advanced-template-styling-guide.md" target="_blank" className="text-blue-600 hover:text-blue-800 underline">styling guide</a> and <a href="/examples/threadstead-component-styling.css" target="_blank" className="text-blue-600 hover:text-blue-800 underline">CSS examples</a> for ThreadStead components.
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -1230,7 +1295,7 @@ body {
               </div>
             </div>
 
-            <div className="editor-preview-container bg-white border border-thread-sage/30 mx-2 my-2 rounded overflow-hidden shadow-lg">
+            <div className={`editor-preview-container border border-thread-sage/30 mx-2 my-2 rounded overflow-hidden shadow-lg ${useStandardLayout ? 'bg-transparent' : 'bg-white'}`}>
               {!residentData && (
                 <div className="p-4 text-center text-thread-sage">
                   Loading preview data... {user?.primaryHandle ? `for ${user.primaryHandle}` : ''}
@@ -1249,6 +1314,7 @@ body {
                   onError={handleError}
                   defaultTemplate={defaultTemplateForPreview}
                   loadingDefaultTemplate={loadingDefaultTemplate}
+                  siteWideCSS={siteWideCSS}
                 />
               )}
             </div>

@@ -143,304 +143,372 @@ export function migrateLegacyProfile(templateMode: string, customCSS?: string): 
  * Template examples for user education
  */
 export const TEMPLATE_EXAMPLES = {
-  minimal: {
-    name: "Minimal Profile",
-    description: "Clean and simple profile with just the essentials",
-    ...generateDefaultProfileTemplate({
-      includeGuestbook: true,
-      includeFriends: false,
-      includeMedia: false,
-      includeBadges: false,
-      blogPostLimit: 3
-    })
-  },
-  
-  standard: {
-    name: "Standard Profile", 
-    description: "Full-featured profile with all sections (matches original default)",
-    ...getFullProfileTemplate()
-  },
-  
-  blogFocused: {
-    name: "Blog-Focused Profile",
-    description: "Perfect for writers and content creators",
-    ...generateDefaultProfileTemplate({
-      includeGuestbook: false,
-      includeFriends: false,
-      includeMedia: false,
-      includeBadges: false,
-      blogPostLimit: 10
-    })
-  },
-  
-  social: {
-    name: "Social Profile",
-    description: "Emphasizes connections and community",
-    ...generateDefaultProfileTemplate({
-      includeGuestbook: true,
-      includeFriends: true,
-      includeMedia: true,
-      includeBadges: true,
-      blogPostLimit: 3
-    })
-  },
-  
-  // Modern islands-based templates (replacements for legacy HTML templates)
-  modernMinimal: {
-    name: "Modern Minimal (Islands)",
-    description: "Clean glassmorphism design using component architecture",
-    template: `<NavigationBar />
-
-<GradientBox colors="blue-purple" opacity="10">
-  <CenteredBox maxWidth="800">
-    <ProfileHeader showPhoto="true" showBio="true" showActions="false" photoSize="md" />
+  glassMorphism: {
+    name: "Glass Morphism",
+    description: "Modern frosted glass design with floating elements",
+    template: `<GradientBox colors="blue-purple" opacity="20">
+  <CenteredBox maxWidth="800" padding="lg">
+    <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="lg" />
     
-    <FlexContainer direction="column" gap="4" className="mt-8">
-      <Choose>
-        <When data="posts">
-          <GradientBox colors="white" opacity="90" className="backdrop-blur-md rounded-xl">
-            <BlogPosts limit="5" />
-          </GradientBox>
-        </When>
-        <Otherwise>
-          <GradientBox colors="white" opacity="80" className="backdrop-blur-md rounded-xl p-8 text-center">
-            <IfOwner>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Welcome to your new profile!</h3>
-              <p className="text-gray-600">Start by adding some posts or customizing your page to make it uniquely yours.</p>
-            </IfOwner>
-            <IfVisitor>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">This profile is just getting started</h3>
-              <p className="text-gray-600">Check back soon for updates and new content!</p>
-            </IfVisitor>
-          </GradientBox>
-        </Otherwise>
-      </Choose>
-      
-      <IfVisitor>
-        <FlexContainer direction="row" gap="4" className="justify-center">
-          <FollowButton />
-          <MutualFriends />
-        </FlexContainer>
-        
-        <GradientBox colors="white" opacity="90" className="backdrop-blur-md rounded-xl">
-          <Guestbook />
-        </GradientBox>
-      </IfVisitor>
-    </FlexContainer>
+    <Tabs>
+      <Tab title="Posts">
+        <BlogPosts limit="5" />
+      </Tab>
+      <Tab title="Gallery">
+        <MediaGrid />
+      </Tab>
+      <Tab title="Badges">
+        <ProfileBadges />
+      </Tab>
+      <Tab title="Guestbook">
+        <Guestbook />
+      </Tab>
+    </Tabs>
   </CenteredBox>
 </GradientBox>`,
-    css: `/* Modern Minimal Styling */
+    css: `/* Glass Morphism Styling */
 body {
-  background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
-  font-family: system-ui, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-h1, h2, h3 { 
-  color: #2d3748; 
-  font-weight: 600; 
+.thread-module {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(16px);
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
 }
 
-a { 
-  color: #667eea; 
-  transition: color 0.2s; 
-}
-
-a:hover { 
-  color: #764ba2; 
-}`,
-    cssMode: 'override' as const
-  },
-  
-  cyberpunkSocial: {
-    name: "Cyberpunk Social (Islands)",
-    description: "Futuristic neon theme with component-based layout",
-    template: `<NavigationBar />
-
-<div class="cyber-container">
-  <GridLayout columns="1" gap="6" className="lg:grid-cols-3">
-    <div class="lg:col-span-2">
-      <NeonBorder color="cyan" className="mb-6">
-        <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="md" />
-      </NeonBorder>
-      
-      <NeonBorder color="purple" className="mb-6">
-        <Choose>
-          <When data="posts">
-            <BlogPosts limit="5" />
-          </When>
-          <Otherwise>
-            <div class="text-center p-8">
-              <IfOwner>
-                <h3 class="text-xl font-bold text-cyan-400 mb-4">SYSTEM INITIALIZED</h3>
-                <p class="text-purple-300">Upload data streams to activate your digital presence</p>
-              </IfOwner>
-              <IfVisitor>
-                <h3 class="text-xl font-bold text-cyan-400 mb-4">DATA LOADING...</h3>
-                <p class="text-purple-300">Neural pathways establishing connection</p>
-              </IfVisitor>
-            </div>
-          </Otherwise>
-        </Choose>
-      </NeonBorder>
-    </div>
-    
-    <div class="space-y-4">
-      <IfVisitor>
-        <NeonBorder color="green">
-          <FlexContainer direction="column" gap="3">
-            <FollowButton />
-            <MutualFriends />
-          </FlexContainer>
-        </NeonBorder>
-      </IfVisitor>
-      
-      <NeonBorder color="blue">
-        <MediaGrid />
-      </NeonBorder>
-      
-      <NeonBorder color="cyan">
-        <Guestbook />
-      </NeonBorder>
-    </div>
-  </GridLayout>
-</div>`,
-    css: `/* Cyberpunk Social Styling */
-body {
-  background: linear-gradient(135deg, #0a0a0a, #1a0033, #000a1a);
-  color: #00ffff;
-}
-
-.cyber-container {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+.thread-module:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12) !important;
 }
 
 h1, h2, h3 {
-  color: #00ffff;
-  text-shadow: 0 0 10px #00ffff;
-  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95) !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 a {
-  color: #ff00ff;
-  text-shadow: 0 0 5px #ff00ff;
-  transition: all 0.3s;
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 a:hover {
-  color: #00ffff;
-  text-shadow: 0 0 10px #00ffff;
-}
-
-h1 {
-  animation: glitch 2s infinite;
-}
-
-@keyframes glitch {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-2px); }
-  40%, 80% { transform: translateX(2px); }
+  color: #ffffff !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 }`,
-    cssMode: 'override' as const
+    cssMode: 'inherit' as const
   },
   
-  vintageWeb: {
-    name: "Vintage Web (Islands)", 
-    description: "Authentic 90s homepage with modern components",
-    template: `<NavigationBar />
+  neonCyberspace: {
+    name: "Neon Cyberspace",
+    description: "Cyberpunk terminal interface with glowing neon accents",
+    template: `<RetroTerminal color="green" padding="lg">
+  <GlitchText text=">>> NEURAL_INTERFACE_ACTIVE" />
+  <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="md" />
+</RetroTerminal>
 
-<CenteredBox maxWidth="900">
-  <div className="vintage-header">
-    <WaveText text="Welcome to My Homepage!" />
-    <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="md" />
-  </div>
-  
-  <PolaroidFrame className="my-8">
-    <Choose>
-      <When data="posts">
-        <BlogPosts limit="3" />
-      </When>
-      <Otherwise>
-        <div className="welcome-90s">
-          <IfOwner>
-            <marquee>🌟 Under Construction! Please Excuse Our Mess! 🌟</marquee>
-            <p>Welcome to your totally rad new homepage! Start posting to fill this space!</p>
-          </IfOwner>
-          <IfVisitor>
-            <marquee>🎉 You Are Visitor Number 1337! 🎉</marquee>
-            <p>Thanks for stopping by this groovy corner of cyberspace!</p>
-          </IfVisitor>
-        </div>
-      </Otherwise>
-    </Choose>
-  </PolaroidFrame>
-  
-  <SplitLayout>
-    <div>
-      <StickyNote color="yellow">
-        <h3>Cool Links</h3>
-        <FriendDisplay />
-        <WebsiteDisplay />
-      </StickyNote>
-    </div>
-    
-    <div>
-      <IfVisitor>
-        <StickyNote color="pink">
-          <FollowButton />
-          <MutualFriends />
-        </StickyNote>
-      </IfVisitor>
-      
-      <StickyNote color="green">
-        <Guestbook />
-      </StickyNote>
-    </div>
-  </SplitLayout>
-</CenteredBox>`,
-    css: `/* Vintage Web Styling */
+<Tabs>
+  <Tab title="Data_Streams">
+    <BlogPosts limit="5" />
+  </Tab>
+  <Tab title="Media_Archive">
+    <MediaGrid />
+  </Tab>
+  <Tab title="Achievement_Tokens">
+    <ProfileBadges />
+  </Tab>
+  <Tab title="Network">
+    <FriendDisplay />
+    <WebsiteDisplay />
+  </Tab>
+  <Tab title="Message_Buffer">
+    <Guestbook />
+  </Tab>
+</Tabs>`,
+    css: `/* Neon Cyberspace Styling */
 body {
-  background: #c0c0c0;
-  font-family: "Times New Roman", serif;
-  color: #000080;
+  background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 70%) !important;
+  color: #00ff00 !important;
+  font-family: 'Courier New', monospace !important;
 }
 
-.vintage-header {
-  text-align: center;
-  background: linear-gradient(45deg, #ff00ff, #00ffff);
-  padding: 2rem;
-  border: 3px ridge #808080;
-  margin-bottom: 2rem;
+.thread-module {
+  background: #001100 !important;
+  border: 2px solid #00ff00 !important;
+  box-shadow: 0 0 20px #00ff00 !important;
+  color: #00ff00 !important;
 }
 
-.welcome-90s {
-  text-align: center;
-  font-family: "Comic Sans MS", cursive;
+.profile-tab-button {
+  background: #000 !important;
+  color: #00ff00 !important;
+  border: 1px solid #00ff00 !important;
+  text-shadow: 0 0 10px #00ff00;
+  font-family: 'Courier New', monospace !important;
+}
+
+.profile-tab-button.active {
+  background: #003300 !important;
+  color: #00ffff !important;
+  text-shadow: 0 0 15px #00ffff;
 }
 
 h1, h2, h3 {
-  color: #ff0000;
-  text-shadow: 2px 2px #000000;
-  font-weight: bold;
+  color: #00ffff !important;
+  text-shadow: 0 0 15px #00ffff;
+  font-weight: bold !important;
+  animation: pulse-glow 3s ease-in-out infinite alternate;
 }
 
-marquee {
-  background: #ffff00;
-  padding: 0.5rem;
-  border: 2px solid #000000;
-  margin: 1rem 0;
+@keyframes pulse-glow {
+  0% { text-shadow: 0 0 15px #00ffff; }
+  100% { text-shadow: 0 0 25px #00ffff, 0 0 35px #00ffff; }
 }
 
-a { color: #0000ff; }
-a:visited { color: #800080; }
+a {
+  color: #ff00ff !important;
+  text-shadow: 0 0 8px #ff00ff;
+}
 
-h1 { animation: blink 1s infinite; }
-
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+a:hover {
+  color: #00ffff !important;
+  text-shadow: 0 0 15px #00ffff;
 }`,
-    cssMode: 'override' as const
+    cssMode: 'inherit' as const
+  },
+  
+  retroMemories: {
+    name: "Retro Memories", 
+    description: "90s nostalgia with polaroids, sticky notes, and animated text",
+    template: `<WaveText text="Welcome to my totally rad page!" />
+
+<PolaroidFrame>
+  <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="lg" />
+</PolaroidFrame>
+
+<Tabs>
+  <Tab title="📝 Blog">
+    <BlogPosts limit="4" />
+  </Tab>
+  <Tab title="📷 Photos">
+    <PolaroidFrame>
+      <MediaGrid />
+    </PolaroidFrame>
+  </Tab>
+  <Tab title="🏆 Badges">
+    <StickyNote color="pink" size="md">
+      <ProfileBadges />
+    </StickyNote>
+  </Tab>
+  <Tab title="🔗 Links">
+    <StickyNote color="yellow" size="lg">
+      <FriendDisplay />
+      <WebsiteDisplay />
+    </StickyNote>
+  </Tab>
+  <Tab title="💬 Guestbook">
+    <StickyNote color="green" size="md">
+      <Guestbook />
+    </StickyNote>
+  </Tab>
+</Tabs>`,
+    css: `/* Retro Memories Styling */
+body {
+  background: linear-gradient(45deg, #ffd700, #ff69b4, #00bfff, #90ee90) !important;
+  background-size: 400% 400% !important;
+  animation: gradient-wave 15s ease infinite;
+  font-family: 'Comic Sans MS', cursive, sans-serif !important;
+}
+
+@keyframes gradient-wave {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.thread-module {
+  transform: rotate(1deg) !important;
+  transition: transform 0.3s ease !important;
+}
+
+.thread-module:hover {
+  transform: rotate(0deg) scale(1.02) !important;
+}
+
+h1, h2, h3, h4 {
+  color: #8b0000 !important;
+  font-weight: bold !important;
+  text-shadow: 2px 2px 0px #ffffff, 4px 4px 0px #ff1493;
+  animation: rainbow-blink 3s linear infinite;
+}
+
+@keyframes rainbow-blink {
+  0% { color: #ff0000; }
+  16% { color: #ff8000; }
+  33% { color: #ffff00; }
+  50% { color: #00ff00; }
+  66% { color: #0080ff; }
+  83% { color: #8000ff; }
+  100% { color: #ff0000; }
+}
+
+a {
+  color: #0000ff !important;
+  text-decoration: underline !important;
+}
+
+a:visited {
+  color: #800080 !important;
+}
+
+a:hover {
+  color: #ff1493 !important;
+  background: #ffff00 !important;
+  padding: 2px;
+}`,
+    cssMode: 'inherit' as const
+  },
+  
+  minimalistZen: {
+    name: "Minimalist Zen",
+    description: "Clean, peaceful design focused on content and readability",
+    template: `<CenteredBox maxWidth="700" padding="lg">
+  <ProfileHeader showPhoto="true" showBio="true" showActions="false" photoSize="lg" />
+
+  <Tabs>
+    <Tab title="Writings">
+      <BlogPosts limit="6" />
+    </Tab>
+    <Tab title="Gallery">
+      <MediaGrid />
+    </Tab>
+    <Tab title="Achievements">
+      <ProfileBadges />
+    </Tab>
+    <Tab title="Thoughts">
+      <Guestbook />
+    </Tab>
+  </Tabs>
+</CenteredBox>`,
+    css: `/* Minimalist Zen Styling */
+body {
+  background: linear-gradient(to bottom, #fafafa 0%, #f0f0f0 100%) !important;
+  font-family: 'Georgia', 'Times New Roman', serif !important;
+  line-height: 1.8 !important;
+  color: #2c3e50 !important;
+}
+
+.thread-module {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 2px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  border-left: 3px solid #3498db !important;
+  animation: gentle-fade 0.8s ease-out;
+}
+
+@keyframes gentle-fade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+h1, h2, h3 {
+  color: #2c3e50 !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.5px;
+}
+
+a {
+  color: #3498db !important;
+  text-decoration: none !important;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+a:hover {
+  border-bottom-color: #3498db !important;
+}`,
+    cssMode: 'inherit' as const
+  },
+  
+  creativePortfolio: {
+    name: "Creative Portfolio", 
+    description: "Artist-focused design showcasing visual work and creativity",
+    template: `<CenteredBox maxWidth="900" padding="lg">
+  <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="xl" />
+
+  <Tabs>
+    <Tab title="✦ Journal">
+      <BlogPosts limit="4" />
+    </Tab>
+    <Tab title="🎨 Gallery">
+      <div className="frame-collection">
+        <MediaGrid />
+      </div>
+    </Tab>
+    <Tab title="🏆 Recognition">
+      <ProfileBadges />
+    </Tab>
+    <Tab title="🌐 Network">
+      <FriendDisplay />
+      <WebsiteDisplay />
+    </Tab>
+    <Tab title="💌 Guestbook">
+      <Guestbook />
+    </Tab>
+  </Tabs>
+</CenteredBox>`,
+    css: `/* Creative Portfolio Styling */
+body {
+  background: linear-gradient(45deg, #f7f3f0, #ede7e0, #f2ebe4) !important;
+  background-size: 300% 300% !important;
+  animation: subtle-shift 20s ease-in-out infinite;
+  font-family: 'Georgia', serif !important;
+  color: #3d3d3d !important;
+}
+
+@keyframes subtle-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.frame-collection {
+  border: 5px solid #8b7d6f !important;
+  border-radius: 8px !important;
+  padding: 1rem !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  box-shadow: inset 0 0 10px rgba(139, 125, 111, 0.1) !important;
+}
+
+.thread-module {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(139, 125, 111, 0.2) !important;
+  box-shadow: 0 4px 15px rgba(139, 125, 111, 0.1) !important;
+}
+
+h1, h2, h3 {
+  color: #6b5b73 !important;
+  font-weight: 300 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+a {
+  color: #9c8b7a !important;
+  border-bottom: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color: #6b5b73 !important;
+  border-bottom-color: #6b5b73 !important;
+}`,
+    cssMode: 'inherit' as const
   }
 };

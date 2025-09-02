@@ -9,6 +9,7 @@ import { useMe } from "@/hooks/useMe";
 interface NavBarProps {
   siteConfig?: SiteConfig;
   fullWidth?: boolean;
+  advancedTemplate?: boolean;
 }
 
 interface DropdownMenuProps {
@@ -81,7 +82,7 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
   );
 }
 
-export default function NavBar({ siteConfig, fullWidth = false }: NavBarProps) {
+export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate = false }: NavBarProps) {
   const { config: hookConfig } = useSiteConfig();
   const { pages: navPages } = useNavPages();
   const { me } = useMe();
@@ -117,10 +118,19 @@ export default function NavBar({ siteConfig, fullWidth = false }: NavBarProps) {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [mobileMenuOpen]);
 
+  // Advanced template mode: ZERO styling to avoid conflicts
+  const headerClasses = advancedTemplate 
+    ? "" // Completely unstyled for advanced templates
+    : "site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative";
+  
+  const navClasses = advancedTemplate
+    ? "" // Completely unstyled for advanced templates
+    : `site-navigation ${fullWidth ? 'w-full px-2 sm:px-4' : 'mx-auto max-w-5xl'} flex items-center justify-between`;
+
   return (
     <>
-      <header className="site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative">
-        <nav className={`site-navigation ${fullWidth ? 'w-full px-2 sm:px-4' : 'mx-auto max-w-5xl'} flex items-center justify-between`}>
+      <header className={headerClasses}>
+        <nav className={navClasses}>
           <div className="site-branding flex-shrink-0">
             <h1 className="site-title thread-headline text-xl sm:text-2xl font-bold text-thread-pine">{config.site_name}</h1>
             <span className="site-tagline thread-label hidden sm:inline">{config.site_tagline}</span>

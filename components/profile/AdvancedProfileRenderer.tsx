@@ -5,6 +5,8 @@ import type { ResidentData } from '@/components/template/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/template/ResidentDataProvider';
 import type { CompiledTemplate, Island } from '@/lib/template-compiler';
 import { componentRegistry } from '@/lib/template-registry';
+import { generateOptimizedCSS, type CSSMode, type TemplateMode } from '@/lib/css-layers';
+import { useSiteCSS } from '@/hooks/useSiteCSS';
 
 // Extended Island type with htmlStructure for runtime rendering
 interface ExtendedIsland extends Island {
@@ -43,12 +45,13 @@ export default function AdvancedProfileRenderer({
   const [isHydrated, setIsHydrated] = useState(false);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
   
+  const { css: siteWideCSS } = useSiteCSS();
+  
   // Get compiled template from user profile
   const compiledTemplate = user.profile?.compiledTemplate as CompiledTemplate | null;
   const templateIslands = user.profile?.templateIslands as ExtendedIsland[] | null;
   const customCSS = user.profile?.customCSS;
-  const cssMode = user.profile?.cssMode || 'inherit';
-
+  const cssMode = (user.profile?.cssMode || 'inherit') as CSSMode;
 
   // Create a unique ID for this profile to scope the CSS
   const profileId = useMemo(() => `profile-${user.id}-${Date.now()}`, [user.id]);
@@ -58,72 +61,23 @@ export default function AdvancedProfileRenderer({
     return compiledTemplate?.islands || templateIslands || [];
   }, [compiledTemplate?.islands, templateIslands]);
 
-  // Handle custom CSS based on the CSS mode
-  const scopedCSS = useMemo(() => {
-    if (!customCSS || customCSS.trim() === '') {
-      console.log('AdvancedProfileRenderer: No custom CSS found');
-      return '';
-    }
-    
-    console.log('AdvancedProfileRenderer: Processing CSS', {
-      cssLength: customCSS.length,
+  // Generate properly layered CSS instead of the !important nightmare
+  const layeredCSS = useMemo(() => {
+    console.log('AdvancedProfileRenderer: Generating layered CSS', {
+      customCSSLength: customCSS?.length || 0,
       cssMode,
-      profileId
+      profileId,
+      hasSiteCSS: !!siteWideCSS
     });
     
-    // Remove CSS mode comment from the CSS
-    let processedCSS = customCSS.replace(/\/\* CSS_MODE:\w+ \*\/\n?/, '');
-    
-    // Handle different CSS modes
-    if (cssMode === 'override') {
-      // Override mode: Add !important to most rules to override site styles
-      processedCSS = customCSS.replace(
-        /([^{]+)\{([^}]*)\}/g, 
-        (match, selector, rules) => {
-          // Skip @media, @keyframes, etc.
-          if (selector.trim().startsWith('@')) return match;
-          
-          // Add !important to rules that don't already have it
-          const importantRules = rules.replace(
-            /([^;:]+):\s*([^;!]+)(?<!important)\s*;/g,
-            '$1: $2 !important;'
-          );
-          
-          return `${selector}{${importantRules}}`;
-        }
-      );
-    }
-    
-    // Scope the CSS to the profile container (for inherit and override modes)
-    if (cssMode !== 'disable') {
-      processedCSS = processedCSS.replace(/([^{}]+){/g, (match, selector) => {
-        // Skip @media, @keyframes, etc.
-        if (selector.trim().startsWith('@')) return match;
-        
-        // Handle body selector specially - apply to the profile container instead
-        const scopedSelectors = selector.split(',')
-          .map((s: string) => {
-            const trimmed = s.trim();
-            if (trimmed === 'body' || trimmed.startsWith('body ')) {
-              // For inherit mode, apply body styles to the profile container
-              // This maintains inheritance behavior while scoping properly
-              if (trimmed === 'body') {
-                return `#${profileId}`;
-              } else {
-                // body .child-selector becomes #profileId .child-selector  
-                return `#${profileId}${trimmed.substring(4)}`;
-              }
-            }
-            return `#${profileId} ${trimmed}`;
-          })
-          .join(', ');
-        return `${scopedSelectors} {`;
-      });
-    }
-    
-    console.log('AdvancedProfileRenderer: Final processed CSS preview:', processedCSS.substring(0, 200));
-    return processedCSS;
-  }, [customCSS, profileId, cssMode]);
+    return generateOptimizedCSS({
+      cssMode,
+      templateMode: 'advanced',
+      siteWideCSS: cssMode !== 'disable' ? siteWideCSS : '',
+      userCustomCSS: customCSS || '',
+      profileId
+    });
+  }, [customCSS, cssMode, profileId, siteWideCSS]);
   
   const islandIds = useMemo(() => islands.map(island => island.id), [islands]);
 
@@ -179,31 +133,31 @@ export default function AdvancedProfileRenderer({
 
   return (
     <>
-      {/* Scoped CSS styles */}
-      {scopedCSS && (
-        <style dangerouslySetInnerHTML={{ __html: scopedCSS }} />
+      {/* Layered CSS styles - no more !important nightmare! */}
+      {layeredCSS && (
+        <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />
       )}
       
-      <div className="advanced-profile-islands" id={profileId}>
-        {/* Render content based on what's available */}
-        <ProfileContentRenderer 
-          compiledTemplate={compiledTemplate}
-          islands={islands}
-          residentData={residentData}
-          onIslandRender={handleIslandRender}
-          onIslandError={handleIslandError}
-        />
-        
-        {/* Hydration status indicator (dev mode only) */}
-        {process.env.NODE_ENV === 'development' && (
+      {/* No wrapper div - let advanced templates control their own layout completely */}
+      <ProfileContentRenderer 
+        compiledTemplate={compiledTemplate}
+        islands={islands}
+        residentData={residentData}
+        onIslandRender={handleIslandRender}
+        onIslandError={handleIslandError}
+      />
+      
+      {/* Hydration status indicator (dev mode only) - positioned absolutely to avoid layout interference */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ position: 'fixed', top: 0, right: 0, zIndex: 9999 }}>
           <HydrationDebugInfo 
             totalIslands={islands.length}
             loadedIslands={loadedIslands}
             failedIslands={failedIslands}
             isHydrated={isHydrated}
           />
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
@@ -277,7 +231,7 @@ function ProfileContentRenderer({
     const rootIslands = islands; // All islands are root islands in this structure
     
     return (
-      <div className="islands-container">
+      <>
         {rootIslands.map(island => (
           <ProductionIslandRenderer 
             key={island.id}
@@ -288,7 +242,7 @@ function ProfileContentRenderer({
             onIslandError={onIslandError}
           />
         ))}
-      </div>
+      </>
     );
   }
 
@@ -296,10 +250,7 @@ function ProfileContentRenderer({
   if (hasStaticHTML) {
     console.log('Rendering static HTML only');
     return (
-      <div 
-        className="static-html-content"
-        dangerouslySetInnerHTML={{ __html: compiledTemplate.staticHTML }}
-      />
+      <div dangerouslySetInnerHTML={{ __html: compiledTemplate.staticHTML }} />
     );
   }
 
@@ -432,9 +383,9 @@ function StaticHTMLWithIslands({
   }, [staticHTML, islands]);
   
   return (
-    <div className="static-html-with-islands">
+    <>
       {processedContent}
-    </div>
+    </>
   );
 }
 

@@ -1,0 +1,390 @@
+/* 
+ * ThreadStead Component Styling Examples
+ * =====================================
+ * 
+ * This file provides example CSS for styling ThreadStead components
+ * in advanced templates. Copy and modify these styles in your custom CSS.
+ * 
+ * Components Available:
+ * - RetroCard (.thread-module)
+ * - Tabs (.profile-tabs, .profile-tab-button, .profile-tab-panel)
+ * - Headlines (.thread-headline)
+ * - Labels (.thread-label)
+ * - Buttons (.thread-button)
+ */
+
+/* ==============================================
+ * BASIC THREADSTEAD STYLING (Default Look)
+ * ============================================== */
+
+.thread-module {
+  background: #FCFAF7;
+  border: 1px solid #A18463;
+  border-radius: 8px;
+  box-shadow: 3px 3px 0 #A18463;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 1100px;
+}
+
+.thread-headline {
+  font-family: Georgia, "Times New Roman", serif;
+  color: #2E4B3F;
+  font-weight: 600;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.thread-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #A18463;
+}
+
+/* Tab Styling */
+.profile-tabs {
+  margin-bottom: 2rem;
+}
+
+.profile-tab-list {
+  display: flex;
+  border-bottom: 1px solid rgba(161, 132, 99, 0.3);
+}
+
+.profile-tab-button {
+  padding: 0.75rem 1rem;
+  background: #FCFAF7;
+  color: #A18463;
+  border: none;
+  border-right: 1px solid rgba(161, 132, 99, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-tab-button:hover {
+  background: rgba(245, 233, 212, 0.5);
+  color: #2E4B3F;
+}
+
+.profile-tab-button.active {
+  background: #F5E9D4;
+  color: #2E4B3F;
+  font-weight: 500;
+}
+
+.profile-tab-panel {
+  padding: 1.5rem;
+}
+
+/* ==============================================
+ * MODERN CLEAN STYLE
+ * ============================================== */
+
+/*
+.thread-module {
+  background: white;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.thread-headline {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.profile-tab-button {
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  color: #495057;
+  border: none;
+  border-radius: 6px 6px 0 0;
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.profile-tab-button.active {
+  background: white;
+  color: #007bff;
+  border-bottom: 2px solid #007bff;
+}
+*/
+
+/* ==============================================
+ * DARK THEME STYLE
+ * ============================================== */
+
+/*
+body {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+.thread-module {
+  background: #2d2d2d;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.thread-headline {
+  color: #f0f0f0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 600;
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+.thread-label {
+  color: #a0a0a0;
+  font-size: 0.7rem;
+}
+
+.profile-tab-button {
+  background: #404040;
+  color: #e0e0e0;
+  border: none;
+  padding: 0.8rem 1.2rem;
+  border-radius: 4px 4px 0 0;
+}
+
+.profile-tab-button.active {
+  background: #0d6efd;
+  color: white;
+}
+
+.profile-tab-panel {
+  background: #2d2d2d;
+  border: 1px solid #404040;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 1.5rem;
+}
+*/
+
+/* ==============================================
+ * VINTAGE/RETRO STYLE
+ * ============================================== */
+
+/*
+body {
+  background: #f4e8d0;
+  font-family: 'Courier New', monospace;
+}
+
+.thread-module {
+  background: #fff8dc;
+  border: 3px solid #8b4513;
+  border-radius: 0;
+  box-shadow: 5px 5px 0 #654321;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  font-family: 'Times New Roman', serif;
+}
+
+.thread-headline {
+  font-family: 'Times New Roman', serif;
+  color: #8b4513;
+  font-weight: bold;
+  font-size: 1.6rem;
+  text-decoration: underline;
+  margin-bottom: 1rem;
+}
+
+.thread-label {
+  background: #8b4513;
+  color: #fff8dc;
+  padding: 2px 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  border-radius: 0;
+}
+
+.profile-tab-button {
+  background: #deb887;
+  border: 2px solid #8b4513;
+  color: #8b4513;
+  font-family: 'Times New Roman', serif;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  margin-right: 2px;
+}
+
+.profile-tab-button.active {
+  background: #8b4513;
+  color: #fff8dc;
+}
+*/
+
+/* ==============================================
+ * NEOCITIES/Y2K STYLE  
+ * ============================================== */
+
+/*
+body {
+  background: #000080;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><defs><pattern id="stars" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="0.5" fill="%23ffffff" opacity="0.3"/></pattern></defs><rect width="20" height="20" fill="url(%23stars)"/></svg>');
+  color: #00ff00;
+  font-family: 'Comic Sans MS', cursive;
+}
+
+.thread-module {
+  background: linear-gradient(45deg, #ff00ff, #00ffff);
+  border: 3px solid #ffff00;
+  border-radius: 15px;
+  box-shadow: 0 0 20px #ff00ff;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 20px #ff00ff; }
+  to { box-shadow: 0 0 30px #00ffff, 0 0 40px #ff00ff; }
+}
+
+.thread-headline {
+  color: #ffff00;
+  font-family: 'Comic Sans MS', cursive;
+  font-size: 1.5rem;
+  text-shadow: 2px 2px 4px #000000;
+  animation: rainbow 3s linear infinite;
+}
+
+@keyframes rainbow {
+  0% { color: #ff0000; }
+  16% { color: #ff8000; }
+  33% { color: #ffff00; }
+  50% { color: #00ff00; }
+  66% { color: #0080ff; }
+  83% { color: #8000ff; }
+  100% { color: #ff0000; }
+}
+
+.profile-tab-button {
+  background: #ff00ff;
+  border: 2px solid #00ffff;
+  color: #ffffff;
+  font-family: 'Comic Sans MS', cursive;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000000;
+  padding: 0.5rem 1rem;
+  margin: 2px;
+  border-radius: 10px;
+}
+
+.profile-tab-button.active {
+  background: #00ffff;
+  color: #ff00ff;
+  animation: blink 1s linear infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.5; }
+}
+*/
+
+/* ==============================================
+ * MINIMAL STYLE
+ * ============================================== */
+
+/*
+.thread-module {
+  background: none;
+  border: none;
+  border-left: 3px solid #007bff;
+  box-shadow: none;
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.thread-headline {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #333;
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.thread-label {
+  color: #666;
+  font-size: 0.8rem;
+  font-weight: normal;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.profile-tab-button {
+  background: none;
+  border: none;
+  color: #666;
+  padding: 0.5rem 0;
+  margin-right: 2rem;
+  border-bottom: 2px solid transparent;
+}
+
+.profile-tab-button.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+}
+
+.profile-tab-list {
+  border-bottom: 1px solid #eee;
+  margin-bottom: 1.5rem;
+}
+
+.profile-tab-panel {
+  padding: 0;
+}
+*/
+
+/* ==============================================
+ * CUSTOM COMPONENT COMBINATIONS
+ * ============================================== */
+
+/* Example: Card with custom header */
+/*
+.thread-module {
+  position: relative;
+  padding-top: 3rem;
+}
+
+.thread-module::before {
+  content: "📝 Profile Section";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #007bff;
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+*/
+
+/* Example: Tabs with icons */
+/*
+.profile-tab-button::before {
+  margin-right: 0.5rem;
+}
+
+.profile-tab-button[aria-controls*="blog"]::before {
+  content: "📝 ";
+}
+
+.profile-tab-button[aria-controls*="guestbook"]::before {
+  content: "💬 ";
+}
+*/

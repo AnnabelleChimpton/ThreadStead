@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const me = await getSessionUser(req);
   if (!me) return res.status(401).json({ error: "not logged in" });
 
-  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, includeSiteCSS, cap } = (req.body || {}) as {
+  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, includeSiteCSS, hideNavigation, cap } = (req.body || {}) as {
     displayName?: string;
     bio?: string;
     customCSS?: string;
@@ -20,6 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     featuredFriends?: unknown[];
     templateMode?: 'default' | 'enhanced' | 'advanced';
     includeSiteCSS?: boolean;
+    hideNavigation?: boolean;
     cap?: string;
   };
 
@@ -37,6 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     data.templateMode = templateMode;
   }
   if (typeof includeSiteCSS === "boolean") data.includeSiteCSS = includeSiteCSS;
+  if (typeof hideNavigation === "boolean") data.hideNavigation = hideNavigation;
   
   // Handle blogroll/websites
   if (Array.isArray(blogroll)) {

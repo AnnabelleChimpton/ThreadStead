@@ -135,6 +135,7 @@ export default function ProfilePage({
                 user={profileUser}
                 residentData={residentData}
                 useIslands={true}
+                hideNavigation={true}
                 fallbackContent={
                   <div className="p-8 text-center text-gray-500">
                     <p>Template failed to load</p>
@@ -147,37 +148,32 @@ export default function ProfilePage({
       } else {
         // Hide navigation and disable site CSS - no wrapper constraints
         return (
-          <div style={{ margin: 0, padding: 0 }}>
-            <ProfileModeRenderer
-              user={profileUser}
-              residentData={residentData}
-              useIslands={true}
-              fallbackContent={
-                <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-                  <p>Template failed to load</p>
-                </div>
-              }
-            />
-          </div>
+          <ProfileModeRenderer
+            user={profileUser}
+            residentData={residentData}
+            useIslands={true}
+            hideNavigation={true}
+            fallbackContent={
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+                <p>Template failed to load</p>
+              </div>
+            }
+          />
         );
       }
     } else {
-      // Show navigation and site layout
+      // Show navigation for advanced templates - no wrapper styling, no constraints
       return (
-        <Layout>
-          <div className="mx-auto max-w-5xl px-6 py-8">
-            <ProfileModeRenderer
-              user={profileUser}
-              residentData={residentData}
-              useIslands={true}
-              fallbackContent={
-                <div className="p-8 text-center text-gray-500">
-                  <p>Template failed to load</p>
-                </div>
-              }
-            />
-          </div>
-        </Layout>
+        <ProfileModeRenderer
+          user={profileUser}
+          residentData={residentData}
+          useIslands={true}
+          fallbackContent={
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+              <p>Template failed to load</p>
+            </div>
+          }
+        />
       );
     }
   } else if (templateMode === 'advanced' && currentCSSMode === 'inherit' && residentData) {
@@ -272,6 +268,7 @@ export default function ProfilePage({
       hideNavigation={hideNavigation}
       includeSiteCSS={includeSiteCSS}
       templateMode={templateMode}
+      cssMode={currentCSSMode}
     >
       <RetroCard>
         <ProfileHeader

@@ -5,6 +5,7 @@ import { ResidentDataProvider } from '@/components/template/ResidentDataProvider
 import { transformNodeToReact } from '@/lib/template-renderer';
 import type { TemplateNode } from '@/lib/template-parser';
 import ProfileLayout from '@/components/layout/ProfileLayout';
+import MinimalNavBar from '@/components/MinimalNavBar';
 import { featureFlags } from '@/lib/feature-flags';
 import dynamic from 'next/dynamic';
 
@@ -43,6 +44,7 @@ export interface ProfileModeRendererProps {
   useIslands?: boolean;
   fallbackContent?: React.ReactNode;
   onModeChange?: (mode: ProfileMode) => void;
+  hideNavigation?: boolean;
 }
 
 // Main profile mode renderer component
@@ -51,7 +53,8 @@ export default function ProfileModeRenderer({
   residentData, 
   useIslands = false,
   fallbackContent,
-  onModeChange 
+  onModeChange,
+  hideNavigation = false
 }: ProfileModeRendererProps) {
   const mode = user.profile?.templateMode || 'default';
   
@@ -94,7 +97,151 @@ export default function ProfileModeRenderer({
         
         if (shouldUseIslands && user.profile?.compiledTemplate) {
           console.log('ProfileModeRenderer: Using AdvancedProfileRenderer with Islands');
-          return <AdvancedProfileRenderer user={user} residentData={residentData} />;
+          
+          // Advanced template mode: ONLY USER CSS - zero system interference
+          const cleanUserCSS = (user.profile?.customCSS || '')
+            .replace(/\/\* CSS_MODE:\w+ \*\/\n?/g, '') // Remove mode comments
+            .replace(/!important/g, ''); // Remove !important declarations
+          
+          return (
+            <>
+              {/* Essential component classes for structure (matching preview behavior) */}
+              <style dangerouslySetInnerHTML={{ __html: `
+                /* Complete CSS reset for advanced templates - user has total control */
+                .advanced-template-container {
+                  /* Reset all Tailwind utilities to prevent inheritance */
+                  --tw-gradient-from: initial;
+                  --tw-gradient-to: initial;
+                  --tw-gradient-stops: initial;
+                  --tw-gradient-position: initial;
+                }
+                
+                /* Reset ALL Tailwind gradient classes within advanced templates */
+                .advanced-template-container [class*="bg-gradient"] {
+                  background-image: none !important;
+                  --tw-gradient-from: initial !important;
+                  --tw-gradient-to: initial !important;
+                  --tw-gradient-stops: initial !important;
+                  --tw-gradient-position: initial !important;
+                }
+                
+                /* Reset system CSS for ThreadStead components */
+                .advanced-template-container .thread-module {
+                  all: unset;
+                  display: block;
+                  box-sizing: border-box;
+                }
+                
+                .advanced-template-container .thread-headline {
+                  all: unset;
+                  display: block;
+                  box-sizing: border-box;
+                }
+                
+                .advanced-template-container .thread-label {
+                  all: unset;
+                  display: inline;
+                  box-sizing: border-box;
+                }
+                
+                .advanced-template-container .thread-button {
+                  all: unset;
+                  display: inline-block;
+                  box-sizing: border-box;
+                  cursor: pointer;
+                }
+                
+                .advanced-template-container .profile-tab-button {
+                  all: unset;
+                  display: inline-block;
+                  box-sizing: border-box;
+                  cursor: pointer;
+                }
+                
+                .advanced-template-container .profile-tab-panel {
+                  all: unset;
+                  display: block;
+                  box-sizing: border-box;
+                }
+                
+                .advanced-template-container .profile-tabs {
+                  all: unset;
+                  display: block;
+                  box-sizing: border-box;
+                }
+                
+                .advanced-template-container .profile-tab-list {
+                  all: unset;
+                  display: flex;
+                  box-sizing: border-box;
+                }
+                
+                /* Provide default component styling that user can override */
+                .advanced-template-container .thread-module {
+                  background: #FCFAF7;
+                  border: 1px solid #A18463;
+                  border-radius: 8px;
+                  box-shadow: 3px 3px 0 #A18463;
+                  position: relative;
+                  min-width: 900px;
+                  width: 100%;
+                  max-width: 1100px;
+                  padding: 1.5rem;
+                  margin-bottom: 1.5rem;
+                }
+                
+                .advanced-template-container .thread-headline {
+                  font-family: Georgia, "Times New Roman", serif;
+                  color: #2E4B3F;
+                  font-weight: 600;
+                  letter-spacing: -0.02em;
+                  font-size: 1.25rem;
+                  margin-bottom: 1rem;
+                }
+                
+                .advanced-template-container .thread-label {
+                  font-size: 0.75rem;
+                  font-weight: 600;
+                  letter-spacing: 0.5px;
+                  text-transform: uppercase;
+                  color: #A18463;
+                }
+                
+                .advanced-template-container .profile-tab-button {
+                  padding: 0.75rem 1rem;
+                  background: #FCFAF7;
+                  color: #A18463;
+                  border-right: 1px solid rgba(161, 132, 99, 0.2);
+                  transition: all 0.2s ease;
+                }
+                
+                .advanced-template-container .profile-tab-button.active {
+                  background: #F5E9D4;
+                  color: #2E4B3F;
+                  font-weight: 500;
+                }
+                
+                .advanced-template-container .profile-tab-panel {
+                  padding: 1.5rem;
+                }
+                
+                .advanced-template-container .profile-tab-list {
+                  border-bottom: 1px solid rgba(161, 132, 99, 0.3);
+                }
+              ` }} />
+              
+              {/* User CSS - can override everything above */}
+              {cleanUserCSS && <style dangerouslySetInnerHTML={{ __html: cleanUserCSS }} />}
+              
+              {/* Show MinimalNavBar when navigation toggle is ON */}
+              {!hideNavigation && <MinimalNavBar />}
+              
+              {/* Wrap in container for CSS isolation */}
+              <div className="advanced-template-container">
+                <AdvancedProfileRenderer user={user} residentData={residentData} />
+              </div>
+            </>
+          );
         } else {
           console.log('ProfileModeRenderer: Falling back to legacy advanced mode');
           return renderAdvancedLegacyMode(user, residentData);

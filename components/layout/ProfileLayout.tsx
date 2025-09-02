@@ -1,5 +1,9 @@
 import React from "react";
 import Layout from "../Layout";
+import NavBar from "../NavBar";
+import MinimalNavBar from "../MinimalNavBar";
+import { generateOptimizedCSS, type CSSMode, type TemplateMode } from "@/lib/css-layers";
+import { useSiteCSS } from "@/hooks/useSiteCSS";
 
 interface ProfileLayoutProps {
   children: React.ReactNode;
@@ -8,7 +12,8 @@ interface ProfileLayoutProps {
   showSidebar?: boolean;
   hideNavigation?: boolean;
   includeSiteCSS?: boolean;
-  templateMode?: 'default' | 'enhanced' | 'advanced';
+  templateMode?: TemplateMode;
+  cssMode?: CSSMode;
 }
 
 export default function ProfileLayout({ 
@@ -18,30 +23,85 @@ export default function ProfileLayout({
   showSidebar = false,
   hideNavigation = false,
   includeSiteCSS = true,
-  templateMode
+  templateMode = 'default',
+  cssMode = 'inherit'
 }: ProfileLayoutProps) {
-  if (hideNavigation) {
-    // Check if site CSS is disabled - if so, render without any styling
-    if (!includeSiteCSS) {
+  const { css: siteWideCSS } = useSiteCSS();
+  
+  // Extract CSS mode from custom CSS if not explicitly provided
+  const extractCSSMode = (css: string | undefined): CSSMode => {
+    if (!css) return cssMode;
+    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
+    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
+      return modeMatch[1] as CSSMode;
+    }
+    return cssMode;
+  };
+  
+  const actualCSSMode = extractCSSMode(customCSS);
+  
+  // Generate layered CSS instead of direct injection
+  const layeredCSS = generateOptimizedCSS({
+    cssMode: actualCSSMode,
+    templateMode,
+    siteWideCSS: includeSiteCSS ? siteWideCSS : '',
+    userCustomCSS: customCSS || '',
+    profileId: `profile-layout-${Date.now()}`
+  });
+  // Advanced template mode: ONLY USER CSS - zero system interference
+  if (templateMode === 'advanced') {
+    // Clean user CSS - remove any system comments or layer declarations
+    const cleanUserCSS = (customCSS || '')
+      .replace(/\/\* CSS_MODE:\w+ \*\/\n?/g, '') // Remove mode comments
+      .replace(/!important/g, ''); // Remove !important declarations
+    
+    // Handle navigation for advanced templates
+    if (hideNavigation) {
+      // Advanced template with hidden navigation - ONLY user CSS
       return (
         <>
-          {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
+          {/* ONLY raw user CSS - no layers, no system CSS, no processing */}
+          {cleanUserCSS && <style dangerouslySetInnerHTML={{ __html: cleanUserCSS }} />}
+          
+          {/* Completely raw content - no containers, no classes, no styling */}
+          {children}
+        </>
+      );
+    } else {
+      // Advanced template with navigation shown - minimal navigation + user CSS only
+      return (
+        <>
+          {/* ONLY raw user CSS - no layers, no system CSS, no processing */}
+          {cleanUserCSS && <style dangerouslySetInnerHTML={{ __html: cleanUserCSS }} />}
+          
+          {/* Completely unstyled minimal navigation */}
+          <MinimalNavBar />
+          
+          {/* Completely raw content - no containers, no classes, no styling */}
+          {children}
+        </>
+      );
+    }
+  }
+
+  if (hideNavigation) {
+    // Check if site CSS is disabled - if so, render without any styling
+    if (actualCSSMode === 'disable') {
+      return (
+        <>
+          {layeredCSS && <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />}
           {/* No wrapper styling when CSS is disabled */}
           {children}
         </>
       );
     }
     
-    // Render without Layout wrapper when hiding navigation but keeping site CSS
+    // Render without Layout wrapper when hiding navigation but keeping site CSS (NON-advanced templates only)
     return (
       <>
-        {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
+        {layeredCSS && <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />}
         {/* Hide nav/footer but keep responsive structure */}
-        {/* For advanced templates, don't apply thread-surface to allow custom backgrounds */}
-        <div className={templateMode === 'advanced' 
-          ? "min-h-screen flex flex-col"
-          : "min-h-screen thread-surface flex flex-col"
-        }>
+        <div className="min-h-screen thread-surface flex flex-col">
           <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
             <div className="ts-profile-container" data-component="profile-layout">
               <div className="ts-profile-content-wrapper">
@@ -74,7 +134,7 @@ export default function ProfileLayout({
 
   return (
     <>
-      {customCSS && <style dangerouslySetInnerHTML={{ __html: customCSS }} />}
+      {layeredCSS && <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />}
       <div className="ts-profile-container" data-component="profile-layout">
         <Layout>
           <div className="ts-profile-content-wrapper">

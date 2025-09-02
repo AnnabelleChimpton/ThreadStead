@@ -13,6 +13,7 @@ interface TemplateEditorPageProps {
   existingTemplate?: string;
   customCSS?: string;
   templateEnabled?: boolean;
+  hideNavigation?: boolean;
   currentUser?: {
     id: string;
     primaryHandle?: string;
@@ -31,6 +32,7 @@ export default function TemplateEditorPage({
   existingTemplate,
   customCSS,
   templateEnabled = false,
+  hideNavigation = false,
   currentUser
 }: TemplateEditorPageProps) {
   const router = useRouter();
@@ -94,12 +96,14 @@ export default function TemplateEditorPage({
       }
       const { token } = await capRes.json();
 
-      // Enable template and set mode to advanced
+      // Set template mode based on whether user has a custom template
+      const templateMode = template.trim() === '' ? 'enhanced' : 'advanced';
+      
       const layoutResponse = await fetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          templateMode: 'advanced',
+          templateMode: templateMode,
           hideNavigation: !showNavigation, // Invert because we're asking "show navigation" but storing "hide navigation"
           cap: token 
         }),
@@ -209,6 +213,7 @@ export default function TemplateEditorPage({
               initialTemplate={extractedHtmlContent}
               initialCSS={cleanedCssContent}
               initialCSSMode={initialCSSMode}
+              initialShowNavigation={!hideNavigation}
               onSave={handleSave}
             />
           </div>
@@ -291,12 +296,15 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
       templateEnabled = profileData.profile?.templateEnabled || false;
     }
 
+    const hideNavigation = profileData.profile?.hideNavigation || false;
+
     return {
       props: {
         username,
         isOwner,
         existingTemplate,
         customCSS,
+        hideNavigation,
         templateEnabled,
         currentUser: currentUser ? JSON.parse(JSON.stringify(currentUser)) : null,
       },

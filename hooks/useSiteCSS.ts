@@ -26,13 +26,16 @@ export function useSiteCSS() {
         if (res.ok) {
           const data = await res.json();
           const siteCSS = data.css || "";
+          // Store the raw CSS for use by other components that handle layering themselves
           setCSS(siteCSS);
           
           // Also update the DOM directly to ensure immediate application
+          // Wrap the site CSS in the proper layer to respect the cascade hierarchy
           if (typeof document !== 'undefined') {
             let styleElement = document.getElementById('site-wide-css');
             if (styleElement) {
-              styleElement.innerHTML = siteCSS;
+              const layeredCSS = siteCSS ? `@layer threadstead-site {\n${siteCSS}\n}` : '';
+              styleElement.innerHTML = layeredCSS;
             }
           }
           

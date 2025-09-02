@@ -5,7 +5,9 @@ import { ResidentDataProvider } from '@/components/template/ResidentDataProvider
 import type { ResidentData } from '@/components/template/ResidentDataProvider';
 import type { User } from '@prisma/client';
 import type { CompiledTemplate } from '@/lib/template-compiler';
-import { componentRegistry } from '@/lib/template-registry';
+import { componentRegistry, validateAndCoerceProps } from '@/lib/template-registry';
+import { generatePreviewCSS } from '@/lib/css-layers';
+import MinimalNavBar from '@/components/MinimalNavBar';
 
 // Simple debounce implementation
 function debounce<T extends (...args: any[]) => any>(func: T, delay: number): T {
@@ -16,24 +18,6 @@ function debounce<T extends (...args: any[]) => any>(func: T, delay: number): T 
   }) as T;
 }
 
-// Add !important to all CSS declarations to ensure they override defaults
-function addImportantToCSS(css: string): string {
-  if (!css || css.trim() === '') return css;
-  
-  // Match CSS property: value pairs and add !important
-  // Handles both semicolon-terminated and brace-terminated declarations
-  return css.replace(/([a-zA-Z-]+)\s*:\s*([^;{}]+?)(\s*[;}])/g, (match, property, value, terminator) => {
-    const trimmedValue = value.trim();
-    
-    // Skip if already has !important
-    if (trimmedValue.includes('!important')) {
-      return match;
-    }
-    
-    // Add !important to the value
-    return `${property}: ${trimmedValue} !important${terminator}`;
-  });
-}
 
 // Enhanced nested template parser
 function parseNestedTemplate(templateContent: string) {
@@ -162,23 +146,29 @@ interface TemplatePreviewProps {
     handles?: any[];
   };
   template: string;
-  customCSS?: string;
-  cssMode?: 'inherit' | 'override' | 'disable';
+  customCSS: string;
+  cssMode: string;
   renderMode: 'islands';
   residentData: ResidentData;
   onCompile?: (compiled: CompiledTemplate | null) => void;
   onError?: (error: string) => void;
+  siteWideCSS?: string;
+  useStandardLayout?: boolean;
+  showNavigation?: boolean;
 }
 
 export default function TemplatePreview({
   user,
   template,
   customCSS,
-  cssMode = 'inherit',
+  cssMode,
   renderMode,
   residentData,
   onCompile,
-  onError
+  onError,
+  siteWideCSS,
+  useStandardLayout = false,
+  showNavigation = false
 }: TemplatePreviewProps) {
   const [compiledTemplate, setCompiledTemplate] = useState<CompiledTemplate | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
@@ -333,6 +323,9 @@ export default function TemplatePreview({
           residentData={residentData}
           customCSS={customCSS}
           cssMode={cssMode}
+          siteWideCSS={siteWideCSS}
+          useStandardLayout={useStandardLayout}
+          showNavigation={showNavigation}
         />
       )}
 
@@ -357,12 +350,18 @@ function IslandsPreview({
   compiledTemplate, 
   residentData,
   customCSS,
-  cssMode = 'inherit'
+  cssMode,
+  siteWideCSS,
+  useStandardLayout = false,
+  showNavigation = false
 }: { 
   compiledTemplate: CompiledTemplate; 
   residentData: ResidentData;
-  customCSS?: string;
-  cssMode?: 'inherit' | 'override' | 'disable';
+  customCSS: string;
+  cssMode: string;
+  siteWideCSS?: string;
+  useStandardLayout?: boolean;
+  showNavigation?: boolean;
 }) {
   
   const shadowHostRef = React.useRef<HTMLDivElement>(null);
@@ -482,100 +481,20 @@ function IslandsPreview({
           }
         } catch (e) {
           // Skip stylesheets we can't access (CORS issues)
-          console.warn('Could not access stylesheet:', sheet.href, e);
+          continue;
         }
       }
       
     } catch (error) {
-      console.error('Error extracting site CSS:', error);
-      
-      // Fallback to minimal essential styles if extraction fails
-      extractedCSS = `
-        /* Fallback minimal styles */
-        * { box-sizing: border-box; }
-        body {
-          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          font-size: 16px;
-          line-height: 1.6;
-          color: #2F2F2F;
-          background: #FCFAF7;
-        }
-        
-        /* Image reset to prevent unwanted sizing */
-        img {
-          max-width: none;
-          height: auto;
-        }
-        
-        /* Essential Tailwind utilities */
-        .flex { display: flex; }
-        .flex-col { flex-direction: column; }
-        .items-center { align-items: center; }
-        .justify-center { justify-content: center; }
-        .p-2 { padding: 0.5rem; }
-        .p-4 { padding: 1rem; }
-        .mb-2 { margin-bottom: 0.5rem; }
-        .mb-4 { margin-bottom: 1rem; }
-        .text-center { text-align: center; }
-        .font-bold { font-weight: 700; }
-        .rounded { border-radius: 0.375rem; }
-        .rounded-full { border-radius: 9999px; }
-        .rounded-none { border-radius: 0; }
-        .bg-white { background-color: white; }
-        .border { border-width: 1px; }
-        .border-4 { border-width: 4px; }
-        .border-black { border-color: #000; }
-        .border-gray-200 { border-color: #e5e7eb; }
-        .text-gray-500 { color: #6b7280; }
-        .shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
-        
-        /* Size utilities for ProfilePhoto - with high specificity */
-        .w-8 { width: 2rem !important; }
-        .h-8 { height: 2rem !important; }
-        .w-16 { width: 4rem !important; }
-        .h-16 { height: 4rem !important; }
-        .w-32 { width: 8rem !important; }
-        .h-32 { height: 8rem !important; }
-        .w-48 { width: 12rem !important; }
-        .h-48 { height: 12rem !important; }
-        
-        /* Object fit utilities */
-        .object-cover { object-fit: cover !important; }
-        
-        /* Background colors */
-        .bg-white { background-color: white !important; }
-        .bg-yellow-200 { background-color: #fef08a !important; }
-        
-        /* Text sizes */
-        .text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important; }
-        
-        /* Padding */
-        .p-1 { padding: 0.25rem !important; }
-        
-        /* Box shadow utility for retro effect */
-        .shadow-\\[4px_4px_0_\\#000\\] {
-          box-shadow: 4px 4px 0 #000 !important;
-        }
-        
-        /* Border utilities with high specificity */
-        .border-4 { border-width: 4px !important; }
-        .border-black { border-color: #000 !important; }
-        .rounded-full { border-radius: 9999px !important; }
-        .rounded-none { border-radius: 0 !important; }
-      `;
+      console.warn('Error extracting site CSS:', error);
     }
     
     return extractedCSS;
   }, []);
 
-  // Generate and inject CSS into Shadow DOM
+  // Generate and inject CSS into Shadow DOM - match live ProfileModeRenderer behavior
   const updateShadowCSS = React.useCallback(() => {
     if (!shadowRootRef.current) return;
-    
-    // Clean CSS and remove mode comments
-    const cleanCustomCSS = customCSS ? customCSS.replace(/\/\* CSS_MODE:\w+ \*\/\n?/g, '') : '';
-    // Add !important to all custom CSS declarations for proper override in shadow DOM
-    const importantCustomCSS = cleanCustomCSS ? addImportantToCSS(cleanCustomCSS) : '';
     
     // Remove existing style element
     const existingStyle = shadowRootRef.current.querySelector('#shadow-styles');
@@ -583,304 +502,762 @@ function IslandsPreview({
       existingStyle.remove();
     }
     
-    // Get site CSS
-    const siteCSS = getSiteCSS();
-    
-    // Create new style element for shadow DOM
-    const styleElement = document.createElement('style');
-    styleElement.id = 'shadow-styles';
+    // Match live ProfileModeRenderer logic:
+    // Advanced templates are determined by useStandardLayout flag
+    // Standard layout (useStandardLayout=true) always uses CSS layers with comprehensive utilities
+    // Advanced templates (useStandardLayout=false) get minimal base styles + user CSS
+    const isAdvancedTemplate = !useStandardLayout;
     
     let finalCSS = '';
     
-    // Handle different CSS modes
-    if (cssMode === 'disable') {
-      // CSS disabled mode: Include essential component CSS but no layout constraints
-      // This matches how the actual profile page works - core CSS classes are still available
-      // Extract body styles from custom CSS and apply them to shadow content
-      const bodyStylesMatch = importantCustomCSS.match(/body\s*\{([^}]+)\}/g);
-      let bodyStyles = '';
-      if (bodyStylesMatch) {
-        bodyStyles = bodyStylesMatch.map(match => {
-          return match.replace(/body\s*\{/, '#shadow-content {');
-        }).join('\n');
+    if (isAdvancedTemplate) {
+      // Advanced template mode: ONLY USER CSS - match ProfileModeRenderer behavior
+      const cleanUserCSS = customCSS 
+        ? customCSS
+            .replace(/\/\* CSS_MODE:\w+ \*\/\n?/g, '') // Remove mode comments
+            // Don't remove !important - let user keep control
+        : '';
+      
+      // Add the same CSS reset that ProfileModeRenderer uses for advanced templates
+      finalCSS = `
+        /* Complete CSS reset for advanced templates - user has total control */
+        #shadow-content {
+          /* Reset all Tailwind utilities to prevent inheritance */
+          --tw-gradient-from: initial;
+          --tw-gradient-to: initial;
+          --tw-gradient-via: initial;
+          --tw-gradient-position: initial;
+        }
+        
+        /* Reset ALL Tailwind gradient classes within advanced templates */
+        #shadow-content [class*="bg-gradient"] {
+          background-image: none !important;
+          --tw-gradient-from: initial !important;
+          --tw-gradient-to: initial !important;
+          --tw-gradient-via: initial !important;
+          --tw-gradient-position: initial !important;
+        }
+        
+        /* Reset system CSS for ThreadStead components */
+        #shadow-content .thread-module {
+          all: unset;
+          display: block;
+          box-sizing: border-box;
+        }
+        
+        #shadow-content .thread-headline {
+          all: unset;
+          display: block;
+          box-sizing: border-box;
+        }
+        
+        #shadow-content .thread-label {
+          all: unset;
+          display: inline;
+          box-sizing: border-box;
+        }
+        
+        #shadow-content .thread-button {
+          all: unset;
+          display: inline-block;
+          box-sizing: border-box;
+          cursor: pointer;
+        }
+        
+        #shadow-content .profile-tab-button {
+          all: unset;
+          display: inline-block;
+          box-sizing: border-box;
+          cursor: pointer;
+        }
+        
+        #shadow-content .profile-tab-panel {
+          all: unset;
+          display: block;
+          box-sizing: border-box;
+        }
+        
+        #shadow-content .profile-tabs {
+          all: unset;
+          display: block;
+          box-sizing: border-box;
+        }
+        
+        #shadow-content .profile-tab-list {
+          all: unset;
+          display: flex;
+          box-sizing: border-box;
+        }
+        
+        /* Provide default component styling that user can override */
+        #shadow-content .thread-module {
+          background: #FCFAF7;
+          border: 1px solid #A18463;
+          border-radius: 8px;
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        #shadow-content .thread-headline {
+          font-family: Georgia, "Times New Roman", serif;
+          color: #2E4B3F;
+          font-weight: 600;
+          font-size: 1.5rem;
+          line-height: 1.4;
+          margin-bottom: 1rem;
+        }
+        
+        #shadow-content .thread-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          color: #A18463;
+        }
+        
+        #shadow-content .profile-tab-button {
+          padding: 0.75rem 1rem;
+          background: #FCFAF7;
+          color: #A18463;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        
+        #shadow-content .profile-tab-button.active {
+          background: #F5E9D4;
+          color: #2E4B3F;
+          font-weight: 500;
+        }
+        
+        #shadow-content .profile-tab-panel {
+          padding: 1.5rem;
+        }
+        
+        #shadow-content .profile-tab-list {
+          border-bottom: 1px solid rgba(161, 132, 99, 0.3);
+        }
+        
+        ${cleanUserCSS}
+      `;
+    } else {
+      // Standard/enhanced templates: use CSS layers system
+      finalCSS = generatePreviewCSS({
+        cssMode: cssMode as 'inherit' | 'override' | 'disable',
+        templateMode: 'enhanced',
+        siteWideCSS: siteWideCSS || '',
+        userCustomCSS: customCSS,
+        globalCSS: '',
+        profileId: `preview-${Date.now()}`
+      });
+    }
+    
+    // Extract body styles and convert to shadow-content styles
+    const extractBodyStyles = (css: string) => {
+      const bodyStylesRegex = /body\s*\{([^}]+)\}/gi;
+      let shadowBodyStyles = '';
+      let match;
+      
+      while ((match = bodyStylesRegex.exec(css)) !== null) {
+        const bodyContent = match[1];
+        shadowBodyStyles += `#shadow-content { ${bodyContent} }\n`;
       }
       
-      // Extract essential component styles from site CSS that should be protected
-      const essentialComponentStyles = siteCSS.split('\n')
-        .filter(line => 
-          line.includes('.thread-module') ||
-          line.includes('.retro-split-') ||
-          line.includes('.profile-tabs') ||
-          line.includes('.thread-button') ||
-          line.includes('.thread-label') ||
-          line.includes('.site-layout')
-        )
-        .join('\n');
-      
+      return shadowBodyStyles;
+    };
+    
+    // Extract body styles from user CSS for shadow DOM
+    const shadowBodyStyles = extractBodyStyles(customCSS);
+    
+    const styleElement = document.createElement('style');
+    styleElement.id = 'shadow-styles';
+    
+    // Add essential Shadow DOM and template styles FIRST (so they can be overridden)
+    if (isAdvancedTemplate) {
+      // Minimal styles for advanced templates - let user control everything
       finalCSS = `
-        /* Basic reset only */
-        * {
+        /* Minimal Shadow DOM container */
+        #shadow-content {
+          width: 100%;
+          min-height: 400px;
+          display: block;
           margin: 0;
           padding: 0;
           box-sizing: border-box;
         }
         
-        /* All site CSS for component compatibility */
-        ${siteCSS}
-        
-        /* Apply body styles to shadow content */
-        ${bodyStyles}
-        
-        /* Custom CSS with !important */
-        ${importantCustomCSS.replace(/body\s*\{[^}]+\}/g, '')}
-        
-        /* Essential component styles with high priority - these come last to override custom CSS */
-        ${addImportantToCSS(essentialComponentStyles)}
-        
-        /* Thread color utilities for template components like NavigationBar */
-        .bg-thread-cream { background-color: #F5E9D4 !important; }
-        .border-thread-sage { border-color: #A18463 !important; }
-        .text-thread-pine { color: #2E4B3F !important; }
-        .text-thread-sunset { color: #B8860B !important; }
-        .text-thread-sage { color: #A18463 !important; }
-        .backdrop-blur-sm { backdrop-filter: blur(4px) !important; }
-        
-        /* NavigationBar template component styling */
-        .site-header {
-          background-color: rgba(245, 233, 212, 0.95) !important;
-          backdrop-filter: blur(4px) !important;
+        /* Islands container visibility */
+        .islands-container {
+          display: block;
+          visibility: visible;
+          opacity: 1;
         }
-        
-        /* Fallback styles come last - only apply if custom CSS doesn't override */
+      ` + finalCSS;
+    } else {
+      // Full utility styles for standard/enhanced templates
+      finalCSS = `
+        /* Shadow DOM specific styles */
         #shadow-content {
-          font-family: system-ui, sans-serif;
-          font-size: 14px;
-          line-height: 1.5;
-          color: #333;
-          min-height: 100vh;
-          background: 
-            linear-gradient(135deg, rgba(245, 233, 212, 0.05) 0%, rgba(245, 233, 212, 0.15) 100%),
-            radial-gradient(circle at 20% 80%, rgba(161, 132, 99, 0.03) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(46, 75, 63, 0.02) 0%, transparent 50%),
-            #FCFAF7;
-          display: flex;
-          flex-direction: column;
           width: 100%;
+          min-height: 400px;
+          display: block;
           margin: 0;
           padding: 0;
+          box-sizing: border-box;
         }
         
-        /* Default site-layout fallback - only applies if custom CSS doesn't override */
-        .site-layout {
-          min-height: 100vh;
-          background: 
-            linear-gradient(135deg, rgba(245, 233, 212, 0.05) 0%, rgba(245, 233, 212, 0.15) 100%),
-            radial-gradient(circle at 20% 80%, rgba(161, 132, 99, 0.03) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(46, 75, 63, 0.02) 0%, transparent 50%),
-            #FCFAF7;
-          display: flex;
-          flex-direction: column;
-          font-family: system-ui, sans-serif;
-          font-size: 16px;
-          line-height: 1.6;
-          color: #2F2F2F;
-          width: 100%;
-          margin: 0;
-          padding: 0;
-        }
-      `;
-    } else if (cssMode === 'override') {
-      // Site CSS first, then custom CSS with higher specificity
-      // Extract body styles from custom CSS and apply them to shadow content
-      const bodyStylesMatch = importantCustomCSS.match(/body\s*\{([^}]+)\}/g);
-      let bodyStyles = '';
-      if (bodyStylesMatch) {
-        bodyStyles = bodyStylesMatch.map(match => {
-          return match.replace(/body\s*\{/, '#shadow-content {');
-        }).join('\n');
-      }
-      
-      finalCSS = `
-        /* Extracted site CSS (base layer) */
-        ${siteCSS}
-        
-        /* Apply body styles to shadow content first */
-        ${bodyStyles}
-        
-        /* Custom CSS with !important - override everything */
-        ${importantCustomCSS.replace(/body\s*\{[^}]+\}/g, '')}
-        
-        /* Fallback styles come last - only apply if custom CSS doesn't override */
-        #shadow-content {
-          max-width: 80rem; /* max-w-5xl */
-          margin: 0 auto;
-          padding: 2rem 1.5rem; /* py-8 px-6 */
-          min-height: 100vh;
-          background: 
-            linear-gradient(135deg, rgba(245, 233, 212, 0.05) 0%, rgba(245, 233, 212, 0.15) 100%),
-            radial-gradient(circle at 20% 80%, rgba(161, 132, 99, 0.03) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(46, 75, 63, 0.02) 0%, transparent 50%),
-            #FCFAF7;
-          display: flex;
-          flex-direction: column;
+        /* Islands container visibility */
+        .islands-container {
+          display: block;
+          visibility: visible;
+          opacity: 1;
         }
         
-        /* Default site-layout fallback - only applies if custom CSS doesn't override */
-        .site-layout {
-          max-width: 80rem; /* max-w-5xl */
-          margin: 0 auto;
-          padding: 2rem 1.5rem; /* py-8 px-6 */
-          min-height: 100vh;
-          background: 
-            linear-gradient(135deg, rgba(245, 233, 212, 0.05) 0%, rgba(245, 233, 212, 0.15) 100%),
-            radial-gradient(circle at 20% 80%, rgba(161, 132, 99, 0.03) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(46, 75, 63, 0.02) 0%, transparent 50%),
-            #FCFAF7;
-          display: flex;
-          flex-direction: column;
-          font-family: system-ui, sans-serif;
-          font-size: 16px;
-          line-height: 1.6;
-          color: #2F2F2F;
-        }
-      `;
-    } else { // cssMode === 'inherit'
-      // Site CSS and custom CSS blended together
-      // For inherit mode, we need to handle body styles carefully:
-      // - Apply body styles to shadow content for preview
-      // - Keep body styles in CSS, but the profile page will handle them correctly
-      const bodyStylesMatch = importantCustomCSS.match(/body\s*\{([^}]+)\}/g);
-      let shadowBodyStyles = '';
-      if (bodyStylesMatch) {
-        shadowBodyStyles = bodyStylesMatch.map(match => {
-          return match.replace(/body\s*\{/, '#shadow-content {');
-        }).join('\n');
-      }
-      
-      finalCSS = `
-        /* Extracted site CSS */
-        ${siteCSS}
-        
-        /* Apply body styles to shadow content first */
-        ${shadowBodyStyles}
-        
-        /* Custom CSS with !important - inherits and extends site styles */
-        ${importantCustomCSS}
-        
-        /* Fallback styles come last - only apply if custom CSS doesn't override */
-        #shadow-content {
-          max-width: 80rem; /* max-w-5xl */
-          margin: 0 auto;
-          padding: 2rem 1.5rem; /* py-8 px-6 */
-          min-height: 100vh;
-          background: 
-            linear-gradient(135deg, rgba(245, 233, 212, 0.05) 0%, rgba(245, 233, 212, 0.15) 100%),
-            radial-gradient(circle at 20% 80%, rgba(161, 132, 99, 0.03) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(46, 75, 63, 0.02) 0%, transparent 50%),
-            #FCFAF7;
-          display: flex;
-          flex-direction: column;
-        }
-        
-        /* Default site-layout fallback - only applies if custom CSS doesn't override */
-        .site-layout {
-          max-width: 80rem; /* max-w-5xl */
-          margin: 0 auto;
-          padding: 2rem 1.5rem; /* py-8 px-6 */
-          min-height: 100vh;
-          background: 
-            linear-gradient(135deg, rgba(245, 233, 212, 0.05) 0%, rgba(245, 233, 212, 0.15) 100%),
-            radial-gradient(circle at 20% 80%, rgba(161, 132, 99, 0.03) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(46, 75, 63, 0.02) 0%, transparent 50%),
-            #FCFAF7;
-          display: flex;
-          flex-direction: column;
-          font-family: system-ui, sans-serif;
-          font-size: 16px;
-          line-height: 1.6;
-          color: #2F2F2F;
-        }
-      `;
+        /* Essential layout utilities */
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .text-center { text-align: center; }
+        .mb-4 { margin-bottom: 1rem; }
+        .gap-4 { gap: 1rem; }
+      ` + finalCSS;
     }
     
-    // Add islands container visibility and ensure background applies
+    // Apply body styles to shadow content
+    if (shadowBodyStyles) {
+      finalCSS += `\n/* Body styles converted to shadow-content */\n${shadowBodyStyles}\n`;
+    }
+    
+    // Component utilities needed for Islands to work (both template types)
     finalCSS += `
-      /* Islands container visibility */
-      .islands-container {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
+      /* ThreadStead color utility classes */
+      .bg-thread-cream { background-color: #F5E9D4; }
+      .bg-thread-sage { background-color: #A18463; }
+      .bg-thread-pine { background-color: #2E4B3F; }
+      .bg-thread-paper { background-color: #FCFAF7; }
+      .bg-thread-sunset { background-color: #E8B547; }
+      .text-thread-cream { color: #F5E9D4; }
+      .text-thread-sage { color: #A18463; }
+      .text-thread-pine { color: #2E4B3F; }
+      .text-thread-charcoal { color: #2F2F2F; }
+      .text-thread-paper { color: #FCFAF7; }
+      .text-thread-sunset { color: #E8B547; }
+      
+      /* ThreadStead color variants for legacy naming */
+      .thread-cream { color: #F5E9D4; }
+      .thread-sage { color: #A18463; }
+      .thread-pine { color: #2E4B3F; }
+      .thread-charcoal { color: #2F2F2F; }
+      .thread-paper { color: #FCFAF7; }
+      .thread-sunset { color: #E8B547; }
+      
+      /* ThreadStead background hover and opacity variants */
+      .hover\\:bg-thread-cream:hover { background-color: #F5E9D4; }
+      .hover\\:bg-thread-cream\\/50:hover { background-color: rgba(245, 233, 212, 0.5); }
+      .hover\\:bg-thread-sunset\\/20:hover { background-color: rgba(232, 181, 71, 0.2); }
+      .thread-sage\\/20 { background-color: rgba(161, 132, 99, 0.2); }
+      .thread-sage\\/30 { background-color: rgba(161, 132, 99, 0.3); }
+      .bg-thread-cream\\/50 { background-color: rgba(245, 233, 212, 0.5); }
+      
+      /* Profile component specific classes */
+      .profile-photo-wrapper { display: flex; flex-direction: column; align-items: center; }
+      .profile-photo-frame { border: 4px solid #000; box-shadow: 4px 4px 0 #000; background: #fff; padding: 4px; }
+      .profile-photo-placeholder { background: #fef08a; color: #000; display: flex; align-items: center; justify-content: center; }
+      
+      /* Guestbook component classes */
+      .guestbook-section { background: #FCFAF7; border: 1px solid #A18463; border-radius: 8px; padding: 1rem; }
+      .guestbook-entry { background: rgba(255, 255, 255, 0.8); border-radius: 6px; padding: 0.75rem; margin-bottom: 0.75rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+      
+      /* Friend and website display classes */
+      .featured-friends, .websites-section { border: 1px solid #000; padding: 0.75rem; background: #fff; box-shadow: 2px 2px 0 #000; }
+      .section-heading { font-weight: bold; margin-bottom: 0.5rem; }
+      .friend-card, .website-item { border: 1px solid #d1d5db; background: #f9fafb; padding: 0.5rem; border-radius: 4px; }
+      .friend-card:hover, .website-item:hover { background: #fef3c7; }
+      
+      /* Profile tabs styling */
+      .profile-tabs { padding: 0; overflow: hidden; }
+      .profile-tab-list { display: flex; border-bottom: 1px solid rgba(161, 132, 99, 0.3); }
+      .profile-tab-button { padding: 0.75rem 1rem; text-align: center; border-right: 1px solid rgba(161, 132, 99, 0.2); cursor: pointer; transition: all 0.2s; }
+      .profile-tab-button.active { background: #F5E9D4; font-weight: 500; color: #2E4B3F; }
+      .profile-tab-button:hover { background: rgba(245, 233, 212, 0.5); color: #2E4B3F; }
+      .profile-tab-panel { padding: 1.5rem; }
+      
+      /* Media grid specific styles */
+      .media-grid { background: #FCFAF7; border-radius: 8px; padding: 1rem; }
+      .media-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+      .media-item { border: 1px solid #A18463; background: #FCFAF7; aspect-ratio: 1; overflow: hidden; border-radius: 4px; position: relative; }
+      .media-item:hover { transform: scale(1.02); transition: transform 0.2s; }
+      
+      /* Profile badges styling */
+      .profile-badges { background: #FCFAF7; border-radius: 8px; padding: 1rem; }
+      
+      /* Handwriting font for special components */
+      .font-handwriting { font-family: 'Comic Sans MS', cursive, sans-serif; }
+      .border-thread-sage { border-color: #A18463; }
+      .border-thread-sage\/30 { border-color: rgba(161, 132, 99, 0.3); }
+      .border-thread-sage\/20 { border-color: rgba(161, 132, 99, 0.2); }
+      
+      /* Border utilities */
+      .border { border-width: 1px; }
+      .border-b { border-bottom-width: 1px; }
+      .border-r { border-right-width: 1px; }
+      
+      /* Padding utilities used by components */
+      .p-0 { padding: 0; }
+      .p-2 { padding: 0.5rem; }
+      .p-4 { padding: 1rem; }
+      .p-5 { padding: 1.25rem; }
+      .p-6 { padding: 1.5rem; }
+      .p-8 { padding: 2rem; }
+      .p-12 { padding: 3rem; }
+      .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+      .px-4 { padding-left: 1rem; padding-right: 1rem; }
+      .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+      .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+      
+      /* Max-width utilities for CenteredBox */
+      .max-w-sm { max-width: 24rem; }
+      .max-w-md { max-width: 28rem; }
+      .max-w-lg { max-width: 32rem; }
+      .max-w-xl { max-width: 36rem; }
+      .max-w-2xl { max-width: 42rem; }
+      .max-w-full { max-width: 100%; }
+      
+      /* Layout utilities */
+      .mx-auto { margin-left: auto; margin-right: auto; }
+      
+      /* Flexbox utilities */
+      .flex { display: flex; }
+      .items-center { align-items: center; }
+      .justify-between { justify-content: space-between; }
+      .w-full { width: 100%; }
+      
+      /* Spacing utilities */
+      .gap-2 { gap: 0.5rem; }
+      .gap-3 { gap: 0.75rem; }
+      .space-y-3 > * + * { margin-top: 0.75rem; }
+      .space-y-4 > * + * { margin-top: 1rem; }
+      
+      /* Margin utilities */
+      .mb-2 { margin-bottom: 0.5rem; }
+      .mb-3 { margin-bottom: 0.75rem; }
+      .mb-4 { margin-bottom: 1rem; }
+      .mb-6 { margin-bottom: 1.5rem; }
+      .mt-4 { margin-top: 1rem; }
+      
+      /* Typography utilities */
+      .text-3xl { font-size: 1.875rem; }
+      .text-2xl { font-size: 1.5rem; }
+      .text-xl { font-size: 1.25rem; }
+      .text-lg { font-size: 1.125rem; }
+      .text-base { font-size: 1rem; }
+      .text-sm { font-size: 0.875rem; }
+      .text-xs { font-size: 0.75rem; }
+      .text-6xl { font-size: 4rem; }
+      .font-bold { font-weight: 700; }
+      .font-semibold { font-weight: 600; }
+      .font-medium { font-weight: 500; }
+      .italic { font-style: italic; }
+      .opacity-70 { opacity: 0.7; }
+      .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .leading-relaxed { line-height: 1.625; }
+      
+      /* Background and border utilities */
+      .bg-white { background-color: #ffffff; }
+      .bg-gray-50 { background-color: #f9fafb; }
+      .bg-gray-100 { background-color: #f3f4f6; }
+      .bg-gray-200 { background-color: #e5e7eb; }
+      .bg-red-50 { background-color: #fef2f2; }
+      .bg-yellow-200 { background-color: #fde047; }
+      .bg-pink-200 { background-color: #fbcfe8; }
+      .bg-blue-200 { background-color: #bfdbfe; }
+      .bg-green-200 { background-color: #bbf7d0; }
+      .bg-orange-200 { background-color: #fed7aa; }
+      .bg-purple-200 { background-color: #e9d5ff; }
+      .hover\\:bg-gray-100:hover { background-color: #f3f4f6; }
+      .hover\\:bg-yellow-100:hover { background-color: #fef3c7; }
+      .border { border-width: 1px; }
+      .border-2 { border-width: 2px; }
+      .border-4 { border-width: 4px; }
+      .border-black { border-color: #000000; }
+      .border-gray-200 { border-color: #e5e7eb; }
+      .border-gray-300 { border-color: #d1d5db; }
+      .border-yellow-300 { border-color: #fde047; }
+      .border-pink-300 { border-color: #f9a8d4; }
+      .border-blue-300 { border-color: #93c5fd; }
+      .border-green-300 { border-color: #86efac; }
+      .border-orange-300 { border-color: #fdba74; }
+      .border-purple-300 { border-color: #d8b4fe; }
+      .border-red-200 { border-color: #fecaca; }
+      .border-t { border-top-width: 1px; }
+      .border-b { border-bottom-width: 1px; }
+      .border-l-4 { border-left-width: 4px; }
+      .border-dashed { border-style: dashed; }
+      .rounded { border-radius: 0.25rem; }
+      .rounded-lg { border-radius: 0.5rem; }
+      .rounded-full { border-radius: 9999px; }
+      .rounded-sm { border-radius: 0.125rem; }
+      
+      /* Positioning utilities */
+      .relative { position: relative; }
+      .absolute { position: absolute; }
+      .fixed { position: fixed; }
+      .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+      .-top-1 { top: -0.25rem; }
+      .left-1\\/2 { left: 50%; }
+      .transform { transform: var(--tw-transform); }
+      .-translate-x-1\\/2 { --tw-translate-x: -50%; transform: translateX(var(--tw-translate-x)); }
+      .z-10 { z-index: 10; }
+      .z-50 { z-index: 50; }
+      
+      /* Sizing utilities */
+      .w-3 { width: 0.75rem; }
+      .w-8 { width: 2rem; }
+      .w-10 { width: 2.5rem; }
+      .w-16 { width: 4rem; }
+      .w-32 { width: 8rem; }
+      .w-48 { width: 12rem; }
+      .w-64 { width: 16rem; }
+      .w-80 { width: 20rem; }
+      .w-full { width: 100%; }
+      .h-3 { height: 0.75rem; }
+      .h-4 { height: 1rem; }
+      .h-8 { height: 2rem; }
+      .h-10 { height: 2.5rem; }
+      .h-16 { height: 4rem; }
+      .h-32 { height: 8rem; }
+      .h-48 { height: 12rem; }
+      .h-64 { height: 16rem; }
+      .h-full { height: 100%; }
+      .min-w-0 { min-width: 0; }
+      .min-w-fit { min-width: fit-content; }
+      .flex-1 { flex: 1 1 0%; }
+      .flex-shrink-0 { flex-shrink: 0; }
+      
+      /* Grid utilities */
+      .grid { display: grid; }
+      .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .aspect-square { aspect-ratio: 1 / 1; }
+      
+      /* Background utilities - missing colors */
+      .bg-black { background-color: #000000; }
+      .bg-transparent { background-color: transparent; }
+      .bg-red-500 { background-color: #ef4444; }
+      .bg-yellow-500 { background-color: #eab308; }
+      .bg-green-500 { background-color: #22c55e; }
+      .bg-blue-400 { background-color: #60a5fa; }
+      .bg-opacity-70 { background-color: rgba(255, 255, 255, 0.7); }
+      
+      /* Text color utilities */
+      .text-white { color: #ffffff; }
+      .text-black { color: #000000; }
+      .text-gray-500 { color: #6b7280; }
+      .text-gray-600 { color: #4b5563; }
+      .text-gray-700 { color: #374151; }
+      .text-blue-600 { color: #2563eb; }
+      .text-blue-800 { color: #1e40af; }
+      .text-red-700 { color: #b91c1c; }
+      
+      /* Hover text utilities */
+      .hover\\:text-blue-800:hover { color: #1e40af; }
+      .hover\\:underline:hover { text-decoration: underline; }
+      .hover\\:text-thread-pine:hover { color: #2E4B3F; }
+      .no-underline { text-decoration: none; }
+      
+      /* Advanced layout utilities */
+      .space-y-6 > * + * { margin-top: 1.5rem; }
+      .justify-center { justify-content: center; }
+      .items-start { align-items: flex-start; }
+      .items-end { align-items: flex-end; }
+      .flex-wrap { flex-wrap: wrap; }
+      .flex-col { flex-direction: column; }
+      .inline-flex { display: inline-flex; }
+      .inline-block { display: inline-block; }
+      .block { display: block; }
+      .cursor-pointer { cursor: pointer; }
+      .cursor-default { cursor: default; }
+      .pointer-events-none { pointer-events: none; }
+      .pointer-events-auto { pointer-events: auto; }
+      
+      /* Transition and transform utilities */
+      .transition-all { transition: all 0.15s ease-in-out; }
+      .transition-colors { transition-property: color, background-color, border-color; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+      .transition-transform { transition-property: transform; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+      .transition-opacity { transition-property: opacity; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+      .duration-200 { transition-duration: 200ms; }
+      .hover\\:scale-105:hover { transform: scale(1.05); }
+      .group:hover .group-hover\\:scale-105 { transform: scale(1.05); }
+      .group:hover .group-hover\\:opacity-100 { opacity: 1; }
+      .opacity-0 { opacity: 0; }
+      
+      /* Focus and state utilities */
+      .focus\\:outline-none:focus { outline: 0; }
+      .focus\\:border-thread-pine:focus { border-color: #2E4B3F; }
+      .focus\\:ring-1:focus { box-shadow: 0 0 0 1px rgba(46, 75, 63, 0.5); }
+      .focus\\:ring-thread-pine:focus { --tw-ring-color: rgba(46, 75, 63, 0.5); }
+      .disabled\\:opacity-50:disabled { opacity: 0.5; }
+      .disabled\\:cursor-not-allowed:disabled { cursor: not-allowed; }
+      
+      /* Shadow utilities */
+      .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+      .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+      .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+      
+      /* Overflow and display utilities */
+      .overflow-auto { overflow: auto; }
+      .text-center { text-align: center; }
+      .resize-none { resize: none; }
+      
+      /* Custom shadow utilities used by PostItem and other components */
+      .shadow-\\[2px_2px_0_\\#000\\] { box-shadow: 2px 2px 0 #000; }
+      .shadow-\\[1px_1px_0_\\#000\\] { box-shadow: 1px 1px 0 #000; }
+      .shadow-\\[4px_4px_0_\\#000\\] { box-shadow: 4px 4px 0 #000; }
+      
+      /* ThreadStead shadow classes */
+      .shadow-cozy { box-shadow: 3px 3px 0 #A18463; }
+      .shadow-cozySm { box-shadow: 2px 2px 0 #A18463; }
+      
+      /* ThreadStead border radius */
+      .rounded-cozy { border-radius: 8px; }
+      
+      /* Display utilities */
+      .overflow-hidden { overflow: hidden; }
+      .overflow-x-auto { overflow-x: auto; }
+      .overflow-y-hidden { overflow-y: hidden; }
+      
+      /* Typography utilities */
+      .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+      .text-base { font-size: 1rem; line-height: 1.5rem; }
+      .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+      .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+      .font-bold { font-weight: 700; }
+      .font-medium { font-weight: 500; }
+      
+      /* Essential ThreadStead component classes */
+      .thread-module {
+        background: #FCFAF7;
+        border: 1px solid #A18463;
+        border-radius: 8px;
+        box-shadow: 3px 3px 0 #A18463;
+        position: relative;
+        min-width: 900px;
+        width: 100%;
+        max-width: 1100px;
       }
       
-      /* Ensure shadow content takes full space */
-      #shadow-content {
-        width: 100% !important;
-        min-height: 100% !important;
-        display: block !important;
+      .thread-headline {
+        font-family: Georgia, "Times New Roman", serif;
+        color: #2E4B3F;
+        font-weight: 600;
+        letter-spacing: -0.02em;
       }
       
-      /* Global image reset to prevent sizing conflicts */
-      img {
-        max-width: none !important;
-        width: auto !important;
-        height: auto !important;
+      .thread-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #A18463;
       }
       
-      /* ProfilePhoto utility overrides with maximum specificity */
-      .profile-photo-image.w-8 { width: 2rem !important; }
-      .profile-photo-image.h-8 { height: 2rem !important; }
-      .profile-photo-image.w-16 { width: 4rem !important; }
-      .profile-photo-image.h-16 { height: 4rem !important; }
-      .profile-photo-image.w-32 { width: 8rem !important; }
-      .profile-photo-image.h-32 { height: 8rem !important; }
-      .profile-photo-image.w-48 { width: 12rem !important; }
-      .profile-photo-image.h-48 { height: 12rem !important; }
-      .profile-photo-image.object-cover { object-fit: cover !important; }
-      .profile-photo-image.rounded-full { border-radius: 9999px !important; }
-      .profile-photo-image.rounded-none { border-radius: 0 !important; }
-      
-      /* Essential layout utilities for templates */
-      .flex { display: flex !important; }
-      .flex-col { flex-direction: column !important; }
-      .flex-wrap { flex-wrap: wrap !important; }
-      .items-center { align-items: center !important; }
-      .justify-center { justify-content: center !important; }
-      .text-center { text-align: center !important; }
-      .mb-4 { margin-bottom: 1rem !important; }
-      .gap-4 { gap: 1rem !important; }
-      
-      /* ProfilePhoto specific utilities */
-      .border-4 { border-width: 4px !important; }
-      .border-black { border-color: #000 !important; }
-      .bg-white { background-color: white !important; }
-      .p-1 { padding: 0.25rem !important; }
-      .shadow-\\[4px_4px_0_\\#000\\] { 
-        box-shadow: 4px 4px 0 #000 !important; 
+      .thread-button {
+        background: #2E4B3F;
+        border: 2px solid #A18463;
+        color: #FCFAF7;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        box-shadow: 2px 2px 0 #A18463;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
       }
       
-      /* Template layout classes that might not be working */
+      .thread-button:hover {
+        background: #3A5F51;
+        transform: translate(-1px, -1px);
+        box-shadow: 3px 3px 0 #A18463;
+      }
+      
+      /* Blog post component styles - matches PostItem styling */
+      .blog-post-card {
+        background: #ffffff;
+        border: 1px solid #000000;
+        padding: 0.75rem;
+        box-shadow: 2px 2px 0 #000000;
+        margin-bottom: 0.75rem;
+      }
+      
+      .blog-post-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+      }
+      
+      .blog-post-date {
+        font-size: 0.75rem;
+        opacity: 0.7;
+      }
+      
+      .blog-post-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      
+      .blog-post-content {
+        margin-bottom: 1rem;
+      }
+      
+      /* Blog post action buttons */
+      .blog-post-card button {
+        border: 1px solid #000000;
+        padding: 0.25rem 0.5rem;
+        background: #ffffff;
+        box-shadow: 1px 1px 0 #000000;
+        font-size: 0.75rem;
+        cursor: pointer;
+      }
+      
+      .blog-post-card button:hover {
+        background: #f3f4f6;
+      }
+      
+      /* Comments section styling */
+      .blog-post-card section {
+        margin-top: 1rem;
+        border-top: 1px solid #000000;
+        padding-top: 0.75rem;
+      }
+      
+      .blog-post-card section button {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border: 1px solid #000000;
+        background: #ffffff;
+        box-shadow: 2px 2px 0 #000000;
+        font-size: 0.875rem;
+      }
+      
+      .blog-post-card section button:hover {
+        background: #fef3c7;
+      }
+
+      /* Profile tabs styles */
+      .profile-tabs {
+        padding: 0;
+      }
+      
+      .profile-tab-list {
+        display: flex;
+        border-bottom: 1px solid rgba(161, 132, 99, 0.3);
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      
+      .profile-tab-button {
+        padding: 0.75rem 1rem;
+        text-align: center;
+        border-right: 1px solid rgba(161, 132, 99, 0.2);
+        background: #FCFAF7;
+        color: #A18463;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: fit-content;
+        border: none;
+        font-size: 0.875rem;
+      }
+      
+      .profile-tab-button:hover {
+        background: rgba(252, 250, 247, 0.5);
+        color: #2E4B3F;
+      }
+      
+      .profile-tab-button.active {
+        background: #F5E9D4;
+        color: #2E4B3F;
+        font-weight: 500;
+      }
+      
+      .profile-tab-panel {
+        padding: 1.5rem;
+      }
+      
+      /* ProfilePhoto utilities */
+      .profile-photo-image.w-8 { width: 2rem; }
+      .profile-photo-image.h-8 { height: 2rem; }
+      .profile-photo-image.w-16 { width: 4rem; }
+      .profile-photo-image.h-16 { height: 4rem; }
+      .profile-photo-image.w-32 { width: 8rem; }
+      .profile-photo-image.h-32 { height: 8rem; }
+      .profile-photo-image.object-cover { object-fit: cover; }
+      .profile-photo-image.rounded-full { border-radius: 9999px; }
+      
+      /* Template layout classes */
       .retro-split-layout {
-        display: flex !important;
-        gap: 1rem !important;
-        margin-bottom: 2rem !important;
-        flex-wrap: wrap !important;
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
       }
       .retro-split-left {
-        flex: 30% !important;
-        min-width: 200px !important;
-        text-align: center !important;
+        flex: 30%;
+        min-width: 200px;
+        text-align: center;
       }
       .retro-split-right {
-        flex: 70% !important;
-        min-width: 300px !important;
+        flex: 70%;
+        min-width: 300px;
+      }
+      
+      /* Vintage/Neocities template specific styles */
+      .vintage-header {
+        background: linear-gradient(45deg, #ff6b6b, #feca57);
+        border: 3px solid #333;
+        padding: 10px;
+        text-align: center;
+        font-family: 'Comic Sans MS', cursive;
+        box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+      }
+      
+      .neocities-container {
+        background: #f0f8ff;
+        border: 2px dashed #4169e1;
+        padding: 15px;
+        margin: 10px 0;
+        font-family: monospace;
+      }
+      
+      .classic-button {
+        background: linear-gradient(to bottom, #f0f0f0, #d0d0d0);
+        border: 2px outset #d0d0d0;
+        padding: 5px 15px;
+        font-family: sans-serif;
+        cursor: pointer;
+      }
+      
+      .classic-button:hover {
+        background: linear-gradient(to bottom, #e0e0e0, #c0c0c0);
       }
     `;
     
-    styleElement.textContent = finalCSS;
+    // For standard layout templates, append the user's custom CSS at the very end 
+    // so it can override any default styles
+    if (useStandardLayout && customCSS) {
+      finalCSS += `\n\n/* User Custom CSS - highest priority */\n${customCSS}\n`;
+    }
     
-    // Insert at beginning of shadow root
+    styleElement.textContent = finalCSS;
     shadowRootRef.current.insertBefore(styleElement, shadowRootRef.current.firstChild);
-  }, [customCSS, cssMode, getSiteCSS]);
+  }, [customCSS, cssMode, siteWideCSS, useStandardLayout]);
 
   // Update shadow DOM styles when CSS or mode changes
   React.useEffect(() => {
@@ -921,6 +1298,8 @@ function IslandsPreview({
         <ShadowPortal shadowRoot={shadowRootRef.current}>
           <React.Suspense fallback={<div className="p-4">Loading islands...</div>}>
             <ErrorBoundary>
+              {/* Show MinimalNavBar for advanced templates when navigation is enabled */}
+              {!useStandardLayout && showNavigation && <MinimalNavBar />}
               {renderIslandsDirectly()}
             </ErrorBoundary>
           </React.Suspense>
