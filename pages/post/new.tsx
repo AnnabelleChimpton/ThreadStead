@@ -268,7 +268,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
       });
 
       // Create a promise for the upload
-      const uploadPromise = new Promise<{ success: boolean; media: { mediumUrl: string } }>((resolve, reject) => {
+      const uploadPromise = new Promise<{ success: boolean; media: { mediumUrl: string; id: string; [key: string]: any } }>((resolve, reject) => {
         xhr.onload = () => {
           if (xhr.status === 200) {
             const response = JSON.parse(xhr.responseText);
@@ -294,7 +294,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
       
       // Insert the image markdown at cursor position
       const textarea = textareaRef.current;
-      if (textarea && response.media?.mediumUrl) {
+      if (textarea && response.success && response.media?.mediumUrl) {
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const value = textarea.value;
@@ -310,6 +310,8 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
           const newCursorPos = start + imageMarkdown.length;
           textarea.selectionStart = textarea.selectionEnd = newCursorPos;
         }, 0);
+      } else {
+        throw new Error('Upload succeeded but no media URL returned');
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to upload image');

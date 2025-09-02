@@ -35,6 +35,7 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [bio, setBio] = useState('');
+  const [profileSaved, setProfileSaved] = useState(false);
 
   // Step 5: Complete
   const [accountCreated, setAccountCreated] = useState(false);
@@ -171,6 +172,8 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
     setError(null);
 
     try {
+      let profileUpdated = false;
+      
       // Upload profile photo if selected
       if (profilePhoto) {
         const formData = new FormData();
@@ -178,12 +181,15 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
         
         const photoResponse = await fetch('/api/user/photo', {
           method: 'POST',
-          body: formData
+          body: formData,
+          credentials: 'include' // Ensure cookies are sent
         });
         
         if (!photoResponse.ok) {
-          throw new Error('Failed to upload profile photo');
+          const errorData = await photoResponse.json().catch(() => ({ error: 'Failed to upload photo' }));
+          throw new Error(errorData.error || 'Failed to upload profile photo');
         }
+        profileUpdated = true;
       }
 
       // Update bio if provided
@@ -191,19 +197,29 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
         const bioResponse = await fetch('/api/user/bio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bio: bio.trim() })
+          body: JSON.stringify({ bio: bio.trim() }),
+          credentials: 'include' // Ensure cookies are sent
         });
         
         if (!bioResponse.ok) {
-          throw new Error('Failed to update bio');
+          const errorData = await bioResponse.json().catch(() => ({ error: 'Failed to save bio' }));
+          throw new Error(errorData.error || 'Failed to update bio');
         }
+        profileUpdated = true;
       }
 
-      setCurrentStep('complete');
+      // Only proceed if either operation was attempted and successful
+      if (profileUpdated || (!profilePhoto && !bio.trim())) {
+        setProfileSaved(true);
+        // Show success briefly before moving to complete
+        setTimeout(() => setCurrentStep('complete'), 1500);
+      } else {
+        throw new Error('No profile data to save');
+      }
     } catch (err) {
+      console.error('Profile setup error:', err);
       setError((err as Error).message || 'Failed to set up profile');
-      // Continue to completion even if profile setup fails
-      setTimeout(() => setCurrentStep('complete'), 2000);
+      // Don't automatically proceed on error - let user retry or skip manually
     } finally {
       setIsLoading(false);
     }
@@ -551,23 +567,33 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={handleProfileSetup}
-                    disabled={isLoading}
-                    className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50"
+                    disabled={isLoading || (!profilePhoto && !bio.trim())}
+                    className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? "Setting up..." : (profilePhoto || bio.trim()) ? "Save Profile & Finish" : "Skip Profile Setup"}
+                    {isLoading ? "Saving..." : "Save Profile & Finish"}
                   </button>
                   
                   <button
                     onClick={() => setCurrentStep('complete')}
-                    className="text-sm text-gray-600 hover:text-gray-800 underline"
+                    disabled={isLoading}
+                    className="text-sm text-gray-600 hover:text-gray-800 underline disabled:opacity-50"
                   >
                     Skip for now
                   </button>
                 </div>
 
+                {profileSaved && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                    <strong>✓ Success!</strong> Your profile has been saved.
+                  </div>
+                )}
+                
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                    {error}
+                    <strong>Error:</strong> {error}
+                    <div className="mt-2 text-xs">
+                      You can try again or skip this step and set up your profile later in settings.
+                    </div>
                   </div>
                 )}
               </div>
