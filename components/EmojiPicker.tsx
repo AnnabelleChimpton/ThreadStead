@@ -103,7 +103,8 @@ export default function EmojiPicker({ onEmojiSelect, className = "" }: EmojiPick
                     <img
                       src={emoji.imageUrl}
                       alt={emoji.name}
-                      className="w-6 h-6 mx-auto"
+                      className="mx-auto"
+                      style={{ width: '24px', height: '24px', display: 'block' }}
                       onError={(e) => {
                         // Hide broken images
                         e.currentTarget.style.display = 'none';

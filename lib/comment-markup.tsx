@@ -195,7 +195,7 @@ export function processHtmlWithEmojis(html: string): string {
   return html.replace(/:([a-zA-Z0-9_-]+):/g, (match, emojiName) => {
     const emojiUrl = emojiMap.get(emojiName);
     if (emojiUrl) {
-      return `<img src="${emojiUrl}" alt="${match}" title="${match}" class="inline-block w-5 h-5 mx-1 align-text-bottom" style="display: inline-block; width: 1.25rem; height: 1.25rem; margin: 0 0.25rem; vertical-align: text-bottom;" />`;
+      return `<img src="${emojiUrl}" alt="${match}" title="${match}" class="inline-block mx-1 align-text-bottom" style="display: inline-block; width: 20px; height: 20px; margin: 0 0.25rem; vertical-align: text-bottom;" />`;
     }
     return match;
   });
@@ -318,7 +318,8 @@ export function renderParsedContent(content: (ParsedContent | string)[], keyPref
             src={item.emojiUrl} 
             alt={item.content}
             title={item.content}
-            className="inline-block w-5 h-5 mx-1 align-text-bottom"
+            className="inline-block mx-1 align-text-bottom"
+            style={{ width: '20px', height: '20px', display: 'inline-block' }}
             onError={(e) => {
               // If emoji fails to load, replace with text
               const span = document.createElement('span');
@@ -530,7 +531,8 @@ function parseEmojiText(text: string): React.ReactNode {
               src={emojiUrl} 
               alt={fullMatch}
               title={fullMatch}
-              className="inline-block w-5 h-5 mx-1 align-text-bottom"
+              className="inline-block mx-1 align-text-bottom"
+              style={{ width: '20px', height: '20px', display: 'inline-block' }}
               onError={(e) => {
                 // If emoji fails to load, replace with text
                 const span = document.createElement('span');
