@@ -16,8 +16,8 @@ function readCookie(req: NextApiRequest, name: string) {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { did, publicKey, signature, betaKey } = (req.body || {}) as {
-    did?: string; publicKey?: string; signature?: string; betaKey?: string;
+  const { did, publicKey, signature, betaKey, authMethod } = (req.body || {}) as {
+    did?: string; publicKey?: string; signature?: string; betaKey?: string; authMethod?: string;
   };
   if (!did || !publicKey || !signature) return res.status(400).json({ error: "bad body" });
 
@@ -71,7 +71,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       user = await db.$transaction(async (tx) => {
         // Create user first
-        const newUser = await tx.user.create({ data: { did } });
+        const newUser = await tx.user.create({ 
+          data: { 
+            did,
+            authMethod: authMethod === 'password' ? 'PASSWORD' : 'SEED_PHRASE'
+          }
+        });
         
         // If beta key was required, consume it within the transaction
         if (betaKey && betaCheck.valid) {

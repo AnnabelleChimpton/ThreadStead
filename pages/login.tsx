@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import Layout from "@/components/Layout";
-import { recoverFromSeedPhrase } from "@/lib/did-client";
+import { recoverFromSeedPhrase, loginWithPassword } from "@/lib/did-client";
 
-type LoginMethod = 'main' | 'seed-phrase' | 'email-login' | 'email-sent';
+type LoginMethod = 'main' | 'password-login' | 'seed-phrase' | 'email-login' | 'email-sent';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,6 +14,10 @@ export default function LoginPage() {
 
   // Seed phrase login state
   const [seedPhrase, setSeedPhrase] = useState('');
+
+  // Password login state
+  const [passwordInput, setPasswordInput] = useState('');
+  const [usernameForPassword, setUsernameForPassword] = useState('');
 
   // Email login state
   const [emailInput, setEmailInput] = useState('');
@@ -44,6 +48,28 @@ export default function LoginPage() {
       window.location.href = '/me';
     } catch (e) {
       setError((e as Error).message || 'Invalid seed phrase or login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handlePasswordLogin() {
+    if (!passwordInput.trim() || !usernameForPassword.trim()) {
+      setError('Please enter both username and password');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Use the new password login function
+      await loginWithPassword(usernameForPassword.trim(), passwordInput.trim());
+      
+      // Redirect to profile on success
+      window.location.href = '/me';
+    } catch (e) {
+      setError((e as Error).message || 'Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -85,6 +111,8 @@ export default function LoginPage() {
     setCurrentView('main');
     setError(null);
     setSeedPhrase('');
+    setPasswordInput('');
+    setUsernameForPassword('');
     setEmailInput('');
     setUsernameInput('');
   }
@@ -113,6 +141,25 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-4">
+                {/* Password Login (Primary) */}
+                <div className="bg-green-50 border border-green-200 rounded p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-2xl">🔐</span>
+                    <div>
+                      <h3 className="font-bold text-green-900">Sign in with Password</h3>
+                      <p className="text-sm text-green-700">
+                        Use your username and password
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setCurrentView('password-login')}
+                    className="w-full px-4 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                  >
+                    Continue with Password
+                  </button>
+                </div>
+
                 {/* Seed Phrase Login */}
                 <div className="bg-blue-50 border border-blue-200 rounded p-4">
                   <div className="flex items-center gap-3 mb-3">
@@ -230,6 +277,85 @@ export default function LoginPage() {
                     {error}
                   </div>
                 )}
+
+                <div className="text-center mt-4">
+                  <button
+                    onClick={resetToMain}
+                    className="text-sm text-gray-600 hover:text-gray-800 underline"
+                  >
+                    Try a different sign in method
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Password Login Form */}
+          {currentView === 'password-login' && (
+            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+              <div className="flex items-center gap-2 mb-6">
+                <button onClick={resetToMain} className="text-gray-500 hover:text-gray-700 text-xl">
+                  ←
+                </button>
+                <h2 className="text-2xl font-bold">Sign in with Password</h2>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-600 text-sm">
+                  Enter your username and password to sign in.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold mb-2">Username</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">@</span>
+                    <input
+                      type="text"
+                      value={usernameForPassword}
+                      onChange={(e) => setUsernameForPassword(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+                      placeholder="alice"
+                      className="w-full pl-8 pr-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold mb-2">Password</label>
+                  <input
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    disabled={isLoading}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handlePasswordLogin();
+                      }
+                    }}
+                  />
+                </div>
+
+                <button
+                  onClick={handlePasswordLogin}
+                  disabled={isLoading || !passwordInput.trim() || !usernameForPassword.trim()}
+                  className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50"
+                >
+                  {isLoading ? "Signing in..." : "Sign In"}
+                </button>
+
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+
+                <div className="text-sm text-gray-500 text-center">
+                  Don&apos;t have a password? You may have signed up using a seed phrase instead.
+                </div>
 
                 <div className="text-center mt-4">
                   <button

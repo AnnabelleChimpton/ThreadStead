@@ -3,27 +3,36 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import Layout from "@/components/Layout";
-import { createNewIdentityWithSeedPhrase } from "@/lib/did-client";
+import { createNewIdentityWithSeedPhrase, createNewIdentityWithPassword } from "@/lib/did-client";
+import { validatePasswordStrength } from "@/lib/password-auth";
 import { validateUsername } from "@/lib/validateUsername";
 
 interface SignupPageProps {
   betaKey?: string | null;
 }
 
-type SignupStep = 'welcome' | 'seed-phrase' | 'email' | 'profile' | 'complete';
+type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'profile' | 'complete';
+type AuthMethod = 'password' | 'seedphrase';
 
 export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<SignupStep>('welcome');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAuthMethod, setSelectedAuthMethod] = useState<AuthMethod | null>(null);
 
   // Step 1: Username and Beta Key
   const [username, setUsername] = useState('');
   const [betaKey, setBetaKey] = useState(urlBetaKey || '');
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
 
-  // Step 2: Seed Phrase
+  // Step 2: Password Setup (if password auth)
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  
+  // Step 3: Seed Phrase
   const [generatedSeedPhrase, setGeneratedSeedPhrase] = useState<string>('');
   const [seedPhraseSaved, setSeedPhraseSaved] = useState(false);
 
@@ -92,16 +101,56 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
       return;
     }
 
+    // Move to auth method selection
+    setCurrentStep('auth-method');
+  }
+
+  async function handleAuthMethodSelected(method: AuthMethod) {
+    setSelectedAuthMethod(method);
+    
+    if (method === 'password') {
+      setCurrentStep('password-setup');
+    } else {
+      // Create account with seed phrase immediately
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const result = await createNewIdentityWithSeedPhrase(username.trim(), betaKey || undefined);
+        setGeneratedSeedPhrase(result.mnemonic);
+        setCurrentStep('seed-phrase');
+        setAccountCreated(true);
+      } catch (e: unknown) {
+        setError((e as Error).message || 'Failed to create account');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }
+
+  async function handlePasswordSetup() {
+    // Validate password
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    const validation = validatePasswordStrength(password);
+    if (!validation.valid) {
+      setPasswordErrors(validation.errors);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      // Create account with seed phrase
-      const result = await createNewIdentityWithSeedPhrase(username.trim(), betaKey || undefined);
-      
+      // Create account with password
+      const result = await createNewIdentityWithPassword(username.trim(), password, betaKey || undefined);
       setGeneratedSeedPhrase(result.mnemonic);
-      setCurrentStep('seed-phrase');
       setAccountCreated(true);
+      // For password users, optionally show seed phrase but move to email step
+      setCurrentStep('email');
     } catch (e: unknown) {
       setError((e as Error).message || 'Failed to create account');
     } finally {
@@ -384,7 +433,181 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
             </div>
           )}
 
-          {/* Step 2: Seed Phrase */}
+          {/* Step 2: Auth Method Selection */}
+          {currentStep === 'auth-method' && (
+            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+              <div className="text-center mb-8">
+                <span className="text-6xl mb-4 block">🔑</span>
+                <h2 className="text-3xl font-bold mb-2">Choose Your Security Method</h2>
+                <p className="text-gray-600">
+                  How would you like to secure your @{username} account?
+                </p>
+              </div>
+
+              <div className="max-w-2xl mx-auto space-y-4">
+                {/* Password Option (Recommended) */}
+                <div className="border-2 border-green-500 rounded-lg p-6 bg-green-50">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <span className="inline-block px-3 py-1 bg-green-200 text-green-800 text-xs font-bold rounded">
+                        RECOMMENDED
+                      </span>
+                    </div>
+                    <div className="flex-grow">
+                      <h3 className="text-xl font-bold mb-2">🔐 Use a Password</h3>
+                      <p className="text-gray-700 mb-4">
+                        Familiar and easy! Sign in with a username and password, just like traditional apps.
+                      </p>
+                      <ul className="text-sm text-gray-600 space-y-1 mb-4">
+                        <li>✓ Easy to remember and use</li>
+                        <li>✓ Change your password anytime</li>
+                        <li>✓ Recovery phrase generated but hidden</li>
+                        <li>✓ Perfect for most users</li>
+                      </ul>
+                      <button
+                        onClick={() => handleAuthMethodSelected('password')}
+                        className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                      >
+                        Continue with Password →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seed Phrase Option (Advanced) */}
+                <div className="border border-gray-300 rounded-lg p-6 bg-gray-50">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <span className="inline-block px-3 py-1 bg-gray-200 text-gray-700 text-xs font-bold rounded">
+                        ADVANCED
+                      </span>
+                    </div>
+                    <div className="flex-grow">
+                      <h3 className="text-xl font-bold mb-2">🌱 Passwordless Keypair</h3>
+                      <p className="text-gray-700 mb-4">
+                        Maximum security with a 12-word recovery phrase. No passwords needed.
+                      </p>
+                      <ul className="text-sm text-gray-600 space-y-1 mb-4">
+                        <li>✓ Most secure option</li>
+                        <li>✓ Full control of your identity</li>
+                        <li>✓ No password to remember or reset</li>
+                        <li>⚠️ Must safely store recovery phrase</li>
+                      </ul>
+                      <button
+                        onClick={() => handleAuthMethodSelected('seedphrase')}
+                        className="w-full px-6 py-3 bg-gray-200 hover:bg-gray-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                      >
+                        Continue with Seed Phrase →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center text-sm text-gray-500 mt-6">
+                  <p>You can switch between methods later in your account settings.</p>
+                </div>
+              </div>
+
+              {error && (
+                <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 2b: Password Setup */}
+          {currentStep === 'password-setup' && (
+            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+              <div className="text-center mb-8">
+                <span className="text-6xl mb-4 block">🔐</span>
+                <h2 className="text-3xl font-bold mb-2">Create Your Password</h2>
+                <p className="text-gray-600">
+                  Choose a strong password for your @{username} account
+                </p>
+              </div>
+
+              <div className="max-w-md mx-auto space-y-6">
+                <div>
+                  <label className="block text-sm font-bold mb-2">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        const validation = validatePasswordStrength(e.target.value);
+                        setPasswordErrors(validation.errors);
+                      }}
+                      placeholder="Enter a strong password"
+                      className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-green-500 pr-12"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold mb-2">Confirm Password</label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Enter password again"
+                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {/* Password Requirements */}
+                <div className="bg-gray-50 border border-gray-200 rounded p-4">
+                  <p className="text-sm font-bold text-gray-700 mb-2">Password Requirements:</p>
+                  <ul className="text-sm space-y-1">
+                    <li className={password.length >= 8 ? "text-green-600" : "text-gray-500"}>
+                      {password.length >= 8 ? "✓" : "○"} At least 8 characters
+                    </li>
+                    <li className={/[a-z]/.test(password) ? "text-green-600" : "text-gray-500"}>
+                      {/[a-z]/.test(password) ? "✓" : "○"} One lowercase letter
+                    </li>
+                    <li className={/[A-Z]/.test(password) ? "text-green-600" : "text-gray-500"}>
+                      {/[A-Z]/.test(password) ? "✓" : "○"} One uppercase letter
+                    </li>
+                    <li className={/[0-9]/.test(password) ? "text-green-600" : "text-gray-500"}>
+                      {/[0-9]/.test(password) ? "✓" : "○"} One number
+                    </li>
+                  </ul>
+                </div>
+
+                <button
+                  onClick={handlePasswordSetup}
+                  disabled={isLoading || !password || !confirmPassword || passwordErrors.length > 0}
+                  className="w-full px-6 py-4 text-lg bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Creating Account..." : "Create Account with Password"}
+                </button>
+
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+
+                {passwordErrors.length > 0 && password && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-700">
+                    {passwordErrors[0]}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Seed Phrase */}
           {currentStep === 'seed-phrase' && generatedSeedPhrase && (
             <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">

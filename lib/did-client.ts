@@ -5,6 +5,8 @@ import * as bip39 from "bip39";
 
 const KEY_STORAGE = "retro_did_keypair_v1";
 const SEED_STORAGE = "retro_seed_phrase_v1";
+const ENCRYPTED_SEED_STORAGE = "retro_encrypted_seed_v1";
+const AUTH_METHOD_STORAGE = "retro_auth_method_v1";
 
 export type LocalKeypair = { publicKey: string; secretKey: string; did: string };
 export type SeedPhrase = { mnemonic: string; created: number };
@@ -441,4 +443,238 @@ export async function createNewIdentityWithSeedPhrase(username: string, betaKey?
   }
 
   return { mnemonic };
+}
+
+// Password-based authentication functions
+
+/**
+ * Create a new identity with password-based authentication
+ */
+export async function createNewIdentityWithPassword(
+  username: string, 
+  password: string, 
+  betaKey?: string
+): Promise<{ mnemonic: string }> {
+  // Import encryption functions
+  const { encryptSeedPhraseWithPassword } = await import('./password-auth');
+  
+  // Generate seed phrase
+  const mnemonic = await generateSeedPhrase();
+  
+  // Derive keypair from seed
+  const kp = await createKeypairFromSeedPhrase(mnemonic);
+  
+  // Store keypair (for immediate use)
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEY_STORAGE, JSON.stringify(kp));
+    // Store encrypted seed phrase
+    const encryptedSeed = encryptSeedPhraseWithPassword(mnemonic, password);
+    localStorage.setItem(ENCRYPTED_SEED_STORAGE, encryptedSeed);
+    // Mark auth method as password
+    localStorage.setItem(AUTH_METHOD_STORAGE, 'password');
+    // Clear plaintext seed storage if it exists
+    localStorage.removeItem(SEED_STORAGE);
+  }
+  
+  // Perform login with new keypair
+  const c = await fetch("/api/auth/challenge").then(r => r.json());
+  const sig = await signMessage(kp.secretKey, c.nonce);
+  const loginRes = await fetch("/api/auth/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      did: kp.did, 
+      publicKey: kp.publicKey, 
+      signature: sig,
+      betaKey,
+      authMethod: 'password'
+    }),
+  });
+  
+  if (!loginRes.ok) {
+    const errorData = await loginRes.json();
+    throw new Error(errorData?.error || `Login failed: ${loginRes.status}`);
+  }
+
+  // Save password hash to database
+  const saveRes = await fetch("/api/auth/save-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      password,
+      encryptedSeedPhrase: localStorage.getItem(ENCRYPTED_SEED_STORAGE)
+    }),
+  });
+  
+  if (!saveRes.ok) {
+    console.error('Failed to save password to database');
+  }
+
+  // Claim the username
+  const claimRes = await fetch("/api/account/claim-handle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ handle: username }),
+  });
+
+  if (!claimRes.ok) {
+    const errorData = await claimRes.json();
+    throw new Error(errorData?.error || `Failed to claim username: ${claimRes.status}`);
+  }
+  
+  return { mnemonic };
+}
+
+/**
+ * Login with password
+ */
+export async function loginWithPassword(username: string, password: string): Promise<void> {
+  // First, get the user's encrypted seed phrase from the server
+  const userRes = await fetch(`/api/auth/get-encrypted-seed?username=${encodeURIComponent(username)}`);
+  
+  if (!userRes.ok) {
+    throw new Error('User not found or password authentication not enabled');
+  }
+  
+  const { encryptedSeedPhrase } = await userRes.json();
+  
+  // Import decryption function
+  const { decryptSeedPhraseWithPassword } = await import('./password-auth');
+  
+  // Try to decrypt the seed phrase
+  let mnemonic: string;
+  try {
+    mnemonic = decryptSeedPhraseWithPassword(encryptedSeedPhrase, password);
+  } catch (error) {
+    throw new Error('Invalid password');
+  }
+  
+  // Validate the seed phrase
+  if (!bip39.validateMnemonic(mnemonic)) {
+    throw new Error('Invalid password or corrupted data');
+  }
+  
+  // Generate keypair from seed
+  const kp = await createKeypairFromSeedPhrase(mnemonic);
+  
+  // Store everything locally
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEY_STORAGE, JSON.stringify(kp));
+    localStorage.setItem(ENCRYPTED_SEED_STORAGE, encryptedSeedPhrase);
+    localStorage.setItem(AUTH_METHOD_STORAGE, 'password');
+    // Don't store plaintext seed for password users
+    localStorage.removeItem(SEED_STORAGE);
+  }
+  
+  // Perform login
+  const c = await fetch("/api/auth/challenge").then(r => r.json());
+  const sig = await signMessage(kp.secretKey, c.nonce);
+  const loginRes = await fetch("/api/auth/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      did: kp.did, 
+      publicKey: kp.publicKey, 
+      signature: sig
+    }),
+  });
+  
+  if (!loginRes.ok) {
+    const errorData = await loginRes.json();
+    throw new Error(errorData?.error || `Login failed: ${loginRes.status}`);
+  }
+}
+
+/**
+ * Check if current user is using password auth
+ */
+export function isPasswordAuth(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(AUTH_METHOD_STORAGE) === 'password';
+}
+
+/**
+ * Get decrypted seed phrase (for export/display to user)
+ */
+export async function getDecryptedSeedPhrase(password: string): Promise<string> {
+  if (!isPasswordAuth()) {
+    throw new Error('Not using password authentication');
+  }
+  
+  const encryptedSeed = localStorage.getItem(ENCRYPTED_SEED_STORAGE);
+  if (!encryptedSeed) {
+    throw new Error('No encrypted seed phrase found');
+  }
+  
+  const { decryptSeedPhraseWithPassword } = await import('./password-auth');
+  return decryptSeedPhraseWithPassword(encryptedSeed, password);
+}
+
+/**
+ * Change password for existing password-auth user
+ */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  // Get and decrypt current seed phrase
+  const seedPhrase = await getDecryptedSeedPhrase(currentPassword);
+  
+  // Re-encrypt with new password
+  const { encryptSeedPhraseWithPassword } = await import('./password-auth');
+  const newEncryptedSeed = encryptSeedPhraseWithPassword(seedPhrase, newPassword);
+  
+  // Update local storage
+  localStorage.setItem(ENCRYPTED_SEED_STORAGE, newEncryptedSeed);
+  
+  // Update on server
+  const res = await fetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      currentPassword,
+      newPassword,
+      encryptedSeedPhrase: newEncryptedSeed
+    })
+  });
+  
+  if (!res.ok) {
+    throw new Error('Failed to change password');
+  }
+}
+
+/**
+ * Add password authentication to existing seed phrase user
+ */
+export async function addPasswordToAccount(password: string): Promise<void> {
+  // Must be seed phrase user
+  if (isPasswordAuth()) {
+    throw new Error('This account already uses password authentication');
+  }
+  
+  // Get current seed phrase
+  const seedData = getSeedPhrase();
+  if (!seedData) {
+    throw new Error('No seed phrase found. Cannot add password to account.');
+  }
+  
+  // Call API to add password
+  const res = await fetch('/api/auth/add-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      password,
+      seedPhrase: seedData.mnemonic
+    })
+  });
+  
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || 'Failed to add password authentication');
+  }
+  
+  // Now encrypt and store seed phrase locally with password
+  const { encryptSeedPhraseWithPassword } = await import('./password-auth');
+  const encryptedSeed = encryptSeedPhraseWithPassword(seedData.mnemonic, password);
+  
+  // Update local storage
+  localStorage.setItem(ENCRYPTED_SEED_STORAGE, encryptedSeed);
+  // Don't change auth method - let them choose which to use
 }

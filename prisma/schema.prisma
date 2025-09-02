@@ -18,6 +18,9 @@ model User {
   role                      UserRole           @default(member)
   emailVerifiedAt           DateTime?
   encryptedEmail            String?
+  passwordHash              String?            // For password-based auth
+  encryptedSeedPhrase       String?            // Encrypted with user's password
+  authMethod                AuthMethod         @default(SEED_PHRASE)
   betaKey                   BetaKey?
   capabilities              CapabilityGrant[]
   comments                  Comment[]          @relation("UserComments")
@@ -539,6 +542,11 @@ enum TemplateMode {
 enum UserRole {
   member
   admin
+}
+
+enum AuthMethod {
+  SEED_PHRASE  // Traditional seed phrase auth (current users)
+  PASSWORD     // Password-based auth with encrypted seed
 }
 
 enum PostIntent {
