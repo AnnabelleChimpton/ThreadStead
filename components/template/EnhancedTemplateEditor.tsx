@@ -13,6 +13,7 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/css-layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import MinimalNavBar from '@/components/MinimalNavBar';
+import { componentRegistry } from '@/lib/template-registry';
 
 // Warning dialog for data loss prevention
 interface DataLossWarningProps {
@@ -351,8 +352,7 @@ export default function EnhancedTemplateEditor({
 
   // Parse template to extract components (copied from TemplatePreview)
   const parseTemplateForIslands = useCallback((templateContent: string) => {
-    // Import component registry functions
-    const { componentRegistry } = require('@/lib/template-registry');
+    // Get valid components from component registry
     const validComponents = componentRegistry.getAllowedTags();
     
     // Create a simple DOM parser to handle nested structure
@@ -422,11 +422,20 @@ export default function EnhancedTemplateEditor({
     return islands;
   }, []);
 
+  // Track last compiled template to avoid unnecessary recompilation
+  const [lastCompiledTemplate, setLastCompiledTemplate] = useState<string>('');
+
   // Compile template function (mimics TemplatePreview compilation)
   const compileTemplateForPreview = useCallback(async () => {
     if (!template.trim() || useStandardLayout) {
       setCompiledTemplate(null);
+      setLastCompiledTemplate('');
       return null;
+    }
+
+    // Skip compilation if template hasn't changed
+    if (template === lastCompiledTemplate && compiledTemplate) {
+      return compiledTemplate;
     }
 
     try {
@@ -463,25 +472,19 @@ export default function EnhancedTemplateEditor({
       };
 
       setCompiledTemplate(mockCompiled);
+      setLastCompiledTemplate(template); // Track what we compiled
       return mockCompiled;
     } catch (error) {
       console.error('Template compilation failed:', error);
       return null;
     }
-  }, [template, useStandardLayout, parseTemplateForIslands]);
+  }, [template, useStandardLayout, parseTemplateForIslands, lastCompiledTemplate, compiledTemplate]);
 
   // Send preview data to popup window
   const sendPreviewData = useCallback((targetWindow: Window) => {
     if (!residentData) {
-      console.log('⚠️ Cannot send preview data - residentData not available yet');
       return;
     }
-    
-    console.log('📤 Sending preview data to window...', {
-      hasResidentData: !!residentData,
-      hasUser: !!user,
-      templateMode: useStandardLayout ? 'enhanced' : 'advanced'
-    });
     
     // Determine template mode based on layout type, not CSS presence
     // Standard layout = enhanced mode, Custom HTML = advanced mode
@@ -497,28 +500,23 @@ export default function EnhancedTemplateEditor({
           customTemplate: template,
           cssMode: cssMode,
           compiledTemplate: compiledTemplate,
-          templateCompiledAt: new Date()
+          templateCompiledAt: new Date(),
+          showNavigation: showNavigation // Add navigation toggle setting
         }
       },
       residentData: residentData,
       customCSS: customCSS,
-      useStandardLayout: useStandardLayout
+      useStandardLayout: useStandardLayout,
+      showNavigation: showNavigation, // Also add at top level for easy access
+      template: template, // Add template data for save functionality
+      cssMode: cssMode // Add CSS mode for save functionality
     };
-    
-    console.log('📤 Sending preview data with mode:', {
-      templateMode,
-      hasCustomCSS: !!customCSS?.trim(),
-      cssLength: customCSS?.length || 0,
-      useStandardLayout
-    });
     
     targetWindow.postMessage({ 
       type: 'PREVIEW_DATA', 
       payload: previewData 
     }, window.location.origin);
-    
-    console.log('✅ Preview data sent successfully!');
-  }, [user, customCSS, template, cssMode, compiledTemplate, residentData, useStandardLayout]);
+  }, [user, customCSS, template, cssMode, compiledTemplate, residentData, useStandardLayout, showNavigation]);
 
   // Pop-up preview management
   const openPopupPreview = useCallback(async () => {
@@ -555,20 +553,18 @@ export default function EnhancedTemplateEditor({
     if (newWindow) {
       setPreviewWindow(newWindow);
       
-      // Listen for window ready signal
+      // Listen for messages from preview window
       const handleMessage = (event: MessageEvent) => {
         if (event.origin !== window.location.origin) return;
         
         if (event.data.type === 'PREVIEW_READY') {
-          console.log('🎯 Template editor received PREVIEW_READY, sending data...', {
-            hasResidentData: !!residentData,
-            hasUser: !!user,
-            hasTemplate: !!template,
-            hasCustomCSS: !!customCSS
-          });
           // Send initial preview data
           sendPreviewData(newWindow);
-          window.removeEventListener('message', handleMessage);
+        }
+        
+        if (event.data.type === 'SAVE_REQUEST') {
+          // Handle save request from preview window
+          handleSaveFromPreview(event.data.data);
         }
       };
       
@@ -732,6 +728,58 @@ export default function EnhancedTemplateEditor({
     }
   };
 
+  // Handle save requests from preview window
+  const handleSaveFromPreview = async (saveData: any) => {
+    if (!onSave) return;
+    
+    setIsSaving(true);
+    setSaveMessage(null);
+    
+    try {
+      const { template: previewTemplate, customCSS: previewCSS, cssMode: previewCSSMode, showNavigation: previewShowNavigation, useStandardLayout: previewUseStandardLayout } = saveData;
+      
+      // Update local state to match what's being saved
+      setTemplate(previewTemplate || '');
+      setCustomCSS(previewCSS || '');
+      setCSSMode(previewCSSMode || 'inherit');
+      setShowNavigation(previewShowNavigation !== undefined ? previewShowNavigation : true);
+      setUseStandardLayout(previewUseStandardLayout !== undefined ? previewUseStandardLayout : true);
+      
+      // Handle standard layout mode differently
+      if (previewUseStandardLayout) {
+        // For standard layout, we save with empty template to indicate using default layout
+        // Standard layout always shows navigation (showNavigation = true)
+        await onSave('', previewCSS || '', undefined, previewCSSMode || 'inherit', true);
+        setSaveMessage('✓ Standard layout saved!');
+      } else {
+        // For advanced templates, we need compiled template data
+        // Use existing compiled template or compile the preview template
+        let templateToSave = compiledTemplate;
+        
+        if (!templateToSave && previewTemplate && previewTemplate.trim()) {
+          // Try to compile the preview template
+          const compiled = await compileTemplateForPreview();
+          templateToSave = compiled;
+        }
+        
+        if (!templateToSave) {
+          setSaveMessage('⚠️ Please preview the template first, then save');
+          return;
+        }
+        
+        await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewShowNavigation !== undefined ? previewShowNavigation : true);
+        setSaveMessage('✓ Advanced template saved!');
+      }
+      
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error) {
+      setSaveMessage('✗ Failed to save template from preview');
+      console.error('Save from preview error:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Stable callback for template compilation
   const handleCompile = useCallback((compiled: CompiledTemplate | null) => {
     setCompiledTemplate(compiled);
@@ -773,13 +821,16 @@ export default function EnhancedTemplateEditor({
   // Auto-compile template when it changes (for advanced templates)
   useEffect(() => {
     if (!useStandardLayout && template.trim()) {
-      // Debounce compilation to avoid excessive recompilation
+      // Only recompile if template content actually changed
       const timer = setTimeout(() => {
         compileTemplateForPreview();
       }, 500);
       return () => clearTimeout(timer);
+    } else if (useStandardLayout) {
+      // Clear compiled template when switching to standard layout
+      setCompiledTemplate(null);
     }
-  }, [template, useStandardLayout, compileTemplateForPreview]);
+  }, [template, useStandardLayout]); // Removed compileTemplateForPreview from deps to avoid recreation issues
 
   // Sample templates - unified Islands approach (matches default exactly)
   const sampleTemplates = {

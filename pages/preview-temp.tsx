@@ -5,6 +5,7 @@ import ProfileLayout from '@/components/layout/ProfileLayout';
 import { ResidentDataProvider } from '@/components/template/ResidentDataProvider';
 import type { ResidentData } from '@/components/template/ResidentDataProvider';
 import Head from 'next/head';
+import MinimalNavBar from '@/components/MinimalNavBar';
 import RetroCard from '@/components/layout/RetroCard';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import Tabs, { TabSpec } from '@/components/navigation/Tabs';
@@ -21,12 +22,17 @@ interface PreviewData {
   residentData: ResidentData;
   customCSS: string;
   useStandardLayout: boolean;
+  showNavigation: boolean;
+  template?: string; // For advanced templates
+  cssMode?: string;
 }
 
 export default function PreviewTemp() {
   const router = useRouter();
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Listen for preview data from parent window
@@ -35,13 +41,11 @@ export default function PreviewTemp() {
       if (event.origin !== window.location.origin) return;
       
       if (event.data.type === 'PREVIEW_DATA') {
-        console.log('🎯 Pop-up preview received data:', event.data.payload);
         setPreviewData(event.data.payload);
         setIsReady(true);
       }
       
       if (event.data.type === 'CSS_UPDATE') {
-        console.log('🔄 Pop-up preview CSS update:', event.data.customCSS);
         setPreviewData(prev => prev ? {
           ...prev,
           customCSS: event.data.customCSS
@@ -54,7 +58,6 @@ export default function PreviewTemp() {
     // Signal to parent that we're ready to receive data - with retry mechanism
     const requestData = () => {
       if (window.opener && !window.opener.closed) {
-        console.log('📡 Preview window requesting data from parent...');
         window.opener.postMessage({ type: 'PREVIEW_READY' }, window.location.origin);
       }
     };
@@ -65,7 +68,6 @@ export default function PreviewTemp() {
     // Retry every 2 seconds if we haven't received data yet
     const retryInterval = setInterval(() => {
       if (!isReady && !previewData && window.opener && !window.opener.closed) {
-        console.log('⏳ Still waiting for data, retrying...');
         requestData();
       } else if (isReady || !window.opener || window.opener.closed) {
         clearInterval(retryInterval);
@@ -95,7 +97,46 @@ export default function PreviewTemp() {
     );
   }
 
-  const { user, residentData, customCSS } = previewData;
+  const { user, residentData, customCSS, showNavigation = false, template, cssMode } = previewData;
+  
+  // Ensure cssMode is properly typed
+  const typedCSSMode: 'inherit' | 'override' | 'disable' = (cssMode as 'inherit' | 'override' | 'disable') || 'inherit';
+
+  // Save function - communicates with parent window to trigger save
+  const handleSave = async () => {
+    if (!window.opener || window.opener.closed) {
+      setSaveMessage('❌ Cannot save - parent window closed');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    try {
+      // Send save request to parent window
+      window.opener.postMessage({ 
+        type: 'SAVE_REQUEST',
+        data: {
+          template: template || '',
+          customCSS: customCSS || '',
+          cssMode: typedCSSMode,
+          showNavigation: showNavigation || false,
+          useStandardLayout: previewData.useStandardLayout
+        }
+      }, window.location.origin);
+
+      // Show success message
+      setSaveMessage('✅ Save request sent!');
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error) {
+      setSaveMessage('❌ Failed to save');
+      console.error('Save error:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Create user object with updated CSS for ProfileModeRenderer
   const previewUser: ProfileUser = {
@@ -106,13 +147,6 @@ export default function PreviewTemp() {
     }
   };
 
-  console.log('🎨 Preview CSS Debug:', {
-    originalUser: user,
-    previewUser,
-    customCSS: customCSS,
-    templateMode: previewUser.profile?.templateMode,
-    cssLength: customCSS?.length || 0
-  });
 
   // Create the profile tabs - needed for standard layout preview
   const baseTabs: TabSpec[] = [
@@ -214,7 +248,7 @@ export default function PreviewTemp() {
           username={user.handle.split('@')[0]}
           photoUrl=""
           bio=""
-          relStatus={null}
+          relStatus=""
           onRelStatusChange={() => {}}
         />
       </RetroCard>
@@ -227,7 +261,7 @@ export default function PreviewTemp() {
 
   // Check template mode - CRITICAL for backwards compatibility
   const templateMode = previewUser.profile?.templateMode || 'default';
-  const cssMode = previewUser.profile?.cssMode || 'inherit';
+  // cssMode is already destructured from previewData above
   
   // Use the useStandardLayout flag from the editor - this is the source of truth
   // If useStandardLayout is false AND we have template content, it's advanced mode
@@ -235,25 +269,9 @@ export default function PreviewTemp() {
                            previewUser.profile.customTemplate.trim() !== '';
   const isReallyAdvancedMode = !previewData.useStandardLayout && hasCustomTemplate;
   
-  console.log('🎯 Template Mode Decision:', {
-    templateMode,
-    useStandardLayout: previewData.useStandardLayout,
-    hasCustomTemplate,
-    isReallyAdvancedMode,
-    templateLength: previewUser.profile?.customTemplate?.length || 0
-  });
   
   // For standard layout (enhanced mode), always use ProfileLayout for consistency
   if (!isReallyAdvancedMode) {
-    console.log('🚨 CRITICAL CSS DEBUG - Direct ProfileLayout Render:', {
-      templateMode,
-      cssMode,
-      customCSSLength: customCSS?.length || 0,
-      customCSSPreview: customCSS?.substring(0, 200),
-      hasPixelPetals: customCSS?.includes('PIXEL PETALS'),
-      hasGradient: customCSS?.includes('linear-gradient(135deg, #ffe0f0'),
-      profileData: previewUser.profile
-    });
     
     return (
       <>
@@ -262,12 +280,26 @@ export default function PreviewTemp() {
           <meta name="robots" content="noindex, nofollow" />
         </Head>
         
-        {/* Add preview indicator - show mode clearly */}
+        {/* Add preview indicator with save button - show mode clearly */}
         <div 
-          className="fixed top-0 left-0 right-0 z-[10000] bg-blue-600 text-white text-center py-2 text-sm font-medium"
+          className="fixed top-0 left-0 right-0 z-[10000] bg-blue-600 text-white text-center py-2 text-sm font-medium flex items-center justify-between px-4"
           style={{ zIndex: 999999 }}
         >
-          🔍 STANDARD LAYOUT PREVIEW - CSS updates automatically
+          <div></div>
+          <span>🔍 STANDARD LAYOUT PREVIEW - CSS updates automatically</span>
+          <div>
+            {saveMessage && (
+              <span className="mr-3 text-xs">{saveMessage}</span>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs font-semibold transition-colors"
+              style={{ fontSize: '11px' }}
+            >
+              {isSaving ? 'Saving...' : '💾 Save'}
+            </button>
+          </div>
         </div>
         
         {/* Add top padding to account for preview banner */}
@@ -278,7 +310,7 @@ export default function PreviewTemp() {
               hideNavigation={false}
               includeSiteCSS={true}
               templateMode={templateMode}
-              cssMode={cssMode}
+              cssMode={typedCSSMode}
             >
               {profileFallbackContent}
             </ProfileLayout>
@@ -323,46 +355,89 @@ export default function PreviewTemp() {
         `}</style>
       </Head>
       
-      {/* Preview indicator - use inline styles to avoid any class conflicts */}
-      <div id="preview-banner">
-        🎨 ADVANCED TEMPLATE PREVIEW - Live CSS Updates
+      {/* Preview indicator with save button - use inline styles to avoid any class conflicts */}
+      <div 
+        id="preview-banner" 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingLeft: '16px',
+          paddingRight: '16px'
+        }}
+      >
+        <div></div>
+        <span>🎨 ADVANCED TEMPLATE PREVIEW - Live CSS Updates</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {saveMessage && (
+            <span style={{ fontSize: '11px', opacity: 0.9 }}>{saveMessage}</span>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            style={{
+              backgroundColor: isSaving ? '#6b7280' : '#059669',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 12px',
+              fontSize: '11px',
+              fontWeight: '600',
+              cursor: isSaving ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={(e) => {
+              if (!isSaving) e.currentTarget.style.backgroundColor = '#047857';
+            }}
+            onMouseOut={(e) => {
+              if (!isSaving) e.currentTarget.style.backgroundColor = '#059669';
+            }}
+          >
+            {isSaving ? 'Saving...' : '💾 Save'}
+          </button>
+        </div>
       </div>
       
-      {/* User content with ResidentDataProvider for component data access */}
-      <div style={{ paddingTop: '40px' }}>
+      {/* User content with optional navigation and ResidentDataProvider */}
+      <div style={{ paddingTop: showNavigation ? '120px' : '40px' }}>
         {/* Apply user's custom CSS FIRST - this is the ONLY styling that should affect the page */}
         {customCSS && (
           <style dangerouslySetInnerHTML={{ __html: customCSS }} />
         )}
         
+        {/* Show site navigation if toggle is enabled */}
+        {showNavigation && (
+          <div style={{ position: 'fixed', top: '40px', left: 0, right: 0, zIndex: 999998, height: '80px' }}>
+            <MinimalNavBar />
+          </div>
+        )}
+        
         {/* Wrap in ResidentDataProvider so components have access to data */}
         <ResidentDataProvider data={residentData}>
-          {/* Debug: Log what we're rendering */}
-          {console.log('🎨 Advanced Template Rendering:', {
-            hasCompiledTemplate: !!previewUser.profile?.compiledTemplate,
-            hasCustomTemplate: !!previewUser.profile?.customTemplate,
-            hasResidentData: !!residentData,
-            compiledHTML: previewUser.profile?.compiledTemplate?.staticHTML?.substring(0, 200)
-          })}
-          
-          {/* Render the compiled template with ACTUAL components using existing islands system */}
-          {previewUser.profile?.compiledTemplate ? (
-            renderCompiledTemplateWithIslands(previewUser.profile.compiledTemplate, residentData)
-          ) : previewUser.profile?.customTemplate ? (
-            <div 
-              dangerouslySetInnerHTML={{ 
-                __html: previewUser.profile.customTemplate 
-              }}
-            />
-          ) : (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-              <h2 style={{ fontSize: '24px', marginBottom: '10px' }}>Advanced Template Mode</h2>
-              <p>Your custom HTML template will render here.</p>
-              <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
-                Start adding HTML in the editor to see it appear.
-              </p>
-            </div>
-          )}
+          {/* Main content area - ensure proper spacing below navigation */}
+          <div style={{ 
+            minHeight: 'calc(100vh - 80px)', // Account for both banners
+            position: 'relative' // Ensure content flows properly
+          }}>
+            {/* Render the compiled template with ACTUAL components using existing islands system */}
+            {previewUser.profile?.compiledTemplate ? (
+              renderCompiledTemplateWithIslands(previewUser.profile.compiledTemplate, residentData)
+            ) : previewUser.profile?.customTemplate ? (
+              <div 
+                dangerouslySetInnerHTML={{ 
+                  __html: previewUser.profile.customTemplate 
+                }}
+              />
+            ) : (
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                <h2 style={{ fontSize: '24px', marginBottom: '10px' }}>Advanced Template Mode</h2>
+                <p>Your custom HTML template will render here.</p>
+                <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
+                  Start adding HTML in the editor to see it appear.
+                </p>
+              </div>
+            )}
+          </div>
         </ResidentDataProvider>
       </div>
     </>
