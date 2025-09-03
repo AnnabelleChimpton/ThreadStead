@@ -7,6 +7,18 @@ import RetroFooter from "@/components/design-tutorial/RetroFooter";
 // CSS Class Categories
 const cssCategories = [
   {
+    id: 'getting-started',
+    title: 'Getting Started',
+    icon: '🚀',
+    description: 'Step-by-step tutorial for beginners - learn by example!'
+  },
+  {
+    id: 'css-modes',
+    title: 'CSS Modes',
+    icon: '⚙️',
+    description: 'Understanding CSS layering and mode system'
+  },
+  {
     id: 'profile-structure',
     title: 'Profile Structure',
     icon: 'Structure',
@@ -45,6 +57,476 @@ const cssCategories = [
 ];
 
 const cssData = {
+  'getting-started': [
+    {
+      name: '👋 Welcome to CSS Customization!',
+      description: 'Don\'t worry if you\'re new to CSS! These templates show you exactly how powerful CSS can be. Follow along step-by-step.',
+      classes: [
+        { name: 'Step 1', description: 'Choose a template that speaks to you' },
+        { name: 'Step 2', description: 'Copy the CSS code and paste it into your profile editor' },
+        { name: 'Step 3', description: 'See the magic happen instantly!' },
+        { name: 'Step 4', description: 'Tweak colors, fonts, and effects to make it yours' }
+      ],
+      example: `/* 🎯 Getting Started - Copy this example! */
+
+/* This simple CSS transforms your entire profile */
+.thread-surface {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.site-header {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 3px solid #667eea !important;
+}
+
+.site-title {
+  background: linear-gradient(45deg, #667eea, #764ba2) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}`,
+      preview: (
+        <div className="space-y-3">
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-3 rounded-lg text-center font-bold">
+            Your Profile Background
+          </div>
+          <div className="bg-white/95 backdrop-blur border-b-4 border-indigo-500 p-2 rounded text-center">
+            <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent font-bold">
+              Your Site Title
+            </span>
+          </div>
+          <div className="text-sm text-gray-600 text-center">
+            ✨ Just a few lines of CSS created this look!
+          </div>
+        </div>
+      )
+    },
+    {
+      name: '🎨 Template Showcase: Abstract Art Gallery',
+      description: 'See how our Abstract Art template transforms a profile into a modern art gallery. Every element is styled with purpose!',
+      classes: [
+        { name: '.thread-surface', description: 'Canvas background with paint splatters' },
+        { name: '.site-header', description: 'Clean gallery navigation with track lighting' },
+        { name: '.site-title', description: 'Animated gradient text like a gallery sign' },
+        { name: '.nav-link', description: 'Professional gallery-style navigation' }
+      ],
+      example: `/* 🎨 Abstract Art Gallery Template - Full Power of CSS! */
+
+/* Transform the entire page into an art gallery */
+.thread-surface {
+  background: 
+    #f8f8f8,
+    radial-gradient(ellipse at 15% 25%, rgba(231, 76, 60, 0.15) 0%, transparent 25%),
+    radial-gradient(ellipse at 85% 75%, rgba(52, 152, 219, 0.12) 0%, transparent 30%),
+    radial-gradient(ellipse at 60% 10%, rgba(155, 89, 182, 0.1) 0%, transparent 35%) !important;
+  background-size: 100% 100%, 300px 200px, 250px 180px, 280px 220px !important;
+}
+
+/* Gallery-style navigation header */
+.site-header {
+  background: linear-gradient(180deg, #fefefe 0%, #fdfdfd 100%) !important;
+  border-bottom: 6px solid #2c3e50 !important;
+  box-shadow: 0 4px 20px rgba(44, 62, 80, 0.15) !important;
+}
+
+/* Gallery track lighting effect */
+.site-header::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 20% !important;
+  width: 60% !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(241, 196, 15, 0.6) 20%, 
+    rgba(231, 76, 60, 0.6) 40%,
+    rgba(52, 152, 219, 0.6) 60%,
+    rgba(155, 89, 182, 0.6) 80%,
+    transparent 100%) !important;
+  animation: galleryLights 8s ease-in-out infinite !important;
+}
+
+/* Animated gallery title */
+.site-title {
+  color: #2c3e50 !important;
+  font-family: 'Righteous', cursive !important;
+  background: linear-gradient(135deg, #e74c3c 0%, #f39c12 25%, #3498db 50%, #9b59b6 75%, #2ecc71 100%) !important;
+  background-size: 200% 200% !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: paintBrush 6s ease infinite !important;
+}`,
+      preview: (
+        <div className="space-y-4">
+          <div className="relative bg-gray-50 p-4 rounded-lg border-2 border-gray-300">
+            <div className="absolute top-0 left-1/4 right-1/4 h-1 bg-gradient-to-r from-yellow-400 via-red-400 via-blue-400 via-purple-400 to-green-400 rounded-full opacity-60"></div>
+            <div className="text-center">
+              <h3 className="text-xl font-bold bg-gradient-to-r from-red-500 via-yellow-500 via-blue-500 via-purple-500 to-green-500 bg-clip-text text-transparent">
+                Your Gallery
+              </h3>
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-red-100 via-blue-100 to-purple-100 p-6 rounded-lg relative overflow-hidden">
+            <div className="absolute inset-0 opacity-20">
+              <div className="w-8 h-8 bg-red-400 rounded-full absolute top-2 left-4"></div>
+              <div className="w-6 h-6 bg-blue-400 rounded-full absolute bottom-4 right-8"></div>
+              <div className="w-10 h-10 bg-purple-400 rounded-full absolute top-8 right-12"></div>
+            </div>
+            <div className="relative text-center text-gray-700 font-medium">
+              Paint Splatter Canvas Background
+            </div>
+          </div>
+          <div className="text-sm text-green-600 font-medium text-center">
+            🎭 Professional art gallery aesthetic achieved purely with CSS!
+          </div>
+        </div>
+      )
+    },
+    {
+      name: '📱 Template Showcase: Retro Social (MySpace 2005)',
+      description: 'Travel back to 2005 with authentic MySpace styling! See how CSS can completely change the vibe of your profile.',
+      classes: [
+        { name: '.thread-surface', description: 'Classic black background with twinkling stars' },
+        { name: '.site-header', description: 'Authentic MySpace blue gradient navigation' },
+        { name: '.site-title', description: 'Classic MySpace styling with heart animations' },
+        { name: '::before elements', description: 'Decorative elements like "★ Online Now ★"' }
+      ],
+      example: `/* 📱 MySpace 2005 Template - Nostalgic Social Media! */
+
+/* Authentic MySpace black background with stars */
+.thread-surface {
+  background: 
+    #000000,
+    radial-gradient(circle at 15px 15px, #ffffff 1px, transparent 1px),
+    radial-gradient(circle at 35px 25px, #ff1493 0.5px, transparent 0.5px),
+    radial-gradient(circle at 55px 35px, #00bfff 0.8px, transparent 0.8px),
+    radial-gradient(circle at 25px 45px, #ffff00 0.6px, transparent 0.6px) !important;
+  background-size: 60px 60px, 60px 60px, 60px 60px, 60px 60px !important;
+  animation: myspaceStars 30s linear infinite !important;
+}
+
+/* Classic MySpace blue navigation */
+.site-header {
+  background: linear-gradient(180deg, #4477cc 0%, #336699 50%, #225588 100%) !important;
+  border-bottom: 3px solid #114477 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* MySpace "Online Now" indicator */
+.site-header::before {
+  content: '★ Online Now ★' !important;
+  position: absolute !important;
+  top: 50% !important;
+  right: 1rem !important;
+  transform: translateY(-50%) !important;
+  font-size: 0.75rem !important;
+  color: #ffff00 !important;
+  font-family: 'Comic Neue', cursive !important;
+  font-weight: bold !important;
+  text-shadow: 1px 1px 0 #000, 0 0 5px #ffff00 !important;
+  animation: myspaceBlink 1.5s ease-in-out infinite !important;
+}
+
+/* Classic MySpace title with heart */
+.site-title {
+  color: #ffffff !important;
+  font-family: 'Comic Neue', cursive !important;
+  font-weight: 700 !important;
+  text-shadow: 2px 2px 0 #000000, 4px 4px 0 #ff1493 !important;
+  text-decoration: underline !important;
+  text-decoration-color: #ff1493 !important;
+}
+
+.site-title::after {
+  content: ' ♥' !important;
+  color: #ff1493 !important;
+  animation: heartBeat 1s ease-in-out infinite !important;
+}`,
+      preview: (
+        <div className="space-y-4">
+          <div className="bg-black p-4 rounded-lg relative overflow-hidden">
+            <div className="absolute inset-0">
+              <div className="w-1 h-1 bg-white rounded-full absolute top-2 left-4 animate-pulse"></div>
+              <div className="w-0.5 h-0.5 bg-pink-500 rounded-full absolute bottom-4 right-8 animate-pulse"></div>
+              <div className="w-1 h-1 bg-blue-400 rounded-full absolute top-8 right-12 animate-pulse"></div>
+              <div className="w-0.5 h-0.5 bg-yellow-400 rounded-full absolute bottom-2 left-12 animate-pulse"></div>
+            </div>
+            <div className="relative text-center text-white font-medium">
+              Twinkling Star Background
+            </div>
+          </div>
+          <div className="bg-gradient-to-b from-blue-600 via-blue-700 to-blue-800 p-3 rounded text-white relative">
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-white underline decoration-pink-500">Your Profile ♥</span>
+              <span className="text-yellow-300 text-xs font-bold animate-pulse">★ Online Now ★</span>
+            </div>
+          </div>
+          <div className="text-sm text-blue-400 font-medium text-center">
+            💖 Pure 2005 MySpace nostalgia with CSS magic!
+          </div>
+        </div>
+      )
+    },
+    {
+      name: '🛠️ How to Customize These Templates',
+      description: 'Ready to make a template your own? Here are easy modifications you can make to any template!',
+      classes: [
+        { name: 'Change Colors', description: 'Replace hex codes like #ff1493 with your favorites' },
+        { name: 'Adjust Fonts', description: 'Swap Google Fonts imports for different typography' },
+        { name: 'Modify Animations', description: 'Speed up, slow down, or remove animations entirely' },
+        { name: 'Add Your Touch', description: 'Include personal elements like custom backgrounds' }
+      ],
+      example: `/* 🎯 Easy Customizations - Make Any Template Yours! */
+
+/* 🎨 CHANGE COLORS - Replace these hex codes */
+/* Find: #ff1493 (hot pink) Replace with: #your-color */
+.site-header {
+  background: linear-gradient(180deg, #4477cc 0%, #336699 100%) !important;
+  /*                           ^^^^^ Change this blue to any color! */
+  border-bottom: 3px solid #your-favorite-color !important;
+}
+
+/* ✏️ CHANGE FONTS - Swap the Google Font import */
+@import url('https://fonts.googleapis.com/css2?family=Righteous:wght@400&display=swap');
+/*                                                    ^^^^^^^^^ Try: Fredoka, Comfortaa, Righteous */
+
+.site-title {
+  font-family: 'Righteous', cursive !important;
+  /*           ^^^^^^^^^^ Use your new font here */
+}
+
+/* ⚡ ADJUST ANIMATIONS - Control the speed */
+.site-header::before {
+  animation: galleryLights 8s ease-in-out infinite !important;
+  /*                       ^^ Try: 2s (faster) or 15s (slower) */
+}
+
+/* 🖼️ ADD YOUR BACKGROUND IMAGE */
+.thread-surface {
+  background: 
+    url('your-image-url.jpg'), /* Add your image on top */
+    linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background-size: cover, 100% 100% !important; /* Make image fill screen */
+}
+
+/* 🎭 REMOVE ANIMATIONS - Just delete or comment out */
+/* 
+.site-title {
+  animation: paintBrush 6s ease infinite !important; <-- Delete this line
+}
+*/`,
+      preview: (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-red-500 text-white p-2 rounded text-center text-sm font-bold">
+              Original Color
+            </div>
+            <div className="bg-green-500 text-white p-2 rounded text-center text-sm font-bold">
+              Your New Color!
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="border-2 border-gray-300 p-2 text-center">
+              <span className="font-serif">Original Font</span>
+            </div>
+            <div className="border-2 border-purple-500 p-2 text-center">
+              <span className="font-bold">Your Font!</span>
+            </div>
+          </div>
+          <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded text-center">
+            <span className="text-blue-600 font-medium">
+              🎨 Mix and match colors, fonts, and effects to create something uniquely yours!
+            </span>
+          </div>
+        </div>
+      )
+    },
+    {
+      name: '🎓 Next Steps: Beyond Templates',
+      description: 'Ready to go beyond templates? Learn the key concepts that will help you create completely custom designs!',
+      classes: [
+        { name: 'CSS Selectors', description: 'Target specific parts of your profile (.site-header, .nav-link, etc.)' },
+        { name: 'CSS Properties', description: 'What each style does (background, color, font-family, etc.)' },
+        { name: '!important', description: 'Makes your styles take priority over defaults' },
+        { name: 'Animations', description: 'Add movement and life to your profile (@keyframes)' }
+      ],
+      example: `/* 🎓 Understanding CSS Structure */
+
+/* SELECTOR - What you're styling */
+.site-title {
+  /* PROPERTIES - How you're styling it */
+  color: #ffffff !important;        /* Text color: white */
+  font-size: 2rem !important;       /* Size: 2x normal */
+  font-family: cursive !important;  /* Font: handwriting style */
+  text-align: center !important;    /* Position: centered */
+  
+  /* ADVANCED: Gradients and shadows */
+  background: linear-gradient(45deg, #red, #blue) !important;
+  text-shadow: 2px 2px 0 #black !important;
+  
+  /* ANIMATION: Make it move */
+  animation: bounce 2s infinite !important;
+}
+
+/* CREATE YOUR OWN ANIMATION */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }     /* Start/end position */
+  50% { transform: translateY(-10px); }      /* Middle position: up 10px */
+}
+
+/* RESPONSIVE: Different styles on mobile */
+@media (max-width: 768px) {
+  .site-title {
+    font-size: 1.5rem !important;  /* Smaller on mobile */
+  }
+}
+
+/* PRO TIP: Use browser dev tools (F12) to experiment! */`,
+      preview: (
+        <div className="space-y-4">
+          <div className="bg-gradient-to-r from-purple-400 to-pink-400 text-white p-4 rounded-lg text-center">
+            <div className="font-bold text-xl animate-bounce">
+              Your Custom Title
+            </div>
+            <div className="text-sm opacity-75 mt-1">
+              (with gradient, shadow, and animation!)
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="bg-red-100 border border-red-300 p-2 rounded text-center">
+              <strong>Selector</strong><br/>
+              What to style
+            </div>
+            <div className="bg-green-100 border border-green-300 p-2 rounded text-center">
+              <strong>Properties</strong><br/>
+              How to style it
+            </div>
+            <div className="bg-blue-100 border border-blue-300 p-2 rounded text-center">
+              <strong>!important</strong><br/>
+              Override defaults
+            </div>
+          </div>
+          <div className="bg-yellow-50 border-2 border-yellow-300 p-3 rounded text-center text-sm">
+            <span className="font-bold text-yellow-800">
+              💡 Ready to explore? Check out the other tabs for all available CSS classes!
+            </span>
+          </div>
+        </div>
+      )
+    }
+  ],
+  'css-modes': [
+    {
+      name: 'CSS Mode System',
+      description: 'Control how your custom CSS interacts with ThreadStead\'s base styles',
+      classes: [
+        { name: '/* CSS_MODE:inherit */', description: 'Your CSS enhances the default styles (recommended)' },
+        { name: '/* CSS_MODE:override */', description: 'Your CSS replaces default styles completely' },
+        { name: '/* CSS_MODE:disable */', description: 'Disables all site CSS, only your styles apply' }
+      ],
+      example: `/* Add this comment at the top of your CSS to set the mode */
+/* CSS_MODE:inherit */
+
+/* inherit mode - Works WITH the base styles */
+.ts-profile-header {
+  /* Enhances the existing header */
+  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  padding: 2rem !important;
+}
+
+/* CSS_MODE:override */
+
+/* override mode - Replaces base styles completely */
+.ts-profile-container {
+  /* You define everything from scratch */
+  display: grid !important;
+  grid-template-columns: 200px 1fr !important;
+}
+
+/* CSS_MODE:disable */
+
+/* disable mode - NO base styles at all */
+body {
+  /* Complete control - even basic styles are removed */
+  margin: 0;
+  font-family: 'Comic Sans MS', cursive;
+}`,
+      preview: (
+        <div className="space-y-3 text-xs">
+          <div className="bg-green-100 border border-green-300 p-2 rounded">
+            <strong>inherit</strong>: Enhances existing styles
+          </div>
+          <div className="bg-yellow-100 border border-yellow-300 p-2 rounded">
+            <strong>override</strong>: Replaces styles completely
+          </div>
+          <div className="bg-red-100 border border-red-300 p-2 rounded">
+            <strong>disable</strong>: No base styles at all
+          </div>
+        </div>
+      )
+    },
+    {
+      name: 'Using !important',
+      description: 'Best practices for overriding styles with specificity',
+      classes: [
+        { name: '!important', description: 'Forces your style to take precedence' }
+      ],
+      example: `/* ALWAYS use !important to ensure your styles apply */
+
+/* ✅ Good - Using !important */
+.ts-profile-header {
+  background: #ff6b6b !important;
+  padding: 3rem !important;
+}
+
+/* ❌ Bad - May not override base styles */
+.ts-profile-header {
+  background: #ff6b6b;
+  padding: 3rem;
+}
+
+/* Pro tip: In inherit mode, !important ensures your 
+   enhancements always apply over the defaults */`,
+      preview: (
+        <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded text-xs">
+          <div className="font-bold mb-2">💡 Pro Tip</div>
+          <div>Always use <code className="bg-white px-1">!important</code> in your custom CSS to ensure your styles take precedence over the base styles.</div>
+        </div>
+      )
+    },
+    {
+      name: 'Template Modes',
+      description: 'Different levels of customization control',
+      classes: [
+        { name: 'default', description: 'Standard profile with CSS enhancements only' },
+        { name: 'enhanced', description: 'Custom CSS with structural modifications' },
+        { name: 'advanced', description: 'Full HTML/CSS control with custom templates' }
+      ],
+      example: `/* Default Mode - CSS customization only */
+/* You can style all the ts- classes but can't change HTML */
+
+/* Enhanced Mode - CSS + some structural changes */
+/* Additional layout options and component arrangements */
+
+/* Advanced Mode - Complete control */
+/* Write your own HTML templates with full control */
+/* Usually paired with CSS_MODE:override or disable */`,
+      preview: (
+        <div className="space-y-2 text-xs">
+          <div className="bg-gray-100 p-2 rounded">
+            <strong>Default</strong>: Style existing elements
+          </div>
+          <div className="bg-gray-200 p-2 rounded">
+            <strong>Enhanced</strong>: Modify structure + style
+          </div>
+          <div className="bg-gray-300 p-2 rounded">
+            <strong>Advanced</strong>: Full HTML/CSS control
+          </div>
+        </div>
+      )
+    }
+  ],
   'profile-components': [
     {
       name: 'Profile Header Components',
@@ -54,9 +536,14 @@ const cssData = {
         { name: '.ts-profile-header-layout', description: 'Flex layout for header elements' },
         { name: '.ts-profile-photo-section', description: 'Profile photo container' },
         { name: '.ts-profile-info-section', description: 'Name and bio container' },
+        { name: '.ts-profile-identity', description: 'Wrapper for username and status' },
         { name: '.ts-profile-display-name', description: 'Profile display name' },
+        { name: '.ts-profile-status', description: 'User status text element' },
         { name: '.ts-profile-bio', description: 'Profile bio text' },
-        { name: '.ts-profile-bio-section', description: 'Bio container section' }
+        { name: '.ts-profile-bio-section', description: 'Bio container section' },
+        { name: '.ts-profile-actions', description: 'Action buttons container' },
+        { name: '.ts-profile-button', description: 'Profile-specific button styling' },
+        { name: '.ts-edit-profile-button', description: 'Edit profile button' }
       ],
       example: `/* Modern glass morphism header */
 .ts-profile-header {
@@ -82,6 +569,12 @@ const cssData = {
   text-align: center !important;
   font-size: 1.2rem !important;
   line-height: 1.6 !important;
+}
+
+.ts-profile-actions {
+  display: flex !important;
+  gap: 1rem !important;
+  margin-top: 1rem !important;
 }`,
       preview: (
         <div className="bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 rounded-xl p-4">
@@ -148,16 +641,21 @@ const cssData = {
       name: 'Blog Post Components', 
       description: 'Blog post display and styling components',
       classes: [
-        { name: '.blog-tab-content', description: 'Blog posts tab container' },
-        { name: '.blog-posts-list', description: 'List container for posts' },
+        { name: '.ts-blog-tab-content', description: 'Blog posts tab container' },
+        { name: '.ts-blog-posts-list', description: 'List container for posts' },
+        { name: '.ts-new-post-section', description: 'New post button area' },
+        { name: '.ts-no-posts-message', description: 'Empty state message' },
+        { name: '.ts-blog-loading', description: 'Loading state for blog posts' },
         { name: '.blog-post', description: 'Individual blog post' },
         { name: '.blog-post-header', description: 'Post header with date/meta' },
         { name: '.blog-post-content', description: 'Post content area' },
-        { name: '.blog-post-meta', description: 'Post metadata' },
-        { name: '.ts-blog-posts', description: 'Blog posts container' },
-        { name: '.ts-blog-post-content', description: 'Individual post content' }
+        { name: '.blog-post-meta', description: 'Post metadata' }
       ],
       example: `/* Card-based blog posts */
+.ts-blog-tab-content {
+  padding: 1rem !important;
+}
+
 .blog-post {
   background: white !important;
   border-radius: 12px !important;
@@ -680,13 +1178,13 @@ const cssData = {
       description: 'Photo containers and styling elements',
       classes: [
         { name: '.ts-profile-photo-section', description: 'Container for profile photo area' },
-        { name: '.profile-photo-wrapper', description: 'Photo wrapper with positioning' },
-        { name: '.profile-photo-frame', description: 'Photo frame/border styling' },
-        { name: '.profile-photo-image', description: 'The actual profile image element' },
-        { name: '.profile-photo-placeholder', description: 'Placeholder when no photo is set' }
+        { name: '.ts-profile-photo-wrapper', description: 'Photo wrapper with positioning' },
+        { name: '.ts-profile-photo-frame', description: 'Photo frame/border styling' },
+        { name: '.ts-profile-photo-image', description: 'The actual profile image element' },
+        { name: '.ts-profile-photo-placeholder', description: 'Placeholder when no photo is set' }
       ],
       example: `/* Polaroid-style photo frame */
-.profile-photo-frame {
+.ts-profile-photo-frame {
   background: #ffffff !important;
   border: none !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
@@ -695,11 +1193,11 @@ const cssData = {
   transition: transform 0.3s ease !important;
 }
 
-.profile-photo-frame:hover {
+.ts-profile-photo-frame:hover {
   transform: rotate(0deg) scale(1.05) !important;
 }
 
-.profile-photo-image {
+.ts-profile-photo-image {
   border-radius: 0 !important;
   filter: sepia(20%) contrast(120%) !important;
 }`,
@@ -757,8 +1255,8 @@ const cssData = {
       name: 'Blog Post Elements',
       description: 'Blog post cards and content styling',
       classes: [
-        { name: '.blog-tab-content', description: 'Container for blog posts tab' },
-        { name: '.blog-posts-list', description: 'List container for blog posts' },
+        { name: '.ts-blog-tab-content', description: 'Container for blog posts tab' },
+        { name: '.ts-blog-posts-list', description: 'List container for blog posts' },
         { name: '.blog-post-card', description: 'Individual blog post card' },
         { name: '.blog-post-header', description: 'Post header (date, meta)' },
         { name: '.blog-post-title', description: 'Blog post title/heading' },
@@ -1303,7 +1801,7 @@ const cssData = {
 
 export default function DesignCSSTutorialPage() {
   const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState('profile-components');
+  const [activeCategory, setActiveCategory] = useState('getting-started');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   // Get active category data
@@ -1398,7 +1896,7 @@ export default function DesignCSSTutorialPage() {
             <h2 className="font-bold text-black text-lg mb-4 text-center">
               Choose Your CSS Category
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {cssCategories.map((category) => (
                 <button
                   key={category.id}

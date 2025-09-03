@@ -58,6 +58,15 @@ export default function ProfileModeRenderer({
 }: ProfileModeRendererProps) {
   const mode = user.profile?.templateMode || 'default';
   
+  console.log('🎯 ProfileModeRenderer Entry Debug:', {
+    mode,
+    userId: user.id,
+    hasProfile: !!user.profile,
+    templateMode: user.profile?.templateMode,
+    hasCustomCSS: !!(user.profile?.customCSS),
+    cssLength: user.profile?.customCSS?.length || 0
+  });
+  
   // Feature flag check for islands - bypass if we have compiled template data
   const featureFlagResult = featureFlags.templateIslands({ id: user.id, role: 'member' });
   const hasCompiledTemplate = !!user.profile?.compiledTemplate;
@@ -86,7 +95,7 @@ export default function ProfileModeRenderer({
         return renderDefaultMode(user, residentData, fallbackContent);
         
       case 'enhanced':
-        return renderEnhancedMode(user, residentData, fallbackContent);
+        return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation);
         
       case 'advanced':
         console.log('ProfileModeRenderer: Advanced mode decision', {
@@ -256,7 +265,7 @@ export default function ProfileModeRenderer({
     
     // Fallback chain: Advanced → Enhanced → Default → Fallback Content
     if (mode === 'advanced') {
-      return renderEnhancedMode(user, residentData, fallbackContent);
+      return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation);
     } else if (mode === 'enhanced') {
       return renderDefaultMode(user, residentData, fallbackContent);
     } else {
@@ -288,13 +297,27 @@ function renderDefaultMode(
 function renderEnhancedMode(
   user: ProfileUser, 
   residentData: ResidentData, 
-  fallbackContent?: React.ReactNode
+  fallbackContent?: React.ReactNode,
+  hideNavigation?: boolean
 ) {
   const customCSS = user.profile?.customCSS;
+  
+  console.log('🎨 Enhanced Mode Renderer Debug:', {
+    hasCustomCSS: !!customCSS,
+    customCSSLength: customCSS?.length || 0,
+    cssMode: user.profile?.cssMode,
+    templateMode: user.profile?.templateMode,
+    hideNavigation,
+    customCSSPreview: customCSS?.substring(0, 100) + '...'
+  });
   
   return (
     <ProfileLayout 
       customCSS={customCSS || undefined}
+      templateMode='enhanced'
+      cssMode={user.profile?.cssMode || 'inherit'}
+      hideNavigation={hideNavigation}
+      includeSiteCSS={true}  // Match live profile behavior
     >
       {fallbackContent || (
         <div className="profile-container">

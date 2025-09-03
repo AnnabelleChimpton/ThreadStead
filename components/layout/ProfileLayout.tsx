@@ -48,6 +48,15 @@ export default function ProfileLayout({
     userCustomCSS: customCSS || '',
     profileId: `profile-layout-${Date.now()}`
   });
+  
+  console.log('🎨 ProfileLayout CSS Debug:', {
+    templateMode,
+    actualCSSMode,
+    hasCustomCSS: !!(customCSS || '').trim(),
+    customCSSLength: (customCSS || '').length,
+    layeredCSSLength: layeredCSS?.length || 0,
+    layeredCSSPreview: layeredCSS?.substring(0, 200) + '...'
+  });
   // Advanced template mode: ONLY USER CSS - zero system interference
   if (templateMode === 'advanced') {
     // Clean user CSS - remove any system comments or layer declarations

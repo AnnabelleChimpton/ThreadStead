@@ -6,8 +6,64 @@ import type { ResidentData } from '@/components/template/ResidentDataProvider';
 import type { User } from '@prisma/client';
 import type { CompiledTemplate } from '@/lib/template-compiler';
 import { componentRegistry, validateAndCoerceProps } from '@/lib/template-registry';
-import { generatePreviewCSS } from '@/lib/css-layers';
+import { generatePreviewCSS, forceUserCSSDominance } from '@/lib/css-layers';
 import MinimalNavBar from '@/components/MinimalNavBar';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
+import Link from 'next/link';
+
+// Simplified NavBar for preview that doesn't require data fetching
+function PreviewNavBar({ siteConfig }: { siteConfig: any }) {
+  return (
+    <header className="site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative">
+      <nav className="site-navigation mx-auto max-w-5xl flex items-center justify-between">
+        <div className="site-branding flex-shrink-0">
+          <h1 className="site-title thread-headline text-xl sm:text-2xl font-bold text-thread-pine">{siteConfig?.site_name || 'ThreadStead'}</h1>
+          <span className="site-tagline thread-label hidden sm:inline">{siteConfig?.site_tagline || 'Personal Pages'}</span>
+        </div>
+        
+        {/* Desktop Navigation */}
+        <div className="site-nav-container hidden lg:flex items-center gap-8">
+          <div className="site-nav-links flex items-center gap-6">
+            <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/">Home</Link>
+            <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/discovery">Discovery</Link>
+            <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/help">Help</Link>
+          </div>
+          
+          {/* Site Auth */}
+          <div className="site-auth flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-thread-sage">
+              <span className="hidden sm:inline">Preview Mode</span>
+              <div className="w-8 h-8 bg-thread-sage rounded-full flex items-center justify-center">
+                <span className="text-white text-xs">👤</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile hamburger */}
+        <div className="lg:hidden">
+          <button className="p-2 text-thread-pine hover:text-thread-sunset">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+// Preview footer component
+function PreviewFooter({ siteConfig }: { siteConfig: any }) {
+  return (
+    <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
+      <div className="footer-content mx-auto max-w-5xl text-center">
+        <span className="footer-tagline thread-label">{siteConfig?.site_description || 'A personal website platform'}</span>
+        <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {siteConfig?.footer_text || 'ThreadStead'}</p>
+      </div>
+    </footer>
+  );
+}
 
 // Simple debounce implementation
 function debounce<T extends (...args: any[]) => any>(func: T, delay: number): T {
@@ -155,6 +211,7 @@ interface TemplatePreviewProps {
   siteWideCSS?: string;
   useStandardLayout?: boolean;
   showNavigation?: boolean;
+  siteConfig?: any;
 }
 
 export default function TemplatePreview({
@@ -168,7 +225,8 @@ export default function TemplatePreview({
   onError,
   siteWideCSS,
   useStandardLayout = false,
-  showNavigation = false
+  showNavigation = false,
+  siteConfig
 }: TemplatePreviewProps) {
   const [compiledTemplate, setCompiledTemplate] = useState<CompiledTemplate | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
@@ -326,6 +384,7 @@ export default function TemplatePreview({
           siteWideCSS={siteWideCSS}
           useStandardLayout={useStandardLayout}
           showNavigation={showNavigation}
+          siteConfig={siteConfig}
         />
       )}
 
@@ -353,7 +412,8 @@ function IslandsPreview({
   cssMode,
   siteWideCSS,
   useStandardLayout = false,
-  showNavigation = false
+  showNavigation = false,
+  siteConfig
 }: { 
   compiledTemplate: CompiledTemplate; 
   residentData: ResidentData;
@@ -362,7 +422,9 @@ function IslandsPreview({
   siteWideCSS?: string;
   useStandardLayout?: boolean;
   showNavigation?: boolean;
+  siteConfig?: any;
 }) {
+  const { config } = useSiteConfig();
   
   const shadowHostRef = React.useRef<HTMLDivElement>(null);
   const shadowRootRef = React.useRef<ShadowRoot | null>(null);
@@ -495,6 +557,8 @@ function IslandsPreview({
   // Generate and inject CSS into Shadow DOM - match live ProfileModeRenderer behavior
   const updateShadowCSS = React.useCallback(() => {
     if (!shadowRootRef.current) return;
+    
+    console.log('🔧 updateShadowCSS called with:', { customCSS, cssMode, useStandardLayout });
     
     // Remove existing style element
     const existingStyle = shadowRootRef.current.querySelector('#shadow-styles');
@@ -638,18 +702,40 @@ function IslandsPreview({
           border-bottom: 1px solid rgba(161, 132, 99, 0.3);
         }
         
-        ${cleanUserCSS}
+        /* USER CSS WITH NUCLEAR DOMINANCE - MUST ALWAYS WIN */
+        ${(() => {
+          if (cleanUserCSS) {
+            console.log('\ud83d\udd25 Advanced Template: Processing custom CSS:', cleanUserCSS);
+            const nuclear = forceUserCSSDominance(cleanUserCSS);
+            console.log('\ud83d\udca5 Advanced Nuclear CSS result:', nuclear);
+            return nuclear;
+          }
+          return '';
+        })()}
       `;
     } else {
-      // Standard/enhanced templates: use CSS layers system
-      finalCSS = generatePreviewCSS({
-        cssMode: cssMode as 'inherit' | 'override' | 'disable',
-        templateMode: 'enhanced',
-        siteWideCSS: siteWideCSS || '',
-        userCustomCSS: customCSS,
-        globalCSS: '',
-        profileId: `preview-${Date.now()}`
-      });
+      // Standard/enhanced templates: Don't use CSS layers in Shadow DOM (they don't work properly)
+      // Just provide base utility styles - user CSS will be added at the end with nuclear dominance
+      finalCSS = `
+        /* Essential Shadow DOM base styles for Standard Layout */
+        #shadow-content {
+          width: 100%;
+          min-height: 100vh;
+          display: block;
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          /* Default thread-surface background - user can override */
+          background: linear-gradient(135deg, #faf7f0 0%, #f5e9d4 100%);
+        }
+        
+        /* Islands container visibility */
+        .islands-container {
+          display: block;
+          visibility: visible;
+          opacity: 1;
+        }
+      `;
     }
     
     // Extract body styles and convert to shadow-content styles
@@ -1249,14 +1335,272 @@ function IslandsPreview({
       }
     `;
     
-    // For standard layout templates, append the user's custom CSS at the very end 
-    // so it can override any default styles
-    if (useStandardLayout && customCSS) {
-      finalCSS += `\n\n/* User Custom CSS - highest priority */\n${customCSS}\n`;
+    // Add comprehensive site layout styles for Standard Layout
+    if (useStandardLayout) {
+      finalCSS += `
+        /* Site Header and Navigation Styles - Essential for Standard Layout */
+        .site-header {
+          background-color: #F5E9D4;
+          border-bottom: 1px solid #A18463;
+          padding: 1rem 1rem;
+          position: sticky;
+          top: 0;
+          z-index: 9999;
+          backdrop-filter: blur(4px);
+          background-color: rgba(245, 233, 212, 0.95);
+        }
+        
+        .site-navigation {
+          margin: 0 auto;
+          max-width: 80rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        
+        .site-branding {
+          flex-shrink: 0;
+        }
+        
+        .site-title {
+          font-family: Georgia, "Times New Roman", serif;
+          color: #2E4B3F;
+          font-weight: 700;
+          font-size: 1.25rem;
+          margin: 0;
+        }
+        
+        @media (min-width: 640px) {
+          .site-title {
+            font-size: 1.5rem;
+          }
+        }
+        
+        .site-tagline {
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: #A18463;
+          display: none;
+        }
+        
+        @media (min-width: 640px) {
+          .site-tagline {
+            display: inline;
+          }
+        }
+        
+        .site-nav-container {
+          display: none;
+        }
+        
+        @media (min-width: 1024px) {
+          .site-nav-container {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+          }
+        }
+        
+        .site-nav-links {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+        }
+        
+        .nav-link {
+          color: #2E4B3F;
+          font-weight: 500;
+          text-decoration: underline;
+          transition: all 0.2s ease;
+        }
+        
+        .nav-link:hover {
+          color: #E8B547;
+          text-decoration: none;
+        }
+        
+        .site-auth {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+        
+        .site-auth > div {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+          color: #A18463;
+        }
+        
+        .site-auth span {
+          display: none;
+        }
+        
+        @media (min-width: 640px) {
+          .site-auth span {
+            display: inline;
+          }
+        }
+        
+        .site-auth > div > div {
+          width: 2rem;
+          height: 2rem;
+          background-color: #A18463;
+          border-radius: 9999px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .site-auth span:last-child {
+          color: white;
+          font-size: 0.75rem;
+        }
+        
+        /* Mobile menu button */
+        .lg\\:hidden {
+          display: block;
+        }
+        
+        @media (min-width: 1024px) {
+          .lg\\:hidden {
+            display: none;
+          }
+        }
+        
+        .lg\\:hidden button {
+          padding: 0.5rem;
+          color: #2E4B3F;
+          transition: color 0.2s ease;
+        }
+        
+        .lg\\:hidden button:hover {
+          color: #E8B547;
+        }
+        
+        .lg\\:hidden svg {
+          width: 1.5rem;
+          height: 1.5rem;
+        }
+        
+        /* Site Footer Styles */
+        .site-footer {
+          border-top: 1px solid #A18463;
+          background-color: #F5E9D4;
+          padding: 1rem 1.5rem;
+          margin-top: auto;
+        }
+        
+        .footer-content {
+          margin: 0 auto;
+          max-width: 80rem;
+          text-align: center;
+        }
+        
+        .footer-tagline {
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: #A18463;
+        }
+        
+        .footer-copyright {
+          font-size: 0.875rem;
+          color: #A18463;
+          margin-top: 0.25rem;
+        }
+        
+        /* Standard Layout Wrapper */
+        .standard-layout-wrapper {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .template-content-preview {
+          margin: 0 auto;
+          max-width: 80rem;
+          padding: 2rem 1.5rem;
+          flex: 1;
+        }
+        
+        /* Additional responsive utilities for navigation */
+        .hidden {
+          display: none;
+        }
+        
+        .sm\\:inline {
+          display: none;
+        }
+        
+        @media (min-width: 640px) {
+          .sm\\:inline {
+            display: inline;
+          }
+        }
+        
+        .lg\\:flex {
+          display: none;
+        }
+        
+        @media (min-width: 1024px) {
+          .lg\\:flex {
+            display: flex;
+          }
+        }
+        
+        /* Ensure proper stacking and positioning */
+        .relative {
+          position: relative;
+        }
+        
+        .sticky {
+          position: sticky;
+        }
+        
+        .top-0 {
+          top: 0;
+        }
+        
+        .z-\\[9999\\] {
+          z-index: 9999;
+        }
+        
+        .backdrop-blur-sm {
+          backdrop-filter: blur(4px);
+        }
+        
+        .bg-thread-cream\\/95 {
+          background-color: rgba(245, 233, 212, 0.95);
+        }
+      `;
     }
     
+    // For standard layout templates, we need to add nuclear-ized user CSS after all the navigation styles
+    // so it can override the header/footer styling we just added
+    if (useStandardLayout && customCSS) {
+      console.log('\ud83d\udd25 Standard Layout: Processing custom CSS:', customCSS);
+      // SIMPLE BUT EFFECTIVE: Just add !important to everything - keep CSS intact
+      const nuclearUserCSS = customCSS.replace(/([^;{]+):\s*([^;!]+)(?!.*!important)\s*;/g, '$1: $2 !important;');
+      console.log('\ud83d\udca5 Nuclear CSS result:', nuclearUserCSS);
+      finalCSS += `\n\n/* USER CUSTOM CSS WITH NUCLEAR DOMINANCE - HIGHEST PRIORITY */\n${nuclearUserCSS}\n`;
+      console.log('\ud83d\udca5 Nuclear CSS added to finalCSS, total length:', finalCSS.length);
+    }
+    
+    console.log('\ud83c\udfaf Final CSS being injected into Shadow DOM:', finalCSS);
     styleElement.textContent = finalCSS;
     shadowRootRef.current.insertBefore(styleElement, shadowRootRef.current.firstChild);
+    console.log('\u2705 CSS injected into Shadow DOM successfully');
+    
+    // CRITICAL DEBUG: Check what's actually in the Shadow DOM
+    const shadowStyles = shadowRootRef.current.querySelector('#shadow-styles');
+    console.log('\ud83d\udd0d Shadow DOM style element:', shadowStyles);
+    console.log('\ud83d\udd0d Actual CSS in Shadow DOM:', shadowStyles?.textContent?.substring(0, 500));
+    console.log('\ud83d\udd0d Shadow DOM children:', Array.from(shadowRootRef.current.children));
   }, [customCSS, cssMode, siteWideCSS, useStandardLayout]);
 
   // Update shadow DOM styles when CSS or mode changes
@@ -1298,9 +1642,19 @@ function IslandsPreview({
         <ShadowPortal shadowRoot={shadowRootRef.current}>
           <React.Suspense fallback={<div className="p-4">Loading islands...</div>}>
             <ErrorBoundary>
-              {/* Show MinimalNavBar for advanced templates when navigation is enabled */}
-              {!useStandardLayout && showNavigation && <MinimalNavBar />}
-              {renderIslandsDirectly()}
+              {/* For Standard Layout, render header/footer inside Shadow DOM so user CSS can affect them */}
+              {useStandardLayout ? (
+                <div className="standard-layout-wrapper min-h-screen flex flex-col">
+                  {showNavigation && siteConfig && <PreviewNavBar siteConfig={siteConfig} />}
+                  <div className="template-content-preview mx-auto max-w-5xl px-6 py-8 flex-1">
+                    {renderIslandsDirectly()}
+                  </div>
+                  {showNavigation && siteConfig && <PreviewFooter siteConfig={siteConfig} />}
+                </div>
+              ) : (
+                // Advanced templates render content directly
+                renderIslandsDirectly()
+              )}
             </ErrorBoundary>
           </React.Suspense>
         </ShadowPortal>

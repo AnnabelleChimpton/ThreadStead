@@ -52,7 +52,7 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
         <div className="ts-new-post-section mb-3">
           <Link 
             href="/post/new"
-            className="inline-block border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+            className="create-new-post-button inline-block border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
           >
             Create New Post
           </Link>

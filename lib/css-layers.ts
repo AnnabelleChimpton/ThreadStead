@@ -21,7 +21,8 @@ export const CSS_LAYERS = {
   // User layers - highest priority  
   USER_BASE: 'threadstead-user-base',
   USER_CUSTOM: 'threadstead-user-custom',
-  USER_OVERRIDE: 'threadstead-user-override'
+  USER_OVERRIDE: 'threadstead-user-override',
+  USER_NUCLEAR: 'threadstead-user-nuclear'
 } as const;
 
 // Layer ordering declaration - this goes at the top of any CSS
@@ -80,26 +81,30 @@ ${componentCSS}
   if (userCustomCSS) {
     const cleanCSS = cleanUserCSS(userCustomCSS);
     const scopedCSS = profileId ? scopeCSSToProfile(cleanCSS, profileId) : cleanCSS;
+    const nuclearCSS = forceUserCSSDominance(scopedCSS);
     
     switch (cssMode) {
       case 'inherit':
-        // User CSS extends site styles - normal layer priority
-        layers.push(`@layer ${CSS_LAYERS.USER_CUSTOM} {
-${scopedCSS}
+        // User CSS extends site styles - NUCLEAR DOMINANCE ensures override
+        layers.push(`@layer ${CSS_LAYERS.USER_NUCLEAR} {
+/* USER CSS MUST ALWAYS WIN - NUCLEAR OPTION ACTIVATED */
+${nuclearCSS}
 }`);
         break;
         
       case 'override':
         // User CSS takes precedence but still works with components
-        layers.push(`@layer ${CSS_LAYERS.USER_OVERRIDE} {
-${scopedCSS}
+        layers.push(`@layer ${CSS_LAYERS.USER_NUCLEAR} {
+/* USER CSS MUST ALWAYS WIN - NUCLEAR OPTION ACTIVATED */
+${nuclearCSS}
 }`);
         break;
         
       case 'disable':
         // User has complete control - but we still provide component layer for function
-        layers.push(`@layer ${CSS_LAYERS.USER_OVERRIDE} {
-${scopedCSS}
+        layers.push(`@layer ${CSS_LAYERS.USER_NUCLEAR} {
+/* USER CSS MUST ALWAYS WIN - NUCLEAR OPTION ACTIVATED */
+${nuclearCSS}
 }`);
         break;
     }
@@ -166,17 +171,78 @@ ${scopedCSS}
 }
 
 /**
- * Clean user CSS by removing old CSS_MODE comments and !important overrides
+ * Clean user CSS by removing old CSS_MODE comments but PRESERVE !important for theme overrides
  */
 function cleanUserCSS(css: string): string {
   return css
     // Remove CSS mode comments
     .replace(/\/\* CSS_MODE:\w+ \*\/\n?/g, '')
-    // Remove auto-added !important declarations (we'll handle priority via layers)
-    .replace(/\s*!important\s*;/g, ';')
-    // Clean up any double semicolons
+    // Keep !important declarations - they're needed to override site styles
+    // Only remove empty semicolons
     .replace(/;;+/g, ';')
     .trim();
+}
+
+/**
+ * NUCLEAR OPTION: Force user CSS to always win with maximum specificity and !important
+ * User CSS must ALWAYS be the most important on their own page
+ */
+export function forceUserCSSDominance(css: string): string {
+  if (!css.trim()) return '';
+  
+  // Extract and preserve @import, @media, @keyframes etc. - don't process these
+  const atRules: string[] = [];
+  let workingCSS = css;
+  
+  // Extract @import statements first (they must be at the top)
+  workingCSS = workingCSS.replace(/@import\s+[^;]+;/g, (match) => {
+    atRules.push(match);
+    return '';
+  });
+  
+  // Extract other @rules like @media, @keyframes etc.
+  workingCSS = workingCSS.replace(/@[^{]+\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, (match) => {
+    atRules.push(match);
+    return '';
+  });
+  
+  // Remove comments and clean up the remaining CSS
+  workingCSS = workingCSS
+    .replace(/\/\*[\s\S]*?\*\//g, '') // Remove CSS comments
+    .replace(/^\s*\/\/.*$/gm, '') // Remove single-line comments  
+    .replace(/\n\s*\n/g, '\n') // Remove extra blank lines
+    .trim();
+  
+  // Now process only regular CSS rules (not @rules)
+  const nuclearRules = workingCSS.replace(/([^{}]+)\{([^}]*)\}/g, (match, selector, rules) => {
+    const trimmedSelector = selector.trim();
+    
+    // Skip any remaining @-rules and empty selectors
+    if (trimmedSelector.startsWith('@') || !trimmedSelector) return match;
+    
+    // Force maximum specificity on all selectors
+    const nuclearSelectors = trimmedSelector.split(',')
+      .map((s: string) => {
+        const trimmed = s.trim();
+        
+        // Don't modify selectors that already have maximum specificity
+        if (trimmed.includes(':root') || trimmed.startsWith('html body')) {
+          return trimmed;
+        }
+        
+        // Force nuclear specificity: html body html body selector
+        return `html body html body ${trimmed}`;
+      })
+      .join(', ');
+    
+    // Force !important on every CSS property that doesn't already have it
+    const nuclearProps = rules.replace(/([^;{]+):\s*([^;!]+)(?!.*!important)\s*;/g, '$1: $2 !important;');
+      
+    return `${nuclearSelectors} { ${nuclearProps} }`;
+  });
+  
+  // Combine preserved @rules with nuclear regular rules
+  return (atRules.join('\n') + '\n' + nuclearRules).trim();
 }
 
 /**
@@ -185,7 +251,15 @@ function cleanUserCSS(css: string): string {
 function scopeCSSToProfile(css: string, profileId: string): string {
   if (!css.trim()) return '';
   
-  return css.replace(/([^{}]+){/g, (match, selector) => {
+  // First, extract and preserve @import statements (they can't be scoped)
+  const imports: string[] = [];
+  let workingCSS = css.replace(/@import\s+[^;]+;/g, (match) => {
+    imports.push(match);
+    return '/* IMPORT_PLACEHOLDER */';
+  });
+  
+  // Now scope the rest of the CSS
+  workingCSS = workingCSS.replace(/([^{}]+){/g, (match, selector) => {
     // Skip @-rules (media queries, keyframes, etc.)
     if (selector.trim().startsWith('@')) return match;
     
@@ -211,6 +285,9 @@ function scopeCSSToProfile(css: string, profileId: string): string {
       
     return `${scopedSelectors} {`;
   });
+  
+  // Restore the @import statements at the beginning
+  return imports.join('\n') + (imports.length > 0 ? '\n' : '') + workingCSS.replace(/\/\* IMPORT_PLACEHOLDER \*\//g, '');
 }
 
 /**
@@ -282,12 +359,13 @@ export function generateFallbackCSS({
     if (siteWideCSS) parts.push(`/* Site Wide CSS */\n${siteWideCSS}`);
   }
   
-  // User styles (higher specificity through scoping)
+  // User styles (NUCLEAR DOMINANCE for fallback browsers too)
   if (userCustomCSS) {
     const cleanCSS = cleanUserCSS(userCustomCSS);
     const scopedCSS = profileId ? scopeCSSToProfile(cleanCSS, profileId) : cleanCSS;
+    const nuclearCSS = forceUserCSSDominance(scopedCSS);
     
-    parts.push(`/* User Custom CSS (${cssMode} mode) */\n${scopedCSS}`);
+    parts.push(`/* USER CSS MUST ALWAYS WIN - NUCLEAR FALLBACK (${cssMode} mode) */\n${nuclearCSS}`);
   }
   
   return parts.join('\n\n');

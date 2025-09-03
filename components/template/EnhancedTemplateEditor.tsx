@@ -5,7 +5,7 @@ import TemplatePreview from './TemplatePreview';
 import { fetchResidentData } from '@/lib/template-data';
 import type { ResidentData } from '@/components/template/ResidentDataProvider';
 import type { CompiledTemplate } from '@/lib/template-compiler';
-import { getDefaultTemplate } from '@/lib/default-css-template';
+import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO } from '@/lib/default-profile-templates';
 import { TEMPLATE_EXAMPLES } from '@/lib/default-profile-template';
 import { HTML_TEMPLATES, getHTMLTemplate } from '@/lib/default-html-templates';
 import Link from 'next/link';
@@ -80,129 +80,7 @@ interface StandardLayoutPreviewProps {
   siteWideCSS?: string;
 }
 
-// Simplified NavBar for preview that doesn't require data fetching
-function PreviewNavBar({ siteConfig }: { siteConfig: any }) {
-  return (
-    <header className="site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative">
-      <nav className="site-navigation mx-auto max-w-5xl flex items-center justify-between">
-        <div className="site-branding flex-shrink-0">
-          <h1 className="site-title thread-headline text-xl sm:text-2xl font-bold text-thread-pine">{siteConfig.site_name}</h1>
-          <span className="site-tagline thread-label hidden sm:inline">{siteConfig.site_tagline}</span>
-        </div>
-        
-        {/* Desktop Navigation */}
-        <div className="site-nav-container hidden lg:flex items-center gap-8">
-          <div className="site-nav-links flex items-center gap-6">
-            <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/">Home</Link>
-            <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/discovery">Discovery</Link>
-            <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/help">Help</Link>
-          </div>
-          
-          {/* Site Auth */}
-          <div className="site-auth flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-thread-sage">
-              <span className="hidden sm:inline">Preview Mode</span>
-              <div className="w-8 h-8 bg-thread-sage rounded-full flex items-center justify-center">
-                <span className="text-white text-xs">👤</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile hamburger */}
-        <div className="lg:hidden">
-          <button className="p-2 text-thread-pine hover:text-thread-sunset">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-      </nav>
-    </header>
-  );
-}
-
-// Scoped component wrapper for navigation/footer with isolated CSS
-function ScopedNavFooterWrapper({ 
-  children, 
-  customCSS,
-  cssMode = 'inherit' 
-}: { 
-  children: React.ReactNode; 
-  customCSS: string;
-  cssMode?: CSSMode;
-}) {
-  const shadowHostRef = React.useRef<HTMLDivElement>(null);
-  const shadowRootRef = React.useRef<ShadowRoot | null>(null);
-  const [shadowReady, setShadowReady] = React.useState(false);
-  const { css: siteWideCSS } = useSiteCSS();
-
-  React.useEffect(() => {
-    if (shadowHostRef.current && !shadowRootRef.current) {
-      try {
-        const shadowRoot = shadowHostRef.current.attachShadow({ mode: 'open' });
-        shadowRootRef.current = shadowRoot;
-        
-        const container = document.createElement('div');
-        container.id = 'nav-footer-content';
-        shadowRoot.appendChild(container);
-        
-        setShadowReady(true);
-      } catch (error) {
-        console.error('Failed to create shadow DOM:', error);
-      }
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (!shadowRootRef.current || !shadowReady) return;
-
-    const existingStyle = shadowRootRef.current.querySelector('#nav-footer-styles');
-    if (existingStyle) {
-      existingStyle.remove();
-    }
-
-    const styleElement = document.createElement('style');
-    styleElement.id = 'nav-footer-styles';
-    
-    // Generate layered CSS for shadow DOM
-    const layeredCSS = generatePreviewCSS({
-      cssMode,
-      templateMode: 'enhanced',
-      siteWideCSS,
-      userCustomCSS: customCSS,
-      profileId: 'nav-footer-preview'
-    });
-
-    styleElement.textContent = `
-      ${layeredCSS}
-      
-      /* Ensure proper styling for shadow DOM */
-      #nav-footer-content {
-        width: 100%;
-        display: block;
-      }
-    `;
-
-    shadowRootRef.current.insertBefore(styleElement, shadowRootRef.current.firstChild);
-  }, [customCSS, cssMode, siteWideCSS, shadowReady]);
-
-  return (
-    <div 
-      ref={shadowHostRef}
-      className="nav-footer-shadow-host"
-    >
-      {shadowReady && shadowRootRef.current && (
-        createPortal(
-          <div id="nav-footer-content">
-            {children}
-          </div>,
-          shadowRootRef.current.querySelector('#nav-footer-content') as HTMLElement
-        )
-      )}
-    </div>
-  );
-}
+// REMOVED: PreviewNavBar - now handled inside Shadow DOM in TemplatePreview.tsx
 
 function StandardLayoutPreview({
   user,
@@ -233,6 +111,13 @@ function StandardLayoutPreview({
 
   return (
     <div>
+      {/* Apply user CSS GLOBALLY for advanced templates like ProfileModeRenderer does */}
+      {!useStandardLayout && customCSS && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          /* User CSS applied globally like ProfileModeRenderer does */
+          ${customCSS}
+        ` }} />
+      )}
       
       {/* Helpful info for standard layout users */}
       {useStandardLayout && (
@@ -242,25 +127,32 @@ function StandardLayoutPreview({
         </div>
       )}
       
-      {/* Navigation context for realistic preview with scoped CSS */}
-      <div className={`preview-with-context ${useStandardLayout ? 'thread-surface min-h-screen preview-standard-layout' : ''}`}>
-        {/* Navigation - show appropriate navbar based on template mode */}
-        {showNavigation && (
-          <>
-            {useStandardLayout ? (
-              // Standard layout: Show PreviewNavBar with full site CSS (no shadow DOM isolation)
-              <PreviewNavBar siteConfig={config} />
-            ) : (
-              // Advanced template: Show MinimalNavBar with user's custom CSS applied
-              <ScopedNavFooterWrapper customCSS={customCSS} cssMode={cssMode}>
-                <MinimalNavBar />
-              </ScopedNavFooterWrapper>
-            )}
-          </>
-        )}
-        
-        {/* Template content */}
-        <div className={`template-content-preview ${useStandardLayout ? 'mx-auto max-w-5xl px-6 py-8' : ''}`}>
+      {/* For advanced templates, wrap everything in advanced-template-container like ProfileModeRenderer */}
+      {!useStandardLayout ? (
+        <>
+          {/* Show MinimalNavBar when navigation toggle is ON - matching ProfileModeRenderer */}
+          {showNavigation && <MinimalNavBar />}
+          
+          {/* Wrap in container for CSS isolation - matching ProfileModeRenderer */}
+          <div className="advanced-template-container">
+            <TemplatePreview
+              user={user}
+              template={previewTemplate}
+              customCSS={customCSS}
+              cssMode={cssMode}
+              renderMode="islands"
+              residentData={residentData}
+              onCompile={onCompile}
+              onError={onError}
+              siteWideCSS={siteWideCSS}
+              useStandardLayout={useStandardLayout}
+              showNavigation={showNavigation}
+            />
+          </div>
+        </>
+      ) : (
+        /* Standard layout preview - header/footer now inside Shadow DOM */
+        <div className="preview-with-context min-h-screen preview-standard-layout">
           <TemplatePreview
             user={user}
             template={previewTemplate}
@@ -272,34 +164,11 @@ function StandardLayoutPreview({
             onError={onError}
             siteWideCSS={siteWideCSS}
             useStandardLayout={useStandardLayout}
+            showNavigation={showNavigation}
+            siteConfig={config}
           />
         </div>
-        
-        {/* Footer - show based on toggle */}
-        {showNavigation && (
-          <>
-            {useStandardLayout ? (
-              // Standard layout: Show footer with full site CSS (no shadow DOM isolation)
-              <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
-                <div className="footer-content mx-auto max-w-5xl text-center">
-                  <span className="footer-tagline thread-label">{config.site_description}</span>
-                  <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
-                </div>
-              </footer>
-            ) : (
-              // Advanced template: Apply user's custom CSS to footer
-              <ScopedNavFooterWrapper customCSS={customCSS} cssMode={cssMode}>
-                <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
-                  <div className="footer-content mx-auto max-w-5xl text-center">
-                    <span className="footer-tagline thread-label">{config.site_description}</span>
-                    <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
-                  </div>
-                </footer>
-              </ScopedNavFooterWrapper>
-            )}
-          </>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -324,6 +193,9 @@ export default function EnhancedTemplateEditor({
   const [template, setTemplate] = useState(initialTemplate);
   const [customCSS, setCustomCSS] = useState(initialCSS);
   const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
+  
+  // Pop-up preview window management
+  const [previewWindow, setPreviewWindow] = useState<Window | null>(null);
   
   // Get site-wide CSS without triggering DOM updates (read-only)
   const [siteWideCSS, setSiteWideCSS] = useState<string>('');
@@ -420,7 +292,7 @@ export default function EnhancedTemplateEditor({
   };
   const [isLoading, setIsLoading] = useState(true);
   const [compiledTemplate, setCompiledTemplate] = useState<CompiledTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState<'template' | 'css' | 'preview'>('template');
+  const [activeTab, setActiveTab] = useState<'template' | 'css'>('template');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loadingDefault, setLoadingDefault] = useState(false);
@@ -476,6 +348,126 @@ export default function EnhancedTemplateEditor({
     warningDialog.confirmAction();
     closeWarning();
   };
+
+  // Pop-up preview management
+  const openPopupPreview = useCallback(() => {
+    // Check if essential data is available
+    if (!residentData) {
+      alert('Preview data is still loading. Please wait a moment and try again.');
+      return;
+    }
+
+    // Close existing preview window if open
+    if (previewWindow && !previewWindow.closed) {
+      previewWindow.close();
+    }
+
+    // Open new preview window
+    const newWindow = window.open(
+      '/preview-temp',
+      'template-preview',
+      'width=1200,height=800,scrollbars=yes,resizable=yes,status=yes,location=yes'
+    );
+
+    if (newWindow) {
+      setPreviewWindow(newWindow);
+      
+      // Listen for window ready signal
+      const handleMessage = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+        
+        if (event.data.type === 'PREVIEW_READY') {
+          console.log('🎯 Template editor received PREVIEW_READY, sending data...', {
+            hasResidentData: !!residentData,
+            hasUser: !!user,
+            hasTemplate: !!template,
+            hasCustomCSS: !!customCSS
+          });
+          // Send initial preview data
+          sendPreviewData(newWindow);
+          window.removeEventListener('message', handleMessage);
+        }
+      };
+      
+      window.addEventListener('message', handleMessage);
+      
+      // Cleanup when window closes
+      const checkClosed = setInterval(() => {
+        if (newWindow.closed) {
+          setPreviewWindow(null);
+          clearInterval(checkClosed);
+          window.removeEventListener('message', handleMessage);
+        }
+      }, 1000);
+    } else {
+      alert('Pop-up blocked! Please allow pop-ups for this site to use the preview feature.');
+    }
+  }, [previewWindow, residentData]);
+
+  const sendPreviewData = useCallback((targetWindow: Window) => {
+    if (!residentData) {
+      console.log('⚠️ Cannot send preview data - residentData not available yet');
+      return;
+    }
+    
+    console.log('📤 Sending preview data to window...', {
+      hasResidentData: !!residentData,
+      hasUser: !!user,
+      templateMode: useStandardLayout ? 'enhanced' : 'advanced'
+    });
+    
+    // Determine template mode - if there's custom CSS, use enhanced mode
+    const templateMode = customCSS?.trim() ? 'enhanced' : (useStandardLayout ? 'enhanced' : 'advanced');
+    
+    const previewData = {
+      user: {
+        id: user.id,
+        handle: user.primaryHandle || 'preview-user',
+        profile: {
+          templateMode: templateMode,
+          customCSS: customCSS,
+          customTemplate: template,
+          cssMode: cssMode,
+          compiledTemplate: compiledTemplate,
+          templateCompiledAt: new Date()
+        }
+      },
+      residentData: residentData,
+      customCSS: customCSS,
+      useStandardLayout: useStandardLayout
+    };
+    
+    console.log('📤 Sending preview data with mode:', {
+      templateMode,
+      hasCustomCSS: !!customCSS?.trim(),
+      cssLength: customCSS?.length || 0,
+      useStandardLayout
+    });
+    
+    targetWindow.postMessage({ 
+      type: 'PREVIEW_DATA', 
+      payload: previewData 
+    }, window.location.origin);
+    
+    console.log('✅ Preview data sent successfully!');
+  }, [user, customCSS, template, cssMode, compiledTemplate, residentData, useStandardLayout]);
+
+  // Send CSS updates to preview window when CSS changes
+  useEffect(() => {
+    if (previewWindow && !previewWindow.closed) {
+      previewWindow.postMessage({ 
+        type: 'CSS_UPDATE', 
+        customCSS: customCSS 
+      }, window.location.origin);
+    }
+  }, [customCSS, previewWindow]);
+
+  // Send template updates to preview window when template changes
+  useEffect(() => {
+    if (previewWindow && !previewWindow.closed && residentData) {
+      sendPreviewData(previewWindow);
+    }
+  }, [template, previewWindow, residentData, sendPreviewData]);
 
   // Feature flag for islands mode
   // Islands are always enabled - legacy mode removed
@@ -820,14 +812,11 @@ export default function EnhancedTemplateEditor({
           CSS
         </button>
         <button
-          onClick={() => setActiveTab('preview')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-            activeTab === 'preview'
-              ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
-              : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
-          }`}
+          onClick={openPopupPreview}
+          className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2"
         >
-          {useStandardLayout ? 'Preview CSS' : 'Preview'}
+          <span>🔍</span>
+          Open Preview
         </button>
       </div>
 
@@ -1117,7 +1106,7 @@ export default function EnhancedTemplateEditor({
                     <select
                       onChange={(e) => {
                         if (e.target.value === '') return;
-                        const templateCSS = getDefaultTemplate(e.target.value as any);
+                        const templateCSS = getDefaultProfileTemplate(e.target.value as any);
                         setCustomCSS(templateCSS);
                         // Reset the selector
                         e.target.value = '';
@@ -1125,13 +1114,12 @@ export default function EnhancedTemplateEditor({
                       className="text-xs px-2 py-1 border border-thread-sage rounded bg-thread-paper hover:bg-thread-cream"
                     >
                       <option value="">Load Template...</option>
-                      <option value="full">Classic (Colorful GeoCities)</option>
-                      <option value="minimal">Minimal (Clean & Simple)</option>
-                      <option value="dark">Dark Theme</option>
-                      <option value="advanced">Advanced Layout</option>
-                      <option value="gaming">Retro Gaming</option>
-                      <option value="newspaper">Newspaper</option>
-                      <option value="fantasy">Medieval Fantasy</option>
+                      <option value="abstract-art">🎨 Abstract Art - Colorful and artistic with dynamic gradients</option>
+                      <option value="charcoal-nights">🖤 Charcoal Nights - Dark retro terminal aesthetic</option>
+                      <option value="pixel-petals">🌸 Pixel Petals - Kawaii pastel pink paradise</option>
+                      <option value="retro-social">📱 Retro Social - MySpace-inspired nostalgic vibes</option>
+                      <option value="classic-linen">🧵 Classic Linen - Vintage cream and dotted elegance</option>
+                      <option value="clear">🗑️ None - Complete creative freedom</option>
                     </select>
                   </div>
                 </div>
@@ -1266,60 +1254,6 @@ body {
           </div>
         )}
 
-        {/* Preview Tab - Full Page */}
-        {activeTab === 'preview' && (
-          <div className="w-full flex flex-col">
-            <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-2 -mt-px">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="thread-label text-sm">Live Preview</span>
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                    🏝️ Islands Mode
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {saveMessage && (
-                    <span className={`text-sm ${saveMessage.includes('✓') ? 'text-green-600' : 'text-red-600'}`}>
-                      {saveMessage}
-                    </span>
-                  )}
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="thread-button text-sm"
-                  >
-                    {isSaving ? 'Saving...' : 'Save Template'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className={`editor-preview-container border border-thread-sage/30 mx-2 my-2 rounded overflow-hidden shadow-lg ${useStandardLayout ? 'bg-transparent' : 'bg-white'}`}>
-              {!residentData && (
-                <div className="p-4 text-center text-thread-sage">
-                  Loading preview data... {user?.primaryHandle ? `for ${user.primaryHandle}` : ''}
-                </div>
-              )}
-              {residentData && (
-                <StandardLayoutPreview
-                  user={user}
-                  template={template}
-                  customCSS={customCSS}
-                  cssMode={cssMode}
-                  useStandardLayout={useStandardLayout}
-                  showNavigation={showNavigation}
-                  residentData={residentData}
-                  onCompile={handleCompile}
-                  onError={handleError}
-                  defaultTemplate={defaultTemplateForPreview}
-                  loadingDefaultTemplate={loadingDefaultTemplate}
-                  siteWideCSS={siteWideCSS}
-                />
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Component reference - matching original footer */}

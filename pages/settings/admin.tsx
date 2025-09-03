@@ -3,7 +3,7 @@ import Layout from "@/components/Layout";
 import RetroCard from "@/components/layout/RetroCard";
 import { useMe } from "@/hooks/useMe";
 import { getSiteTemplate, SITE_TEMPLATE_INFO } from "@/lib/site-css-templates";
-import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO } from "@/lib/default-profile-templates";
+import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO, type ProfileTemplateType } from "@/lib/default-profile-templates";
 import ReportsSection from "@/components/admin/ReportsSection";
 import PostsSection from "@/components/admin/PostsSection";
 
@@ -799,7 +799,7 @@ export default function AdminPage() {
     }
   }
 
-  async function handleDefaultProfileTemplateSelect(type: 'default' | 'minimal' | 'dark' | 'colorful' | 'clear') {
+  async function handleDefaultProfileTemplateSelect(type: ProfileTemplateType | 'clear') {
     const newCSS = getDefaultProfileTemplate(type);
     setDefaultProfileCSS(newCSS);
     setShowDefaultProfileTemplates(false);
@@ -1821,7 +1821,7 @@ We collect information you provide when creating an account..."
                       {Object.entries(DEFAULT_PROFILE_TEMPLATE_INFO).map(([key, info]) => (
                         <button
                           key={key}
-                          onClick={() => handleDefaultProfileTemplateSelect(key as any)}
+                          onClick={() => handleDefaultProfileTemplateSelect(key as ProfileTemplateType | 'clear')}
                           className="p-3 text-xs border border-gray-300 bg-white hover:bg-gray-50 rounded transition-all text-left"
                         >
                           <div className="font-semibold text-gray-800">{info.name}</div>

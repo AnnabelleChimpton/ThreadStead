@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getDefaultTemplate } from '@/lib/default-css-template';
+import { getDefaultProfileTemplate, type ProfileTemplateType } from '@/lib/default-profile-templates';
 
 interface CSSEditorProps {
   value: string;
@@ -16,11 +16,11 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
   } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  const handleTemplateSelect = (type: 'full' | 'minimal' | 'dark' | 'advanced' | 'gaming' | 'newspaper' | 'fantasy' | 'clear') => {
+  const handleTemplateSelect = (type: ProfileTemplateType | 'clear') => {
     if (type === 'clear') {
       onChange('');
     } else {
-      onChange(getDefaultTemplate(type));
+      onChange(getDefaultProfileTemplate(type as ProfileTemplateType));
     }
     setShowTemplates(false);
   };
@@ -103,59 +103,43 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             <button
               type="button"
-              onClick={() => handleTemplateSelect('full')}
+              onClick={() => handleTemplateSelect('abstract-art')}
               className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
             >
-              <div className="font-semibold text-thread-pine">📋 Full Template</div>
-              <div className="text-thread-sage mt-1">Complete scaffolding with examples</div>
+              <div className="font-semibold text-thread-pine">🎨 Abstract Art</div>
+              <div className="text-thread-sage mt-1">Vibrant colorful artistic canvas</div>
             </button>
             <button
               type="button"
-              onClick={() => handleTemplateSelect('minimal')}
+              onClick={() => handleTemplateSelect('charcoal-nights')}
               className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
             >
-              <div className="font-semibold text-thread-pine">✨ Minimal</div>
-              <div className="text-thread-sage mt-1">Simple color customization</div>
+              <div className="font-semibold text-thread-pine">🖤 Charcoal Nights</div>
+              <div className="text-thread-sage mt-1">Dark retro terminal</div>
             </button>
             <button
               type="button"
-              onClick={() => handleTemplateSelect('dark')}
+              onClick={() => handleTemplateSelect('pixel-petals')}
               className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
             >
-              <div className="font-semibold text-thread-pine">🌙 Dark Theme</div>
-              <div className="text-thread-sage mt-1">Dark color scheme</div>
+              <div className="font-semibold text-thread-pine">🌸 Pixel Petals</div>
+              <div className="text-thread-sage mt-1">Kawaii paradise with pastels</div>
             </button>
             <button
               type="button"
-              onClick={() => handleTemplateSelect('advanced')}
+              onClick={() => handleTemplateSelect('retro-social')}
               className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
             >
-              <div className="font-semibold text-thread-pine">🚀 Advanced Layout</div>
-              <div className="text-thread-sage mt-1">Modern design with animations</div>
+              <div className="font-semibold text-thread-pine">📱 Retro Social</div>
+              <div className="text-thread-sage mt-1">MySpace nostalgia vibes</div>
             </button>
             <button
               type="button"
-              onClick={() => handleTemplateSelect('gaming')}
+              onClick={() => handleTemplateSelect('classic-linen')}
               className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
             >
-              <div className="font-semibold text-thread-pine">🎮 Retro Gaming</div>
-              <div className="text-thread-sage mt-1">8-bit terminal style</div>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleTemplateSelect('newspaper')}
-              className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
-            >
-              <div className="font-semibold text-thread-pine">📰 Newspaper</div>
-              <div className="text-thread-sage mt-1">Classic print layout</div>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleTemplateSelect('fantasy')}
-              className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
-            >
-              <div className="font-semibold text-thread-pine">🏰 Medieval Fantasy</div>
-              <div className="text-thread-sage mt-1">Tavern & scroll theme</div>
+              <div className="font-semibold text-thread-pine">🧵 Classic Linen</div>
+              <div className="text-thread-sage mt-1">Vintage elegance</div>
             </button>
             <button
               type="button"
