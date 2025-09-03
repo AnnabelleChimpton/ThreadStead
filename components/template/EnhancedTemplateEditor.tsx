@@ -6,6 +6,7 @@ import { fetchResidentData } from '@/lib/template-data';
 import type { ResidentData } from '@/components/template/ResidentDataProvider';
 import type { CompiledTemplate } from '@/lib/template-compiler';
 import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO } from '@/lib/default-profile-templates';
+import TemplatePanelSelector from './TemplatePanelSelector';
 import { TEMPLATE_EXAMPLES } from '@/lib/default-profile-template';
 import { HTML_TEMPLATES, getHTMLTemplate } from '@/lib/default-html-templates';
 import Link from 'next/link';
@@ -297,6 +298,7 @@ export default function EnhancedTemplateEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loadingDefault, setLoadingDefault] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   
   // Data loss warning state
   const [warningDialog, setWarningDialog] = useState<{
@@ -321,18 +323,27 @@ export default function EnhancedTemplateEditor({
     
     return hasCustomTemplate || hasCustomCSS;
   };
+  
+  // Smart check for whether content is essentially empty
+  const isContentEmpty = () => {
+    const isTemplateEmpty = !template || template.trim() === '';
+    const isCSSEmpty = !customCSS || customCSS.trim() === '' || 
+      customCSS.trim() === '/* Add your custom CSS here */' ||
+      customCSS.trim() === '/* Add your custom CSS here to style the standard layout */';
+    return isTemplateEmpty && isCSSEmpty;
+  };
 
   const showDataLossWarning = (title: string, message: string, confirmAction: () => void) => {
-    if (hasUnsavedContent()) {
+    // Skip warning if content is empty or matches initial values
+    if (isContentEmpty() || !hasUnsavedContent()) {
+      confirmAction();
+    } else {
       setWarningDialog({
         isOpen: true,
         title,
         message,
         confirmAction
       });
-    } else {
-      // No unsaved content, proceed directly
-      confirmAction();
     }
   };
 
@@ -1298,27 +1309,43 @@ export default function EnhancedTemplateEditor({
                   </div>
                   
                   {/* CSS Template Selector */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-thread-sage">Template:</span>
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value === '') return;
-                        const templateCSS = getDefaultProfileTemplate(e.target.value as any);
-                        setCustomCSS(templateCSS);
-                        // Reset the selector
-                        e.target.value = '';
-                      }}
-                      className="text-xs px-2 py-1 border border-thread-sage rounded bg-thread-paper hover:bg-thread-cream"
+                  {useStandardLayout ? (
+                    <button
+                      onClick={() => setShowTemplateSelector(true)}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm font-medium"
                     >
-                      <option value="">Load Template...</option>
-                      <option value="abstract-art">🎨 Abstract Art - Colorful and artistic with dynamic gradients</option>
-                      <option value="charcoal-nights">🖤 Charcoal Nights - Dark retro terminal aesthetic</option>
-                      <option value="pixel-petals">🌸 Pixel Petals - Kawaii pastel pink paradise</option>
-                      <option value="retro-social">📱 Retro Social - MySpace-inspired nostalgic vibes</option>
-                      <option value="classic-linen">🧵 Classic Linen - Vintage cream and dotted elegance</option>
-                      <option value="clear">🗑️ None - Complete creative freedom</option>
-                    </select>
-                  </div>
+                      <span>🎨</span>
+                      Choose Theme
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-thread-sage">Template:</span>
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value === '') return;
+                          showDataLossWarning(
+                            "Load CSS Template",
+                            `This will replace your current CSS with the template. Any unsaved changes will be lost.`,
+                            () => {
+                              const templateCSS = getDefaultProfileTemplate(e.target.value as any);
+                              setCustomCSS(templateCSS);
+                            }
+                          );
+                          // Reset the selector
+                          e.target.value = '';
+                        }}
+                        className="text-xs px-2 py-1 border border-thread-sage rounded bg-thread-paper hover:bg-thread-cream"
+                      >
+                        <option value="">Load Template...</option>
+                        <option value="abstract-art">🎨 Abstract Art</option>
+                        <option value="charcoal-nights">🖤 Charcoal Nights</option>
+                        <option value="pixel-petals">🌸 Pixel Petals</option>
+                        <option value="retro-social">📱 Retro Social</option>
+                        <option value="classic-linen">🧵 Classic Linen</option>
+                        <option value="clear">🗑️ Clear CSS</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1355,6 +1382,29 @@ export default function EnhancedTemplateEditor({
                     {useStandardLayout ? 'Custom CSS for Standard Layout' : 'Template CSS'}
                   </span>
                   <span className="text-sm text-thread-sage ml-2">Use Tab/Shift+Tab for indentation</span>
+                  {useStandardLayout && customCSS && (() => {
+                    // Detect current template
+                    const templates: Array<{id: string, name: string}> = [
+                      {id: 'abstract-art', name: 'Abstract Art'},
+                      {id: 'charcoal-nights', name: 'Charcoal Nights'},
+                      {id: 'pixel-petals', name: 'Pixel Petals'},
+                      {id: 'retro-social', name: 'Retro Social'},
+                      {id: 'classic-linen', name: 'Classic Linen'}
+                    ];
+                    
+                    for (const template of templates) {
+                      const templateCSS = getDefaultProfileTemplate(template.id as any);
+                      const normalize = (str: string) => str.replace(/\s+/g, ' ').trim().substring(0, 200);
+                      if (normalize(customCSS).includes(normalize(templateCSS).substring(0, 100))) {
+                        return (
+                          <span className="ml-3 px-2 py-1 bg-green-100 text-green-700 text-xs rounded font-medium">
+                            ✓ {template.name} Theme Applied
+                          </span>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
                 </label>
                 
                 {/* CSS Mode Explanation */}
@@ -1472,6 +1522,27 @@ body {
         </details>
       </div>
 
+      {/* Template Selector Modal - only for Standard Layout */}
+      {showTemplateSelector && useStandardLayout && (
+        <TemplatePanelSelector
+          currentCSS={customCSS}
+          onSelectTemplate={(css, templateName) => {
+            showDataLossWarning(
+              "Apply Template",
+              `This will replace your current CSS with the "${templateName}" template. Any unsaved changes will be lost.`,
+              () => {
+                setCustomCSS(css);
+                setCSSMode('inherit'); // Templates work best with inherit mode
+                setSaveMessage(`✓ Applied ${templateName} template`);
+                setTimeout(() => setSaveMessage(null), 3000);
+              }
+            );
+            setShowTemplateSelector(false);
+          }}
+          onClose={() => setShowTemplateSelector(false)}
+        />
+      )}
+      
       {/* Data Loss Warning Dialog */}
       <DataLossWarning
         isOpen={warningDialog.isOpen}

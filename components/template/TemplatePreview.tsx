@@ -1029,7 +1029,6 @@ function IslandsPreview({
       .aspect-square { aspect-ratio: 1 / 1; }
       
       /* Background utilities - missing colors */
-      .bg-black { background-color: #000000; }
       .bg-transparent { background-color: transparent; }
       .bg-red-500 { background-color: #ef4444; }
       .bg-yellow-500 { background-color: #eab308; }
