@@ -349,12 +349,195 @@ export default function EnhancedTemplateEditor({
     closeWarning();
   };
 
+  // Parse template to extract components (copied from TemplatePreview)
+  const parseTemplateForIslands = useCallback((templateContent: string) => {
+    // Import component registry functions
+    const { componentRegistry } = require('@/lib/template-registry');
+    const validComponents = componentRegistry.getAllowedTags();
+    
+    // Create a simple DOM parser to handle nested structure
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<root>${templateContent}</root>`, 'text/xml');
+    
+    const islands: any[] = [];
+    let islandCounter = 0;
+    
+    function processElement(element: Element, parentId?: string): any {
+      const tagName = element.tagName;
+      const properComponentName = validComponents.find((valid: string) => 
+        valid.toLowerCase() === tagName.toLowerCase()
+      );
+      
+      if (properComponentName) {
+        const islandId = `island-${islandCounter++}`;
+        
+        // Extract props from attributes
+        const props: any = {};
+        for (let i = 0; i < element.attributes.length; i++) {
+          const attr = element.attributes[i];
+          props[attr.name] = attr.value;
+        }
+        
+        // Process children recursively
+        const children: any[] = [];
+        for (let i = 0; i < element.childNodes.length; i++) {
+          const child = element.childNodes[i];
+          if (child.nodeType === 1) { // ELEMENT_NODE
+            const childResult = processElement(child as Element, islandId);
+            if (childResult) {
+              children.push(childResult);
+            }
+          }
+        }
+        
+        const island = {
+          id: islandId,
+          component: properComponentName,
+          props,
+          children,
+          parentId: parentId || undefined,
+          placeholder: `<div data-island="${islandId}" data-component="${properComponentName}" class="island-placeholder"></div>`
+        };
+        
+        islands.push(island);
+        return island;
+      }
+      
+      // Process children even if this element isn't a component
+      for (let i = 0; i < element.childNodes.length; i++) {
+        const child = element.childNodes[i];
+        if (child.nodeType === 1) {
+          processElement(child as Element, parentId);
+        }
+      }
+      
+      return null;
+    }
+    
+    // Check if parsing succeeded
+    if (doc.documentElement.tagName !== 'parsererror') {
+      processElement(doc.documentElement);
+    }
+    
+    return islands;
+  }, []);
+
+  // Compile template function (mimics TemplatePreview compilation)
+  const compileTemplateForPreview = useCallback(async () => {
+    if (!template.trim() || useStandardLayout) {
+      setCompiledTemplate(null);
+      return null;
+    }
+
+    try {
+      // Parse the template to extract components
+      const islands = parseTemplateForIslands(template);
+      
+      // Generate static HTML with placeholders
+      let staticHTML = template;
+      
+      // Replace components with placeholders (only root-level islands)
+      const rootIslands = islands.filter(island => !island.parentId);
+      
+      for (const island of rootIslands) {
+        const componentName = island.component.toLowerCase();
+        
+        // Handle self-closing tags
+        const selfClosingRegex = new RegExp(`<${componentName}\\b([^>]*?)\\s*\/>`, 'gi');
+        staticHTML = staticHTML.replace(selfClosingRegex, island.placeholder);
+        
+        // Handle full tags with content
+        const fullTagRegex = new RegExp(`<${componentName}\\b([^>]*)>([\\s\\S]*?)<\\/${componentName}>`, 'gi');
+        staticHTML = staticHTML.replace(fullTagRegex, island.placeholder);
+      }
+      
+      // Create compiled template object
+      const mockCompiled: CompiledTemplate = {
+        mode: 'advanced',
+        staticHTML: staticHTML,
+        islands: islands,
+        fallback: undefined,
+        compiledAt: new Date(),
+        errors: [],
+        warnings: []
+      };
+
+      setCompiledTemplate(mockCompiled);
+      return mockCompiled;
+    } catch (error) {
+      console.error('Template compilation failed:', error);
+      return null;
+    }
+  }, [template, useStandardLayout, parseTemplateForIslands]);
+
+  // Send preview data to popup window
+  const sendPreviewData = useCallback((targetWindow: Window) => {
+    if (!residentData) {
+      console.log('⚠️ Cannot send preview data - residentData not available yet');
+      return;
+    }
+    
+    console.log('📤 Sending preview data to window...', {
+      hasResidentData: !!residentData,
+      hasUser: !!user,
+      templateMode: useStandardLayout ? 'enhanced' : 'advanced'
+    });
+    
+    // Determine template mode based on layout type, not CSS presence
+    // Standard layout = enhanced mode, Custom HTML = advanced mode
+    const templateMode = useStandardLayout ? 'enhanced' : 'advanced';
+    
+    const previewData = {
+      user: {
+        id: user.id,
+        handle: user.primaryHandle || 'preview-user',
+        profile: {
+          templateMode: templateMode,
+          customCSS: customCSS,
+          customTemplate: template,
+          cssMode: cssMode,
+          compiledTemplate: compiledTemplate,
+          templateCompiledAt: new Date()
+        }
+      },
+      residentData: residentData,
+      customCSS: customCSS,
+      useStandardLayout: useStandardLayout
+    };
+    
+    console.log('📤 Sending preview data with mode:', {
+      templateMode,
+      hasCustomCSS: !!customCSS?.trim(),
+      cssLength: customCSS?.length || 0,
+      useStandardLayout
+    });
+    
+    targetWindow.postMessage({ 
+      type: 'PREVIEW_DATA', 
+      payload: previewData 
+    }, window.location.origin);
+    
+    console.log('✅ Preview data sent successfully!');
+  }, [user, customCSS, template, cssMode, compiledTemplate, residentData, useStandardLayout]);
+
   // Pop-up preview management
-  const openPopupPreview = useCallback(() => {
+  const openPopupPreview = useCallback(async () => {
     // Check if essential data is available
     if (!residentData) {
       alert('Preview data is still loading. Please wait a moment and try again.');
       return;
+    }
+
+    // For advanced templates, compile if needed
+    if (!useStandardLayout && template.trim()) {
+      if (!compiledTemplate) {
+        // Compile the template before opening preview
+        const compiled = await compileTemplateForPreview();
+        if (!compiled) {
+          alert('Failed to compile template. Please check your template syntax.');
+          return;
+        }
+      }
     }
 
     // Close existing preview window if open
@@ -402,55 +585,7 @@ export default function EnhancedTemplateEditor({
     } else {
       alert('Pop-up blocked! Please allow pop-ups for this site to use the preview feature.');
     }
-  }, [previewWindow, residentData]);
-
-  const sendPreviewData = useCallback((targetWindow: Window) => {
-    if (!residentData) {
-      console.log('⚠️ Cannot send preview data - residentData not available yet');
-      return;
-    }
-    
-    console.log('📤 Sending preview data to window...', {
-      hasResidentData: !!residentData,
-      hasUser: !!user,
-      templateMode: useStandardLayout ? 'enhanced' : 'advanced'
-    });
-    
-    // Determine template mode - if there's custom CSS, use enhanced mode
-    const templateMode = customCSS?.trim() ? 'enhanced' : (useStandardLayout ? 'enhanced' : 'advanced');
-    
-    const previewData = {
-      user: {
-        id: user.id,
-        handle: user.primaryHandle || 'preview-user',
-        profile: {
-          templateMode: templateMode,
-          customCSS: customCSS,
-          customTemplate: template,
-          cssMode: cssMode,
-          compiledTemplate: compiledTemplate,
-          templateCompiledAt: new Date()
-        }
-      },
-      residentData: residentData,
-      customCSS: customCSS,
-      useStandardLayout: useStandardLayout
-    };
-    
-    console.log('📤 Sending preview data with mode:', {
-      templateMode,
-      hasCustomCSS: !!customCSS?.trim(),
-      cssLength: customCSS?.length || 0,
-      useStandardLayout
-    });
-    
-    targetWindow.postMessage({ 
-      type: 'PREVIEW_DATA', 
-      payload: previewData 
-    }, window.location.origin);
-    
-    console.log('✅ Preview data sent successfully!');
-  }, [user, customCSS, template, cssMode, compiledTemplate, residentData, useStandardLayout]);
+  }, [previewWindow, residentData, useStandardLayout, template, compiledTemplate, sendPreviewData, compileTemplateForPreview]);
 
   // Send CSS updates to preview window when CSS changes
   useEffect(() => {
@@ -634,6 +769,17 @@ export default function EnhancedTemplateEditor({
       });
     }
   }, [useStandardLayout, defaultTemplateForPreview, loadingDefaultTemplate, loadDefaultTemplateForPreview]);
+
+  // Auto-compile template when it changes (for advanced templates)
+  useEffect(() => {
+    if (!useStandardLayout && template.trim()) {
+      // Debounce compilation to avoid excessive recompilation
+      const timer = setTimeout(() => {
+        compileTemplateForPreview();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [template, useStandardLayout, compileTemplateForPreview]);
 
   // Sample templates - unified Islands approach (matches default exactly)
   const sampleTemplates = {

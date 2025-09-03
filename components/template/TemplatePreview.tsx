@@ -1732,7 +1732,7 @@ interface PreviewStaticHTMLWithIslandsProps {
   residentData: ResidentData;
 }
 
-function PreviewStaticHTMLWithIslands({ 
+export function PreviewStaticHTMLWithIslands({ 
   staticHTML, 
   islands, 
   residentData 
@@ -1849,7 +1849,7 @@ function PreviewStaticHTMLWithIslands({
 }
 
 // Production island renderer (matching AdvancedProfileRenderer)
-function ProductionIslandRenderer({ 
+export function ProductionIslandRenderer({ 
   island, 
   residentData
 }: { 

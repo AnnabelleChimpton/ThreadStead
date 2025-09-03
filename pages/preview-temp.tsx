@@ -13,6 +13,8 @@ import MediaGrid from '@/components/profile/tabs/MediaGrid';
 import FriendsWebsitesGrid from '@/components/profile/tabs/FriendsWebsitesGrid';
 import ProfileBadgeDisplay from '@/components/ProfileBadgeDisplay';
 import Guestbook from '@/components/Guestbook';
+// Import the existing island renderer for advanced templates
+import { ProductionIslandRenderer, PreviewStaticHTMLWithIslands } from '@/components/template/TemplatePreview';
 
 interface PreviewData {
   user: ProfileUser;
@@ -112,7 +114,7 @@ export default function PreviewTemp() {
     cssLength: customCSS?.length || 0
   });
 
-  // Create the profile tabs - same as in actual profile pages
+  // Create the profile tabs - needed for standard layout preview
   const baseTabs: TabSpec[] = [
     { 
       id: "blog", 
@@ -154,7 +156,57 @@ export default function PreviewTemp() {
     },
   ];
 
-  // Create fallback content for enhanced mode - same structure as live profiles
+  // Use existing island rendering system - handles both static HTML and islands!
+  function renderCompiledTemplateWithIslands(compiledTemplate: any, residentData: ResidentData) {
+    const hasIslands = compiledTemplate.islands && compiledTemplate.islands.length > 0;
+    const hasStaticHTML = compiledTemplate.staticHTML && compiledTemplate.staticHTML.trim();
+
+    if (!hasIslands && !hasStaticHTML) {
+      return <div className="p-4 text-gray-500">No content to render</div>;
+    }
+
+    // Handle mixed content (both islands and static HTML) - same as TemplatePreview
+    if (hasIslands && hasStaticHTML) {
+      return (
+        <PreviewStaticHTMLWithIslands 
+          staticHTML={compiledTemplate.staticHTML}
+          islands={compiledTemplate.islands}
+          residentData={residentData}
+        />
+      );
+    }
+
+    // If we only have islands, render them as React components
+    if (hasIslands) {
+      const rootIslands = compiledTemplate.islands.filter((island: any) => !island.parentId);
+      
+      return (
+        <div className="islands-container">
+          {rootIslands.map((island: any) => (
+            <ProductionIslandRenderer 
+              key={island.id}
+              island={island}
+              residentData={residentData}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    // If we only have static HTML (no islands), render it directly
+    if (hasStaticHTML) {
+      return (
+        <div 
+          className="static-html-content"
+          dangerouslySetInnerHTML={{ __html: compiledTemplate.staticHTML }}
+        />
+      );
+    }
+
+    return <div className="p-4 text-gray-500">Nothing to render</div>;
+  }
+
+  // Create fallback content for enhanced/standard mode
   const profileFallbackContent = (
     <>
       <RetroCard>
@@ -173,12 +225,26 @@ export default function PreviewTemp() {
     </>
   );
 
-  // Check if we should render directly with ProfileLayout (like live profiles do)
+  // Check template mode - CRITICAL for backwards compatibility
   const templateMode = previewUser.profile?.templateMode || 'default';
   const cssMode = previewUser.profile?.cssMode || 'inherit';
   
-  // For enhanced mode or inherit CSS mode, render DIRECTLY with ProfileLayout (matching live profile behavior)
-  if (templateMode === 'enhanced' || (templateMode !== 'advanced' && cssMode === 'inherit')) {
+  // Use the useStandardLayout flag from the editor - this is the source of truth
+  // If useStandardLayout is false AND we have template content, it's advanced mode
+  const hasCustomTemplate = previewUser.profile?.customTemplate && 
+                           previewUser.profile.customTemplate.trim() !== '';
+  const isReallyAdvancedMode = !previewData.useStandardLayout && hasCustomTemplate;
+  
+  console.log('🎯 Template Mode Decision:', {
+    templateMode,
+    useStandardLayout: previewData.useStandardLayout,
+    hasCustomTemplate,
+    isReallyAdvancedMode,
+    templateLength: previewUser.profile?.customTemplate?.length || 0
+  });
+  
+  // For standard layout (enhanced mode), always use ProfileLayout for consistency
+  if (!isReallyAdvancedMode) {
     console.log('🚨 CRITICAL CSS DEBUG - Direct ProfileLayout Render:', {
       templateMode,
       cssMode,
@@ -196,12 +262,12 @@ export default function PreviewTemp() {
           <meta name="robots" content="noindex, nofollow" />
         </Head>
         
-        {/* Add preview indicator */}
+        {/* Add preview indicator - show mode clearly */}
         <div 
           className="fixed top-0 left-0 right-0 z-[10000] bg-blue-600 text-white text-center py-2 text-sm font-medium"
           style={{ zIndex: 999999 }}
         >
-          🔍 TEMPLATE PREVIEW - Changes update automatically
+          🔍 STANDARD LAYOUT PREVIEW - CSS updates automatically
         </div>
         
         {/* Add top padding to account for preview banner */}
@@ -230,35 +296,73 @@ export default function PreviewTemp() {
     );
   }
   
-  // Only use ProfileModeRenderer for advanced templates
+  // Advanced template mode - COMPLETELY BLANK PAGE with only user content
+  // NO external CSS, NO Tailwind, NO system styles - just user's template and CSS
   return (
     <>
       <Head>
-        <title>Template Preview | ThreadStead</title>
+        <title>Advanced Template Preview | ThreadStead</title>
         <meta name="robots" content="noindex, nofollow" />
+        {/* ONLY style the preview banner - nothing else */}
+        <style>{`
+          /* Preview banner ONLY - completely isolated from page */
+          #preview-banner {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 999999 !important;
+            background: #7c3aed !important;
+            color: white !important;
+            text-align: center !important;
+            padding: 8px !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            font-family: system-ui, sans-serif !important;
+          }
+        `}</style>
       </Head>
       
-      {/* Add preview indicator */}
-      <div 
-        className="fixed top-0 left-0 right-0 z-[10000] bg-blue-600 text-white text-center py-2 text-sm font-medium"
-        style={{ zIndex: 999999 }}
-      >
-        🔍 TEMPLATE PREVIEW - Changes update automatically
+      {/* Preview indicator - use inline styles to avoid any class conflicts */}
+      <div id="preview-banner">
+        🎨 ADVANCED TEMPLATE PREVIEW - Live CSS Updates
       </div>
       
-      {/* Add top padding to account for preview banner */}
+      {/* User content with ResidentDataProvider for component data access */}
       <div style={{ paddingTop: '40px' }}>
+        {/* Apply user's custom CSS FIRST - this is the ONLY styling that should affect the page */}
+        {customCSS && (
+          <style dangerouslySetInnerHTML={{ __html: customCSS }} />
+        )}
+        
+        {/* Wrap in ResidentDataProvider so components have access to data */}
         <ResidentDataProvider data={residentData}>
-          <ProfileModeRenderer
-            user={previewUser}
-            residentData={residentData}
-            useIslands={true}
-            hideNavigation={false}
-            fallbackContent={profileFallbackContent}
-            onModeChange={(mode) => {
-              console.log('🔄 Profile mode changed to:', mode);
-            }}
-          />
+          {/* Debug: Log what we're rendering */}
+          {console.log('🎨 Advanced Template Rendering:', {
+            hasCompiledTemplate: !!previewUser.profile?.compiledTemplate,
+            hasCustomTemplate: !!previewUser.profile?.customTemplate,
+            hasResidentData: !!residentData,
+            compiledHTML: previewUser.profile?.compiledTemplate?.staticHTML?.substring(0, 200)
+          })}
+          
+          {/* Render the compiled template with ACTUAL components using existing islands system */}
+          {previewUser.profile?.compiledTemplate ? (
+            renderCompiledTemplateWithIslands(previewUser.profile.compiledTemplate, residentData)
+          ) : previewUser.profile?.customTemplate ? (
+            <div 
+              dangerouslySetInnerHTML={{ 
+                __html: previewUser.profile.customTemplate 
+              }}
+            />
+          ) : (
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+              <h2 style={{ fontSize: '24px', marginBottom: '10px' }}>Advanced Template Mode</h2>
+              <p>Your custom HTML template will render here.</p>
+              <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
+                Start adding HTML in the editor to see it appear.
+              </p>
+            </div>
+          )}
         </ResidentDataProvider>
       </div>
     </>
@@ -267,6 +371,10 @@ export default function PreviewTemp() {
 
 export async function getServerSideProps() {
   return {
-    props: {}
+    props: {
+      // Tell _app.tsx this is an advanced template preview - no default styles
+      templateMode: 'advanced',
+      includeSiteCSS: false
+    }
   };
 }
