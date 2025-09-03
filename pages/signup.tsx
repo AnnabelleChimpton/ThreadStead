@@ -6,12 +6,14 @@ import Layout from "@/components/Layout";
 import { createNewIdentityWithSeedPhrase, createNewIdentityWithPassword } from "@/lib/did-client";
 import { validatePasswordStrength } from "@/lib/password-auth";
 import { validateUsername } from "@/lib/validateUsername";
+import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/default-profile-templates";
+import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_STYLES } from "@/lib/template-preview-styles";
 
 interface SignupPageProps {
   betaKey?: string | null;
 }
 
-type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'profile' | 'complete';
+type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'template' | 'profile' | 'complete';
 type AuthMethod = 'password' | 'seedphrase';
 
 export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
@@ -40,7 +42,10 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
   const [email, setEmail] = useState('');
   const [skipEmail, setSkipEmail] = useState(false);
 
-  // Step 4: Profile Setup (Optional)
+  // Step 4: Template Selection
+  const [selectedTemplate, setSelectedTemplate] = useState<ProfileTemplateType>('abstract-art');
+
+  // Step 5: Profile Setup (Optional)
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [bio, setBio] = useState('');
@@ -166,7 +171,7 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
   async function handleEmailSetup() {
     if (!email.trim()) {
       // Skip email step
-      setCurrentStep('profile');
+      setCurrentStep('template');
       return;
     }
 
@@ -181,15 +186,15 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
       });
 
       if (response.ok) {
-        setCurrentStep('profile');
+        setCurrentStep('template');
       } else {
         const error = await response.json();
         setError(error.error || 'Failed to set email');
       }
     } catch (err) {
       setError('Failed to set email. You can add it later in settings.');
-      // Continue to profile setup even if email fails
-      setTimeout(() => setCurrentStep('profile'), 2000);
+      // Continue to template selection even if email fails
+      setTimeout(() => setCurrentStep('template'), 2000);
     } finally {
       setIsLoading(false);
     }
@@ -213,6 +218,37 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
       };
       reader.readAsDataURL(file);
       setError(null);
+    }
+  }
+
+  async function handleTemplateSelected() {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Save the selected template immediately
+      if (selectedTemplate) {
+        const templateResponse = await fetch('/api/user/profile-template', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ template: selectedTemplate }),
+          credentials: 'include'
+        });
+
+        if (!templateResponse.ok) {
+          const errorData = await templateResponse.json().catch(() => ({ error: 'Failed to set template' }));
+          setError(errorData.error || 'Failed to save template. Please try again.');
+          return;
+        }
+      }
+      
+      // Move to profile setup step
+      setCurrentStep('profile');
+    } catch (err) {
+      setError('Failed to save template. Please try again.');
+      console.error('Template selection error:', err);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -328,9 +364,16 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
                 Email
               </div>
               <div className="w-6 h-px bg-gray-300"></div>
+              <div className={`flex items-center gap-2 ${currentStep === 'template' ? 'text-blue-600 font-medium' : ['profile', 'complete'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'template' ? 'bg-blue-100' : ['profile', 'complete'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  4
+                </span>
+                Template
+              </div>
+              <div className="w-6 h-px bg-gray-300"></div>
               <div className={`flex items-center gap-2 ${currentStep === 'profile' ? 'text-blue-600 font-medium' : currentStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
                 <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'profile' ? 'bg-blue-100' : currentStep === 'complete' ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  4
+                  5
                 </span>
                 Profile
               </div>
@@ -731,7 +774,124 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
             </div>
           )}
 
-          {/* Step 4: Profile Setup (Optional) */}
+          {/* Step 4: Template Selection */}
+          {currentStep === 'template' && (
+            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+              <div className="text-center mb-8">
+                <span className="text-6xl mb-4 block">🎨</span>
+                <h2 className="text-3xl font-bold mb-2">Choose Your Theme</h2>
+                <p className="text-gray-600 max-w-lg mx-auto">
+                  Select a profile template to personalize your ThreadStead experience.
+                  You can change this anytime in your settings.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-6">
+                {(['abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social', 'classic-linen'] as ProfileTemplateType[]).map((templateType) => {
+                  const templateInfo = DEFAULT_PROFILE_TEMPLATE_INFO[templateType];
+                  const previewStyle = getTemplatePreviewStyle(templateType);
+                  const isSelected = selectedTemplate === templateType;
+                  
+                  return (
+                    <button
+                      key={templateType}
+                      onClick={() => setSelectedTemplate(templateType)}
+                      className={`relative border-2 ${isSelected ? 'border-blue-500 shadow-[4px_4px_0_#3B82F6]' : 'border-black shadow-[2px_2px_0_#000]'} rounded-lg p-4 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] text-left overflow-hidden`}
+                      style={{
+                        ...previewStyle,
+                        borderColor: isSelected ? '#3B82F6' : '#000'
+                      }}
+                    >
+                      {/* Gradient Overlay */}
+                      <div style={getTemplateGradientOverlay(templateType)} />
+                      
+                      {/* Selection Badge */}
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold z-10">
+                          Selected
+                        </div>
+                      )}
+                      
+                      {/* Template Content */}
+                      <div className="relative z-10">
+                        <div className="flex items-start gap-3 mb-3">
+                          <span className="text-3xl">{templateInfo.emoji}</span>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold mb-1" style={{ color: TEMPLATE_PREVIEW_STYLES[templateType]?.primaryColor }}>
+                              {templateInfo.name}
+                            </h3>
+                            <p className="text-sm opacity-80" style={{ color: TEMPLATE_PREVIEW_STYLES[templateType]?.secondaryColor }}>
+                              {templateInfo.description}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Preview Elements */}
+                        <div className="mt-3 flex gap-2">
+                          <div 
+                            className="px-2 py-1 text-xs font-medium rounded"
+                            style={{
+                              backgroundColor: TEMPLATE_PREVIEW_STYLES[templateType]?.primaryColor + '20',
+                              color: TEMPLATE_PREVIEW_STYLES[templateType]?.primaryColor,
+                              borderStyle: TEMPLATE_PREVIEW_STYLES[templateType]?.borderStyle,
+                              borderWidth: '1px',
+                              borderColor: TEMPLATE_PREVIEW_STYLES[templateType]?.primaryColor
+                            }}
+                          >
+                            Button
+                          </div>
+                          <div 
+                            className="px-2 py-1 text-xs font-medium rounded"
+                            style={{
+                              backgroundColor: TEMPLATE_PREVIEW_STYLES[templateType]?.secondaryColor + '20',
+                              color: TEMPLATE_PREVIEW_STYLES[templateType]?.secondaryColor,
+                              borderStyle: TEMPLATE_PREVIEW_STYLES[templateType]?.borderStyle,
+                              borderWidth: '1px',
+                              borderColor: TEMPLATE_PREVIEW_STYLES[templateType]?.secondaryColor
+                            }}
+                          >
+                            Link
+                          </div>
+                          {TEMPLATE_PREVIEW_STYLES[templateType]?.accentColor && (
+                            <div 
+                              className="px-2 py-1 text-xs font-medium rounded"
+                              style={{
+                                backgroundColor: TEMPLATE_PREVIEW_STYLES[templateType].accentColor + '20',
+                                color: TEMPLATE_PREVIEW_STYLES[templateType].accentColor,
+                                borderStyle: TEMPLATE_PREVIEW_STYLES[templateType]?.borderStyle,
+                                borderWidth: '1px',
+                                borderColor: TEMPLATE_PREVIEW_STYLES[templateType].accentColor
+                              }}
+                            >
+                              Accent
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="max-w-md mx-auto">
+                <button
+                  onClick={handleTemplateSelected}
+                  disabled={!selectedTemplate || isLoading}
+                  className="w-full px-6 py-4 text-lg bg-blue-200 hover:bg-blue-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Saving Template...' : `Continue with ${DEFAULT_PROFILE_TEMPLATE_INFO[selectedTemplate]?.name || 'Template'} →`}
+                </button>
+                
+                {error && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Profile Setup (Optional) */}
           {currentStep === 'profile' && (
             <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">

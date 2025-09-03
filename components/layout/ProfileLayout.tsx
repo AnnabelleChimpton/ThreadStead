@@ -41,12 +41,13 @@ export default function ProfileLayout({
   const actualCSSMode = extractCSSMode(customCSS);
   
   // Generate layered CSS instead of direct injection
+  // Use a stable profile ID that doesn't change between server and client
   const layeredCSS = generateOptimizedCSS({
     cssMode: actualCSSMode,
     templateMode,
     siteWideCSS: includeSiteCSS ? siteWideCSS : '',
     userCustomCSS: customCSS || '',
-    profileId: `profile-layout-${Date.now()}`
+    profileId: 'profile-layout'
   });
   
   console.log('🎨 ProfileLayout CSS Debug:', {
@@ -98,7 +99,7 @@ export default function ProfileLayout({
     if (actualCSSMode === 'disable') {
       return (
         <>
-          {layeredCSS && <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />}
+          <style dangerouslySetInnerHTML={{ __html: layeredCSS || '' }} />
           {/* No wrapper styling when CSS is disabled */}
           {children}
         </>
@@ -108,7 +109,7 @@ export default function ProfileLayout({
     // Render without Layout wrapper when hiding navigation but keeping site CSS (NON-advanced templates only)
     return (
       <>
-        {layeredCSS && <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />}
+        <style dangerouslySetInnerHTML={{ __html: layeredCSS || '' }} />
         {/* Hide nav/footer but keep responsive structure */}
         <div className="min-h-screen thread-surface flex flex-col">
           <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
@@ -143,7 +144,7 @@ export default function ProfileLayout({
 
   return (
     <>
-      {layeredCSS && <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />}
+      <style dangerouslySetInnerHTML={{ __html: layeredCSS || '' }} />
       <div className="ts-profile-container" data-component="profile-layout">
         <Layout>
           <div className="ts-profile-content-wrapper">

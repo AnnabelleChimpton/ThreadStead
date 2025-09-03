@@ -9,7 +9,7 @@ export default function UserDropdown() {
 
   async function logout() {
     await fetch("/api/auth/logout");
-    window.location.reload();
+    window.location.href = "/";
   }
 
   // Close dropdown when clicking outside

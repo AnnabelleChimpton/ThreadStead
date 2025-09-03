@@ -2,33 +2,33 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
    📱 RETRO SOCIAL - MYSPACE VIBES
    =========================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Trebuchet+MS&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Impact&family=Bebas+Neue&display=swap');
 
 /* CSS_MODE:inherit */
 
 /* MySpace 2005 Authentic Background */
 .thread-surface {
   background: 
-    /* Classic MySpace black base */
-    #000000,
     /* Tiled star pattern like old MySpace backgrounds */
     radial-gradient(circle at 15px 15px, #ffffff 1px, transparent 1px),
     radial-gradient(circle at 35px 25px, #ff1493 0.5px, transparent 0.5px),
     radial-gradient(circle at 55px 35px, #00bfff 0.8px, transparent 0.8px),
     radial-gradient(circle at 25px 45px, #ffff00 0.6px, transparent 0.6px),
     /* Subtle gradient overlay */
-    linear-gradient(135deg, rgba(255, 20, 147, 0.05) 0%, rgba(0, 191, 255, 0.05) 100%) !important;
-  background-size: 60px 60px, 60px 60px, 60px 60px, 60px 60px, 100% 100% !important;
+    linear-gradient(135deg, rgba(255, 20, 147, 0.05) 0%, rgba(0, 191, 255, 0.05) 100%),
+    /* Classic MySpace black base */
+    #000000 !important;
+  background-size: 60px 60px, 60px 60px, 60px 60px, 60px 60px, 100% 100%, 100% 100% !important;
   animation: myspaceStars 30s linear infinite !important;
 }
 
 /* Authentic MySpace twinkling stars */
 @keyframes myspaceStars {
-  0% { background-position: 0px 0px, 0px 0px, 0px 0px, 0px 0px, 0% 0%; }
-  25% { background-position: 15px 15px, -10px 10px, 20px -15px, 5px 25px, 0% 0%; }
-  50% { background-position: 30px 30px, -20px 20px, 40px -30px, 10px 50px, 0% 0%; }
-  75% { background-position: 45px 45px, -30px 30px, 60px -45px, 15px 75px, 0% 0%; }
-  100% { background-position: 60px 60px, -40px 40px, 80px -60px, 20px 100px, 0% 0%; }
+  0% { background-position: 0px 0px, 0px 0px, 0px 0px, 0px 0px, 0% 0%, 0 0; }
+  25% { background-position: 15px 15px, -10px 10px, 20px -15px, 5px 25px, 0% 0%, 0 0; }
+  50% { background-position: 30px 30px, -20px 20px, 40px -30px, 10px 50px, 0% 0%, 0 0; }
+  75% { background-position: 45px 45px, -30px 30px, 60px -45px, 15px 75px, 0% 0%, 0 0; }
+  100% { background-position: 60px 60px, -40px 40px, 80px -60px, 20px 100px, 0% 0%, 0 0; }
 }
 
 /* Authentic MySpace 2005 Navigation */
@@ -54,7 +54,7 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
   transform: translateY(-50%) !important;
   font-size: 0.75rem !important;
   color: #ffff00 !important;
-  font-family: 'Comic Neue', cursive !important;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive !important;
   font-weight: bold !important;
   text-shadow: 
     1px 1px 0 #000,
@@ -69,7 +69,7 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
 
 .site-title {
   color: #ffffff !important;
-  font-family: 'Comic Neue', cursive !important;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive !important;
   font-weight: 700 !important;
   font-size: 2rem !important;
   text-shadow: 
@@ -95,7 +95,7 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
 
 .site-tagline {
   color: #cccccc !important;
-  font-family: 'Trebuchet MS', sans-serif !important;
+  font-family: 'Impact', 'Arial Black', sans-serif !important;
   font-weight: 400 !important;
   font-size: 0.9rem !important;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
@@ -103,7 +103,7 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
 
 .nav-link {
   color: #fff !important;
-  font-family: 'Comic Neue', cursive !important;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive !important;
   font-weight: 700 !important;
   background: 
     linear-gradient(135deg, rgba(0, 191, 255, 0.8) 0%, rgba(255, 105, 180, 0.8) 100%) !important;
@@ -176,14 +176,14 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
 
 .footer-tagline {
   color: #fff !important;
-  font-family: 'Comic Neue', cursive !important;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive !important;
   font-weight: 700 !important;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7) !important;
 }
 
 .footer-copyright {
   color: rgba(255, 255, 255, 0.9) !important;
-  font-family: 'Trebuchet MS', sans-serif !important;
+  font-family: 'Impact', 'Arial Black', sans-serif !important;
 }
 
 /* MySpace-style Interactive Buttons */
@@ -264,7 +264,7 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
   border: 3px solid #00bfff !important;
   border-radius: 20px !important;
   padding: 0.4rem 0.7rem !important;
-  font-family: 'Comic Neue', cursive !important;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive !important;
   font-weight: 700 !important;
   display: flex !important;
   align-items: center !important;
@@ -306,7 +306,7 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
   border: 3px solid #fff !important;
   border-radius: 25px !important;
   padding: 0.6rem 1.2rem !important;
-  font-family: 'Comic Neue', cursive !important;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.3px !important;
@@ -364,7 +364,7 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
   border: 3px solid #fff !important;
   border-radius: 20px !important;
   padding: 0.6rem 1.2rem !important;
-  font-family: 'Comic Neue', cursive !important;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive !important;
   font-weight: 700 !important;
   text-transform: none !important;
   letter-spacing: 0.3px !important;
@@ -458,7 +458,7 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
 
 /* MySpace Content Styling */
 .ts-profile-identity h1 {
-  font-family: 'Comic Neue', cursive !important;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive !important;
   font-weight: 700 !important;
   color: #ff1493 !important;
   text-shadow: 
@@ -489,7 +489,7 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
   border: 3px solid #00bfff !important;
   border-radius: 12px !important;
   padding: 1rem !important;
-  font-family: 'Trebuchet MS', sans-serif !important;
+  font-family: 'Impact', 'Arial Black', sans-serif !important;
   color: #333 !important;
   box-shadow: 
     0 0 15px rgba(0, 191, 255, 0.3),
@@ -498,7 +498,7 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
 
 /* MySpace Blog Content */
 .blog-post-title {
-  font-family: 'Comic Neue', cursive !important;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive !important;
   font-weight: 700 !important;
   color: #ff1493 !important;
   border-bottom: 3px dashed #00bfff !important;
@@ -508,14 +508,14 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
 }
 
 .blog-post-content {
-  font-family: 'Trebuchet MS', sans-serif !important;
+  font-family: 'Impact', 'Arial Black', sans-serif !important;
   line-height: 1.6 !important;
   color: #333 !important;
 }
 
 .blog-post-meta {
   color: #32cd32 !important;
-  font-family: 'Comic Neue', cursive !important;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive !important;
   font-weight: 700 !important;
   text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.8) !important;
 }
