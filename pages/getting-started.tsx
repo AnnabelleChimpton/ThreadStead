@@ -415,7 +415,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                   <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
                     <p className="text-xs text-yellow-800">
-                      <strong>Pro Tip:</strong> Choose MIDI files that match your profile's vibe - from classic game 
+                      <strong>Pro Tip:</strong> Choose MIDI files that match your profile&apos;s vibe - from classic game 
                       soundtracks to original compositions!
                     </p>
                   </div>
