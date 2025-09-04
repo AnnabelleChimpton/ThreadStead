@@ -33,9 +33,114 @@ export default function MidiPlayer({
   const compressorRef = useRef<DynamicsCompressorNode | null>(null);
   const activeNodesRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; endTime: number }>>([]); // Track active notes
 
-  // Improved instrument sound generator with General MIDI mapping
-  const playNote = (frequency: number, startTime: number, duration: number, velocity: number, instrument: number) => {
+  // Enhanced but simple note player with instrument variety
+  const playNoteSimple = (frequency: number, startTime: number, duration: number, velocity: number, instrument: number) => {
     if (!audioContextRef.current) return;
+
+    // Channel 9 is drums - use noise burst
+    if (instrument === 9 || instrument === 128) {
+      playSimpleDrum(startTime, velocity);
+      return;
+    }
+
+    const osc = audioContextRef.current.createOscillator();
+    const gainNode = audioContextRef.current.createGain();
+    
+    // Simple instrument variety based on General MIDI families
+    if (instrument >= 0 && instrument <= 7) {
+      // Piano family - triangle wave
+      osc.type = 'triangle';
+    } else if (instrument >= 24 && instrument <= 31) {
+      // Guitar family - sawtooth for brightness
+      osc.type = 'sawtooth';
+    } else if (instrument >= 40 && instrument <= 47) {
+      // Strings - sine wave for smoothness
+      osc.type = 'sine';
+    } else if (instrument >= 56 && instrument <= 63) {
+      // Brass - square wave for brightness
+      osc.type = 'square';
+    } else {
+      // Default - triangle wave
+      osc.type = 'triangle';
+    }
+    
+    osc.frequency.value = frequency;
+    
+    const baseGain = (velocity / 127) * (volume / 100) * 0.25;
+    
+    // Simple envelope variety by instrument family
+    if (instrument >= 0 && instrument <= 7) {
+      // Piano - quick attack, medium decay
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(baseGain, startTime + 0.005);
+      gainNode.gain.exponentialRampToValueAtTime(baseGain * 0.3, startTime + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
+    } else if (instrument >= 24 && instrument <= 31) {
+      // Guitar - sharp attack, quick decay
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(baseGain, startTime + 0.001);
+      gainNode.gain.exponentialRampToValueAtTime(baseGain * 0.2, startTime + 0.3);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 1.5));
+    } else if (instrument >= 40 && instrument <= 47) {
+      // Strings - slow attack, sustained
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(baseGain * 0.8, startTime + 0.05);
+      gainNode.gain.linearRampToValueAtTime(baseGain * 0.6, startTime + duration * 0.3);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
+    } else {
+      // Default envelope
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(baseGain, startTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
+    }
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioContextRef.current.destination);
+    
+    osc.start(startTime);
+    osc.stop(startTime + Math.min(duration, 2.0));
+    
+    activeNodesRef.current.push({ osc, gain: gainNode, endTime: startTime + duration });
+  };
+
+  // Simple drum sounds using noise
+  const playSimpleDrum = (startTime: number, velocity: number) => {
+    if (!audioContextRef.current) return;
+    
+    // Create noise buffer for drum sound
+    const bufferSize = audioContextRef.current.sampleRate * 0.1; // 100ms of noise
+    const buffer = audioContextRef.current.createBuffer(1, bufferSize, audioContextRef.current.sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = audioContextRef.current.createBufferSource();
+    const gainNode = audioContextRef.current.createGain();
+    const filter = audioContextRef.current.createBiquadFilter();
+    
+    noise.buffer = buffer;
+    filter.type = 'bandpass';
+    filter.frequency.value = 200; // Drum-like frequency
+    
+    const drumGain = (velocity / 127) * (volume / 100) * 0.15; // Quieter drums
+    gainNode.gain.setValueAtTime(drumGain, startTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 0.1);
+    
+    noise.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(audioContextRef.current.destination);
+    
+    noise.start(startTime);
+    noise.stop(startTime + 0.1);
+  };
+
+  // Complex instrument sound generator (keeping for reference but not used)
+  const playNote = (frequency: number, startTime: number, duration: number, velocity: number, instrument: number) => {
+    if (!audioContextRef.current) {
+      return;
+    }
 
     // Channel 9 is always drums
     if (instrument === 9 || instrument === 128) {
@@ -257,11 +362,16 @@ export default function MidiPlayer({
     gain.connect(dryGain);
     gain.connect(wetGain);
     
+    // Debug the effects references
+    if (!compressorRef.current || !reverbRef.current) {
+      return;
+    }
+    
     // Dry path goes directly to compressor
-    dryGain.connect(compressorRef.current!);
+    dryGain.connect(compressorRef.current);
     
     // Wet path goes through reverb then compressor
-    wetGain.connect(reverbRef.current!);
+    wetGain.connect(reverbRef.current);
 
     // Start oscillators
     osc1.start(startTime);
@@ -459,10 +569,13 @@ export default function MidiPlayer({
   const playMidi = async () => {
     if (!midiDataRef.current) return;
 
-    // Initialize audio context with effects
+    // Initialize audio context
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
+    }
+    
+    // Initialize effects (separate from AudioContext creation)
+    if (!reverbRef.current || !compressorRef.current) {
       // Create reverb effect
       reverbRef.current = audioContextRef.current.createConvolver();
       const reverbBuffer = createReverbImpulse(audioContextRef.current, 2, 0.3);
@@ -501,7 +614,8 @@ export default function MidiPlayer({
         const velocity = note.velocity * 127;
         const instrument = track.instrument?.number ?? (track.channel === 9 ? 128 : trackIndex);
 
-        playNote(frequency, startTime, duration, velocity, instrument);
+        // Use simplified playback like GlobalAudioContext
+        playNoteSimple(frequency, currentTime + note.time, duration, velocity, instrument);
         noteCount++;
       });
     });

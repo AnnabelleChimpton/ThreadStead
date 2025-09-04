@@ -104,10 +104,12 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   }, [clearFadeInterval]);
 
   const playMidiAudio = useCallback(async (midiUrl: string, targetVolume: number) => {
-    
     try {
       // Fetch MIDI file
       const response = await fetch(midiUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch MIDI: ${response.status}`);
+      }
       const arrayBuffer = await response.arrayBuffer();
 
       // Parse MIDI using @tonejs/midi
@@ -294,7 +296,6 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     if (!adminAudio.enabled || !adminAudio.url) {
       return;
     }
-    
     
     // Check if it's a MIDI file
     if (adminAudio.url.toLowerCase().endsWith('.mid') || adminAudio.url.toLowerCase().endsWith('.midi')) {

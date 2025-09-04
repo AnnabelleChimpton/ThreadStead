@@ -276,7 +276,8 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
             <div 
               className="rounded-xl shadow-2xl border-2 overflow-hidden backdrop-blur-sm"
               style={{
-                background: `linear-gradient(to bottom right, ${backgroundColor}90, ${primaryColor}10)`,
+                background: `linear-gradient(to right, ${primaryColor}20, ${secondaryColor}20), rgba(255, 255, 255, 0.9)`,
+                backgroundBlendMode: 'overlay',
                 borderColor: primaryColor + '40'
               }}
             >
@@ -294,8 +295,7 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
                   <div className="w-3 h-3 rounded-full bg-gradient-to-br from-green-300 to-green-400 shadow-sm"></div>
                 </div>
                 <div 
-                  className="flex-1 text-center text-sm sm:text-base font-medium"
-                  style={{ color: primaryColor }}
+                  className="flex-1 text-center text-sm sm:text-base font-medium text-gray-800"
                 >
                   ✨ Building Your Digital Home ✨
                 </div>
@@ -304,8 +304,7 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
               {/* Content area */}
               <div className="p-4 sm:p-8 min-h-[150px] sm:min-h-[200px] relative">
                 <div 
-                  className="whitespace-pre-wrap text-lg sm:text-xl leading-relaxed font-medium"
-                  style={{ color: primaryColor }}
+                  className="whitespace-pre-wrap text-lg sm:text-xl leading-relaxed font-medium text-gray-800"
                 >
                   {terminalText}
                   {showCursor && (
@@ -347,16 +346,16 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
                   className="p-3 sm:p-4 rounded-lg shadow-lg border transition-all duration-500"
                   style={{
                     background: box.completed 
-                      ? `linear-gradient(to right, ${primaryColor}20, ${secondaryColor}20)`
-                      : `${backgroundColor}80`,
-                    borderColor: box.completed ? primaryColor + '60' : primaryColor + '30'
+                      ? `linear-gradient(to right, ${primaryColor}30, ${secondaryColor}30), rgba(255, 255, 255, 0.9)`
+                      : 'rgba(255, 255, 255, 0.85)',
+                    backgroundBlendMode: box.completed ? 'overlay' : 'normal',
+                    borderColor: box.completed ? primaryColor + '80' : primaryColor + '50'
                   }}
                 >
                   <div className="flex items-center gap-2 sm:gap-3 mb-2">
                     <span className="text-lg sm:text-xl">{box.emoji}</span>
                     <span 
-                      className="font-medium text-sm sm:text-base flex-1"
-                      style={{ color: primaryColor }}
+                      className="font-medium text-sm sm:text-base flex-1 text-gray-800"
                     >
                       {box.message}
                     </span>
