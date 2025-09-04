@@ -6,6 +6,8 @@ import { getSiteTemplate, SITE_TEMPLATE_INFO } from "@/lib/site-css-templates";
 import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO, type ProfileTemplateType } from "@/lib/default-profile-templates";
 import ReportsSection from "@/components/admin/ReportsSection";
 import PostsSection from "@/components/admin/PostsSection";
+import SignupAudioSection from "@/components/admin/SignupAudioSection";
+import FoundersNoteSection from "@/components/admin/FoundersNoteSection";
 
 // Collapsible Section Component
 function CollapsibleSection({ 
@@ -1880,6 +1882,14 @@ We collect information you provide when creating an account..."
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Signup Audio Section */}
+          <SignupAudioSection />
+          
+          {/* Founder's Note Section */}
+          <div className="mt-8 border-t pt-8">
+            <FoundersNoteSection />
           </div>
         </CollapsibleSection>
 

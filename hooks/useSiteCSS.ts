@@ -13,12 +13,6 @@ export function useSiteCSS() {
     
     hasInitialized.current = true;
 
-    // Debug hook execution (only on first call)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔥 useSiteCSS hook initialized', { 
-        timestamp: new Date().toISOString().split('T')[1].slice(0, 8)
-      });
-    }
     
     async function fetchSiteCSS() {
       try {
@@ -39,9 +33,6 @@ export function useSiteCSS() {
             }
           }
           
-          if (process.env.NODE_ENV === 'development') {
-            console.log('✅ Site CSS loaded successfully', { cssLength: siteCSS.length });
-          }
         }
       } catch (error) {
         console.error("Failed to load site CSS:", error);

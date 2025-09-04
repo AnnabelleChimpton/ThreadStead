@@ -9,6 +9,9 @@ import { useEffect } from "react";
 // Import Layout to ensure CSS dependencies are always available
 import Layout from "@/components/Layout";
 
+// Import Global Audio Provider
+import { GlobalAudioProvider } from "@/contexts/GlobalAudioContext";
+
 // Initialize ThreadRing reconciliation scheduler (server-side only)
 import "@/lib/threadring-reconciliation-bootstrap";
 
@@ -88,37 +91,9 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   const needsCSSResets = isProfilePage && pageProps.templateMode === 'advanced' && cssMode !== 'inherit';
   const includeSiteCSS = pageProps.includeSiteCSS !== false; // Default to true if not specified
   
-  // Debug site CSS loading (wrapped in useEffect to prevent infinite loops)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && isProfilePage) {
-      console.log('_app.tsx Site CSS Debug:', {
-        isProfilePage,
-        templateMode: pageProps.templateMode,
-        cssMode,
-        includeSiteCSS,
-        'pageProps.includeSiteCSS': pageProps.includeSiteCSS,
-        needsCSSResets,
-        'css length': css.length,
-        loading,
-        shouldLoadSiteCSS: (!isProfilePage || includeSiteCSS)
-      });
-      
-      // Check DOM state
-      const checkDOM = setTimeout(() => {
-        const siteStyleElement = document.getElementById('site-wide-css');
-        console.log('DOM Site CSS Element:', {
-          exists: !!siteStyleElement,
-          innerHTML: siteStyleElement?.innerHTML?.substring(0, 100) + '...',
-          innerHTMLLength: siteStyleElement?.innerHTML?.length
-        });
-      }, 100);
-
-      return () => clearTimeout(checkDOM);
-    }
-  }, [isProfilePage, cssMode, includeSiteCSS, css.length, loading, needsCSSResets]);
 
   return (
-    <>
+    <GlobalAudioProvider>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
@@ -153,27 +128,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           />
         )}
         
-        {/* Debug CSS injection for development */}
-        {process.env.NODE_ENV === 'development' && isProfilePage && (
-          <script dangerouslySetInnerHTML={{
-            __html: `
-              console.log('🎯 Style tag injected with CSS:', {
-                shouldInject: ${!isProfilePage || includeSiteCSS},
-                cssLength: ${css.length},
-                cssPreview: ${JSON.stringify(css.substring(0, 50) + '...')}
-              });
-              
-              setTimeout(() => {
-                const el = document.getElementById('site-wide-css');
-                console.log('🔍 DOM check:', {
-                  elementExists: !!el,
-                  innerHTML: el ? el.innerHTML.substring(0, 100) + '...' : 'NOT FOUND',
-                  innerHTMLLength: el ? el.innerHTML.length : 0
-                });
-              }, 50);
-            `
-          }} />
-        )}
         {isProfilePage && hasCustomCSS && (
           <style 
             id="profile-page-styles"
@@ -230,6 +184,6 @@ ${pageProps.customCSS}`
       }`}>
         <Component {...pageProps} />
       </div>
-    </>
+    </GlobalAudioProvider>
   );
 }

@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import * as Tone from 'tone';
-import { Midi } from '@tonejs/midi';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface MidiPlayerProps {
   midiUrl: string;
@@ -27,558 +25,706 @@ export default function MidiPlayer({
   const [volume, setVolume] = useState(50);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   
-  const synthRef = useRef<Tone.PolySynth | null>(null);
-  const channelSynthsRef = useRef<Map<number, any>>(new Map());
-  const channelInstrumentsRef = useRef<Map<number, number>>(new Map());
-  const drumSynthsRef = useRef<Map<number, any>>(new Map());
-  const midiDataRef = useRef<Midi | null>(null);
-  const scheduledEventsRef = useRef<any[]>([]);
-  const startTimeRef = useRef<number>(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const midiDataRef = useRef<any>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const playbackStartTimeRef = useRef<number>(0);
+  const reverbRef = useRef<ConvolverNode | null>(null);
+  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
+  const activeNodesRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; endTime: number }>>([]); // Track active notes
 
-  // Simple initialization
-  useEffect(() => {
-    // Just set a reasonable master volume
-    Tone.Destination.volume.value = 0; // 0dB - let individual synths control their levels
+  // Improved instrument sound generator with General MIDI mapping
+  const playNote = (frequency: number, startTime: number, duration: number, velocity: number, instrument: number) => {
+    if (!audioContextRef.current) return;
 
-    console.log('MIDI Player initialized');
+    // Channel 9 is always drums
+    if (instrument === 9 || instrument === 128) {
+      playDrumSound(frequency, startTime, duration, velocity);
+      return;
+    }
 
-    return () => {
-      // Clean up any synths
-      channelSynthsRef.current.forEach(synth => {
-        if (synth && synth.dispose) {
-          synth.dispose();
-        }
-      });
-      channelSynthsRef.current.clear();
-    };
-  }, []);
+    const osc1 = audioContextRef.current.createOscillator();
+    const osc2 = audioContextRef.current.createOscillator();
+    const gain = audioContextRef.current.createGain();
+    const filter = audioContextRef.current.createBiquadFilter();
+    const osc2Gain = audioContextRef.current.createGain();
 
-  // Simplified drum kit - louder levels for audibility
-  const createDrumKit = () => {
-    return {
-      // Louder drums with better settings
-      kick: new Tone.MembraneSynth({ 
-        pitchDecay: 0.08, 
-        octaves: 6, 
-        envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.5 },
-        volume: 6 // Much louder
-      }).toDestination(),
-      snare: new Tone.MembraneSynth({ 
-        pitchDecay: 0.02, 
-        octaves: 4, 
-        envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.2 },
-        volume: 3 // Louder
-      }).toDestination(),
-      hihat: new Tone.Synth({ 
-        oscillator: { type: 'square' },
-        envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.1 },
-        volume: 0 // Normal level
-      }).toDestination()
-    };
+    // General MIDI instrument families - based on webaudio-tinysynth patterns
+    if (instrument >= 0 && instrument <= 7) {
+      // Piano family - soft attack, triangle + sine harmonics
+      osc1.type = 'triangle';
+      osc2.type = 'sine';
+      osc2.frequency.value = frequency * 2; // Second harmonic for brightness
+      osc2Gain.gain.value = 0.25; // Subtle harmonic content
+      filter.type = 'lowpass';
+      filter.frequency.value = frequency * 3; // More controlled brightness
+      filter.Q.value = 0.3; // Gentle filtering
+      
+    } else if (instrument >= 8 && instrument <= 15) {
+      // Chromatic Percussion - bright attack
+      osc1.type = 'sine';
+      osc2.type = 'triangle';
+      osc2.frequency.value = frequency * 3; // Third harmonic
+      osc2Gain.gain.value = 0.2;
+      filter.type = 'bandpass';
+      filter.frequency.value = frequency * 2;
+      filter.Q.value = 2;
+      
+    } else if (instrument >= 16 && instrument <= 23) {
+      // Organ family - sustained, rich
+      osc1.type = 'sawtooth';
+      osc2.type = 'square';
+      osc2.frequency.value = frequency * 1.5; // Fifth harmonic
+      osc2Gain.gain.value = 0.4;
+      filter.type = 'lowpass';
+      filter.frequency.value = frequency * 3;
+      filter.Q.value = 0.7;
+      
+    } else if (instrument >= 24 && instrument <= 31) {
+      // Guitar family - sawtooth + detuning for pluck simulation
+      osc1.type = 'sawtooth';
+      osc2.type = 'sawtooth';
+      osc2.frequency.value = frequency * 0.996; // Slight chorus detuning
+      osc2Gain.gain.value = 0.4; // Moderate blend
+      filter.type = 'lowpass';
+      filter.frequency.value = frequency * 2.5; // Guitar-like tone shaping
+      filter.Q.value = 1.2; // Some resonance for body
+      
+    } else if (instrument >= 32 && instrument <= 39) {
+      // Bass family - sawtooth + sub-octave for depth
+      osc1.type = 'sawtooth';
+      osc2.type = 'sine';
+      osc2.frequency.value = frequency * 0.5; // Sub-octave fundamental
+      osc2Gain.gain.value = 0.6; // Strong sub-bass presence
+      filter.type = 'lowpass';
+      filter.frequency.value = frequency * 1.8; // Warmer bass tone
+      filter.Q.value = 0.4; // Smooth low-end
+      
+    } else if (instrument >= 40 && instrument <= 47) {
+      // String family - sawtooth + slight detune for ensemble effect
+      osc1.type = 'sawtooth';
+      osc2.type = 'sawtooth';
+      osc2.frequency.value = frequency * 1.004; // Ensemble detune
+      osc2Gain.gain.value = 0.5; // Balanced blend
+      filter.type = 'lowpass';
+      filter.frequency.value = frequency * 2.2; // String-like filtering
+      filter.Q.value = 0.7; // Some string resonance
+      
+    } else if (instrument >= 56 && instrument <= 63) {
+      // Brass family - square wave + harmonics for bright brass tone
+      osc1.type = 'square';
+      osc2.type = 'square';
+      osc2.frequency.value = frequency * 2.01; // Second harmonic with slight detune
+      osc2Gain.gain.value = 0.3; // Harmonic richness
+      filter.type = 'bandpass';
+      filter.frequency.value = frequency * 1.8; // Brass formant
+      filter.Q.value = 1.5; // Characteristic brass bite
+      
+    } else if (instrument >= 64 && instrument <= 71) {
+      // Reed family - square + odd harmonics for clarinet/sax character
+      osc1.type = 'square';
+      osc2.type = 'triangle';
+      osc2.frequency.value = frequency * 3.02; // Third harmonic with detune
+      osc2Gain.gain.value = 0.2; // Subtle harmonic color
+      filter.type = 'bandpass';
+      filter.frequency.value = frequency * 2.1; // Reed formant
+      filter.Q.value = 2.0; // Woody resonance
+      
+    } else if (instrument >= 16 && instrument <= 23) {
+      // Organ family - square + sine for classic organ tone
+      osc1.type = 'square';
+      osc2.type = 'sine';
+      osc2.frequency.value = frequency * 2; // Octave doubling
+      osc2Gain.gain.value = 0.4; // Classic organ harmonic mix
+      filter.type = 'lowpass';
+      filter.frequency.value = frequency * 3;
+      filter.Q.value = 0.2; // Clean organ tone
+      
+    } else {
+      // Default synth sound - triangle + harmonic
+      osc1.type = 'triangle';
+      osc2.type = 'sine';
+      osc2.frequency.value = frequency * 1.5; // Fifth interval
+      osc2Gain.gain.value = 0.25;
+      filter.type = 'lowpass';
+      filter.frequency.value = frequency * 2.5;
+      filter.Q.value = 0.5;
+    }
+
+    osc1.frequency.value = frequency;
+    
+    // Normalized volume levels per instrument family
+    const baseGainValue = (velocity / 127) * (volume / 100) * 0.4; // Reduced base volume
+    let instrumentMultiplier = 1.0;
+    
+    // Volume normalization per instrument family
+    if (instrument >= 0 && instrument <= 7) {
+      // Piano family - standard volume
+      instrumentMultiplier = 1.0;
+    } else if (instrument >= 8 && instrument <= 15) {
+      // Chromatic Percussion - slightly quieter
+      instrumentMultiplier = 0.8;
+    } else if (instrument >= 16 && instrument <= 23) {
+      // Organ family - quieter (can be overpowering)
+      instrumentMultiplier = 0.7;
+    } else if (instrument >= 24 && instrument <= 31) {
+      // Guitar family - standard volume
+      instrumentMultiplier = 1.0;
+    } else if (instrument >= 32 && instrument <= 39) {
+      // Bass family - louder (often too quiet)
+      instrumentMultiplier = 1.4;
+    } else if (instrument >= 40 && instrument <= 47) {
+      // String family - slightly louder
+      instrumentMultiplier = 1.2;
+    } else if (instrument >= 48 && instrument <= 55) {
+      // Ensemble family - quieter (multiple voices)
+      instrumentMultiplier = 0.8;
+    } else if (instrument >= 56 && instrument <= 63) {
+      // Brass family - quieter (can be harsh)
+      instrumentMultiplier = 0.8;
+    } else if (instrument >= 64 && instrument <= 71) {
+      // Reed family - standard volume
+      instrumentMultiplier = 1.0;
+    } else {
+      // Default - standard volume
+      instrumentMultiplier = 1.0;
+    }
+    
+    const gainValue = baseGainValue * instrumentMultiplier;
+    
+    if (instrument >= 0 && instrument <= 7) {
+      // Piano - quick attack, medium decay
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.005);
+      gain.gain.exponentialRampToValueAtTime(gainValue * 0.3, startTime + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      
+    } else if (instrument >= 24 && instrument <= 31) {
+      // Guitar - sharp attack, quick decay
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.001);
+      gain.gain.exponentialRampToValueAtTime(gainValue * 0.1, startTime + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      
+    } else if (instrument >= 40 && instrument <= 47) {
+      // Strings - slow attack, sustained
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainValue * 0.8, startTime + 0.05);
+      gain.gain.linearRampToValueAtTime(gainValue * 0.6, startTime + duration * 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      
+    } else if (instrument >= 56 && instrument <= 63) {
+      // Brass - medium attack, sustained with slight decay
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainValue * 0.3, startTime + 0.02);
+      gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.05);
+      gain.gain.linearRampToValueAtTime(gainValue * 0.7, startTime + duration * 0.5);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      
+    } else {
+      // Default envelope
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(gainValue * 0.3, startTime + duration * 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    }
+
+    // Connect audio graph with reverb
+    const dryGain = audioContextRef.current.createGain();
+    const wetGain = audioContextRef.current.createGain();
+    
+    // Adjust wet/dry mix based on instrument
+    if (instrument >= 40 && instrument <= 47) {
+      // Strings - more reverb
+      dryGain.gain.value = 0.6;
+      wetGain.gain.value = 0.4;
+    } else if (instrument >= 24 && instrument <= 31) {
+      // Guitar - less reverb
+      dryGain.gain.value = 0.8;
+      wetGain.gain.value = 0.2;
+    } else {
+      // Default mix
+      dryGain.gain.value = 0.7;
+      wetGain.gain.value = 0.3;
+    }
+    
+    osc1.connect(filter);
+    osc2.connect(osc2Gain);
+    osc2Gain.connect(filter);
+    filter.connect(gain);
+    
+    // Split to dry and wet paths
+    gain.connect(dryGain);
+    gain.connect(wetGain);
+    
+    // Dry path goes directly to compressor
+    dryGain.connect(compressorRef.current!);
+    
+    // Wet path goes through reverb then compressor
+    wetGain.connect(reverbRef.current!);
+
+    // Start oscillators
+    osc1.start(startTime);
+    osc2.start(startTime);
+    osc1.stop(startTime + duration);
+    osc2.stop(startTime + duration);
+    
+    // Track active notes for stopping
+    activeNodesRef.current.push(
+      { osc: osc1, gain, endTime: startTime + duration },
+      { osc: osc2, gain, endTime: startTime + duration }
+    );
   };
 
-  // Update volume
-  useEffect(() => {
-    if (Tone.Destination) {
-      // Convert volume slider (0-100) to reasonable dB range (-20 to 0)
-      const dbValue = -20 + (volume / 100) * 20;
-      Tone.Destination.volume.value = dbValue;
-      console.log('Master volume set to:', dbValue, 'dB');
-    }
-  }, [volume]);
+  // Specialized drum sound generator
+  const playDrumSound = (frequency: number, startTime: number, duration: number, velocity: number) => {
+    if (!audioContextRef.current) return;
 
-  // Load MIDI file
+    // Convert frequency back to MIDI note to identify drum type
+    const midiNote = Math.round(12 * Math.log2(frequency / 440) + 69);
+    
+    const osc = audioContextRef.current.createOscillator();
+    const gain = audioContextRef.current.createGain();
+    const filter = audioContextRef.current.createBiquadFilter();
+    
+    // Normalized percussion volumes
+    let gainValue = (velocity / 127) * (volume / 100) * 0.6; // Reduced base percussion volume
+    
+    // Normalize specific percussion instruments
+    if (midiNote >= 35 && midiNote <= 36) {
+      // Kick drum - standard volume
+      gainValue *= 1.0;
+    } else if (midiNote >= 38 && midiNote <= 40) {
+      // Snare - slightly louder
+      gainValue *= 1.1;
+    } else if (midiNote >= 42 && midiNote <= 46) {
+      // Hi-hat - quieter
+      gainValue *= 0.7;
+    } else if (midiNote === 75 || midiNote === 76) {
+      // Claves - much quieter
+      gainValue *= 0.12;
+      // Claves are much quieter now
+    } else if (midiNote >= 77 && midiNote <= 82) {
+      // Wood blocks - quieter
+      gainValue *= 0.25;
+    } else if (midiNote >= 47 && midiNote <= 59) {
+      // Toms and other drums - standard volume
+      gainValue *= 0.9;
+    } else {
+      // Other percussion - quieter default
+      gainValue *= 0.8;
+    }
+    
+    if (midiNote >= 35 && midiNote <= 36) {
+      // Kick drum - low sine wave with quick decay
+      osc.type = 'sine';
+      osc.frequency.value = 60;
+      filter.type = 'lowpass';
+      filter.frequency.value = 100;
+      
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+      
+    } else if (midiNote >= 38 && midiNote <= 40) {
+      // Snare - noise-like square wave
+      osc.type = 'square';
+      osc.frequency.value = 200;
+      filter.type = 'bandpass';
+      filter.frequency.value = 400;
+      filter.Q.value = 2;
+      
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.15);
+      
+    } else if (midiNote >= 42 && midiNote <= 46) {
+      // Hi-hat - high frequency noise
+      osc.type = 'sawtooth';
+      osc.frequency.value = 1000;
+      filter.type = 'highpass';
+      filter.frequency.value = 800;
+      filter.Q.value = 1;
+      
+      const drumDuration = 0.05;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainValue * 0.6, startTime + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + drumDuration);
+      
+    } else if (midiNote === 75 || midiNote === 76) {
+      // Claves - short, sharp, woody sound
+      osc.type = 'square';
+      osc.frequency.value = 800;
+      filter.type = 'bandpass';
+      filter.frequency.value = 1200;
+      filter.Q.value = 4;
+      
+      const drumDuration = 0.08; // Very short
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + drumDuration);
+      
+    } else {
+      // Other percussion - generic drum sound
+      osc.type = 'square';
+      osc.frequency.value = 150;
+      filter.type = 'bandpass';
+      filter.frequency.value = 300;
+      
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.1);
+    }
+
+    osc.connect(filter);
+    filter.connect(gain);
+    
+    // Drums get minimal reverb, claves get even less
+    const dryGain = audioContextRef.current.createGain();
+    const wetGain = audioContextRef.current.createGain();
+    
+    if (midiNote === 75 || midiNote === 76) {
+      // Claves get almost no reverb - very dry sound
+      dryGain.gain.value = 0.95;
+      wetGain.gain.value = 0.05;
+    } else {
+      dryGain.gain.value = 0.9;
+      wetGain.gain.value = 0.1;
+    }
+    
+    gain.connect(dryGain);
+    gain.connect(wetGain);
+    dryGain.connect(compressorRef.current!);
+    wetGain.connect(reverbRef.current!);
+    
+    osc.start(startTime);
+    const drumDuration = Math.min(duration, 0.3);
+    osc.stop(startTime + drumDuration);
+    
+    // Track active drum notes for stopping
+    activeNodesRef.current.push(
+      { osc, gain, endTime: startTime + drumDuration }
+    );
+  };
+
+  // Convert MIDI note number to frequency
+  const noteToFrequency = (note: number): number => {
+    return 440 * Math.pow(2, (note - 69) / 12);
+  };
+
+  // Create reverb impulse response
+  const createReverbImpulse = (audioContext: AudioContext, length: number, decay: number): AudioBuffer => {
+    const sampleRate = audioContext.sampleRate;
+    const bufferLength = sampleRate * length;
+    const impulse = audioContext.createBuffer(2, bufferLength, sampleRate);
+    
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < bufferLength; i++) {
+        const n = bufferLength - i;
+        channelData[i] = (Math.random() * 2 - 1) * Math.pow(n / bufferLength, decay);
+      }
+    }
+    
+    return impulse;
+  };
+
+  // Load and parse MIDI file
   const loadMidi = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      console.log('Loading MIDI from:', midiUrl);
-      
-      const response = await fetch(midiUrl, {
-        method: 'GET',
-        credentials: 'omit', // Don't send credentials for external resources
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
+
+      // Fetch MIDI file
+      const response = await fetch(midiUrl);
       const arrayBuffer = await response.arrayBuffer();
-      console.log('MIDI file loaded, size:', arrayBuffer.byteLength);
-      
+
+      // Parse MIDI using @tonejs/midi
+      const { Midi } = await import('@tonejs/midi');
       const midi = new Midi(arrayBuffer);
+
       midiDataRef.current = midi;
-      
-      console.log('MIDI parsed successfully:');
-      console.log('- Tracks:', midi.tracks.length);
-      console.log('- PPQ (ticks per quarter):', midi.header.ppq);
-      console.log('- Tempo changes:', midi.header.tempos?.length || 0);
-      
-      // Analyze each track and detect instruments
-      midi.tracks.forEach((track, i) => {
-        const instrumentInfo = track.instrument;
-        const programNumber = instrumentInfo?.number ?? 0;
-        const instrumentName = instrumentInfo?.name || `Program ${programNumber}`;
-        
-        console.log(`Track ${i}:`, {
-          name: track.name || 'Unnamed',
-          channel: track.channel ?? 0,
-          notes: track.notes.length,
-          instrument: `${instrumentName} (Program ${programNumber})`,
-          controlChanges: track.controlChanges ? Object.keys(track.controlChanges).length : 0,
-          pitchBends: track.pitchBends?.length || 0
-        });
-        
-        // Log control changes for debugging
-        if (track.controlChanges) {
-          Object.entries(track.controlChanges).forEach(([cc, changes]) => {
-            if (changes.length > 0) {
-              console.log(`  CC${cc}: ${changes.length} changes`);
-            }
-          });
-        }
-        
-        // We'll create synths during playback now, no pre-loading needed
-        
-        // Log first few notes for debugging
-        if (track.notes.length > 0) {
-          console.log(`First 3 notes:`, track.notes.slice(0, 3).map(n => ({
-            name: n.name,
-            midi: n.midi,
-            time: n.time.toFixed(3),
-            duration: n.duration.toFixed(3),
-            velocity: n.velocity
-          })));
-        }
-      });
-      
-      // Calculate duration
-      const trackEndTimes = midi.tracks.map(track => {
-        if (track.notes.length === 0) return 0;
-        return Math.max(...track.notes.map(note => note.time + note.duration));
-      });
-      
-      const lastEventTime = trackEndTimes.length > 0 ? Math.max(...trackEndTimes) : 0;
-      setDuration(lastEventTime);
-      
-      console.log('MIDI duration:', lastEventTime.toFixed(2), 'seconds');
+      setDuration(midi.duration);
       
       setIsLoading(false);
-      
-      // Autoplay if enabled
-      if (autoplay) {
-        play();
-      }
+
     } catch (err) {
       console.error('Error loading MIDI:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load MIDI file';
-      console.error('Full error details:', err);
-      setError(`Load Error: ${errorMessage}`);
+      setError('Failed to load MIDI file');
       setIsLoading(false);
     }
   };
 
-  // Play MIDI
-  const play = async () => {
-    if (!midiDataRef.current) {
-      setError('MIDI not loaded');
-      return;
+  // Play the MIDI
+  const playMidi = async () => {
+    if (!midiDataRef.current) return;
+
+    // Initialize audio context with effects
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create reverb effect
+      reverbRef.current = audioContextRef.current.createConvolver();
+      const reverbBuffer = createReverbImpulse(audioContextRef.current, 2, 0.3);
+      reverbRef.current.buffer = reverbBuffer;
+      
+      // Create compressor for better dynamics
+      compressorRef.current = audioContextRef.current.createDynamicsCompressor();
+      compressorRef.current.threshold.value = -24;
+      compressorRef.current.knee.value = 30;
+      compressorRef.current.ratio.value = 12;
+      compressorRef.current.attack.value = 0.003;
+      compressorRef.current.release.value = 0.25;
+      
+      // Connect effects chain: reverb -> compressor -> destination
+      reverbRef.current.connect(compressorRef.current);
+      compressorRef.current.connect(audioContextRef.current.destination);
     }
 
-    if (isPlaying) {
-      console.log('Already playing, ignoring play request');
-      return;
+    if (audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
     }
+
+    const midi = midiDataRef.current;
+    const currentTime = audioContextRef.current.currentTime;
+    playbackStartTimeRef.current = Date.now();
+
+
+    // Schedule all notes
+    let noteCount = 0;
     
-    try {
-      console.log('Starting MIDI playback...');
+    midi.tracks.forEach((track: any, trackIndex: number) => {
+      track.notes.forEach((note: any) => {
+        const frequency = noteToFrequency(note.midi);
+        const startTime = currentTime + note.time;
+        const duration = Math.max(note.duration, 0.1);
+        const velocity = note.velocity * 127;
+        const instrument = track.instrument?.number ?? (track.channel === 9 ? 128 : trackIndex);
+
+        playNote(frequency, startTime, duration, velocity, instrument);
+        noteCount++;
+      });
+    });
+    
+    setIsPlaying(true);
+
+    // Start progress tracking and cleanup
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - playbackStartTimeRef.current) / 1000;
+      const progressPercent = duration > 0 ? (elapsed / duration) * 100 : 0;
       
-      // Start Tone.js if needed
-      if (Tone.context.state !== 'running') {
-        console.log('Starting Tone.js context...');
-        await Tone.start();
-      }
-      
-      // Clear any existing error
-      setError(null);
-      
-      const midi = midiDataRef.current;
-      const now = Tone.now();
-      startTimeRef.current = now;
-      
-      // Clear any previously scheduled events
-      scheduledEventsRef.current.forEach(id => Tone.Transport.clear(id));
-      scheduledEventsRef.current = [];
-      
-      let totalNotes = 0;
-      
-      // Simple approach: Use one synth per track, schedule all notes directly
-      midi.tracks.forEach((track, trackIndex) => {
-        if (track.notes.length === 0) return; // Skip empty tracks
+      // Clean up finished notes
+      const currentTime = audioContextRef.current?.currentTime || 0;
+      activeNodesRef.current = activeNodesRef.current.filter(node => node.endTime > currentTime);
+
+      if (progressPercent >= 100) {
+        setProgress(100);
+        setIsPlaying(false);
         
-        console.log(`Track ${trackIndex}: ${track.notes.length} notes, channel: ${track.channel}`);
-        
-        // Create one synth per track - much simpler approach
-        let trackSynth: any;
-        
-        if (track.channel === 9) {
-          // Drum track - create a collection of drum sounds
-          trackSynth = createDrumKit();
-        } else {
-          // Melodic track - use simple PolySynth
-          trackSynth = new Tone.PolySynth(Tone.Synth, {
-            oscillator: { type: 'triangle' },
-            envelope: { attack: 0.02, decay: 0.3, sustain: 0.6, release: 1.0 }
-          }).toDestination();
-          trackSynth.maxPolyphony = 16;
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
         }
         
-        // Store synth for cleanup
-        channelSynthsRef.current.set(trackIndex, trackSynth);
-        
-        // Schedule all notes for this track
-        track.notes.forEach(note => {
-          if (!note.name || isNaN(note.time)) return;
-          
-          const eventId = Tone.Transport.schedule((time) => {
-            try {
-              const duration = Math.max(0.1, note.duration);
-              const velocity = note.velocity || 0.8;
-              
-              if (track.channel === 9) {
-                // Drums - simple mapping to 3 basic sounds with boosted velocity
-                let drumSound, drumPitch;
-                if (note.midi >= 35 && note.midi <= 36) {
-                  drumSound = trackSynth.kick; // Bass drums
-                  drumPitch = 'C2'; // Low pitch for kick
-                } else if (note.midi >= 38 && note.midi <= 40) {
-                  drumSound = trackSynth.snare; // Snare drums
-                  drumPitch = 'D3'; // Mid pitch for snare
-                } else {
-                  drumSound = trackSynth.hihat; // Everything else (hi-hats, cymbals, etc.)
-                  drumPitch = 'F#4'; // High pitch for hihat
-                }
-                // Boost drum velocity to make them more audible
-                const drumVelocity = Math.min(1.0, velocity * 1.5);
-                drumSound.triggerAttackRelease(drumPitch, duration, time, drumVelocity);
-              } else {
-                // Melodic - use note name
-                trackSynth.triggerAttackRelease(note.name, duration, time, velocity);
-              }
-            } catch (err) {
-              console.warn('Note error:', err);
-            }
-          }, now + note.time);
-          
-          scheduledEventsRef.current.push(eventId);
-          totalNotes++;
-        });
-      });
-      
-      console.log(`Scheduled ${totalNotes} notes for playback`);
-      
-      if (totalNotes === 0) {
-        setError('MIDI file contains no playable notes');
-        return;
-      }
-      
-      // Set tempo if specified in MIDI file
-      if (midi.header.tempos && midi.header.tempos.length > 0) {
-        try {
-          const initialTempo = midi.header.tempos[0];
-          const bpm = initialTempo.bpm || 120;
-          Tone.Transport.bpm.value = bpm;
-          console.log('Set tempo to:', bpm, 'BPM');
-          
-          // Schedule tempo changes
-          midi.header.tempos.forEach(tempoChange => {
-            const changeBpm = tempoChange.bpm || 120;
-            const changeTime = tempoChange.time || 0;
-            
-            if (changeTime > 0) {
-              Tone.Transport.schedule((time) => {
-                Tone.Transport.bpm.value = changeBpm;
-                console.log('Tempo change at', changeTime.toFixed(2), 's to', changeBpm, 'BPM');
-              }, now + changeTime);
-            }
-          });
-        } catch (tempoErr) {
-          console.warn('Error setting tempo:', tempoErr);
-          Tone.Transport.bpm.value = 120;
+        // Clean up any remaining nodes
+        activeNodesRef.current = [];
+
+        if (loop) {
+          setTimeout(() => playMidi(), 100);
         }
       } else {
-        // Default tempo for MIDI files without tempo info
-        Tone.Transport.bpm.value = 120;
-        console.log('Using default tempo: 120 BPM');
+        setProgress(progressPercent);
       }
-      
-      // Start transport
-      Tone.Transport.start();
-      setIsPlaying(true);
-      setError(null); // Clear any previous errors
-      
-      console.log('MIDI playback started');
-      
-      // Update progress
-      progressIntervalRef.current = setInterval(() => {
-        const elapsed = Tone.now() - startTimeRef.current;
-        const progressPercent = duration > 0 ? (elapsed / duration) * 100 : 0;
-        setProgress(Math.min(progressPercent, 100));
-        
-        // Check if finished
-        if (elapsed >= duration && duration > 0) {
-          if (loop) {
-            console.log('Looping MIDI...');
-            stop();
-            setTimeout(() => play(), 100); // Small delay before restart
-          } else {
-            console.log('MIDI playback finished');
-            stop();
-          }
-        }
-      }, 100);
-      
-    } catch (err) {
-      console.error('Error playing MIDI:', err);
-      console.error('Full playback error details:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown playback error';
-      setError(`Play Error: ${errorMessage}`);
-      setIsPlaying(false);
-    }
+    }, 100);
   };
 
-  // Stop MIDI
-  const stop = () => {
-    console.log('Stopping MIDI playback...');
+  const stopAllAudio = () => {
+    // Stop all currently playing notes immediately
+    const currentTime = audioContextRef.current?.currentTime || 0;
     
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-    
-    // Clear scheduled events
-    scheduledEventsRef.current.forEach(id => Tone.Transport.clear(id));
-    scheduledEventsRef.current = [];
-    
-    // Stop and reset transport
-    Tone.Transport.stop();
-    Tone.Transport.position = 0;
-    
-    // Simple cleanup - just release all notes
-    channelSynthsRef.current.forEach(synth => {
-      if (synth && synth.releaseAll) {
-        synth.releaseAll();
+    activeNodesRef.current.forEach(node => {
+      try {
+        // Fade out quickly to avoid clicks
+        if (node.gain && node.gain.gain) {
+          node.gain.gain.cancelScheduledValues(currentTime);
+          node.gain.gain.setValueAtTime(node.gain.gain.value, currentTime);
+          node.gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.05);
+        }
+        
+        // Stop oscillator after fade
+        if (node.osc && node.osc.stop) {
+          node.osc.stop(currentTime + 0.05);
+        }
+      } catch (e) {
+        // Ignore errors from already-stopped oscillators
       }
     });
     
-    setIsPlaying(false);
-    setProgress(0);
-    
-    console.log('MIDI playback stopped');
+    // Clear the active nodes array
+    activeNodesRef.current = [];
+    // All audio stopped
   };
 
-  // Toggle play/pause
-  const togglePlay = () => {
+  const play = async () => {
+    if (!midiDataRef.current) {
+      await loadMidi();
+    }
+
     if (isPlaying) {
-      stop();
+      // Stop playback
+      stopAllAudio();
+      setIsPlaying(false);
+      setProgress(0);
+      
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
     } else {
-      play();
+      // Start playback
+      await playMidi();
     }
   };
 
-  // Load MIDI on mount or URL change
-  useEffect(() => {
-    if (midiUrl) {
-      loadMidi();
-    }
-    
-    return () => {
-      stop();
-    };
-  }, [midiUrl]);
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setVolume(Number(e.target.value));
+  };
 
-  // Format time
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (compact) {
-    // Compact floating player for profile pages
+  useEffect(() => {
+    if (autoplay) {
+      loadMidi();
+    }
+
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, [midiUrl, autoplay]);
+
+  if (isLoading) {
     return (
-      <div className={`fixed bottom-4 right-4 z-50 ${className}`}>
-        <div className="bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-lg shadow-lg p-3 flex items-center gap-3 max-w-xs">
-          {/* Play/Pause Button */}
-          <button
-            onClick={togglePlay}
-            disabled={isLoading || !!error}
-            className="w-10 h-10 flex items-center justify-center bg-purple-200 hover:bg-purple-300 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isLoading ? (
-              <span className="animate-spin text-sm">⏳</span>
-            ) : isPlaying ? (
-              <span className="text-lg">⏸️</span>
-            ) : (
-              <span className="text-lg">▶️</span>
-            )}
-          </button>
-
-          {/* Track Info */}
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-gray-800 truncate">
-              {title}
-            </div>
-            {error ? (
-              <div className="text-xs text-red-600 truncate" title={error}>
-                ❌ Error
-              </div>
-            ) : isPlaying ? (
-              <div className="text-xs text-gray-600">
-                🎵 Playing...
-              </div>
-            ) : isLoading ? (
-              <div className="text-xs text-gray-600">
-                Loading...
-              </div>
-            ) : (
-              <div className="text-xs text-gray-600">
-                Ready to play
-              </div>
-            )}
-          </div>
-
-          {/* Volume Control */}
-          <div className="relative">
-            <button
-              onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-              className="w-8 h-8 flex items-center justify-center hover:bg-purple-100 rounded transition-colors"
-              title="Volume"
-            >
-              🔊
-            </button>
-            
-            {showVolumeSlider && (
-              <div className="absolute bottom-full right-0 mb-2 bg-white border border-purple-200 rounded-lg p-2 shadow-lg">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={volume}
-                  onChange={(e) => setVolume(Number(e.target.value))}
-                  className="w-24 h-2"
-                  title={`Volume: ${volume}%`}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Close Button */}
-          <button
-            onClick={stop}
-            className="w-6 h-6 flex items-center justify-center hover:bg-purple-100 rounded transition-colors"
-            title="Stop"
-          >
-            ✕
-          </button>
+      <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-6 ${className}`}>
+        <div className="flex items-center justify-center">
+          <span className="animate-spin">⏳</span>
+          <span className="ml-2">Loading MIDI...</span>
         </div>
       </div>
     );
   }
 
-  // Full player for media sections
-  return (
-    <div className={`bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🎵</span>
-          <div>
-            <h4 className="font-semibold">{title}</h4>
-            {error && (
-              <p className="text-xs text-red-600">{error}</p>
+  if (error) {
+    return (
+      <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-6 ${className}`}>
+        <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+          ❌ {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <div className={`fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border-2 border-black p-3 z-50 ${className}`}>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={play}
+            className="w-10 h-10 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
+            aria-label={isPlaying ? 'Stop' : 'Play'}
+          >
+            {isPlaying ? '⏸' : '▶'}
+          </button>
+          
+          <div className="flex-1">
+            <div className="text-sm font-medium truncate max-w-[150px]">{title}</div>
+            {isPlaying && (
+              <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                <div 
+                  className="bg-blue-500 h-1 rounded-full transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             )}
           </div>
+          
+          <div className="relative">
+            <button
+              onClick={() => setShowVolumeSlider(!showVolumeSlider)}
+              className="text-gray-600 hover:text-gray-800"
+              aria-label="Volume"
+            >
+              🔊
+            </button>
+            
+            {showVolumeSlider && (
+              <div className="absolute bottom-full right-0 mb-2 p-2 bg-white border-2 border-black rounded shadow-lg">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={volume}
+                  onChange={handleVolumeChange}
+                  className="w-24"
+                  aria-label="Volume slider"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-6 ${className}`}>
+      <h3 className="text-lg font-bold mb-4">🎵 {title}</h3>
+      
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={play}
+            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+          >
+            {isPlaying ? 'Stop' : 'Play'}
+          </button>
+          
+          {loop && (
+            <span className="text-sm text-gray-600">🔁 Loop enabled</span>
+          )}
         </div>
         
-        {/* Loop indicator */}
-        {loop && (
-          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-            🔁 Loop
-          </span>
+        {duration > 0 && (
+          <div>
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>{formatTime((progress / 100) * duration)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-blue-500 h-2 rounded-full transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
         )}
-      </div>
-
-      {/* Controls */}
-      <div className="space-y-3">
-        {/* Progress Bar */}
-        <div className="relative">
-          <div className="h-2 bg-purple-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-purple-400 to-pink-400 transition-all duration-100"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="flex justify-between mt-1 text-xs text-gray-600">
-            <span>{formatTime((progress / 100) * duration)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
-        </div>
-
-        {/* Control Buttons */}
-        <div className="flex items-center justify-center gap-4">
-          {/* Play/Pause */}
-          <button
-            onClick={togglePlay}
-            disabled={isLoading || !!error}
-            className="w-12 h-12 flex items-center justify-center bg-purple-200 hover:bg-purple-300 rounded-full transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-            title={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isLoading ? (
-              <span className="animate-spin">⏳</span>
-            ) : isPlaying ? (
-              <span className="text-xl">⏸️</span>
-            ) : (
-              <span className="text-xl">▶️</span>
-            )}
-          </button>
-
-          {/* Stop */}
-          <button
-            onClick={stop}
-            disabled={!isPlaying}
-            className="w-10 h-10 flex items-center justify-center bg-purple-100 hover:bg-purple-200 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Stop"
-          >
-            <span>⏹️</span>
-          </button>
-        </div>
-
-        {/* Volume Control */}
-        <div className="flex items-center gap-2">
+        
+        <div className="flex items-center gap-3">
           <span className="text-sm">🔊</span>
           <input
             type="range"
             min="0"
             max="100"
             value={volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
+            onChange={handleVolumeChange}
             className="flex-1"
-            title={`Volume: ${volume}%`}
+            aria-label="Volume"
           />
-          <span className="text-sm text-gray-600 w-10 text-right">{volume}%</span>
+          <span className="text-sm text-gray-600">{volume}%</span>
         </div>
-
-        {/* Status */}
-        {isPlaying && (
-          <div className="text-center">
-            <span className="text-sm text-purple-600 animate-pulse">
-              ♪ ♫ Now Playing ♫ ♪
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );

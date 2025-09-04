@@ -19,10 +19,16 @@ import type { ProfileUser } from "@/components/profile/ProfileModeRenderer";
 import type { ResidentData } from "@/components/template/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/template-parser";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useRouter } from "next/router";
 import dynamic from 'next/dynamic';
 
-// Dynamically import MidiPlayer to avoid SSR issues with Tone.js
-const MidiPlayer = dynamic(() => import('@/components/MidiPlayer'), { 
+
+// Dynamically import components to avoid SSR issues
+const WelcomeHomeOverlay = dynamic(() => import('@/components/WelcomeHomeOverlay'), {
+  ssr: false
+});
+
+const MidiPlayer = dynamic(() => import('@/components/MidiPlayer'), {
   ssr: false,
   loading: () => <div className="hidden" />
 });
@@ -79,7 +85,18 @@ export default function ProfilePage({
   templateCompiledAt,
   profileMidi,
 }: ProfileProps) {
+  const router = useRouter();
   const [relStatus, setRelStatus] = React.useState<string>("loading");
+  const [showWelcomeHome, setShowWelcomeHome] = React.useState(false);
+
+  // Check for welcomeHome parameter from signup animation
+  React.useEffect(() => {
+    if (router.query.welcomeHome === 'true') {
+      setShowWelcomeHome(true);
+      // Clean up URL without causing re-render
+      router.replace(`/resident/${username}`, undefined, { shallow: true });
+    }
+  }, [router, username]);
   const { user: currentUser } = useCurrentUser();
 
   const isOwner = currentUser?.id === ownerUserId;
@@ -284,7 +301,7 @@ export default function ProfilePage({
         <Tabs tabs={tabs} initialId={initialTabId} />
       </div>
 
-      {/* MIDI Player - Compact floating player */}
+      {/* MIDI Player - Now using the refactored component with new library */}
       {profileMidi && (
         <MidiPlayer
           midiUrl={profileMidi.url}
@@ -292,6 +309,14 @@ export default function ProfilePage({
           autoplay={profileMidi.autoplay}
           loop={profileMidi.loop}
           compact={true}
+        />
+      )}
+
+      {/* Welcome Home overlay for new users */}
+      {showWelcomeHome && (
+        <WelcomeHomeOverlay
+          username={username}
+          onComplete={() => setShowWelcomeHome(false)}
         />
       )}
     </ProfileLayout>

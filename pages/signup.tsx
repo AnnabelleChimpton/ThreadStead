@@ -8,16 +8,19 @@ import { validatePasswordStrength } from "@/lib/password-auth";
 import { validateUsername } from "@/lib/validateUsername";
 import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/default-profile-templates";
 import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_STYLES } from "@/lib/template-preview-styles";
+import SignupFinaleAnimation from "@/components/SignupFinaleAnimation";
+import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
 
 interface SignupPageProps {
   betaKey?: string | null;
 }
 
-type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'template' | 'profile' | 'complete';
+type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'profile' | 'template' | 'finale';
 type AuthMethod = 'password' | 'seedphrase';
 
 export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
   const router = useRouter();
+  const globalAudio = useGlobalAudio();
   const [currentStep, setCurrentStep] = useState<SignupStep>('welcome');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -171,7 +174,7 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
   async function handleEmailSetup() {
     if (!email.trim()) {
       // Skip email step
-      setCurrentStep('template');
+      setCurrentStep('profile');
       return;
     }
 
@@ -186,15 +189,15 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
       });
 
       if (response.ok) {
-        setCurrentStep('template');
+        setCurrentStep('profile');
       } else {
         const error = await response.json();
         setError(error.error || 'Failed to set email');
       }
     } catch (err) {
       setError('Failed to set email. You can add it later in settings.');
-      // Continue to template selection even if email fails
-      setTimeout(() => setCurrentStep('template'), 2000);
+      // Continue to profile setup even if email fails
+      setTimeout(() => setCurrentStep('profile'), 2000);
     } finally {
       setIsLoading(false);
     }
@@ -242,8 +245,17 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
         }
       }
       
-      // Move to profile setup step
-      setCurrentStep('profile');
+      // Start music when theme is selected (only if not already playing)
+      if (!globalAudio.state.isPlaying) {
+        try {
+          await globalAudio.startSignupAudio();
+        } catch (error) {
+          // Audio failed but don't block signup flow
+        }
+      }
+      
+      // Move to finale animation
+      setCurrentStep('finale');
     } catch (err) {
       setError('Failed to save template. Please try again.');
       console.error('Template selection error:', err);
@@ -296,8 +308,8 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
       // Only proceed if either operation was attempted and successful
       if (profileUpdated || (!profilePhoto && !bio.trim())) {
         setProfileSaved(true);
-        // Show success briefly before moving to complete
-        setTimeout(() => setCurrentStep('complete'), 1500);
+        // Go to template selection
+        setTimeout(() => setCurrentStep('template'), 1500);
       } else {
         throw new Error('No profile data to save');
       }
@@ -310,10 +322,6 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
     }
   }
 
-  async function handleComplete() {
-    // Use Next.js router for proper navigation
-    router.push(`/resident/${username}`);
-  }
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -343,43 +351,43 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
           {/* Progress Indicator */}
           <div className="mb-8">
             <div className="flex items-center justify-center gap-2 text-sm">
-              <div className={`flex items-center gap-2 ${currentStep === 'welcome' ? 'text-blue-600 font-medium' : ['seed-phrase', 'email', 'profile', 'complete'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'welcome' ? 'bg-blue-100' : ['seed-phrase', 'email', 'profile', 'complete'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
+              <div className={`flex items-center gap-2 ${currentStep === 'welcome' ? 'text-blue-600 font-medium' : ['seed-phrase', 'email', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'welcome' ? 'bg-blue-100' : ['seed-phrase', 'email', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
                   1
                 </span>
                 Username
               </div>
               <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'seed-phrase' ? 'text-blue-600 font-medium' : ['email', 'profile', 'complete'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'seed-phrase' ? 'bg-blue-100' : ['email', 'profile', 'complete'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
+              <div className={`flex items-center gap-2 ${currentStep === 'seed-phrase' ? 'text-blue-600 font-medium' : ['email', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'seed-phrase' ? 'bg-blue-100' : ['email', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
                   2
                 </span>
                 Backup
               </div>
               <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'email' ? 'text-blue-600 font-medium' : ['profile', 'complete'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'email' ? 'bg-blue-100' : ['profile', 'complete'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
+              <div className={`flex items-center gap-2 ${currentStep === 'email' ? 'text-blue-600 font-medium' : ['profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'email' ? 'bg-blue-100' : ['profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
                   3
                 </span>
                 Email
               </div>
               <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'template' ? 'text-blue-600 font-medium' : ['profile', 'complete'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'template' ? 'bg-blue-100' : ['profile', 'complete'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
+              <div className={`flex items-center gap-2 ${currentStep === 'profile' ? 'text-blue-600 font-medium' : ['template', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'profile' ? 'bg-blue-100' : ['template', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
                   4
-                </span>
-                Template
-              </div>
-              <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'profile' ? 'text-blue-600 font-medium' : currentStep === 'complete' ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'profile' ? 'bg-blue-100' : currentStep === 'complete' ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  5
                 </span>
                 Profile
               </div>
               <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'complete' ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'complete' ? 'bg-green-100' : 'bg-gray-100'}`}>
+              <div className={`flex items-center gap-2 ${currentStep === 'template' ? 'text-blue-600 font-medium' : currentStep === 'finale' ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'template' ? 'bg-blue-100' : currentStep === 'finale' ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  5
+                </span>
+                Template
+              </div>
+              <div className="w-6 h-px bg-gray-300"></div>
+              <div className={`flex items-center gap-2 ${currentStep === 'finale' ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'finale' ? 'bg-green-100' : 'bg-gray-100'}`}>
                   ✓
                 </span>
                 Done
@@ -953,11 +961,11 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
                     disabled={isLoading || (!profilePhoto && !bio.trim())}
                     className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? "Saving..." : "Save Profile & Finish"}
+                    {isLoading ? "Saving..." : "Save Profile & Continue"}
                   </button>
                   
                   <button
-                    onClick={() => setCurrentStep('complete')}
+                    onClick={() => setCurrentStep('template')}
                     disabled={isLoading}
                     className="text-sm text-gray-600 hover:text-gray-800 underline disabled:opacity-50"
                   >
@@ -983,31 +991,17 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
             </div>
           )}
 
-          {/* Step 5: Complete */}
-          {currentStep === 'complete' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000] text-center">
-              <span className="text-6xl mb-6 block">🎉</span>
-              <h2 className="text-3xl font-bold mb-4">Welcome to ThreadStead!</h2>
-              <p className="text-gray-600 mb-2">
-                Your account <strong>@{username}</strong> has been created successfully.
-              </p>
-              <p className="text-sm text-gray-500 mb-8">
-                You now own your decentralized identity completely. Nobody can take it away from you!
-              </p>
 
-              <button
-                onClick={handleComplete}
-                className="px-8 py-4 text-lg bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000]"
-              >
-                Go to My Profile →
-              </button>
-
-              <div className="mt-8 text-xs text-gray-500 max-w-md mx-auto">
-                <p>
-                  Next steps: Customize your profile, join communities, and invite friends using your beta codes!
-                </p>
-              </div>
-            </div>
+          {/* Finale Animation */}
+          {currentStep === 'finale' && (
+            <SignupFinaleAnimation
+              username={username}
+              selectedTheme={selectedTemplate}
+              onComplete={() => {
+                // Fallback navigation if animation fails
+                router.push(`/resident/${username}`);
+              }}
+            />
           )}
         </div>
       </Layout>

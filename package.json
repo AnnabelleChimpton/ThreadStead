@@ -46,6 +46,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/bip39": "^2.4.2",
     "@types/d3": "^7.4.3",
+    "@types/formidable": "^3.4.5",
     "@types/multer": "^2.0.0",
     "bcryptjs": "^3.0.2",
     "bip39": "^3.1.0",
@@ -53,6 +54,7 @@
     "d3": "^7.9.0",
     "date-fns": "^4.1.0",
     "express": "^5.1.0",
+    "formidable": "^3.5.4",
     "highlight.js": "^11.11.1",
     "jose": "^6.0.12",
     "marked": "^16.1.2",
@@ -67,7 +69,6 @@
     "rehype-sanitize": "^6.0.0",
     "resend": "^6.0.1",
     "sharp": "^0.34.3",
-    "tone": "^15.1.22",
     "unified": "^11.0.5"
   },
   "devDependencies": {
