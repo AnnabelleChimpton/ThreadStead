@@ -90,7 +90,7 @@ export default function FoundersNoteSection() {
             <h4 className="text-sm font-semibold mb-2">Preview:</h4>
             <div className="p-4 bg-white rounded-lg border">
               <h5 className="font-medium mb-2 flex items-center gap-2">
-                <span>💌</span> A Note from the Founder
+                A Note from the Founder
               </h5>
               <p className="text-gray-700 whitespace-pre-wrap">{message}</p>
             </div>

@@ -39,7 +39,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
     <Layout siteConfig={siteConfig}>
       <div className="space-y-6">
         {/* Hero Section */}
-        <RetroCard title="Welcome to Threadstead! 🎉">
+        <RetroCard title="Welcome to Threadstead!">
           <div className="text-center py-4">
             <div className="text-4xl mb-4">🧵</div>
             <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900">
@@ -54,13 +54,13 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 href="/onboarding" 
                 className="inline-block border border-black px-5 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all text-sm font-medium"
               >
-                🚀 Create Your Profile
+                Create Your Profile
               </Link>
               <Link 
                 href="/threadrings" 
                 className="inline-block border border-black px-5 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all text-sm font-medium"
               >
-                🔍 Explore Communities
+                Explore Communities
               </Link>
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
         <div className="space-y-6">
           {activeTab === "overview" && (
             <div className="space-y-6">
-              <RetroCard title="🎯 Quick Start Guide">
+              <RetroCard title="Quick Start Guide">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <div className="bg-yellow-200 border border-black w-8 h-8 flex items-center justify-center font-bold shadow-[2px_2px_0_#000] flex-shrink-0">1</div>
@@ -121,12 +121,12 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     href="/onboarding" 
                     className="w-full block text-center border border-black px-4 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
                   >
-                    Let&apos;s Get Started! 🚀
+                    Let&apos;s Get Started!
                   </Link>
                 </div>
               </RetroCard>
 
-              <RetroCard title="🌟 What Makes Threadstead Special?">
+              <RetroCard title="What Makes Threadstead Special?">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="flex items-start gap-3">
                     <div className="text-2xl flex-shrink-0">🎨</div>
@@ -166,7 +166,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
           {activeTab === "threadrings" && (
             <div className="space-y-6">
-                <RetroCard title="🧵 Understanding ThreadRings">
+                <RetroCard title="Understanding ThreadRings">
                   <div className="space-y-4">
                     <p className="text-gray-700 leading-relaxed">
                       ThreadRings are the heart of Threadstead - they&apos;re community spaces where people with shared 
@@ -175,7 +175,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </p>
                     
                     <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                      <h3 className="font-bold text-blue-800 mb-2">🌱 Community Evolution</h3>
+                      <h3 className="font-bold text-blue-800 mb-2">Community Evolution</h3>
                       <p className="text-sm text-blue-700">
                         ThreadRings can &quot;fork&quot; just like code repositories. When a community grows and members want 
                         to explore new directions, they can create a new ThreadRing that branches off from the original, 
@@ -185,7 +185,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                     <div className="grid md:grid-cols-2 gap-4 mt-6">
                       <div className="border border-gray-300 p-4 bg-gray-50">
-                        <h4 className="font-bold mb-2">🔓 Join Types</h4>
+                        <h4 className="font-bold mb-2">Join Types</h4>
                         <ul className="text-sm space-y-1">
                           <li><strong>Open:</strong> Anyone can join instantly</li>
                           <li><strong>Invite:</strong> Members must be invited</li>
@@ -194,7 +194,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       </div>
                       
                       <div className="border border-gray-300 p-4 bg-gray-50">
-                        <h4 className="font-bold mb-2">👁️ Visibility</h4>
+                        <h4 className="font-bold mb-2">Visibility</h4>
                         <ul className="text-sm space-y-1">
                           <li><strong>Public:</strong> Everyone can see it</li>
                           <li><strong>Unlisted:</strong> Only findable by direct link</li>
@@ -205,7 +205,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
                 </RetroCard>
                 
-                <RetroCard title="🌳 The Genealogy System">
+                <RetroCard title="The Genealogy System">
                   <div className="space-y-4">
                     <p className="text-gray-700">
                       Every ThreadRing is part of a family tree that traces back to &quot;The Spool&quot; - the ancestral 
@@ -229,12 +229,12 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       href="/threadrings/genealogy" 
                       className="block text-center border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
                     >
-                      🌳 Explore the Full Family Tree
+                      Explore the Full Family Tree
                     </Link>
                   </div>
                 </RetroCard>
 
-                <RetroCard title="🚀 Getting Started with ThreadRings">
+                <RetroCard title="Getting Started with ThreadRings">
                   <div className="space-y-4 text-sm">
                     <div>
                       <h4 className="font-bold mb-2">1. Browse Communities</h4>
@@ -271,7 +271,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 </RetroCard>
 
                 <div>
-                <RetroCard title="🎖️ ThreadRing Badges">
+                <RetroCard title="ThreadRing Badges">
                   <div className="text-center space-y-3">
                     <div className="bg-gray-100 border border-gray-400 w-[88px] h-[31px] mx-auto flex items-center justify-center text-xs">
                       88x31 Badge
@@ -288,7 +288,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
           {activeTab === "profiles" && (
             <div className="space-y-6">
-              <RetroCard title="👤 Your Personal Space">
+              <RetroCard title="Your Personal Space">
                 <div className="space-y-4">
                   <p className="text-gray-700 leading-relaxed">
                     Your Threadstead profile is your personal corner of the internet. Like the homepages of old, 
@@ -296,7 +296,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </p>
 
                   <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                    <h3 className="font-bold text-yellow-800 mb-2">✨ Profile Features</h3>
+                    <h3 className="font-bold text-yellow-800 mb-2">Profile Features</h3>
                     <ul className="text-sm text-yellow-700 space-y-1">
                       <li>• <strong>Custom CSS:</strong> Style your page however you want</li>
                       <li>• <strong>Photo Gallery:</strong> Share your favorite images</li>
@@ -309,7 +309,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div className="space-y-3">
-                    <h4 className="font-bold">🎨 Default Themes</h4>
+                    <h4 className="font-bold">Default Themes</h4>
                     <p className="text-sm text-gray-600">Get started quickly with professionally designed themes, then customize to make them your own:</p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100">
@@ -348,10 +348,10 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 </div>
               </RetroCard>
 
-              <RetroCard title="🎨 Customization Power">
+              <RetroCard title="Customization Power">
                 <div className="space-y-4">
                   <div className="bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-200 p-4 rounded">
-                    <h3 className="font-bold mb-2">🎭 Express Yourself</h3>
+                    <h3 className="font-bold mb-2">Express Yourself</h3>
                     <p className="text-sm mb-3">
                       Threadstead brings back the creative freedom of personal websites. Start with a default theme 
                       or use CSS to create anything from minimalist modern designs to flashy retro masterpieces.
@@ -363,13 +363,13 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div>
-                    <h4 className="font-bold mb-2">🔧 Profile Settings</h4>
+                    <h4 className="font-bold mb-2">Profile Settings</h4>
                     <div className="space-y-2 text-sm">
                       <Link 
                         href="/settings/profile" 
                         className="block border border-black px-3 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000] text-center"
                       >
-                        ⚙️ Edit Profile Settings
+                        Edit Profile Settings
                       </Link>
                       <p className="text-gray-600 text-xs">
                         Our updated profile editor makes it easy to update your display name, bio, avatar, 
@@ -379,7 +379,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div>
-                    <h4 className="font-bold mb-2">🎨 CSS Editor</h4>
+                    <h4 className="font-bold mb-2">CSS Editor</h4>
                     <p className="text-sm text-gray-600 mb-2">
                       Access the full CSS editor to customize every aspect of your profile&apos;s appearance.
                     </p>
@@ -387,16 +387,16 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       href="/design-tutorial" 
                       className="block text-center border border-black px-3 py-1 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] text-sm"
                     >
-                      📚 Design Tutorial
+                      Design Tutorial
                     </Link>
                   </div>
                 </div>
               </RetroCard>
 
-              <RetroCard title="🎵 Profile Music with MIDI">
+              <RetroCard title="Profile Music with MIDI">
                 <div className="space-y-4">
                   <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-400 p-4">
-                    <h3 className="font-bold text-purple-800 mb-2">🎹 Add a Soundtrack to Your Profile</h3>
+                    <h3 className="font-bold text-purple-800 mb-2">Add a Soundtrack to Your Profile</h3>
                     <p className="text-sm text-purple-700">
                       Bring back the nostalgic web experience with background music! Upload MIDI files to create 
                       the perfect ambiance for visitors exploring your profile.
@@ -404,7 +404,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div>
-                    <h4 className="font-bold mb-2">🎶 Music Features</h4>
+                    <h4 className="font-bold mb-2">Music Features</h4>
                     <ul className="text-sm text-gray-600 space-y-1">
                       <li>• <strong>MIDI Support:</strong> Upload classic MIDI files for authentic retro vibes</li>
                       <li>• <strong>Auto-play Controls:</strong> Visitors can easily play/pause your music</li>
@@ -422,10 +422,10 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 </div>
               </RetroCard>
 
-              <RetroCard title="🔐 Your Digital Identity">
+              <RetroCard title="Your Digital Identity">
                 <div className="space-y-4">
                   <div className="bg-green-50 border-l-4 border-green-400 p-4">
-                    <h3 className="font-bold text-green-800 mb-2">🗝️ Flexible Authentication Options</h3>
+                    <h3 className="font-bold text-green-800 mb-2">Flexible Authentication Options</h3>
                     <p className="text-sm text-green-700">
                       Threadstead offers multiple secure ways to access your account. Choose what works best for you!
                     </p>
@@ -433,7 +433,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                   <div className="grid md:grid-cols-3 gap-4">
                     <div className="border border-green-300 p-3 bg-green-50 rounded">
-                      <h4 className="font-bold text-green-800 mb-2">🔐 Password</h4>
+                      <h4 className="font-bold text-green-800 mb-2">Password</h4>
                       <p className="text-xs text-green-700">
                         Traditional and familiar! Sign in with a secure username and password combination.
                       </p>
@@ -445,7 +445,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
                     
                     <div className="border border-blue-300 p-3 bg-blue-50 rounded">
-                      <h4 className="font-bold text-blue-800 mb-2">📧 Email Login</h4>
+                      <h4 className="font-bold text-blue-800 mb-2">Email Login</h4>
                       <p className="text-xs text-blue-700">
                         Quick and convenient! Get a magic link sent to your email address.
                       </p>
@@ -457,7 +457,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
                     
                     <div className="border border-purple-300 p-3 bg-purple-50 rounded">
-                      <h4 className="font-bold text-purple-800 mb-2">🌱 Seed Phrase</h4>
+                      <h4 className="font-bold text-purple-800 mb-2">Seed Phrase</h4>
                       <p className="text-xs text-purple-700">
                         Maximum security with a 12-word recovery phrase for full control.
                       </p>
@@ -477,7 +477,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div>
-                    <h4 className="font-bold mb-2">✨ Benefits of Our System</h4>
+                    <h4 className="font-bold mb-2">Benefits of Our System</h4>
                     <ul className="text-sm text-gray-600 space-y-1">
                       <li>• <strong>True Ownership:</strong> Your identity belongs to you, not us</li>
                       <li>• <strong>Multiple Options:</strong> Choose the security level that fits your needs</li>
@@ -491,13 +491,13 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       href="/settings" 
                       className="block text-center border border-black px-3 py-2 bg-green-100 hover:bg-green-200 shadow-[1px_1px_0_#000] font-medium text-sm"
                     >
-                      🔧 Account Settings
+                      Account Settings
                     </Link>
                   </div>
                 </div>
               </RetroCard>
 
-              <RetroCard title="🏠 Profile URL Structure">
+              <RetroCard title="Profile URL Structure">
                 <div className="space-y-3">
                   <p className="text-sm text-gray-700">
                     Your profile lives at a clean URL that&apos;s easy to remember and share:
@@ -515,7 +515,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
           {activeTab === "social" && (
             <div className="space-y-6">
-              <RetroCard title="💬 Connect with Others">
+              <RetroCard title="Connect with Others">
                 <div className="space-y-4">
                   <p className="text-gray-700">
                     Threadstead offers various ways to connect and interact with fellow community members, 
@@ -524,7 +524,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                   <div className="grid gap-4">
                     <div className="border border-gray-300 p-3 bg-blue-50">
-                      <h4 className="font-bold text-blue-800 mb-1">👥 Following & Friends</h4>
+                      <h4 className="font-bold text-blue-800 mb-1">Following & Friends</h4>
                       <p className="text-sm text-blue-700">
                         Follow users you find interesting to see their posts in your feed. Build your network 
                         of connections and discover new perspectives.
@@ -532,7 +532,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
 
                     <div className="border border-gray-300 p-3 bg-green-50">
-                      <h4 className="font-bold text-green-800 mb-1">📖 Guestbooks</h4>
+                      <h4 className="font-bold text-green-800 mb-1">Guestbooks</h4>
                       <p className="text-sm text-green-700">
                         Leave messages on other users&apos; profiles! Guestbooks are a classic way to show 
                         appreciation and start conversations.
@@ -540,7 +540,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
 
                     <div className="border border-gray-300 p-3 bg-purple-50">
-                      <h4 className="font-bold text-purple-800 mb-1">💭 Comments & Discussions</h4>
+                      <h4 className="font-bold text-purple-800 mb-1">Comments & Discussions</h4>
                       <p className="text-sm text-purple-700">
                         Engage with posts through threaded comments. Share your thoughts, ask questions, 
                         and contribute to meaningful discussions.
@@ -550,10 +550,10 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 </div>
               </RetroCard>
 
-              <RetroCard title="🔔 Stay Connected">
+              <RetroCard title="Stay Connected">
                 <div className="space-y-4">
                   <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                    <h3 className="font-bold text-yellow-800 mb-2">📢 Notifications</h3>
+                    <h3 className="font-bold text-yellow-800 mb-2">Notifications</h3>
                     <p className="text-sm text-yellow-700">
                       Get notified when people interact with your content, join your ThreadRings, 
                       or mention you in discussions.
@@ -561,7 +561,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div>
-                    <h4 className="font-bold mb-2">📰 Activity Feed</h4>
+                    <h4 className="font-bold mb-2">Activity Feed</h4>
                     <p className="text-sm text-gray-600 mb-3">
                       Your personalized feed shows posts from users you follow and ThreadRings you&apos;ve joined.
                     </p>
@@ -569,12 +569,12 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       href="/feed" 
                       className="block text-center border border-black px-3 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000]"
                     >
-                      📰 View Your Feed
+                      View Your Feed
                     </Link>
                   </div>
 
                   <div>
-                    <h4 className="font-bold mb-2">👥 User Directory</h4>
+                    <h4 className="font-bold mb-2">User Directory</h4>
                     <p className="text-sm text-gray-600 mb-3">
                       Browse all users on the platform to find interesting people to follow and connect with.
                     </p>
@@ -582,16 +582,16 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       href="/directory" 
                       className="block text-center border border-black px-3 py-2 bg-green-100 hover:bg-green-200 shadow-[1px_1px_0_#000]"
                     >
-                      🔍 Browse Users
+                      Browse Users
                     </Link>
                   </div>
                 </div>
               </RetroCard>
 
-              <RetroCard title="🎯 Community Participation Tips">
+              <RetroCard title="Community Participation Tips">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <h4 className="font-bold mb-3 text-green-700">✅ Do&apos;s</h4>
+                      <h4 className="font-bold mb-3 text-green-700">Do&apos;s</h4>
                       <ul className="space-y-2 text-sm">
                         <li className="flex items-start gap-2">
                           <span className="text-green-600">✓</span>
@@ -617,7 +617,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-3 text-red-700">❌ Don&apos;ts</h4>
+                      <h4 className="font-bold mb-3 text-red-700">Don&apos;ts</h4>
                       <ul className="space-y-2 text-sm">
                         <li className="flex items-start gap-2">
                           <span className="text-red-600">✗</span>
@@ -648,7 +648,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
           {activeTab === "content" && (
             <div className="space-y-6">
-              <RetroCard title="✍️ Creating Great Content">
+              <RetroCard title="Creating Great Content">
                   <div className="space-y-4">
                     <p className="text-gray-700">
                       Threadstead supports rich content creation with markdown formatting, media uploads, 
@@ -657,7 +657,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </p>
 
                     <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                      <h3 className="font-bold text-blue-800 mb-2">📝 Markdown Support</h3>
+                      <h3 className="font-bold text-blue-800 mb-2">Markdown Support</h3>
                       <p className="text-sm text-blue-700 mb-3">
                         Format your posts with markdown for rich typography, links, lists, and more:
                       </p>
@@ -673,7 +673,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="border border-gray-300 p-4 bg-green-50">
-                        <h4 className="font-bold text-green-800 mb-2">📸 Media Uploads</h4>
+                        <h4 className="font-bold text-green-800 mb-2">Media Uploads</h4>
                         <p className="text-sm text-green-700">
                           Add images to your posts and maintain photo galleries on your profile. 
                           Share visual stories and memories with your community.
@@ -681,7 +681,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       </div>
                       
                       <div className="border border-gray-300 p-4 bg-purple-50">
-                        <h4 className="font-bold text-purple-800 mb-2">🎯 ThreadRing Posts</h4>
+                        <h4 className="font-bold text-purple-800 mb-2">ThreadRing Posts</h4>
                         <p className="text-sm text-purple-700">
                           Share content within specific ThreadRing communities. Each ring has its own 
                           feed and discussion space focused on that community&apos;s interests.
@@ -691,10 +691,10 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
                 </RetroCard>
 
-                <RetroCard title="📚 Content Types & Ideas">
+                <RetroCard title="Content Types & Ideas">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-bold mb-3">💡 Post Ideas</h4>
+                      <h4 className="font-bold mb-3">Post Ideas</h4>
                       <ul className="space-y-2 text-sm">
                         <li>• <strong>Show &amp; Tell:</strong> Share projects you&apos;re working on</li>
                         <li>• <strong>Questions:</strong> Ask for advice or start discussions</li>
@@ -706,7 +706,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-3">🎨 Profile Content</h4>
+                      <h4 className="font-bold mb-3">Profile Content</h4>
                       <ul className="space-y-2 text-sm">
                         <li>• <strong>Bio:</strong> Tell visitors about yourself</li>
                         <li>• <strong>Photo Gallery:</strong> Curate your favorite images</li>
@@ -719,21 +719,21 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
                 </RetroCard>
 
-              <RetroCard title="🚀 Start Creating">
+              <RetroCard title="Start Creating">
                   <div className="space-y-4 text-sm">
                     <div>
-                      <h4 className="font-bold mb-2">📝 Write a Post</h4>
+                      <h4 className="font-bold mb-2">Write a Post</h4>
                       <p className="text-gray-600 mb-2">Share your thoughts with the community.</p>
                       <Link 
                         href="/post/new" 
                         className="block text-center border border-black px-3 py-2 bg-green-100 hover:bg-green-200 shadow-[1px_1px_0_#000]"
                       >
-                        ✍️ New Post
+                        New Post
                       </Link>
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-2">🖼️ Upload Media</h4>
+                      <h4 className="font-bold mb-2">Upload Media</h4>
                       <p className="text-gray-600 mb-2">Add images and MIDI files to your profile.</p>
                       <div className="text-center text-gray-500 text-xs bg-gray-100 border px-3 py-2">
                         Upload via Profile Settings
@@ -741,7 +741,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-2">📋 Writing Tips</h4>
+                      <h4 className="font-bold mb-2">Writing Tips</h4>
                       <ul className="text-gray-600 space-y-1 text-xs">
                         <li>&bull; Use descriptive titles</li>
                         <li>&bull; Break up long text with headers</li>
@@ -753,17 +753,17 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
                 </RetroCard>
 
-              <RetroCard title="🌟 Featured Content">
+              <RetroCard title="Featured Content">
                   <div className="space-y-3 text-sm">
                     <div className="bg-yellow-100 border border-yellow-300 p-3 rounded">
-                      <h4 className="font-bold text-yellow-800 mb-1">💫 Get Noticed</h4>
+                      <h4 className="font-bold text-yellow-800 mb-1">Get Noticed</h4>
                       <p className="text-yellow-700 text-xs">
                         Quality content that sparks discussion and helps the community tends to get more engagement.
                       </p>
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-2">🏆 Best Practices</h4>
+                      <h4 className="font-bold mb-2">Best Practices</h4>
                       <ul className="text-gray-600 space-y-1 text-xs">
                         <li>• Be authentic and genuine</li>
                         <li>• Contribute to discussions</li>
@@ -781,7 +781,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
         {/* Call to Action */}
         <RetroCard title="">
           <div className="text-center py-4">
-            <h2 className="text-xl font-bold mb-3">Ready to Join Threadstead? 🎉</h2>
+            <h2 className="text-xl font-bold mb-3">Ready to Join Threadstead?</h2>
             <p className="text-gray-600 mb-4">
               Start your journey on this unique social platform where creativity meets community.
             </p>
@@ -790,13 +790,13 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 href="/onboarding" 
                 className="inline-block border border-black px-6 py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all text-base font-bold"
               >
-                🚀 Create Your Profile
+                Create Your Profile
               </Link>
               <Link 
                 href="/feed" 
                 className="inline-block border border-black px-6 py-3 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all text-base font-medium"
               >
-                🌊 Explore the Feed
+                Explore the Feed
               </Link>
             </div>
           </div>

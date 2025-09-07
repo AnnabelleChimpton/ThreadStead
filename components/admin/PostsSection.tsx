@@ -135,7 +135,7 @@ export default function PostsSection() {
   return (
     <div className="border border-gray-300 rounded p-4 bg-gray-50">
       <h3 className="font-bold mb-3 flex items-center gap-2">
-        📝 Posts Management
+        Posts Management
       </h3>
       <p className="text-sm text-gray-600 mb-4">
         View and manage all posts across the platform. Search, filter, and delete posts as needed.
@@ -219,7 +219,7 @@ export default function PostsSection() {
                     </span>
                     {post._count.comments > 0 && (
                       <span className="text-xs bg-blue-100 px-2 py-1 rounded">
-                        💬 {post._count.comments} comment{post._count.comments !== 1 ? 's' : ''}
+                        {post._count.comments} comment{post._count.comments !== 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
@@ -279,14 +279,14 @@ export default function PostsSection() {
                     rel="noopener noreferrer"
                     className="border border-black px-2 py-1 bg-blue-200 hover:bg-blue-100 shadow-[1px_1px_0_#000] text-xs text-center"
                   >
-                    👁️ View
+                    View
                   </a>
                   <button
                     onClick={() => deletePost(post)}
                     disabled={deleting === post.id}
                     className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs"
                   >
-                    {deleting === post.id ? "Deleting..." : "🗑️ Delete"}
+                    {deleting === post.id ? "Deleting..." : "Delete"}
                   </button>
                 </div>
               </div>

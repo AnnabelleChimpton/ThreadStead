@@ -147,7 +147,7 @@ export default function SignupAudioSection() {
   return (
     <div className="border border-gray-300 rounded p-4 bg-gray-50">
       <h3 className="font-bold mb-3 flex items-center gap-2">
-        🎵 Signup Animation Audio
+        Signup Animation Audio
       </h3>
       <p className="text-sm text-gray-600 mb-4">
         Upload an audio file to play during the signup completion animation. 

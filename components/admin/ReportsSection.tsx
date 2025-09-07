@@ -196,7 +196,7 @@ export default function ReportsSection() {
   return (
     <div className="border border-gray-300 rounded p-4 bg-gray-50">
       <h3 className="font-bold mb-3 flex items-center gap-2">
-        🚨 Content Reports
+        Content Reports
       </h3>
       <p className="text-sm text-gray-600 mb-4">
         Review and manage user reports for inappropriate content, harassment, and policy violations.
@@ -348,7 +348,7 @@ export default function ReportsSection() {
                         className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs"
                         title={`Delete this ${report.reportType} permanently`}
                       >
-                        🗑️ Delete Content
+                        Delete Content
                       </button>
                     )}
                   </div>

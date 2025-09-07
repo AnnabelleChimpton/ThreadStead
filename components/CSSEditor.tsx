@@ -61,7 +61,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
       {/* Header with controls */}
       <div className="flex items-center justify-between">
         <label className="block thread-label text-base">
-          🎨 Custom CSS Editor
+          Custom CSS Editor
         </label>
         <div className="flex gap-2">
           <button
@@ -69,7 +69,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
             onClick={() => setShowTemplates(!showTemplates)}
             className="px-3 py-1 text-xs border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all"
           >
-            📚 Templates
+            Templates
           </button>
           <button
             type="button"
@@ -84,14 +84,14 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
             disabled={previewLoading || !value.trim()}
             className="px-3 py-1 text-xs border border-thread-pine text-thread-pine hover:bg-thread-pine hover:text-white rounded shadow-cozySm transition-all disabled:opacity-50"
           >
-            {previewLoading ? '⏳' : '👁️'} {previewLoading ? 'Checking...' : 'Validate'}
+            {previewLoading ? 'Checking...' : 'Validate'}
           </button>
           <button
             type="button"
             onClick={handleRestoreDefault}
             className="px-3 py-1 text-xs border border-thread-sunset text-thread-sunset hover:bg-thread-sunset hover:text-white rounded shadow-cozySm transition-all"
           >
-            🔄 Use Site Default
+            Use Site Default
           </button>
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
               onClick={() => handleTemplateSelect('abstract-art')}
               className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
             >
-              <div className="font-semibold text-thread-pine">🎨 Abstract Art</div>
+              <div className="font-semibold text-thread-pine">Abstract Art</div>
               <div className="text-thread-sage mt-1">Vibrant colorful artistic canvas</div>
             </button>
             <button
@@ -130,7 +130,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
               onClick={() => handleTemplateSelect('retro-social')}
               className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
             >
-              <div className="font-semibold text-thread-pine">📱 Retro Social</div>
+              <div className="font-semibold text-thread-pine">Retro Social</div>
               <div className="text-thread-sage mt-1">MySpace nostalgia vibes</div>
             </button>
             <button
@@ -146,7 +146,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
               onClick={() => handleTemplateSelect('clear')}
               className="p-3 text-xs border border-thread-sage bg-thread-paper hover:bg-white rounded transition-all text-left"
             >
-              <div className="font-semibold text-thread-pine">🗑️ Clear All</div>
+              <div className="font-semibold text-thread-pine">Clear All</div>
               <div className="text-thread-sage mt-1">Remove all CSS (uses site default)</div>
             </button>
           </div>
@@ -159,11 +159,11 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
           <h3 className="thread-label text-sm">CSS Editor Help</h3>
           <div className="text-xs text-thread-sage space-y-2">
             <div>
-              <strong>🎯 Complete CSS Selector Reference:</strong>
+              <strong>Complete CSS Selector Reference:</strong>
               <div className="max-h-96 overflow-y-auto border border-thread-sage/20 rounded p-3 bg-thread-paper/50">
                 <ul className="ml-2 mt-1 space-y-1 text-xs">
                   
-                  <li className="pt-3"><strong>🌍 Global Site Layout:</strong></li>
+                  <li className="pt-3"><strong>Global Site Layout:</strong></li>
                   <li><code>.site-layout</code> - Entire page background container</li>
                   <li><code>.site-header</code> - Top navigation header (customizable colors/fonts)</li>
                   <li><code>.site-navigation</code> - Navigation container</li>
@@ -180,7 +180,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
                   <li><code>.footer-tagline</code> - Footer tagline text</li>
                   <li><code>.footer-copyright</code> - Copyright text</li>
                   
-                  <li className="pt-3"><strong>📱 Profile Page Layout:</strong></li>
+                  <li className="pt-3"><strong>Profile Page Layout:</strong></li>
                   <li><code>.profile-container</code> - Main profile page container</li>
                   <li><code>.profile-content-wrapper</code> - Profile content layout wrapper</li>
                   <li><code>.profile-main-content</code> - Main content column</li>
@@ -189,7 +189,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
                   <li><code>.sidebar-heading</code> - Sidebar section headings</li>
                   <li><code>.sidebar-text</code> - Sidebar text content</li>
                   
-                  <li className="pt-3"><strong>👤 Profile Header & Identity:</strong></li>
+                  <li className="pt-3"><strong>Profile Header & Identity:</strong></li>
                   <li><code>.profile-header</code> - Profile header section</li>
                   <li><code>.profile-header-layout</code> - Header layout container</li>
                   <li><code>.profile-photo-section</code> - Profile photo container</li>
@@ -207,7 +207,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
                   <li><code>.profile-button</code> - Profile action buttons</li>
                   <li><code>.edit-profile-button</code> - Specific edit profile button</li>
                   
-                  <li className="pt-3"><strong>🗂️ Tab Navigation System:</strong></li>
+                  <li className="pt-3"><strong>Tab Navigation System:</strong></li>
                   <li><code>.profile-tabs</code> - Tab navigation container</li>
                   <li><code>.profile-tabs-wrapper</code> - Tabs wrapper</li>
                   <li><code>.profile-tab-list</code> - Tab buttons container</li>
@@ -220,7 +220,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
                   <li><code>.friends-tab-content</code> - Friends tab specific content</li>
                   <li><code>.guestbook-tab-content</code> - Guestbook tab specific content</li>
                   
-                  <li className="pt-3"><strong>📝 Blog Posts & Content:</strong></li>
+                  <li className="pt-3"><strong>Blog Posts & Content:</strong></li>
                   <li><code>.blog-posts-list</code> - Blog posts list container</li>
                   <li><code>.blog-post-card</code> - Individual blog post cards</li>
                   <li><code>.blog-post-header</code> - Post header with date/actions</li>
@@ -234,7 +234,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
                   <li><code>.blog-post-preview</code> - Post preview area</li>
                   <li><code>#post-[id]</code> - Individual posts by ID (e.g., #post-abc123)</li>
                   
-                  <li className="pt-3"><strong>💬 Comments System:</strong></li>
+                  <li className="pt-3"><strong>Comments System:</strong></li>
                   <li><code>.comment-container</code> - Individual comment containers</li>
                   <li><code>.comment-thread</code> - Threaded comment containers</li>
                   <li><code>.comment-header</code> - Comment header area</li>
@@ -256,7 +256,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
                   <li><code>.comment-highlighted</code> - Highlighted comments</li>
                   <li><code>#comment-[id]</code> - Individual comments by ID</li>
                   
-                  <li className="pt-3"><strong>👥 Friends & Social:</strong></li>
+                  <li className="pt-3"><strong>Friends & Social:</strong></li>
                   <li><code>.featured-friends</code> - Friends section container</li>
                   <li><code>.friends-websites-grid</code> - Friends and websites grid</li>
                   <li><code>.friend-card</code> - Individual friend cards</li>
@@ -271,15 +271,15 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
                   <li><code>.website-url</code> - Website URL display</li>
                   <li><code>.section-heading</code> - Section headings</li>
                   
-                  <li className="pt-3"><strong>📖 Guestbook:</strong></li>
+                  <li className="pt-3"><strong>Guestbook:</strong></li>
                   <li><code>.guestbook-section</code> - Guestbook main container</li>
                   <li><code>.guestbook-entry</code> - Individual guestbook entries</li>
                   
-                  <li className="pt-3"><strong>🖼️ Media Gallery:</strong></li>
+                  <li className="pt-3"><strong>Media Gallery:</strong></li>
                   <li><code>.media-gallery</code> - Media gallery grid</li>
                   <li><code>.media-item</code> - Individual media items</li>
                   
-                  <li className="pt-3"><strong>🎨 ThreadStead Design System:</strong></li>
+                  <li className="pt-3"><strong>ThreadStead Design System:</strong></li>
                   <li><code>.thread-surface</code> - Background surface</li>
                   <li><code>.thread-module</code> - Card/module containers</li>
                   <li><code>.thread-headline</code> - Headline text styling</li>
@@ -289,7 +289,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
                   <li><code>.thread-divider</code> - Decorative dividers</li>
                   <li><code>.thread-content</code> - Rich text content areas</li>
                   
-                  <li className="pt-3"><strong>🎯 Special Selectors:</strong></li>
+                  <li className="pt-3"><strong>Special Selectors:</strong></li>
                   <li><code>body</code> - Document body (full page control)</li>
                   <li><code>h1, h2, h3, h4, h5, h6</code> - All headings</li>
                   <li><code>a</code> - All links</li>
@@ -299,7 +299,7 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
                   <li><code>::selection</code> - Text selection highlighting</li>
                   <li><code>:focus-visible</code> - Keyboard focus styling</li>
                   
-                  <li className="pt-3"><strong>📱 Responsive Helpers:</strong></li>
+                  <li className="pt-3"><strong>Responsive Helpers:</strong></li>
                   <li><code>@media (max-width: 767px)</code> - Mobile styles</li>
                   <li><code>@media (min-width: 768px)</code> - Tablet and up</li>
                   <li><code>@media (min-width: 1024px)</code> - Desktop styles</li>
@@ -312,18 +312,18 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
               <strong>🚫 Security:</strong> For safety, we block <code>javascript:</code> URLs and <code>expression()</code>. Google Fonts <code>@import</code> is allowed.
             </div>
             <div>
-              <strong>💡 Pro Tips & Examples:</strong>
+              <strong>Pro Tips & Examples:</strong>
               <ul className="ml-4 mt-1 space-y-1">
-                <li><strong>🌟 Full Site Control:</strong> Use <code>.site-layout</code> to control entire page background, <code>.site-creative-header</code> for custom headers!</li>
-                <li><strong>🎨 Design Themes:</strong> Use templates as starting points, then customize with selectors above</li>
-                <li><strong>📱 Mobile-Friendly:</strong> All selectors work responsively - test on mobile!</li>
+                <li><strong>Full Site Control:</strong> Use <code>.site-layout</code> to control entire page background, <code>.site-creative-header</code> for custom headers!</li>
+                <li><strong>Design Themes:</strong> Use templates as starting points, then customize with selectors above</li>
+                <li><strong>Mobile-Friendly:</strong> All selectors work responsively - test on mobile!</li>
                 <li><strong>🔍 Targeting:</strong> Use browser dev tools (F12) to inspect any element and find its classes</li>
-                <li><strong>🎯 Specific Posts:</strong> Target individual posts with <code>#post-abc123</code> (use short ID from URL)</li>
-                <li><strong>💬 Comment Styling:</strong> Fully customizable comment threads with mobile-optimized classes</li>
+                <li><strong>Specific Posts:</strong> Target individual posts with <code>#post-abc123</code> (use short ID from URL)</li>
+                <li><strong>Comment Styling:</strong> Fully customizable comment threads with mobile-optimized classes</li>
                 <li><strong>🎪 Advanced Layouts:</strong> Show sidebar with <code>.profile-sidebar {`{ display: block !important; }`}</code></li>
                 <li><strong>🌈 Animations:</strong> Add <code>@keyframes</code> for custom animations and transitions</li>
-                <li><strong>📝 Typography:</strong> Import Google Fonts: <code>@import url(&apos;https://fonts.googleapis.com/css2?family=...&apos;)</code></li>
-                <li><strong>🎨 Color Schemes:</strong> Use CSS variables for consistent theming across all elements</li>
+                <li><strong>Typography:</strong> Import Google Fonts: <code>@import url(&apos;https://fonts.googleapis.com/css2?family=...&apos;)</code></li>
+                <li><strong>Color Schemes:</strong> Use CSS variables for consistent theming across all elements</li>
                 <li><strong>⚡ Performance:</strong> Avoid complex selectors for better mobile performance</li>
                 <li><strong>🔗 States:</strong> Style <code>:hover</code>, <code>:active</code>, <code>:focus</code> states for better UX</li>
               </ul>
@@ -356,14 +356,14 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
             : 'bg-red-50 border-red-200 text-red-800'
         }`}>
           <div className="flex items-start gap-2">
-            <span>{previewInfo.isValid ? '✅' : '❌'}</span>
+            <span>{previewInfo.isValid ? 'Valid' : 'Invalid'}</span>
             <div>
               <strong>CSS Validation Results:</strong>
               <ul className="mt-1 space-y-1">
                 <li>Status: {previewInfo.isValid ? 'Valid and ready to use' : 'Contains blocked content'}</li>
                 <li>Final size: {previewInfo.cleanedLength} characters</li>
                 {previewInfo.wasSanitized && (
-                  <li className="text-orange-600">⚠️ Some content was removed for security</li>
+                  <li className="text-orange-600">Some content was removed for security</li>
                 )}
               </ul>
             </div>
@@ -374,14 +374,14 @@ export default function CSSEditor({ value, onChange }: CSSEditorProps) {
       {/* CSS validation/preview info */}
       <div className="text-xs text-thread-sage bg-thread-cream border border-thread-sage rounded p-3 space-y-2">
         <div className="flex items-start gap-2">
-          <span>💡</span>
+          <span>Tip:</span>
           <div>
             <strong>Preview your changes:</strong> Save your profile settings and visit your public profile page to see your CSS in action.
             Changes apply immediately after saving.
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <span>🎨</span>
+          <span>Template:</span>
           <div>
             <strong>Site Default vs Templates:</strong> If you have no custom CSS, your profile uses the site&apos;s default theme (set by admin). 
             Templates are starting points for your own customization.

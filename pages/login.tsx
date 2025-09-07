@@ -133,7 +133,7 @@ export default function LoginPage() {
           {currentView === 'main' && (
             <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block">🔐</span>
+                <span className="text-6xl mb-4 block"></span>
                 <h1 className="text-3xl font-bold mb-2">Welcome Back!</h1>
                 <p className="text-gray-600">
                   Sign in to your ThreadStead account
@@ -144,7 +144,7 @@ export default function LoginPage() {
                 {/* Password Login (Primary) */}
                 <div className="bg-green-50 border border-green-200 rounded p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">🔐</span>
+                    <span className="text-2xl"></span>
                     <div>
                       <h3 className="font-bold text-green-900">Sign in with Password</h3>
                       <p className="text-sm text-green-700">
@@ -163,7 +163,7 @@ export default function LoginPage() {
                 {/* Seed Phrase Login */}
                 <div className="bg-blue-50 border border-blue-200 rounded p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">🌱</span>
+                    <span className="text-2xl"></span>
                     <div>
                       <h3 className="font-bold text-blue-900">Sign in with Seed Phrase</h3>
                       <p className="text-sm text-blue-700">
@@ -182,7 +182,7 @@ export default function LoginPage() {
                 {/* Email Magic Link */}
                 <div className="bg-green-50 border border-green-200 rounded p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">📧</span>
+                    <span className="text-2xl"></span>
                     <div>
                       <h3 className="font-bold text-green-900">Email Magic Link</h3>
                       <p className="text-sm text-green-700">
@@ -451,7 +451,7 @@ export default function LoginPage() {
           {/* Email Sent Confirmation */}
           {currentView === 'email-sent' && (
             <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000] text-center">
-              <span className="text-6xl mb-6 block">📧</span>
+              <span className="text-6xl mb-6 block"></span>
               <h2 className="text-2xl font-bold text-green-800 mb-4">Email Sent!</h2>
               <p className="text-gray-700 mb-2">
                 If <strong>@{usernameInput}</strong> has a verified email at <strong>{emailInput}</strong>, 
