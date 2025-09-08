@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import CompactBadgeDisplay from '../../shared/CompactBadgeDisplay';
+import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay';
 import { CommentMarkupWithEmojis } from '@/lib/comment-markup';
 
 interface PhotoComment {
@@ -181,10 +181,10 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
             
             {/* User badges */}
             <div className="mb-1">
-              <CompactBadgeDisplay 
+              <ImprovedBadgeDisplay 
                 userId={comment.author.id} 
                 context="comments" 
-                size="small"
+                layout="compact"
               />
             </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import NewCommentForm from "../../ui/forms/NewCommentForm";
-import CompactBadgeDisplay from "../../shared/CompactBadgeDisplay";
+import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import ReportButton from "../../ui/feedback/ReportButton";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 
@@ -204,20 +204,20 @@ export default function CommentList({
           {/* Mobile-optimized header */}
           <div className="comment-header flex md:flex-row items-center md:items-center gap-2 mb-1 md:mb-1">
             <div className="comment-header-top md:hidden w-full">
-              <div className="comment-author-info">
+              <div className="comment-author-info flex items-center gap-2 flex-wrap">
                 {comment.author?.avatarUrl ? (
                   <Image src={comment.author.avatarUrl} alt="" width={32} height={32} className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" />
                 ) : null}
-                <span className="comment-author-name font-semibold text-sm md:text-base">{comment.author?.handle ?? "anon"}</span>
-                {comment.author?.id && (
-                  <div className="mt-1">
-                    <CompactBadgeDisplay 
+                <div className="flex items-center flex-wrap">
+                  <span className="comment-author-name font-semibold text-sm md:text-base">{comment.author?.handle ?? "anon"}</span>
+                  {comment.author?.id && (
+                    <ImprovedBadgeDisplay 
                       userId={comment.author.id} 
                       context="comments" 
-                      size="small"
+                      layout="inline"
                     />
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
               <span className="comment-timestamp text-xs opacity-70">
                 {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
@@ -229,15 +229,16 @@ export default function CommentList({
               {comment.author?.avatarUrl ? (
                 <Image src={comment.author.avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full" />
               ) : null}
-              <span className="font-semibold">{comment.author?.handle ?? "anon"}</span>
-              {comment.author?.id && (
-                <CompactBadgeDisplay 
-                  userId={comment.author.id} 
-                  context="comments" 
-                  size="small"
-                  className="ml-2"
-                />
-              )}
+              <div className="flex items-center">
+                <span className="font-semibold">{comment.author?.handle ?? "anon"}</span>
+                {comment.author?.id && (
+                  <ImprovedBadgeDisplay 
+                    userId={comment.author.id} 
+                    context="comments" 
+                    layout="tooltip"
+                  />
+                )}
+              </div>
               <span className="text-xs opacity-70 ml-auto">
                 {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
               </span>

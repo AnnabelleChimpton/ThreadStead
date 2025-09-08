@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import CompactBadgeDisplay from "../../shared/CompactBadgeDisplay";
+import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 
 export type NotificationData = {
   id: string;
@@ -337,10 +337,10 @@ export default function NotificationList({
                     
                     {/* User badges */}
                     <div className="mt-1 mb-1">
-                      <CompactBadgeDisplay 
+                      <ImprovedBadgeDisplay 
                         userId={notification.actor.id} 
                         context="comments" 
-                        size="small"
+                        layout="compact"
                       />
                     </div>
                     

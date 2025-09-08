@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import CompactBadgeDisplay from "../../shared/CompactBadgeDisplay";
+import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 
 interface Post {
   id: string;
@@ -242,10 +242,10 @@ export default function PostsSection() {
                     
                     {/* User badges */}
                     <div className="mt-1">
-                      <CompactBadgeDisplay 
+                      <ImprovedBadgeDisplay 
                         userId={post.author.id} 
                         context="posts" 
-                        size="small"
+                        layout="compact"
                       />
                     </div>
                   </div>

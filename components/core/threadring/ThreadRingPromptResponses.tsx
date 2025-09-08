@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
-import CompactBadgeDisplay from '../../shared/CompactBadgeDisplay'
+import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay'
 
 interface PromptResponse {
   id: string
@@ -156,10 +156,10 @@ export default function ThreadRingPromptResponses({
               
               {/* User badges */}
               <div className="mb-2">
-                <CompactBadgeDisplay 
+                <ImprovedBadgeDisplay 
                   userId={response.post.author.id} 
                   context="posts" 
-                  size="small"
+                  layout="compact"
                 />
               </div>
               

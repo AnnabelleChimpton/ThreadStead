@@ -1,7 +1,7 @@
 // components/PostAuthor.tsx
 import React from 'react'
 import Link from 'next/link'
-import CompactBadgeDisplay from '../../shared/CompactBadgeDisplay'
+import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay'
 import { UserWithRole } from '@/lib/utils/features/feature-flags'
 
 interface PostAuthorProps {
@@ -12,7 +12,7 @@ interface PostAuthorProps {
   }
   intent?: string | null
   showBadges?: boolean
-  badgeSize?: 'small' | 'medium'
+  badgeLayout?: 'inline' | 'compact' | 'tooltip'
   className?: string
   currentUser?: UserWithRole | null
 }
@@ -21,7 +21,7 @@ export default function PostAuthor({
   author, 
   intent, 
   showBadges = true,
-  badgeSize = 'small',
+  badgeLayout = 'inline',
   className = '',
   currentUser
 }: PostAuthorProps) {
@@ -39,19 +39,17 @@ export default function PostAuthor({
 
   const content = (
     <>
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-gray-600 flex items-center flex-wrap">
         <span className="font-medium">{displayName}</span>
         {intent && <span> is {intent}</span>}
-      </div>
-      {showBadges && author.id && (
-        <div className="mt-1">
-          <CompactBadgeDisplay 
+        {showBadges && author.id && (
+          <ImprovedBadgeDisplay 
             userId={author.id} 
             context="posts" 
-            size={badgeSize}
+            layout={badgeLayout}
           />
-        </div>
-      )}
+        )}
+      </div>
     </>
   )
 

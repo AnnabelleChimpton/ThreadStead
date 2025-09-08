@@ -805,6 +805,21 @@
     }
   }
   
+  /* Mobile badge display improvements */
+  .mobile-badge-compact {
+    min-height: 20px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  
+  @media (max-width: 640px) {
+    .mobile-badge-compact {
+      min-height: 24px;
+      font-size: 11px;
+      padding: 0.25rem 0.5rem;
+    }
+  }
+  
   /* Mobile sticky elements */
   .mobile-sticky-header {
     position: sticky;

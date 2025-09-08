@@ -1,7 +1,7 @@
 // components/Guestbook.tsx
 import React, { useEffect, useState } from "react";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
-import CompactBadgeDisplay from "./CompactBadgeDisplay";
+import ImprovedBadgeDisplay from "./ImprovedBadgeDisplay";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 
 type Entry = {
@@ -241,10 +241,10 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
                     {/* User badges for authenticated users */}
                     {e.authorId && (
                       <div className="mb-2">
-                        <CompactBadgeDisplay 
+                        <ImprovedBadgeDisplay 
                           userId={e.authorId} 
                           context="comments" 
-                          size="small"
+                          layout="compact"
                         />
                       </div>
                     )}
