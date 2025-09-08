@@ -25,6 +25,10 @@ export default function NotificationCenter() {
         return `${actorName} commented on your post`;
       case "reply":
         return `${actorName} replied to your comment`;
+      case "photo_comment":
+        return `${actorName} commented on your photo${notification.data?.mediaTitle ? ` "${notification.data.mediaTitle}"` : ""}`;
+      case "photo_reply":
+        return `${actorName} replied to your comment on a photo`;
       case "follow":
         return `${actorName} started following you`;
       case "friend":
@@ -56,7 +60,8 @@ export default function NotificationCenter() {
         setUnreadCount(countData.count);
       }
     } catch (error) {
-      // Notification fetch failed silently
+      console.error('Failed to fetch notifications:', error);
+      // Could optionally show error state in UI
     } finally {
       setLoading(false);
     }
@@ -138,9 +143,45 @@ export default function NotificationCenter() {
                   key={notification.id}
                   className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                   onClick={() => {
+                    // Use the same routing logic as other notification components
+                    let targetUrl: string | null = null;
                     const username = getUsername(notification.actor.handle);
-                    if (username) {
-                      router.push(`/${username}`);
+                    
+                    switch (notification.type) {
+                      case "comment":
+                      case "reply":
+                        if (notification.data?.postAuthorHandle && notification.data?.postId) {
+                          const postAuthorUsername = getUsername(notification.data.postAuthorHandle);
+                          if (postAuthorUsername) {
+                            const baseUrl = `/resident/${postAuthorUsername}/post/${notification.data.postId}`;
+                            const params = new URLSearchParams({
+                              comments: 'open',
+                              ...(notification.data.commentId && { highlight: notification.data.commentId })
+                            });
+                            targetUrl = `${baseUrl}?${params.toString()}`;
+                          }
+                        }
+                        break;
+                      case "photo_comment":
+                      case "photo_reply":
+                        if (notification.data?.mediaId && notification.data?.mediaOwnerHandle) {
+                          const mediaOwnerUsername = getUsername(notification.data.mediaOwnerHandle);
+                          if (mediaOwnerUsername) {
+                            const params = new URLSearchParams({
+                              photo: notification.data.mediaId,
+                              ...(notification.data.commentId && { comment: notification.data.commentId })
+                            });
+                            targetUrl = `/resident/${mediaOwnerUsername}/media?${params.toString()}`;
+                          }
+                        }
+                        break;
+                      default:
+                        targetUrl = username ? `/resident/${username}` : null;
+                        break;
+                    }
+                    
+                    if (targetUrl) {
+                      router.push(targetUrl);
                       setIsOpen(false);
                     }
                   }}

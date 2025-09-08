@@ -53,8 +53,9 @@ export default function NotificationList({
         const data = await res.json();
         setNotifications(data.notifications || []);
       }
-    } catch {
-      // Notification loading failed silently
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+      // Could optionally show error state to user
     } finally {
       setLoading(false);
     }
@@ -85,8 +86,9 @@ export default function NotificationList({
         );
         onNotificationUpdate?.();
       }
-    } catch {
-      // Mark notifications as read failed silently
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+      // Could optionally show error toast to user
     }
   };
 
@@ -106,8 +108,9 @@ export default function NotificationList({
         );
         onNotificationUpdate?.();
       }
-    } catch {
-      // Mark all notifications as read failed silently
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      // Could optionally show error toast to user
     }
   };
 

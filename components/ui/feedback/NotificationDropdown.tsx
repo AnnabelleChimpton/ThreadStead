@@ -43,8 +43,9 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         const countData = await countRes.json();
         setUnreadCount(countData.count);
       }
-    } catch {
-      // Notification fetch failed silently
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+      // Could optionally show toast notification here
     } finally {
       setLoading(false);
     }
@@ -73,8 +74,9 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         );
         setUnreadCount(prev => prev !== null ? Math.max(0, prev - notificationIds.length) : 0);
       }
-    } catch {
-      // Mark as read failed silently
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+      // Could optionally show toast notification here
     }
   };
 
@@ -99,8 +101,9 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
           const data = await res.json();
           setUnreadCount(data.count);
         }
-      } catch {
-        // Notification count fetch failed silently
+      } catch (error) {
+        console.error('Failed to fetch notification count:', error);
+        // Could optionally show toast notification here
       }
     };
 
@@ -132,6 +135,10 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         return `${actorName} commented on your post`;
       case "reply":
         return `${actorName} replied to your comment`;
+      case "photo_comment":
+        return `${actorName} commented on your photo${notification.data?.mediaTitle ? ` "${notification.data.mediaTitle}"` : ""}`;
+      case "photo_reply":
+        return `${actorName} replied to your comment on a photo`;
       case "follow":
         return `${actorName} started following you`;
       case "friend":
@@ -149,12 +156,32 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     switch (notification.type) {
       case "comment":
       case "reply":
-        // For comments and replies, link to the post on the post author's profile
+        // For comments and replies, link to the individual post page with comments expanded
         if (notification.data?.postAuthorHandle && notification.data?.postId) {
           const postAuthorUsername = getUsername(notification.data.postAuthorHandle);
           if (postAuthorUsername) {
-            // Link to post author's profile with post ID fragment
-            return `/resident/${postAuthorUsername}#post-${notification.data.postId.slice(-6)}`;
+            // Build URL with query parameters for auto-expanding comments and highlighting
+            const baseUrl = `/resident/${postAuthorUsername}/post/${notification.data.postId}`;
+            const params = new URLSearchParams({
+              comments: 'open',
+              ...(notification.data.commentId && { highlight: notification.data.commentId })
+            });
+            return `${baseUrl}?${params.toString()}`;
+          }
+        }
+        // Fallback to actor's profile
+        return username ? `/resident/${username}` : null;
+      case "photo_comment":
+      case "photo_reply":
+        // For photo comments, link to the specific photo in the owner's media gallery
+        if (notification.data?.mediaId && notification.data?.mediaOwnerHandle) {
+          const mediaOwnerUsername = getUsername(notification.data.mediaOwnerHandle);
+          if (mediaOwnerUsername) {
+            const params = new URLSearchParams({
+              photo: notification.data.mediaId,
+              ...(notification.data.commentId && { comment: notification.data.commentId })
+            });
+            return `/resident/${mediaOwnerUsername}/media?${params.toString()}`;
           }
         }
         // Fallback to actor's profile
@@ -174,6 +201,9 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
       case "comment":
       case "reply":
         return "💬";
+      case "photo_comment":
+      case "photo_reply":
+        return "📸";
       case "follow":
         return "👥";
       case "friend":
