@@ -78,7 +78,12 @@ export default function EmojiPicker({ onEmojiSelect, className = "" }: EmojiPick
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute bottom-full right-0 mb-1 bg-white border border-black shadow-[2px_2px_0_#000] z-50 w-64 max-h-48 overflow-y-auto">
+        <div className="absolute bottom-full mb-1 bg-white border border-black shadow-[2px_2px_0_#000] z-50 
+                        w-64 sm:w-64 max-w-[90vw] 
+                        max-h-48 sm:max-h-48 max-h-[60vh]
+                        overflow-y-auto
+                        left-0 sm:right-0 sm:left-auto
+                        mobile-emoji-picker">
           {loading ? (
             <div className="p-3 text-center text-sm text-gray-500">Loading emojis...</div>
           ) : emojis.length === 0 ? (
@@ -91,23 +96,22 @@ export default function EmojiPicker({ onEmojiSelect, className = "" }: EmojiPick
               <div className="p-2 border-b border-gray-200 bg-gray-50 text-xs font-bold">
                 Custom Emojis ({emojis.length})
               </div>
-              <div className="grid grid-cols-6 gap-1 p-2">
+              <div className="grid grid-cols-6 sm:grid-cols-6 grid-cols-5 gap-1 p-2">
                 {emojis.map((emoji) => (
                   <button
                     key={emoji.id}
                     type="button"
                     onClick={() => handleEmojiClick(emoji)}
-                    className="hover:bg-gray-100 border border-transparent hover:border-gray-300 rounded transition-all group flex items-center justify-center"
-                    style={{ width: '40px', height: '40px', padding: '8px' }}
+                    className="hover:bg-gray-100 active:bg-gray-200 border border-transparent hover:border-gray-300 rounded transition-all group flex items-center justify-center
+                               w-10 h-10 sm:w-10 sm:h-10 
+                               min-h-[44px] min-w-[44px] sm:min-h-[40px] sm:min-w-[40px]"
                     title={`:${emoji.name}:`}
                   >
                     <img
                       src={emoji.imageUrl}
                       alt={emoji.name}
+                      className="w-6 h-6 sm:w-6 sm:h-6 object-contain"
                       style={{ 
-                        width: '24px', 
-                        height: '24px', 
-                        objectFit: 'contain',
                         imageRendering: '-webkit-optimize-contrast',
                         WebkitBackfaceVisibility: 'hidden',
                         transform: 'translateZ(0)',
@@ -122,7 +126,7 @@ export default function EmojiPicker({ onEmojiSelect, className = "" }: EmojiPick
                 ))}
               </div>
               <div className="p-2 border-t border-gray-200 bg-gray-50 text-xs text-gray-600">
-                Click an emoji to insert it as :name:
+                Tap an emoji to insert it as :name:
               </div>
             </>
           )}

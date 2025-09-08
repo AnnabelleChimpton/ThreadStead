@@ -787,6 +787,24 @@
     overflow-wrap: break-word;
   }
   
+  /* Mobile emoji picker positioning */
+  @media (max-width: 639px) {
+    .mobile-emoji-picker {
+      left: 0 !important;
+      right: auto !important;
+      max-width: calc(100vw - 2rem);
+      width: calc(100vw - 2rem);
+    }
+  }
+  
+  /* Very small screens - ensure it fits */
+  @media (max-width: 320px) {
+    .mobile-emoji-picker {
+      max-width: calc(100vw - 1rem);
+      width: calc(100vw - 1rem);
+    }
+  }
+  
   /* Mobile sticky elements */
   .mobile-sticky-header {
     position: sticky;
