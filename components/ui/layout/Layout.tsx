@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import NavBar from "../navigation/NavBar";
+import Breadcrumb from "../navigation/Breadcrumb";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
 
@@ -20,6 +21,19 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
   if (advancedTemplate) {
     return (
       <div className="site-layout min-h-screen flex flex-col">
+        {/* Skip to main content for screen readers */}
+        <a 
+          href="#main-content" 
+          className="skip-link"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              document.getElementById('main-content')?.focus();
+            }
+          }}
+        >
+          Skip to main content
+        </a>
+
         {/* Identity Sync Issue Banner */}
         {hasMismatch && (
           <div className="bg-amber-100 border-b border-amber-300 px-6 py-2 relative z-[10000]">
@@ -51,11 +65,20 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
         {/* Navigation - positioned to not interfere with user content */}
         <NavBar siteConfig={config} fullWidth={true} advancedTemplate={true} />
 
+        {/* Breadcrumb Navigation */}
+        <Breadcrumb className="mx-auto max-w-5xl px-6 py-2" autoGenerate={true} />
+
         {/* Creative header section - users can style this wildly! */}
         <div className="site-creative-header"></div>
 
         {/* Minimal main container - no constraints */}
-        <main className="site-main flex-1 w-full">{children}</main>
+        <main 
+          id="main-content"
+          tabIndex={-1}
+          className="site-main flex-1 w-full"
+        >
+          {children}
+        </main>
 
         {/* Footer with minimal styling */}
         <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto relative z-[9998]">
@@ -71,6 +94,19 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
   // Standard layout mode
   return (
     <div className="site-layout min-h-screen thread-surface flex flex-col">
+      {/* Skip to main content for screen readers */}
+      <a 
+        href="#main-content" 
+        className="skip-link"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            document.getElementById('main-content')?.focus();
+          }
+        }}
+      >
+        Skip to main content
+      </a>
+
       {/* Identity Sync Issue Banner */}
       {hasMismatch && (
         <div className="bg-amber-100 border-b border-amber-300 px-6 py-2">
@@ -101,10 +137,19 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       
       <NavBar siteConfig={config} fullWidth={fullWidth} />
 
+      {/* Breadcrumb Navigation */}
+      <Breadcrumb className="mx-auto max-w-5xl px-6 py-2" autoGenerate={true} />
+
       {/* Creative header section - users can style this wildly! */}
       <div className="site-creative-header"></div>
 
-      <main className={`site-main flex-1 ${fullWidth ? 'w-full' : 'mx-auto max-w-5xl px-6 py-8'}`}>{children}</main>
+      <main 
+        id="main-content"
+        tabIndex={-1}
+        className={`site-main flex-1 ${fullWidth ? 'w-full' : 'mx-auto max-w-5xl px-6 py-8'}`}
+      >
+        {children}
+      </main>
 
       <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
         <div className="footer-content mx-auto max-w-5xl text-center">

@@ -6,11 +6,42 @@ export default function UserDropdown() {
   const { me } = useMe();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right?: number; left?: number }>({ top: 0, right: 0 });
 
   async function logout() {
     await fetch("/api/auth/logout");
     window.location.href = "/";
   }
+
+  // Calculate dropdown position when opening
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      
+      if (viewportWidth < 640) {
+        // Mobile: Center the dropdown
+        const dropdownWidth = Math.min(320, viewportWidth - 32); // Max 320px or viewport - 32px padding
+        const centerPosition = (viewportWidth - dropdownWidth) / 2;
+        const topPosition = rect.bottom + 4;
+        
+        setDropdownPosition({
+          top: topPosition,
+          left: centerPosition
+        });
+      } else {
+        // Desktop: Align with button's right edge
+        const rightPosition = viewportWidth - rect.right;
+        const topPosition = rect.bottom + 4;
+        
+        setDropdownPosition({
+          top: topPosition,
+          right: rightPosition
+        });
+      }
+    }
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -35,6 +66,7 @@ export default function UserDropdown() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className="user-dropdown-trigger flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm text-thread-charcoal"
       >
@@ -45,7 +77,16 @@ export default function UserDropdown() {
       </button>
 
       {isOpen && (
-        <div className="user-dropdown-menu absolute right-0 top-full mt-1 w-44 sm:w-48 border border-thread-sage bg-thread-paper shadow-cozy rounded z-50">
+        <div 
+          className="user-dropdown-menu fixed w-80 max-w-[calc(100vw-2rem)] sm:w-48 border border-thread-sage bg-thread-paper shadow-cozy rounded z-[10000]"
+          style={{
+            top: `${dropdownPosition.top}px`,
+            ...(dropdownPosition.left !== undefined 
+              ? { left: `${dropdownPosition.left}px` }
+              : { right: `${dropdownPosition.right}px` }
+            )
+          }}
+        >
           <div className="p-2 border-b border-thread-sage bg-thread-cream">
             <div className="text-xs thread-label">signed in as</div>
             <div className="font-medium text-thread-pine text-xs sm:text-sm overflow-hidden text-ellipsis">{userDisplayName}</div>

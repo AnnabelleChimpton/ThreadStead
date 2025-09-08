@@ -6,6 +6,35 @@ import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useMe } from "@/hooks/useMe";
 
+// Swipe gesture hook for mobile menu
+const useSwipeGesture = (onSwipe: (direction: 'left' | 'right') => void) => {
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) onSwipe('left');
+    if (isRightSwipe) onSwipe('right');
+  };
+
+  return { onTouchStart, onTouchMove, onTouchEnd };
+};
+
 interface NavBarProps {
   siteConfig?: SiteConfig;
   fullWidth?: boolean;
@@ -22,19 +51,39 @@ interface DropdownMenuProps {
 
 function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDropdown }: DropdownMenuProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const isOpen = activeDropdown === dropdownKey;
 
+  // Enhanced keyboard navigation
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    switch (event.key) {
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        setActiveDropdown(isOpen ? null : dropdownKey);
+        break;
+      case 'Escape':
+        setActiveDropdown(null);
+        buttonRef.current?.focus();
+        break;
+      case 'ArrowDown':
+        if (!isOpen) {
+          event.preventDefault();
+          setActiveDropdown(dropdownKey);
+        }
+        break;
+    }
+  };
+
+  // Enhanced outside click handling
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
-      
-      // Close dropdown if clicking outside
       if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setActiveDropdown(null);
       }
     }
 
-    // Use 'click' instead of 'mousedown' to let link clicks complete first
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [setActiveDropdown]);
@@ -42,9 +91,15 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium flex items-center gap-1 underline hover:no-underline"
+        ref={buttonRef}
+        className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium flex items-center gap-1 underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2"
         onClick={() => setActiveDropdown(isOpen ? null : dropdownKey)}
         onMouseEnter={() => setActiveDropdown(dropdownKey)}
+        onKeyDown={handleKeyDown}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        aria-label={`${title} menu`}
+        id={`dropdown-button-${dropdownKey}`}
       >
         {title}
         <svg 
@@ -52,6 +107,7 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
@@ -59,17 +115,19 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
       
       {isOpen && (
         <div 
-          className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[10000]"
+          className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[10000] dropdown-animated"
+          role="menu"
+          aria-labelledby={`dropdown-button-${dropdownKey}`}
           onMouseLeave={() => setActiveDropdown(null)}
         >
           {items.map((item, index) => (
             <Link
               key={index}
               href={item.href}
-              className="block px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors"
+              className="block px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
+              role="menuitem"
+              tabIndex={isOpen ? 0 : -1}
               onClick={() => {
-                // Don't prevent the default navigation
-                // Just close the dropdown after a small delay to ensure navigation happens
                 setTimeout(() => setActiveDropdown(null), 50);
               }}
             >
@@ -93,6 +151,13 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   // State for mobile menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileDropdownOpen, setMobileDropdownOpen] = useState<string | null>(null);
+  
+  // Add swipe gesture support
+  const swipeHandlers = useSwipeGesture((direction) => {
+    if (direction === 'left' && mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+  });
   
   // Organize navigation pages by dropdown
   const topLevelPages = navPages.filter(page => !page.navDropdown);
@@ -225,11 +290,13 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             <NotificationDropdown className="nav-link" />
             <button
               id="hamburger-button"
-              className="p-2 text-thread-pine hover:text-thread-sunset"
+              className="p-2 text-thread-pine hover:text-thread-sunset focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 {mobileMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
@@ -244,13 +311,18 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
         {mobileMenuOpen && (
           <div 
             id="mobile-menu"
-            className="lg:hidden absolute left-0 right-0 top-full z-[9997] bg-thread-cream border-b border-thread-sage shadow-lg max-h-[calc(100vh-73px)] overflow-y-auto"
+            className="lg:hidden absolute left-0 right-0 top-full z-[9997] bg-thread-cream border-b border-thread-sage shadow-lg overflow-y-auto mobile-menu-animated"
+            style={{ maxHeight: 'calc(100vh - 80px)' }}
+            role="navigation"
+            aria-label="Mobile navigation menu"
+            {...swipeHandlers}
           >
           <div className="px-4 py-4 space-y-3">
             <Link 
               href="/" 
-              className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+              className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
               onClick={() => setMobileMenuOpen(false)}
+              role="menuitem"
             >
               Home
             </Link>
@@ -260,8 +332,9 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               <Link 
                 key={page.id}
                 href={`/page/${page.slug}`}
-                className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
                 onClick={() => setMobileMenuOpen(false)}
+                role="menuitem"
               >
                 {page.title}
               </Link>

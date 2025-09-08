@@ -194,28 +194,45 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="notification-button relative inline-flex items-center gap-2 p-1 sm:p-2 hover:bg-thread-cream rounded"
+        className="notification-button group relative inline-flex items-center justify-center w-10 h-10 hover:bg-thread-cream rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2"
         title={unreadCount !== null ? `${unreadCount} unread notifications` : "Notifications"}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        aria-label="Notifications"
       >
-        <span className="text-xl">🔔</span>
-        {unreadCount !== null && unreadCount > 0 && (
-          <div className="absolute -top-1 -right-1 bg-thread-sunset text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 border border-black shadow-[1px_1px_0_#000]">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </div>
-        )}
+        <div className="relative">
+          <svg 
+            className="w-5 h-5 text-thread-pine group-hover:text-thread-sunset transition-colors duration-200" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          {unreadCount !== null && unreadCount > 0 && (
+            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1 font-semibold shadow-md animate-pulse">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </div>
+          )}
+        </div>
       </button>
 
       {isOpen && (
-        <div className="notification-dropdown-menu absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white border border-black shadow-[4px_4px_0_#000] rounded-cozy z-50 max-h-96 overflow-hidden">
-          <div className="p-3 border-b border-thread-sage/20 bg-thread-cream">
+        <div className="notification-dropdown-menu absolute right-0 top-full mt-2 w-80 lg:w-96 bg-white border border-gray-200 rounded-lg shadow-xl z-[10000] max-h-96 overflow-hidden dropdown-animated">
+          <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-thread-cream to-thread-background">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-thread-pine text-sm sm:text-base">Notifications</h3>
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-thread-pine" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <h3 className="font-semibold text-thread-pine text-base">Notifications</h3>
+              </div>
               <Link
                 href="/notifications"
-                className="text-xs sm:text-sm text-thread-sage hover:text-thread-sunset"
+                className="text-sm text-thread-sage hover:text-thread-sunset font-medium transition-colors"
                 onClick={() => setIsOpen(false)}
               >
-                View all
+                View all →
               </Link>
             </div>
           </div>

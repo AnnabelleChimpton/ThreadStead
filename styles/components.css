@@ -6,6 +6,123 @@
   text-decoration-color: #A18463;
 }
 
+/* Enhanced Navigation Focus States */
+.nav-link:focus {
+  outline: 2px solid #D97B5A;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: #2E4B3F;
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 10000;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Mobile Menu Animation */
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.mobile-menu-animated {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+/* Dropdown Animation */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-animated {
+  animation: fadeInDown 0.2s ease-out;
+}
+
+/* User Dropdown Animation */
+@keyframes userDropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.user-dropdown-animated {
+  animation: userDropdownSlideIn 0.15s ease-out;
+}
+
+/* Enhanced User Dropdown Styles */
+.user-dropdown-trigger:hover .w-8 {
+  transform: scale(1.05);
+}
+
+.user-dropdown-item {
+  position: relative;
+}
+
+.user-dropdown-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1px;
+  width: 0;
+  background: linear-gradient(90deg, transparent, rgba(161, 132, 99, 0.2), transparent);
+  transition: width 0.3s ease;
+}
+
+.user-dropdown-item:hover::after {
+  width: 100%;
+}
+
+/* Mobile User Menu Animation */
+@keyframes slideUpFromBottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.user-mobile-menu-animated {
+  animation: slideUpFromBottom 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: bottom;
+}
+
+/* Safe area support for mobile devices */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
 /* Post Editor */
 .post-editor-container {
   width: 80vw;
