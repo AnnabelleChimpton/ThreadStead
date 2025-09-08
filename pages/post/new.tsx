@@ -1,15 +1,15 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import Layout from "@/components/Layout";
+import Layout from "@/components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { markdownToSafeHtml } from "@/lib/sanitize";
 import { markdownToSafeHtmlWithEmojis } from "@/lib/comment-markup";
-import Preview from "@/components/forms/PreviewForm";
+import Preview from "@/components/ui/forms/PreviewForm";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { validatePostTitle } from "@/lib/validation";
-import EmojiPicker from "@/components/EmojiPicker";
+import EmojiPicker from "@/components/ui/feedback/EmojiPicker";
 
 interface PostEditorPageProps {
   siteConfig: SiteConfig;

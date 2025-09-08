@@ -3,10 +3,10 @@ import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import Link from "next/link";
-import ProfileLayout from "@/components/layout/ProfileLayout";
-import RetroCard from "@/components/layout/RetroCard";
-import MediaUpload from "@/components/MediaUpload";
-import PhotoComments from "@/components/PhotoComments";
+import ProfileLayout from "@/components/ui/layout/ProfileLayout";
+import RetroCard from "@/components/ui/layout/RetroCard";
+import MediaUpload from "@/components/ui/media/MediaUpload";
+import PhotoComments from "@/components/core/content/PhotoComments";
 
 interface MediaItem {
   id: string;

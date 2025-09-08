@@ -1,8 +1,8 @@
 import React from "react";
 import { GetServerSideProps } from "next";
-import Layout from "@/components/Layout";
-import CustomPageLayout from "@/components/CustomPageLayout";
-import RetroCard from "@/components/layout/RetroCard";
+import Layout from "@/components/ui/layout/Layout";
+import CustomPageLayout from "@/components/ui/layout/CustomPageLayout";
+import RetroCard from "@/components/ui/layout/RetroCard";
 import { PrismaClient } from "@prisma/client";
 
 const db = new PrismaClient();

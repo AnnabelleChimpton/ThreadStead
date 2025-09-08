@@ -2,9 +2,9 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
-import type { ResidentData } from '@/components/template/ResidentDataProvider';
+import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import type { Island } from '@/lib/template-compiler';
-import type { ProfileMode } from '@/components/profile/ProfileModeRenderer';
+import type { ProfileMode } from '@/components/core/profile/ProfileModeRenderer';
 
 
 // Hydration context interface

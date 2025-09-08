@@ -2,21 +2,21 @@
 import React from "react";
 import type { GetServerSideProps } from "next";
 
-import Layout from "@/components/Layout";
-import RetroCard from "@/components/layout/RetroCard";
-import Guestbook from "@/components/Guestbook";
-import Tabs, { TabSpec } from "@/components/navigation/Tabs";
-import { Website } from "@/components/WebsiteManager";
-import { SelectedFriend } from "@/components/FriendManager";
-import ProfileLayout from "@/components/layout/ProfileLayout";
-import ProfileHeader from "@/components/profile/ProfileHeader";
-import BlogTab from "@/components/profile/tabs/BlogTab";
-import MediaGrid from "@/components/profile/tabs/MediaGrid";
-import FriendsWebsitesGrid from "@/components/profile/tabs/FriendsWebsitesGrid";
-import ProfileBadgeDisplay from "@/components/ProfileBadgeDisplay";
-import ProfileModeRenderer from "@/components/profile/ProfileModeRenderer";
-import type { ProfileUser } from "@/components/profile/ProfileModeRenderer";
-import type { ResidentData } from "@/components/template/ResidentDataProvider";
+import Layout from "@/components/ui/layout/Layout";
+import RetroCard from "@/components/ui/layout/RetroCard";
+import Guestbook from "@/components/shared/Guestbook";
+import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
+import { Website } from "@/components/shared/WebsiteManager";
+import { SelectedFriend } from "@/components/core/social/FriendManager";
+import ProfileLayout from "@/components/ui/layout/ProfileLayout";
+import ProfileHeader from "@/components/core/profile/ProfileHeader";
+import BlogTab from "@/components/core/profile/tabs/BlogTab";
+import MediaGrid from "@/components/core/profile/tabs/MediaGrid";
+import FriendsWebsitesGrid from "@/components/core/profile/tabs/FriendsWebsitesGrid";
+import ProfileBadgeDisplay from "@/components/core/profile/ProfileBadgeDisplay";
+import ProfileModeRenderer from "@/components/core/profile/ProfileModeRenderer";
+import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer";
+import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/template-parser";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useRouter } from "next/router";
@@ -24,11 +24,11 @@ import dynamic from 'next/dynamic';
 
 
 // Dynamically import components to avoid SSR issues
-const WelcomeHomeOverlay = dynamic(() => import('@/components/WelcomeHomeOverlay'), {
+const WelcomeHomeOverlay = dynamic(() => import('@/components/features/onboarding/WelcomeHomeOverlay'), {
   ssr: false
 });
 
-const MidiPlayer = dynamic(() => import('@/components/MidiPlayer'), {
+const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
   ssr: false,
   loading: () => <div className="hidden" />
 });

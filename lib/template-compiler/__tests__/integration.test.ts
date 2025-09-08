@@ -1,7 +1,7 @@
 // Integration tests for the complete template compilation pipeline
 import { TemplateCompiler, compileProfile } from '../compiler';
 import type { ProfileRenderContext, CompilationOptions } from '../types';
-import type { ResidentData } from '@/components/template/ResidentDataProvider';
+import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 
 describe('Template Compiler Integration', () => {
   // Mock resident data

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import Layout from "../../../components/Layout";
+import Layout from "../../../components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";

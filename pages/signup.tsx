@@ -2,13 +2,13 @@ import React, { useState, useEffect } from "react";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import Layout from "@/components/Layout";
+import Layout from "@/components/ui/layout/Layout";
 import { createNewIdentityWithSeedPhrase, createNewIdentityWithPassword } from "@/lib/did-client";
 import { validatePasswordStrength } from "@/lib/password-auth";
 import { validateUsername } from "@/lib/validateUsername";
 import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/default-profile-templates";
 import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_STYLES } from "@/lib/template-preview-styles";
-import SignupFinaleAnimation from "@/components/SignupFinaleAnimation";
+import SignupFinaleAnimation from "@/components/features/onboarding/SignupFinaleAnimation";
 import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
 
 interface SignupPageProps {

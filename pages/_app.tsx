@@ -7,7 +7,7 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 
 // Import Layout to ensure CSS dependencies are always available
-import Layout from "@/components/Layout";
+import Layout from "@/components/ui/layout/Layout";
 
 // Import Global Audio Provider
 import { GlobalAudioProvider } from "@/contexts/GlobalAudioContext";

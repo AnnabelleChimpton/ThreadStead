@@ -1,8 +1,8 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { GetServerSideProps } from 'next';
-import ThreadRingGenealogy from '@/components/ThreadRingGenealogy';
-import Layout from '@/components/Layout';
+import ThreadRingGenealogy from '@/components/core/threadring/ThreadRingGenealogy';
+import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/get-site-config';
 
 interface GenealogyPageProps {

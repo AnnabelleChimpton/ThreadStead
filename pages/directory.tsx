@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import Layout from "../components/Layout";
-import UserCard, { DirectoryUser } from "../components/ui/UserCard";
+import Layout from "../components/ui/layout/Layout";
+import UserCard, { DirectoryUser } from "../components/ui/feedback/UserCard";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 type SortOption = "recent" | "alphabetical" | "posts";

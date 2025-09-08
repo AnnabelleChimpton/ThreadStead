@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Layout from "@/components/Layout";
+import Layout from "@/components/ui/layout/Layout";
 
 // Import new componentized design tutorial components
 import RetroHeader from "@/components/design-tutorial/RetroHeader";

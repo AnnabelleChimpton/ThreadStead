@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
-import Layout from "@/components/Layout";
+import Layout from "@/components/ui/layout/Layout";
 
 interface User {
   id: string;

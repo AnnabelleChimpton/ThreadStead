@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import Layout from "@/components/Layout";
-import RetroCard from "@/components/layout/RetroCard";
+import Layout from "@/components/ui/layout/Layout";
+import RetroCard from "@/components/ui/layout/RetroCard";
 import { useMe } from "@/hooks/useMe";
 import { getSiteTemplate, SITE_TEMPLATE_INFO } from "@/lib/site-css-templates";
 import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO, type ProfileTemplateType } from "@/lib/default-profile-templates";
-import ReportsSection from "@/components/admin/ReportsSection";
-import PostsSection from "@/components/admin/PostsSection";
-import SignupAudioSection from "@/components/admin/SignupAudioSection";
-import FoundersNoteSection from "@/components/admin/FoundersNoteSection";
+import ReportsSection from "@/components/features/admin/ReportsSection";
+import PostsSection from "@/components/features/admin/PostsSection";
+import SignupAudioSection from "@/components/features/admin/SignupAudioSection";
+import FoundersNoteSection from "@/components/features/admin/FoundersNoteSection";
 
 // Collapsible Section Component
 function CollapsibleSection({ 

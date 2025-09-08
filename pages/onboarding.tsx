@@ -1,7 +1,7 @@
 // pages/onboarding.tsx
 import React, { useState } from "react";
-import Layout from "@/components/Layout";
-import UsernameSelector from "@/components/UsernameSelector";
+import Layout from "@/components/ui/layout/Layout";
+import UsernameSelector from "@/components/features/auth/UsernameSelector";
 
 export default function Onboarding() {
   const [busy, setBusy] = useState(false);

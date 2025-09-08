@@ -8,7 +8,7 @@ jest.mock('react-dom/client');
 
 import { hydrateProfileIslands, cleanupIslands, isIslandsSupported } from '../hydrator';
 import type { HydrationContext, Island } from '../hydrator';
-import type { ResidentData } from '@/components/template/ResidentDataProvider';
+import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { createRoot } from 'react-dom/client';
 
 // Mock ProfileIslandWrapper

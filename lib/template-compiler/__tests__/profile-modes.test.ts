@@ -1,7 +1,7 @@
 // Tests for profile mode compilation
 import { compileProfileTemplate, validateModeCompatibility } from '../profile-modes';
 import type { ProfileRenderContext, ProfileMode } from '../types';
-import type { ResidentData } from '@/components/template/ResidentDataProvider';
+import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 
 // Mock resident data for testing
 const mockResidentData: ResidentData = {

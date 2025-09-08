@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
-import Layout from "../components/Layout";
-import NotificationList from "../components/NotificationList";
+import Layout from "../components/ui/layout/Layout";
+import NotificationList from "../components/ui/feedback/NotificationList";
 import { getSessionUser } from "@/lib/auth-server";
 import type { GetServerSideProps, NextApiRequest } from "next";
 

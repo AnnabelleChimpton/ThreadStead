@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { GetServerSidePropsContext } from "next";
 import { NextApiRequest } from "next";
 import { useRouter } from "next/router";
-import Layout from "@/components/Layout";
+import Layout from "@/components/ui/layout/Layout";
 import { getSessionUser } from "@/lib/auth-server";
 import { 
   getExistingDid, 
@@ -16,9 +16,9 @@ import {
   LocalKeypair,
   SeedPhrase
 } from "@/lib/did-client";
-import UsernameSelector from "@/components/UsernameSelector";
+import UsernameSelector from "@/components/features/auth/UsernameSelector";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
-import Modal from "@/components/ui/Modal";
+import Modal from "@/components/ui/feedback/Modal";
 import Link from "next/link";
 
 interface IdentityPageProps {

@@ -1,8 +1,8 @@
-import Layout from "../components/Layout";
-import Tabs, { TabSpec } from "../components/navigation/Tabs";
-import Feed from "../components/content/Feed";
-import RingHubFeed from "../components/content/RingHubFeed";
-import TrendingFeedTab from "../components/content/TrendingFeedTab";
+import Layout from "../components/ui/layout/Layout";
+import Tabs, { TabSpec } from "../components/ui/navigation/Tabs";
+import Feed from "../components/core/content/Feed";
+import RingHubFeed from "../components/core/content/RingHubFeed";
+import TrendingFeedTab from "../components/core/content/TrendingFeedTab";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { featureFlags } from "@/lib/feature-flags";

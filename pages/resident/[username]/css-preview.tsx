@@ -1,9 +1,9 @@
 // pages/resident/[username]/css-preview.tsx
 import React from "react";
 import { GetServerSideProps } from "next";
-import ProfileLayout from "@/components/layout/ProfileLayout";
-import ProfileHeader from "@/components/profile/ProfileHeader";
-import Tabs, { TabSpec } from "@/components/navigation/Tabs";
+import ProfileLayout from "@/components/ui/layout/ProfileLayout";
+import ProfileHeader from "@/components/core/profile/ProfileHeader";
+import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import { featureFlags } from "@/lib/feature-flags";
 
 interface CSSPreviewProps {

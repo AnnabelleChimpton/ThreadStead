@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import Layout from "../../../components/Layout";
+import Layout from "../../../components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
 import { getRingHubClient } from "@/lib/ringhub-client";
-import ThreadRingInviteForm from "../../../components/forms/ThreadRingInviteForm";
-import ThreadRingPromptManager from "../../../components/ThreadRingPromptManager";
-import ThreadRingBlockManager from "../../../components/ThreadRingBlockManager";
+import ThreadRingInviteForm from "../../../components/ui/forms/ThreadRingInviteForm";
+import ThreadRingPromptManager from "../../../components/core/threadring/ThreadRingPromptManager";
+import ThreadRingBlockManager from "../../../components/core/threadring/ThreadRingBlockManager";
 
 interface ThreadRingSettingsPageProps {
   siteConfig: SiteConfig;

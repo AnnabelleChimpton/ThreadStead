@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import Layout from "@/components/Layout";
-import RetroCard from "@/components/layout/RetroCard";
+import Layout from "@/components/ui/layout/Layout";
+import RetroCard from "@/components/ui/layout/RetroCard";
 import { useMe } from "@/hooks/useMe";
 import Link from "next/link";
 

@@ -38,5 +38,21 @@
     "publicKey": "evnCWbVRRqVEcrA_bDHiTPyTqQ8MN5KMV34thIFYhG0",
     "secretKey": "9yVLYCB6rtq4Rp0ECDo0w-nfh9SAABp-8CA0TIwqMWs",
     "created": "2025-08-25T19:27:35.272Z"
+  },
+  {
+    "userId": "cmf4z6agx000l7p64wr8jd6dn",
+    "did": "did:web:homepageagain.com:users:e020c022c7b17186",
+    "userHash": "e020c022c7b17186",
+    "publicKey": "gkrMZAOEcOsladBDLHQ9fHFC11KX6sIWLCmqeAgbY0U",
+    "secretKey": "zFXOqXytEXEdh0LMWjKyofPaVz6adPIQQoq9hGLfrTs",
+    "created": "2025-09-07T22:19:41.372Z"
+  },
+  {
+    "userId": "cmet73ym9001j7poo4sagcat6",
+    "did": "did:web:homepageagain.com:users:76a09dbab126cf55",
+    "userHash": "76a09dbab126cf55",
+    "publicKey": "I6sP7j_hJTTTpoeCm9OWVO_8y3oZPTah3jGdzM-dWks",
+    "secretKey": "lGwpSEPEtign-4ULlqaIeKR8nxDCO2PcjHvtXDgEcyE",
+    "created": "2025-09-08T01:45:49.352Z"
   }
 ]

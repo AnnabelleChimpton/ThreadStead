@@ -1,5 +1,5 @@
 // Template compiler types
-import type { ResidentData } from '@/components/template/ResidentDataProvider';
+import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 
 // Profile mode types (matching Prisma schema)
 export type ProfileMode = 'default' | 'enhanced' | 'advanced';

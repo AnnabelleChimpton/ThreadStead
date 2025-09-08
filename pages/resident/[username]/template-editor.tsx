@@ -3,8 +3,8 @@ import type { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
 
-import Layout from "@/components/Layout";
-import EnhancedTemplateEditor from '@/components/template/EnhancedTemplateEditor';
+import Layout from "@/components/ui/layout/Layout";
+import EnhancedTemplateEditor from '@/components/features/templates/EnhancedTemplateEditor';
 import type { CompiledTemplate } from '@/lib/template-compiler';
 
 interface TemplateEditorPageProps {

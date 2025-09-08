@@ -1,7 +1,7 @@
 import React from "react";
 import { useRouter } from "next/router";
-import Layout from "../../../components/Layout";
-import ForkThreadRingForm from "../../../components/forms/ForkThreadRingForm";
+import Layout from "../../../components/ui/layout/Layout";
+import ForkThreadRingForm from "../../../components/ui/forms/ForkThreadRingForm";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";

@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ProfileIslandWrapper from '../ProfileIslandWrapper';
-import type { ResidentData } from '@/components/template/ResidentDataProvider';
+import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 
 // Mock the component registry
 jest.mock('@/lib/template-registry', () => ({

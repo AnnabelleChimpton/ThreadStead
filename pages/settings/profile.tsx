@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useRouter } from "next/router";
-import Layout from "@/components/Layout";
-import RetroCard from "@/components/layout/RetroCard";
+import Layout from "@/components/ui/layout/Layout";
+import RetroCard from "@/components/ui/layout/RetroCard";
 
 export default function SettingsProfile() {
   const router = useRouter();

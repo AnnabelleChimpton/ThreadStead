@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import type { GetServerSideProps } from "next";
-import RetroCard from "@/components/layout/RetroCard";
-import PostItem, { Post as PostType } from "@/components/content/PostItem";
-import ProfileLayout from "@/components/layout/ProfileLayout";
+import RetroCard from "@/components/ui/layout/RetroCard";
+import PostItem, { Post as PostType } from "@/components/core/content/PostItem";
+import ProfileLayout from "@/components/ui/layout/ProfileLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type PostPageProps = {

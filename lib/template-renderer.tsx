@@ -1,7 +1,7 @@
 import React from 'react';
 import { componentRegistry, validateAndCoerceProps } from './template-registry';
 import type { TemplateNode } from './template-parser';
-import { ResidentDataProvider } from '@/components/template/ResidentDataProvider';
+import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 
 // Transform AST to React elements
 export function transformNodeToReact(node: TemplateNode, key?: string | number): React.ReactNode {

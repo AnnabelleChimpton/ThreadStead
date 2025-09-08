@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import ProfileModeRenderer, { ProfileUser } from '@/components/profile/ProfileModeRenderer';
-import ProfileLayout from '@/components/layout/ProfileLayout';
-import { ResidentDataProvider } from '@/components/template/ResidentDataProvider';
-import type { ResidentData } from '@/components/template/ResidentDataProvider';
+import ProfileModeRenderer, { ProfileUser } from '@/components/core/profile/ProfileModeRenderer';
+import ProfileLayout from '@/components/ui/layout/ProfileLayout';
+import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
+import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import Head from 'next/head';
-import MinimalNavBar from '@/components/MinimalNavBar';
-import RetroCard from '@/components/layout/RetroCard';
-import ProfileHeader from '@/components/profile/ProfileHeader';
-import Tabs, { TabSpec } from '@/components/navigation/Tabs';
-import BlogTab from '@/components/profile/tabs/BlogTab';
-import MediaGrid from '@/components/profile/tabs/MediaGrid';
-import FriendsWebsitesGrid from '@/components/profile/tabs/FriendsWebsitesGrid';
-import ProfileBadgeDisplay from '@/components/ProfileBadgeDisplay';
-import Guestbook from '@/components/Guestbook';
+import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
+import RetroCard from '@/components/ui/layout/RetroCard';
+import ProfileHeader from '@/components/core/profile/ProfileHeader';
+import Tabs, { TabSpec } from '@/components/ui/navigation/Tabs';
+import BlogTab from '@/components/core/profile/tabs/BlogTab';
+import MediaGrid from '@/components/core/profile/tabs/MediaGrid';
+import FriendsWebsitesGrid from '@/components/core/profile/tabs/FriendsWebsitesGrid';
+import ProfileBadgeDisplay from '@/components/core/profile/ProfileBadgeDisplay';
+import Guestbook from '@/components/shared/Guestbook';
 // Import the existing island renderer for advanced templates
-import { ProductionIslandRenderer, PreviewStaticHTMLWithIslands } from '@/components/template/TemplatePreview';
+import { ProductionIslandRenderer, PreviewStaticHTMLWithIslands } from '@/components/features/templates/TemplatePreview';
 
 interface PreviewData {
   user: ProfileUser;

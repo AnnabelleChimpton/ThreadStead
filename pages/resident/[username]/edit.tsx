@@ -4,15 +4,15 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 
 // Template Editor moved to dedicated page at /resident/[username]/template-editor
-import RetroCard from "@/components/layout/RetroCard";
-import Layout from "@/components/Layout";
-import Tabs, { TabSpec } from "@/components/navigation/Tabs";
-import WebsiteManager, { Website } from "@/components/WebsiteManager";
-import FriendManager, { SelectedFriend } from "@/components/FriendManager";
+import RetroCard from "@/components/ui/layout/RetroCard";
+import Layout from "@/components/ui/layout/Layout";
+import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
+import WebsiteManager, { Website } from "@/components/shared/WebsiteManager";
+import FriendManager, { SelectedFriend } from "@/components/core/social/FriendManager";
 // Profile Layout Editor (unified CSS and template editor) at /resident/[username]/template-editor
-import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
-import ProfileBadgeSelector from "@/components/ProfileBadgeSelector";
-import BetaInviteCodesManager from "@/components/BetaInviteCodesManager";
+import ProfilePhotoUpload from "@/components/core/profile/ProfilePhotoUpload";
+import ProfileBadgeSelector from "@/components/core/profile/ProfileBadgeSelector";
+import BetaInviteCodesManager from "@/components/features/admin/BetaInviteCodesManager";
 import type { TemplateNode } from "@/lib/template-parser";
 import { TemplateEngine } from "@/lib/template-engine";
 import { featureFlags } from "@/lib/feature-flags";

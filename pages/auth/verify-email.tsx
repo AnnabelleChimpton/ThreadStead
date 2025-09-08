@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
-import Layout from "@/components/Layout";
+import Layout from "@/components/ui/layout/Layout";
 
 export default function VerifyEmailPage() {
   const router = useRouter();

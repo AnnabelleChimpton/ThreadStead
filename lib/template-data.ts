@@ -1,5 +1,5 @@
 // Data fetching utilities for template system
-import type { ResidentData } from '@/components/template/ResidentDataProvider';
+import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 
 export interface UserProfile {
   did: string;

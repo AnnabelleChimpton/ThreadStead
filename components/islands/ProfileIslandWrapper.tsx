@@ -1,9 +1,9 @@
 // Profile-aware island wrapper for template components
 import React, { Suspense, useMemo, useState, useEffect } from 'react';
-import type { ResidentData } from '@/components/template/ResidentDataProvider';
-import { ResidentDataProvider } from '@/components/template/ResidentDataProvider';
+import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
+import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { componentRegistry } from '@/lib/template-registry';
-import type { ProfileMode } from '@/components/profile/ProfileModeRenderer';
+import type { ProfileMode } from '@/components/core/profile/ProfileModeRenderer';
 
 // Island wrapper props interface
 export interface ProfileIslandWrapperProps {

@@ -2,19 +2,19 @@ import React, { useState, useEffect } from "react";
 import { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import Layout from "@/components/Layout";
-import RetroCard from "@/components/layout/RetroCard";
-import Tabs, { TabSpec } from "@/components/navigation/Tabs";
+import Layout from "@/components/ui/layout/Layout";
+import RetroCard from "@/components/ui/layout/RetroCard";
+import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import { getSessionUser } from "@/lib/auth-server";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Import existing components
-import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
-import WebsiteManager, { Website } from "@/components/WebsiteManager";
-import FriendManager, { SelectedFriend } from "@/components/FriendManager";
-import ProfileBadgeSelector from "@/components/ProfileBadgeSelector";
-import BetaInviteCodesManager from "@/components/BetaInviteCodesManager";
-import MidiManager from "@/components/MidiManager";
+import ProfilePhotoUpload from "@/components/core/profile/ProfilePhotoUpload";
+import WebsiteManager, { Website } from "@/components/shared/WebsiteManager";
+import FriendManager, { SelectedFriend } from "@/components/core/social/FriendManager";
+import ProfileBadgeSelector from "@/components/core/profile/ProfileBadgeSelector";
+import BetaInviteCodesManager from "@/components/features/admin/BetaInviteCodesManager";
+import MidiManager from "@/components/ui/media/MidiManager";
 // Full identity management imports
 import { 
   getExistingDid, 

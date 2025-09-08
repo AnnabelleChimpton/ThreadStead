@@ -88,7 +88,7 @@ npx tsx scripts/check-hierarchy.ts | grep "Max Depth"
 - [ ] **Update Genealogy Page**
   ```typescript
   // In pages/threadrings/genealogy.tsx
-  import ThreadRingGenealogy from '@/components/ThreadRingGenealogy';
+  import ThreadRingGenealogy from '@/components/core/threadring/ThreadRingGenealogy';
   
   // In the component:
   <ThreadRingGenealogy 

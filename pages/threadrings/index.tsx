@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import Layout from "../../components/Layout";
-import ThreadRingCard from "../../components/ThreadRingCard";
+import Layout from "../../components/ui/layout/Layout";
+import ThreadRingCard from "../../components/core/threadring/ThreadRingCard";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
