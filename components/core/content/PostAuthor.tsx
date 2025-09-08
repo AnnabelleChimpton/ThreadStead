@@ -21,7 +21,7 @@ export default function PostAuthor({
   author, 
   intent, 
   showBadges = true,
-  badgeLayout = 'inline',
+  badgeLayout = 'showcase',
   className = '',
   currentUser
 }: PostAuthorProps) {
@@ -39,17 +39,17 @@ export default function PostAuthor({
 
   const content = (
     <>
-      <div className="text-sm text-gray-600 flex items-center flex-wrap">
+      <div className="text-sm text-gray-600">
         <span className="font-medium">{displayName}</span>
         {intent && <span> is {intent}</span>}
-        {showBadges && author.id && (
-          <ImprovedBadgeDisplay 
-            userId={author.id} 
-            context="posts" 
-            layout={badgeLayout}
-          />
-        )}
       </div>
+      {showBadges && author.id && (
+        <ImprovedBadgeDisplay 
+          userId={author.id} 
+          context="posts" 
+          layout={badgeLayout}
+        />
+      )}
     </>
   )
 

@@ -60,7 +60,7 @@ interface ImprovedBadgeDisplayProps {
   userId: string
   context: 'posts' | 'comments'
   className?: string
-  layout?: 'inline' | 'compact' | 'tooltip'
+  layout?: 'inline' | 'compact' | 'tooltip' | 'showcase'
 }
 
 export default function ImprovedBadgeDisplay({ 
@@ -134,15 +134,24 @@ export default function ImprovedBadgeDisplay({
             className="block"
             title={`Member of ${badge.threadRing.name}: ${badge.title}`}
           >
-            <div 
-              className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-[8px] font-bold hover:scale-110 transition-transform"
-              style={{ 
-                backgroundColor: badge.backgroundColor, 
-                color: badge.textColor 
-              }}
-            >
-              {badge.title.charAt(0).toUpperCase()}
-            </div>
+            {badge.imageUrl ? (
+              <img
+                src={badge.imageUrl}
+                alt={badge.title}
+                className="w-4 h-4 object-contain border border-gray-300 hover:scale-110 transition-transform rounded-sm"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            ) : (
+              <div 
+                className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-[8px] font-bold hover:scale-110 transition-transform"
+                style={{ 
+                  backgroundColor: badge.backgroundColor, 
+                  color: badge.textColor 
+                }}
+              >
+                {badge.title.charAt(0).toUpperCase()}
+              </div>
+            )}
           </Link>
         ))}
         {badges.length > 3 && (
@@ -194,6 +203,49 @@ export default function ImprovedBadgeDisplay({
     )
   }
 
+  // Showcase layout - emphasizes custom badges with proper sizing
+  if (layout === 'showcase') {
+    return (
+      <div className={`flex flex-wrap gap-2 mt-2 ${className}`}>
+        {badges.map((badge) => (
+          <Link 
+            key={badge.id} 
+            href={`/tr/${badge.threadRing.slug}`}
+            className="block hover:scale-105 transition-transform"
+            title={`Member of ${badge.threadRing.name}: ${badge.title}`}
+          >
+            {badge.imageUrl ? (
+              <img
+                src={badge.imageUrl}
+                alt={badge.title}
+                className="mobile-badge-showcase border border-gray-400 hover:shadow-md"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            ) : (
+              <div 
+                className="mobile-badge-showcase border border-gray-400 hover:shadow-md flex flex-col items-center justify-center text-center"
+                style={{ 
+                  backgroundColor: badge.backgroundColor, 
+                  color: badge.textColor,
+                  borderColor: badge.backgroundColor
+                }}
+              >
+                <div className="text-xs font-bold leading-tight">
+                  {badge.title}
+                </div>
+                {badge.subtitle && (
+                  <div className="text-[10px] opacity-90 leading-tight">
+                    {badge.subtitle}
+                  </div>
+                )}
+              </div>
+            )}
+          </Link>
+        ))}
+      </div>
+    )
+  }
+
   // Compact layout - improved version of current system
   return (
     <div className={`flex flex-wrap gap-1 mt-1 ${className}`}>
@@ -204,18 +256,27 @@ export default function ImprovedBadgeDisplay({
           className="block hover:scale-105 transition-transform"
           title={`Member of ${badge.threadRing.name}: ${badge.title}`}
         >
-          <div 
-            className="px-2 py-0.5 rounded text-xs font-medium border hover:shadow-sm mobile-badge-compact"
-            style={{ 
-              backgroundColor: badge.backgroundColor, 
-              color: badge.textColor,
-              borderColor: badge.backgroundColor
-            }}
-          >
-            <div className="truncate max-w-16 sm:max-w-20">
-              {badge.title}
+          {badge.imageUrl ? (
+            <img
+              src={badge.imageUrl}
+              alt={badge.title}
+              className="mobile-badge-compact-image border border-gray-300 hover:shadow-sm"
+              style={{ imageRendering: 'pixelated' }}
+            />
+          ) : (
+            <div 
+              className="px-2 py-0.5 rounded text-xs font-medium border hover:shadow-sm mobile-badge-compact"
+              style={{ 
+                backgroundColor: badge.backgroundColor, 
+                color: badge.textColor,
+                borderColor: badge.backgroundColor
+              }}
+            >
+              <div className="truncate max-w-16 sm:max-w-20">
+                {badge.title}
+              </div>
             </div>
-          </div>
+          )}
         </Link>
       ))}
       {badges.length > 4 && (

@@ -812,11 +812,40 @@
     line-height: 1.2;
   }
   
+  .mobile-badge-compact-image {
+    width: 32px;
+    height: 12px;
+    object-fit: contain;
+  }
+  
+  .mobile-badge-showcase {
+    width: 60px;
+    height: 22px;
+    object-fit: contain;
+  }
+  
   @media (max-width: 640px) {
     .mobile-badge-compact {
       min-height: 24px;
       font-size: 11px;
       padding: 0.25rem 0.5rem;
+    }
+    
+    .mobile-badge-compact-image {
+      width: 40px;
+      height: 15px;
+    }
+    
+    .mobile-badge-showcase {
+      width: 70px;
+      height: 26px;
+    }
+  }
+  
+  @media (min-width: 641px) {
+    .mobile-badge-showcase {
+      width: 88px;
+      height: 31px;
     }
   }
   
