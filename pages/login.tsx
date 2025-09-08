@@ -128,10 +128,10 @@ export default function LoginPage() {
         <meta name="description" content="Sign in to ThreadStead with your seed phrase or email" />
       </Head>
       <Layout>
-        <div className="max-w-md mx-auto p-6 mt-8">
+        <div className="auth-container max-w-md mx-auto p-6 mt-8">
           {/* Main Login Options */}
           {currentView === 'main' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="auth-form bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
                 <span className="text-6xl mb-4 block"></span>
                 <h1 className="text-3xl font-bold mb-2">Welcome Back!</h1>
@@ -154,7 +154,7 @@ export default function LoginPage() {
                   </div>
                   <button
                     onClick={() => setCurrentView('password-login')}
-                    className="w-full px-4 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                    className="mobile-button-enhanced mobile-focus-enhanced w-full px-4 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
                   >
                     Continue with Password
                   </button>
@@ -224,7 +224,7 @@ export default function LoginPage() {
 
           {/* Seed Phrase Login */}
           {currentView === 'seed-phrase' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="auth-form bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
               <div className="flex items-center gap-2 mb-6">
                 <button onClick={resetToMain} className="text-gray-500 hover:text-gray-700 text-xl">
                   ←
@@ -292,7 +292,7 @@ export default function LoginPage() {
 
           {/* Password Login Form */}
           {currentView === 'password-login' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="auth-form bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
               <div className="flex items-center gap-2 mb-6">
                 <button onClick={resetToMain} className="text-gray-500 hover:text-gray-700 text-xl">
                   ←
@@ -371,7 +371,7 @@ export default function LoginPage() {
 
           {/* Email Login Form */}
           {currentView === 'email-login' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="auth-form bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
               <div className="flex items-center gap-2 mb-6">
                 <button onClick={resetToMain} className="text-gray-500 hover:text-gray-700 text-xl">
                   ←

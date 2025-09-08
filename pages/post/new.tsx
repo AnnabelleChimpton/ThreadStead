@@ -760,7 +760,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
             {activeTab === "write" ? (
               <>
                 {/* Markdown Toolbar */}
-                <div className="border border-black bg-gray-50 p-2 mb-2 flex flex-wrap gap-1 items-center">
+                <div className="mobile-full-width border border-black bg-gray-50 p-2 mb-2 flex flex-wrap gap-1 items-center">
                   {TOOLBAR_ITEMS.map((item) => (
                     <button
                       key={item.action}

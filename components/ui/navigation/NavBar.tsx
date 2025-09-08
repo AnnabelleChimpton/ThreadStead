@@ -195,7 +195,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   return (
     <>
       <header className={headerClasses}>
-        <nav className={navClasses}>
+        <nav className={`${navClasses} mobile-nav-enhanced`}>
           <div className="site-branding flex-shrink-0">
             <h1 className="site-title thread-headline text-xl sm:text-2xl font-bold text-thread-pine">{config.site_name}</h1>
             <span className="site-tagline thread-label hidden sm:inline">{config.site_tagline}</span>
