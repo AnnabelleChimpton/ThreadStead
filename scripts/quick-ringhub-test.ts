@@ -17,8 +17,8 @@ import path from 'path'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { getRingHubClient } from '@/lib/ringhub-client'
-import { getServerDID, generateDIDDocument } from '@/lib/server-did-client'
+import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { getServerDID, generateDIDDocument } from '@/lib/api/did/server-did-client'
 
 async function main() {
   console.log('🔧 Quick Ring Hub Test')

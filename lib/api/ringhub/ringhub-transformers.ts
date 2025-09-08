@@ -19,7 +19,7 @@ import type {
   RingMember, 
   PostRef, 
   BadgeInfo 
-} from '@/lib/ringhub-client'
+} from '@/lib/api/ringhub/ringhub-client'
 
 /**
  * Map Ring Hub join policy to ThreadStead join type
@@ -199,7 +199,7 @@ export async function transformRingMemberWithUserResolution(
   db: any // Import from lib/db
 ): Promise<ThreadRingMember> {
   // Try to map DID back to ThreadStead user
-  const { mapDIDToUserId } = await import('./server-did-client')
+  const { mapDIDToUserId } = await import('../did/server-did-client')
   let resolvedUserId: string | null = null
   let threadSteadUser = null
   

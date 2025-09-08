@@ -7,7 +7,7 @@ import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
-import { getRingHubClient } from "@/lib/ringhub-client";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 
 interface ForkPageProps {
   siteConfig: SiteConfig;

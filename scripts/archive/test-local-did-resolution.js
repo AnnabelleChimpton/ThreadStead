@@ -11,7 +11,7 @@ process.env.THREADSTEAD_DID = 'did:web:homepageagain.com';
 process.env.THREADSTEAD_PRIVATE_KEY_B64URL = 'ZHKcPS3yXew3cDBVwXdufAPXL6bT4E1-qVxrDnu2W2g';
 process.env.THREADSTEAD_PUBLIC_KEY_MULTIBASE = 'z6MkobdPZAxTYoFfh79Zc6HvUcJrk9wHKm9QAMxwFwMPrpgj';
 
-const { generateDIDDocument } = require('@/lib/server-did-client');
+const { generateDIDDocument } = require('@/lib/api/did/server-did-client');
 
 async function testAlternatives() {
   try {

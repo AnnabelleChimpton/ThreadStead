@@ -7,7 +7,7 @@ import Layout from '@/components/ui/layout/Layout'
 import { getSiteConfig, SiteConfig } from '@/lib/get-site-config'
 import { db } from '@/lib/db'
 import { featureFlags } from '@/lib/feature-flags'
-import { getRingHubClient } from '@/lib/ringhub-client'
+import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 
 interface PromptResponse {
   id: string

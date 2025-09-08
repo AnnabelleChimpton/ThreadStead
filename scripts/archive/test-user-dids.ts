@@ -11,7 +11,7 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { loadUserDIDMappings, getOrCreateUserDID, generateUserDIDDocument } from '@/lib/server-did-client'
+import { loadUserDIDMappings, getOrCreateUserDID, generateUserDIDDocument } from '@/lib/api/did/server-did-client'
 import { db } from '@/lib/db'
 
 async function testUserDIDs() {

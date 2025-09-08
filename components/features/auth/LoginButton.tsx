@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { getExistingDid, signMessage, hasExistingDid } from "@/lib/did-client";
+import { getExistingDid, signMessage, hasExistingDid } from "@/lib/api/did/did-client";
 
 interface LoginButtonProps {
   onToggleIdentity?: () => void;

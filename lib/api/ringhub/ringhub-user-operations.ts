@@ -6,8 +6,8 @@
  */
 
 import { getRingHubClient, RingHubClient } from './ringhub-client'
-import { getOrCreateUserDID, getUserDID, signMessageAsUser, getServerDID, publicKeyToMultibase } from './server-did-client'
-import { db } from './db'
+import { getOrCreateUserDID, getUserDID, signMessageAsUser, getServerDID, publicKeyToMultibase } from '../did/server-did-client'
+import { db } from '../../db'
 import type { RingDescriptor, RingMember } from './ringhub-client'
 
 /**

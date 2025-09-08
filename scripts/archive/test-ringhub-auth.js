@@ -4,8 +4,8 @@
  * Test Ring Hub Authentication with New Credentials
  */
 
-const { getRingHubClient } = require('@/lib/ringhub-client');
-const { createAuthenticatedRingHubClient } = require('@/lib/ringhub-user-operations');
+const { getRingHubClient } = require('@/lib/api/ringhub/ringhub-client');
+const { createAuthenticatedRingHubClient } = require('@/lib/api/ringhub/ringhub-user-operations');
 
 async function testAuthentication() {
   try {

@@ -6,7 +6,7 @@ import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
-import { getRingHubClient } from "@/lib/ringhub-client";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import ThreadRingInviteForm from "../../../components/ui/forms/ThreadRingInviteForm";
 import ThreadRingPromptManager from "../../../components/core/threadring/ThreadRingPromptManager";
 import ThreadRingBlockManager from "../../../components/core/threadring/ThreadRingBlockManager";

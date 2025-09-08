@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth-server";
-import { shouldUseRingHub } from "@/lib/ringhub-client";
-import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { shouldUseRingHub } from "@/lib/api/ringhub/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 
 export default async function handler(
   req: NextApiRequest,

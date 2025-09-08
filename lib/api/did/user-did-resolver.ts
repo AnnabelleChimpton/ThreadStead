@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db } from '../../db';
 
 /**
  * Resolve a DID to a local username if the user exists in our ThreadStead instance

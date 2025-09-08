@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-import { getRingHubClient } from "@/lib/ringhub-client";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { requireAdmin } from "@/lib/auth-server";
 
 

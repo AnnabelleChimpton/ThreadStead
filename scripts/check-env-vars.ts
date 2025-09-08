@@ -37,7 +37,7 @@ console.log('   SITE_HANDLE_DOMAIN:', process.env.SITE_HANDLE_DOMAIN || 'NOT SET
 async function checkRingHubClient() {
   console.log('\n🧪 Ring Hub Client Availability:')
   try {
-    const { getRingHubClient } = await import('@/lib/ringhub-client')
+    const { getRingHubClient } = await import('@/lib/api/ringhub/ringhub-client')
     const client = getRingHubClient()
     
     if (client) {
@@ -51,7 +51,7 @@ async function checkRingHubClient() {
       console.log('   ❌ Ring Hub client is null')
       
       // Check the isAvailable() method
-      const { RingHubClient } = await import('@/lib/ringhub-client')
+      const { RingHubClient } = await import('@/lib/api/ringhub/ringhub-client')
       console.log('   🔍 Availability check:')
       console.log('      RingHubClient.isAvailable():', RingHubClient.isAvailable())
       

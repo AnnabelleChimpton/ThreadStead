@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth-server";
-import { withThreadRingSupport } from "@/lib/ringhub-middleware";
-import { getRingHubClient } from "@/lib/ringhub-client";
+import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 
 const prisma = new PrismaClient();
 

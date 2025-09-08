@@ -16,7 +16,7 @@ import {
   getOrCreateServerKeypair,
   getOrCreateUserDID,
   generateDIDDocument
-} from '../lib/server-did-client'
+} from '../../lib/api/did/server-did-client'
 
 import { getRingHubClient } from '../lib/ringhub-client'
 import { createAuthenticatedRingHubClient } from '../lib/ringhub-user-operations'

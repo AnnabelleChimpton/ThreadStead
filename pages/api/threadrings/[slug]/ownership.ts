@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth-server';
 import { db } from '@/lib/db';
-import { mapDIDToUserId, getUserDID } from '@/lib/server-did-client';
+import { mapDIDToUserId, getUserDID } from '@/lib/api/did/server-did-client';
 
 /**
  * Check ThreadRing Ownership

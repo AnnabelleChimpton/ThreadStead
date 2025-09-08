@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { filterBlockedUsers } from "@/lib/threadring-blocks";
-import { withThreadRingSupport } from "@/lib/ringhub-middleware";
-import { getRingHubClient } from "@/lib/ringhub-client";
-import { transformRingDescriptorToThreadRing } from "@/lib/ringhub-transformers";
+import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest, 

@@ -14,7 +14,7 @@ loadEnvConfig(projectDir)
 
 import { promises as fs } from 'fs'
 import { join } from 'path'
-import { generateServerKeypair } from '@/lib/server-did-client'
+import { generateServerKeypair } from '@/lib/api/did/server-did-client'
 
 interface KeypairData {
   publicKey: string
@@ -104,7 +104,7 @@ async function useExistingKeys() {
   
   // Try to get current keypair
   try {
-    const { getOrCreateServerKeypair, generateDIDDocument } = await import('@/lib/server-did-client')
+    const { getOrCreateServerKeypair, generateDIDDocument } = await import('@/lib/api/did/server-did-client')
     const keypair = await getOrCreateServerKeypair()
     const didDoc = await generateDIDDocument()
     const publicKeyMultibase = didDoc.verificationMethod?.[0]?.publicKeyMultibase
@@ -127,7 +127,7 @@ async function exportKeys() {
   console.log('📦 Exporting keys for other servers...')
   
   try {
-    const { exportServerIdentity } = await import('@/lib/server-did-client')
+    const { exportServerIdentity } = await import('@/lib/api/did/server-did-client')
     const exportData = await exportServerIdentity()
     
     console.log('\n📄 Export data (copy this to other server):')
@@ -162,7 +162,7 @@ async function importKeys(exportData?: string) {
   }
   
   try {
-    const { importServerIdentity, getOrCreateServerKeypair, generateDIDDocument } = await import('@/lib/server-did-client')
+    const { importServerIdentity, getOrCreateServerKeypair, generateDIDDocument } = await import('@/lib/api/did/server-did-client')
     
     // Import the identity
     await importServerIdentity(exportData!)
@@ -192,7 +192,7 @@ async function verifyKeys() {
   
   try {
     // Get local keys
-    const { getOrCreateServerKeypair, generateDIDDocument } = await import('@/lib/server-did-client')
+    const { getOrCreateServerKeypair, generateDIDDocument } = await import('@/lib/api/did/server-did-client')
     const keypair = await getOrCreateServerKeypair()
     const didDoc = await generateDIDDocument()
     const localPublicKey = didDoc.verificationMethod?.[0]?.publicKeyMultibase
@@ -225,7 +225,7 @@ async function verifyKeys() {
     }
     
     // Check Ring Hub client
-    const { getRingHubClient } = await import('@/lib/ringhub-client')
+    const { getRingHubClient } = await import('@/lib/api/ringhub/ringhub-client')
     const client = getRingHubClient()
     
     if (client) {

@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
-import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
-import { getPublicRingHubClient } from "@/lib/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { db } from "@/lib/db";
 
 export default async function handler(
@@ -109,7 +109,7 @@ export default async function handler(
         console.log(`Fetched ${membersResponse.members?.length || 0} members from Ring Hub for user ${viewer.id}`);
         
         // Transform Ring Hub member format with proper user resolution
-        const { transformRingMemberWithUserResolution } = await import('@/lib/ringhub-transformers')
+        const { transformRingMemberWithUserResolution } = await import('@/lib/api/ringhub/ringhub-transformers')
         
         const transformedMembers = await Promise.all(
           (membersResponse.members || []).map(async (member) => {

@@ -15,7 +15,7 @@ import {
   updateIdentityWithSeedPhrase,
   LocalKeypair,
   SeedPhrase
-} from "@/lib/did-client";
+} from "@/lib/api/did/did-client";
 import UsernameSelector from "@/components/features/auth/UsernameSelector";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
 import Modal from "@/components/ui/feedback/Modal";

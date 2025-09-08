@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { getUserDIDMappingByHash, generateUserDIDDocument } from '@/lib/server-did-client'
+import { getUserDIDMappingByHash, generateUserDIDDocument } from '@/lib/api/did/server-did-client'
 
 /**
  * User DID Document Endpoint

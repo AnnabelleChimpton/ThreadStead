@@ -13,8 +13,8 @@ import ThreadRingFeedScope from "../../components/core/threadring/ThreadRingFeed
 import ThreadRingActivePrompt from "../../components/core/threadring/ThreadRingActivePrompt";
 import ThreadRing88x31Badge from "../../components/core/threadring/ThreadRing88x31Badge";
 import { featureFlags } from "@/lib/feature-flags";
-import { getRingHubClient } from "@/lib/ringhub-client";
-import { transformRingDescriptorToThreadRing } from "@/lib/ringhub-transformers";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
 import Toast from "../../components/ui/feedback/Toast";
 import { useToast } from "../../hooks/useToast";
 import { useCurrentUser } from "../../hooks/useCurrentUser";

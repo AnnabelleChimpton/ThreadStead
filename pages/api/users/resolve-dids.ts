@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { batchResolveDIDsToUsernames } from "@/lib/user-did-resolver";
+import { batchResolveDIDsToUsernames } from "@/lib/api/did/user-did-resolver";
 
 export default async function handler(
   req: NextApiRequest,

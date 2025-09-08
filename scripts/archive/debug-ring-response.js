@@ -9,7 +9,7 @@ process.env.NEXT_PUBLIC_USE_RING_HUB = 'true';
 process.env.RING_HUB_URL = 'https://ringhub.io';
 process.env.THREADSTEAD_DID = 'did:web:homepageagain.com';
 
-const { getRingHubClient } = require('@/lib/ringhub-client');
+const { getRingHubClient } = require('@/lib/api/ringhub/ringhub-client');
 
 async function debugResponse() {
   try {

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getSessionUser } from '@/lib/auth-server'
 import { createPromptService } from '@/lib/prompt-service'
-import { withThreadRingSupport } from '@/lib/ringhub-middleware'
+import { withThreadRingSupport } from '@/lib/api/ringhub/ringhub-middleware'
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest,

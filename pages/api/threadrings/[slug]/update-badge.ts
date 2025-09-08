@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getSessionUser } from '@/lib/auth-server'
-import { AuthenticatedRingHubClient } from '@/lib/ringhub-user-operations'
+import { AuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 
 interface BadgeUpdateRequest {
   badgeImageUrl?: string;

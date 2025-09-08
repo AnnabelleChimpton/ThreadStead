@@ -4,7 +4,7 @@
  * Test DID document generation
  */
 
-const { generateDIDDocument, initializeServerDID } = require('@/lib/server-did-client');
+const { generateDIDDocument, initializeServerDID } = require('@/lib/api/did/server-did-client');
 
 async function test() {
   try {

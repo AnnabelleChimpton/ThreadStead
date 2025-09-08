@@ -4,7 +4,7 @@
  */
 
 import { db } from '@/lib/db';
-import { createAuthenticatedRingHubClient } from '@/lib/ringhub-user-operations';
+import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
 
 const TEST_POST_ID = 'd899b00b-3475-404e-bcb7-30fa69da62f3'; // Database UUID from the guide
 const CONTENT_ID = 'cmevxef27000izibx34a4b1s8'; // Content ID that was failing

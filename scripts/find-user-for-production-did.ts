@@ -13,7 +13,7 @@ const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
 import { createHash } from 'crypto'
-import { loadUserDIDMappings, storeUserDIDMappings } from '@/lib/server-did-client'
+import { loadUserDIDMappings, storeUserDIDMappings } from '@/lib/api/did/server-did-client'
 import { db } from '@/lib/db'
 
 async function findUserForProductionDID() {

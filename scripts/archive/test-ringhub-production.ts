@@ -22,9 +22,9 @@ import {
   checkRingHubHealth,
   validateRingHubConfig,
   benchmarkRingHubPerformance
-} from '@/lib/ringhub-test-utils'
-import { getRingHubClient } from '@/lib/ringhub-client'
-import { generateDIDDocument, getServerDID } from '@/lib/server-did-client'
+} from '@/lib/api/ringhub/ringhub-test-utils'
+import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { generateDIDDocument, getServerDID } from '@/lib/api/did/server-did-client'
 import fetch from 'node-fetch'
 
 interface TestResult {

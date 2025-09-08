@@ -11,7 +11,7 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { signMessageAsServer, getServerDID } from '@/lib/server-did-client'
+import { signMessageAsServer, getServerDID } from '@/lib/api/did/server-did-client'
 import crypto from 'crypto'
 
 async function testSimpleSignature() {

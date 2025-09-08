@@ -12,7 +12,7 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { loadUserDIDMappings } from '@/lib/server-did-client'
+import { loadUserDIDMappings } from '@/lib/api/did/server-did-client'
 import { fromBase64Url } from '@/lib/base64'
 
 async function exportUserDIDSQL() {

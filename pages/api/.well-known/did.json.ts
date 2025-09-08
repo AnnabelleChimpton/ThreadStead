@@ -9,7 +9,7 @@
  */
 
 import { NextApiRequest, NextApiResponse } from 'next'
-import { generateDIDDocument, initializeServerDID } from '@/lib/server-did-client'
+import { generateDIDDocument, initializeServerDID } from '@/lib/api/did/server-did-client'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

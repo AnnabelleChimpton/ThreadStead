@@ -4,7 +4,7 @@
  * Handles scheduled key rotation for ThreadStead server and user DIDs
  */
 
-import { rotateServerKeypair, getOrCreateServerKeypair } from './server-did-client'
+import { rotateServerKeypair, getOrCreateServerKeypair } from './api/did/server-did-client'
 
 interface RotationSchedule {
   serverKeyRotationDays: number

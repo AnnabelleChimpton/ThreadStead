@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { exportIdentityToken, getSeedPhrase, generateSeedPhrase, storeSeedPhrase } from "@/lib/did-client";
+import { exportIdentityToken, getSeedPhrase, generateSeedPhrase, storeSeedPhrase } from "@/lib/api/did/did-client";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 interface WelcomeDialogProps {

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth-server";
-import { getRingHubClient, shouldUseRingHub } from "@/lib/ringhub-client";
-import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { getRingHubClient, shouldUseRingHub } from "@/lib/api/ringhub/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 
 interface ThreadRingNode {
   id: string;

@@ -10,7 +10,7 @@
  */
 
 import { db } from "@/lib/db";
-import { getRingHubClient } from "@/lib/ringhub-client";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { featureFlags } from "@/lib/feature-flags";
 
 interface RingHubPost {

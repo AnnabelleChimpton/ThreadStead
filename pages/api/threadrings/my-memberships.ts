@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { featureFlags } from "@/lib/feature-flags";
-import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });

@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { SITE_NAME } from "@/lib/site-config";
 import { featureFlags } from "@/lib/feature-flags";
-import { getRingHubClient } from "@/lib/ringhub-client";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 
 interface Member {
   id: string;
@@ -303,7 +303,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             }
 
             // Convert Ring Hub members to local format with user resolution
-            const { transformRingMemberWithUserResolution } = await import('@/lib/ringhub-transformers')
+            const { transformRingMemberWithUserResolution } = await import('@/lib/api/ringhub/ringhub-transformers')
             
             const members = await Promise.all(
               ringHubMembers.members.map(async (member) => {

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getPublicRingHubClient } from "@/lib/ringhub-client";
+import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { featureFlags } from "@/lib/feature-flags";
 
 export default async function handler(

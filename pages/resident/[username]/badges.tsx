@@ -9,8 +9,8 @@ import ThreadRing88x31Badge from '@/components/core/threadring/ThreadRing88x31Ba
 import { db } from '@/lib/db'
 import { featureFlags } from '@/lib/feature-flags'
 import { getSessionUser } from '@/lib/auth-server'
-import { getPublicRingHubClient } from '@/lib/ringhub-client'
-import { getUserDID } from '@/lib/server-did-client'
+import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { getUserDID } from '@/lib/api/did/server-did-client'
 
 interface BadgeWithThreadRing {
   id: string

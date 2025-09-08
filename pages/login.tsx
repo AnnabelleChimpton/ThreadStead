@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
-import { recoverFromSeedPhrase, loginWithPassword } from "@/lib/did-client";
+import { recoverFromSeedPhrase, loginWithPassword } from "@/lib/api/did/did-client";
 
 type LoginMethod = 'main' | 'password-login' | 'seed-phrase' | 'email-login' | 'email-sent';
 

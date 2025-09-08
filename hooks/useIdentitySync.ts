@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getExistingDid } from "@/lib/did-client";
+import { getExistingDid } from "@/lib/api/did/did-client";
 import { useMe } from "@/hooks/useMe";
 
 export function useIdentitySync() {

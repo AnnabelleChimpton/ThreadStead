@@ -6,7 +6,7 @@
  */
 
 import { db } from "../lib/db";
-import { generateSeedPhrase, createKeypairFromSeedPhrase } from "../lib/did-client";
+import { generateSeedPhrase, createKeypairFromSeedPhrase } from "../lib/api/did/did-client";
 
 interface TestUser {
   handle: string;

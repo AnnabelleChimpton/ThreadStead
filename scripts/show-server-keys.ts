@@ -11,7 +11,7 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { getOrCreateServerKeypair, generateDIDDocument } from '@/lib/server-did-client'
+import { getOrCreateServerKeypair, generateDIDDocument } from '@/lib/api/did/server-did-client'
 
 async function main() {
   console.log('🔑 ThreadStead Server Keys')

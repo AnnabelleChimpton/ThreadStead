@@ -4,7 +4,7 @@
  * Utilities for testing Ring Hub connectivity and client functionality
  */
 
-import { getRingHubClient, RingHubClient, RingHubClientError } from '@/lib/ringhub-client'
+import { getRingHubClient, RingHubClient, RingHubClientError } from '@/lib/api/ringhub/ringhub-client'
 
 export interface ConnectionTestResult {
   success: boolean

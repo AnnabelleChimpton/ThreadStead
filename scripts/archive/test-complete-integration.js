@@ -12,8 +12,8 @@ process.env.THREADSTEAD_DID = 'did:web:homepageagain.com';
 process.env.THREADSTEAD_PRIVATE_KEY_B64URL = 'ZHKcPS3yXew3cDBVwXdufAPXL6bT4E1-qVxrDnu2W2g';
 process.env.THREADSTEAD_PUBLIC_KEY_MULTIBASE = 'z6MkobdPZAxTYoFfh79Zc6HvUcJrk9wHKm9QAMxwFwMPrpgj';
 
-const { getRingHubClient } = require('@/lib/ringhub-client');
-const { createAuthenticatedRingHubClient } = require('@/lib/ringhub-user-operations');
+const { getRingHubClient } = require('@/lib/api/ringhub/ringhub-client');
+const { createAuthenticatedRingHubClient } = require('@/lib/api/ringhub/ringhub-user-operations');
 
 async function testCompleteIntegration() {
   console.log('🔍 Testing Complete Ring Hub Integration...');

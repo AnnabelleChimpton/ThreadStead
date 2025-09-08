@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { getSessionUser } from "@/lib/auth-server";
 import { requireAction } from "@/lib/capabilities";
 

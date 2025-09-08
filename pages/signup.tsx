@@ -3,7 +3,7 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
-import { createNewIdentityWithSeedPhrase, createNewIdentityWithPassword } from "@/lib/did-client";
+import { createNewIdentityWithSeedPhrase, createNewIdentityWithPassword } from "@/lib/api/did/did-client";
 import { validatePasswordStrength } from "@/lib/password-auth";
 import { validateUsername } from "@/lib/validateUsername";
 import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/default-profile-templates";

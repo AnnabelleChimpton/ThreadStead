@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { loadUserDIDMappings } from '@/lib/server-did-client'
+import { loadUserDIDMappings } from '@/lib/api/did/server-did-client'
 
 /**
  * User DIDs Directory Endpoint

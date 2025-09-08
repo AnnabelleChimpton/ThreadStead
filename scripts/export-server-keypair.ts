@@ -11,7 +11,7 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { exportServerIdentity, getOrCreateServerKeypair } from '@/lib/server-did-client'
+import { exportServerIdentity, getOrCreateServerKeypair } from '@/lib/api/did/server-did-client'
 import { promises as fs } from 'fs'
 import { join } from 'path'
 

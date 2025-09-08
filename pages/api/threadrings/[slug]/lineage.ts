@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth-server';
-import { createAuthenticatedRingHubClient } from '@/lib/ringhub-user-operations';
+import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
 import { featureFlags } from '@/lib/feature-flags';
-import { getRingHubClient } from '@/lib/ringhub-client';
+import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
 
 /**
  * Get ThreadRing Lineage Data

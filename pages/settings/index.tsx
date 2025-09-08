@@ -27,7 +27,7 @@ import {
   SeedPhrase,
   isPasswordAuth,
   addPasswordToAccount
-} from "@/lib/did-client";
+} from "@/lib/api/did/did-client";
 import { validatePasswordStrength } from "@/lib/password-auth";
 import Link from "next/link";
 
@@ -384,7 +384,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
       setSaveMessage("Changing password...");
       
       // Import and use the changePassword function from did-client
-      const { changePassword } = await import('@/lib/did-client');
+      const { changePassword } = await import('@/lib/api/did/did-client');
       await changePassword(currentPassword, newPasswordChange);
       
       // Reset form

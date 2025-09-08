@@ -14,7 +14,7 @@ import {
   initializeServerDID, 
   generateDIDDocument,
   getOrCreateServerKeypair 
-} from '../lib/server-did-client'
+} from '../lib/api/did/server-did-client'
 
 async function main() {
   console.log('🔐 Initializing ThreadStead Server DID System')

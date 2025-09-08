@@ -12,7 +12,7 @@ const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
 import { createHash } from 'crypto'
-import { loadUserDIDMappings, getOrCreateUserDID } from '@/lib/server-did-client'
+import { loadUserDIDMappings, getOrCreateUserDID } from '@/lib/api/did/server-did-client'
 
 async function findUserByHash() {
   const targetHash = 'dbf3bd2982f841f7'

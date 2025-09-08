@@ -9,7 +9,7 @@ process.env.NEXT_PUBLIC_USE_RING_HUB = 'true';
 process.env.RING_HUB_URL = 'https://ringhub.io';
 process.env.THREADSTEAD_DID = 'did:web:homepageagain.com';
 
-const { createAuthenticatedRingHubClient } = require('@/lib/ringhub-user-operations');
+const { createAuthenticatedRingHubClient } = require('@/lib/api/ringhub/ringhub-user-operations');
 
 async function testJoinFunctionality() {
   try {

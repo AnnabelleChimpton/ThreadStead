@@ -12,7 +12,7 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { loadUserDIDMappings, storeUserDIDMappings } from '@/lib/server-did-client'
+import { loadUserDIDMappings, storeUserDIDMappings } from '@/lib/api/did/server-did-client'
 import { createHash } from 'crypto'
 
 function getDomainFromEnvironment(): string {

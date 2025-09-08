@@ -11,8 +11,8 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { generateDIDDocument, getOrCreateServerKeypair } from '@/lib/server-did-client'
-import { getRingHubClient } from '@/lib/ringhub-client'
+import { generateDIDDocument, getOrCreateServerKeypair } from '@/lib/api/did/server-did-client'
+import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { promises as fs } from 'fs'
 import { join } from 'path'
 
@@ -94,7 +94,7 @@ async function traceKeySources() {
       // Check hardcoded client
       console.log('   🔧 Checking hardcoded createThreadSteadRingHubClient():')
       try {
-        const { createThreadSteadRingHubClient } = await import('@/lib/ringhub-client')
+        const { createThreadSteadRingHubClient } = await import('@/lib/api/ringhub/ringhub-client')
         const hardcodedClient = createThreadSteadRingHubClient()
         
         // Access private properties through type casting
@@ -138,7 +138,7 @@ async function traceKeySources() {
     const envPublicKeyMultibase = process.env.THREADSTEAD_PUBLIC_KEY_MULTIBASE
     
     // Hardcoded values (we need to extract these from the client code)
-    const { createThreadSteadRingHubClient } = await import('@/lib/ringhub-client')
+    const { createThreadSteadRingHubClient } = await import('@/lib/api/ringhub/ringhub-client')
     const hardcodedClient = createThreadSteadRingHubClient()
     const hardcodedPublicKey = (hardcodedClient as any).publicKeyMultibase
     

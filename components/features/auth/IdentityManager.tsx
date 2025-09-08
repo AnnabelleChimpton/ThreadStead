@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getExistingDid, exportIdentityToken, importIdentityToken, createNewIdentityWithUsername, LocalKeypair } from "@/lib/did-client";
+import { getExistingDid, exportIdentityToken, importIdentityToken, createNewIdentityWithUsername, LocalKeypair } from "@/lib/api/did/did-client";
 import UsernameSelector from "./UsernameSelector";
 import WelcomeDialog from "./WelcomeDialog";
 

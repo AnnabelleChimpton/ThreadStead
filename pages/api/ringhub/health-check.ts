@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { checkRingHubHealth, validateRingHubConfig, benchmarkRingHubPerformance } from '@/lib/ringhub-test-utils'
+import { checkRingHubHealth, validateRingHubConfig, benchmarkRingHubPerformance } from '@/lib/api/ringhub/ringhub-test-utils'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

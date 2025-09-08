@@ -14,7 +14,7 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { getRingHubClient } from '@/lib/ringhub-client'
+import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 
 async function main() {
   console.log('🔍 Testing Actor Verification Status')

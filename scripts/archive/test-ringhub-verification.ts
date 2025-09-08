@@ -11,10 +11,10 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { getRingHubClient, getPublicRingHubClient } from '@/lib/ringhub-client'
-import { AuthenticatedRingHubClient } from '@/lib/ringhub-user-operations'
+import { getRingHubClient, getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { AuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { db } from '@/lib/db'
-import { getOrCreateUserDID } from '@/lib/server-did-client'
+import { getOrCreateUserDID } from '@/lib/api/did/server-did-client'
 
 async function testRingHubVerification() {
   console.log('🔐 Testing RingHub Verification')

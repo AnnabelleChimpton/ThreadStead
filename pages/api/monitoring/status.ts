@@ -7,8 +7,8 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { getKeyRotationStatus } from '@/lib/key-rotation-scheduler'
 import { ringHubRateLimiter } from '@/lib/rate-limiting-config'
-import { testRingHubConnection, validateRingHubConfig } from '@/lib/ringhub-test-utils'
-import { getOrCreateServerKeypair } from '@/lib/server-did-client'
+import { testRingHubConnection, validateRingHubConfig } from '@/lib/api/ringhub/ringhub-test-utils'
+import { getOrCreateServerKeypair } from '@/lib/api/did/server-did-client'
 
 interface MonitoringStatus {
   timestamp: string

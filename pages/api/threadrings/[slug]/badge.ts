@@ -3,9 +3,9 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { generateThreadRingBadge, validateBadgeContent } from "@/lib/badge-generator";
 import { BADGE_TEMPLATES } from "@/lib/threadring-badges";
-import { withThreadRingSupport } from "@/lib/ringhub-middleware";
-import { getRingHubClient } from "@/lib/ringhub-client";
-import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest, 

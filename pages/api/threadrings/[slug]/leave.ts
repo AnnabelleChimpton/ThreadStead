@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
-import { withThreadRingSupport } from "@/lib/ringhub-middleware";
-import { AuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
+import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest,

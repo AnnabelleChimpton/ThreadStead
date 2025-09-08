@@ -3,8 +3,8 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { getSessionUser } from '@/lib/auth-server'
 import { db } from '@/lib/db'
 import { featureFlags } from '@/lib/feature-flags'
-import { getPublicRingHubClient } from '@/lib/ringhub-client'
-import { getUserDID } from '@/lib/server-did-client'
+import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { getUserDID } from '@/lib/api/did/server-did-client'
 
 export type UserBadgePreferences = {
   selectedBadges: Array<{

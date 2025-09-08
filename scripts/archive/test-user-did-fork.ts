@@ -12,8 +12,8 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { getOrCreateUserDID } from '@/lib/server-did-client'
-import { RingHubClient } from '@/lib/ringhub-client'
+import { getOrCreateUserDID } from '@/lib/api/did/server-did-client'
+import { RingHubClient } from '@/lib/api/ringhub/ringhub-client'
 
 async function testUserDIDFork() {
   console.log('🔍 Testing User DID Fork Operation')

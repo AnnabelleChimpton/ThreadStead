@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
-import { getRingHubClient } from "@/lib/ringhub-client";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "DELETE") {

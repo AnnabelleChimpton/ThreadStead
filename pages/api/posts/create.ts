@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth-server";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import { featureFlags } from "@/lib/feature-flags";
-import { createAuthenticatedRingHubClient } from "@/lib/ringhub-user-operations";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { validatePostTitle } from "@/lib/validation";
 
 /**
