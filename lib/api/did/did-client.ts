@@ -456,7 +456,7 @@ export async function createNewIdentityWithPassword(
   betaKey?: string
 ): Promise<{ mnemonic: string }> {
   // Import encryption functions
-  const { encryptSeedPhraseWithPassword } = await import('../../password-auth');
+  const { encryptSeedPhraseWithPassword } = await import('../../auth/password');
   
   // Generate seed phrase
   const mnemonic = await generateSeedPhrase();
@@ -539,7 +539,7 @@ export async function loginWithPassword(username: string, password: string): Pro
   const { encryptedSeedPhrase } = await userRes.json();
   
   // Import decryption function
-  const { decryptSeedPhraseWithPassword } = await import('../../password-auth');
+  const { decryptSeedPhraseWithPassword } = await import('../../auth/password');
   
   // Try to decrypt the seed phrase
   let mnemonic: string;
@@ -606,7 +606,7 @@ export async function getDecryptedSeedPhrase(password: string): Promise<string> 
     throw new Error('No encrypted seed phrase found');
   }
   
-  const { decryptSeedPhraseWithPassword } = await import('../../password-auth');
+  const { decryptSeedPhraseWithPassword } = await import('../../auth/password');
   return decryptSeedPhraseWithPassword(encryptedSeed, password);
 }
 
@@ -618,7 +618,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
   const seedPhrase = await getDecryptedSeedPhrase(currentPassword);
   
   // Re-encrypt with new password
-  const { encryptSeedPhraseWithPassword } = await import('../../password-auth');
+  const { encryptSeedPhraseWithPassword } = await import('../../auth/password');
   const newEncryptedSeed = encryptSeedPhraseWithPassword(seedPhrase, newPassword);
   
   // Update local storage
@@ -671,7 +671,7 @@ export async function addPasswordToAccount(password: string): Promise<void> {
   }
   
   // Now encrypt and store seed phrase locally with password
-  const { encryptSeedPhraseWithPassword } = await import('../../password-auth');
+  const { encryptSeedPhraseWithPassword } = await import('../../auth/password');
   const encryptedSeed = encryptSeedPhraseWithPassword(seedData.mnemonic, password);
   
   // Update local storage

@@ -1,11 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
 import { uploadBadgeImage } from "@/lib/badge-uploader";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
-import { validateThreadRingName, generateThreadRingSlug } from "@/lib/validation";
+import { validateThreadRingName, generateThreadRingSlug } from "@/lib/domain/validation";
 
 // Temporarily use string literals instead of Prisma types
 type ThreadRingJoinType = "open" | "invite" | "closed";

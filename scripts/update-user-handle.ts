@@ -13,7 +13,7 @@
  */
 
 import { db } from '../lib/db';
-import { validateUsername } from '../lib/validation';
+import { validateUsername } from '../lib/domain/validation';
 import { SITE_NAME } from '../lib/site-config';
 
 async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDisplayName?: string) {

@@ -236,7 +236,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
 
   try {
     // Get current user session
-    const { getSessionUser } = await import('@/lib/auth-server');
+    const { getSessionUser } = await import('@/lib/auth/server');
     const currentUser = await getSessionUser(req as NextApiRequest);
 
     if (!currentUser) {

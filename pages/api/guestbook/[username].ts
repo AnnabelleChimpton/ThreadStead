@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 
-import { requireAction } from "@/lib/capabilities";
-import { createGuestbookNotification } from "@/lib/notifications";
+import { requireAction } from "@/lib/domain/users/capabilities";
+import { createGuestbookNotification } from "@/lib/domain/notifications";
 import { SITE_NAME } from "@/lib/site-config";
 
 

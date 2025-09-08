@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 import { featureFlags } from "@/lib/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";

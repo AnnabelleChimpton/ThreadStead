@@ -658,7 +658,7 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
 
   try {
     // Get current user session using auth-server
-    const { getSessionUser } = await import('@/lib/auth-server');
+    const { getSessionUser } = await import('@/lib/auth/server');
     const currentUser = await getSessionUser(req as NextApiRequest);
 
     if (!currentUser) {

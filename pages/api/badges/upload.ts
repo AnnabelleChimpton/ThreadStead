@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 import { uploadBadgeImage } from "@/lib/badge-uploader";
 
 export default async function handler(

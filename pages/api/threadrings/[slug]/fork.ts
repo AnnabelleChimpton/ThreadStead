@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import crypto from "crypto";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
 import { uploadBadgeImage } from "@/lib/badge-uploader";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";

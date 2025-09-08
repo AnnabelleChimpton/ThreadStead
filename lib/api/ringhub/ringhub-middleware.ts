@@ -58,7 +58,7 @@ export function withThreadRingSupport<T = any>(
 ) {
   return async (req: NextApiRequest, res: NextApiResponse<T>) => {
     // Import here to avoid circular dependency
-    const { getSessionUser } = await import('@/lib/auth-server');
+    const { getSessionUser } = await import('@/lib/auth/server');
     
     // Get user context for feature flag check
     const user = await getSessionUser(req);

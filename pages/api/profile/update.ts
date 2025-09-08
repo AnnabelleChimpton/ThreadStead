@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 
-import { getSessionUser } from "@/lib/auth-server";
-import { requireAction } from "@/lib/capabilities";
+import { getSessionUser } from "@/lib/auth/server";
+import { requireAction } from "@/lib/domain/users/capabilities";
 import { cleanCss } from "@/lib/sanitize-css";
 
 

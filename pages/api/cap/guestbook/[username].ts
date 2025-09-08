@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 
-import { getSessionUser } from "@/lib/auth-server";
-import { mintCapability } from "@/lib/capabilities";
+import { getSessionUser } from "@/lib/auth/server";
+import { mintCapability } from "@/lib/domain/users/capabilities";
 import { SITE_NAME } from "@/lib/site-config";
 
 

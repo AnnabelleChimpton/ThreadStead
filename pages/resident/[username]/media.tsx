@@ -406,7 +406,7 @@ export const getServerSideProps: GetServerSideProps<MediaGalleryProps> = async (
 
   try {
     // Get current user to determine ownership
-    const { getSessionUser } = await import('@/lib/auth-server');
+    const { getSessionUser } = await import('@/lib/auth/server');
     const currentUser = await getSessionUser(req as any);
 
     // Get profile data to verify user exists and get user ID

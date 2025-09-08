@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "../../db";
 
 export type NotificationType = "comment" | "reply" | "photo_comment" | "photo_reply" | "follow" | "friend" | "guestbook";
 

@@ -1,4 +1,4 @@
-import { validateContent, ValidationResult } from "./content-validation";
+import { validateContent, ValidationResult } from "./content";
 
 const LENGTH_MIN = 2;
 const LENGTH_MAX = 50;

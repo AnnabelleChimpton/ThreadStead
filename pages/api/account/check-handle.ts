@@ -1,7 +1,7 @@
 // pages/api/account/check-handle.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-import { validateUsername } from "@/lib/validation";
+import { validateUsername } from "@/lib/domain/validation";
 import { SITE_NAME } from "@/lib/site-config";
 
 

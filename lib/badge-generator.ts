@@ -1,4 +1,4 @@
-import { getBadgeTemplate, BADGE_TEMPLATES, type BadgeTemplate } from './threadring-badges';
+import { getBadgeTemplate, BADGE_TEMPLATES, type BadgeTemplate } from './domain/threadrings/badges';
 
 export interface BadgeGenerationOptions {
   title: string;

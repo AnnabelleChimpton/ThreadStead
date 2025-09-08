@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-import { hashPassword, verifyPassword } from "@/lib/password-auth";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
 
 function readCookie(req: NextApiRequest, name: string) {
   const cookie = req.headers.cookie || "";

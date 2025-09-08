@@ -13,7 +13,7 @@ import Layout from "@/components/ui/layout/Layout";
 import { GlobalAudioProvider } from "@/contexts/GlobalAudioContext";
 
 // Initialize ThreadRing reconciliation scheduler (server-side only)
-import "@/lib/threadring-reconciliation-bootstrap";
+import "@/lib/domain/threadrings/reconciliation-bootstrap";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   const { css, loading } = useSiteCSS();

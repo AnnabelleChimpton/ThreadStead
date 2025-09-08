@@ -3,7 +3,7 @@
  * This should be imported in _app.tsx or similar to ensure scheduler initialization
  */
 
-import { threadRingReconciliationScheduler } from './threadring-reconciliation-scheduler'
+import { threadRingReconciliationScheduler } from './reconciliation-scheduler'
 
 let bootstrapped = false
 

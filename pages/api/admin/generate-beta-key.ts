@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 
-import { requireAdmin } from "@/lib/auth-server";
+import { requireAdmin } from "@/lib/auth/server";
 import crypto from "crypto";
 
 

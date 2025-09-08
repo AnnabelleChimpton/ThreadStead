@@ -2,11 +2,11 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { Visibility, PostIntent } from "@prisma/client";
 import { db } from "@/lib/db";
 
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
 import { featureFlags } from "@/lib/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
-import { validatePostTitle } from "@/lib/validation";
+import { validatePostTitle } from "@/lib/domain/validation";
 
 /**
  * Generate a text preview from post content (max 300 chars for Ring Hub)

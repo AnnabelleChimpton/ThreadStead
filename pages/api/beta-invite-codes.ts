@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/auth-server';
+import { getSessionUser } from '@/lib/auth/server';
 import { getUserBetaInviteCodes } from '@/lib/beta-invite-codes';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

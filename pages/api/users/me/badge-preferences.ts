@@ -1,6 +1,6 @@
 // pages/api/users/me/badge-preferences.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { getSessionUser } from '@/lib/auth-server'
+import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/db'
 import { featureFlags } from '@/lib/feature-flags'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'

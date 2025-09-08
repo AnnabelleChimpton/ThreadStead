@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { requireAdmin } from '@/lib/auth-server';
+import { requireAdmin } from '@/lib/auth/server';
 import { db as prisma } from '@/lib/db';
 
 export default async function handler(

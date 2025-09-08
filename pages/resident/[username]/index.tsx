@@ -466,7 +466,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       }
       
       // Fetch posts and guestbook data for template rendering using direct DB calls
-      const { getSessionUser } = await import('@/lib/auth-server');
+      const { getSessionUser } = await import('@/lib/auth/server');
       const { getPostsForUser, getGuestbookForUser, getPhotosForUser } = await import('@/lib/data-fetchers');
       
       const currentUser = await getSessionUser(req as any);

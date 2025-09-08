@@ -1,5 +1,5 @@
 import React from 'react';
-import { getBadgeTemplate, generateBadgeCSS } from '@/lib/threadring-badges';
+import { getBadgeTemplate, generateBadgeCSS } from '@/lib/domain/threadrings/badges';
 
 interface ThreadRing88x31BadgeProps {
   templateId?: string;

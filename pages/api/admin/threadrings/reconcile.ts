@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 import { reconcileThreadRingCounters } from "@/scripts/reconcile-threadring-counters";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

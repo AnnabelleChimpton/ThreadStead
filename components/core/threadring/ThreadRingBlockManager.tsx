@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getUserDisplayName } from '@/lib/threadring-blocks'
+import { getUserDisplayName } from '@/lib/domain/threadrings/blocks'
 
 interface ThreadRingBlock {
   id: string

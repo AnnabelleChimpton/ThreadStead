@@ -3,7 +3,7 @@ import { GetServerSidePropsContext } from "next";
 import { NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Layout from "@/components/ui/layout/Layout";
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 import { 
   getExistingDid, 
   exportIdentityToken, 

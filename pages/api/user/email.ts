@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { encryptEmail, decryptEmail } from "@/lib/email-encryption";
 import { createEmailVerificationToken, sendVerificationEmail } from "@/lib/email-login";
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {

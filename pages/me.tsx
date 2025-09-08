@@ -1,6 +1,6 @@
 // pages/me.tsx
 import type { GetServerSideProps, NextApiRequest } from "next";
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   const user = await getSessionUser(req as NextApiRequest);

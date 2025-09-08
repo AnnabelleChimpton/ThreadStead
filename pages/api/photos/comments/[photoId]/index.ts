@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 
-import { getSessionUser } from "@/lib/auth-server";
-import { requireAction } from "@/lib/capabilities";
-import { createNotification } from "@/lib/notifications";
+import { getSessionUser } from "@/lib/auth/server";
+import { requireAction } from "@/lib/domain/users/capabilities";
+import { createNotification } from "@/lib/domain/notifications";
 
 
 

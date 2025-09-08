@@ -1,19 +1,19 @@
 // Import for internal use
-import { ValidationResult } from "./content-validation";
-import { validateUsername } from "./validateUsername";
-import { validateThreadRingName } from "./validateThreadRingName";
-import { validatePostTitle } from "./validatePostTitle";
+import { ValidationResult } from "./content";
+import { validateUsername } from "./username";
+import { validateThreadRingName } from "./threadring-name";
+import { validatePostTitle } from "./post-title";
 
 // Main validation module - exports all validation functions
-export { validateUsername, type UsernameValidationResult, type UsernameValidationErrorCode } from "./validateUsername";
-export { validateThreadRingName, generateThreadRingSlug } from "./validateThreadRingName";
-export { validatePostTitle } from "./validatePostTitle";
+export { validateUsername, type UsernameValidationResult, type UsernameValidationErrorCode } from "./username";
+export { validateThreadRingName, generateThreadRingSlug } from "./threadring-name";
+export { validatePostTitle } from "./post-title";
 export { 
   validateContent, 
   type ValidationResult, 
   type ValidationErrorCode, 
   type ContentValidationConfig 
-} from "./content-validation";
+} from "./content";
 
 // Convenience function to validate multiple content types
 export function validateAll(content: {

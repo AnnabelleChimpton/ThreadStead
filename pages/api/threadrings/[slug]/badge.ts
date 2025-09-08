@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 import { generateThreadRingBadge, validateBadgeContent } from "@/lib/badge-generator";
-import { BADGE_TEMPLATES } from "@/lib/threadring-badges";
+import { BADGE_TEMPLATES } from "@/lib/domain/threadrings/badges";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";

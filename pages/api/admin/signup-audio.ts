@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { requireAdmin } from '@/lib/auth-server';
+import { requireAdmin } from '@/lib/auth/server';
 import fs from 'fs';
 import path from 'path';
 import formidable from 'formidable';

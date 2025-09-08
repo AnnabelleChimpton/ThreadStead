@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-import { hashPassword } from "@/lib/password-auth";
+import { hashPassword } from "@/lib/auth/password";
 import { getSeedPhrase } from "@/lib/api/did/did-client";
 
 function readCookie(req: NextApiRequest, name: string) {
@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Import encryption functions
-    const { encryptSeedPhraseWithPassword } = await import('@/lib/password-auth');
+    const { encryptSeedPhraseWithPassword } = await import('@/lib/auth/password');
     
     // Encrypt the seed phrase with the new password
     const encryptedSeedPhrase = encryptSeedPhraseWithPassword(seedPhrase, password);

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth-server";
-import { requireAction } from "@/lib/capabilities";
+import { getSessionUser } from "@/lib/auth/server";
+import { requireAction } from "@/lib/domain/users/capabilities";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {

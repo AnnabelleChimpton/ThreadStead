@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getSessionUser } from "@/lib/auth-server";
-import { threadRingReconciliationScheduler } from "@/lib/threadring-reconciliation-scheduler";
+import { getSessionUser } from "@/lib/auth/server";
+import { threadRingReconciliationScheduler } from "@/lib/domain/threadrings/reconciliation-scheduler";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {

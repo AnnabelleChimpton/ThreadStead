@@ -8,7 +8,7 @@ import { markdownToSafeHtmlWithEmojis } from "@/lib/comment-markup";
 import Preview from "@/components/ui/forms/PreviewForm";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { validatePostTitle } from "@/lib/validation";
+import { validatePostTitle } from "@/lib/domain/validation";
 import EmojiPicker from "@/components/ui/feedback/EmojiPicker";
 
 interface PostEditorPageProps {

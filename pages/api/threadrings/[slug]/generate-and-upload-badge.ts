@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { getSessionUser } from '@/lib/auth-server'
+import { getSessionUser } from '@/lib/auth/server'
 import { generateBadge } from '@/lib/badge-generator'
 import { uploadBadgeImage } from '@/lib/badge-uploader'
 import { db } from '@/lib/db'

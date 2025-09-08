@@ -6,7 +6,7 @@
  */
 
 import { NextApiRequest, NextApiResponse } from 'next'
-import { getSessionUser } from '@/lib/auth-server'
+import { getSessionUser } from '@/lib/auth/server'
 import { getUserDID, getOrCreateUserDID, migrateUserToDID } from '@/lib/api/did/server-did-client'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

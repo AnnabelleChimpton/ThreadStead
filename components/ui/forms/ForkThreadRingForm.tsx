@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import BadgeSelector from "../../shared/BadgeSelector";
 import Toast from "../feedback/Toast";
 import { useToast } from "@/hooks/useToast";
-import { validateThreadRingName } from "@/lib/validation";
+import { validateThreadRingName } from "@/lib/domain/validation";
 
 interface ForkThreadRingFormProps {
   originalRing: {

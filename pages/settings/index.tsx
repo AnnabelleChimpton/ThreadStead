@@ -5,7 +5,7 @@ import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
-import { getSessionUser } from "@/lib/auth-server";
+import { getSessionUser } from "@/lib/auth/server";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Import existing components
@@ -28,7 +28,7 @@ import {
   isPasswordAuth,
   addPasswordToAccount
 } from "@/lib/api/did/did-client";
-import { validatePasswordStrength } from "@/lib/password-auth";
+import { validatePasswordStrength } from "@/lib/auth/password";
 import Link from "next/link";
 
 // We'll need to extract blocks functionality into a component
@@ -257,7 +257,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
           // Ask user to confirm their password to re-encrypt with new seed
           const userPassword = prompt("To keep password login working, please enter your current password:");
           if (userPassword) {
-            const { encryptSeedPhraseWithPassword } = await import('@/lib/password-auth');
+            const { encryptSeedPhraseWithPassword } = await import('@/lib/auth/password');
             const newEncryptedSeed = encryptSeedPhraseWithPassword(newSeed, userPassword);
             
             // Update the encrypted seed phrase on server
@@ -306,7 +306,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
         try {
           const userPassword = prompt("To keep password login working, please enter your current password:");
           if (userPassword) {
-            const { encryptSeedPhraseWithPassword } = await import('@/lib/password-auth');
+            const { encryptSeedPhraseWithPassword } = await import('@/lib/auth/password');
             const newEncryptedSeed = encryptSeedPhraseWithPassword(recoveryPhrase.trim(), userPassword);
             
             // Update the encrypted seed phrase on server
@@ -1176,7 +1176,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
 }
 
 export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async ({ req }) => {
-  const { getSessionUser } = await import('@/lib/auth-server');
+  const { getSessionUser } = await import('@/lib/auth/server');
   const user = await getSessionUser(req as NextApiRequest);
 
   if (!user) {
