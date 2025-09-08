@@ -392,14 +392,10 @@
     margin-bottom: 1rem;
   }
   
-  /* Enhanced mobile navigation */
+  /* Enhanced mobile navigation - only adds backdrop blur, preserves existing colors */
   .mobile-nav-enhanced {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    -webkit-backdrop-filter: blur(10px);
   }
   
   /* Improved mobile cards */
