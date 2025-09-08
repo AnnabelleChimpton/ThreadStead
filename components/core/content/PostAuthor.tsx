@@ -12,7 +12,7 @@ interface PostAuthorProps {
   }
   intent?: string | null
   showBadges?: boolean
-  badgeLayout?: 'inline' | 'compact' | 'tooltip'
+  badgeLayout?: 'inline' | 'compact' | 'tooltip' | 'showcase'
   className?: string
   currentUser?: UserWithRole | null
 }
