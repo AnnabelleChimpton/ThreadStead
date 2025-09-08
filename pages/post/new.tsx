@@ -656,7 +656,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Visibility:</label>
                 <select
-                  className="border border-black bg-white px-3 py-1 text-sm"
+                  className="form-select border border-black bg-white px-3 py-1 text-sm"
                   value={visibility}
                   onChange={(e) => setVisibility(e.target.value as Visibility)}
                   disabled={busy}
@@ -679,7 +679,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm text-gray-600 font-medium">I am</span>
                   <select
-                    className="border border-black bg-white px-3 py-1 text-sm rounded"
+                    className="form-select border border-black bg-white px-3 py-1 text-sm rounded"
                     value={intent || ""}
                     onChange={(e) => setIntent(e.target.value as PostIntent || null)}
                     disabled={busy}
@@ -697,7 +697,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
               
               <input
                 type="text"
-                className={`w-full border p-3 text-lg font-semibold ${
+                className={`form-input w-full border p-3 text-lg font-semibold ${
                   titleError ? 'border-red-500' : 'border-black'
                 }`}
                 placeholder={postTitlesRequired ? "Post title (required)" : "Post title (optional)"}
@@ -742,7 +742,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
                   <div className="mt-2">
                     <input
                       type="text"
-                      className="w-full border border-black p-2 text-sm rounded"
+                      className="form-input w-full border border-black p-2 text-sm rounded"
                       placeholder="Warning description (e.g. Episode 5 spoilers, Season 2 finale)"
                       value={contentWarning}
                       onChange={(e) => setContentWarning(e.target.value)}
@@ -765,7 +765,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
                     <button
                       key={item.action}
                       type="button"
-                      className="px-2 py-1 border border-black bg-white hover:bg-yellow-100 text-sm font-mono shadow-[1px_1px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                      className="toolbar-button px-2 py-1 border border-black bg-white hover:bg-yellow-100 text-sm font-mono shadow-[1px_1px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                       onClick={() => insertMarkdown(item.action, item.markdown)}
                       title={item.label}
                       disabled={busy || uploadingImage}
@@ -780,7 +780,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
                   <div className="ml-2 border-l border-black pl-2">
                     <button
                       type="button"
-                      className="px-3 py-1 border border-black bg-white hover:bg-green-100 text-sm font-medium shadow-[1px_1px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="toolbar-button px-3 py-1 border border-black bg-white hover:bg-green-100 text-sm font-medium shadow-[1px_1px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={() => fileInputRef.current?.click()}
                       title="Upload Image"
                       disabled={busy || uploadingImage}
@@ -801,7 +801,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
                 <div className="relative">
                   <textarea
                     ref={textareaRef}
-                    className={`w-full border border-black p-3 font-mono text-sm leading-relaxed resize-vertical ${
+                    className={`mobile-textarea w-full border border-black p-3 font-mono text-sm leading-relaxed resize-vertical ${
                       isDragging ? 'border-green-500 bg-green-50' : ''
                     }`}
                     rows={20}
@@ -919,7 +919,7 @@ code block
                       {threadRings.map((ring) => (
                         <label 
                           key={ring.id} 
-                          className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-all ${
+                          className={`checkbox-label flex items-center gap-3 p-2 rounded cursor-pointer transition-all ${
                             selectedRings.includes(ring.slug) 
                               ? 'bg-blue-100 border border-blue-300' 
                               : 'hover:bg-gray-50 border border-transparent'

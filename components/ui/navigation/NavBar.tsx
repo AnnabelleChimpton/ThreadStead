@@ -290,7 +290,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             <NotificationDropdown className="nav-link" />
             <button
               id="hamburger-button"
-              className="p-2 text-thread-pine hover:text-thread-sunset focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2"
+              className="p-3 text-thread-pine hover:text-thread-sunset focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenuOpen}
@@ -320,7 +320,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
           <div className="px-4 py-4 space-y-3">
             <Link 
               href="/" 
-              className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
+              className="block px-4 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
               onClick={() => setMobileMenuOpen(false)}
               role="menuitem"
             >
@@ -332,7 +332,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               <Link 
                 key={page.id}
                 href={`/page/${page.slug}`}
-                className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
+                className="block px-4 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
                 onClick={() => setMobileMenuOpen(false)}
                 role="menuitem"
               >

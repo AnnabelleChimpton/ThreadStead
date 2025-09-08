@@ -1124,9 +1124,20 @@ function IslandsPreview({
         border-radius: 8px;
         box-shadow: 3px 3px 0 #A18463;
         position: relative;
-        min-width: 900px;
+        min-width: 0;
         width: 100%;
-        max-width: 1100px;
+        max-width: min(1100px, 100vw);
+      }
+      
+      @media (max-width: 768px) {
+        .thread-module {
+          max-width: 100vw;
+          margin: 0;
+          border-radius: 0;
+          box-shadow: none;
+          border-left: none;
+          border-right: none;
+        }
       }
       
       .thread-headline {

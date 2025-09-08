@@ -130,6 +130,50 @@
   margin-right: calc(-40vw + 50%);
 }
 
+@media (max-width: 768px) {
+  .post-editor-container {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Mobile-specific post editor improvements */
+  .post-editor-container .toolbar-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .post-editor-container .form-input {
+    min-height: 44px;
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .post-editor-container .form-select {
+    min-height: 44px;
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .post-editor-container .checkbox-label {
+    min-height: 44px;
+    padding: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  
+  .post-editor-container .mobile-textarea {
+    min-height: 300px;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
+
 /* ThreadRing Components */
 .tr-header-min-width {
   min-width: auto;

@@ -167,11 +167,23 @@ export default function ProfileModeRenderer({
                   border-radius: 8px;
                   box-shadow: 3px 3px 0 #A18463;
                   position: relative;
-                  min-width: 900px;
+                  min-width: 0;
                   width: 100%;
-                  max-width: 1100px;
+                  max-width: min(1100px, 100vw);
                   padding: 1.5rem;
                   margin-bottom: 1.5rem;
+                }
+                
+                @media (max-width: 768px) {
+                  .advanced-template-container {
+                    max-width: 100vw;
+                    padding: 1rem;
+                    margin: 0 0 1rem 0;
+                    border-radius: 0;
+                    box-shadow: none;
+                    border-left: none;
+                    border-right: none;
+                  }
                 }
                 
                 .advanced-template-container .thread-headline {
