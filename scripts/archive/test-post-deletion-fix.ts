@@ -3,7 +3,7 @@
  * Tests both the new UUID-based deletion and the old URI fallback
  */
 
-import { db } from '@/lib/db';
+import { db } from '@/lib/config/database/connection';
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
 
 const TEST_POST_ID = 'd899b00b-3475-404e-bcb7-30fa69da62f3'; // Database UUID from the guide

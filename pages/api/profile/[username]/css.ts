@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from '@/lib/auth/server';
-import { SITE_NAME } from "@/lib/site-config";
+import { SITE_NAME } from "@/lib/config/site/constants";
 
 export default async function handler(
   req: NextApiRequest,

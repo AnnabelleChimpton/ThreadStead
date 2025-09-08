@@ -66,7 +66,7 @@ export default withThreadRingSupport(async function handler(
             const postId = response.uri.split('/').pop();
             if (postId && postId.length > 10) { // Basic validation
               try {
-                const { db } = await import('@/lib/db');
+                const { db } = await import('@/lib/config/database/connection');
                 const actualPost = await db.post.findUnique({
                   where: { id: postId },
                   select: {

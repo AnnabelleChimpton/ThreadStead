@@ -13,7 +13,7 @@ loadEnvConfig(projectDir)
 
 import { loadUserDIDMappings } from '@/lib/api/did/server-did-client'
 import { AuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
-import { db } from '@/lib/db'
+import { db } from '@/lib/config/database/connection'
 
 async function testSpecificUser() {
   console.log('🔍 Testing user with hash: dbf3bd2982f841f7')

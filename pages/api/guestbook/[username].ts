@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { createGuestbookNotification } from "@/lib/domain/notifications";
-import { SITE_NAME } from "@/lib/site-config";
+import { SITE_NAME } from "@/lib/config/site/constants";
 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

@@ -2,7 +2,7 @@
  * Test script for the specific failing deletion case mentioned in the guide
  */
 
-import { db } from '@/lib/db';
+import { db } from '@/lib/config/database/connection';
 
 async function testSpecificCase() {
   console.log('🔍 Testing Specific Deletion Case');

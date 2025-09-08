@@ -12,7 +12,7 @@ const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
 import { loadUserDIDMappings } from '@/lib/api/did/server-did-client'
-import { db } from '@/lib/db'
+import { db } from '@/lib/config/database/connection'
 
 async function auditUserDIDMappings() {
   console.log('🔍 Auditing User DID Mappings')

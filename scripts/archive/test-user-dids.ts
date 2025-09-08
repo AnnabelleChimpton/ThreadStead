@@ -12,7 +12,7 @@ const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
 import { loadUserDIDMappings, getOrCreateUserDID, generateUserDIDDocument } from '@/lib/api/did/server-did-client'
-import { db } from '@/lib/db'
+import { db } from '@/lib/config/database/connection'
 
 async function testUserDIDs() {
   console.log('🧪 Testing User DID Generation')

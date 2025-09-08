@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { createCommentNotification, createReplyNotification } from "@/lib/domain/notifications";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

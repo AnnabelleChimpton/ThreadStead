@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
-import { db } from "@/lib/db";
-import { SITE_NAME } from '@/lib/site-config';
+import { db } from "@/lib/config/database/connection";
+import { SITE_NAME } from '@/lib/config/site/constants';
 import { generateDefaultProfileTemplate, migrateLegacyProfile, TEMPLATE_EXAMPLES } from '@/lib/templates/default-profile-template';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

@@ -9,7 +9,7 @@
  *   npx tsx scripts/backfill-post-threadring-associations.ts
  */
 
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 

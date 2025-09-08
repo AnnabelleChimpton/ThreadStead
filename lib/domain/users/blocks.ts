@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 /**
  * Get all user IDs and ThreadRing IDs that a user has blocked

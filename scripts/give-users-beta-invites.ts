@@ -13,7 +13,7 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { db } from '@/lib/db'
+import { db } from '@/lib/config/database/connection'
 import { generateUserBetaInviteCodes } from '@/lib/utils/invites/beta-codes'
 
 async function giveUsersBetaInvites() {

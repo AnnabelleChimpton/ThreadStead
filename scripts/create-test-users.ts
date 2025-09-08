@@ -5,7 +5,7 @@
  * Run with: npx tsx scripts/create-test-users.ts
  */
 
-import { db } from "../lib/db";
+import { db } from "../lib/config/database/connection";
 import { generateSeedPhrase, createKeypairFromSeedPhrase } from "../lib/api/did/did-client";
 
 interface TestUser {

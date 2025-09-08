@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 import { encryptEmail, decryptEmail } from "@/lib/utils/security/email-encryption";
 import { createEmailVerificationToken, sendVerificationEmail } from "@/lib/email-login";
 import { getSessionUser } from "@/lib/auth/server";

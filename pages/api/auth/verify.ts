@@ -1,6 +1,6 @@
 // pages/api/auth/verify.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 import * as ed from "@noble/ed25519";
 import { fromBase64Url } from "@/lib/utils/encoding/base64url";

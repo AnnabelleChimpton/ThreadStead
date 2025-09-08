@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { db } from '../../db';
+import { db } from '../../config/database/connection';
 
 export interface BetaInviteCode {
   id: string;

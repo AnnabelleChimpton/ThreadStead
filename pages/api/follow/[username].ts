@@ -1,10 +1,10 @@
 // pages/api/follow/[username].ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 import { getSessionUser } from "@/lib/auth/server";
 import { createFollowNotification, createFriendNotification, checkForMutualFollow } from "@/lib/domain/notifications";
-import { SITE_NAME } from "@/lib/site-config";
+import { SITE_NAME } from "@/lib/config/site/constants";
 
 
 

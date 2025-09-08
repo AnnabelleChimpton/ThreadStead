@@ -557,9 +557,7 @@ function IslandsPreview({
   // Generate and inject CSS into Shadow DOM - match live ProfileModeRenderer behavior
   const updateShadowCSS = React.useCallback(() => {
     if (!shadowRootRef.current) return;
-    
-    console.log('🔧 updateShadowCSS called with:', { customCSS, cssMode, useStandardLayout });
-    
+        
     // Remove existing style element
     const existingStyle = shadowRootRef.current.querySelector('#shadow-styles');
     if (existingStyle) {
@@ -705,9 +703,7 @@ function IslandsPreview({
         /* USER CSS WITH NUCLEAR DOMINANCE - MUST ALWAYS WIN */
         ${(() => {
           if (cleanUserCSS) {
-            console.log('\ud83d\udd25 Advanced Template: Processing custom CSS:', cleanUserCSS);
             const nuclear = forceUserCSSDominance(cleanUserCSS);
-            console.log('\ud83d\udca5 Advanced Nuclear CSS result:', nuclear);
             return nuclear;
           }
           return '';
@@ -1582,24 +1578,13 @@ function IslandsPreview({
     // For standard layout templates, we need to add nuclear-ized user CSS after all the navigation styles
     // so it can override the header/footer styling we just added
     if (useStandardLayout && customCSS) {
-      console.log('\ud83d\udd25 Standard Layout: Processing custom CSS:', customCSS);
       // SIMPLE BUT EFFECTIVE: Just add !important to everything - keep CSS intact
       const nuclearUserCSS = customCSS.replace(/([^;{]+):\s*([^;!]+)(?!.*!important)\s*;/g, '$1: $2 !important;');
-      console.log('\ud83d\udca5 Nuclear CSS result:', nuclearUserCSS);
       finalCSS += `\n\n/* USER CUSTOM CSS WITH NUCLEAR DOMINANCE - HIGHEST PRIORITY */\n${nuclearUserCSS}\n`;
-      console.log('\ud83d\udca5 Nuclear CSS added to finalCSS, total length:', finalCSS.length);
     }
     
-    console.log('\ud83c\udfaf Final CSS being injected into Shadow DOM:', finalCSS);
     styleElement.textContent = finalCSS;
     shadowRootRef.current.insertBefore(styleElement, shadowRootRef.current.firstChild);
-    console.log('\u2705 CSS injected into Shadow DOM successfully');
-    
-    // CRITICAL DEBUG: Check what's actually in the Shadow DOM
-    const shadowStyles = shadowRootRef.current.querySelector('#shadow-styles');
-    console.log('\ud83d\udd0d Shadow DOM style element:', shadowStyles);
-    console.log('\ud83d\udd0d Actual CSS in Shadow DOM:', shadowStyles?.textContent?.substring(0, 500));
-    console.log('\ud83d\udd0d Shadow DOM children:', Array.from(shadowRootRef.current.children));
   }, [customCSS, cssMode, siteWideCSS, useStandardLayout]);
 
   // Update shadow DOM styles when CSS or mode changes

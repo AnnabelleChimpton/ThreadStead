@@ -8,7 +8,7 @@ import ThreadRing88x31Badge from '@/components/core/threadring/ThreadRing88x31Ba
 import { getSessionUser } from '@/lib/auth/server';
 import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
-import { db } from '@/lib/db';
+import { db } from '@/lib/config/database/connection';
 import { BADGE_TEMPLATES, type BadgeTemplate } from '@/lib/domain/threadrings/badges';
 import { generateBadge, type BadgeGenerationOptions } from '@/lib/badge-generator';
 

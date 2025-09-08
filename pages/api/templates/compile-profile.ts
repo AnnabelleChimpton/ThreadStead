@@ -1,6 +1,6 @@
 // API endpoint for compiling profile templates
 import { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/lib/db';
+import { db } from '@/lib/config/database/connection';
 import { getSessionUser } from '@/lib/auth/server';
 import { compileProfile, ProfileRenderContext } from '@/lib/templates/compilation/compiler';
 // Note: getResidentData would be imported if it existed

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 import { hashPassword } from "@/lib/auth/password";
 import { getSeedPhrase } from "@/lib/api/did/did-client";
 

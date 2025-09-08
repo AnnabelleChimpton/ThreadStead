@@ -1,8 +1,8 @@
 // Direct database data fetchers for use in getServerSideProps
 // Avoids internal HTTP calls that can cause crashes and performance issues
 
-import { db } from "../../db";
-import { SITE_NAME } from "../../site-config";
+import { db } from "../../config/database/connection";
+import { SITE_NAME } from "../../config/site/constants";
 
 export async function getPostsForUser(username: string, viewerId?: string) {
   const handle = await db.handle.findFirst({

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { GetServerSideProps } from 'next';
 import ThreadRingGenealogy from '@/components/core/threadring/ThreadRingGenealogy';
 import Layout from '@/components/ui/layout/Layout';
-import { getSiteConfig, SiteConfig } from '@/lib/get-site-config';
+import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 
 interface GenealogyPageProps {
   siteConfig: SiteConfig;

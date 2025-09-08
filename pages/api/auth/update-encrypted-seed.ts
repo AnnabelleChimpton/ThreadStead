@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 function readCookie(req: NextApiRequest, name: string) {
   const cookie = req.headers.cookie || "";

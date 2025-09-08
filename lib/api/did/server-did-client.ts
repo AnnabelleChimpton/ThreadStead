@@ -131,8 +131,6 @@ export async function getOrCreateUserDID(userId: string): Promise<UserDIDMapping
   if (existing) {
     // Migrate old did:key format to did:web format
     if (existing.did.startsWith('did:key:')) {
-      console.log(`Migrating user ${userId} from did:key to did:web format`);
-      
       // Generate new did:web DID but keep the same keys
       const userHash = createHash('sha256').update(userId + process.env.THREADSTEAD_DID_SALT || 'default-salt').digest('hex').slice(0, 16);
       const domain = getDomainFromEnvironment();
@@ -143,9 +141,7 @@ export async function getOrCreateUserDID(userId: string): Promise<UserDIDMapping
       existing.userHash = userHash;
       
       // Save updated mappings
-      await storeUserDIDMappings(mappings);
-      
-      console.log(`Migrated user DID: ${existing.did}`);
+      await storeUserDIDMappings(mappings);      
     }
     
     return existing;
@@ -459,9 +455,7 @@ function getDomainFromEnvironment(): string {
 export async function initializeServerDID(): Promise<{ did: string; domain: string }> {
   const keypair = await getOrCreateServerKeypair();
   const domain = getDomainFromEnvironment();
-  
-  console.log(`ThreadStead Server DID initialized: ${keypair.did}`);
-  
+    
   return {
     did: keypair.did,
     domain
@@ -481,9 +475,7 @@ export async function rotateServerKeypair(): Promise<ServerKeypair> {
   // 1. Notify Ring Hub of the key rotation
   // 2. Keep old key valid for a transition period
   // 3. Update all references
-  
-  console.log(`Server keypair rotated. New DID: ${newKeypair.did}`);
-  
+    
   return newKeypair;
 }
 
@@ -545,6 +537,4 @@ export async function importServerIdentity(exportedData: string): Promise<void> 
   
   // Store user mappings
   await storeUserDIDMappings(data.users || []);
-  
-  console.log(`Server identity imported. DID: ${data.server.did}`);
 }

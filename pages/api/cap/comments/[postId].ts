@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
 import { mintCapability } from "@/lib/domain/users/capabilities";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

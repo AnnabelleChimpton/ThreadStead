@@ -58,8 +58,6 @@ export default function ThreadRing88x31Badge({
       console.warn(`Badge template '${templateId}' not found, available templates:`, 
         ['classic_blue', 'retro_green', 'neon_pink', 'sunset_orange', 'deep_purple', 'matrix_black', 'cyber_teal', 'golden_yellow']);
       console.warn('Using default colors instead');
-    } else {
-      console.log(`Using template '${templateId}':`, template);
     }
   }
 

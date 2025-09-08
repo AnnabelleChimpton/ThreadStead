@@ -63,13 +63,6 @@ export default function AdvancedProfileRenderer({
 
   // Generate properly layered CSS instead of the !important nightmare
   const layeredCSS = useMemo(() => {
-    console.log('AdvancedProfileRenderer: Generating layered CSS', {
-      customCSSLength: customCSS?.length || 0,
-      cssMode,
-      profileId,
-      hasSiteCSS: !!siteWideCSS
-    });
-    
     return generateOptimizedCSS({
       cssMode,
       templateMode: 'advanced',
@@ -194,25 +187,12 @@ function ProfileContentRenderer({
   const hasIslands = islands && islands.length > 0;
   const hasStaticHTML = compiledTemplate.staticHTML && compiledTemplate.staticHTML.trim();
 
-  console.log('ProfileContentRenderer debug:', {
-    hasIslands,
-    islandsLength: islands?.length || 0,
-    hasStaticHTML,
-    staticHTMLLength: compiledTemplate.staticHTML?.length || 0,
-    bothPresent: hasIslands && hasStaticHTML,
-    firstIsland: islands?.[0],
-    islandIds: islands?.map(i => i.id),
-    compiledTemplate: compiledTemplate
-  });
-
   if (!hasIslands && !hasStaticHTML) {
     return <div className="p-4 text-gray-500">No content to render</div>;
   }
 
   // NEW APPROACH: Render static HTML first, then hydrate islands into placeholders
   if (hasIslands && hasStaticHTML) {
-    console.log('Rendering static HTML with islands hydrated into placeholders');
-    
     // Create a combined approach: render static HTML and replace placeholders with islands
     return (
       <StaticHTMLWithIslands 
@@ -227,7 +207,6 @@ function ProfileContentRenderer({
 
   // Fallback: If we only have islands (no static HTML), render them directly
   if (hasIslands) {
-    console.log('Rendering islands only (no static HTML)');
     const rootIslands = islands; // All islands are root islands in this structure
     
     return (
@@ -248,7 +227,6 @@ function ProfileContentRenderer({
 
   // If we only have static HTML (no islands), render it directly
   if (hasStaticHTML) {
-    console.log('Rendering static HTML only');
     return (
       <div dangerouslySetInnerHTML={{ __html: compiledTemplate.staticHTML }} />
     );
@@ -284,7 +262,6 @@ function StaticHTMLWithIslands({
     
     // Find all island placeholders
     const placeholders = tempDiv.querySelectorAll('[data-island]');
-    console.log('Found placeholders:', placeholders.length);
     
     // Replace each placeholder with a React component placeholder
     const replacements: Array<{id: string, component: React.ReactElement}> = [];
@@ -295,7 +272,6 @@ function StaticHTMLWithIslands({
       
       if (islandId && islandMap.has(islandId)) {
         const island = islandMap.get(islandId)!;
-        console.log(`Replacing placeholder for ${componentName} (${islandId})`);
         
         // Create a unique marker for this island
         const markerId = `ISLAND_MARKER_${islandId}`;
@@ -631,12 +607,6 @@ function StaticHTMLRenderer({
 }: StaticHTMLRendererProps) {
   const [mountedIslands, setMountedIslands] = useState<Set<string>>(new Set());
 
-  console.log('StaticHTMLRenderer: Initializing with:', {
-    htmlLength: html.length,
-    islandsCount: islands.length,
-    residentDataKeys: Object.keys(residentData)
-  });
-
   // Create a map for quick island lookup
   const islandMap = useMemo(() => {
     const map = new Map<string, Island>();
@@ -645,10 +615,6 @@ function StaticHTMLRenderer({
     });
     return map;
   }, [islands]);
-
-  // Note: We no longer need complex hydration effects since we're using direct rendering
-
-  console.log('StaticHTMLRenderer: About to render HTML:', html.substring(0, 200) + '...');
 
   return (
     <>
@@ -707,9 +673,7 @@ function DirectIslandRenderer({ island, residentData }: { island: ExtendedIsland
 
   useEffect(() => {
     async function loadComponent() {
-      try {
-        console.log(`Loading component ${island.component} for profile rendering`, { hasChildren: (island.children?.length ?? 0) > 0 });
-        
+      try {        
         // Get the component from registry
         const registration = componentRegistry.get(island.component);
         
@@ -718,7 +682,6 @@ function DirectIslandRenderer({ island, residentData }: { island: ExtendedIsland
         }
         
         setComponent(() => registration.component);
-        console.log(`Successfully loaded ${island.component}`);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         console.error(`Failed to load component ${island.component}:`, errorMessage);

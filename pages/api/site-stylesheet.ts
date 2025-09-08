@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { readFileSync } from "fs";
 import path from "path";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 const SITE_CSS_KEY = "site_custom_css";
 

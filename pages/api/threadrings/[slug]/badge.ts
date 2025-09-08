@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { generateThreadRingBadge, validateBadgeContent } from "@/lib/badge-generator";
 import { BADGE_TEMPLATES } from "@/lib/domain/threadrings/badges";

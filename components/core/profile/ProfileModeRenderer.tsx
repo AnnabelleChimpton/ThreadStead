@@ -58,15 +58,6 @@ export default function ProfileModeRenderer({
 }: ProfileModeRendererProps) {
   const mode = user.profile?.templateMode || 'default';
   
-  console.log('🎯 ProfileModeRenderer Entry Debug:', {
-    mode,
-    userId: user.id,
-    hasProfile: !!user.profile,
-    templateMode: user.profile?.templateMode,
-    hasCustomCSS: !!(user.profile?.customCSS),
-    cssLength: user.profile?.customCSS?.length || 0
-  });
-  
   // Feature flag check for islands - bypass if we have compiled template data
   const featureFlagResult = featureFlags.templateIslands({ id: user.id, role: 'member' });
   const hasCompiledTemplate = !!user.profile?.compiledTemplate;
@@ -74,15 +65,6 @@ export default function ProfileModeRenderer({
                           mode === 'advanced' && 
                           (featureFlagResult || hasCompiledTemplate); // Allow if feature flag OR compiled template exists
                           
-  // Debug logging
-  console.log('ProfileModeRenderer: Islands decision', {
-    useIslands,
-    mode,
-    featureFlagResult,
-    hasCompiledTemplate,
-    shouldUseIslands,
-    finalCheck: shouldUseIslands && hasCompiledTemplate
-  });
   
   React.useEffect(() => {
     onModeChange?.(mode);
@@ -98,14 +80,7 @@ export default function ProfileModeRenderer({
         return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation);
         
       case 'advanced':
-        console.log('ProfileModeRenderer: Advanced mode decision', {
-          shouldUseIslands,
-          hasCompiledTemplate: !!user.profile?.compiledTemplate,
-          willUseIslands: shouldUseIslands && user.profile?.compiledTemplate
-        });
-        
         if (shouldUseIslands && user.profile?.compiledTemplate) {
-          console.log('ProfileModeRenderer: Using AdvancedProfileRenderer with Islands');
           
           // Advanced template mode: ONLY USER CSS - zero system interference
           const cleanUserCSS = (user.profile?.customCSS || '')
@@ -252,7 +227,6 @@ export default function ProfileModeRenderer({
             </>
           );
         } else {
-          console.log('ProfileModeRenderer: Falling back to legacy advanced mode');
           return renderAdvancedLegacyMode(user, residentData);
         }
         
@@ -301,15 +275,6 @@ function renderEnhancedMode(
   hideNavigation?: boolean
 ) {
   const customCSS = user.profile?.customCSS;
-  
-  console.log('🎨 Enhanced Mode Renderer Debug:', {
-    hasCustomCSS: !!customCSS,
-    customCSSLength: customCSS?.length || 0,
-    cssMode: user.profile?.cssMode,
-    templateMode: user.profile?.templateMode,
-    hideNavigation,
-    customCSSPreview: customCSS?.substring(0, 100) + '...'
-  });
   
   return (
     <ProfileLayout 

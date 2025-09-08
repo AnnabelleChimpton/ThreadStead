@@ -3,7 +3,7 @@ import Tabs, { TabSpec } from "../components/ui/navigation/Tabs";
 import Feed from "../components/core/content/Feed";
 import RingHubFeed from "../components/core/content/RingHubFeed";
 import TrendingFeedTab from "../components/core/content/TrendingFeedTab";
-import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
+import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { useCurrentUser } from "../hooks/useCurrentUser";

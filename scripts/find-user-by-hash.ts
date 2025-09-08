@@ -12,7 +12,7 @@ const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
 import { createHash } from 'crypto'
-import { db } from '@/lib/db'
+import { db } from '@/lib/config/database/connection'
 
 async function findUserIdByHash() {
   const targetHash = 'dbf3bd2982f841f7'

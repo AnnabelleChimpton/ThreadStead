@@ -3,7 +3,7 @@ import { getSessionUser } from '@/lib/auth/server';
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
 import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
-import { db } from '@/lib/db';
+import { db } from '@/lib/config/database/connection';
 
 /**
  * Extract post ID from ThreadStead post URI

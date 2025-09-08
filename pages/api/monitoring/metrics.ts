@@ -5,7 +5,7 @@
  */
 
 import { NextApiRequest, NextApiResponse } from 'next'
-import { ringHubRateLimiter } from '@/lib/rate-limiting-config'
+import { ringHubRateLimiter } from '@/lib/config/rate-limiting/limits'
 import { getKeyRotationStatus } from '@/lib/utils/scheduling/key-rotation'
 
 interface Metrics {

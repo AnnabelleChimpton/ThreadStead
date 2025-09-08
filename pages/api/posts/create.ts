@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Visibility, PostIntent } from "@prisma/client";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 import { getSessionUser } from "@/lib/auth/server";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";

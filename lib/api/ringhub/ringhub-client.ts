@@ -702,7 +702,6 @@ export class RingHubClient {
     }
 
     try {
-      console.log(`Ring Hub ${method} request to ${path}:`, { headers: headers['Authorization'] ? 'signed' : 'unsigned' });
       const response = await fetch(url, config)
 
       if (!response.ok) {
@@ -782,14 +781,11 @@ export class RingHubClient {
       return `${header}: ${headerValue}`
     }).join('\n')
 
-    console.log('Signing string:', signingString);
-
     // Sign with Ed25519 private key
     const signature = crypto.sign(null, Buffer.from(signingString, 'utf8'), this.privateKey)
     const signatureB64 = signature.toString('base64')
 
     const signatureHeader = `keyId="${keyId}",algorithm="${algorithm}",headers="${signingHeaders.join(' ')}",signature="${signatureB64}"`
-    console.log('Generated signature header:', signatureHeader);
     
     return signatureHeader
   }

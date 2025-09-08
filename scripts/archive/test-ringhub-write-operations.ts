@@ -18,7 +18,7 @@ loadEnvConfig(projectDir)
 
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { getServerDID } from '@/lib/api/did/server-did-client'
-import { db } from '@/lib/db'
+import { db } from '@/lib/config/database/connection'
 
 interface TestResult {
   operation: string

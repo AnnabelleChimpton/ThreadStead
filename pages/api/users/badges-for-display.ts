@@ -1,6 +1,6 @@
 // pages/api/users/badges-for-display.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { db } from '@/lib/db'
+import { db } from '@/lib/config/database/connection'
 import { UserBadgePreferences } from '@/pages/api/users/me/badge-preferences'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'

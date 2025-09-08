@@ -5,7 +5,7 @@
  * Run with: npx tsx scripts/delete-test-users.ts
  */
 
-import { db } from "../lib/db";
+import { db } from "../lib/config/database/connection";
 
 const TEST_USER_HANDLES = [
   "alice_blogger",

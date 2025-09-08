@@ -13,7 +13,7 @@ loadEnvConfig(projectDir)
 
 import { getRingHubClient, getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { AuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
-import { db } from '@/lib/db'
+import { db } from '@/lib/config/database/connection'
 import { getOrCreateUserDID } from '@/lib/api/did/server-did-client'
 
 async function testRingHubVerification() {

@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useMemo, useEffect } from "react"
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Layout from "@/components/ui/layout/Layout";
-import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
+import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { markdownToSafeHtmlWithEmojis } from "@/lib/comment-markup";
 import Preview from "@/components/ui/forms/PreviewForm";
@@ -173,24 +173,14 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
 
   // Update selected rings when prompt data is available and threadrings are loaded
   useEffect(() => {
-    console.log('🔍 ThreadRing selection effect:', {
-      hasPrompt: !!respondingToPrompt,
-      promptSlug: respondingToPrompt?.threadRingSlug,
-      threadRingsCount: threadRings.length,
-      selectedRings
-    });
-    
     if (respondingToPrompt) {
       // In dev mode, if we have no memberships, just use the ThreadRing from the prompt
       if (threadRings.length === 0 && respondingToPrompt.threadRingSlug) {
-        console.log('⚠️ No ThreadRing memberships found (dev mode issue), using prompt ThreadRing directly');
         setSelectedRings([respondingToPrompt.threadRingSlug]);
       } else if (threadRings.length > 0) {
         const ring = threadRings.find(r => r.slug === respondingToPrompt.threadRingSlug);
-        console.log('🔍 Found matching ring:', ring?.slug);
         
         if (ring && !selectedRings.includes(ring.slug)) {
-          console.log('✅ Setting selected rings to:', [ring.slug]);
           setSelectedRings([ring.slug]); // Use slug for Ring Hub compatibility
         }
       }
@@ -216,7 +206,6 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
       const response = await fetch("/api/threadrings/my-memberships");
       if (response.ok) {
         const { rings } = await response.json();
-        console.log('🔍 Loaded ThreadRings:', rings.map((tr: any) => ({ id: tr.id, name: tr.name, slug: tr.slug })));
         setThreadRings(rings);
       }
     } catch (error) {
@@ -579,21 +568,13 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
         payload.contentWarning = contentWarning.trim() || null;
       }
       
-      // Debug selected rings
-      console.log('🔍 Form submission - selectedRings:', selectedRings);
-      console.log('🔍 Form submission - respondingToPrompt:', respondingToPrompt);
-      
       if (selectedRings.length > 0) {
         payload.threadRingIds = selectedRings;
-        console.log('✅ Added threadRingIds to payload:', selectedRings);
-      } else {
-        console.log('❌ No selected rings, threadRingIds not added to payload');
       }
       
       // Add prompt ID if responding to a prompt
       if (respondingToPrompt) {
         payload.promptId = respondingToPrompt.id;
-        console.log('✅ Added promptId to payload:', respondingToPrompt.id);
       }
 
       const res = await fetch("/api/posts/create", {

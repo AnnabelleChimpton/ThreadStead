@@ -12,8 +12,8 @@
  * - Handles foreign key constraints safely
  */
 
-import { db } from '../lib/db';
-import { SITE_NAME } from '../lib/site-config';
+import { db } from '../lib/config/database/connection';
+import { SITE_NAME } from '../lib/config/site/constants';
 
 interface UserDeletionSummary {
   user: {

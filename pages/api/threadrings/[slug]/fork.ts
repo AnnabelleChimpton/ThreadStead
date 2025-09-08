@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import crypto from "crypto";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
 import { uploadBadgeImage } from "@/lib/badge-uploader";

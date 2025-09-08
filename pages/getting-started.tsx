@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Layout from "../components/ui/layout/Layout";
 import RetroCard from "../components/ui/layout/RetroCard";
-import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
+import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 

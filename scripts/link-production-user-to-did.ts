@@ -14,7 +14,7 @@ loadEnvConfig(projectDir)
 
 import { createHash } from 'crypto'
 import { loadUserDIDMappings, storeUserDIDMappings } from '@/lib/api/did/server-did-client'
-import { db } from '@/lib/db'
+import { db } from '@/lib/config/database/connection'
 
 async function linkUserToDID() {
   const targetHash = 'dbf3bd2982f841f7'

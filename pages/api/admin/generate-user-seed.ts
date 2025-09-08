@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { requireAdmin } from "@/lib/auth/server";
 import { generateSeedPhrase, createKeypairFromSeedPhrase } from "@/lib/api/did/did-client";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 
 

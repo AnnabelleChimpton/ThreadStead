@@ -12,9 +12,9 @@
  * - Uses transactions for data consistency
  */
 
-import { db } from '../lib/db';
+import { db } from '../lib/config/database/connection';
 import { validateUsername } from '../lib/domain/validation';
-import { SITE_NAME } from '../lib/site-config';
+import { SITE_NAME } from '../lib/config/site/constants';
 
 async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDisplayName?: string) {
   console.log('🔄 Starting user handle update...');

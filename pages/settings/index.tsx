@@ -1190,7 +1190,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
 
   // Fetch user profile data
   try {
-    const { db } = await import('@/lib/db');
+    const { db } = await import('@/lib/config/database/connection');
     
     const userData = await db.user.findUnique({
       where: { id: user.id },

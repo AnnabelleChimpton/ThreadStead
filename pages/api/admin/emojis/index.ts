@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 // Admin emoji management API
 

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/db";
+import { db } from "@/lib/config/database/connection";
 
 import { requireAdmin } from "@/lib/auth/server";
 
@@ -20,6 +20,12 @@ const DEFAULT_CONFIG = {
   site_description: "A cozy corner of the internet for thoughtful conversations and creative expression.",
   disable_default_home: "false",
   default_profile_css: "",
+  terms_simple: "By creating an account, you agree to use our platform respectfully and responsibly.",
+  terms_full: "Full terms and conditions not yet configured.",
+  privacy_simple: "We protect your privacy and use reasonable security measures to protect your information.",
+  privacy_full: "Full privacy policy not yet configured.",
+  site_custom_css: "",
+  founders_note: "",
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
