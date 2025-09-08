@@ -64,6 +64,11 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
     }
   }, [urlBetaKey, betaKey]);
 
+  useEffect(() => {
+    // Scroll to top when step changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
+
   async function checkUsernameAvailability(username: string) {
     // First validate the username format
     const validation = validateUsername(username);

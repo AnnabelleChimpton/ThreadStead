@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { NotificationData } from "./NotificationList";
 
 interface NotificationDropdownProps {
@@ -10,11 +11,11 @@ interface NotificationDropdownProps {
 
 export default function NotificationDropdown({ className = "" }: NotificationDropdownProps) {
   const router = useRouter();
+  const { loggedIn, loading: authLoading } = useCurrentUser();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Helper function to extract username from handle (e.g., "alice@sitename" -> "alice")
@@ -24,7 +25,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
   };
 
   const fetchNotifications = useCallback(async () => {
-    if (loading) return;
+    if (loading || !loggedIn) return;
     
     setLoading(true);
     try {
@@ -47,9 +48,11 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loading, loggedIn]);
 
   const markAsRead = async (notificationIds: string[]) => {
+    if (!loggedIn) return;
+    
     try {
       const res = await fetch("/api/notifications", {
         method: "PATCH",
@@ -95,24 +98,24 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         if (res.ok) {
           const data = await res.json();
           setUnreadCount(data.count);
-          setIsLoggedIn(true);
-        } else if (res.status === 401) {
-          // Not logged in
-          setUnreadCount(0);
-          setIsLoggedIn(false);
         }
       } catch {
         // Notification count fetch failed silently
       }
     };
 
-    // Fetch initial count
-    fetchUnreadCount();
-
-    // Set up periodic refresh every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    // Only fetch if logged in and auth loading is complete
+    if (loggedIn && !authLoading) {
+      fetchUnreadCount();
+      
+      // Set up periodic refresh every 30 seconds
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    } else if (!loggedIn && !authLoading) {
+      // User is not logged in, clear any existing count
+      setUnreadCount(0);
+    }
+  }, [loggedIn, authLoading]);
 
   // Fetch full notifications when dropdown opens
   useEffect(() => {
@@ -182,8 +185,8 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     }
   };
 
-  // Don't render if user is not logged in
-  if (isLoggedIn === false) {
+  // Don't render if user is not logged in or still loading auth
+  if (!loggedIn || authLoading) {
     return null;
   }
 
