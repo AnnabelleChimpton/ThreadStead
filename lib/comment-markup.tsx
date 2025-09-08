@@ -204,7 +204,7 @@ export function processHtmlWithEmojis(html: string): string {
 // Enhanced markdown processor with emoji support
 export async function markdownToSafeHtmlWithEmojis(markdown: string): Promise<string> {
   // First convert markdown to HTML
-  const { markdownToSafeHtml } = await import('@/lib/sanitize');
+  const { markdownToSafeHtml } = await import('@/lib/utils/sanitization/html');
   const html = markdownToSafeHtml(markdown);
   
   // Then process emojis

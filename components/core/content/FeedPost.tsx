@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
+import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { markdownToSafeHtmlWithEmojis, processHtmlWithEmojis, loadEmojiMap } from "@/lib/comment-markup";
 import CommentList, { CommentWire } from "./CommentList";
 import NewCommentForm from "../../ui/forms/NewCommentForm";

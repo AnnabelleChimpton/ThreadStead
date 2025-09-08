@@ -1,6 +1,6 @@
 // lib/did-client.ts
 import * as ed from "@noble/ed25519";
-import { toBase64Url, fromBase64Url } from "@/lib/base64";
+import { toBase64Url, fromBase64Url } from "@/lib/utils/encoding/base64url";
 import * as bip39 from "bip39";
 
 const KEY_STORAGE = "retro_did_keypair_v1";

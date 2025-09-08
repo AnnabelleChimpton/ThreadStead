@@ -255,7 +255,7 @@ async function showKeypairInfo(keypair: KeypairData) {
   
   // Generate multibase public key
   try {
-    const { fromBase64Url } = await import('@/lib/base64')
+    const { fromBase64Url } = await import('@/lib/utils/encoding/base64url')
     const ed = await import('@noble/ed25519')
     const bs58 = await import('bs58')
     

@@ -1,6 +1,6 @@
 // API endpoint for previewing CSS (without saving to database)
 import type { NextApiRequest, NextApiResponse } from "next";
-import { cleanCss } from "@/lib/sanitize-css";
+import { cleanCss } from "@/lib/utils/sanitization/css";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {

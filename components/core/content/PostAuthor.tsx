@@ -2,7 +2,7 @@
 import React from 'react'
 import Link from 'next/link'
 import CompactBadgeDisplay from '../../shared/CompactBadgeDisplay'
-import { UserWithRole } from '@/lib/feature-flags'
+import { UserWithRole } from '@/lib/utils/features/feature-flags'
 
 interface PostAuthorProps {
   author?: { 

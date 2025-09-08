@@ -5,7 +5,7 @@
  */
 
 import { NextApiRequest, NextApiResponse } from 'next'
-import { getKeyRotationStatus } from '@/lib/key-rotation-scheduler'
+import { getKeyRotationStatus } from '@/lib/utils/scheduling/key-rotation'
 import { ringHubRateLimiter } from '@/lib/rate-limiting-config'
 import { testRingHubConnection, validateRingHubConfig } from '@/lib/api/ringhub/ringhub-test-utils'
 import { getOrCreateServerKeypair } from '@/lib/api/did/server-did-client'

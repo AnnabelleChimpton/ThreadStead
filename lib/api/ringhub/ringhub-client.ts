@@ -6,7 +6,7 @@
  */
 
 import crypto from 'crypto';
-import { featureFlags } from '@/lib/feature-flags'
+import { featureFlags } from '@/lib/utils/features/feature-flags'
 
 // Types for Ring Hub API compatibility
 export interface RingDescriptor {

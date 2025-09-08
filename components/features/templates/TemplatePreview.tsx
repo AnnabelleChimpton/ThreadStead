@@ -6,7 +6,7 @@ import type { ResidentData } from '@/components/features/templates/ResidentDataP
 import type { User } from '@prisma/client';
 import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
 import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/template-registry';
-import { generatePreviewCSS, forceUserCSSDominance } from '@/lib/css-layers';
+import { generatePreviewCSS, forceUserCSSDominance } from '@/lib/utils/css/layers';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import Link from 'next/link';

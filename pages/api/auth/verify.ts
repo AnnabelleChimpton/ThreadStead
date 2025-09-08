@@ -3,7 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 
 import * as ed from "@noble/ed25519";
-import { fromBase64Url } from "@/lib/base64";
+import { fromBase64Url } from "@/lib/utils/encoding/base64url";
 
 
 
@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // If creating a new user, check beta key requirements
   else if (!user) {
     // Import beta invite code utilities
-    const { checkBetaAccess, generateUserBetaInviteCodes } = await import("@/lib/beta-invite-codes");
+    const { checkBetaAccess, generateUserBetaInviteCodes } = await import("@/lib/utils/invites/beta-codes");
     
     // Check beta access (handles both admin keys and user invite codes)
     const betaCheck = await checkBetaAccess(betaKey);

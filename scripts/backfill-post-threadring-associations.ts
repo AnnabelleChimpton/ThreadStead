@@ -11,7 +11,7 @@
 
 import { db } from "@/lib/db";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
-import { featureFlags } from "@/lib/feature-flags";
+import { featureFlags } from "@/lib/utils/features/feature-flags";
 
 interface RingHubPost {
   id: string;

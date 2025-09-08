@@ -467,7 +467,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       
       // Fetch posts and guestbook data for template rendering using direct DB calls
       const { getSessionUser } = await import('@/lib/auth/server');
-      const { getPostsForUser, getGuestbookForUser, getPhotosForUser } = await import('@/lib/data-fetchers');
+      const { getPostsForUser, getGuestbookForUser, getPhotosForUser } = await import('@/lib/utils/data/fetchers');
       
       const currentUser = await getSessionUser(req as any);
       const viewerId = currentUser?.id;
@@ -483,7 +483,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       if (postsData.status === 'fulfilled' && postsData.value) {
 
         // Import cleaning functions
-        const { markdownToSafeHtml, cleanAndNormalizeHtml } = await import("@/lib/sanitize");
+        const { markdownToSafeHtml, cleanAndNormalizeHtml } = await import("@/lib/utils/sanitization/html");
         function escapeHtml(s: string) {
           return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }

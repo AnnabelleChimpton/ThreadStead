@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import hljs from "highlight.js";
-import { markdownToSafeHtml } from "@/lib/sanitize";  // Import your markdownToSafeHtml function
+import { markdownToSafeHtml } from "@/lib/utils/sanitization/html";  // Import your markdownToSafeHtml function
 
 const Preview = ({ content }: { content: string }) => {
   const [htmlContent, setHtmlContent] = useState<string>("");

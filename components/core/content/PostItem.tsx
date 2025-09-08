@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
+import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { TextWithEmojis, HtmlWithEmojis, markdownToSafeHtmlWithEmojis, processHtmlWithEmojis } from "@/lib/comment-markup";
 import hljs from "highlight.js"; // Ensure highlight.js is imported
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../../ui/forms/NewCommentForm";
 import ThreadRingBadge from "../threadring/ThreadRingBadge";
 import PostHeader from "./PostHeader";
-import { UserWithRole } from "@/lib/feature-flags";
+import { UserWithRole } from "@/lib/utils/features/feature-flags";
 import PostModerationActions from "./PostModerationActions";
 import { useModerationPermissions } from "@/hooks/useModerationPermissions";
 import { PostModerationAction, PostModerationStatus, ThreadRingRole } from "@/types/threadrings";

@@ -6,7 +6,7 @@ import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import ThreadRing88x31Badge from '@/components/core/threadring/ThreadRing88x31Badge';
 import { getSessionUser } from '@/lib/auth/server';
-import { featureFlags } from '@/lib/feature-flags';
+import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
 import { db } from '@/lib/db';
 import { BADGE_TEMPLATES, type BadgeTemplate } from '@/lib/domain/threadrings/badges';

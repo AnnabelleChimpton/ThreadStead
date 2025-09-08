@@ -4,7 +4,7 @@ import { GetServerSideProps } from "next";
 import ProfileLayout from "@/components/ui/layout/ProfileLayout";
 import ProfileHeader from "@/components/core/profile/ProfileHeader";
 import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
-import { featureFlags } from "@/lib/feature-flags";
+import { featureFlags } from "@/lib/utils/features/feature-flags";
 
 interface CSSPreviewProps {
   username: string;

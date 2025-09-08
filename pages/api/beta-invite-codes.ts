@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
-import { getUserBetaInviteCodes } from '@/lib/beta-invite-codes';
+import { getUserBetaInviteCodes } from '@/lib/utils/invites/beta-codes';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

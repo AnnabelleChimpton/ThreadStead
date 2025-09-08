@@ -3,7 +3,7 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Layout from "@/components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/get-site-config";
-import { markdownToSafeHtml } from "@/lib/sanitize";
+import { markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { markdownToSafeHtmlWithEmojis } from "@/lib/comment-markup";
 import Preview from "@/components/ui/forms/PreviewForm";
 import Link from "next/link";

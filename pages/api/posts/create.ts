@@ -3,8 +3,8 @@ import { Visibility, PostIntent } from "@prisma/client";
 import { db } from "@/lib/db";
 
 import { getSessionUser } from "@/lib/auth/server";
-import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
-import { featureFlags } from "@/lib/feature-flags";
+import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
+import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { validatePostTitle } from "@/lib/domain/validation";
 
@@ -214,7 +214,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (promptId) {
               console.log(`🎯 Checking if post is response to prompt ${promptId} in ring ${slug}`);
               try {
-                const { createPromptService } = await import('@/lib/prompt-service');
+                const { createPromptService } = await import('@/lib/utils/data/prompt-service');
                 const promptService = createPromptService(slug);
                 promptDetails = await promptService.getPromptDetails(promptId);
                 isPromptResponse = !!promptDetails;
@@ -327,7 +327,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             // If this was a prompt response, update the response count
             if (isPromptResponse && promptDetails) {
               try {
-                const { createPromptService } = await import('@/lib/prompt-service');
+                const { createPromptService } = await import('@/lib/utils/data/prompt-service');
                 const promptService = createPromptService(slug);
                 await promptService.associatePostWithPrompt(
                   viewer.id,

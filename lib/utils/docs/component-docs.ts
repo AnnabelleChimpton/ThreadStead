@@ -1,5 +1,5 @@
 // Helper functions for generating component documentation
-import { componentRegistry, type PropSchema } from './templates/core/template-registry';
+import { componentRegistry, type PropSchema } from '../../templates/core/template-registry';
 
 export interface PropDocumentation {
   name: string;

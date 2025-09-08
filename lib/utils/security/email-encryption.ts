@@ -78,7 +78,7 @@ export function decryptEmail(encryptedEmail: string): string {
  * Finds all users with the given email address (supports multiple accounts per email)
  */
 export async function findUsersByEmail(email: string): Promise<any[]> {
-  const { db } = await import('./db');
+  const { db } = await import('../../db');
   
   // Get all users with encrypted emails
   const users = await db.user.findMany({

@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import { db } from './db';
-import { encryptEmail, findUsersByEmail } from './email-encryption';
+import { encryptEmail, findUsersByEmail } from './utils/security/email-encryption';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -92,7 +92,7 @@ export async function checkEmailLoginToken(token: string): Promise<EmailLoginUse
   // Don't mark as used yet - just validate and return users
   
   // Decrypt the email from token and find users with that email
-  const { decryptEmail } = await import('./email-encryption');
+  const { decryptEmail } = await import('./utils/security/email-encryption');
   const email = decryptEmail(tokenRecord.encryptedEmail);
   
   // Find users with this email (decrypt-based lookup) AND verified email
@@ -170,7 +170,7 @@ export async function verifyEmailVerificationToken(token: string): Promise<{ use
   });
 
   // Return decrypted email for confirmation
-  const email = await import('./email-encryption').then(mod => 
+  const email = await import('./utils/security/email-encryption').then(mod => 
     mod.decryptEmail(tokenRecord.encryptedEmail)
   );
   

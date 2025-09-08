@@ -6,7 +6,7 @@ import { GetServerSideProps } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/site-config";
-import { featureFlags } from "@/lib/feature-flags";
+import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 
 interface Member {

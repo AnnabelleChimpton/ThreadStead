@@ -5,11 +5,11 @@ import '@testing-library/jest-dom';
 import ProfileModeRenderer from '../ProfileModeRenderer';
 import type { ProfileUser } from '../ProfileModeRenderer';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
-import { featureFlags } from '@/lib/feature-flags';
+import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { transformNodeToReact } from '@/lib/templates/rendering/template-renderer';
 
 // Mock the feature flags
-jest.mock('@/lib/feature-flags', () => ({
+jest.mock('@/lib/utils/features/feature-flags', () => ({
   featureFlags: {
     templateIslands: jest.fn(() => false)
   }

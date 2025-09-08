@@ -2,7 +2,7 @@ import React from "react";
 import Layout from "./Layout";
 import NavBar from "../navigation/NavBar";
 import MinimalNavBar from "../navigation/MinimalNavBar";
-import { generateOptimizedCSS, type CSSMode, type TemplateMode } from "@/lib/css-layers";
+import { generateOptimizedCSS, type CSSMode, type TemplateMode } from "@/lib/utils/css/layers";
 import { useSiteCSS } from "@/hooks/useSiteCSS";
 
 interface ProfileLayoutProps {

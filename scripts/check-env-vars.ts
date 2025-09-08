@@ -56,7 +56,7 @@ async function checkRingHubClient() {
       console.log('      RingHubClient.isAvailable():', RingHubClient.isAvailable())
       
       // Check each requirement
-      const { featureFlags } = await import('@/lib/feature-flags')
+      const { featureFlags } = await import('@/lib/utils/features/feature-flags')
       console.log('      featureFlags.ringhub():', featureFlags.ringhub())
       console.log('      RING_HUB_URL exists:', !!process.env.RING_HUB_URL)
       console.log('      THREADSTEAD_DID exists:', !!process.env.THREADSTEAD_DID)

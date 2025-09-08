@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { generateEncryptionKey } from '../lib/email-encryption';
+import { generateEncryptionKey } from '../lib/utils/security/email-encryption';
 
 console.log('🔐 Generating Email Encryption Key...\n');
 

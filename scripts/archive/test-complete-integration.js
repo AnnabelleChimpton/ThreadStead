@@ -150,7 +150,7 @@ async function testCompleteIntegration() {
   
   // Test settings page integration
   try {
-    const { featureFlags } = require('@/lib/feature-flags');
+    const { featureFlags } = require('@/lib/utils/features/feature-flags');
     const ringHubEnabled = featureFlags.ringhub();
     
     if (ringHubEnabled) {

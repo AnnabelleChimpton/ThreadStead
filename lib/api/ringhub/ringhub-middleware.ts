@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { featureFlags } from '@/lib/feature-flags'
+import { featureFlags } from '@/lib/utils/features/feature-flags'
 
 /**
  * Middleware to ensure Ring Hub feature is enabled

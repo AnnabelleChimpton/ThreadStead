@@ -5,7 +5,7 @@ import type { ResidentData } from '@/components/features/templates/ResidentDataP
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import type { CompiledTemplate, Island } from '@/lib/templates/compilation/compiler';
 import { componentRegistry } from '@/lib/templates/core/template-registry';
-import { generateOptimizedCSS, type CSSMode, type TemplateMode } from '@/lib/css-layers';
+import { generateOptimizedCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 
 // Extended Island type with htmlStructure for runtime rendering

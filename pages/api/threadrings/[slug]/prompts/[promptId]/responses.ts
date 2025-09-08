@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createPromptService } from '@/lib/prompt-service'
+import { createPromptService } from '@/lib/utils/data/prompt-service'
 import { withThreadRingSupport } from '@/lib/api/ringhub/ringhub-middleware'
 
 export default withThreadRingSupport(async function handler(

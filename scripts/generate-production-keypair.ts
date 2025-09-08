@@ -38,7 +38,7 @@ async function generateProductionKeypair() {
   
   try {
     // Import the conversion functions
-    const { fromBase64Url, toBase64Url } = await import('@/lib/base64')
+    const { fromBase64Url, toBase64Url } = await import('@/lib/utils/encoding/base64url')
     const ed = await import('@noble/ed25519')
     
     // Convert private key from base64url and derive public key

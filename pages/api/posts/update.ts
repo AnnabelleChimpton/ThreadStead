@@ -3,7 +3,7 @@ import { Visibility } from "@prisma/client";
 import { db } from "@/lib/db";
 
 import { getSessionUser } from "@/lib/auth/server";
-import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/sanitize";
+import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 
 
 

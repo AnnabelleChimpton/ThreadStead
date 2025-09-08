@@ -11,7 +11,7 @@ import { TEMPLATE_EXAMPLES } from '@/lib/templates/default-profile-template';
 import { HTML_TEMPLATES, getHTMLTemplate } from '@/lib/templates/default-html-templates';
 import Link from 'next/link';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
-import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/css-layers';
+import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
 import { componentRegistry } from '@/lib/templates/core/template-registry';

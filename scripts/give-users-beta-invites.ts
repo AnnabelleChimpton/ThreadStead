@@ -14,7 +14,7 @@ const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
 import { db } from '@/lib/db'
-import { generateUserBetaInviteCodes } from '@/lib/beta-invite-codes'
+import { generateUserBetaInviteCodes } from '@/lib/utils/invites/beta-codes'
 
 async function giveUsersBetaInvites() {
   console.log('🎁 Giving existing users beta invite codes')

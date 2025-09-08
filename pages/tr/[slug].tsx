@@ -12,7 +12,7 @@ import RandomMemberDiscovery from "../../components/shared/RandomMemberDiscovery
 import ThreadRingFeedScope from "../../components/core/threadring/ThreadRingFeedScope";
 import ThreadRingActivePrompt from "../../components/core/threadring/ThreadRingActivePrompt";
 import ThreadRing88x31Badge from "../../components/core/threadring/ThreadRing88x31Badge";
-import { featureFlags } from "@/lib/feature-flags";
+import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
 import Toast from "../../components/ui/feedback/Toast";

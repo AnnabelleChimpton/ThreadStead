@@ -15,7 +15,7 @@ import ProfileBadgeSelector from "@/components/core/profile/ProfileBadgeSelector
 import BetaInviteCodesManager from "@/components/features/admin/BetaInviteCodesManager";
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
 import { TemplateEngine } from "@/lib/templates/core/template-engine";
-import { featureFlags } from "@/lib/feature-flags";
+import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface ProfileEditProps {

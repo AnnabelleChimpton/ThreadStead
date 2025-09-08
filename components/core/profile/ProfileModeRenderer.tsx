@@ -6,7 +6,7 @@ import { transformNodeToReact } from '@/lib/templates/rendering/template-rendere
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
-import { featureFlags } from '@/lib/feature-flags';
+import { featureFlags } from '@/lib/utils/features/feature-flags';
 import dynamic from 'next/dynamic';
 
 // Dynamically import AdvancedProfileRenderer to avoid SSR issues

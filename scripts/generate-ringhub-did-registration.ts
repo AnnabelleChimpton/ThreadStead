@@ -13,7 +13,7 @@ const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
 import { loadUserDIDMappings, generateUserDIDDocument } from '@/lib/api/did/server-did-client'
-import { fromBase64Url } from '@/lib/base64'
+import { fromBase64Url } from '@/lib/utils/encoding/base64url'
 
 async function generateRegistrationSQL() {
   console.log('🔐 Generating Ring Hub DID Registration SQL')

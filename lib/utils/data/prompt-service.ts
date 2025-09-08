@@ -6,15 +6,15 @@
  */
 
 import crypto from 'crypto';
-import { getRingHubClient } from './api/ringhub/ringhub-client';
-import { AuthenticatedRingHubClient } from './api/ringhub/ringhub-user-operations';
+import { getRingHubClient } from '../../api/ringhub/ringhub-client';
+import { AuthenticatedRingHubClient } from '../../api/ringhub/ringhub-user-operations';
 import type { 
   PromptPostRefMetadata, 
   PromptResponsePostRefMetadata,
   ThreadRingPostRef,
   ThreadRingPostRefMetadata
 } from '@/types/threadrings';
-import type { PostRef } from './api/ringhub/ringhub-client';
+import type { PostRef } from '../../api/ringhub/ringhub-client';
 
 export interface CreatePromptRequest {
   title: string;

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { TemplateEngine } from '@/lib/templates/core/template-engine';
 import { fetchResidentData } from '@/lib/templates/core/template-data';
-import { scopeCSS, generateScopeId } from '@/lib/css-scoping';
+import { scopeCSS, generateScopeId } from '@/lib/utils/css/scoping';
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 

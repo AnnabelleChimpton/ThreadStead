@@ -5,7 +5,7 @@
  */
 
 import * as ed from "@noble/ed25519";
-import { fromBase64Url } from "@/lib/base64";
+import { fromBase64Url } from "@/lib/utils/encoding/base64url";
 
 export interface WebhookVerificationResult {
   valid: boolean
