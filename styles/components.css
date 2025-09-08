@@ -392,10 +392,9 @@
     margin-bottom: 1rem;
   }
   
-  /* Enhanced mobile navigation - only adds backdrop blur, preserves existing colors */
+  /* Enhanced mobile navigation - removed all effects to preserve original header styling */
   .mobile-nav-enhanced {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    /* No modifications - preserves original header colors and styling */
   }
   
   /* Improved mobile cards */
@@ -659,8 +658,7 @@
   /* Dark mode optimizations */
   @media (prefers-color-scheme: dark) {
     .mobile-nav-enhanced {
-      background: rgba(17, 24, 39, 0.95);
-      border-bottom-color: rgba(255, 255, 255, 0.1);
+      /* No dark mode modifications - preserves original header styling */
     }
     
     .mobile-card {
@@ -772,6 +770,21 @@
   
   .mobile-list-enhanced .mobile-list-item:active {
     background-color: rgba(59, 130, 246, 0.05);
+  }
+  
+  /* Mobile post content full width */
+  .blog-post-content,
+  .blog-post-editor {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .blog-post-content p,
+  .blog-post-content div,
+  .blog-post-content > * {
+    width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   /* Mobile sticky elements */
