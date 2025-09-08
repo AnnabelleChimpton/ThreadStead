@@ -1,9 +1,9 @@
 // Import all template constants from separate files
-import { ABSTRACT_ART_TEMPLATE } from './templates/abstract-art';
-import { CHARCOAL_NIGHTS_TEMPLATE } from './templates/charcoal-nights';
-import { PIXEL_PETALS_TEMPLATE } from './templates/pixel-petals';
-import { RETRO_SOCIAL_TEMPLATE } from './templates/retro-social';
-import { CLASSIC_LINEN_TEMPLATE } from './templates/classic-linen';
+import { ABSTRACT_ART_TEMPLATE } from './abstract-art';
+import { CHARCOAL_NIGHTS_TEMPLATE } from './charcoal-nights';
+import { PIXEL_PETALS_TEMPLATE } from './pixel-petals';
+import { RETRO_SOCIAL_TEMPLATE } from './retro-social';
+import { CLASSIC_LINEN_TEMPLATE } from './classic-linen';
 
 // Type definitions
 export type ProfileTemplateType = 'abstract-art' | 'charcoal-nights' | 'pixel-petals' | 'retro-social' | 'classic-linen';

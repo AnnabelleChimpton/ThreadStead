@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HTML_TEMPLATES, getHTMLTemplate, type HTMLTemplateInfo } from '@/lib/default-html-templates';
+import { HTML_TEMPLATES, getHTMLTemplate, type HTMLTemplateInfo } from '@/lib/templates/default-html-templates';
 
 interface HTMLTemplateSelectorProps {
   currentTemplate: string;

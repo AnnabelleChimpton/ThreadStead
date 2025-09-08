@@ -2,8 +2,8 @@
 import React from 'react';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
-import { transformNodeToReact } from '@/lib/template-renderer';
-import type { TemplateNode } from '@/lib/template-parser';
+import { transformNodeToReact } from '@/lib/templates/rendering/template-renderer';
+import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
 import { featureFlags } from '@/lib/feature-flags';

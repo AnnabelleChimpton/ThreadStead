@@ -1,7 +1,7 @@
 // Import individual HTML templates
-import { SOCIAL_MODERN_TEMPLATE } from './html-templates/social-modern';
-import { CLASSIC_WEB1_TEMPLATE } from './html-templates/classic-web1';
-import { SIMPLE_DEFAULT_TEMPLATE } from './html-templates/simple-default';
+import { SOCIAL_MODERN_TEMPLATE } from './html/social-modern';
+import { CLASSIC_WEB1_TEMPLATE } from './html/classic-web1';
+import { SIMPLE_DEFAULT_TEMPLATE } from './html/simple-default';
 
 // Template metadata for UI display
 export interface HTMLTemplateInfo {

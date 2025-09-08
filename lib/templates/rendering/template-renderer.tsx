@@ -1,6 +1,6 @@
 import React from 'react';
-import { componentRegistry, validateAndCoerceProps } from './template-registry';
-import type { TemplateNode } from './template-parser';
+import { componentRegistry, validateAndCoerceProps } from '../core/template-registry';
+import type { TemplateNode } from '../compilation/template-parser';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 
 // Transform AST to React elements

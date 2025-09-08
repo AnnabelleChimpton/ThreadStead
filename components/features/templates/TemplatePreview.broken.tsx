@@ -4,8 +4,8 @@ import { createPortal } from 'react-dom';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import type { User } from '@prisma/client';
-import type { CompiledTemplate } from '@/lib/template-compiler';
-import { componentRegistry, validateAndCoerceProps } from '@/lib/template-registry';
+import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
+import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/template-registry';
 import { generatePreviewCSS, type CSSMode } from '@/lib/css-layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 

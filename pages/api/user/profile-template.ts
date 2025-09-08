@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth/server";
-import { getDefaultProfileTemplate, ProfileTemplateType } from "@/lib/default-profile-templates";
+import { getDefaultProfileTemplate, ProfileTemplateType } from "@/lib/templates/default-profile-templates";
 
 const VALID_TEMPLATES: ProfileTemplateType[] = ['abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social', 'classic-linen'];
 

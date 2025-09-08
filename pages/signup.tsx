@@ -6,8 +6,8 @@ import Layout from "@/components/ui/layout/Layout";
 import { createNewIdentityWithSeedPhrase, createNewIdentityWithPassword } from "@/lib/api/did/did-client";
 import { validatePasswordStrength } from "@/lib/auth/password";
 import { validateUsername } from "@/lib/domain/validation/username";
-import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/default-profile-templates";
-import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_STYLES } from "@/lib/template-preview-styles";
+import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/templates/default-profile-templates";
+import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_STYLES } from "@/lib/templates/rendering/template-preview-styles";
 import SignupFinaleAnimation from "@/components/features/onboarding/SignupFinaleAnimation";
 import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
 

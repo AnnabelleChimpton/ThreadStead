@@ -2,7 +2,7 @@ import { unified } from 'unified';
 import rehypeParse from 'rehype-parse';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import type { Root } from 'hast';
-import { componentRegistry } from './template-registry';
+import { componentRegistry } from '../core/template-registry';
 
 // Define our custom sanitization schema
 function createCustomSchema() {

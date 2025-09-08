@@ -6,7 +6,7 @@ import type {
   ProfileMode,
   CompilationOptions 
 } from './types';
-import { compileTemplate } from '@/lib/template-parser';
+import { compileTemplate } from '@/lib/templates/compilation/template-parser';
 import { identifyIslandsWithTransform } from './island-detector';
 import { generateStaticHTML } from './html-optimizer';
 

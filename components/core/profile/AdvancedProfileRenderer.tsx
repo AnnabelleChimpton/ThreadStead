@@ -3,8 +3,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ProfileUser } from './ProfileModeRenderer';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
-import type { CompiledTemplate, Island } from '@/lib/template-compiler';
-import { componentRegistry } from '@/lib/template-registry';
+import type { CompiledTemplate, Island } from '@/lib/templates/compilation/compiler';
+import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { generateOptimizedCSS, type CSSMode, type TemplateMode } from '@/lib/css-layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 

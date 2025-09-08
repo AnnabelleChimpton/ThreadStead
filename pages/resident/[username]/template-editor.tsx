@@ -5,7 +5,7 @@ import Head from "next/head";
 
 import Layout from "@/components/ui/layout/Layout";
 import EnhancedTemplateEditor from '@/components/features/templates/EnhancedTemplateEditor';
-import type { CompiledTemplate } from '@/lib/template-compiler';
+import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
 
 interface TemplateEditorPageProps {
   username: string;

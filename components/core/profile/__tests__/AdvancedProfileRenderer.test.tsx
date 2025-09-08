@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import AdvancedProfileRenderer from '../AdvancedProfileRenderer';
 import type { ProfileUser } from '../ProfileModeRenderer';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
-import type { CompiledTemplate, Island } from '@/lib/template-compiler';
+import type { CompiledTemplate, Island } from '@/lib/templates/compilation/compiler';
 
 // Mock Next.js dynamic import
 jest.mock('next/dynamic', () => {

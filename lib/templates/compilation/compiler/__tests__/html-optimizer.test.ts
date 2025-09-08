@@ -1,7 +1,7 @@
 // Tests for HTML optimization
 import { generateStaticHTML, optimizeCSS, escapeHtml, calculateMetrics } from '../html-optimizer';
 import { identifyIslands } from '../island-detector';
-import { compileTemplate } from '@/lib/template-parser';
+import { compileTemplate } from '@/lib/templates/compilation/template-parser';
 import type { Island, TemplateNode } from '../types';
 
 describe('HTML Optimization', () => {

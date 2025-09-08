@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TemplateEngine } from '@/lib/template-engine';
-import { fetchResidentData, fetchCurrentUserResidentData } from '@/lib/template-data';
+import { TemplateEngine } from '@/lib/templates/core/template-engine';
+import { fetchResidentData, fetchCurrentUserResidentData } from '@/lib/templates/core/template-data';
 import { scopeCSS, generateScopeId } from '@/lib/css-scoping';
 import HTMLTemplateSelector from './HTMLTemplateSelector';
-import type { TemplateNode } from '@/lib/template-parser';
+import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 
 interface TemplateEditorProps {

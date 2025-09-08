@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType, getDefaultProfileTemplate } from '@/lib/default-profile-templates';
-import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_STYLES } from '@/lib/template-preview-styles';
+import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType, getDefaultProfileTemplate } from '@/lib/templates/default-profile-templates';
+import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_STYLES } from '@/lib/templates/rendering/template-preview-styles';
 
 interface TemplatePanelSelectorProps {
   currentCSS?: string;

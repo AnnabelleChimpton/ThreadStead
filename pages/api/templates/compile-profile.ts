@@ -2,7 +2,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/db';
 import { getSessionUser } from '@/lib/auth/server';
-import { compileProfile, ProfileRenderContext } from '@/lib/template-compiler';
+import { compileProfile, ProfileRenderContext } from '@/lib/templates/compilation/compiler';
 // Note: getResidentData would be imported if it existed
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

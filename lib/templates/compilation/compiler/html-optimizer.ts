@@ -1,5 +1,5 @@
 // HTML optimization and static generation
-import type { TemplateNode } from '@/lib/template-parser';
+import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import type { Island } from './types';
 
 // Generate optimized static HTML with island placeholders

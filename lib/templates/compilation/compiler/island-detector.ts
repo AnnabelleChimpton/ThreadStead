@@ -1,6 +1,6 @@
 // Island detection for template compilation
-import type { TemplateNode } from '@/lib/template-parser';
-import { componentRegistry, validateAndCoerceProps } from '@/lib/template-registry';
+import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
+import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/template-registry';
 import type { Island } from './types';
 
 // Generate unique island ID based on component type and path

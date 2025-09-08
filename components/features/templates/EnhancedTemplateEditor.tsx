@@ -2,19 +2,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import TemplatePreview from './TemplatePreview';
-import { fetchResidentData } from '@/lib/template-data';
+import { fetchResidentData } from '@/lib/templates/core/template-data';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
-import type { CompiledTemplate } from '@/lib/template-compiler';
-import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO } from '@/lib/default-profile-templates';
+import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
+import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO } from '@/lib/templates/default-profile-templates';
 import TemplatePanelSelector from './TemplatePanelSelector';
-import { TEMPLATE_EXAMPLES } from '@/lib/default-profile-template';
-import { HTML_TEMPLATES, getHTMLTemplate } from '@/lib/default-html-templates';
+import { TEMPLATE_EXAMPLES } from '@/lib/templates/default-profile-template';
+import { HTML_TEMPLATES, getHTMLTemplate } from '@/lib/templates/default-html-templates';
 import Link from 'next/link';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/css-layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
-import { componentRegistry } from '@/lib/template-registry';
+import { componentRegistry } from '@/lib/templates/core/template-registry';
 
 // Warning dialog for data loss prevention
 interface DataLossWarningProps {

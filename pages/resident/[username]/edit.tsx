@@ -13,8 +13,8 @@ import FriendManager, { SelectedFriend } from "@/components/core/social/FriendMa
 import ProfilePhotoUpload from "@/components/core/profile/ProfilePhotoUpload";
 import ProfileBadgeSelector from "@/components/core/profile/ProfileBadgeSelector";
 import BetaInviteCodesManager from "@/components/features/admin/BetaInviteCodesManager";
-import type { TemplateNode } from "@/lib/template-parser";
-import { TemplateEngine } from "@/lib/template-engine";
+import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
+import { TemplateEngine } from "@/lib/templates/core/template-engine";
 import { featureFlags } from "@/lib/feature-flags";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 

@@ -1,8 +1,8 @@
 // Import individual site templates
-import { DEFAULT_SITE_TEMPLATE } from './site-templates/default';
-import { MINIMAL_SITE_TEMPLATE } from './site-templates/minimal';
-import { DARK_SITE_TEMPLATE } from './site-templates/dark';
-import { COLORFUL_SITE_TEMPLATE } from './site-templates/colorful';
+import { DEFAULT_SITE_TEMPLATE } from './site/default';
+import { MINIMAL_SITE_TEMPLATE } from './site/minimal';
+import { DARK_SITE_TEMPLATE } from './site/dark';
+import { COLORFUL_SITE_TEMPLATE } from './site/colorful';
 
 // Re-export all templates
 export {

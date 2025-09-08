@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getDefaultProfileTemplate, type ProfileTemplateType } from '@/lib/default-profile-templates';
+import { getDefaultProfileTemplate, type ProfileTemplateType } from '@/lib/templates/default-profile-templates';
 
 interface CSSEditorProps {
   value: string;

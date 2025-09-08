@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getTemplatePreviewStyle, TEMPLATE_PREVIEW_STYLES } from '@/lib/template-preview-styles';
-import { ProfileTemplateType } from '@/lib/default-profile-templates';
+import { getTemplatePreviewStyle, TEMPLATE_PREVIEW_STYLES } from '@/lib/templates/rendering/template-preview-styles';
+import { ProfileTemplateType } from '@/lib/templates/default-profile-templates';
 import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
 
 interface WelcomeHomeOverlayProps {

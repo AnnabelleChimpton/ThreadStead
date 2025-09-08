@@ -3,7 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
-import type { Island } from '@/lib/template-compiler';
+import type { Island } from '@/lib/templates/compilation/compiler';
 import type { ProfileMode } from '@/components/core/profile/ProfileModeRenderer';
 
 

@@ -1,7 +1,7 @@
 // Tests for island detection
 import { identifyIslands, generateIslandId } from '../island-detector';
-import { compileTemplate } from '@/lib/template-parser';
-import type { TemplateNode } from '@/lib/template-parser';
+import { compileTemplate } from '@/lib/templates/compilation/template-parser';
+import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 
 describe('Island Detection', () => {
   describe('generateIslandId', () => {

@@ -17,7 +17,7 @@ import ProfileBadgeDisplay from "@/components/core/profile/ProfileBadgeDisplay";
 import ProfileModeRenderer from "@/components/core/profile/ProfileModeRenderer";
 import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer";
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
-import type { TemplateNode } from "@/lib/template-parser";
+import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useRouter } from "next/router";
 import dynamic from 'next/dynamic';
@@ -456,7 +456,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         
         if (updatedTemplate) {
           // Recompile the template to fix the AST
-          const { compileTemplate } = await import('@/lib/template-parser');
+          const { compileTemplate } = await import('@/lib/templates/compilation/template-parser');
           const compilationResult = compileTemplate(updatedTemplate);
           
           if (compilationResult.success) {

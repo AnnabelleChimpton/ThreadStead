@@ -1,11 +1,11 @@
 // Import individual templates
-import { DEFAULT_CSS_TEMPLATE } from './templates/default';
-import { MINIMAL_CSS_TEMPLATE } from './templates/minimal';
-import { ADVANCED_LAYOUT_TEMPLATE } from './templates/advanced';
-import { RETRO_GAMING_TEMPLATE } from './templates/gaming';
-import { NEWSPAPER_TEMPLATE } from './templates/newspaper';
-import { DARK_THEME_TEMPLATE } from './templates/dark';
-import { MEDIEVAL_FANTASY_TEMPLATE } from './templates/medieval';
+import { DEFAULT_CSS_TEMPLATE } from './default';
+import { MINIMAL_CSS_TEMPLATE } from './minimal';
+import { ADVANCED_LAYOUT_TEMPLATE } from './advanced';
+import { RETRO_GAMING_TEMPLATE } from './gaming';
+import { NEWSPAPER_TEMPLATE } from './newspaper';
+import { DARK_THEME_TEMPLATE } from './dark';
+import { MEDIEVAL_FANTASY_TEMPLATE } from './medieval';
 
 // Re-export all templates
 export {

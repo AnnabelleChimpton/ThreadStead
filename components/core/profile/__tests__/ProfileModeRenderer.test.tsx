@@ -6,7 +6,7 @@ import ProfileModeRenderer from '../ProfileModeRenderer';
 import type { ProfileUser } from '../ProfileModeRenderer';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { featureFlags } from '@/lib/feature-flags';
-import { transformNodeToReact } from '@/lib/template-renderer';
+import { transformNodeToReact } from '@/lib/templates/rendering/template-renderer';
 
 // Mock the feature flags
 jest.mock('@/lib/feature-flags', () => ({
