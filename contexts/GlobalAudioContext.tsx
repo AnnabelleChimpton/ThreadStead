@@ -37,6 +37,8 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const midiPlayerRef = useRef<any>(null); // Will hold MidiPlayer component instance
   const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const masterGainRef = useRef<GainNode | null>(null);
   
   // Fetch admin audio config on mount
   useEffect(() => {
@@ -95,6 +97,17 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     // Clear fade interval
     clearFadeInterval();
     
+    // Clean up Web Audio context (but don't close it, just clear references)
+    if (masterGainRef.current && audioContextRef.current) {
+      try {
+        // Disconnect the master gain to stop all audio
+        masterGainRef.current.disconnect();
+        masterGainRef.current = null;
+      } catch (e) {
+        console.warn('Error cleaning up master gain:', e);
+      }
+    }
+    
     setState(prev => ({
       ...prev,
       isPlaying: false,
@@ -116,10 +129,21 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       const { Midi } = await import('@tonejs/midi');
       const midi = new Midi(arrayBuffer);
 
-      // Create audio context
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Create or reuse audio context
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const audioContext = audioContextRef.current;
+      
       if (audioContext.state === 'suspended') {
         await audioContext.resume();
+      }
+      
+      // Create master gain node for volume control
+      if (!masterGainRef.current) {
+        masterGainRef.current = audioContext.createGain();
+        masterGainRef.current.connect(audioContext.destination);
+        masterGainRef.current.gain.setValueAtTime(targetVolume, audioContext.currentTime);
       }
       
       // Simple piano-like sound for background audio
@@ -130,13 +154,13 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
         osc.type = 'triangle';
         osc.frequency.value = frequency;
         
-        const gainValue = (velocity / 127) * targetVolume * 0.25; // Quieter for background
+        const gainValue = (velocity / 127) * 1.0 * 0.25; // Remove targetVolume since master gain controls this
         gainNode.gain.setValueAtTime(0, startTime);
         gainNode.gain.linearRampToValueAtTime(gainValue, startTime + 0.01);
         gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
         
         osc.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+        gainNode.connect(masterGainRef.current!); // Connect to master gain instead of destination
         
         osc.start(startTime);
         osc.stop(startTime + Math.min(duration, 2.0));
@@ -348,8 +372,11 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       audioRef.current.volume = volume;
     }
     
-    // Volume control for background audio
-    // Note: Real-time volume control is limited for pre-scheduled Web Audio notes
+    // Apply volume to Web Audio MIDI via master gain node
+    if (masterGainRef.current && audioContextRef.current) {
+      const currentTime = audioContextRef.current.currentTime;
+      masterGainRef.current.gain.setValueAtTime(volume, currentTime);
+    }
   }, [state.isPlaying]);
 
   // Cleanup on unmount

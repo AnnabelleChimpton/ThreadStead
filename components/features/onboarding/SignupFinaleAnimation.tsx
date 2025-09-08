@@ -3,6 +3,13 @@ import { useRouter } from 'next/router';
 import { getTemplatePreviewStyle, TEMPLATE_PREVIEW_STYLES } from '@/lib/templates/rendering/template-preview-styles';
 import { ProfileTemplateType } from '@/lib/templates/default-profile-templates';
 import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
+import dynamic from 'next/dynamic';
+
+// Dynamically import MidiPlayer to avoid SSR issues
+const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
+  ssr: false,
+  loading: () => <div className="hidden" />
+});
 
 // Custom animations for floating particles
 const floatingAnimations = `
@@ -44,6 +51,9 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
   const [terminalText, setTerminalText] = useState('');
   const [showCursor, setShowCursor] = useState(true);
   const [loadingBoxes, setLoadingBoxes] = useState<LoadingBox[]>([]);
+  const [showMidiPlayer, setShowMidiPlayer] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [previousVolume, setPreviousVolume] = useState(0.7);
   
   // Use global audio context for seamless playback
   const globalAudio = useGlobalAudio();
@@ -175,10 +185,35 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
       if (audioRef.current) {
         setTimeout(() => {
           if (audioRef.current) {
-            audioRef.current.play().catch(() => {});
+            audioRef.current.play().catch(() => {
+              // Fallback: Create simple beep sound using Web Audio API
+              try {
+                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+                
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+              } catch (e) {
+                // Silent fallback if Web Audio isn't supported
+              }
+            });
           }
         }, 100);
       }
+      
+      // Show MidiPlayer first, then start audio
+      setShowMidiPlayer(true);
       
       // Start global signup audio after a brief delay
       setTimeout(() => {
@@ -389,11 +424,53 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
         </div>
       )}
 
-      {/* Audio elements */}
-      <audio ref={audioRef} preload="auto">
+      {/* MidiPlayer for audio control during animation */}
+      {showMidiPlayer && (
+        <div className="fixed bottom-4 right-4 z-[10000]">
+          <div className="bg-white rounded-lg shadow-lg border-2 border-black p-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  if (isMuted) {
+                    // Unmute: restore previous volume
+                    globalAudio.setVolume(previousVolume);
+                    setIsMuted(false);
+                  } else {
+                    // Mute: save current volume and set to 0
+                    setPreviousVolume(globalAudio.state.volume);
+                    globalAudio.setVolume(0);
+                    setIsMuted(true);
+                  }
+                }}
+                className="w-10 h-10 flex items-center justify-center bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
+                aria-label={isMuted ? 'Unmute Music' : 'Mute Music'}
+              >
+                {isMuted ? '🔇' : '🔊'}
+              </button>
+              <div className="flex-1">
+                <div className="text-sm font-medium">Welcome Music</div>
+                <div className="text-xs text-gray-500">
+                  {isMuted ? 'Click to unmute' : 'Click to mute'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audio elements - fallback startup sound */}
+      <audio 
+        ref={audioRef} 
+        preload="none"
+        onError={() => {
+          // Fallback: Create simple beep sound using Web Audio API if files don't exist
+          if (audioRef.current) {
+            audioRef.current.src = '';
+          }
+        }}
+      >
         <source src="/sounds/computer-startup.mp3" type="audio/mpeg" />
         <source src="/sounds/computer-startup.wav" type="audio/wav" />
-        {/* Fallback: Create simple beep sounds using Web Audio API if files don't exist */}
       </audio>
       
       {/* Global audio context handles MIDI/audio playback seamlessly across pages */}

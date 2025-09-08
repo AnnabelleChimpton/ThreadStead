@@ -24,6 +24,8 @@ export default function MidiPlayer({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(50);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [pausedAt, setPausedAt] = useState(0); // Track where we paused (in seconds)
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const midiDataRef = useRef<any>(null);
@@ -31,7 +33,9 @@ export default function MidiPlayer({
   const playbackStartTimeRef = useRef<number>(0);
   const reverbRef = useRef<ConvolverNode | null>(null);
   const compressorRef = useRef<DynamicsCompressorNode | null>(null);
+  const masterGainRef = useRef<GainNode | null>(null); // Master gain node for volume control
   const activeNodesRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; endTime: number }>>([]); // Track active notes
+  const autoplayTriggeredRef = useRef<boolean>(false); // Track if autoplay has been triggered
 
   // Enhanced but simple note player with instrument variety
   const playNoteSimple = (frequency: number, startTime: number, duration: number, velocity: number, instrument: number) => {
@@ -66,26 +70,26 @@ export default function MidiPlayer({
     
     osc.frequency.value = frequency;
     
-    const baseGain = (velocity / 127) * (volume / 100) * 0.25;
+    const baseGain = Math.max((velocity / 127) * 0.25, 0.001); // Remove volume from individual notes - master gain handles this
     
     // Simple envelope variety by instrument family
     if (instrument >= 0 && instrument <= 7) {
       // Piano - quick attack, medium decay
       gainNode.gain.setValueAtTime(0, startTime);
       gainNode.gain.linearRampToValueAtTime(baseGain, startTime + 0.005);
-      gainNode.gain.exponentialRampToValueAtTime(baseGain * 0.3, startTime + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(Math.max(baseGain * 0.3, 0.001), startTime + 0.1);
       gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
     } else if (instrument >= 24 && instrument <= 31) {
       // Guitar - sharp attack, quick decay
       gainNode.gain.setValueAtTime(0, startTime);
       gainNode.gain.linearRampToValueAtTime(baseGain, startTime + 0.001);
-      gainNode.gain.exponentialRampToValueAtTime(baseGain * 0.2, startTime + 0.3);
+      gainNode.gain.exponentialRampToValueAtTime(Math.max(baseGain * 0.2, 0.001), startTime + 0.3);
       gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 1.5));
     } else if (instrument >= 40 && instrument <= 47) {
       // Strings - slow attack, sustained
       gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(baseGain * 0.8, startTime + 0.05);
-      gainNode.gain.linearRampToValueAtTime(baseGain * 0.6, startTime + duration * 0.3);
+      gainNode.gain.linearRampToValueAtTime(Math.max(baseGain * 0.8, 0.001), startTime + 0.05);
+      gainNode.gain.linearRampToValueAtTime(Math.max(baseGain * 0.6, 0.001), startTime + duration * 0.3);
       gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
     } else {
       // Default envelope
@@ -95,7 +99,13 @@ export default function MidiPlayer({
     }
     
     osc.connect(gainNode);
-    gainNode.connect(audioContextRef.current.destination);
+    
+    // Connect to master gain if available, otherwise directly to destination
+    if (masterGainRef.current) {
+      gainNode.connect(masterGainRef.current);
+    } else {
+      gainNode.connect(audioContextRef.current.destination);
+    }
     
     osc.start(startTime);
     osc.stop(startTime + Math.min(duration, 2.0));
@@ -566,12 +576,19 @@ export default function MidiPlayer({
   };
 
   // Play the MIDI
-  const playMidi = async () => {
+  const playMidi = async (startOffset: number = 0) => {
     if (!midiDataRef.current) return;
 
     // Initialize audio context
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    
+    // Create master gain node for volume control (always needed)
+    if (!masterGainRef.current) {
+      masterGainRef.current = audioContextRef.current.createGain();
+      masterGainRef.current.gain.setValueAtTime(volume / 100, audioContextRef.current.currentTime);
+      masterGainRef.current.connect(audioContextRef.current.destination);
     }
     
     // Initialize effects (separate from AudioContext creation)
@@ -589,9 +606,10 @@ export default function MidiPlayer({
       compressorRef.current.attack.value = 0.003;
       compressorRef.current.release.value = 0.25;
       
-      // Connect effects chain: reverb -> compressor -> destination
+      // Connect effects chain: reverb -> compressor -> masterGain -> destination
       reverbRef.current.connect(compressorRef.current);
-      compressorRef.current.connect(audioContextRef.current.destination);
+      compressorRef.current.connect(masterGainRef.current);
+      // masterGain already connected to destination above
     }
 
     if (audioContextRef.current.state === 'suspended') {
@@ -600,22 +618,28 @@ export default function MidiPlayer({
 
     const midi = midiDataRef.current;
     const currentTime = audioContextRef.current.currentTime;
-    playbackStartTimeRef.current = Date.now();
+    playbackStartTimeRef.current = Date.now() - (startOffset * 1000); // Adjust for resume offset
 
 
-    // Schedule all notes
+    // Schedule notes starting from the offset position
     let noteCount = 0;
     
     midi.tracks.forEach((track: any, trackIndex: number) => {
       track.notes.forEach((note: any) => {
+        // Skip notes that have already played (before the startOffset)
+        if (note.time < startOffset) {
+          return;
+        }
+        
         const frequency = noteToFrequency(note.midi);
-        const startTime = currentTime + note.time;
+        const adjustedStartTime = note.time - startOffset; // Adjust timing relative to pause point
+        const startTime = currentTime + adjustedStartTime;
         const duration = Math.max(note.duration, 0.1);
         const velocity = note.velocity * 127;
         const instrument = track.instrument?.number ?? (track.channel === 9 ? 128 : trackIndex);
 
         // Use simplified playback like GlobalAudioContext
-        playNoteSimple(frequency, currentTime + note.time, duration, velocity, instrument);
+        playNoteSimple(frequency, startTime, duration, velocity, instrument);
         noteCount++;
       });
     });
@@ -634,6 +658,7 @@ export default function MidiPlayer({
       if (progressPercent >= 100) {
         setProgress(100);
         setIsPlaying(false);
+        resetPauseState(); // Reset pause state when song ends naturally
         
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
@@ -675,7 +700,23 @@ export default function MidiPlayer({
     
     // Clear the active nodes array
     activeNodesRef.current = [];
+    
+    // Clean up master gain node
+    if (masterGainRef.current) {
+      try {
+        masterGainRef.current.disconnect();
+        masterGainRef.current = null;
+      } catch (e) {
+        console.warn('Error cleaning up master gain:', e);
+      }
+    }
     // All audio stopped
+  };
+
+  // Separate function to reset pause state (only call when truly stopping/resetting)
+  const resetPauseState = () => {
+    setIsPaused(false);
+    setPausedAt(0);
   };
 
   const play = async () => {
@@ -684,22 +725,35 @@ export default function MidiPlayer({
     }
 
     if (isPlaying) {
-      // Stop playback
+      // Pause playback - calculate current position
+      const elapsed = (Date.now() - playbackStartTimeRef.current) / 1000;
+      setPausedAt(elapsed);
+      setIsPaused(true);
+      
       stopAllAudio();
       setIsPlaying(false);
-      setProgress(0);
       
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
     } else {
-      // Start playback
-      await playMidi();
+      // Resume playback from pause point or start from beginning
+      const startOffset = isPaused ? pausedAt : 0;
+      setIsPaused(false);
+      
+      await playMidi(startOffset);
     }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVolume(Number(e.target.value));
+    const newVolume = Number(e.target.value);
+    setVolume(newVolume);
+    
+    // Apply volume change to master gain node in real-time
+    if (masterGainRef.current && audioContextRef.current) {
+      const currentTime = audioContextRef.current.currentTime;
+      masterGainRef.current.gain.setValueAtTime(newVolume / 100, currentTime);
+    }
   };
 
   const formatTime = (seconds: number): string => {
@@ -717,8 +771,25 @@ export default function MidiPlayer({
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
+      // Stop any playing audio when component unmounts
+      stopAllAudio();
+      resetPauseState(); // Reset pause state when component unmounts
     };
   }, [midiUrl, autoplay]);
+
+  // Simple autoplay handling - only run once when MIDI is loaded
+  useEffect(() => {
+    if (autoplay && midiDataRef.current && !isLoading && !isPlaying && !autoplayTriggeredRef.current) {
+      // Use setTimeout to avoid immediate execution conflicts
+      const timer = setTimeout(() => {
+        if (midiDataRef.current && !isPlaying && !autoplayTriggeredRef.current) {
+          autoplayTriggeredRef.current = true; // Mark autoplay as triggered
+          play();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [autoplay, isLoading, isPlaying]); // Restore isPlaying dependency but prevent multiple triggers
 
   if (isLoading) {
     return (
