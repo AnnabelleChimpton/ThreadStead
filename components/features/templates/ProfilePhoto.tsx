@@ -34,10 +34,10 @@ export default function ProfilePhoto({ size = 'md', shape = 'circle', className:
   return (
     <div className={wrapperClassName}>
       <div className="profile-photo-frame border-4 border-black shadow-[4px_4px_0_#000] bg-white p-1">
-        {owner.avatarUrl ? (
+        {owner?.avatarUrl ? (
           <img
             src={owner.avatarUrl}
-            alt={`${owner.displayName}'s profile photo`}
+            alt={`${owner?.displayName || 'Unknown'}'s profile photo`}
             className={`profile-photo-image object-cover ${sizeClasses[size]} ${shapeClasses[shape]}`}
           />
         ) : (

@@ -33,9 +33,14 @@
     "user-did:test-fork": "tsx scripts/test-user-did-fork.ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:coverage": "jest --config jest.config.coverage.js",
+    "test:coverage:open": "npm run test:coverage && open coverage/lcov-report/index.html",
+    "test:templates": "jest lib/templates components/features/templates",
+    "test:templates:watch": "jest lib/templates components/features/templates --watch",
+    "test:templates:coverage": "jest lib/templates components/features/templates --coverage",
     "test:template-compiler": "jest lib/template-compiler",
-    "test:profile-renderer": "jest components/profile/ProfileModeRenderer"
+    "test:profile-renderer": "jest components/profile/ProfileModeRenderer",
+    "test:ci": "jest --config jest.config.coverage.js --ci --coverage --watchAll=false"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",

@@ -18,7 +18,7 @@ export default function ProfileHero({ variant = 'plain' }: ProfileHeroProps) {
   return (
     <div className={`${baseClasses} ${variantClasses[variant]}`}>
       <h1 className="text-4xl font-bold text-thread-pine mb-2">
-        {owner.displayName}
+        {owner?.displayName || ''}
       </h1>
       <p className="text-thread-charcoal opacity-80">
         Welcome to my corner of the internet

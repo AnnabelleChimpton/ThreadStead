@@ -58,7 +58,7 @@ export default function FlexContainer({
   const wrapClass = wrap ? 'flex-wrap' : '';
 
   return (
-    <div className={`flex ${directionClass} ${alignClass} ${justifyClass} ${gapClass} ${wrapClass}`}>
+    <div className={`flex ${directionClass} ${alignClass} ${justifyClass} ${gapClass} ${wrapClass}`.trim()}>
       {children}
     </div>
   );

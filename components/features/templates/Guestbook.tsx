@@ -6,6 +6,6 @@ export default function Guestbook() {
   const { owner } = useResidentData();
 
   return (
-    <OriginalGuestbook username={owner.handle} />
+    <OriginalGuestbook username={owner?.handle || ''} />
   );
 }

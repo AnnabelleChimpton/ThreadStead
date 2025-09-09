@@ -31,7 +31,8 @@ export default function CenteredBox({
   // Handle custom maxWidth values
   const customStyle: React.CSSProperties = {};
   if (!maxWidthClass && maxWidth) {
-    if (maxWidth.includes('px') || maxWidth.includes('rem') || maxWidth.includes('%')) {
+    // Support all valid CSS length units
+    if (maxWidth.match(/^\d*\.?\d+(px|rem|%|em|vw|vh|vmin|vmax|ch|ex|in|cm|mm|pt|pc)$/)) {
       customStyle.maxWidth = maxWidth;
     } else if (!isNaN(Number(maxWidth))) {
       // Handle numeric values like "900" as pixels

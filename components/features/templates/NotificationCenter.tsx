@@ -18,7 +18,7 @@ export default function NotificationCenter() {
   };
 
   const getNotificationMessage = (notification: NotificationData): string => {
-    const actorName = notification.actor.displayName || notification.actor.handle || "Someone";
+    const actorName = notification.actor?.displayName || notification.actor?.handle || "Someone";
 
     switch (notification.type) {
       case "comment":
@@ -145,7 +145,7 @@ export default function NotificationCenter() {
                   onClick={() => {
                     // Use the same routing logic as other notification components
                     let targetUrl: string | null = null;
-                    const username = getUsername(notification.actor.handle);
+                    const username = getUsername(notification.actor?.handle);
                     
                     switch (notification.type) {
                       case "comment":
@@ -188,8 +188,8 @@ export default function NotificationCenter() {
                 >
                   <div className="flex items-start gap-3">
                     <img
-                      src={notification.actor.avatarUrl || "/assets/default-avatar.gif"}
-                      alt={notification.actor.handle || "User"}
+                      src={notification.actor?.avatarUrl || "/assets/default-avatar.gif"}
+                      alt={notification.actor?.handle || "User"}
                       className="w-8 h-8 rounded border border-black object-cover"
                     />
                     <div className="flex-1 text-sm">

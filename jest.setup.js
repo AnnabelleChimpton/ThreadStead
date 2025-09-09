@@ -1,4 +1,4 @@
-// Jest setup file
+// Jest setup file - minimal setup for template testing
 import '@testing-library/jest-dom'
 
 // Mock Next.js router
@@ -37,44 +37,6 @@ process.env.ENABLE_TEMPLATE_ISLANDS = 'false'
 process.env.ENABLE_TEMPLATE_COMPILATION = 'true'
 process.env.TEMPLATE_ISLAND_ROLLOUT_PERCENT = '0'
 
-// Mock Prisma client
-jest.mock('./lib/db', () => ({
-  prisma: {
-    user: {
-      findUnique: jest.fn(),
-      update: jest.fn(),
-    },
-    profile: {
-      update: jest.fn(),
-    },
-  },
-}))
-
-// Mock data fetchers
-jest.mock('./lib/data-fetchers', () => ({
-  getResidentData: jest.fn().mockResolvedValue({
-    owner: {
-      id: 'user123',
-      handle: 'testuser',
-      displayName: 'Test User',
-      avatarUrl: '/assets/default-avatar.gif'
-    },
-    viewer: { id: null },
-    posts: [],
-    guestbook: [],
-    capabilities: { bio: 'Test bio' },
-    images: [],
-    profileImages: []
-  }),
-}))
-
-// Mock auth server
-jest.mock('./lib/auth-server', () => ({
-  getSession: jest.fn().mockResolvedValue({
-    user: { id: 'user123' }
-  }),
-}))
-
 // Mock unified and rehype modules
 jest.mock('unified', () => ({
   unified: jest.fn(() => ({
@@ -100,17 +62,16 @@ jest.mock('rehype-sanitize', () => ({
   }
 }))
 
-// Mock crypto dependencies
-jest.mock('@noble/ed25519', () => ({}))
-jest.mock('@noble/hashes', () => ({}))
-jest.mock('bs58', () => ({
-  encode: jest.fn(),
-  decode: jest.fn()
-}))
+// Mock marked markdown parser
+const markedMock = jest.fn().mockImplementation((input) => `<p>${input}</p>`)
+markedMock.setOptions = jest.fn()
+markedMock.parse = jest.fn().mockImplementation((input) => `<p>${input}</p>`)
 
-// Mock Tone.js
-jest.mock('tone', () => ({}))
-jest.mock('@tonejs/midi', () => ({}))
+jest.mock('marked', () => ({
+  __esModule: true,
+  marked: markedMock,
+  default: markedMock
+}))
 
 // Suppress console warnings in tests unless we're debugging
 const originalConsoleWarn = console.warn

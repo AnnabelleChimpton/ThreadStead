@@ -775,24 +775,6 @@ export const componentData = {
   ],
   utility: [
     {
-      name: 'NavigationLinks',
-      description: 'Flexible navigation menu with customizable links and styling',
-      props: [
-        { name: 'orientation', type: 'string', options: ['horizontal', 'vertical'], default: 'horizontal', description: 'Link layout direction' },
-        { name: 'style', type: 'string', options: ['plain', 'buttons', 'pills', 'underline'], default: 'plain', description: 'Link appearance' },
-        { name: 'spacing', type: 'string', options: ['tight', 'normal', 'loose'], default: 'normal', description: 'Space between links' }
-      ],
-      example: `<NavigationLinks orientation="horizontal" style="pills" />
-<NavigationLinks orientation="vertical" style="buttons" spacing="loose" />`,
-      preview: (
-        <nav className="flex gap-2 text-xs">
-          <div className="bg-blue-100 px-3 py-1 rounded-full">Home</div>
-          <div className="hover:bg-gray-100 px-3 py-1 rounded-full">About</div>
-          <div className="hover:bg-gray-100 px-3 py-1 rounded-full">Contact</div>
-        </nav>
-      )
-    },
-    {
       name: 'SiteBranding',
       description: 'Site logo, title, and tagline display component',
       props: [

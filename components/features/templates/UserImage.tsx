@@ -52,7 +52,11 @@ export default function UserImage({
       // If it's an array, use the specified index (default 0)
       const selectedImage = dataValue[index];
       if (selectedImage) {
-        imageSrc = selectedImage?.url || selectedImage?.src || selectedImage;
+        if (typeof selectedImage === 'string') {
+          imageSrc = selectedImage;
+        } else if (selectedImage && typeof selectedImage === 'object' && !Array.isArray(selectedImage)) {
+          imageSrc = selectedImage?.url || selectedImage?.src || selectedImage?.image;
+        }
       }
     } else if (dataValue && typeof dataValue === 'object') {
       // If it's an object, look for common image properties

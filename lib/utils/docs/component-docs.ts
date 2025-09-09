@@ -147,7 +147,7 @@ export function generateAllComponentDocs(): ComponentDocumentation[] {
       category = 'interactive';
     } else if (['FollowButton', 'MutualFriends', 'FriendDisplay', 'WebsiteDisplay', 'FriendBadge', 'ProfilePhoto', 'DisplayName', 'Bio', 'BlogPosts', 'Guestbook'].includes(tagName)) {
       category = 'social';
-    } else if (['SiteBranding', 'NavigationLinks', 'Breadcrumb', 'NotificationCenter', 'NotificationBell', 'UserAccount'].includes(tagName)) {
+    } else if (['SiteBranding', 'Breadcrumb', 'NotificationCenter', 'NotificationBell', 'UserAccount'].includes(tagName)) {
       category = 'navigation';
     } else if (['Show', 'Choose', 'When', 'Otherwise', 'IfOwner', 'IfVisitor'].includes(tagName)) {
       category = 'conditional';
@@ -182,7 +182,6 @@ function getComponentDescription(tagName: string): string {
     NotificationBell: 'Simple notification bell with count',
     UserAccount: 'Login and user account controls',
     SiteBranding: 'Site name and tagline display',
-    NavigationLinks: 'Main site navigation menu',
     Breadcrumb: 'Auto-generated breadcrumb navigation',
     FlexContainer: 'Flexible box layouts with customizable direction and alignment',
     GridLayout: 'Responsive CSS grids with configurable columns',

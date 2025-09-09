@@ -491,7 +491,6 @@ a:hover::after {
           <h3 class="panel-title quick-access-title">QUICK_ACCESS</h3>
           <div class="cyber-flex-col">
             <NotificationBell />
-            <NavigationLinks />
           </div>
         </div>
         

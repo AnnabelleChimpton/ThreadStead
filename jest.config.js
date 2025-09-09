@@ -20,21 +20,27 @@ const config = {
 
   // Transform ESM modules that need to be processed
   transformIgnorePatterns: [
-    'node_modules/(?!(unified|rehype-parse|rehype-sanitize|@noble|@tonejs))'
+    'node_modules/(?!(unified|rehype-parse|rehype-sanitize|@noble|@tonejs|marked))'
   ],
 
-  // Test file patterns
+  // Test file patterns  
   testMatch: [
-    '**/__tests__/**/*.(ts|tsx|js)',
+    '**/__tests__/**/*.test.(ts|tsx|js)',
+    '**/__tests__/**/*.spec.(ts|tsx|js)',
     '**/*.(test|spec).(ts|tsx|js)'
   ],
 
   // Coverage settings
   collectCoverageFrom: [
+    'lib/templates/**/*.{ts,tsx}',
+    'components/features/templates/**/*.{ts,tsx}',
     'lib/template-compiler/**/*.{ts,tsx}',
     'components/profile/ProfileModeRenderer.{ts,tsx}',
     '!**/*.d.ts',
     '!**/__tests__/**',
+    '!**/*.test.{ts,tsx}',
+    '!**/*.spec.{ts,tsx}',
+    '!**/node_modules/**',
   ],
 
   // Transform settings for TypeScript

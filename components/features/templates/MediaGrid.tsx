@@ -24,7 +24,7 @@ export default function MediaGrid({ className: customClassName }: MediaGridProps
           <div className="text-6xl mb-4">🖼️</div>
           <h3 className="text-lg font-medium text-thread-pine mb-2">No featured photos</h3>
           <p className="text-thread-sage">
-            {owner.displayName || owner.handle} hasn&apos;t featured any photos yet.
+            {owner?.displayName || owner?.handle || 'This user'} hasn&apos;t featured any photos yet.
           </p>
         </div>
       </div>
@@ -44,7 +44,7 @@ export default function MediaGrid({ className: customClassName }: MediaGridProps
         <div>
           <h3 className="text-lg font-semibold text-thread-pine">Featured Photos</h3>
           <p className="text-sm text-thread-sage">
-            {owner.displayName || owner.handle}&apos;s favorite photos
+            {owner?.displayName || owner?.handle || 'This user'}&apos;s favorite photos
           </p>
         </div>
         <div className="flex gap-2">
@@ -85,7 +85,7 @@ export default function MediaGrid({ className: customClassName }: MediaGridProps
       {displayImages.length > 0 && (
         <div className="text-center">
           <span className="text-thread-pine text-sm cursor-default">
-            Explore {owner.displayName || owner.handle}&apos;s complete photo collection →
+            Explore {owner?.displayName || owner?.handle || 'this user'}&apos;s complete photo collection →
           </span>
         </div>
       )}

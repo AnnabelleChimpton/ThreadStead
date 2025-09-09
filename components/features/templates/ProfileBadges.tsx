@@ -31,7 +31,7 @@ export default function ProfileBadges({
           <div className="text-6xl mb-4">🏆</div>
           <h3 className="text-lg font-medium text-thread-pine mb-2">No badges yet</h3>
           <p className="text-thread-sage">
-            {owner.displayName || owner.handle} hasn&apos;t earned any ThreadRing badges yet.
+            {owner?.displayName || owner?.handle || 'This user'} hasn&apos;t earned any ThreadRing badges yet.
           </p>
         </div>
       </div>
@@ -45,7 +45,7 @@ export default function ProfileBadges({
     <div 
       key={badge.id}
       className="block hover:scale-105 transition-transform duration-200 cursor-default"
-      title={`Member of ${badge.threadRing.name}`}
+      title={`Member of ${badge.threadRing?.name || 'ThreadRing'}`}
     >
       <ThreadRing88x31Badge
         title={badge.title}
@@ -66,7 +66,7 @@ export default function ProfileBadges({
         <div>
           <h3 className="text-lg font-semibold text-thread-pine">ThreadRing Badges</h3>
           <p className="text-sm text-thread-sage">
-            {owner.displayName || owner.handle}&apos;s community memberships
+            {owner?.displayName || owner?.handle || 'This user'}&apos;s community memberships
           </p>
         </div>
         <div className="flex gap-2">

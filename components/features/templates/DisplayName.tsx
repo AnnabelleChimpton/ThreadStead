@@ -23,7 +23,8 @@ export default function DisplayName({ as = 'h2', showLabel = false, className: c
   
   // Remove inline styles to avoid conflicts - let CSS handle everything
   const style = undefined;
-  const content = showLabel ? `Display Name: ${owner.displayName}` : owner.displayName;
+  const displayName = owner?.displayName || '';
+  const content = showLabel ? `Display Name: ${displayName}` : displayName;
   
   const Element = as;
   

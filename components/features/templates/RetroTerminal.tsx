@@ -36,7 +36,11 @@ export default function RetroTerminal({
       text: 'text-white',
       border: 'border-white'
     }
-  }[variant];
+  }[variant] || {
+    bg: 'bg-black',
+    text: 'text-green-400',
+    border: 'border-green-400'
+  };
 
   const paddingClass = {
     'xs': 'p-2',

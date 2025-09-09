@@ -16,8 +16,6 @@ import NotificationCenter from '@/components/features/templates/NotificationCent
 import NotificationBell from '@/components/features/templates/NotificationBell';
 import UserAccount from '@/components/features/templates/UserAccount';
 import SiteBranding from '@/components/features/templates/SiteBranding';
-import NavigationLinks from '@/components/features/templates/NavigationLinks';
-import SimpleNavigationBar from '@/components/features/templates/SimpleNavigationBar';
 import Breadcrumb from '@/components/features/templates/Breadcrumb';
 import FlexContainer from '@/components/features/templates/FlexContainer';
 import GridLayout from '@/components/features/templates/GridLayout';
@@ -270,20 +268,6 @@ componentRegistry.register({
   name: 'SiteBranding',
   component: SiteBranding,
   props: {}
-});
-
-componentRegistry.register({
-  name: 'NavigationLinks',
-  component: NavigationLinks,
-  props: {}
-});
-
-componentRegistry.register({
-  name: 'NavigationBar',
-  component: SimpleNavigationBar,
-  props: {
-    fullWidth: { type: 'boolean', default: false }
-  }
 });
 
 componentRegistry.register({
