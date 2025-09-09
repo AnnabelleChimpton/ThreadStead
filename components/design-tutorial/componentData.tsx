@@ -771,6 +771,884 @@ export const componentData = {
           ~ Wave Text ~
         </div>
       )
+    },
+    {
+      name: 'ProgressTracker',
+      description: 'Visual progress tracking with multiple display modes and themes',
+      props: [
+        { name: 'title', type: 'string', options: ['any text'], default: 'none', description: 'Section heading' },
+        { name: 'display', type: 'string', options: ['bars', 'stars', 'circles', 'dots'], default: 'bars', description: 'Visual display mode' },
+        { name: 'theme', type: 'string', options: ['modern', 'retro', 'neon', 'minimal'], default: 'modern', description: 'Color and styling theme' },
+        { name: 'showValues', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show numeric values' },
+        { name: 'layout', type: 'string', options: ['vertical', 'horizontal'], default: 'vertical', description: 'Item arrangement' },
+        { name: 'size', type: 'string', options: ['sm', 'md', 'lg'], default: 'md', description: 'Component size' }
+      ],
+      example: `<ProgressTracker title="My Skills" display="bars" theme="modern">
+  <ProgressItem label="React" value="85" color="blue" />
+  <ProgressItem label="TypeScript" value="75" color="green" />
+  <ProgressItem label="CSS" value="90" color="purple" />
+</ProgressTracker>
+
+<ProgressTracker title="Project Ratings" display="stars">
+  <ProgressItem label="Website Design" value="4" max="5" />
+  <ProgressItem label="Mobile App" value="9" max="10" />
+</ProgressTracker>
+
+<ProgressTracker title="Goals 2024" display="circles" theme="neon">
+  <ProgressItem label="Fitness" value="75" color="red" />
+  <ProgressItem label="Learning" value="60" color="purple" />
+</ProgressTracker>
+
+<ProgressTracker title="Skill Levels" display="dots" layout="horizontal">
+  <ProgressItem label="JavaScript" value="8" max="10" />
+  <ProgressItem label="Python" value="6" max="10" />
+</ProgressTracker>`,
+      preview: (
+        <div className="text-xs space-y-2">
+          <div className="font-semibold">My Skills</div>
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <span>React</span>
+              <span className="text-gray-600">85%</span>
+            </div>
+            <div className="bg-gray-200 rounded-full h-2">
+              <div className="bg-blue-500 h-2 rounded-full" style={{width: '85%'}}></div>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>TypeScript</span>
+              <span className="text-gray-600">75%</span>
+            </div>
+            <div className="bg-gray-200 rounded-full h-2">
+              <div className="bg-green-500 h-2 rounded-full" style={{width: '75%'}}></div>
+            </div>
+          </div>
+        </div>
+      ),
+      stylingGuide: {
+        classes: [
+          {
+            name: '.ts-progress-tracker',
+            description: 'Main container element'
+          },
+          {
+            name: '.ts-progress-tracker-title',
+            description: 'Section title heading'
+          },
+          {
+            name: '.ts-progress-item',
+            description: 'Individual progress item container'
+          },
+          {
+            name: '.ts-progress-label',
+            description: 'Progress item label text'
+          },
+          {
+            name: '.ts-progress-value',
+            description: 'Progress value display'
+          },
+          {
+            name: '.ts-progress-bar-track',
+            description: 'Progress bar background track'
+          },
+          {
+            name: '.ts-progress-bar-fill',
+            description: 'Progress bar fill element'
+          },
+          {
+            name: '.ts-progress-stars',
+            description: 'Star rating container'
+          },
+          {
+            name: '.ts-progress-circle',
+            description: 'Circular progress indicator'
+          },
+          {
+            name: '.ts-progress-dots',
+            description: 'Dot progress container'
+          }
+        ],
+        examples: [
+          {
+            title: 'Glowing Neon Progress Bars',
+            css: `.ts-progress-bar-fill {
+  background: linear-gradient(90deg, #00ffff, #ff00ff) !important;
+  box-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff !important;
+  animation: glow-pulse 2s ease-in-out infinite alternate !important;
+}
+
+@keyframes glow-pulse {
+  from { box-shadow: 0 0 5px #00ffff, 0 0 10px #ff00ff; }
+  to { box-shadow: 0 0 15px #00ffff, 0 0 30px #ff00ff; }
+}`
+          },
+          {
+            title: 'Retro Gaming Style',
+            css: `.ts-progress-tracker {
+  background: #000 !important;
+  border: 2px solid #00ff00 !important;
+  padding: 1rem !important;
+  font-family: 'Courier New', monospace !important;
+}
+
+.ts-progress-label {
+  color: #00ff00 !important;
+  text-transform: uppercase !important;
+}
+
+.ts-progress-bar-track {
+  background: #333 !important;
+  border: 1px solid #00ff00 !important;
+}
+
+.ts-progress-bar-fill {
+  background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00) !important;
+}`
+          },
+          {
+            title: 'Minimal Clean Style',
+            css: `.ts-progress-tracker {
+  background: #f8f9fa !important;
+  border-radius: 8px !important;
+  padding: 1.5rem !important;
+}
+
+.ts-progress-label {
+  font-weight: 600 !important;
+  color: #495057 !important;
+}
+
+.ts-progress-bar-track {
+  background: #e9ecef !important;
+  height: 6px !important;
+}
+
+.ts-progress-bar-fill {
+  background: #6c757d !important;
+  border-radius: 3px !important;
+}`
+          }
+        ]
+      }
+    },
+    {
+      name: 'ImageCarousel',
+      description: 'Interactive image gallery with multiple display modes and navigation options',
+      props: [
+        { name: 'autoplay', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Auto-advance slides' },
+        { name: 'interval', type: 'number', options: ['1', '3', '5', '10'], default: '5', description: 'Autoplay interval in seconds' },
+        { name: 'showThumbnails', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show thumbnail navigation' },
+        { name: 'showDots', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show dot indicators' },
+        { name: 'showArrows', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show prev/next arrows' },
+        { name: 'height', type: 'string', options: ['sm', 'md', 'lg', 'xl'], default: 'md', description: 'Carousel height' },
+        { name: 'transition', type: 'string', options: ['slide', 'fade', 'zoom'], default: 'slide', description: 'Transition effect' },
+        { name: 'loop', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Loop back to start' },
+        { name: 'controls', type: 'string', options: ['arrows', 'dots', 'thumbnails', 'all'], default: 'all', description: 'Which controls to show' }
+      ],
+      example: `<!-- Uses your uploaded images automatically -->
+<ImageCarousel height="lg" transition="fade" showThumbnails="true" />
+
+<!-- Custom image gallery -->
+<ImageCarousel autoplay="true" interval="3" controls="dots">
+  <CarouselImage src="/art1.jpg" caption="Digital Art #1" />
+  <CarouselImage src="/art2.jpg" caption="Digital Art #2" link="https://artsite.com" />
+  <CarouselImage src="/art3.jpg" caption="Digital Art #3" />
+</ImageCarousel>
+
+<!-- Portfolio showcase -->
+<ImageCarousel height="xl" transition="zoom" controls="all">
+  <CarouselImage src="/project1.jpg" alt="Project 1" caption="E-commerce Website" />
+  <CarouselImage src="/project2.jpg" alt="Project 2" caption="Mobile App Design" />
+  <CarouselImage src="/project3.jpg" alt="Project 3" caption="Brand Identity" />
+</ImageCarousel>
+
+<!-- Simple photo strip -->
+<ImageCarousel height="sm" showThumbnails="false" controls="arrows" />`,
+      preview: (
+        <div className="text-xs bg-gray-100 rounded-lg overflow-hidden">
+          <div className="bg-blue-200 h-32 flex items-center justify-center relative">
+            <div className="text-blue-700 font-medium">🖼️ Main Image Display</div>
+            <div className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+              ←
+            </div>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+              →
+            </div>
+            <div className="absolute bottom-2 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-2">
+              <div className="text-white text-xs">Image Caption</div>
+            </div>
+          </div>
+          <div className="flex gap-1 p-2">
+            <div className="w-8 h-6 bg-blue-300 rounded border-2 border-blue-500"></div>
+            <div className="w-8 h-6 bg-gray-300 rounded border border-gray-400"></div>
+            <div className="w-8 h-6 bg-gray-300 rounded border border-gray-400"></div>
+          </div>
+          <div className="flex justify-center gap-1 p-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+          </div>
+        </div>
+      ),
+      stylingGuide: {
+        classes: [
+          {
+            name: '.ts-image-carousel',
+            description: 'Main carousel container'
+          },
+          {
+            name: '.ts-carousel-main',
+            description: 'Main image display area'
+          },
+          {
+            name: '.ts-carousel-slide',
+            description: 'Individual image slide'
+          },
+          {
+            name: '.ts-carousel-caption',
+            description: 'Image caption overlay'
+          },
+          {
+            name: '.ts-carousel-arrow',
+            description: 'Navigation arrow buttons'
+          },
+          {
+            name: '.ts-carousel-arrow-prev',
+            description: 'Previous arrow button'
+          },
+          {
+            name: '.ts-carousel-arrow-next',
+            description: 'Next arrow button'
+          },
+          {
+            name: '.ts-carousel-thumbnails',
+            description: 'Thumbnail navigation container'
+          },
+          {
+            name: '.ts-carousel-thumbnail',
+            description: 'Individual thumbnail button'
+          },
+          {
+            name: '.ts-carousel-dots',
+            description: 'Dot indicator container'
+          },
+          {
+            name: '.ts-carousel-dot',
+            description: 'Individual dot indicator'
+          },
+          {
+            name: '.ts-carousel-play-pause',
+            description: 'Play/pause button for autoplay'
+          }
+        ],
+        examples: [
+          {
+            title: 'Cyberpunk Neon Style',
+            css: `.ts-image-carousel {
+  background: #000 !important;
+  border: 2px solid #00ffff !important;
+  box-shadow: 0 0 20px #00ffff !important;
+}
+
+.ts-carousel-caption {
+  background: linear-gradient(to top, #ff00ff, transparent) !important;
+  border-top: 1px solid #00ffff !important;
+}
+
+.ts-carousel-arrow {
+  background: linear-gradient(45deg, #ff00ff, #00ffff) !important;
+  border: none !important;
+  box-shadow: 0 0 10px #ff00ff !important;
+}
+
+.ts-carousel-dot {
+  background: #00ffff !important;
+  box-shadow: 0 0 5px #00ffff !important;
+}
+
+.ts-carousel-thumbnail {
+  border-color: #00ffff !important;
+  filter: brightness(0.7) contrast(1.2) !important;
+}`
+          },
+          {
+            title: 'Elegant Gallery Style',
+            css: `.ts-image-carousel {
+  background: #f8f9fa !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+  overflow: hidden !important;
+}
+
+.ts-carousel-main {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.ts-carousel-caption {
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.ts-carousel-arrow {
+  background: rgba(255,255,255,0.9) !important;
+  color: #333 !important;
+  backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+}
+
+.ts-carousel-thumbnails {
+  background: rgba(255,255,255,0.95) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.ts-carousel-dot {
+  background: rgba(0,0,0,0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.ts-carousel-dot:hover {
+  background: rgba(0,0,0,0.6) !important;
+  transform: scale(1.2) !important;
+}`
+          },
+          {
+            title: 'Retro Polaroid Style',
+            css: `.ts-image-carousel {
+  background: #f4f1e8 !important;
+  border: 8px solid #fff !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+  transform: rotate(-1deg) !important;
+  font-family: 'Comic Sans MS', cursive !important;
+}
+
+.ts-carousel-main img {
+  filter: sepia(10%) contrast(1.1) brightness(1.1) !important;
+}
+
+.ts-carousel-caption {
+  background: #fff !important;
+  color: #333 !important;
+  font-family: 'Comic Sans MS', cursive !important;
+  text-align: center !important;
+  border-top: 2px solid #ddd !important;
+}
+
+.ts-carousel-arrow {
+  background: #ff6b6b !important;
+  color: white !important;
+  font-weight: bold !important;
+  transform: rotate(0deg) !important;
+}
+
+.ts-carousel-thumbnails {
+  background: #fff !important;
+  border-top: 2px solid #ddd !important;
+}
+
+.ts-carousel-thumbnail {
+  border: 3px solid #fff !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+  transform: rotate(1deg) !important;
+}
+
+.ts-carousel-thumbnail:nth-child(even) {
+  transform: rotate(-1deg) !important;
+}`
+          }
+        ]
+      }
+    },
+    {
+      name: 'ContactCard',
+      description: 'Interactive contact information display with copy functionality and multiple layouts',
+      props: [
+        { name: 'expanded', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Initially show all contact methods' },
+        { name: 'theme', type: 'string', options: ['modern', 'business', 'creative', 'minimal'], default: 'modern', description: 'Visual theme style' },
+        { name: 'layout', type: 'string', options: ['compact', 'detailed', 'grid'], default: 'compact', description: 'Information display layout' },
+        { name: 'showHeader', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show card header with title' },
+        { name: 'collapsible', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Allow expand/collapse functionality' },
+        { name: 'maxMethods', type: 'number', options: ['1', '2', '3', '4', '5'], default: '3', description: 'Max methods shown when collapsed' },
+        { name: 'title', type: 'string', options: ['any text'], default: 'Contact Me', description: 'Card header title' }
+      ],
+      example: `<!-- Professional business card -->
+<ContactCard theme="business" layout="detailed" title="Get In Touch">
+  <ContactMethod type="email" value="john@company.com" />
+  <ContactMethod type="phone" value="+1-555-0123" />
+  <ContactMethod type="linkedin" value="linkedin.com/in/johndoe" />
+</ContactCard>
+
+<!-- Creative contact card -->
+<ContactCard theme="creative" layout="grid" expanded="true">
+  <ContactMethod type="email" value="hello@designer.com" label="Email Me" />
+  <ContactMethod type="website" value="myportfolio.com" label="Portfolio" />
+  <ContactMethod type="github" value="github.com/designer" label="Code" />
+  <ContactMethod type="twitter" value="twitter.com/designer" label="Social" />
+</ContactCard>
+
+<!-- Minimal contact strip -->
+<ContactCard theme="minimal" layout="compact" showHeader="false" collapsible="false">
+  <ContactMethod type="email" value="contact@site.com" copyable="false" />
+  <ContactMethod type="discord" value="username#1234" priority="10" />
+</ContactCard>
+
+<!-- Auto-expanding professional card -->
+<ContactCard theme="modern" maxMethods="2" title="Contact Information">
+  <ContactMethod type="email" value="sarah.wilson@tech.com" priority="10" />
+  <ContactMethod type="phone" value="(555) 987-6543" priority="9" />
+  <ContactMethod type="linkedin" value="linkedin.com/in/sarahwilson" priority="8" />
+  <ContactMethod type="github" value="github.com/swilson" priority="7" />
+  <ContactMethod type="website" value="sarahwilson.dev" priority="6" />
+</ContactCard>`,
+      preview: (
+        <div className="text-xs bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 flex justify-between items-center">
+            <div className="font-semibold text-gray-800">Contact Me</div>
+            <div className="text-gray-500">↕</div>
+          </div>
+          <div className="p-3 space-y-2">
+            <div className="flex justify-between items-center group">
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <span>📧</span>
+                  <span className="text-gray-600">Email</span>
+                </div>
+                <div className="text-blue-600 underline">john@example.com</div>
+              </div>
+              <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100">📋</button>
+            </div>
+            <div className="flex justify-between items-center group">
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <span>📞</span>
+                  <span className="text-gray-600">Phone</span>
+                </div>
+                <div className="text-blue-600 underline">+1-555-0123</div>
+              </div>
+              <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100">📋</button>
+            </div>
+          </div>
+        </div>
+      ),
+      stylingGuide: {
+        classes: [
+          {
+            name: '.ts-contact-card',
+            description: 'Main contact card container'
+          },
+          {
+            name: '.ts-contact-header',
+            description: 'Card header with title and toggle'
+          },
+          {
+            name: '.ts-contact-method',
+            description: 'Individual contact method item'
+          },
+          {
+            name: '.ts-contact-value',
+            description: 'Contact value/link text'
+          },
+          {
+            name: '.ts-contact-icon',
+            description: 'Contact type icon'
+          },
+          {
+            name: '.ts-contact-action',
+            description: 'Copy button and other actions'
+          }
+        ],
+        examples: [
+          {
+            title: 'Professional Dark Theme',
+            css: `.ts-contact-card {
+  background: #1a1a1a !important;
+  border: 1px solid #333 !important;
+  color: #ffffff !important;
+}
+
+.ts-contact-header {
+  background: #2d2d2d !important;
+  border-bottom: 1px solid #444 !important;
+}
+
+.ts-contact-method:hover {
+  background: #2a2a2a !important;
+}
+
+.ts-contact-value {
+  color: #60a5fa !important;
+}
+
+.ts-contact-icon {
+  color: #fbbf24 !important;
+}
+
+.ts-contact-action {
+  color: #10b981 !important;
+}`
+          },
+          {
+            title: 'Glassmorphism Style',
+            css: `.ts-contact-card {
+  background: rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37) !important;
+}
+
+.ts-contact-header {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.ts-contact-method:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.ts-contact-value {
+  color: #1e40af !important;
+  font-weight: 500 !important;
+}
+
+.ts-contact-action {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 50% !important;
+}`
+          },
+          {
+            title: 'Neon Cyberpunk Card',
+            css: `.ts-contact-card {
+  background: #0a0a0a !important;
+  border: 2px solid #00ffff !important;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3) !important;
+  font-family: 'Courier New', monospace !important;
+}
+
+.ts-contact-header {
+  background: linear-gradient(45deg, #001122, #002244) !important;
+  border-bottom: 1px solid #00ffff !important;
+  color: #00ffff !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+}
+
+.ts-contact-method {
+  border-bottom: 1px solid #003344 !important;
+}
+
+.ts-contact-method:hover {
+  background: rgba(0, 255, 255, 0.05) !important;
+  box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.1) !important;
+}
+
+.ts-contact-value {
+  color: #00ff88 !important;
+  text-shadow: 0 0 5px rgba(0, 255, 136, 0.5) !important;
+}
+
+.ts-contact-icon {
+  color: #ff0080 !important;
+  text-shadow: 0 0 5px rgba(255, 0, 128, 0.5) !important;
+}
+
+.ts-contact-action {
+  color: #ffff00 !important;
+  border: 1px solid #ffff00 !important;
+  background: rgba(255, 255, 0, 0.1) !important;
+}
+
+.ts-contact-action:hover {
+  background: rgba(255, 255, 0, 0.2) !important;
+  box-shadow: 0 0 10px rgba(255, 255, 0, 0.3) !important;
+}`
+          }
+        ]
+      }
+    },
+    {
+      name: 'SkillChart',
+      description: 'Interactive skill visualization with multiple display modes, themes, and layouts',
+      props: [
+        { name: 'title', type: 'string', options: ['any text'], default: 'Skills', description: 'Chart title' },
+        { name: 'display', type: 'string', options: ['bars', 'radial', 'bubbles', 'tags'], default: 'bars', description: 'Visual display mode' },
+        { name: 'theme', type: 'string', options: ['modern', 'neon', 'professional', 'minimal'], default: 'modern', description: 'Visual theme style' },
+        { name: 'layout', type: 'string', options: ['grid', 'columns', 'flow'], default: 'grid', description: 'Skill arrangement layout' },
+        { name: 'showValues', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show numeric values/percentages' },
+        { name: 'showCategories', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Group skills by categories' },
+        { name: 'sortBy', type: 'string', options: ['proficiency', 'category', 'name', 'custom'], default: 'proficiency', description: 'Sort order for skills' },
+        { name: 'maxDisplay', type: 'number', options: ['1', '5', '10', '20'], default: 'unlimited', description: 'Max number of skills to display' },
+        { name: 'size', type: 'string', options: ['sm', 'md', 'lg'], default: 'md', description: 'Overall component size' }
+      ],
+      example: `<!-- Tech skills with bars -->
+<SkillChart title="Technical Skills" display="bars" theme="modern">
+  <Skill name="React" level="90" category="Frontend" color="#3B82F6" icon="⚛️" />
+  <Skill name="TypeScript" level="85" category="Languages" color="#3178C6" icon="📘" />
+  <Skill name="Node.js" level="80" category="Backend" color="#339933" icon="🟢" />
+  <Skill name="PostgreSQL" level="75" category="Database" color="#8B5CF6" icon="🐘" />
+</SkillChart>
+
+<!-- Design skills with radial indicators -->
+<SkillChart title="Design Tools" display="radial" theme="neon" layout="grid">
+  <Skill name="Figma" level="95" icon="🎨" yearsExperience="4" description="UI/UX Design" />
+  <Skill name="Photoshop" level="80" icon="📸" yearsExperience="6" description="Photo editing" />
+  <Skill name="Illustrator" level="70" icon="✏️" yearsExperience="3" description="Vector graphics" />
+</SkillChart>
+
+<!-- Language proficiency bubbles -->
+<SkillChart title="Languages" display="bubbles" theme="professional" sortBy="proficiency">
+  <Skill name="English" level="5" max="5" category="Languages" />
+  <Skill name="Spanish" level="4" max="5" category="Languages" />
+  <Skill name="French" level="2" max="5" category="Languages" />
+</SkillChart>
+
+<!-- Simple skill tags -->
+<SkillChart title="Soft Skills" display="tags" layout="flow" showCategories="false">
+  <Skill name="Leadership" level="8" max="10" color="#10B981" />
+  <Skill name="Communication" level="9" max="10" color="#3B82F6" />
+  <Skill name="Problem Solving" level="9" max="10" color="#8B5CF6" />
+</SkillChart>
+
+<!-- Advanced example with priorities and custom layout -->
+<SkillChart title="Full Stack Development" display="bars" sortBy="custom" maxDisplay="6">
+  <Skill name="Frontend" level="95" category="Development" priority="10" icon="🌐" />
+  <Skill name="Backend APIs" level="88" category="Development" priority="9" icon="⚙️" />
+  <Skill name="Database Design" level="82" category="Development" priority="8" icon="💾" />
+  <Skill name="DevOps" level="75" category="Development" priority="7" icon="🚀" />
+  <Skill name="Mobile Dev" level="65" category="Development" priority="6" icon="📱" />
+  <Skill name="AI/ML" level="45" category="Development" priority="5" icon="🤖" />
+</SkillChart>`,
+      preview: (
+        <div className="text-xs bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200 px-3 py-2">
+            <div className="font-semibold text-gray-800">Technical Skills</div>
+            <div className="text-blue-600 mt-1">4 skills • Sorted by proficiency</div>
+          </div>
+          <div className="p-3 space-y-3">
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1">
+                  <span>⚛️</span>
+                  <span className="font-medium">React</span>
+                </div>
+                <span className="text-blue-600 text-xs">90/100 (90%)</span>
+              </div>
+              <div className="bg-gray-200 rounded-full h-2">
+                <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" style={{width: '90%'}}></div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1">
+                  <span>📘</span>
+                  <span className="font-medium">TypeScript</span>
+                </div>
+                <span className="text-blue-600 text-xs">85/100 (85%)</span>
+              </div>
+              <div className="bg-gray-200 rounded-full h-2">
+                <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" style={{width: '85%'}}></div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1">
+                  <span>🟢</span>
+                  <span className="font-medium">Node.js</span>
+                </div>
+                <span className="text-blue-600 text-xs">80/100 (80%)</span>
+              </div>
+              <div className="bg-gray-200 rounded-full h-2">
+                <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" style={{width: '80%'}}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      stylingGuide: {
+        classes: [
+          {
+            name: '.ts-skill-chart',
+            description: 'Main skill chart container'
+          },
+          {
+            name: '.ts-skill-chart-header',
+            description: 'Chart title and info header'
+          },
+          {
+            name: '.ts-skill-category',
+            description: 'Category grouping containers'
+          },
+          {
+            name: '.ts-skill-item',
+            description: 'Individual skill display items'
+          },
+          {
+            name: '.ts-skill-bar-fill',
+            description: 'Progress bar fill (bars mode)'
+          },
+          {
+            name: '.ts-skill-radial',
+            description: 'Circular progress indicator (radial mode)'
+          },
+          {
+            name: '.ts-skill-bubble',
+            description: 'Skill bubble element (bubbles mode)'
+          },
+          {
+            name: '.ts-skill-tag',
+            description: 'Skill tag badge (tags mode)'
+          },
+          {
+            name: '.ts-skill-label',
+            description: 'Skill name/title text'
+          },
+          {
+            name: '.ts-skill-value',
+            description: 'Numeric value/percentage display'
+          },
+          {
+            name: '.ts-skill-icon',
+            description: 'Skill type icon/emoji'
+          }
+        ],
+        examples: [
+          {
+            title: 'Gaming/Streamer Theme',
+            css: `.ts-skill-chart {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: 2px solid #9f7aea !important;
+  color: white !important;
+  box-shadow: 0 0 30px rgba(159, 122, 234, 0.3) !important;
+}
+
+.ts-skill-chart-header {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.ts-skill-item {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.ts-skill-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3) !important;
+}
+
+.ts-skill-bar-fill {
+  background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1) !important;
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.5) !important;
+}
+
+.ts-skill-icon {
+  filter: drop-shadow(0 0 5px currentColor) !important;
+  font-size: 1.2em !important;
+}`
+          },
+          {
+            title: 'Corporate Dashboard',
+            css: `.ts-skill-chart {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.ts-skill-chart-header {
+  background: #1e293b !important;
+  color: white !important;
+  border-bottom: none !important;
+}
+
+.ts-skill-chart-title {
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+}
+
+.ts-skill-item {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  margin-bottom: 8px !important;
+}
+
+.ts-skill-bar-track {
+  background: #e2e8f0 !important;
+}
+
+.ts-skill-bar-fill {
+  background: linear-gradient(90deg, #0f172a, #1e293b) !important;
+}
+
+.ts-skill-value {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+.ts-skill-icon {
+  color: #64748b !important;
+}`
+          },
+          {
+            title: 'Retro Arcade Style',
+            css: `.ts-skill-chart {
+  background: #0a0a0a !important;
+  border: 4px solid #00ffff !important;
+  box-shadow: 
+    0 0 20px #00ffff,
+    inset 0 0 20px rgba(0, 255, 255, 0.1) !important;
+  font-family: 'Courier New', monospace !important;
+}
+
+.ts-skill-chart-header {
+  background: linear-gradient(90deg, #ff007f, #00ffff) !important;
+  color: black !important;
+  border-bottom: 2px solid #ffff00 !important;
+  text-transform: uppercase !important;
+}
+
+.ts-skill-item {
+  background: rgba(0, 255, 255, 0.05) !important;
+  border: 1px solid #ff007f !important;
+  margin: 4px !important;
+}
+
+.ts-skill-item:hover {
+  background: rgba(255, 0, 127, 0.1) !important;
+  box-shadow: 0 0 15px #ff007f !important;
+}
+
+.ts-skill-bar-track {
+  background: #333 !important;
+  border: 1px solid #666 !important;
+}
+
+.ts-skill-bar-fill {
+  background: linear-gradient(90deg, #ff007f, #ffff00, #00ffff) !important;
+  animation: retro-glow 2s ease-in-out infinite alternate !important;
+}
+
+.ts-skill-label {
+  color: #00ffff !important;
+  text-shadow: 0 0 5px currentColor !important;
+}
+
+.ts-skill-value {
+  color: #ffff00 !important;
+  text-shadow: 0 0 5px currentColor !important;
+}
+
+@keyframes retro-glow {
+  from { 
+    filter: brightness(100%) saturate(100%);
+  }
+  to { 
+    filter: brightness(120%) saturate(150%);
+  }
+}`
+          }
+        ]
+      }
     }
   ],
   utility: [

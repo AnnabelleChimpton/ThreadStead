@@ -16,7 +16,10 @@ import SplitLayout from '../../SplitLayout';
 import FlexContainer from '../../FlexContainer';
 import GradientBox from '../../GradientBox';
 import CenteredBox from '../../CenteredBox';
+import ProfileHeader from '../../ProfileHeader';
 import { IfOwner, IfVisitor } from '../../conditional/IfOwner';
+import ProgressTracker, { ProgressItem } from '../../ProgressTracker';
+import ImageCarousel, { CarouselImage } from '../../ImageCarousel';
 
 describe('Template System End-to-End Integration', () => {
   describe('Complete Template Component Integration (simulating template system)', () => {
@@ -461,6 +464,375 @@ describe('Template System End-to-End Integration', () => {
       expect(container.querySelector('.grid')).toBeInTheDocument();
       expect(container.querySelector('.bg-gradient-to-br.from-orange-400')).toBeInTheDocument(); // Sunset gradient
       expect(container.querySelector('.bg-gradient-to-br.from-blue-400')).toBeInTheDocument(); // Ocean gradient
+    });
+  });
+
+  describe('New Component Integration (ProgressTracker)', () => {
+    it('should integrate ProgressTracker with other template components', () => {
+      const mockData = createMockResidentData({
+        owner: { 
+          id: 'dev123', 
+          handle: 'developer', 
+          displayName: 'Jane Developer',
+          avatarUrl: '/assets/jane-dev.jpg'
+        },
+        capabilities: {
+          bio: 'Full-stack developer with 5 years of experience'
+        }
+      });
+
+      const { container } = renderWithTemplateContext(
+        <div className="developer-profile">
+          <ProfileHeader showPhoto showBio />
+          
+          <GridLayout columns={2} gap="lg">
+            <div className="skills-section">
+              <ProgressTracker title="Technical Skills" display="bars" theme="modern">
+                <ProgressItem label="React" value={85} color="blue" />
+                <ProgressItem label="TypeScript" value={80} color="green" />
+                <ProgressItem label="Node.js" value={75} color="purple" />
+                <ProgressItem label="Python" value={60} color="yellow" />
+              </ProgressTracker>
+            </div>
+            
+            <div className="ratings-section">
+              <ProgressTracker title="Project Ratings" display="stars" theme="retro">
+                <ProgressItem label="E-commerce Site" value={4} max={5} />
+                <ProgressItem label="Mobile App" value={5} max={5} />
+                <ProgressItem label="Dashboard" value={3} max={5} />
+              </ProgressTracker>
+            </div>
+          </GridLayout>
+
+          <FlexContainer direction="row" gap="lg">
+            <GradientBox gradient="neon" padding="md">
+              <ProgressTracker title="2024 Goals" display="circles" theme="neon" showValues size="sm">
+                <ProgressItem label="Learning" value={75} color="pink" />
+                <ProgressItem label="Projects" value={60} color="blue" />
+              </ProgressTracker>
+            </GradientBox>
+            
+            <CenteredBox maxWidth="md">
+              <ProgressTracker title="Skill Levels" display="dots" layout="horizontal" theme="minimal">
+                <ProgressItem label="JavaScript" value={9} max={10} />
+                <ProgressItem label="CSS" value={8} max={10} />
+                <ProgressItem label="Design" value={6} max={10} />
+              </ProgressTracker>
+            </CenteredBox>
+          </FlexContainer>
+
+          <BlogPosts />
+        </div>,
+        { residentData: mockData }
+      );
+
+      // Verify ProgressTracker components render
+      expect(screen.getByText('Technical Skills')).toBeInTheDocument();
+      expect(screen.getByText('Project Ratings')).toBeInTheDocument();
+      expect(screen.getByText('2024 Goals')).toBeInTheDocument();
+      expect(screen.getByText('Skill Levels')).toBeInTheDocument();
+
+      // Verify progress items render
+      expect(screen.getByText('React')).toBeInTheDocument();
+      expect(screen.getByText('85%')).toBeInTheDocument();
+      expect(screen.getByText('E-commerce Site')).toBeInTheDocument();
+      expect(screen.getByText('4/5')).toBeInTheDocument();
+      expect(screen.getByText('Learning')).toBeInTheDocument();
+      expect(screen.getByText('JavaScript')).toBeInTheDocument();
+
+      // Verify layout integration
+      expect(container.querySelector('.ts-progress-tracker')).toBeInTheDocument();
+      expect(container.querySelector('.ts-progress-bar-fill')).toBeInTheDocument();
+      expect(container.querySelector('.ts-progress-stars')).toBeInTheDocument();
+      expect(container.querySelector('.ts-progress-circle')).toBeInTheDocument();
+      expect(container.querySelector('.ts-progress-dots')).toBeInTheDocument();
+
+      // Verify other components still work alongside ProgressTracker
+      expect(screen.getByText('Jane Developer')).toBeInTheDocument();
+      expect(screen.getByText('Full-stack developer with 5 years of experience')).toBeInTheDocument();
+      expect(screen.getByText('Recent Posts')).toBeInTheDocument();
+    });
+
+    it('should handle ProgressTracker with conditional rendering', () => {
+      const ownerData = createMockResidentData({
+        owner: { id: 'owner123', handle: 'owner', displayName: 'Owner User' },
+        viewer: { id: 'owner123' } // Owner viewing their own profile
+      });
+
+      renderWithTemplateContext(
+        <div className="conditional-progress">
+          <IfOwner>
+            <ProgressTracker title="Private Skills (Owner Only)">
+              <ProgressItem label="Secret Skill" value={95} />
+            </ProgressTracker>
+          </IfOwner>
+          
+          <IfVisitor>
+            <ProgressTracker title="Public Skills (Visitors)">
+              <ProgressItem label="Public Skill" value={75} />
+            </ProgressTracker>
+          </IfVisitor>
+        </div>,
+        { residentData: ownerData }
+      );
+
+      // Owner should see their private skills
+      expect(screen.getByText('Private Skills (Owner Only)')).toBeInTheDocument();
+      expect(screen.getByText('Secret Skill')).toBeInTheDocument();
+      expect(screen.queryByText('Public Skills (Visitors)')).not.toBeInTheDocument();
+    });
+
+    it('should handle ProgressTracker performance with many items', () => {
+      const mockData = createMockResidentData();
+      
+      const startTime = Date.now();
+
+      const { container } = renderWithTemplateContext(
+        <ProgressTracker title="All My Skills" display="bars" size="sm">
+          {Array.from({ length: 50 }, (_, i) => (
+            <ProgressItem 
+              key={i}
+              label={`Skill ${i + 1}`} 
+              value={Math.floor(Math.random() * 100)} 
+              color={['blue', 'green', 'red', 'purple', 'pink', 'yellow'][i % 6]}
+            />
+          ))}
+        </ProgressTracker>,
+        { residentData: mockData }
+      );
+
+      const endTime = Date.now();
+      const processingTime = endTime - startTime;
+
+      // Should handle many progress items efficiently
+      expect(processingTime).toBeLessThan(500);
+      expect(screen.getByText('All My Skills')).toBeInTheDocument();
+      expect(screen.getByText('Skill 1')).toBeInTheDocument();
+      expect(screen.getByText('Skill 50')).toBeInTheDocument();
+
+      const progressBars = container.querySelectorAll('.ts-progress-bar-fill');
+      expect(progressBars).toHaveLength(50);
+    });
+  });
+
+  describe('ImageCarousel Integration', () => {
+    it('should integrate ImageCarousel with resident data and other components', () => {
+      const mockData = createMockResidentData({
+        owner: { 
+          id: 'photographer123', 
+          handle: 'photographer', 
+          displayName: 'Jane Photographer',
+          avatarUrl: '/assets/jane-photo.jpg'
+        },
+        images: [
+          {
+            id: 'photo-1',
+            url: '/gallery/landscape1.jpg',
+            alt: 'Mountain landscape',
+            caption: 'Sunrise over the mountains',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'photo-2',
+            url: '/gallery/portrait1.jpg',
+            alt: 'Portrait photography',
+            caption: 'Professional headshot',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'photo-3',
+            url: '/gallery/nature1.jpg',
+            alt: 'Nature photography',
+            caption: 'Forest in autumn',
+            createdAt: new Date().toISOString()
+          }
+        ]
+      });
+
+      const { container } = renderWithTemplateContext(
+        <div className="photographer-portfolio">
+          <ProfileHeader showPhoto showBio />
+          
+          <GridLayout columns={1} gap="lg">
+            <div className="main-gallery">
+              <h2>My Photography</h2>
+              <ImageCarousel height="lg" transition="fade" autoplay interval={4} />
+            </div>
+            
+            <SplitLayout ratio="2:1" gap="md">
+              <div className="custom-gallery">
+                <h3>Featured Work</h3>
+                <ImageCarousel height="md" controls="dots">
+                  <CarouselImage 
+                    src="/featured/wedding1.jpg" 
+                    alt="Wedding photography" 
+                    caption="Sarah & Mike's Wedding"
+                    link="https://portfolio.com/wedding1"
+                  />
+                  <CarouselImage 
+                    src="/featured/event1.jpg" 
+                    alt="Event photography" 
+                    caption="Corporate Event 2024"
+                  />
+                </ImageCarousel>
+              </div>
+              
+              <div className="skills-section">
+                <ProgressTracker title="Photography Skills" display="bars" size="sm">
+                  <ProgressItem label="Portrait" value={95} color="blue" />
+                  <ProgressItem label="Landscape" value={90} color="green" />
+                  <ProgressItem label="Event" value={85} color="purple" />
+                </ProgressTracker>
+              </div>
+            </SplitLayout>
+          </GridLayout>
+        </div>,
+        { residentData: mockData }
+      );
+
+      // Verify ImageCarousel components render
+      expect(container.querySelector('.ts-image-carousel')).toBeInTheDocument();
+      expect(screen.getByText('My Photography')).toBeInTheDocument();
+      expect(screen.getByText('Featured Work')).toBeInTheDocument();
+
+      // Verify resident data images are used in main carousel
+      expect(screen.getByAltText('Mountain landscape')).toBeInTheDocument();
+      expect(screen.getByText('Sunrise over the mountains')).toBeInTheDocument();
+
+      // Verify custom images are used in featured carousel
+      expect(screen.getByAltText('Wedding photography')).toBeInTheDocument();
+      expect(screen.getByText("Sarah & Mike's Wedding")).toBeInTheDocument();
+
+      // Verify carousel controls
+      expect(screen.getByLabelText('Previous image')).toBeInTheDocument();
+      expect(screen.getByLabelText('Next image')).toBeInTheDocument();
+      expect(screen.getByLabelText('Pause slideshow')).toBeInTheDocument(); // Autoplay enabled
+
+      // Verify integration with other components
+      expect(screen.getByText('Jane Photographer')).toBeInTheDocument();
+      expect(screen.getByText('Photography Skills')).toBeInTheDocument();
+      expect(screen.getByText('Portrait')).toBeInTheDocument();
+
+      // Verify layout integration
+      const gridLayout = container.querySelector('.grid');
+      const splitLayout = container.querySelector('.ts-split-layout');
+      expect(gridLayout).toBeInTheDocument();
+      expect(splitLayout).toBeInTheDocument();
+    });
+
+    it('should handle ImageCarousel with empty image data gracefully', () => {
+      const mockData = createMockResidentData({
+        images: [] // No images
+      });
+
+      renderWithTemplateContext(
+        <div className="empty-gallery">
+          <h2>My Gallery</h2>
+          <ImageCarousel />
+          <p>Other content should still render</p>
+        </div>,
+        { residentData: mockData }
+      );
+
+      expect(screen.getByText('My Gallery')).toBeInTheDocument();
+      expect(screen.getByText('No images to display')).toBeInTheDocument();
+      expect(screen.getByText('Upload some images to create a carousel')).toBeInTheDocument();
+      expect(screen.getByText('Other content should still render')).toBeInTheDocument();
+    });
+
+    it('should handle ImageCarousel with conditional rendering', () => {
+      const ownerData = createMockResidentData({
+        owner: { id: 'owner123', handle: 'owner', displayName: 'Gallery Owner' },
+        viewer: { id: 'owner123' }, // Owner viewing their own profile
+        images: [
+          {
+            id: 'private-1',
+            url: '/private/personal.jpg',
+            alt: 'Personal photo',
+            caption: 'Private gallery',
+            createdAt: new Date().toISOString()
+          }
+        ]
+      });
+
+      renderWithTemplateContext(
+        <div className="conditional-gallery">
+          <IfOwner>
+            <h3>Private Gallery (Owner Only)</h3>
+            <ImageCarousel height="sm" controls="arrows" />
+          </IfOwner>
+          
+          <IfVisitor>
+            <h3>Public Gallery</h3>
+            <ImageCarousel>
+              <CarouselImage src="/public/demo.jpg" alt="Public demo" />
+            </ImageCarousel>
+          </IfVisitor>
+        </div>,
+        { residentData: ownerData }
+      );
+
+      // Owner should see their private gallery
+      expect(screen.getByText('Private Gallery (Owner Only)')).toBeInTheDocument();
+      expect(screen.getByAltText('Personal photo')).toBeInTheDocument();
+      expect(screen.queryByText('Public Gallery')).not.toBeInTheDocument();
+    });
+
+    it('should handle multiple ImageCarousels with different configurations', () => {
+      const mockData = createMockResidentData({
+        images: [
+          {
+            id: 'img1',
+            url: '/test1.jpg',
+            alt: 'Test image 1',
+            caption: 'First image',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'img2',
+            url: '/test2.jpg',
+            alt: 'Test image 2',
+            caption: 'Second image',
+            createdAt: new Date().toISOString()
+          }
+        ]
+      });
+
+      const { container } = renderWithTemplateContext(
+        <FlexContainer direction="column" gap="lg">
+          <div className="carousel-1">
+            <ImageCarousel height="lg" transition="slide" showThumbnails loop />
+          </div>
+          
+          <div className="carousel-2">
+            <ImageCarousel height="sm" transition="fade" controls="dots" showThumbnails={false} />
+          </div>
+          
+          <div className="carousel-3">
+            <ImageCarousel height="md" controls="arrows" autoplay={false}>
+              <CarouselImage src="/override1.jpg" alt="Override 1" />
+              <CarouselImage src="/override2.jpg" alt="Override 2" />
+            </ImageCarousel>
+          </div>
+        </FlexContainer>,
+        { residentData: mockData }
+      );
+
+      const carousels = container.querySelectorAll('.ts-image-carousel');
+      expect(carousels).toHaveLength(3);
+
+      // First carousel uses resident data
+      expect(screen.getByAltText('Test image 1')).toBeInTheDocument();
+      
+      // Third carousel uses custom images
+      expect(screen.getByAltText('Override 1')).toBeInTheDocument();
+      expect(screen.getByAltText('Override 2')).toBeInTheDocument();
+
+      // Verify different height configurations
+      const mainAreas = container.querySelectorAll('.ts-carousel-main');
+      expect(mainAreas[0]).toHaveClass('h-96'); // lg
+      expect(mainAreas[1]).toHaveClass('h-48'); // sm
+      expect(mainAreas[2]).toHaveClass('h-64'); // md
     });
   });
 });

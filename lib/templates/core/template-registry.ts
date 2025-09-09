@@ -37,6 +37,10 @@ import MediaGrid from '@/components/features/templates/MediaGrid';
 import ProfileBadges from '@/components/features/templates/ProfileBadges';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import UserImage from '@/components/features/templates/UserImage';
+import ProgressTracker, { ProgressItem } from '@/components/features/templates/ProgressTracker';
+import ImageCarousel, { CarouselImage } from '@/components/features/templates/ImageCarousel';
+import ContactCard, { ContactMethod } from '@/components/features/templates/ContactCard';
+import SkillChart, { Skill } from '@/components/features/templates/SkillChart';
 
 // Import conditional rendering components
 import Show from '@/components/features/templates/conditional/Show';
@@ -541,4 +545,115 @@ componentRegistry.register({
   name: 'IfVisitor',
   component: IfVisitor,
   props: {}
+});
+
+componentRegistry.register({
+  name: 'ProgressTracker',
+  component: ProgressTracker,
+  props: {
+    title: { type: 'string' },
+    display: { type: 'enum', values: ['bars', 'stars', 'circles', 'dots'], default: 'bars' },
+    theme: { type: 'enum', values: ['modern', 'retro', 'neon', 'minimal'], default: 'modern' },
+    showValues: { type: 'boolean', default: true },
+    layout: { type: 'enum', values: ['vertical', 'horizontal'], default: 'vertical' },
+    size: { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md' }
+  }
+});
+
+componentRegistry.register({
+  name: 'ProgressItem',
+  component: ProgressItem,
+  props: {
+    label: { type: 'string', required: true },
+    value: { type: 'number', required: true, min: 0 },
+    max: { type: 'number', min: 1 },
+    color: { type: 'enum', values: ['blue', 'green', 'red', 'purple', 'pink', 'yellow'], default: 'blue' },
+    description: { type: 'string' }
+  }
+});
+
+componentRegistry.register({
+  name: 'ImageCarousel',
+  component: ImageCarousel,
+  props: {
+    autoplay: { type: 'boolean', default: false },
+    interval: { type: 'number', min: 1, max: 30, default: 5 },
+    showThumbnails: { type: 'boolean', default: true },
+    showDots: { type: 'boolean', default: true },
+    showArrows: { type: 'boolean', default: true },
+    height: { type: 'enum', values: ['sm', 'md', 'lg', 'xl'], default: 'md' },
+    transition: { type: 'enum', values: ['slide', 'fade', 'zoom'], default: 'slide' },
+    loop: { type: 'boolean', default: true },
+    controls: { type: 'enum', values: ['arrows', 'dots', 'thumbnails', 'all'], default: 'all' }
+  }
+});
+
+componentRegistry.register({
+  name: 'CarouselImage',
+  component: CarouselImage,
+  props: {
+    src: { type: 'string', required: true },
+    alt: { type: 'string' },
+    caption: { type: 'string' },
+    link: { type: 'string' }
+  }
+});
+
+componentRegistry.register({
+  name: 'ContactCard',
+  component: ContactCard,
+  props: {
+    expanded: { type: 'boolean', default: false },
+    theme: { type: 'enum', values: ['modern', 'business', 'creative', 'minimal'], default: 'modern' },
+    layout: { type: 'enum', values: ['compact', 'detailed', 'grid'], default: 'compact' },
+    showHeader: { type: 'boolean', default: true },
+    collapsible: { type: 'boolean', default: true },
+    maxMethods: { type: 'number', min: 1, max: 10, default: 3 },
+    title: { type: 'string', default: 'Contact Me' }
+  }
+});
+
+componentRegistry.register({
+  name: 'ContactMethod',
+  component: ContactMethod,
+  props: {
+    type: { type: 'enum', values: ['email', 'phone', 'linkedin', 'github', 'twitter', 'website', 'discord', 'custom'], required: true },
+    value: { type: 'string', required: true },
+    label: { type: 'string' },
+    icon: { type: 'string' },
+    copyable: { type: 'boolean', default: true },
+    priority: { type: 'number', min: 1, max: 10, default: 5 }
+  }
+});
+
+componentRegistry.register({
+  name: 'SkillChart',
+  component: SkillChart,
+  props: {
+    title: { type: 'string', default: 'Skills' },
+    display: { type: 'enum', values: ['bars', 'radial', 'bubbles', 'tags'], default: 'bars' },
+    theme: { type: 'enum', values: ['modern', 'neon', 'professional', 'minimal'], default: 'modern' },
+    layout: { type: 'enum', values: ['grid', 'columns', 'flow'], default: 'grid' },
+    showValues: { type: 'boolean', default: true },
+    showCategories: { type: 'boolean', default: true },
+    sortBy: { type: 'enum', values: ['proficiency', 'category', 'name', 'custom'], default: 'proficiency' },
+    maxDisplay: { type: 'number', min: 1, max: 50 },
+    size: { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md' }
+  }
+});
+
+componentRegistry.register({
+  name: 'Skill',
+  component: Skill,
+  props: {
+    name: { type: 'string', required: true },
+    level: { type: 'number', required: true, min: 0 },
+    category: { type: 'string' },
+    color: { type: 'string' },
+    icon: { type: 'string' },
+    description: { type: 'string' },
+    yearsExperience: { type: 'number', min: 0, max: 50 },
+    priority: { type: 'number', min: 1, max: 10, default: 5 },
+    max: { type: 'number', min: 1, default: 100 }
+  }
 });
