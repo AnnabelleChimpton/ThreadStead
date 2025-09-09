@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 interface ComponentCardProps {
   name: string;
   description: string;
+  whenToUse?: string;
   props?: Array<{
     name: string;
     type: string;
@@ -27,6 +28,7 @@ interface ComponentCardProps {
 export default function ComponentCard({ 
   name, 
   description, 
+  whenToUse,
   props, 
   example, 
   preview, 
@@ -54,6 +56,11 @@ export default function ComponentCard({
                 &lt;{name} /&gt;
               </h3>
               <p className="text-gray-700 text-base leading-snug">{description}</p>
+              {whenToUse && (
+                <p className="text-purple-700 text-sm mt-2 font-medium">
+                  💡 When to use: {whenToUse}
+                </p>
+              )}
             </div>
           </div>
         </div>

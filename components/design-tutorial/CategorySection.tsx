@@ -4,6 +4,7 @@ import ComponentCard from './ComponentCard';
 interface ComponentInfo {
   name: string;
   description: string;
+  whenToUse?: string;
   props?: Array<{
     name: string;
     type: string;

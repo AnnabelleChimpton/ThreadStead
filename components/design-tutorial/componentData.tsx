@@ -30,6 +30,12 @@ export const componentCategories = [
     title: 'Utility',
     icon: 'Utility',
     description: 'Helper components for data display, navigation, and conditional rendering'
+  },
+  {
+    id: 'css-classes',
+    title: 'CSS Classes',
+    icon: '🎨',
+    description: 'CSS class reference and styling guide for customizing your components'
   }
 ];
 
@@ -41,7 +47,7 @@ export const componentData = {
       props: [
         { name: 'as', type: 'string', options: ['h1', 'h2', 'h3', 'h4', 'div', 'span', 'p'], default: 'h2', description: 'HTML element to render as' },
         { name: 'showLabel', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Show "Name:" label before display name' },
-        { name: 'className', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes to apply' }
+        { name: 'class', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes to apply' }
       ],
       example: `<DisplayName as="h1" />
 <DisplayName as="span" showLabel="true" />
@@ -84,11 +90,11 @@ export const componentData = {
     },
     {
       name: 'ProfileHero',
-      description: 'Hero section with profile photo, name, and social links in one container',
+      description: '📦 CONTAINER - Wraps hero section with profile photo, name, and social links in one container',
       props: [
         { name: 'layout', type: 'string', options: ['horizontal', 'vertical'], default: 'horizontal', description: 'Layout direction' },
         { name: 'showBio', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Include bio in hero section' },
-        { name: 'className', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes' }
+        { name: 'class', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes' }
       ],
       example: `<ProfileHero layout="horizontal" showBio="true" />
 <ProfileHero layout="vertical" class="hero-style" />
@@ -109,7 +115,8 @@ export const componentData = {
     },
     {
       name: 'UserImage', 
-      description: 'Display user profile image with fallback and customization options',
+      description: 'Display user profile image with fallback and customization options. Use for avatars with status indicators and small profile images.',
+      whenToUse: 'For user avatars, status indicators, and interactive profile images in lists or small contexts.',
       props: [
         { name: 'size', type: 'string', options: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md', description: 'Image size' },
         { name: 'shape', type: 'string', options: ['circle', 'square', 'rounded'], default: 'circle', description: 'Image shape' },
@@ -138,7 +145,7 @@ export const componentData = {
       preview: (
         <div className="text-sm space-y-1">
           <div className="text-gray-600">@username</div>
-          <div className="text-xs text-gray-500">Joined Oct 2024</div>
+          <div className="text-xs text-gray-500">Joined Oct &apos;24</div>
         </div>
       )
     },
@@ -168,7 +175,7 @@ export const componentData = {
       name: 'Bio',
       description: 'Display your bio/about section with optional heading customization',
       props: [
-        { name: 'className', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes to apply to bio section' },
+        { name: 'class', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes to apply to bio section' },
         { name: 'hideHeading', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Hide the "About Me" heading' },
         { name: 'headingText', type: 'string', options: ['any text'], default: 'About Me', description: 'Custom heading text' }
       ],
@@ -231,10 +238,10 @@ export const componentData = {
     },
     {
       name: 'BlogPosts',
-      description: 'Display your recent blog posts in a styled list',
+      description: '📦 CONTAINER - Wraps and displays your recent blog posts in a styled list',
       props: [
         { name: 'limit', type: 'number', options: ['1', '2', '3', '5', '10'], default: '5', description: 'Maximum number of posts to show' },
-        { name: 'className', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes for the posts container' },
+        { name: 'class', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes for the posts container' },
         { name: 'showDates', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show post publication dates' },
         { name: 'sortOrder', type: 'string', options: ['newest', 'oldest'], default: 'newest', description: 'Sort posts by date' }
       ],
@@ -328,11 +335,12 @@ export const componentData = {
     },
     {
       name: 'ProfilePhoto',
-      description: 'Display your profile photo with size and shape options',
+      description: 'Display your profile photo with decorative frame, border, and shadow options. Perfect for hero sections and main profile displays.',
+      whenToUse: 'For large hero profile photos, decorative displays, and when you want custom frames/borders/shadows.',
       props: [
         { name: 'size', type: 'string', options: ['sm', 'md', 'lg', 'xl'], default: 'md', description: 'Photo size (sm=64px, md=96px, lg=128px, xl=192px)' },
         { name: 'shape', type: 'string', options: ['circle', 'square', 'rounded'], default: 'circle', description: 'Photo shape style' },
-        { name: 'className', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes for photo wrapper' },
+        { name: 'class', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes for photo wrapper' },
         { name: 'border', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show decorative border' },
         { name: 'shadow', type: 'string', options: ['none', 'sm', 'md', 'lg'], default: 'sm', description: 'Drop shadow effect' }
       ],
@@ -408,7 +416,7 @@ export const componentData = {
   layout: [
     {
       name: 'FlexContainer',
-      description: 'Flexible box layouts with customizable direction, alignment, and spacing',
+      description: '📦 CONTAINER - Wraps content in flexible box layouts with customizable direction, alignment, and spacing',
       props: [
         { name: 'direction', type: 'string', options: ['row', 'row-reverse', 'column', 'column-reverse'], default: 'row', description: 'Flex direction' },
         { name: 'align', type: 'string', options: ['start', 'center', 'end', 'stretch', 'baseline'], default: 'start', description: 'Cross-axis alignment' },
@@ -513,7 +521,7 @@ export const componentData = {
   visual: [
     {
       name: 'GradientBox',
-      description: 'Colorful gradient containers with customizable colors',
+      description: '📦 CONTAINER - Wraps content with colorful gradient backgrounds and customizable colors',
       props: [
         { name: 'colors', type: 'string', options: ['pink-purple', 'blue-green', 'yellow-orange', 'cyan-blue'], default: 'pink-purple', description: 'Gradient color scheme' },
         { name: 'direction', type: 'string', options: ['to-r', 'to-l', 'to-t', 'to-b', 'to-br', 'to-bl'], default: 'to-br', description: 'Gradient direction' }
@@ -529,7 +537,7 @@ export const componentData = {
     },
     {
       name: 'NeonBorder',
-      description: 'Glowing neon border effects with customizable colors and intensity',
+      description: '📦 CONTAINER - Wraps content with glowing neon border effects and customizable colors and intensity',
       props: [
         { name: 'color', type: 'string', options: ['blue', 'pink', 'green', 'purple', 'cyan', 'yellow'], default: 'blue', description: 'Neon glow color' },
         { name: 'intensity', type: 'string', options: ['soft', 'medium', 'bright'], default: 'medium', description: 'Glow intensity' },
@@ -592,7 +600,7 @@ export const componentData = {
     },
     {
       name: 'StickyNote',
-      description: 'Sticky note styling with various colors and rotation effects',
+      description: '📦 CONTAINER - Wraps content in sticky note styling with various colors and rotation effects',
       props: [
         { name: 'color', type: 'string', options: ['yellow', 'pink', 'blue', 'green', 'orange'], default: 'yellow', description: 'Note color' },
         { name: 'size', type: 'string', options: ['sm', 'md', 'lg'], default: 'md', description: 'Note size' },
@@ -633,7 +641,7 @@ export const componentData = {
     },
     {
       name: 'RetroTerminal',
-      description: 'Old-school computer terminal styling',
+      description: '📦 CONTAINER - Wraps content in old-school computer terminal styling',
       props: [
         { name: 'color', type: 'string', options: [], default: '', description: '' },
         { name: 'title', type: 'string', options: [], default: '', description: '' }
@@ -653,7 +661,7 @@ export const componentData = {
   interactive: [
     {
       name: 'RevealBox',
-      description: 'Content that shows/hides with hover or click',
+      description: '📦 CONTAINER - Wraps content that shows/hides with hover or click',
       props: [
         { name: 'trigger', type: 'string', options: ['hover', 'click', 'focus'], default: 'hover', description: 'What triggers the reveal' },
         { name: 'effect', type: 'string', options: ['fade', 'slide', 'scale', 'flip'], default: 'fade', description: 'Animation effect' }
@@ -670,7 +678,7 @@ export const componentData = {
     },
     {
       name: 'Tabs',
-      description: 'Tabbed interface for organizing content into sections',
+      description: '📦 CONTAINER - Wraps Tab components to create a tabbed interface for organizing content',
       props: [
         { name: 'defaultTab', type: 'string', options: ['any tab name'], default: 'first', description: 'Initially active tab' },
         { name: 'orientation', type: 'string', options: ['horizontal', 'vertical'], default: 'horizontal', description: 'Tab layout direction' },
@@ -1770,7 +1778,7 @@ export const componentData = {
     },
     {
       name: 'Choose (conditional)',
-      description: 'Advanced conditional rendering with When/Otherwise logic blocks',
+      description: '📦 CONTAINER - Wraps When/Otherwise components for advanced conditional rendering with logic blocks',
       props: [
         { name: 'children', type: 'components', options: ['When', 'Otherwise'], default: 'required', description: 'When and Otherwise components as children' }
       ],
@@ -1832,7 +1840,7 @@ export const componentData = {
     },
     {
       name: 'Show (conditional)',
-      description: 'Simple conditional rendering with flexible data evaluation',
+      description: '📦 CONTAINER - Wraps content to show/hide based on conditional evaluation',
       props: [
         { name: 'when', type: 'string', options: ['true', 'false', 'has:path.to.data', 'path.to.data'], default: 'none', description: 'Condition string to evaluate' },
         { name: 'data', type: 'string', options: ['user.name', 'posts', 'bio', 'any.data.path'], default: 'none', description: 'Data path to check' },
@@ -1857,7 +1865,7 @@ export const componentData = {
     },
     {
       name: 'IfOwner (conditional)',
-      description: 'Show content only to the profile owner (viewer === owner)',
+      description: '📦 CONTAINER - Wraps content to show only to the profile owner (viewer === owner)',
       props: [
         { name: 'children', type: 'ReactNode', options: ['any content'], default: 'required', description: 'Content visible only to profile owner' }
       ],
