@@ -22,6 +22,11 @@ function evaluateCondition(condition: string, data: any): boolean {
   if (condition === 'true') return true;
   if (condition === 'false') return false;
   
+  // Handle negation
+  if (condition.startsWith('!')) {
+    return !evaluateCondition(condition.slice(1), data);
+  }
+  
   // Handle data path existence checks
   if (condition.startsWith('has:')) {
     const path = condition.slice(4);

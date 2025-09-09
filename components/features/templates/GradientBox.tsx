@@ -12,6 +12,7 @@ interface GradientBoxProps {
   opacity?: string; // e.g., '10', '90'
   className?: string; // Additional CSS classes
   children: React.ReactNode;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 export default function GradientBox({ 
@@ -25,7 +26,8 @@ export default function GradientBox({
   colors,
   opacity,
   className,
-  children 
+  children,
+  onClick
 }: GradientBoxProps) {
   let backgroundClass = '';
   let opacityClass = '';
@@ -120,7 +122,7 @@ export default function GradientBox({
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={allClasses}>
+    <div className={allClasses} onClick={onClick}>
       {children}
     </div>
   );

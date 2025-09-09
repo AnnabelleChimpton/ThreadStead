@@ -6,6 +6,7 @@ interface SplitLayoutProps {
   gap?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   responsive?: boolean;
   children: React.ReactNode;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 export default function SplitLayout({ 
@@ -13,7 +14,8 @@ export default function SplitLayout({
   vertical = false,
   gap = 'md',
   responsive = true,
-  children 
+  children,
+  onClick
 }: SplitLayoutProps) {
   const childrenArray = React.Children.toArray(children);
   const firstChild = childrenArray[0];
@@ -70,7 +72,7 @@ export default function SplitLayout({
   const { first: firstWidth, second: secondWidth } = getChildWidths();
 
   return (
-    <div className={`${layoutClasses} ${gapClasses}`}>
+    <div className={`${layoutClasses} ${gapClasses}`} onClick={onClick}>
       <div className={firstWidth}>
         {firstChild}
       </div>

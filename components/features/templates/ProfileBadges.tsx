@@ -38,8 +38,9 @@ export default function ProfileBadges({
     );
   }
 
-  // Show up to 6 badges in template preview
-  const displayBadges = badges.slice(0, 6);
+  // Show up to 6 badges in template preview - defensive programming
+  const safeBadges = Array.isArray(badges) ? badges : [];
+  const displayBadges = safeBadges.slice(0, 6);
 
   const badgeElements = displayBadges.map((badge) => (
     <div 

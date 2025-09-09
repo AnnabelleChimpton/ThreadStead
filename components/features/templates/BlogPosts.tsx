@@ -10,7 +10,9 @@ interface BlogPostsProps {
 export default function BlogPosts({ limit = 5, className: customClassName }: BlogPostsProps) {
   const { posts, owner } = useResidentData();
   
-  const displayPosts = posts.slice(0, limit);
+  // Defensive programming: ensure posts is an array and filter out invalid posts
+  const safePosts = Array.isArray(posts) ? posts.filter(post => post && post.id) : [];
+  const displayPosts = safePosts.slice(0, limit);
 
   if (displayPosts.length === 0) {
     const emptyClassName = customClassName ? `blog-posts-empty profile-tab-content italic opacity-70 text-center py-4 ${customClassName}` : "blog-posts-empty profile-tab-content italic opacity-70 text-center py-4";

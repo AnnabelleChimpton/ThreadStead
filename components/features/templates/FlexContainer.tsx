@@ -8,6 +8,7 @@ interface FlexContainerProps {
   gap?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   responsive?: boolean;
   children: React.ReactNode;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 export default function FlexContainer({ 
@@ -17,7 +18,8 @@ export default function FlexContainer({
   wrap = false,
   gap = 'md',
   responsive = true,
-  children 
+  children,
+  onClick
 }: FlexContainerProps) {
   const baseDirectionClass = {
     'row': 'flex-row',
@@ -58,7 +60,7 @@ export default function FlexContainer({
   const wrapClass = wrap ? 'flex-wrap' : '';
 
   return (
-    <div className={`flex ${directionClass} ${alignClass} ${justifyClass} ${gapClass} ${wrapClass}`.trim()}>
+    <div className={`flex ${directionClass} ${alignClass} ${justifyClass} ${gapClass} ${wrapClass}`.trim()} onClick={onClick}>
       {children}
     </div>
   );

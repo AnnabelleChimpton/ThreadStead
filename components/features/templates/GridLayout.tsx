@@ -5,13 +5,15 @@ interface GridLayoutProps {
   gap?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   responsive?: boolean;
   children: React.ReactNode;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 export default function GridLayout({ 
   columns = 2,
   gap = 'md',
   responsive = true,
-  children 
+  children,
+  onClick
 }: GridLayoutProps) {
   const baseGridClass = {
     1: 'grid-cols-1',
@@ -40,7 +42,7 @@ export default function GridLayout({
   }[gap];
 
   return (
-    <div className={`grid ${responsiveClass} ${gapClass}`}>
+    <div className={`grid ${responsiveClass} ${gapClass}`} onClick={onClick}>
       {children}
     </div>
   );
