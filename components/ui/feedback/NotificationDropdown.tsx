@@ -49,7 +49,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     } finally {
       setLoading(false);
     }
-  }, [loading, loggedIn]);
+  }, [loggedIn]);
 
   const markAsRead = async (notificationIds: string[]) => {
     if (!loggedIn) return;
