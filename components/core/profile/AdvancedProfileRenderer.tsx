@@ -418,10 +418,9 @@ function StaticHTMLWithIslands({
         
         // Special cases for sub-components
         if (componentName === 'Tab') {
-          const tabsRegistration = componentRegistry.get('Tabs');
-          if (tabsRegistration) {
-            const TabsComponent = tabsRegistration.component as any;
-            return TabsComponent.Tab || null;
+          const tabRegistration = componentRegistry.get('Tab');
+          if (tabRegistration) {
+            return tabRegistration.component;
           }
         }
         if (componentName === 'When') {
@@ -843,10 +842,9 @@ function ProductionIslandRenderer({
         
         // Special cases for sub-components
         if (componentName === 'Tab') {
-          const tabsRegistration = componentRegistry.get('Tabs');
-          if (tabsRegistration) {
-            const TabsComponent = tabsRegistration.component as any;
-            return TabsComponent.Tab || null;
+          const tabRegistration = componentRegistry.get('Tab');
+          if (tabRegistration) {
+            return tabRegistration.component;
           }
         }
         if (componentName === 'When') {
