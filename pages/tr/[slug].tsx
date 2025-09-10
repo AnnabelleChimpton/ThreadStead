@@ -18,6 +18,9 @@ import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-t
 import Toast from "../../components/ui/feedback/Toast";
 import { useToast } from "../../hooks/useToast";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
+import WelcomeRingGuide from "../../components/features/onboarding/WelcomeRingGuide";
+import { useWelcomeTracking } from "../../hooks/useWelcomeTracking";
+import { useWelcomeRingTracking } from "../../hooks/useWelcomeRingTracking";
 
 // Helper function to count total descendants recursively
 function countTotalDescendants(descendants: any[]): number {
@@ -256,7 +259,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
           </div>
         </div>
 
-        {/* Curator's Note / Welcome Message */}
+        {/* Ring Host&apos;s Note / Welcome Message */}
         {(ring.curatorNote || ring.currentPrompt) && (
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-12">
             <div className="flex items-start">
@@ -391,6 +394,10 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [hasMore, setHasMore] = useState(true);
   const [joining, setJoining] = useState(false);
   const [isMember, setIsMember] = useState(false);
+  
+  // Track welcome progress
+  useWelcomeTracking();
+  const { trackCommentCreated } = useWelcomeRingTracking(ring?.slug);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
@@ -617,8 +624,21 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       setIsMember(true);
       setCurrentUserRole("member");
       
-      // Reload the page to get updated member list
-      window.location.reload();
+      // Track joining for Welcome Ring progress
+      if (ring.slug === 'welcome') {
+        const { updateWelcomeProgress } = await import('@/lib/welcome/progress');
+        const { celebrateAction } = await import('@/lib/welcome/celebrations');
+        updateWelcomeProgress({ joinedRing: true });
+        celebrateAction('joinedRing');
+        
+        // Give time for the toast to show before reloading
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        // Reload immediately for non-welcome rings
+        window.location.reload();
+      }
       
     } catch (error: any) {
       console.error("Error joining ThreadRing:", error);
@@ -632,7 +652,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     if (!ring) return;
     
     const confirmMessage = currentUserRole === "curator" 
-      ? "As curator, you can only leave if you're the last member. Are you sure you want to leave this ThreadRing?"
+      ? "As Ring Host, you can only leave if you're the last member. Are you sure you want to leave this ThreadRing?"
       : "Are you sure you want to leave this ThreadRing? Your posts will remain associated with it.";
     
     if (!confirm(confirmMessage)) return;
@@ -679,6 +699,14 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       const response = await fetch(`/api/threadrings/${ring.slug}/posts`);
       if (response.ok) {
         const data = await response.json();
+        const prevPostCount = posts.reduce((total, post) => total + (post.commentCount || 0), 0);
+        const newPostCount = data.posts.reduce((total: number, post: any) => total + (post.commentCount || 0), 0);
+        
+        // If comment count increased, track comment creation for Welcome Ring
+        if (newPostCount > prevPostCount && ring.slug === 'welcome') {
+          trackCommentCreated();
+        }
+        
         setPosts(data.posts);
         setHasMore(data.hasMore);
       }
@@ -708,6 +736,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
   return (
     <Layout siteConfig={siteConfig}>
+      {/* Welcome Ring Guide - shows only on welcome ring */}
+      {ring.slug === 'welcome' && (
+        <WelcomeRingGuide ringSlug={ring.slug} viewer={currentUser} />
+      )}
+      
       <div className="tr-page-container grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main content area - posts feed */}
         <div className="tr-main-content lg:col-span-3">
@@ -739,7 +772,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       <div className="tr-curator-note-content flex items-start">
                         <div className="tr-curator-note-icon text-yellow-600 mr-2">📌</div>
                         <div className="tr-curator-note-text">
-                          <p className="tr-curator-note-label text-sm font-medium text-yellow-800 mb-1">Curator&apos;s Note</p>
+                          <p className="tr-curator-note-label text-sm font-medium text-yellow-800 mb-1">Ring Host&apos;s Note</p>
                           <p className="tr-curator-note-message text-sm text-yellow-700">{ring.curatorNote}</p>
                         </div>
                       </div>
@@ -748,7 +781,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   <div className="tr-meta-info flex items-center gap-4 text-sm text-gray-600">
                     {ring.curator && (
                       <>
-                        <span className="tr-curator-info">Curated by @{curatorHandle}</span>
+                        <span className="tr-curator-info">Hosted by @{curatorHandle}</span>
                         <span>•</span>
                       </>
                     )}
@@ -870,12 +903,12 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       {/* Member Status */}
                       <div className="tr-member-status text-xs bg-green-100 px-3 py-2 border border-green-300 rounded text-center">
                         <span className="tr-role-indicator font-medium">
-                          {currentUserRole === "curator" ? "👑 Curator" : 
+                          {currentUserRole === "curator" ? "👑 Ring Host" : 
                            currentUserRole === "moderator" ? "🛡️ Moderator" : "👤 Member"}
                         </span>
                       </div>
 
-                      {/* Curator Settings Button */}
+                      {/* Ring Host Settings Button */}
                       {currentUserRole === "curator" && (
                         <button
                           onClick={() => router.push(`/tr/${ring.slug}/settings`)}
@@ -885,12 +918,12 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         </button>
                       )}
 
-                      {/* Fork Button for Members */}
+                      {/* Start New Ring Button for Members */}
                       <button
                         onClick={() => router.push(`/tr/${ring.slug}/fork`)}
                         className="w-full text-sm border border-black px-3 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
                       >
-                        🍴 Fork ThreadRing
+                        ✨ Start a New Ring
                       </button>
 
                       {/* Leave Button */}
@@ -899,7 +932,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         disabled={joining}
                         className="w-full text-sm border border-black px-3 py-2 bg-white hover:bg-red-100 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         title={currentUserRole === "curator" 
-                          ? "As curator, you must transfer ownership first (unless you're the only member)" 
+                          ? "As Ring Host, you must transfer ownership first (unless you're the only member)" 
                           : "Leave this ThreadRing"}
                       >
                         {joining ? "Leaving..." : "Leave ThreadRing"}
@@ -912,7 +945,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         <button
                           onClick={handleJoin}
                           disabled={joining}
-                          className="w-full border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                          className="w-full border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium join-button"
                         >
                           {joining ? "Joining..." : "Join ThreadRing"}
                         </button>
@@ -926,13 +959,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         </div>
                       ) : null}
 
-                      {/* Fork button for non-members (if ring is public/unlisted) */}
+                      {/* Start New Ring button for non-members (if ring is public/unlisted) */}
                       {ring.visibility !== "private" && (
                         <button
                           onClick={() => router.push(`/tr/${ring.slug}/fork`)}
                           className="w-full text-sm border border-black px-3 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
                         >
-                          🍴 Fork ThreadRing
+                          ✨ Start a New Ring
                         </button>
                       )}
                     </>
@@ -1110,13 +1143,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             )}
           </div>
 
-          {/* Fork Lineage */}
+          {/* Ring Family Tree */}
           <div className="border border-black bg-white shadow-[2px_2px_0_#000]">
             <button
               onClick={() => setLineageCollapsed(!lineageCollapsed)}
               className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
-              <h3 className="font-bold">🌳 Fork Lineage</h3>
+              <h3 className="font-bold">🌳 Ring Family Tree</h3>
               <span className="text-sm">{lineageCollapsed ? '▼' : '▲'}</span>
             </button>
             {!lineageCollapsed && (

@@ -255,7 +255,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
               <div className="text-6xl mb-4">🚫</div>
               <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
               <p className="text-gray-600 mb-6">
-                Only ThreadRing owners and curators can manage badge designs.
+                Only ThreadRing owners and Ring Hosts can manage badge designs.
               </p>
               <button
                 onClick={() => router.push(`/tr/${ring.slug}`)}

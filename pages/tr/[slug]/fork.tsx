@@ -35,7 +35,7 @@ export default function ForkThreadRingPage({
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
             <p className="text-gray-600">
-              You must be logged in to fork a ThreadRing.
+              You must be logged in to start a new Ring.
             </p>
           </div>
         </div>
@@ -162,7 +162,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           props: {
             siteConfig,
             originalRing: null,
-            error: "You cannot fork a private ThreadRing you're not a member of",
+            error: "You cannot start a new Ring from a private ThreadRing you're not a member of",
             isAuthenticated: true,
           },
         };

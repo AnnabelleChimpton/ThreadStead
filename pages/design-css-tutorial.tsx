@@ -901,7 +901,7 @@ body {
             My ThreadRing
           </div>
           <div className="bg-gradient-to-r from-pink-100 to-purple-100 p-3 rounded-xl border-l-4 border-pink-400">
-            <div className="text-xs text-pink-600 font-medium mb-1">Curator&apos;s Note</div>
+            <div className="text-xs text-pink-600 font-medium mb-1">Ring Host&apos;s Note</div>
             <div className="text-xs">Welcome to our community!</div>
           </div>
           <div className="bg-white bg-opacity-50 rounded-full px-3 py-1 text-xs text-center">

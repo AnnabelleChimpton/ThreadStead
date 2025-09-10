@@ -97,7 +97,7 @@ export default function ThreadRingCard({
           )}
           {threadRing.curator && (
             <div className="text-sm text-gray-600 mt-1">
-              curated by{" "}
+              hosted by{" "}
               <span className="font-medium">
                 {threadRing.curator.displayName || `@${threadRing.curator.handle}`}
               </span>
@@ -109,7 +109,7 @@ export default function ThreadRingCard({
         <div className="flex-shrink-0">
           {threadRing.viewerMembership ? (
             <span className="text-xs bg-green-200 px-2 py-1 border border-black rounded">
-              {threadRing.viewerMembership.role === "curator" ? "Curator" : "Member"}
+              {threadRing.viewerMembership.role === "curator" ? "Ring Host" : "Member"}
             </span>
           ) : canJoin ? (
             <button

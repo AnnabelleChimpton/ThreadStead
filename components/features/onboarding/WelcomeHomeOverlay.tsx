@@ -155,6 +155,49 @@ export default function WelcomeHomeOverlay({
                   </p>
                 </div>
               )}
+              
+              {/* Welcome Ring Invitation - Compact */}
+              <div 
+                className="mt-6 p-4 rounded-xl mx-auto max-w-lg text-center"
+                style={{
+                  background: `${primaryColor}10`,
+                  border: `1px solid ${primaryColor}30`
+                }}
+              >
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <span>🎓</span>
+                  <span 
+                    className="font-semibold"
+                    style={{ color: primaryColor }}
+                  >
+                    New to ThreadRings?
+                  </span>
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => window.location.href = '/tr/welcome'}
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-all hover:scale-105 pointer-events-auto"
+                    style={{
+                      background: primaryColor,
+                      color: 'white',
+                      border: 'none'
+                    }}
+                  >
+                    Start Tutorial
+                  </button>
+                  <button
+                    onClick={() => window.location.href = '/threadrings'}
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-all hover:scale-105 pointer-events-auto"
+                    style={{
+                      background: 'transparent',
+                      color: primaryColor,
+                      border: `1px solid ${primaryColor}40`
+                    }}
+                  >
+                    Browse Rings
+                  </button>
+                </div>
+              </div>
             </div>
             
             {/* Sparkle effects around the text */}

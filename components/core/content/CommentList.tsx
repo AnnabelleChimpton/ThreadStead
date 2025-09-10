@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import NewCommentForm from "../../ui/forms/NewCommentForm";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import ReportButton from "../../ui/feedback/ReportButton";
@@ -209,7 +210,16 @@ export default function CommentList({
                   <Image src={comment.author.avatarUrl} alt="" width={32} height={32} className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" />
                 ) : null}
                 <div className="flex items-center flex-wrap">
-                  <span className="comment-author-name font-semibold text-sm md:text-base">{comment.author?.handle ?? "anon"}</span>
+                  {comment.author?.handle ? (
+                    <Link 
+                      href={`/resident/${comment.author.handle.split('@')[0]}`}
+                      className="comment-author-name font-semibold text-sm md:text-base hover:underline user-link"
+                    >
+                      {comment.author.handle}
+                    </Link>
+                  ) : (
+                    <span className="comment-author-name font-semibold text-sm md:text-base">anon</span>
+                  )}
                   {comment.author?.id && (
                     <ImprovedBadgeDisplay 
                       userId={comment.author.id} 
@@ -230,7 +240,16 @@ export default function CommentList({
                 <Image src={comment.author.avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full" />
               ) : null}
               <div className="flex items-center">
-                <span className="font-semibold">{comment.author?.handle ?? "anon"}</span>
+                {comment.author?.handle ? (
+                  <Link 
+                    href={`/resident/${comment.author.handle.split('@')[0]}`}
+                    className="font-semibold hover:underline user-link"
+                  >
+                    {comment.author.handle}
+                  </Link>
+                ) : (
+                  <span className="font-semibold">anon</span>
+                )}
                 {comment.author?.id && (
                   <ImprovedBadgeDisplay 
                     userId={comment.author.id} 

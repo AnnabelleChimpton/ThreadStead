@@ -4,6 +4,8 @@ import RetroCard from "../components/ui/layout/RetroCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
+import FeatureGate, { NewUserTooltip } from "../components/features/onboarding/FeatureGate";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 
 interface GettingStartedProps {
   siteConfig: SiteConfig;
@@ -11,6 +13,7 @@ interface GettingStartedProps {
 
 export default function GettingStarted({ siteConfig }: GettingStartedProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "threadrings" | "profiles" | "social" | "content">("overview");
+  const { user } = useCurrentUser();
 
   const TabButton = ({ 
     tabId, 
@@ -46,8 +49,8 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               Getting Started with Threadstead
             </h1>
             <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed mb-6">
-              Threadstead is a retro-inspired social platform where you can create your own customizable profile, 
-              join ThreadRing communities, and connect with others in a unique, decentralized way.
+              <strong>ThreadRings are themed communities you can join — like modern WebRings or clubhouses — where posts live in your profile but also appear in shared Ring feeds.</strong><br/>
+              Create your own customizable profile, join communities that match your interests, and connect with others in a unique, decentralized way.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-3">
               <Link 
@@ -147,8 +150,8 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   <div className="flex items-start gap-3">
                     <div className="text-2xl flex-shrink-0">🌳</div>
                     <div>
-                      <h3 className="font-bold mb-1">Community Genealogy</h3>
-                      <p className="text-sm text-gray-600">ThreadRings can fork and evolve, creating rich family trees of communities.</p>
+                      <h3 className="font-bold mb-1">Ring Family Tree</h3>
+                      <p className="text-sm text-gray-600">ThreadRings can branch and evolve, creating rich family trees of communities.</p>
                     </div>
                   </div>
                   
@@ -177,8 +180,8 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
                       <h3 className="font-bold text-blue-800 mb-2">Community Evolution</h3>
                       <p className="text-sm text-blue-700">
-                        ThreadRings can &quot;fork&quot; just like code repositories. When a community grows and members want 
-                        to explore new directions, they can create a new ThreadRing that branches off from the original, 
+                        ThreadRings can branch and evolve! When a community grows and members want 
+                        to explore new directions, they can start a new Ring that branches off from the original, 
                         maintaining a genealogical connection while allowing for independent growth.
                       </p>
                     </div>
@@ -215,13 +218,13 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 p-4 rounded">
                       <div className="text-center">
                         <div className="text-3xl mb-2">🧵 The Spool</div>
-                        <div className="text-sm text-gray-600 mb-3">↓ forks into ↓</div>
+                        <div className="text-sm text-gray-600 mb-3">↓ branches into ↓</div>
                         <div className="flex justify-center gap-4 text-lg">
                           <span>📚 BookLovers</span>
                           <span>🎮 GameDevs</span>
                           <span>🌱 Gardening</span>
                         </div>
-                        <div className="text-sm text-gray-600 mt-2">...which can fork into more specialized communities</div>
+                        <div className="text-sm text-gray-600 mt-2">...which can branch into more specialized communities</div>
                       </div>
                     </div>
                     
@@ -255,17 +258,23 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <div>
                       <h4 className="font-bold mb-2">3. Create Your Own</h4>
                       <p className="text-gray-600 mb-2">Start a new community around your passion.</p>
-                      <Link 
-                        href="/tr/spool/fork" 
-                        className="block text-center border border-black px-3 py-1 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] text-sm"
+                      <FeatureGate 
+                        requiresRegularUser 
+                        user={user} 
+                        fallback={<NewUserTooltip feature="creating new rings" />}
                       >
-                        Create ThreadRing
-                      </Link>
+                        <Link 
+                          href="/tr/spool/fork" 
+                          className="block text-center border border-black px-3 py-1 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] text-sm"
+                        >
+                          Start a New Ring
+                        </Link>
+                      </FeatureGate>
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-2">4. Fork Existing Ones</h4>
-                      <p className="text-gray-600">Create variations of communities you love while maintaining genealogical connections.</p>
+                      <h4 className="font-bold mb-2">4. Branch from Existing Ones</h4>
+                      <p className="text-gray-600">Start new Rings based on communities you love while maintaining genealogical connections.</p>
                     </div>
                   </div>
                 </RetroCard>

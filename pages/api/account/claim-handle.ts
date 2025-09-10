@@ -70,6 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: { ownerId: user.id, pluginId: "com.example.hello", mode: "trusted", enabled: true },
       });
     }
+    
   });
 
   return res.status(201).json({ ok: true });

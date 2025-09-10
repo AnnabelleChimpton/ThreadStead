@@ -65,7 +65,7 @@ export default function ForkThreadRingForm({
       case 'quality_gate':
         return {
           title: "Quality Gate Not Met",
-          message: "Please add at least one post to your newest ThreadRing before creating another fork. This helps maintain community quality.",
+          message: "Please add at least one post to your newest ThreadRing before starting another Ring. This helps maintain community quality.",
           type: 'warning' as const
         };
         
@@ -81,20 +81,20 @@ export default function ForkThreadRingForm({
         if (details.remaining.hourly === 0) {
           const minutesLeft = Math.ceil(timeDiff / (1000 * 60));
           return {
-            title: "Hourly Fork Limit Reached",
-            message: `You've reached your hourly fork limit. Try again in ${minutesLeft} minutes.`,
+            title: "Hourly Ring Creation Limit Reached",
+            message: `You've reached your hourly Ring creation limit. Try again in ${minutesLeft} minutes.`,
             type: 'warning' as const
           };
         } else if (details.remaining.daily === 0) {
           return {
-            title: "Daily Fork Limit Reached", 
-            message: "You've reached today's fork limit. Come back tomorrow to create more forks!",
+            title: "Daily Ring Creation Limit Reached", 
+            message: "You've reached today's Ring creation limit. Come back tomorrow to start more Rings!",
             type: 'warning' as const
           };
         } else if (details.remaining.weekly === 0) {
           return {
-            title: "Weekly Fork Limit Reached",
-            message: "You've used all your forks for this week. Limit resets next week.",
+            title: "Weekly Ring Creation Limit Reached",
+            message: "You've used all your Ring creations for this week. Limit resets next week.",
             type: 'warning' as const
           };
         }
@@ -102,8 +102,8 @@ export default function ForkThreadRingForm({
     }
     
     return {
-      title: "Fork Limit Exceeded",
-      message: errorData.message || "You've reached your fork limit. Please try again later.",
+      title: "Ring Creation Limit Exceeded",
+      message: errorData.message || "You've reached your Ring creation limit. Please try again later.",
       type: 'error' as const
     };
   }, []);
@@ -265,15 +265,15 @@ export default function ForkThreadRingForm({
           return; // Don't throw error for rate limits
         }
         
-        throw new Error(data.error || "Failed to fork ThreadRing");
+        throw new Error(data.error || "Failed to create new Ring");
       }
 
-      // Redirect to the new forked ThreadRing
+      // Redirect to the new Ring
       router.push(`/threadrings/${data.threadRing.slug}`);
       
     } catch (error: any) {
-      console.error("Error forking ThreadRing:", error);
-      setError(error.message || "Failed to fork ThreadRing");
+      console.error("Error creating new Ring:", error);
+      setError(error.message || "Failed to create new Ring");
     } finally {
       setCreating(false);
     }
@@ -306,10 +306,10 @@ export default function ForkThreadRingForm({
   return (
     <div className={`bg-white border border-black p-6 shadow-[2px_2px_0_#000] ${className}`}>
       <h2 className="text-xl font-bold mb-4">
-        Fork &quot;{originalRing.name}&quot;
+        Start a New Ring from &quot;{originalRing.name}&quot;
       </h2>
       <p className="text-sm text-gray-600 mb-6">
-        Create your own version of this ThreadRing with custom settings and members.
+        Create your own Ring branching from this community with custom settings and members.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -344,7 +344,7 @@ export default function ForkThreadRingForm({
             ThreadRing Slug (URL) *
             {!slugManuallyEdited && (
               <span className="ml-2 text-xs text-blue-600 font-normal">
-                (auto-generated from title)
+                (auto-generated from name)
               </span>
             )}
           </label>
@@ -359,7 +359,7 @@ export default function ForkThreadRingForm({
                 slugStatus.isAvailable === false ? 'border-red-500' : 
                 slugStatus.isAvailable === true ? 'border-green-500' : 'border-black'
               }`}
-              placeholder="my-fork"
+              placeholder="my-ring"
               maxLength={25}
               pattern="[a-z0-9-]+"
               required
@@ -467,7 +467,7 @@ export default function ForkThreadRingForm({
             disabled={creating || !!nameError}
             className="flex-1 border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            {creating ? "Creating Fork..." : "Create Fork"}
+            {creating ? "Starting New Ring..." : "Start New Ring"}
           </button>
           {onCancel && (
             <button
@@ -483,12 +483,12 @@ export default function ForkThreadRingForm({
       </form>
 
       <div className="mt-6 p-3 bg-gray-50 border border-gray-300 text-xs text-gray-700">
-        <h4 className="font-medium mb-1">About Forking:</h4>
+        <h4 className="font-medium mb-1">About Starting a New Ring:</h4>
         <ul className="space-y-1">
-          <li>• You&apos;ll become the curator of the new ThreadRing</li>
-          <li>• The original curator will be notified of the fork</li>
+          <li>• You&apos;ll become the Ring Host of the new ThreadRing</li>
+          <li>• The original Ring Host will be notified</li>
           <li>• Members and posts are not copied over</li>
-          <li>• The fork relationship is tracked for lineage</li>
+          <li>• The connection is tracked in the Ring Family Tree</li>
         </ul>
       </div>
       

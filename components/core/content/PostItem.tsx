@@ -12,6 +12,7 @@ import { useModerationPermissions } from "@/hooks/useModerationPermissions";
 import { PostModerationAction, PostModerationStatus, ThreadRingRole } from "@/types/threadrings";
 import ReportButton from "../../ui/feedback/ReportButton";
 import PostActionsDropdown from "./PostActionsDropdown";
+import { useWelcomeRingTracking } from "@/hooks/useWelcomeRingTracking";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -144,6 +145,9 @@ export default function PostItem({
   // Ring Hub moderation permissions
   const moderationPermissions = useModerationPermissions(userRole, isUserMember);
   const showRingHubModeration = threadRingContext && post.ringHubPostId && moderationPermissions.canModerate;
+  
+  // Welcome ring tracking
+  const { trackCommentCreated } = useWelcomeRingTracking(threadRingContext?.slug);
 
 
   useEffect(() => {
@@ -166,6 +170,9 @@ const handleCommentAdded = (c: CommentWireForm) => {
   // show instantly
   setOptimistic((arr) => [c, ...arr]);
   setCommentsOpen(true);
+  
+  // Track comment creation for Welcome Ring progress
+  trackCommentCreated();
 
   // optional: kick a background sync next time (or immediately if you prefer)
   // setCommentsVersion((v) => v + 1);
@@ -390,7 +397,7 @@ const countLabel = hasServerCount
   };
 
   return (
-    <article id={`post-${post.id.slice(-6)}`} className={`blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`} data-post-id={post.id.slice(-6)}>
+    <article id={`post-${post.id.slice(-6)}`} className={`post-item blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`} data-post-id={post.id.slice(-6)}>
       <div className="blog-post-header flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-2">
           <div className="blog-post-date text-xs opacity-70">
@@ -521,7 +528,7 @@ const countLabel = hasServerCount
                       <span className="font-semibold">
                         {post.author?.profile?.displayName || post.author?.primaryHandle || 'Someone'}
                       </span>
-                      <span className="text-gray-600"> forked this ring as </span>
+                      <span className="text-gray-600"> started a new ring as </span>
                       {(() => {
                         // Handle different metadata structures and extract fork ring information
                         const metadata = post.ringHubData?.metadata || {};
@@ -538,7 +545,7 @@ const countLabel = hasServerCount
                         }
                         
                         // Final fallback
-                        if (!name) name = 'Fork';
+                        if (!name) name = 'New Ring';
                         if (!slug) slug = '#'; // Fallback for link
                         
                         return (
@@ -563,7 +570,7 @@ const countLabel = hasServerCount
                       href={`/tr/${post.ringHubData?.metadata?.forkedRing?.slug || post.ringHubData?.ringSlug}`}
                       className="inline-block text-xs bg-yellow-200 hover:bg-yellow-300 px-3 py-1 border border-black shadow-[1px_1px_0_#000] font-medium"
                     >
-                      Visit Fork
+                      Visit New Ring
                     </a>
                   </div>
                 </div>

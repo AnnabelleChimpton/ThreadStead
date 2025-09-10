@@ -4,6 +4,9 @@ import ThreadRingCard from "../../components/core/threadring/ThreadRingCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
+import NoRingsEmptyState from "../../components/features/onboarding/NoRingsEmptyState";
+import FeatureGate, { NewUserTooltip } from "../../components/features/onboarding/FeatureGate";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 
 interface ThreadRingsPageProps {
   siteConfig: SiteConfig;
@@ -49,6 +52,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
   const [hasMore, setHasMore] = useState(true);
   const [total, setTotal] = useState<number | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const { user } = useCurrentUser();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'discover' | 'mine'>('discover');
@@ -186,7 +190,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                 href="/tr/spool/fork"
                 className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
               >
-                Create ThreadRing
+                Start a New Ring
               </Link>
             </div>
           </div>
@@ -256,38 +260,50 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
             </button>
           </div>
         ) : threadRings.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-gray-600 mb-4">
-              {searchQuery ? (
-                activeTab === 'mine' 
-                  ? `No ThreadRing memberships found for "${searchQuery}"`
-                  : `No ThreadRings found for "${searchQuery}"`
-              ) : (
-                activeTab === 'mine'
-                  ? "You haven't joined any ThreadRings yet"
-                  : "No ThreadRings found"
-              )}
-            </div>
-            {!searchQuery && (
-              <div className="flex gap-2 justify-center flex-wrap">
-                {activeTab === 'mine' ? (
-                  <button
-                    onClick={() => setActiveTab('discover')}
-                    className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-300 shadow-[2px_2px_0_#000] inline-block"
-                  >
-                    Discover ThreadRings
-                  </button>
+          activeTab === 'mine' && !searchQuery ? (
+            // Use playful empty state for "My ThreadRings" when not searching
+            <NoRingsEmptyState />
+          ) : (
+            // Standard empty state for search results or discovery tab
+            <div className="text-center py-8">
+              <div className="text-gray-600 mb-4">
+                {searchQuery ? (
+                  activeTab === 'mine' 
+                    ? `No ThreadRing memberships found for "${searchQuery}"`
+                    : `No ThreadRings found for "${searchQuery}"`
                 ) : (
-                  <Link
-                    href="/tr/spool/fork"
-                    className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] inline-block"
-                  >
-                    Create the First ThreadRing
-                  </Link>
+                  activeTab === 'mine'
+                    ? "You haven't joined any ThreadRings yet"
+                    : "No ThreadRings found"
                 )}
               </div>
-            )}
-          </div>
+              {!searchQuery && (
+                <div className="flex gap-2 justify-center flex-wrap">
+                  {activeTab === 'mine' ? (
+                    <button
+                      onClick={() => setActiveTab('discover')}
+                      className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-300 shadow-[2px_2px_0_#000] inline-block"
+                    >
+                      Discover ThreadRings
+                    </button>
+                  ) : (
+                    <FeatureGate 
+                      requiresRegularUser 
+                      user={user} 
+                      fallback={<NewUserTooltip feature="creating rings" />}
+                    >
+                      <Link
+                        href="/tr/spool/fork"
+                        className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] inline-block"
+                      >
+                        Start the First Ring
+                      </Link>
+                    </FeatureGate>
+                  )}
+                </div>
+              )}
+            </div>
+          )
         ) : (
           <>
             {/* ThreadRings Grid */}

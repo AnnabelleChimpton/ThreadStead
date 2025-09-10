@@ -83,8 +83,8 @@ export default function ThreadRingLineage({
   if (loading) {
     return (
       <div className={`bg-white border border-black p-4 shadow-[2px_2px_0_#000] ${className}`}>
-        <h3 className="font-bold mb-3">Fork Lineage</h3>
-        <div className="text-sm text-gray-600">Loading forks...</div>
+        <h3 className="font-bold mb-3">Ring Family Tree</h3>
+        <div className="text-sm text-gray-600">Loading ring family tree...</div>
       </div>
     );
   }
@@ -92,7 +92,7 @@ export default function ThreadRingLineage({
   if (error) {
     return (
       <div className={`bg-white border border-black p-4 shadow-[2px_2px_0_#000] ${className}`}>
-        <h3 className="font-bold mb-3">Fork Lineage</h3>
+        <h3 className="font-bold mb-3">Ring Family Tree</h3>
         <div className="text-sm text-red-600">{error}</div>
       </div>
     );
@@ -118,7 +118,7 @@ export default function ThreadRingLineage({
           )}
           <div className="text-xs text-gray-600 mt-2 flex items-center gap-3">
             <span>
-              {isParent ? "Original" : "Fork"}
+              {isParent ? "Original" : "Branched Ring"}
             </span>
             <span>•</span>
             <span>

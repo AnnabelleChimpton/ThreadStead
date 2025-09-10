@@ -9,8 +9,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const postId = String(req.query.postId || "");
   if (!postId) return res.status(400).json({ error: "postId required" });
 
-  const post = await db.post.findUnique({ where: { id: postId }, select: { id: true } });
-  if (!post) return res.status(404).json({ error: "post not found" });
+  // Check local database first
+  let post = await db.post.findUnique({ where: { id: postId }, select: { id: true, authorId: true } });
+  
+  // If not found locally, check if it's a valid Ring Hub post
+  let isExternalPost = false;
+  if (!post) {
+    // Ring Hub posts can have various ID formats:
+    // - 'external-' prefix (e.g., 'external-welcome-xxx')
+    // - 'rhp_' prefix
+    // - Contains ':' (e.g., 'did:plc:xxx:post:xxx')
+    // - UUID format with dashes (more than 2 dashes indicates likely external)
+    const isLikelyExternal = 
+      postId.startsWith('external-') ||
+      postId.startsWith('rhp_') || 
+      postId.includes(':') ||
+      (postId.includes('-') && postId.split('-').length > 3); // UUID-like format
+    
+    if (isLikelyExternal) {
+      // It's an external post, allow commenting
+      isExternalPost = true;
+      post = { id: postId, authorId: '' }; // Create virtual post object
+    } else {
+      return res.status(404).json({ error: "post not found" });
+    }
+  }
 
   if (req.method === "GET") {
     const comments = await db.comment.findMany({
@@ -58,6 +81,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const verified = await check(String(cap || ""));
       const authorId = verified.sub!;
 
+      // For external posts, create a shadow record if needed
+      if (isExternalPost) {
+        // Get the current user to use as a placeholder author
+        // The actual post content will still show from Ring Hub
+        const currentUser = await db.user.findUnique({
+          where: { id: authorId },
+          select: { id: true }
+        });
+
+        if (!currentUser) {
+          return res.status(401).json({ error: "User not found" });
+        }
+
+        // Create a minimal shadow post record for storing comments
+        // This will only be created once per external post
+        await db.post.upsert({
+          where: { id: postId },
+          create: {
+            id: postId,
+            bodyText: "[External Ring Hub Post - Comments Only]",
+            visibility: "public",
+            platform: "ringhub",
+            authorId: authorId, // Use current user as placeholder
+            title: "External Post"
+          },
+          update: {}, // Do nothing if it already exists
+        });
+      }
+
       const created = await db.comment.create({
         data: { 
           content: content.trim(), 
@@ -79,7 +131,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      // Create notifications
+      // Create notifications (skip for external posts as they don't have real authors)
       try {
         if (parentId && created.parent?.authorId) {
           // This is a reply to another comment
@@ -99,8 +151,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             parentId,
             postAuthor?.primaryHandle
           );
-        } else {
-          // This is a top-level comment on a post
+        } else if (!isExternalPost) {
+          // This is a top-level comment on a local post
+          // Only create notification if it's not an external post
           // Creating comment notification
           
           // Get post author's handle for the notification link

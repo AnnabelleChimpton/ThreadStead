@@ -69,7 +69,7 @@ export default function ThreadRingSettingsPage({
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
             <p className="text-gray-600">
-              Only the curator can access ThreadRing settings.
+              Only the Ring Host can access ThreadRing settings.
             </p>
             <button
               onClick={() => router.push(`/tr/${ring.slug}`)}
@@ -221,7 +221,7 @@ export default function ThreadRingSettingsPage({
 
                 <div>
                   <label htmlFor="curatorNote" className="block text-sm font-medium mb-2">
-                    Curator&apos;s Note (Optional)
+                    Ring Host&apos;s Note (Optional)
                   </label>
                   <textarea
                     id="curatorNote"
