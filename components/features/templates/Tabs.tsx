@@ -76,7 +76,11 @@ export default function Tabs({ children }: TabsProps) {
         }
         
         // Check if it's wrapped in ResidentDataProvider (from island rendering)
-        if (typeName === 'ResidentDataProvider' && props.children && React.isValidElement(props.children)) {
+        // In production, component names are minified, so also check for wrapper patterns
+        const isWrapper = typeName === 'ResidentDataProvider' || 
+                         (typeName && typeName.length === 1 && props.data && props.children); // Minified wrapper pattern
+        
+        if (isWrapper && props.children && React.isValidElement(props.children)) {
           const wrappedChild = props.children;
           const wrappedProps = wrappedChild.props as any;
           
