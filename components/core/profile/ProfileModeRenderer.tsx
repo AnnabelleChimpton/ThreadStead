@@ -238,6 +238,10 @@ export default function ProfileModeRenderer({
               </div>
             </>
           );
+        } else if (shouldUseIslands && !user.profile?.compiledTemplate) {
+          // Advanced mode but no compiled template - fall back to enhanced mode
+          console.warn('Advanced mode requested but no compiled template available. Falling back to enhanced mode.');
+          return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation);
         } else {
           return renderAdvancedLegacyMode(user, residentData);
         }
