@@ -25,16 +25,15 @@ export default function Tabs({ children }: TabsProps) {
     if (React.isValidElement(child)) {
       const props = child.props as any;
       
-      // Debug logging to understand what we're receiving
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Tabs child ${index}:`, {
-          type: child.type,
-          typeName: (child.type as any)?.name || (child.type as any)?.displayName,
-          props: props,
-          isTab: child.type === Tab,
-          constructor: child.type?.constructor?.name
-        });
-      }
+      // Debug logging to understand what we're receiving (temporarily enabled for production debugging)
+      console.log(`Tabs child ${index}:`, {
+        type: child.type,
+        typeName: (child.type as any)?.name || (child.type as any)?.displayName,
+        props: props,
+        isTab: child.type === Tab,
+        constructor: child.type?.constructor?.name,
+        env: process.env.NODE_ENV
+      });
       
       // Check if it's a Tab component (direct match)
       if (child.type === Tab) {
