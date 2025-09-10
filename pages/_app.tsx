@@ -72,8 +72,10 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     // We intentionally only want to respond to tab and pathname changes, not all query changes
   }, [router.query.tab, router.pathname]);
   
-  // Check if we're on a user profile page that might have custom CSS
-  const isProfilePage = router.pathname === '/resident/[username]' || router.pathname === '/resident/[username]/index';
+  // Check if we're on a user profile page or preview page that might have custom CSS
+  const isProfilePage = router.pathname === '/resident/[username]' || 
+                       router.pathname === '/resident/[username]/index' ||
+                       router.pathname === '/preview-temp';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
   
   // Extract CSS mode from custom CSS to determine if resets are needed
