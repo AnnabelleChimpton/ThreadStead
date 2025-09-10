@@ -4,6 +4,7 @@ import ProfileModeRenderer, { ProfileUser } from '@/components/core/profile/Prof
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
+import { useProfileIslandHydration } from '@/lib/islands';
 import Head from 'next/head';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
 import RetroCard from '@/components/ui/layout/RetroCard';
@@ -32,6 +33,36 @@ export default function PreviewTemp() {
   const [isReady, setIsReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  
+  // Island hydration for interactive components
+  const { hydrateProfile, status, isSupported } = useProfileIslandHydration();
+
+  // Hydrate islands when advanced mode template is rendered
+  useEffect(() => {
+    if (previewData && previewData.user && previewData.residentData) {
+      // Check if this is advanced mode
+      const hasCustomTemplate = previewData.user.profile?.customTemplate && 
+                               previewData.user.profile.customTemplate.trim() !== '';
+      const isAdvancedMode = !previewData.useStandardLayout && hasCustomTemplate;
+      
+      if (isAdvancedMode && isReady && previewData.user.profile?.compiledTemplate) {
+        // Small delay to ensure DOM is ready after ProfileModeRenderer renders
+        const timer = setTimeout(() => {
+          const compiledTemplate = previewData.user.profile?.compiledTemplate;
+          if (compiledTemplate && (compiledTemplate as any).islands) {
+            hydrateProfile('preview-container', {
+              residentData: previewData.residentData,
+              profileMode: 'advanced',
+              islands: (compiledTemplate as any).islands
+            }).catch(error => {
+              console.error('Preview hydration failed:', error);
+            });
+          }
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [previewData, isReady, hydrateProfile]);
 
   useEffect(() => {
     // Listen for preview data from parent window
@@ -364,10 +395,13 @@ export default function PreviewTemp() {
         )}
         
         {/* Use the same ProfileModeRenderer as production for consistency */}
-        <div style={{ 
-          minHeight: 'calc(100vh - 80px)', // Account for both banners
-          position: 'relative' // Ensure content flows properly
-        }}>
+        <div 
+          id="preview-container"
+          style={{ 
+            minHeight: 'calc(100vh - 80px)', // Account for both banners
+            position: 'relative' // Ensure content flows properly
+          }}
+        >
           <ProfileModeRenderer
             user={previewUser}
             residentData={residentData}

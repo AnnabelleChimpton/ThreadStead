@@ -25,31 +25,6 @@ export default function Tabs({ children }: TabsProps) {
       if (React.isValidElement(child)) {
         const props = child.props as any;
         
-        // Debug logging to understand what we're receiving (temporarily enabled for production debugging)
-        const wrappedChild = props.children;
-        const wrappedProps = React.isValidElement(wrappedChild) ? wrappedChild.props as any : null;
-        
-        console.log(`Tabs child ${index}:`, {
-          type: child.type,
-          typeName: (child.type as any)?.name || (child.type as any)?.displayName,
-          hasDataTabTitle: !!props['data-tab-title'],
-          dataTabTitle: props['data-tab-title'],
-          hasTitle: !!props.title,
-          title: props.title,
-          propKeys: Object.keys(props),
-          isTab: child.type === Tab,
-          wrappedChild: wrappedChild ? {
-            type: wrappedChild.type,
-            typeName: (wrappedChild.type as any)?.name || (wrappedChild.type as any)?.displayName,
-            hasTitle: !!wrappedProps?.title,
-            title: wrappedProps?.title,
-            hasDataTabTitle: !!wrappedProps?.['data-tab-title'],
-            dataTabTitle: wrappedProps?.['data-tab-title'],
-            isTab: wrappedChild.type === Tab
-          } : null,
-          env: process.env.NODE_ENV
-        });
-        
         // Check if it's a Tab component (direct match)
         if (child.type === Tab) {
           return {
