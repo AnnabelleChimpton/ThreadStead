@@ -2,6 +2,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { db } from "@/lib/config/database/connection";
 import { Prisma } from '@prisma/client';
+import { compileTemplate } from '@/lib/templates/compilation/template-parser';
+import { identifyIslandsWithTransform } from '@/lib/templates/compilation/compiler/island-detector';
+import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer';
 
 import { SITE_NAME } from '@/lib/config/site/constants';
 
@@ -55,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const { template, ast, customCSS, cssMode } = req.body;
+      const { template, customCSS, cssMode } = req.body;
       
       // Store CSS mode as a comment in the CSS for retrieval
       let processedCSS = customCSS;
@@ -68,22 +71,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           processedCSS = customCSS.replace(/\/\* CSS_MODE:\w+ \*\//, `/* CSS_MODE:${cssMode} */`);
         }
       }
-      
-      // Debug logging to see what data we're receiving
-      console.log('Template API: Received save request', {
-        templateLength: template?.length || 0,
-        hasAst: !!ast,
-        astType: typeof ast,
-        astHasIslands: ast?.islands?.length || 0,
-        customCSSLength: customCSS?.length || 0,
-        cssMode,
-        customCSSPreview: customCSS?.substring(0, 100),
-        processedCSSLength: processedCSS?.length || 0,
-        processedCSSPreview: processedCSS?.substring(0, 100)
-      });
 
       if (typeof template !== 'string') {
         return res.status(400).json({ error: 'Invalid template data' });
+      }
+
+      // Compile the template using our fixed compilation pipeline
+      let compiledResult;
+      try {
+        // Parse the template AST
+        const parseResult = compileTemplate(template);
+        
+        if (!parseResult.success) {
+          console.error('Template compilation failed:', parseResult.errors);
+          return res.status(400).json({ error: 'Template compilation failed' });
+        }
+        
+        // Detect islands (components) in the template using the AST
+        const islandResult = identifyIslandsWithTransform(parseResult.ast!);
+        
+        // Generate static HTML with component placeholders
+        const staticHTML = generateStaticHTML(islandResult.transformedAst, islandResult.islands);
+        
+        // Create compiled result structure that matches what the renderer expects
+        compiledResult = {
+          mode: 'advanced',
+          staticHTML: staticHTML,
+          islands: islandResult.islands,
+          fallback: undefined,
+          compiledAt: new Date(),
+          errors: [],
+          warnings: [],
+          // Keep additional data for compatibility
+          ast: islandResult.transformedAst,
+          validation: parseResult.validation
+        };
+        
+      } catch (compileError) {
+        console.error('Template compilation failed:', compileError);
+        return res.status(400).json({ error: 'Template compilation failed' });
       }
 
       // Check if user can modify this profile
@@ -101,16 +127,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      // Update or create profile with template and islands data
+      // Update or create profile with compiled template and islands data
       await db.profile.upsert({
         where: { userId: handle.user.id },
         update: {
           customTemplate: template,
-          customTemplateAst: ast ? JSON.stringify(ast) : null,
-          // Save the full compiled template for Islands architecture
-          compiledTemplate: ast || null,
-          templateIslands: ast?.islands || null,
-          templateCompiledAt: ast ? new Date() : null,
+          customTemplateAst: JSON.stringify(compiledResult),
+          // Save the compiled template for Islands architecture
+          compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
+          templateIslands: JSON.parse(JSON.stringify(compiledResult.islands || null)),
+          templateCompiledAt: new Date(),
           ...(processedCSS !== undefined && { customCSS: processedCSS }),
           ...(cssMode !== undefined && { 
             includeSiteCSS: cssMode !== 'disable'
@@ -120,11 +146,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         create: {
           userId: handle.user.id,
           customTemplate: template,
-          customTemplateAst: ast ? JSON.stringify(ast) : null,
-          // Save the full compiled template for Islands architecture
-          compiledTemplate: ast || null,
-          templateIslands: ast?.islands || null,
-          templateCompiledAt: ast ? new Date() : null,
+          customTemplateAst: JSON.stringify(compiledResult),
+          // Save the compiled template for Islands architecture
+          compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
+          templateIslands: JSON.parse(JSON.stringify(compiledResult.islands || null)),
+          templateCompiledAt: new Date(),
           ...(processedCSS !== undefined && { customCSS: processedCSS }),
           ...(cssMode !== undefined && { 
             includeSiteCSS: cssMode !== 'disable'

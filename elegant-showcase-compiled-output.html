@@ -1,0 +1,370 @@
+<div class="advanced-template-container">
+<style>
+/* USER CSS - DISABLE MODE (like gallery templates) */
+
+/* Elegant color palette and typography */
+:root {
+  --primary-gold: #d4af37;
+  --soft-cream: #faf8f3;
+  --deep-charcoal: #2c2c2c;
+  --sage-green: #9caf88;
+  --warm-white: #ffffff;
+  --shadow-soft: rgba(0, 0, 0, 0.08);
+  --shadow-medium: rgba(0, 0, 0, 0.12);
+}
+
+body {
+  font-family: 'Georgia', 'Times', serif;
+  line-height: 1.6;
+  background: linear-gradient(135deg, var(--soft-cream) 0%, #f0ede6 100%);
+  color: var(--deep-charcoal);
+  margin: 0;
+  padding: 0;
+}
+
+/* Header styling with elegant typography */
+.elegant-header {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: linear-gradient(to right, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  margin-bottom: 2rem;
+}
+
+.elegant-header h1 {
+  font-size: 3rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin: 0 0 1rem 0;
+  background: linear-gradient(45deg, var(--primary-gold), var(--sage-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.elegant-header .subtitle {
+  font-size: 1.2rem;
+  color: var(--deep-charcoal);
+  opacity: 0.8;
+  font-style: italic;
+}
+
+/* Section styling */
+.content-section {
+  background: var(--warm-white);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px var(--shadow-soft);
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.content-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px var(--shadow-medium);
+}
+
+.section-title {
+  font-size: 1.8rem;
+  color: var(--primary-gold);
+  border-bottom: 2px solid var(--primary-gold);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 400;
+}
+
+/* Card styling for grid layouts */
+.elegant-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(250,248,243,0.9));
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  transition: all 0.3s ease;
+}
+
+.elegant-card:hover {
+  border-color: var(--primary-gold);
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+}
+
+/* Hero section with artistic flair */
+.hero-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 50%);
+  animation: gentle-rotate 30s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes gentle-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Sidebar styling */
+.sidebar-widget {
+  background: rgba(156, 175, 136, 0.05);
+  border-left: 4px solid var(--sage-green);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Interactive elements */
+.interactive-element {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive-element:hover {
+  transform: scale(1.02);
+}
+
+/* Typography enhancements */
+h2, h3 {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+p {
+  text-align: justify;
+  hyphens: auto;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--soft-cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-gold);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b8941f;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .elegant-header h1 {
+    font-size: 2rem;
+  }
+  
+  .content-section {
+    padding: 1.5rem;
+  }
+}
+
+</style>
+<div>
+<!-- Hero Section with Profile Header -->
+<div class="hero-section">
+  <div class="elegant-header">
+    <div data-island="island-profilehero-31" data-component="ProfileHero" class="island-placeholder"><!-- ProfileHero variant="plain" will hydrate here --></div>
+    <div class="subtitle">Welcome to my digital sanctuary</div>
+  </div>
+</div>
+
+<!-- Main Content Layout -->
+<div data-island="island-centeredbox-28" data-component="CenteredBox" class="island-placeholder">
+  
+  <!-- Introduction Section -->
+  <div class="content-section">
+    <div data-island="island-gradientbox-27" data-component="GradientBox" class="island-placeholder">
+      <div data-island="island-flexcontainer-36" data-component="FlexContainer" class="island-placeholder">
+        <div style="flex: 1;">
+          <h2 class="section-title">About Me</h2>
+          <div data-island="island-bio-30" data-component="Bio" class="island-placeholder"><!-- Bio will hydrate here --></div>
+        </div>
+        <div class="interactive-element">
+          <div data-island="island-profilephoto-29" data-component="ProfilePhoto" class="island-placeholder"><!-- ProfilePhoto size="lg" shape="circle" className="elegant-photo" will hydrate here --></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Split Layout -->
+  <div data-island="island-splitlayout-26" data-component="SplitLayout" class="island-placeholder">
+    
+    <!-- Left Column - Main Content -->
+    <div>
+      <!-- Featured Content Tabs -->
+      <div class="content-section">
+        <div data-island="island-tabs-25" data-component="Tabs" class="island-placeholder">
+          <div data-island="island-tab-47" data-component="Tab" class="island-placeholder">
+            <div class="section-title">Recent Musings</div>
+            <div data-island="island-blogposts-24" data-component="BlogPosts" class="island-placeholder"><!-- BlogPosts limit="5" will hydrate here --></div>
+          </div>
+          
+          <div data-island="island-tab-48" data-component="Tab" class="island-placeholder">
+            <div class="section-title">Captured Moments</div>
+            <div data-island="island-mediagrid-23" data-component="MediaGrid" class="island-placeholder"><!-- MediaGrid will hydrate here --></div>
+            
+            <div data-island="island-show-34" data-component="Show" class="island-placeholder">
+              <div style="margin-top: 2rem;">
+                <div data-island="island-imagecarousel-22" data-component="ImageCarousel" class="island-placeholder">
+                  <div data-island="island-carouselimage-44" data-component="CarouselImage" class="island-placeholder"><!-- CarouselImage src="#" alt="Gallery image 1" caption="A moment in time" will hydrate here --></div>
+                  <div data-island="island-carouselimage-45" data-component="CarouselImage" class="island-placeholder"><!-- CarouselImage src="#" alt="Gallery image 2" caption="Beauty in simplicity" will hydrate here --></div>
+                  <div data-island="island-carouselimage-46" data-component="CarouselImage" class="island-placeholder"><!-- CarouselImage src="#" alt="Gallery image 3" caption="Inspiration found" will hydrate here --></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div data-island="island-tab-49" data-component="Tab" class="island-placeholder">
+            <div class="section-title">What Drives Me</div>
+            <div data-island="island-skillchart-21" data-component="SkillChart" class="island-placeholder">
+              <div data-island="island-skill-50" data-component="Skill" class="island-placeholder"><!-- Skill name="Writing" level="85" category="Creative" color="purple" will hydrate here --></div>
+              <div data-island="island-skill-51" data-component="Skill" class="island-placeholder"><!-- Skill name="Photography" level="78" category="Visual" color="blue" will hydrate here --></div>
+              <div data-island="island-skill-52" data-component="Skill" class="island-placeholder"><!-- Skill name="Design" level="82" category="Visual" color="green" will hydrate here --></div>
+              <div data-island="island-skill-53" data-component="Skill" class="island-placeholder"><!-- Skill name="Philosophy" level="90" category="Intellectual" color="yellow" will hydrate here --></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Showcase -->
+      <div class="content-section">
+        <h2 class="section-title">Interactive Elements</h2>
+        
+        <div data-island="island-gridlayout-20" data-component="GridLayout" class="island-placeholder">
+          <div class="elegant-card">
+            <div data-island="island-revealbox-19" data-component="RevealBox" class="island-placeholder">
+              <div data-island="island-polaroidframe-18" data-component="PolaroidFrame" class="island-placeholder">
+                <div style="background: linear-gradient(45deg, #667eea, #764ba2); height: 200px; display: flex; align-items: center; justify-content: center; color: white;">
+                  <div data-island="island-wavetext-17" data-component="WaveText" class="island-placeholder"><!-- WaveText text="Hidden Beauty" speed="medium" amplitude="small" will hydrate here --></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="elegant-card">
+            <h3>Digital Craftsmanship</h3>
+            <div data-island="island-progresstracker-16" data-component="ProgressTracker" class="island-placeholder">
+              <div data-island="island-progressitem-41" data-component="ProgressItem" class="island-placeholder"><!-- ProgressItem label="Novel Writing" value="65" max="100" color="purple" will hydrate here --></div>
+              <div data-island="island-progressitem-42" data-component="ProgressItem" class="island-placeholder"><!-- ProgressItem label="Art Exhibition" value="40" max="100" color="blue" will hydrate here --></div>
+              <div data-island="island-progressitem-43" data-component="ProgressItem" class="island-placeholder"><!-- ProgressItem label="Digital Garden" value="85" max="100" color="green" will hydrate here --></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column - Sidebar -->
+    <aside>
+      <!-- Profile Quick Info -->
+      <div class="sidebar-widget">
+        <h3>Quick Connect</h3>
+        <div data-island="island-ifvisitor-15" data-component="IfVisitor" class="island-placeholder">
+          <div data-island="island-followbutton-14" data-component="FollowButton" class="island-placeholder"><!-- FollowButton will hydrate here --></div>
+          <div style="margin-top: 1rem;">
+            <div data-island="island-contactcard-13" data-component="ContactCard" class="island-placeholder">
+              <div data-island="island-contactmethod-38" data-component="ContactMethod" class="island-placeholder"><!-- ContactMethod type="email" value="connect@example.com" will hydrate here --></div>
+              <div data-island="island-contactmethod-39" data-component="ContactMethod" class="island-placeholder"><!-- ContactMethod type="twitter" value="@username" will hydrate here --></div>
+              <div data-island="island-contactmethod-40" data-component="ContactMethod" class="island-placeholder"><!-- ContactMethod type="website" value="portfolio.example.com" will hydrate here --></div>
+            </div>
+          </div>
+        </div>
+        
+        <div data-island="island-ifowner-12" data-component="IfOwner" class="island-placeholder">
+          <div data-island="island-stickynote-32" data-component="StickyNote" class="island-placeholder">
+            <p>Welcome back! Your space looks wonderful today. ✨</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Achievement Badges -->
+      <div class="sidebar-widget">
+        <h3>Community Connections</h3>
+        <div data-island="island-profilebadges-11" data-component="ProfileBadges" class="island-placeholder"><!-- ProfileBadges showTitle="false" layout="grid" will hydrate here --></div>
+        
+        <div data-island="island-show-35" data-component="Show" class="island-placeholder">
+          <div style="text-align: center; padding: 2rem; opacity: 0.6;">
+            <p>🏆</p>
+            <p><em>Badge collection growing...</em></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decorative Elements -->
+      <div class="sidebar-widget">
+        <div data-island="island-retroterminal-10" data-component="RetroTerminal" class="island-placeholder">
+          <p>&gt; whoami</p>
+          <div data-island="island-displayname-9" data-component="DisplayName" class="island-placeholder"><!-- DisplayName as="span" will hydrate here --></div>
+          <p>&gt; uptime</p>
+          <p>Connected for <span id="days-count">many</span> days</p>
+          <p>&gt; status</p>
+          <div data-island="island-glitchtext-8" data-component="GlitchText" class="island-placeholder"><!-- GlitchText text="CREATING..." intensity="low" color="#00ff00" will hydrate here --></div>
+        </div>
+      </div>
+
+      <!-- Mutual Friends -->
+      <div class="sidebar-widget">
+        <h3>Shared Connections</h3>
+        <div data-island="island-mutualfriends-7" data-component="MutualFriends" class="island-placeholder"><!-- MutualFriends will hydrate here --></div>
+      </div>
+
+      <!-- Floating Surprise -->
+      <div data-island="island-floatingbadge-6" data-component="FloatingBadge" class="island-placeholder">
+        <span style="font-size: 0.8rem;">✨</span>
+      </div>
+    </aside>
+    
+  </div>
+
+  <!-- Guest Interaction Section -->
+  <div class="content-section">
+    <div data-island="island-neonborder-5" data-component="NeonBorder" class="island-placeholder">
+      <h2 class="section-title">Leave Your Mark</h2>
+      <div data-island="island-flexcontainer-37" data-component="FlexContainer" class="island-placeholder">
+        <div style="flex: 2;">
+          <div data-island="island-guestbook-4" data-component="Guestbook" class="island-placeholder"><!-- Guestbook will hydrate here --></div>
+        </div>
+        <div style="flex: 1;">
+          <div data-island="island-stickynote-33" data-component="StickyNote" class="island-placeholder">
+            <h3>Visitor's Notes</h3>
+            <p>Every message here adds to the tapestry of our shared digital experience. Thank you for being part of this space.</p>
+            <p style="font-style: italic; text-align: right;">— With gratitude</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer with Website Links -->
+  <footer class="content-section" style="text-align: center; margin-top: 3rem;">
+    <div data-island="island-choose-3" data-component="Choose" class="island-placeholder">
+      <div data-island="island-when-2" data-component="When" class="island-placeholder">
+        <div data-island="island-websitedisplay-0" data-component="WebsiteDisplay" class="island-placeholder"><!-- WebsiteDisplay will hydrate here --></div>
+      </div>
+      <div data-island="island-otherwise-1" data-component="Otherwise" class="island-placeholder">
+        <p style="opacity: 0.6; font-style: italic;">
+          "In the garden of digital creativity, every visit plants a seed of inspiration."
+        </p>
+      </div>
+    </div>
+  </footer>
+
+</div>
+</div>
+<div style="position: fixed; top: 0px; right: 0px; z-index: 9999;">
+  <div class="hydration-debug-info">
+    <button class="debug-toggle">🏝️ Islands Debug (54/54)</button>
+  </div>
+</div>
+</div>

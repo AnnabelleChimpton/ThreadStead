@@ -409,7 +409,7 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
   const siteConfig = await getSiteConfig()
 
   try {
-    console.log('Loading responses page for:', slug, promptId)
+    // Loading responses page
 
     // Use Ring Hub-based prompt system
     if (featureFlags.ringhub()) {
@@ -442,7 +442,7 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
 
           // Try to fetch the prompt and responses via API (which uses promptService)
           // We can't use promptService directly in SSR due to authentication requirements
-          console.log('ThreadRing found via Ring Hub:', threadRing)
+          // ThreadRing found via Ring Hub
           
           return {
             props: {
@@ -455,7 +455,7 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
             }
           }
         } catch (ringHubError) {
-          console.log('Ring Hub error:', ringHubError instanceof Error ? ringHubError.message : ringHubError);
+          // Ring Hub error occurred
           return {
             props: {
               siteConfig,
@@ -482,7 +482,7 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
       }
     })
 
-    console.log('ThreadRing found:', !!threadRing)
+    // ThreadRing validation complete
 
     if (!threadRing) {
       return {
@@ -513,7 +513,7 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
         prompt = await promptResponse.json();
       }
 
-      console.log('Prompt found via API:', !!prompt);
+      // Prompt validation complete
 
       if (!prompt) {
         return {

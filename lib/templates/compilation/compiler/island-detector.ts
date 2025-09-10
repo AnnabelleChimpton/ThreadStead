@@ -24,18 +24,24 @@ function hashString(str: string): string {
 // Identify interactive components and create islands (new version with transformed AST)
 export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Island[], transformedAst: TemplateNode } {
   const islands: Island[] = [];
+  let nodeCount = 0;
+  let componentCount = 0;
   
   function traverse(node: TemplateNode, path: string[] = []): TemplateNode {
+    nodeCount++;
     if (node.type === 'element' && node.tagName) {
       // Check if this node is a registered component
       const registration = componentRegistry.get(node.tagName);
+      
       if (registration) {
         // This is an interactive component - create an island
+        componentCount++;
         const islandId = generateIslandId(node.tagName, path);
         
         // Process children first to create nested islands
         const processedChildren: TemplateNode[] = [];
         const childIslands: Island[] = [];
+        
         
         if (node.children) {
           for (let i = 0; i < node.children.length; i++) {
@@ -56,6 +62,7 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           }
         }
         
+        
         // Validate and coerce props from node properties
         const props = node.properties ? 
           validateAndCoerceProps(node.properties, registration.props) : {};
@@ -72,15 +79,19 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         islands.push(island);
         
         // Return a placeholder node to replace the component
-        return {
+        // Include processed children so content isn't lost in static HTML
+        const placeholder: TemplateNode = {
           type: 'element',
           tagName: 'div',
           properties: {
             'data-island': islandId,
             'data-component': node.tagName
           },
-          children: []
+          children: processedChildren
         };
+        
+        
+        return placeholder;
       }
     }
     
@@ -96,7 +107,13 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
   }
   
   const transformedAst = traverse(ast);
-  return { islands, transformedAst };
+  
+  
+  // Fix parent-child relationships by analyzing the transformed AST
+  const islandsWithFixedChildren = fixIslandParentChildRelationships(islands, transformedAst);
+  
+  
+  return { islands: islandsWithFixedChildren, transformedAst };
 }
 
 // Identify interactive components and create islands (legacy version)
@@ -137,6 +154,48 @@ export function identifyIslands(ast: TemplateNode): Island[] {
   
   traverse(ast);
   return islands;
+}
+
+// Fix parent-child relationships by analyzing the transformed AST
+function fixIslandParentChildRelationships(islands: Island[], ast: TemplateNode): Island[] {
+  // Create a map of island ID to island for fast lookup - preserve existing children
+  const islandMap = new Map(islands.map(island => [island.id, { ...island, children: island.children || [] }]));
+  
+  // Recursively find all data-island elements and build parent-child relationships
+  function findIslandRelationships(node: TemplateNode, parentIslandId?: string): void {
+    if (node.type === 'element' && node.properties && node.properties['data-island']) {
+      const currentIslandId = node.properties['data-island'] as string;
+      
+      // If we have a parent island, add this island as its child
+      if (parentIslandId && islandMap.has(parentIslandId) && islandMap.has(currentIslandId)) {
+        const parentIsland = islandMap.get(parentIslandId)!;
+        const currentIsland = islandMap.get(currentIslandId)!;
+        
+        // Avoid duplicates
+        if (!parentIsland.children?.some(child => child.id === currentIslandId)) {
+          parentIsland.children = parentIsland.children || [];
+          parentIsland.children.push(currentIsland);
+          
+        }
+      }
+      
+      // Continue traversing with this island as the parent
+      if (node.children) {
+        node.children.forEach(child => findIslandRelationships(child, currentIslandId));
+      }
+    } else {
+      // Regular element - continue traversing with the same parent
+      if (node.children) {
+        node.children.forEach(child => findIslandRelationships(child, parentIslandId));
+      }
+    }
+  }
+  
+  // Start the traversal
+  findIslandRelationships(ast);
+  
+  // Convert back to array
+  return Array.from(islandMap.values());
 }
 
 // Note: validateAndCoerceProps is imported from template-registry

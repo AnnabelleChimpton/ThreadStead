@@ -14,8 +14,7 @@ import MediaGrid from '@/components/core/profile/tabs/MediaGrid';
 import FriendsWebsitesGrid from '@/components/core/profile/tabs/FriendsWebsitesGrid';
 import ProfileBadgeDisplay from '@/components/core/profile/ProfileBadgeDisplay';
 import Guestbook from '@/components/shared/Guestbook';
-// Import the existing island renderer for advanced templates
-import { ProductionIslandRenderer, PreviewStaticHTMLWithIslands } from '@/components/features/templates/TemplatePreview';
+// Removed unused imports - now using ProfileModeRenderer like production
 
 interface PreviewData {
   user: ProfileUser;
@@ -190,55 +189,7 @@ export default function PreviewTemp() {
     },
   ];
 
-  // Use existing island rendering system - handles both static HTML and islands!
-  function renderCompiledTemplateWithIslands(compiledTemplate: any, residentData: ResidentData) {
-    const hasIslands = compiledTemplate.islands && compiledTemplate.islands.length > 0;
-    const hasStaticHTML = compiledTemplate.staticHTML && compiledTemplate.staticHTML.trim();
-
-    if (!hasIslands && !hasStaticHTML) {
-      return <div className="p-4 text-gray-500">No content to render</div>;
-    }
-
-    // Handle mixed content (both islands and static HTML) - same as TemplatePreview
-    if (hasIslands && hasStaticHTML) {
-      return (
-        <PreviewStaticHTMLWithIslands 
-          staticHTML={compiledTemplate.staticHTML}
-          islands={compiledTemplate.islands}
-          residentData={residentData}
-        />
-      );
-    }
-
-    // If we only have islands, render them as React components
-    if (hasIslands) {
-      const rootIslands = compiledTemplate.islands.filter((island: any) => !island.parentId);
-      
-      return (
-        <div className="islands-container">
-          {rootIslands.map((island: any) => (
-            <ProductionIslandRenderer 
-              key={island.id}
-              island={island}
-              residentData={residentData}
-            />
-          ))}
-        </div>
-      );
-    }
-
-    // If we only have static HTML (no islands), render it directly
-    if (hasStaticHTML) {
-      return (
-        <div 
-          className="static-html-content"
-          dangerouslySetInnerHTML={{ __html: compiledTemplate.staticHTML }}
-        />
-      );
-    }
-
-    return <div className="p-4 text-gray-500">Nothing to render</div>;
-  }
+  // Removed renderCompiledTemplateWithIslands function - now using ProfileModeRenderer like production
 
   // Create fallback content for enhanced/standard mode
   const profileFallbackContent = (
@@ -412,23 +363,17 @@ export default function PreviewTemp() {
           </div>
         )}
         
-        {/* Wrap in ResidentDataProvider so components have access to data */}
-        <ResidentDataProvider data={residentData}>
-          {/* Main content area - ensure proper spacing below navigation */}
-          <div style={{ 
-            minHeight: 'calc(100vh - 80px)', // Account for both banners
-            position: 'relative' // Ensure content flows properly
-          }}>
-            {/* Render the compiled template with ACTUAL components using existing islands system */}
-            {previewUser.profile?.compiledTemplate ? (
-              renderCompiledTemplateWithIslands(previewUser.profile.compiledTemplate, residentData)
-            ) : previewUser.profile?.customTemplate ? (
-              <div 
-                dangerouslySetInnerHTML={{ 
-                  __html: previewUser.profile.customTemplate 
-                }}
-              />
-            ) : (
+        {/* Use the same ProfileModeRenderer as production for consistency */}
+        <div style={{ 
+          minHeight: 'calc(100vh - 80px)', // Account for both banners
+          position: 'relative' // Ensure content flows properly
+        }}>
+          <ProfileModeRenderer
+            user={previewUser}
+            residentData={residentData}
+            useIslands={true}
+            hideNavigation={true}
+            fallbackContent={
               <div style={{ padding: '20px', textAlign: 'center' }}>
                 <h2 style={{ fontSize: '24px', marginBottom: '10px' }}>Advanced Template Mode</h2>
                 <p>Your custom HTML template will render here.</p>
@@ -436,9 +381,9 @@ export default function PreviewTemp() {
                   Start adding HTML in the editor to see it appear.
                 </p>
               </div>
-            )}
-          </div>
-        </ResidentDataProvider>
+            }
+          />
+        </div>
       </div>
     </>
   );

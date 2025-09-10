@@ -124,11 +124,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
             lineageDepth: 0,
             lineagePath: "Root"
           });
-          console.log(`Loaded Ring Hub stats for ${ring.slug}:`, {
-            totalRings: stats.totalRings,
-            directChildren: stats.totalRings - 1,
-            totalCommunities: stats.totalRings
-          });
+          // Ring Hub stats loaded successfully
         } else {
           console.error('Failed to fetch Ring Hub stats:', response.status);
         }
@@ -435,7 +431,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           const data = await response.json();
           setMembers(data.members);
           setIsPublicMemberInfo(data.isPublicInfo || false);
-          console.log(`Loaded ${data.members.length} members for ${ring.slug}` + (data.isPublicInfo ? ' (public info only)' : ''));
+          // Members data loaded successfully
         } else {
           console.error('Failed to fetch members:', response.status);
           // Keep existing members if fetch fails
@@ -471,11 +467,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     if (userMembership) {
       setIsMember(true);
       setCurrentUserRole(userMembership.role);
-      console.log(`User is a member with role: ${userMembership.role}`);
+      // User membership confirmed
     } else {
       setIsMember(false);
       setCurrentUserRole(null);
-      console.log(`User is not a member of ${ring?.slug}`);
+      // User is not a member
     }
   }, [members, currentUser, ring?.slug]);
 
@@ -491,11 +487,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         if (response.ok) {
           const data = await response.json();
           setLineageData(data);
-          console.log(`Loaded lineage for ${ring.slug}${data.fullGenealogy ? ' [Full Genealogy Tree]' : ' [Public Lineage]'}:`, {
-            lineageDepth: data.lineageDepth,
-            childrenCount: data.directChildrenCount,
-            authenticated: data.authenticated
-          });
+          // Lineage data loaded successfully
         } else {
           console.error('Failed to fetch lineage:', response.status);
         }
@@ -526,7 +518,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           const data = await response.json();
           setPosts(data.posts || []);
           setHasMore(data.hasMore || false);
-          console.log(`Loaded ${data.posts?.length || 0} posts for ${ring.slug} (scope: ${feedScope})${data.enhanced ? ' [Enhanced Data]' : ' [Public Data]'}`);
+          // Posts data loaded successfully
         } else {
           console.error('Failed to fetch posts:', response.status);
           if (response.status === 403) {
@@ -571,7 +563,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               if (ownershipData.isOwner || ownershipData.isCurator) {
                 setIsMember(true);
                 setCurrentUserRole("curator");
-                console.log('User is owner/curator via:', ownershipData.ownershipSource);
+                // User ownership confirmed
                 return;
               }
             }
@@ -833,7 +825,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       className="border border-black px-4 py-2 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] text-sm"
                       onClick={() => {
                         // TODO: Implement load more functionality
-                        console.log("Load more posts");
+                        // Loading more posts
                       }}
                     >
                       Load More Posts
@@ -1187,30 +1179,28 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     let ring = null;
 
     // Use Ring Hub if enabled
-    console.log('Environment NEXT_PUBLIC_USE_RING_HUB:', process.env.NEXT_PUBLIC_USE_RING_HUB);
-    console.log('Ring Hub feature flag:', featureFlags.ringhub());
+    // Ring Hub feature checks
     if (featureFlags.ringhub()) {
       const client = getRingHubClient();
-      console.log('Ring Hub client available:', !!client);
+      // Ring Hub client check
       if (client) {
         try {
-          console.log('Fetching ring from Ring Hub:', slug);
+          // Fetching ring from Ring Hub
           const ringDescriptor = await client.getRing(slug as string);
-          console.log('Ring Hub response:', ringDescriptor ? 'found' : 'not found');
+          // Ring Hub response received
           if (ringDescriptor) {
             // Transform Ring Hub descriptor to expected format
             const transformedRing = transformRingDescriptorToThreadRing(ringDescriptor);
-            console.log('Ring Hub descriptor curatorNotes:', ringDescriptor.curatorNotes);
-            console.log('Transformed ring curatorNote:', transformedRing.curatorNote);
+            // Ring transformation complete
             // For The Spool, use Ring Hub stats for efficient counting
             let ringHubStats = null;
             let lineageData = null;
             
             if (slug === 'spool') {
               try {
-                console.log('Fetching Ring Hub stats for Spool...');
+                // Fetching Ring Hub stats for Spool
                 ringHubStats = await client.getStats();
-                console.log('Ring Hub stats received:', ringHubStats);
+                // Ring Hub stats received
               } catch (error) {
                 console.error('Error fetching Ring Hub stats:', error);
               }
@@ -1241,10 +1231,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
               lineagePath: "",
               isSystemRing: slug === 'spool'
             };
-            console.log('Using Ring Hub data for ring:', ring.name, 'with lineage counts:', {
-              directChildren: ring.directChildrenCount,
-              totalDescendants: ring.totalDescendantsCount
-            });
+            // Using Ring Hub data with lineage counts
           }
         } catch (error) {
           console.error("Error fetching ring from Ring Hub:", error);
@@ -1255,7 +1242,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     // Fallback to local database if Ring Hub is not available or failed
     if (!ring) {
-      console.log('Falling back to local database for ring:', slug);
+      // Falling back to local database
       ring = await db.threadRing.findUnique({
         where: { slug },
         include: {

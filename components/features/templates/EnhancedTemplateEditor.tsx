@@ -1,7 +1,6 @@
 // Enhanced template editor with islands support
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import TemplatePreview from './TemplatePreview';
 import { fetchResidentData } from '@/lib/templates/core/template-data';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
@@ -14,7 +13,6 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
-import { componentRegistry } from '@/lib/templates/core/template-registry';
 
 // Warning dialog for data loss prevention
 interface DataLossWarningProps {
@@ -129,48 +127,14 @@ function StandardLayoutPreview({
         </div>
       )}
       
-      {/* For advanced templates, wrap everything in advanced-template-container like ProfileModeRenderer */}
-      {!useStandardLayout ? (
-        <>
-          {/* Show MinimalNavBar when navigation toggle is ON - matching ProfileModeRenderer */}
-          {showNavigation && <MinimalNavBar />}
-          
-          {/* Wrap in container for CSS isolation - matching ProfileModeRenderer */}
-          <div className="advanced-template-container">
-            <TemplatePreview
-              user={user}
-              template={previewTemplate}
-              customCSS={customCSS}
-              cssMode={cssMode}
-              renderMode="islands"
-              residentData={residentData}
-              onCompile={onCompile}
-              onError={onError}
-              siteWideCSS={siteWideCSS}
-              useStandardLayout={useStandardLayout}
-              showNavigation={showNavigation}
-            />
-          </div>
-        </>
-      ) : (
-        /* Standard layout preview - header/footer now inside Shadow DOM */
-        <div className="preview-with-context min-h-screen preview-standard-layout">
-          <TemplatePreview
-            user={user}
-            template={previewTemplate}
-            customCSS={customCSS}
-            cssMode={cssMode}
-            renderMode="islands"
-            residentData={residentData}
-            onCompile={onCompile}
-            onError={onError}
-            siteWideCSS={siteWideCSS}
-            useStandardLayout={useStandardLayout}
-            showNavigation={showNavigation}
-            siteConfig={config}
-          />
+      {/* Preview is now handled by popup window - no inline preview */}
+      <div className="preview-placeholder bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+        <div className="text-gray-500">
+          <div className="text-xl mb-2">🔍</div>
+          <div className="font-medium">Template Preview</div>
+          <div className="text-sm mt-1">Use the &quot;Preview Pop Up&quot; button to see your template</div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -180,6 +144,7 @@ interface EnhancedTemplateEditorProps {
   initialTemplate?: string;
   initialCSS?: string;
   initialCSSMode?: 'inherit' | 'override' | 'disable';
+  initialTemplateMode?: 'default' | 'enhanced' | 'advanced';
   initialShowNavigation?: boolean;
   onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', showNavigation?: boolean) => void;
 }
@@ -189,6 +154,7 @@ export default function EnhancedTemplateEditor({
   initialTemplate = '',
   initialCSS = '',
   initialCSSMode = 'inherit',
+  initialTemplateMode = 'default',
   initialShowNavigation = true,
   onSave
 }: EnhancedTemplateEditorProps) {
@@ -220,6 +186,16 @@ export default function EnhancedTemplateEditor({
   
   // Detect if user is currently using standard layout
   const [useStandardLayout, setUseStandardLayout] = useState(() => {
+    // First, respect the saved template mode from the database
+    if (initialTemplateMode === 'advanced') {
+      // User has explicitly saved in advanced mode, respect that
+      return false;
+    } else if (initialTemplateMode === 'enhanced' || initialTemplateMode === 'default') {
+      // User is in standard/enhanced mode
+      return true;
+    }
+    
+    // Fallback to content-based detection for backwards compatibility
     const isEmptyTemplate = !initialTemplate || initialTemplate.trim() === '';
     const hasCustomCSS = initialCSS && initialCSS.trim() !== '' && initialCSS.trim() !== '/* Add your custom CSS here */';
     const hasNoContent = !initialTemplate && (!initialCSS || initialCSS.trim() === '' || initialCSS.trim() === '/* Add your custom CSS here */');
@@ -361,135 +337,59 @@ export default function EnhancedTemplateEditor({
     closeWarning();
   };
 
-  // Parse template to extract components (copied from TemplatePreview)
-  const parseTemplateForIslands = useCallback((templateContent: string) => {
-    // Get valid components from component registry
-    const validComponents = componentRegistry.getAllowedTags();
-    
-    // Create a simple DOM parser to handle nested structure
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(`<root>${templateContent}</root>`, 'text/xml');
-    
-    const islands: any[] = [];
-    let islandCounter = 0;
-    
-    function processElement(element: Element, parentId?: string): any {
-      const tagName = element.tagName;
-      const properComponentName = validComponents.find((valid: string) => 
-        valid.toLowerCase() === tagName.toLowerCase()
-      );
-      
-      if (properComponentName) {
-        const islandId = `island-${islandCounter++}`;
-        
-        // Extract props from attributes
-        const props: any = {};
-        for (let i = 0; i < element.attributes.length; i++) {
-          const attr = element.attributes[i];
-          props[attr.name] = attr.value;
-        }
-        
-        // Process children recursively
-        const children: any[] = [];
-        for (let i = 0; i < element.childNodes.length; i++) {
-          const child = element.childNodes[i];
-          if (child.nodeType === 1) { // ELEMENT_NODE
-            const childResult = processElement(child as Element, islandId);
-            if (childResult) {
-              children.push(childResult);
-            }
-          }
-        }
-        
-        const island = {
-          id: islandId,
-          component: properComponentName,
-          props,
-          children,
-          parentId: parentId || undefined,
-          placeholder: `<div data-island="${islandId}" data-component="${properComponentName}" class="island-placeholder"></div>`
-        };
-        
-        islands.push(island);
-        return island;
-      }
-      
-      // Process children even if this element isn't a component
-      for (let i = 0; i < element.childNodes.length; i++) {
-        const child = element.childNodes[i];
-        if (child.nodeType === 1) {
-          processElement(child as Element, parentId);
-        }
-      }
-      
-      return null;
-    }
-    
-    // Check if parsing succeeded
-    if (doc.documentElement.tagName !== 'parsererror') {
-      processElement(doc.documentElement);
-    }
-    
-    return islands;
-  }, []);
+  // Removed parseTemplateForIslands function - now using real compilation API
 
   // Track last compiled template to avoid unnecessary recompilation
   const [lastCompiledTemplate, setLastCompiledTemplate] = useState<string>('');
 
-  // Compile template function (mimics TemplatePreview compilation)
-  const compileTemplateForPreview = useCallback(async () => {
-    if (!template.trim() || useStandardLayout) {
+  // Compile template function (using real compilation API like production)
+  const compileTemplateForPreview = useCallback(async (forceCompile: boolean = false) => {
+    // Force compile when saving, even if in standard layout mode
+    if (!template.trim() || (!forceCompile && useStandardLayout)) {
       setCompiledTemplate(null);
       setLastCompiledTemplate('');
       return null;
     }
 
-    // Skip compilation if template hasn't changed
-    if (template === lastCompiledTemplate && compiledTemplate) {
+    // Skip compilation if template hasn't changed and not forcing
+    if (!forceCompile && template === lastCompiledTemplate && compiledTemplate) {
       return compiledTemplate;
     }
 
     try {
-      // Parse the template to extract components
-      const islands = parseTemplateForIslands(template);
-      
-      // Generate static HTML with placeholders
-      let staticHTML = template;
-      
-      // Replace components with placeholders (only root-level islands)
-      const rootIslands = islands.filter(island => !island.parentId);
-      
-      for (const island of rootIslands) {
-        const componentName = island.component.toLowerCase();
-        
-        // Handle self-closing tags
-        const selfClosingRegex = new RegExp(`<${componentName}\\b([^>]*?)\\s*\/>`, 'gi');
-        staticHTML = staticHTML.replace(selfClosingRegex, island.placeholder);
-        
-        // Handle full tags with content
-        const fullTagRegex = new RegExp(`<${componentName}\\b([^>]*)>([\\s\\S]*?)<\\/${componentName}>`, 'gi');
-        staticHTML = staticHTML.replace(fullTagRegex, island.placeholder);
-      }
-      
-      // Create compiled template object
-      const mockCompiled: CompiledTemplate = {
-        mode: 'advanced',
-        staticHTML: staticHTML,
-        islands: islands,
-        fallback: undefined,
-        compiledAt: new Date(),
-        errors: [],
-        warnings: []
-      };
+      // Call the same compilation API that production uses
+      const response = await fetch('/api/templates/compile-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          mode: 'advanced',
+          customTemplate: template,
+          customCSS: customCSS,
+          force: true // Always recompile for preview
+        })
+      });
 
-      setCompiledTemplate(mockCompiled);
+      if (!response.ok) {
+        console.error('POPUP: Compilation API failed:', response.status, response.statusText);
+        return null;
+      }
+
+      const result = await response.json();
+
+      if (!result.success || !result.compiled) {
+        console.error('POPUP: Compilation failed:', result.errors);
+        return null;
+      }
+
+      setCompiledTemplate(result.compiled);
       setLastCompiledTemplate(template); // Track what we compiled
-      return mockCompiled;
+      return result.compiled;
     } catch (error) {
-      console.error('Template compilation failed:', error);
+      console.error('POPUP: Template compilation failed:', error);
       return null;
     }
-  }, [template, useStandardLayout, parseTemplateForIslands, lastCompiledTemplate, compiledTemplate]);
+  }, [template, useStandardLayout, user.id, customCSS, lastCompiledTemplate, compiledTemplate]);
 
   // Send preview data to popup window
   const sendPreviewData = useCallback((targetWindow: Window) => {
@@ -712,7 +612,57 @@ export default function EnhancedTemplateEditor({
     setSaveMessage(null);
     
     try {
-      // Handle standard layout mode differently
+      // Check if user has entered custom HTML content
+      const hasCustomTemplate = template && template.trim() !== '';
+      
+      // If there's custom HTML, treat it as an advanced template regardless of current mode
+      if (hasCustomTemplate) {
+        // User has custom HTML - save as advanced template
+        // Match the gallery behavior: set to advanced mode with appropriate CSS mode
+        setUseStandardLayout(false);
+        
+        // MATCH GALLERY TEMPLATE WORKFLOW: Extract CSS from HTML and set disable mode
+        // This is what gallery templates do (lines 1207-1214)
+        const styleMatch = template.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+        let finalTemplate = template;
+        let finalCSS = customCSS;
+        
+        if (styleMatch) {
+          // Extract CSS from style tags (like gallery templates)
+          const extractedCSS = styleMatch[1];
+          finalTemplate = template.replace(/<style[^>]*>[\s\S]*?<\/style>/, '').trim();
+          
+          // Combine with existing CSS
+          if (customCSS && customCSS.trim()) {
+            finalCSS = customCSS + '\n\n/* Extracted from template */\n' + extractedCSS;
+          } else {
+            finalCSS = extractedCSS;
+          }
+          
+          // Update state to match what we're saving
+          setTemplate(finalTemplate);
+          setCustomCSS(finalCSS);
+        }
+        
+        // For custom templates, use 'disable' CSS mode like gallery templates do (line 1214)
+        const advancedCSSMode = 'disable';
+        setCSSMode(advancedCSSMode);
+        
+        // EXACTLY MATCH PREVIEW WORKFLOW: Use compileTemplateForPreview() to set compiledTemplate state
+        // This is the same thing the Preview Pop Up does before opening (lines 554-563)
+        const compiled = await compileTemplateForPreview(true); // Force compile like gallery templates
+        if (!compiled) {
+          setSaveMessage('⚠️ Failed to compile template. Please check your template syntax.');
+          return;
+        }
+        
+        // Now save using the final processed template and CSS (matching gallery workflow)
+        await onSave(finalTemplate, finalCSS, compiled, advancedCSSMode, showNavigation);
+        setSaveMessage('✓ Advanced template saved and compiled!');
+        return;
+      }
+      
+      // No custom HTML - save as standard layout
       if (useStandardLayout) {
         // For standard layout, we save with empty template to indicate using default layout
         // Standard layout always shows navigation (showNavigation = true)
@@ -1268,7 +1218,69 @@ export default function EnhancedTemplateEditor({
                     </div>
                     <textarea
                       value={template}
-                      onChange={(e) => setTemplate(e.target.value)}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        
+                        // Check if the pasted/typed content has embedded style tags
+                        const styleMatch = newValue.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+                        if (styleMatch) {
+                          // Extract all CSS from style tags
+                          let extractedCSS = '';
+                          styleMatch.forEach(styleTag => {
+                            const cssMatch = styleTag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+                            if (cssMatch && cssMatch[1]) {
+                              extractedCSS += cssMatch[1].trim() + '\n\n';
+                            }
+                          });
+                          
+                          // Remove style tags from HTML
+                          const cleanedHTML = newValue.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
+                          
+                          // Set the cleaned HTML
+                          setTemplate(cleanedHTML);
+                          
+                          // Append extracted CSS to existing CSS (don't overwrite)
+                          if (extractedCSS) {
+                            const existingCSS = customCSS || '';
+                            const combinedCSS = existingCSS.trim() 
+                              ? `${existingCSS}\n\n/* Extracted from HTML */\n${extractedCSS.trim()}`
+                              : extractedCSS.trim();
+                            setCustomCSS(combinedCSS);
+                            setSaveMessage('✓ Extracted CSS from <style> tags and moved to CSS tab');
+                            setTimeout(() => setSaveMessage(null), 3000);
+                          }
+                          
+                          // Switch to advanced mode
+                          if (useStandardLayout) {
+                            setUseStandardLayout(false);
+                            if (cssMode === 'inherit') {
+                              setCSSMode('disable');
+                            }
+                          }
+                        } else {
+                          // No style tags, just set the template as-is
+                          setTemplate(newValue);
+                          
+                          // Auto-detect when user types HTML and switch to advanced mode
+                          if (useStandardLayout && newValue.trim()) {
+                            // Check if the user is typing HTML-like content
+                            const hasHTMLTags = /<[^>]+>/.test(newValue);
+                            const hasIslandTags = /\{\{[^}]+\}\}/.test(newValue);
+                            
+                            if (hasHTMLTags || hasIslandTags) {
+                              // User is typing HTML/template content, switch to advanced mode
+                              // Match gallery behavior exactly
+                              setUseStandardLayout(false);
+                              // Set CSS mode to 'disable' for full control, like gallery templates
+                              if (cssMode === 'inherit') {
+                                setCSSMode('disable');
+                              }
+                              setSaveMessage('✓ Switched to Advanced Template mode');
+                              setTimeout(() => setSaveMessage(null), 3000);
+                            }
+                          }
+                        }
+                      }}
                       onKeyDown={(e) => handleKeyDown(e, 'template')}
                       className="code-editor-textarea w-full border border-thread-sage p-4 bg-thread-paper rounded font-mono text-sm resize-vertical focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
                       placeholder="Enter your template HTML here..."

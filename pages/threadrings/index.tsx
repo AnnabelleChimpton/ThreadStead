@@ -140,7 +140,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
       await fetchThreadRings(true);
       
       // You could show a success message here
-      console.log(data.message);
+      // Success handled by UI refresh
       
     } catch (error: any) {
       console.error("Error joining ThreadRing:", error);

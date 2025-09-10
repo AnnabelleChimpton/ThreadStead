@@ -85,6 +85,27 @@ export default function ContactCard({
             priority: props.priority || 5
           };
         }
+        
+        // Check if it's wrapped in ResidentDataProvider (from our DOM parsing)
+        if ((child.type as any)?.name === 'ResidentDataProvider' && props.children) {
+          const wrappedChild = props.children;
+          if (React.isValidElement(wrappedChild)) {
+            const wrappedProps = wrappedChild.props as any;
+            
+            // Check if the wrapped child is a ContactMethod component
+            if (wrappedChild.type === ContactMethod) {
+              return {
+                type: wrappedProps.type,
+                value: wrappedProps.value,
+                label: wrappedProps.label || getDefaultLabel(wrappedProps.type),
+                icon: wrappedProps.icon || getDefaultIcon(wrappedProps.type),
+                copyable: wrappedProps.copyable !== false,
+                priority: wrappedProps.priority || 5
+              };
+            }
+          }
+        }
+        
         // Check for data attributes (from template rendering)
         if (props['data-contact-type']) {
           return {

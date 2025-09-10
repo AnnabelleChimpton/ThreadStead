@@ -391,7 +391,7 @@ export default function ThreadRingSettingsPage({
                 onClick={() => {
                   if (confirm("Are you sure you want to delete this ThreadRing? This action cannot be undone.")) {
                     // TODO: Implement delete
-                    console.log("Delete ThreadRing");
+                    // TODO: Implement delete functionality
                   }
                 }}
               >
@@ -409,8 +409,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteConfig = await getSiteConfig();
   const { slug } = context.query;
   const session = context.req.cookies.retro_session;
-  console.log('🔍 [SETTINGS] Raw cookies:', Object.keys(context.req.cookies));
-  console.log('🔍 [SETTINGS] retro_session cookie:', session ? 'exists' : 'missing');
+  // Session and cookie validation
   
   if (typeof slug !== "string") {
     return {
@@ -424,9 +423,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   try {
-    console.log('🔍 [SETTINGS] Session cookie:', session ? 'present' : 'missing');
+    // Session validation and viewer parsing
     const viewer = await getSessionUser(context.req as any);
-    console.log('🔍 [SETTINGS] Parsed viewer:', viewer ? viewer.id : 'null');
 
     // Try Ring Hub first if enabled
     if (featureFlags.ringhub()) {
@@ -436,36 +434,35 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           const ringHubRing = await client.getRing(slug);
           
           if (ringHubRing) {
-            console.log('🔍 [SETTINGS] Found Ring Hub ring:', ringHubRing.slug);
-            console.log('🔍 [SETTINGS] Ring owner DID in Ring Hub:', ringHubRing.ownerDid);
+            // Found Ring Hub ring
             
             // Check ownership via local database tracking (source of truth)
             let canManage = false;
             
             if (viewer) {
-              console.log('🔍 [SETTINGS] Checking permissions for viewer ID:', viewer.id);
+              // Checking permissions
               
               try {
                 // Check local ownership tracking first (this is our source of truth)
                 const ringHubOwnership = await db.ringHubOwnership.findUnique({
                   where: { ringSlug: slug }
                 });
-                console.log('🔍 [SETTINGS] Local ownership record:', ringHubOwnership);
+                // Local ownership record found
                 
                 if (ringHubOwnership && ringHubOwnership.ownerUserId === viewer.id) {
                   canManage = true;
-                  console.log('✅ [SETTINGS] User is owner via local ownership tracking');
+                  // User is owner via local ownership tracking
                 } else {
-                  console.log('❌ [SETTINGS] No local ownership found for this user');
+                  // No local ownership found
                 }
                 
               } catch (ownershipError: any) {
                 console.warn('⚠️ [SETTINGS] Error checking local ownership:', ownershipError.message);
               }
               
-              console.log('🏁 [SETTINGS] Final canManage result:', canManage);
+              // Permission check complete
             } else {
-              console.log('❌ [SETTINGS] No viewer found');
+              // No viewer found
             }
             
             return {

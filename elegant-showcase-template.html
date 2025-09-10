@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Elegant Showcase Template</title>
+</head>
+<body>
+
+<style>
+/* Elegant color palette and typography */
+:root {
+  --primary-gold: #d4af37;
+  --soft-cream: #faf8f3;
+  --deep-charcoal: #2c2c2c;
+  --sage-green: #9caf88;
+  --warm-white: #ffffff;
+  --shadow-soft: rgba(0, 0, 0, 0.08);
+  --shadow-medium: rgba(0, 0, 0, 0.12);
+}
+
+body {
+  font-family: 'Georgia', 'Times', serif;
+  line-height: 1.6;
+  background: linear-gradient(135deg, var(--soft-cream) 0%, #f0ede6 100%);
+  color: var(--deep-charcoal);
+  margin: 0;
+  padding: 0;
+}
+
+/* Header styling with elegant typography */
+.elegant-header {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: linear-gradient(to right, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  margin-bottom: 2rem;
+}
+
+.elegant-header h1 {
+  font-size: 3rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin: 0 0 1rem 0;
+  background: linear-gradient(45deg, var(--primary-gold), var(--sage-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.elegant-header .subtitle {
+  font-size: 1.2rem;
+  color: var(--deep-charcoal);
+  opacity: 0.8;
+  font-style: italic;
+}
+
+/* Section styling */
+.content-section {
+  background: var(--warm-white);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px var(--shadow-soft);
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.content-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px var(--shadow-medium);
+}
+
+.section-title {
+  font-size: 1.8rem;
+  color: var(--primary-gold);
+  border-bottom: 2px solid var(--primary-gold);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 400;
+}
+
+/* Card styling for grid layouts */
+.elegant-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(250,248,243,0.9));
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  transition: all 0.3s ease;
+}
+
+.elegant-card:hover {
+  border-color: var(--primary-gold);
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+}
+
+/* Hero section with artistic flair */
+.hero-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 50%);
+  animation: gentle-rotate 30s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes gentle-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Sidebar styling */
+.sidebar-widget {
+  background: rgba(156, 175, 136, 0.05);
+  border-left: 4px solid var(--sage-green);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Interactive elements */
+.interactive-element {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive-element:hover {
+  transform: scale(1.02);
+}
+
+/* Typography enhancements */
+h2, h3 {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+p {
+  text-align: justify;
+  hyphens: auto;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--soft-cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-gold);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b8941f;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .elegant-header h1 {
+    font-size: 2rem;
+  }
+  
+  .content-section {
+    padding: 1.5rem;
+  }
+}
+</style>
+
+<!-- Hero Section with Profile Header -->
+<div class="hero-section">
+  <div class="elegant-header">
+    <ProfileHero variant="plain" />
+    <div class="subtitle">Welcome to my digital sanctuary</div>
+  </div>
+</div>
+
+<!-- Main Content Layout -->
+<CenteredBox maxWidth="xl" padding="lg">
+  
+  <!-- Introduction Section -->
+  <div class="content-section">
+    <GradientBox gradient="sunset" direction="br" padding="lg" rounded="true">
+      <FlexContainer direction="row" align="center" justify="between" gap="lg" responsive="true">
+        <div style="flex: 1;">
+          <h2 class="section-title">About Me</h2>
+          <Bio />
+        </div>
+        <div class="interactive-element">
+          <ProfilePhoto size="lg" shape="circle" className="elegant-photo" />
+        </div>
+      </FlexContainer>
+    </GradientBox>
+  </div>
+
+  <!-- Main Content Split Layout -->
+  <SplitLayout ratio="2:1" gap="xl" responsive="true">
+    
+    <!-- Left Column - Main Content -->
+    <div>
+      <!-- Featured Content Tabs -->
+      <div class="content-section">
+        <Tabs className="elegant-tabs">
+          <Tab title="✨ Latest Thoughts">
+            <div class="section-title">Recent Musings</div>
+            <BlogPosts limit="5" />
+          </Tab>
+          
+          <Tab title="📸 Visual Stories">
+            <div class="section-title">Captured Moments</div>
+            <MediaGrid />
+            
+            <Show when="photos" exists="true">
+              <div style="margin-top: 2rem;">
+                <ImageCarousel 
+                  autoplay="false" 
+                  showThumbnails="true" 
+                  height="md" 
+                  transition="fade"
+                >
+                  <CarouselImage src="#" alt="Gallery image 1" caption="A moment in time" />
+                  <CarouselImage src="#" alt="Gallery image 2" caption="Beauty in simplicity" />
+                  <CarouselImage src="#" alt="Gallery image 3" caption="Inspiration found" />
+                </ImageCarousel>
+              </div>
+            </Show>
+          </Tab>
+          
+          <Tab title="🎯 Skills & Passions">
+            <div class="section-title">What Drives Me</div>
+            <SkillChart 
+              title="Creative Pursuits" 
+              display="bars" 
+              theme="professional" 
+              showValues="true"
+              layout="grid"
+            >
+              <Skill name="Writing" level="85" category="Creative" color="purple" />
+              <Skill name="Photography" level="78" category="Visual" color="blue" />
+              <Skill name="Design" level="82" category="Visual" color="green" />
+              <Skill name="Philosophy" level="90" category="Intellectual" color="yellow" />
+            </SkillChart>
+          </Tab>
+        </Tabs>
+      </div>
+
+      <!-- Interactive Showcase -->
+      <div class="content-section">
+        <h2 class="section-title">Interactive Elements</h2>
+        
+        <GridLayout columns="2" gap="lg" responsive="true">
+          <div class="elegant-card">
+            <RevealBox 
+              buttonText="Discover Hidden Thoughts" 
+              revealText="Conceal Again" 
+              variant="fade"
+              buttonStyle="minimal"
+            >
+              <PolaroidFrame caption="A secret moment" rotation="3" shadow="true">
+                <div style="background: linear-gradient(45deg, #667eea, #764ba2); height: 200px; display: flex; align-items: center; justify-content: center; color: white;">
+                  <WaveText text="Hidden Beauty" speed="medium" amplitude="small" />
+                </div>
+              </PolaroidFrame>
+            </RevealBox>
+          </div>
+          
+          <div class="elegant-card">
+            <h3>Digital Craftsmanship</h3>
+            <ProgressTracker 
+              title="Current Projects" 
+              display="circles" 
+              theme="modern" 
+              showValues="true"
+              size="sm"
+            >
+              <ProgressItem label="Novel Writing" value="65" max="100" color="purple" />
+              <ProgressItem label="Art Exhibition" value="40" max="100" color="blue" />
+              <ProgressItem label="Digital Garden" value="85" max="100" color="green" />
+            </ProgressTracker>
+          </div>
+        </GridLayout>
+      </div>
+    </div>
+
+    <!-- Right Column - Sidebar -->
+    <aside>
+      <!-- Profile Quick Info -->
+      <div class="sidebar-widget">
+        <h3>Quick Connect</h3>
+        <IfVisitor>
+          <FollowButton />
+          <div style="margin-top: 1rem;">
+            <ContactCard 
+              expanded="false" 
+              theme="creative" 
+              layout="compact"
+              title="Reach Out"
+            >
+              <ContactMethod type="email" value="connect@example.com" />
+              <ContactMethod type="twitter" value="@username" />
+              <ContactMethod type="website" value="portfolio.example.com" />
+            </ContactCard>
+          </div>
+        </IfVisitor>
+        
+        <IfOwner>
+          <StickyNote color="yellow" size="md" rotation="-2">
+            <p>Welcome back! Your space looks wonderful today. ✨</p>
+          </StickyNote>
+        </IfOwner>
+      </div>
+
+      <!-- Achievement Badges -->
+      <div class="sidebar-widget">
+        <h3>Community Connections</h3>
+        <ProfileBadges showTitle="false" layout="grid" />
+        
+        <Show when="badges" exists="false">
+          <div style="text-align: center; padding: 2rem; opacity: 0.6;">
+            <p>🏆</p>
+            <p><em>Badge collection growing...</em></p>
+          </div>
+        </Show>
+      </div>
+
+      <!-- Decorative Elements -->
+      <div class="sidebar-widget">
+        <RetroTerminal variant="green" showHeader="true" padding="md">
+          <p>&gt; whoami</p>
+          <DisplayName as="span" />
+          <p>&gt; uptime</p>
+          <p>Connected for <span id="days-count">many</span> days</p>
+          <p>&gt; status</p>
+          <GlitchText text="CREATING..." intensity="low" color="#00ff00" />
+        </RetroTerminal>
+      </div>
+
+      <!-- Mutual Friends -->
+      <div class="sidebar-widget">
+        <h3>Shared Connections</h3>
+        <MutualFriends />
+      </div>
+
+      <!-- Floating Surprise -->
+      <FloatingBadge 
+        color="yellow" 
+        size="sm" 
+        animation="pulse" 
+        position="bottom-right"
+      >
+        <span style="font-size: 0.8rem;">✨</span>
+      </FloatingBadge>
+    </aside>
+    
+  </SplitLayout>
+
+  <!-- Guest Interaction Section -->
+  <div class="content-section">
+    <NeonBorder color="purple" intensity="soft" padding="lg" rounded="true">
+      <h2 class="section-title">Leave Your Mark</h2>
+      <FlexContainer direction="row" align="start" justify="between" gap="xl" responsive="true">
+        <div style="flex: 2;">
+          <Guestbook />
+        </div>
+        <div style="flex: 1;">
+          <StickyNote color="pink" size="lg" rotation="1">
+            <h3>Visitor's Notes</h3>
+            <p>Every message here adds to the tapestry of our shared digital experience. Thank you for being part of this space.</p>
+            <p style="font-style: italic; text-align: right;">— With gratitude</p>
+          </StickyNote>
+        </div>
+      </FlexContainer>
+    </NeonBorder>
+  </div>
+
+  <!-- Footer with Website Links -->
+  <footer class="content-section" style="text-align: center; margin-top: 3rem;">
+    <Choose>
+      <When data="owner.website" exists="true">
+        <WebsiteDisplay />
+      </When>
+      <Otherwise>
+        <p style="opacity: 0.6; font-style: italic;">
+          "In the garden of digital creativity, every visit plants a seed of inspiration."
+        </p>
+      </Otherwise>
+    </Choose>
+  </footer>
+
+</CenteredBox>
+
+</body>
+</html>

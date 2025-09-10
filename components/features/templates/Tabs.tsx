@@ -32,6 +32,39 @@ export default function Tabs({ children }: TabsProps) {
           content: props.children
         };
       }
+      
+      // Check if it's wrapped in ResidentDataProvider (from our DOM parsing)
+      if ((child.type as any)?.name === 'ResidentDataProvider' && props.children) {
+        const wrappedChild = props.children;
+        if (React.isValidElement(wrappedChild)) {
+          const wrappedProps = wrappedChild.props as any;
+          
+          // Check if the wrapped child is a Tab component
+          if (wrappedChild.type === Tab) {
+            return {
+              title: wrappedProps.title,
+              content: wrappedProps.children
+            };
+          }
+          
+          // Check for data-tab-title attribute on wrapped child
+          if (wrappedProps['data-tab-title']) {
+            return {
+              title: wrappedProps['data-tab-title'],
+              content: wrappedProps.children
+            };
+          }
+          
+          // Fallback: check if wrapped child has a title prop
+          if (wrappedProps.title) {
+            return {
+              title: wrappedProps.title,
+              content: wrappedProps.children || wrappedChild
+            };
+          }
+        }
+      }
+      
       // Check for data-tab-title attribute (from island rendering)
       if (props['data-tab-title']) {
         return {

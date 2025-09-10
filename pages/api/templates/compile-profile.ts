@@ -88,21 +88,83 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id: user.id,
         handle: primaryHandle,
         profile: user.profile ? {
-          templateMode: user.profile.templateMode as any,
+          templateMode: mode as any || user.profile.templateMode as any,
           customCSS: customCSS || user.profile.customCSS,
           customTemplate: customTemplate || user.profile.customTemplate,
           customTemplateAst: user.profile.customTemplateAst,
           includeSiteCSS: user.profile.includeSiteCSS,
           hideNavigation: user.profile.hideNavigation
-        } : null
+        } : {
+          templateMode: mode as any || 'advanced',
+          customCSS: customCSS || '',
+          customTemplate: customTemplate || '',
+          customTemplateAst: null,
+          includeSiteCSS: true,
+          hideNavigation: false
+        }
       },
       residentData
     };
 
-    // Compile the template
-    const result = await compileProfile(context, { 
-      mode: mode || user.profile?.templateMode || 'default' 
-    });
+    // Handle different compilation modes with backwards compatibility
+    let result;
+    
+    if (mode === 'advanced' && customTemplate) {
+      // For advanced mode with custom template, use direct compilation like production
+      try {
+        const { compileTemplate } = await import('@/lib/templates/compilation/template-parser');
+        const { identifyIslandsWithTransform } = await import('@/lib/templates/compilation/compiler/island-detector');
+        const { generateStaticHTML } = await import('@/lib/templates/compilation/compiler/html-optimizer');
+        
+        // Parse the template AST
+        const parseResult = compileTemplate(customTemplate);
+        
+        if (!parseResult.success) {
+          return res.status(400).json({
+            success: false,
+            errors: parseResult.errors,
+            warnings: parseResult.validation?.warnings || []
+          });
+        }
+        
+        // Detect islands (components) in the template using the AST
+        const islandResult = identifyIslandsWithTransform(parseResult.ast!);
+        
+        // Generate static HTML with component placeholders
+        const staticHTML = generateStaticHTML(islandResult.transformedAst, islandResult.islands);
+        
+        // Create compiled result structure
+        const compiled = {
+          mode: 'advanced' as const,
+          staticHTML: staticHTML,
+          islands: islandResult.islands,
+          fallback: undefined,
+          compiledAt: new Date(),
+          errors: [],
+          warnings: parseResult.validation?.warnings || []
+        };
+        
+        result = {
+          success: true,
+          compiled,
+          errors: [],
+          warnings: compiled.warnings
+        };
+        
+      } catch (compileError) {
+        console.error('Direct advanced template compilation failed:', compileError);
+        return res.status(400).json({
+          success: false,
+          errors: ['Advanced template compilation failed'],
+          warnings: []
+        });
+      }
+    } else {
+      // For default/enhanced modes or advanced without custom template, use context-based compilation
+      result = await compileProfile(context, { 
+        mode: mode || 'default' // Use requested mode or default
+      });
+    }
 
     if (!result.success) {
       return res.status(400).json({

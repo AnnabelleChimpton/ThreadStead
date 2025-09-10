@@ -13,6 +13,7 @@ interface TemplateEditorPageProps {
   existingTemplate?: string;
   customCSS?: string;
   templateEnabled?: boolean;
+  templateMode?: 'default' | 'enhanced' | 'advanced';
   hideNavigation?: boolean;
   currentUser?: {
     id: string;
@@ -32,20 +33,42 @@ export default function TemplateEditorPage({
   existingTemplate,
   customCSS,
   templateEnabled = false,
+  templateMode = 'default',
   hideNavigation = false,
   currentUser
 }: TemplateEditorPageProps) {
   const router = useRouter();
 
-  // Extract HTML content from existing template (for custom template users)
-  // For standard layout users, this should be empty so the editor detects standard layout mode
-  const extractedHtmlContent = existingTemplate 
-    ? existingTemplate.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim()
-    : ''; // Empty for standard layout users
+  // Extract HTML content and any embedded CSS from existing template
+  let extractedHtmlContent = '';
+  let embeddedCSS = '';
+  
+  if (existingTemplate) {
+    // Check for embedded style tags in the template
+    const styleMatches = existingTemplate.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+    if (styleMatches) {
+      // Extract CSS from style tags
+      styleMatches.forEach(styleTag => {
+        const cssMatch = styleTag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+        if (cssMatch && cssMatch[1]) {
+          embeddedCSS += cssMatch[1].trim() + '\n\n';
+        }
+      });
+    }
+    // Remove style tags from HTML
+    extractedHtmlContent = existingTemplate.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
+  }
 
-  // Use the actual customCSS from the profile, not extracted from template HTML
-  // This ensures standard layout users see their saved CSS
-  const extractedCssContent = customCSS || '/* Add your custom CSS here */\n\n';
+  // Combine saved customCSS with any embedded CSS found in the template
+  // Priority: saved customCSS first, then any embedded CSS
+  let extractedCssContent = customCSS || '';
+  if (embeddedCSS && !extractedCssContent.includes(embeddedCSS.trim())) {
+    // Only add embedded CSS if it's not already in the saved CSS
+    extractedCssContent = extractedCssContent.trim() 
+      ? `${extractedCssContent}\n\n/* Recovered from template */\n${embeddedCSS.trim()}`
+      : embeddedCSS.trim();
+  }
+  extractedCssContent = extractedCssContent || '/* Add your custom CSS here */\n\n';
   
   // Extract CSS mode from CSS comment if present
   const extractCSSMode = (): 'inherit' | 'override' | 'disable' => {
@@ -213,6 +236,7 @@ export default function TemplateEditorPage({
               initialTemplate={extractedHtmlContent}
               initialCSS={cleanedCssContent}
               initialCSSMode={initialCSSMode}
+              initialTemplateMode={templateMode}
               initialShowNavigation={!hideNavigation}
               onSave={handleSave}
             />
@@ -276,6 +300,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
     let existingTemplate = "";
     let customCSS = "";
     let templateEnabled = false;
+    let templateMode: 'default' | 'enhanced' | 'advanced' = 'default';
 
     if (isOwner) {
       try {
@@ -294,6 +319,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
 
       customCSS = profileData.profile?.customCSS || "";
       templateEnabled = profileData.profile?.templateEnabled || false;
+      templateMode = profileData.profile?.templateMode || 'default';
     }
 
     const hideNavigation = profileData.profile?.hideNavigation || false;
@@ -306,6 +332,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
         customCSS,
         hideNavigation,
         templateEnabled,
+        templateMode,
         currentUser: currentUser ? JSON.parse(JSON.stringify(currentUser)) : null,
       },
     };

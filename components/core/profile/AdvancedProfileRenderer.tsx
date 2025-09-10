@@ -74,19 +74,20 @@ export default function AdvancedProfileRenderer({
   
   const islandIds = useMemo(() => islands.map(island => island.id), [islands]);
 
-  // Use island manager to track hydration state (kept for debugging)
-  const { loadedIslands, failedIslands, islandsReady } = useIslandManager(islandIds);
+  // Use island manager to track hydration state
+  const { loadedIslands, failedIslands, islandsReady, handleIslandRender: managerHandleIslandRender, handleIslandError: managerHandleIslandError } = useIslandManager(islandIds);
 
   // Handle island render success
   const handleIslandRender = useCallback((islandId: string) => {
-    // Island rendered successfully
-  }, []);
+    managerHandleIslandRender(islandId);
+  }, [managerHandleIslandRender]);
 
   // Handle island render errors
   const handleIslandError = useCallback((error: Error, islandId: string) => {
-    console.error(`Island ${islandId} failed to render:`, error);
+    console.error(`❌ Island ${islandId} failed to render:`, error);
+    managerHandleIslandError(error, islandId);
     onIslandError?.(error, islandId);
-  }, [onIslandError]);
+  }, [managerHandleIslandError, onIslandError]);
 
   // Hydrate islands when component mounts
   useEffect(() => {
@@ -108,6 +109,8 @@ export default function AdvancedProfileRenderer({
       onIslandsReady?.();
     }
   }, [islandsReady, islands.length, loadedIslands.size, failedIslands.size, onIslandsReady]);
+
+  // Render the compiled template
 
   // Validate compiled template exists (after all hooks)
   if (!compiledTemplate?.staticHTML) {
@@ -256,105 +259,233 @@ function StaticHTMLWithIslands({
   
   // Parse static HTML and replace placeholders with React components
   const renderHTMLWithIslands = () => {
-    // Create a temporary div to parse the HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = staticHTML;
     
-    // Find all island placeholders
-    const placeholders = tempDiv.querySelectorAll('[data-island]');
-    
-    // Replace each placeholder with a React component placeholder
-    const replacements: Array<{id: string, component: React.ReactElement}> = [];
-    
-    placeholders.forEach(placeholder => {
-      const islandId = placeholder.getAttribute('data-island');
-      const componentName = placeholder.getAttribute('data-component');
-      
-      if (islandId && islandMap.has(islandId)) {
-        const island = islandMap.get(islandId)!;
-        
-        // Create a unique marker for this island
-        const markerId = `ISLAND_MARKER_${islandId}`;
-        placeholder.outerHTML = `<div data-react-placeholder="${markerId}"></div>`;
-        
-        // Create the React component for this island
-        const component = (
-          <ProductionIslandRenderer 
-            key={island.id}
-            island={island}
-            allIslands={islands}
-            residentData={residentData}
-            onIslandRender={onIslandRender}
-            onIslandError={onIslandError}
-          />
-        );
-        
-        replacements.push({ id: markerId, component });
-      }
-    });
-    
-    // Get the modified HTML
-    const processedHTML = tempDiv.innerHTML;
-    
-    // Now we need to render this HTML with React components embedded
-    // For now, let's use a simpler approach: split the HTML at placeholders
-    const parts = [];
-    let lastIndex = 0;
-    
-    replacements.forEach(({ id, component }, index) => {
-      const markerHTML = `<div data-react-placeholder="${id}"></div>`;
-      const markerIndex = processedHTML.indexOf(markerHTML, lastIndex);
-      
-      if (markerIndex !== -1) {
-        // Add HTML before the marker
-        if (markerIndex > lastIndex) {
-          const htmlPart = processedHTML.substring(lastIndex, markerIndex);
-          parts.push(
-            <div 
-              key={`html-${index}`}
-              dangerouslySetInnerHTML={{ __html: htmlPart }}
-            />
-          );
-        }
-        
-        // Add the React component
-        parts.push(component);
-        
-        lastIndex = markerIndex + markerHTML.length;
-      }
-    });
-    
-    // Add remaining HTML after the last marker
-    if (lastIndex < processedHTML.length) {
-      const remainingHTML = processedHTML.substring(lastIndex);
-      parts.push(
-        <div 
-          key="html-final"
-          dangerouslySetInnerHTML={{ __html: remainingHTML }}
-        />
-      );
+    // Instead of regex, parse the HTML properly and work with the DOM tree
+    if (typeof document === 'undefined') {
+      return [<div key="fallback" dangerouslySetInnerHTML={{ __html: staticHTML }} />];
     }
     
-    return parts;
+    // Parse the entire static HTML into a DOM tree
+    const container = document.createElement('div');
+    container.innerHTML = staticHTML;
+    
+    // Find all island placeholders in the DOM tree
+    const placeholders = container.querySelectorAll('[data-island]');
+    
+    // Helper function to convert DOM node to React element
+    const domToReact = (node: Node, islands: Island[], residentData: any, onIslandRender: (islandId: string) => void, onIslandError: (error: Error, islandId: string) => void): React.ReactNode => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim();
+        return text ? text : null;
+      }
+      
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as Element;
+        
+        // Check if this is an island placeholder
+        const islandId = element.getAttribute('data-island');
+        const componentName = element.getAttribute('data-component');
+        
+        if (islandId && componentName) {
+          const island = islands.find(i => i.id === islandId);
+          if (island) {
+            
+            try {
+              const Component = getComponent(island.component);
+              if (Component) {
+                // Recursively process children inside this island placeholder
+                const childElements = Array.from(element.childNodes).map((child, index) => 
+                  domToReact(child, islands, residentData, onIslandRender, onIslandError)
+                ).filter(child => child !== null && child !== '');
+                
+                // Parse children for component props
+                
+                const processedChildren = childElements.length > 0 ? childElements : undefined;
+                
+                const renderedElement = (
+                  <ResidentDataProvider key={island.id} data={residentData}>
+                    <Component 
+                      {...island.props}
+                    >
+                      {processedChildren}
+                    </Component>
+                  </ResidentDataProvider>
+                );
+                
+                onIslandRender(island.id);
+                return renderedElement;
+              }
+            } catch (error) {
+              console.error(`❌ Error rendering island ${island.id}:`, error);
+              onIslandError(error instanceof Error ? error : new Error(String(error)), island.id);
+            }
+          }
+        }
+        
+        // Check if this is a registered component (but not an island)
+        const tagName = element.tagName.toLowerCase();
+        const elementComponentName = element.tagName; // Keep original case for component lookup
+        const registration = componentRegistry.get(elementComponentName);
+        
+        if (registration) {
+          // This is a registered component but not an island - render as component
+          const Component = getComponent(elementComponentName);
+          if (Component) {
+            const props: any = {};
+            
+            // Copy attributes as props
+            for (let i = 0; i < element.attributes.length; i++) {
+              const attr = element.attributes[i];
+              let propName = attr.name;
+              
+              // Convert HTML attributes to React props
+              if (propName === 'class') {
+                propName = 'className';
+              } else if (propName.includes('-')) {
+                // Convert kebab-case to camelCase for data attributes and others
+                propName = propName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+              }
+              
+              props[propName] = attr.value;
+            }
+            
+            // Add a key for React reconciliation
+            props.key = `${elementComponentName}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Recursively process children
+            const children = Array.from(element.childNodes).map((child, index) => 
+              domToReact(child, islands, residentData, onIslandRender, onIslandError)
+            ).filter(child => child !== null && child !== '');
+            
+            const processedChildren = children.length > 0 ? children : undefined;
+            
+            return (
+              <ResidentDataProvider key={props.key} data={residentData}>
+                <Component {...props}>
+                  {processedChildren}
+                </Component>
+              </ResidentDataProvider>
+            );
+          }
+        }
+        
+        // Regular HTML element - convert to React element
+        const props: any = {};
+        
+        // Copy attributes
+        for (let i = 0; i < element.attributes.length; i++) {
+          const attr = element.attributes[i];
+          let propName = attr.name;
+          
+          // Convert HTML attributes to React props
+          if (propName === 'class') {
+            propName = 'className';
+          } else if (propName.includes('-')) {
+            // Convert kebab-case to camelCase for data attributes and others
+            propName = propName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+          }
+          
+          props[propName] = attr.value;
+        }
+        
+        // Add a key for React reconciliation
+        props.key = `${tagName}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Recursively process children
+        const children = Array.from(element.childNodes).map((child, index) => 
+          domToReact(child, islands, residentData, onIslandRender, onIslandError)
+        ).filter(child => child !== null && child !== '');
+        
+        if (children.length === 0) {
+          return React.createElement(tagName, props);
+        } else if (children.length === 1 && typeof children[0] === 'string') {
+          return React.createElement(tagName, props, children[0]);
+        } else {
+          return React.createElement(tagName, props, ...children);
+        }
+      }
+      
+      return null;
+    };
+
+    // Helper function to get component from registry
+    const getComponent = (componentName: string) => {
+      try {
+        const registration = componentRegistry.get(componentName);
+        if (registration) {
+          return registration.component;
+        }
+        
+        // Special cases for sub-components
+        if (componentName === 'Tab') {
+          const tabsRegistration = componentRegistry.get('Tabs');
+          if (tabsRegistration) {
+            const TabsComponent = tabsRegistration.component as any;
+            return TabsComponent.Tab || null;
+          }
+        }
+        if (componentName === 'When') {
+          const chooseRegistration = componentRegistry.get('Choose');
+          if (chooseRegistration) {
+            const ChooseComponent = chooseRegistration.component as any;
+            return ChooseComponent.When || null;
+          }
+        }
+        if (componentName === 'Otherwise') {
+          const chooseRegistration = componentRegistry.get('Choose');
+          if (chooseRegistration) {
+            const ChooseComponent = chooseRegistration.component as any;
+            return ChooseComponent.Otherwise || null;
+          }
+        }
+        
+        return null;
+      } catch (error) {
+        console.error(`Error loading component ${componentName}:`, error);
+        return null;
+      }
+    };
+    
+    // Convert the entire DOM tree to React, replacing placeholders as we go
+    const processedContent = Array.from(container.childNodes).map((node, index) => 
+      domToReact(node, islands, residentData, onIslandRender, onIslandError)
+    ).filter(child => child !== null && child !== '');
+    
+    // Return processed content
+    
+    return processedContent;
   };
   
   // Use useEffect to process the HTML after component mounts
-  const [processedContent, setProcessedContent] = React.useState<React.ReactElement[]>([]);
+  const [processedContent, setProcessedContent] = React.useState<React.ReactNode[]>([]);
+  const [hydrationComplete, setHydrationComplete] = React.useState(false);
   
   React.useEffect(() => {
     try {
       const content = renderHTMLWithIslands();
       setProcessedContent(content);
+      setHydrationComplete(true);
     } catch (error) {
-      console.error('Error processing HTML with islands:', error);
-      // Fallback to static HTML only
-      setProcessedContent([
-        <div 
-          key="fallback"
-          className="static-html-content"
-          dangerouslySetInnerHTML={{ __html: staticHTML }}
-        />
-      ]);
+      console.error('❌ Error processing HTML with islands:', error);
+      // Fallback to the existing ProductionIslandRendererWithHTMLChildren approach
+      
+      // Use the existing parseHTMLToReactChildren approach as fallback
+      const fallbackContent = [
+        <div key="fallback-container">
+          {islands.map(island => (
+            <ProductionIslandRendererWithHTMLChildren 
+              key={island.id}
+              island={island}
+              allIslands={islands}
+              residentData={residentData}
+              htmlChildren={null}
+              onIslandRender={onIslandRender}
+              onIslandError={onIslandError}
+            />
+          ))}
+        </div>
+      ];
+      setProcessedContent(fallbackContent);
     }
   }, [staticHTML, islands]);
   
@@ -363,6 +494,304 @@ function StaticHTMLWithIslands({
       {processedContent}
     </>
   );
+}
+
+// Parse HTML content to React children
+function parseHTMLToReactChildren(
+  html: string, 
+  allIslands: Island[], 
+  residentData: ResidentData, 
+  onIslandRender: (islandId: string) => void, 
+  onIslandError: (error: Error, islandId: string) => void
+): React.ReactNode {
+  
+  if (!html || html.trim() === '') {
+    return null;
+  }
+  
+  // Check if we're in a browser environment
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  
+  // Create a temporary div to parse the HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  // Process the parsed HTML nodes
+  
+  // Convert DOM nodes to React elements
+  return domToReact(tempDiv, allIslands, residentData, onIslandRender, onIslandError);
+}
+
+// Convert DOM nodes to React elements recursively
+function domToReact(
+  node: Node, 
+  allIslands: Island[], 
+  residentData: ResidentData, 
+  onIslandRender: (islandId: string) => void, 
+  onIslandError: (error: Error, islandId: string) => void
+): React.ReactNode {
+  // Text node
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent;
+  }
+  
+  // Element node
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    const element = node as Element;
+    const tagName = element.tagName.toLowerCase();
+    
+    // Check if this is an island placeholder
+    const islandId = element.getAttribute('data-island');
+    if (islandId) {
+      const island = allIslands.find(i => i.id === islandId);
+      if (island) {
+        // Parse the inner HTML of this island to get its HTML children
+        const innerHTMLContent = element.innerHTML;
+        const parsedInnerChildren = innerHTMLContent ? 
+          parseHTMLToReactChildren(innerHTMLContent, allIslands, residentData, onIslandRender, onIslandError) : 
+          null;
+        
+        return (
+          <ProductionIslandRendererWithHTMLChildren 
+            key={island.id}
+            island={island}
+            allIslands={allIslands}
+            residentData={residentData}
+            htmlChildren={parsedInnerChildren}
+            onIslandRender={onIslandRender}
+            onIslandError={onIslandError}
+          />
+        );
+      }
+    }
+    
+    // Regular HTML element - convert attributes
+    const props: any = { key: Math.random() };
+    for (let i = 0; i < element.attributes.length; i++) {
+      const attr = element.attributes[i];
+      let propName = attr.name;
+      
+      // Convert HTML attributes to React props
+      if (propName === 'class') propName = 'className';
+      if (propName === 'for') propName = 'htmlFor';
+      
+      props[propName] = attr.value;
+    }
+    
+    // Convert children recursively
+    const children = Array.from(node.childNodes)
+      .map(child => domToReact(child, allIslands, residentData, onIslandRender, onIslandError))
+      .filter(child => child !== null && child !== '');
+    
+    // Create React element
+    return React.createElement(tagName, props, ...children);
+  }
+  
+  return null;
+}
+
+// Enhanced island renderer that combines island children with HTML children
+function ProductionIslandRendererWithHTMLChildren({ 
+  island, 
+  allIslands, 
+  residentData, 
+  htmlChildren,
+  onIslandRender, 
+  onIslandError 
+}: { 
+  island: Island, 
+  allIslands: Island[], 
+  residentData: ResidentData,
+  htmlChildren: React.ReactNode,
+  onIslandRender: (islandId: string) => void,
+  onIslandError: (error: Error, islandId: string) => void
+}) {
+  try {
+    const getComponent = (componentName: string) => {
+      try {
+        const registration = componentRegistry.get(componentName);
+        if (registration) {
+          return registration.component;
+        }
+        
+        // Special cases for sub-components (keep existing logic)
+        if (componentName === 'Tab') {
+          const tabsRegistration = componentRegistry.get('Tabs');
+          if (tabsRegistration) {
+            const TabsComponent = tabsRegistration.component as any;
+            return TabsComponent.Tab || null;
+          }
+        }
+        if (componentName === 'When') {
+          const chooseRegistration = componentRegistry.get('Choose');
+          if (chooseRegistration) {
+            const ChooseComponent = chooseRegistration.component as any;
+            return ChooseComponent.When || null;
+          }
+        }
+        if (componentName === 'Otherwise') {
+          const chooseRegistration = componentRegistry.get('Choose');
+          if (chooseRegistration) {
+            const ChooseComponent = chooseRegistration.component as any;
+            return ChooseComponent.Otherwise || null;
+          }
+        }
+        
+        return null;
+      } catch (error) {
+        onIslandError(error instanceof Error ? error : new Error(String(error)), island.id);
+        return null;
+      }
+    };
+
+    const Component = getComponent(island.component);
+    if (!Component) {
+      const error = new Error(`Component ${island.component} not found`);
+      onIslandError(error, island.id);
+      return (
+        <div style={{ color: 'red', border: '1px solid red', padding: '4px' }}>
+          Component {island.component} not found
+        </div>
+      );
+    }
+
+    // Combine island children (React components) with HTML children
+    const islandChildren = island.children || [];
+    let combinedChildren;
+    
+    if (htmlChildren) {
+      // If we have HTML children, they already contain everything we need
+      // (both static HTML and embedded React components from island placeholders)
+      combinedChildren = htmlChildren;
+    } else if (islandChildren.length > 0) {
+      // Only island children (existing logic for Tabs, etc.)
+      if (island.component === 'Tabs') {
+        combinedChildren = islandChildren.map(childIsland => {
+          if (childIsland.component === 'Tab') {
+            const TabComponent = getComponent('Tab');
+            if (TabComponent) {
+              const tabChildren = childIsland.children || [];
+              const tabContent = tabChildren.length > 0 ? (
+                <>
+                  {tabChildren.map(grandChild => (
+                    <ProductionIslandRendererWithHTMLChildren 
+                      key={grandChild.id}
+                      island={grandChild}
+                      allIslands={allIslands}
+                      residentData={residentData}
+                      htmlChildren={null}
+                      onIslandRender={onIslandRender}
+                      onIslandError={onIslandError}
+                    />
+                  ))}
+                </>
+              ) : 'Empty tab';
+              return (
+                <TabComponent key={childIsland.id} {...childIsland.props}>
+                  {tabContent}
+                </TabComponent>
+              );
+            }
+          }
+          
+          return (
+            <ProductionIslandRendererWithHTMLChildren 
+              key={childIsland.id}
+              island={childIsland}
+              allIslands={allIslands}
+              residentData={residentData}
+              htmlChildren={null}
+              onIslandRender={onIslandRender}
+              onIslandError={onIslandError}
+            />
+          );
+        });
+      } else if (island.component === 'Choose') {
+        combinedChildren = islandChildren.map(childIsland => {
+          if (childIsland.component === 'When' || childIsland.component === 'Otherwise') {
+            const ChildComponent = getComponent(childIsland.component);
+            if (ChildComponent) {
+              const conditionalChildren = childIsland.children || [];
+              const conditionalContent = conditionalChildren.length > 0 ? (
+                <>
+                  {conditionalChildren.map(grandChild => (
+                    <ProductionIslandRendererWithHTMLChildren 
+                      key={grandChild.id}
+                      island={grandChild}
+                      allIslands={allIslands}
+                      residentData={residentData}
+                      htmlChildren={null}
+                      onIslandRender={onIslandRender}
+                      onIslandError={onIslandError}
+                    />
+                  ))}
+                </>
+              ) : '';
+              return (
+                <ChildComponent key={childIsland.id} {...childIsland.props}>
+                  {conditionalContent}
+                </ChildComponent>
+              );
+            }
+          }
+          
+          return (
+            <ProductionIslandRendererWithHTMLChildren 
+              key={childIsland.id}
+              island={childIsland}
+              allIslands={allIslands}
+              residentData={residentData}
+              htmlChildren={null}
+              onIslandRender={onIslandRender}
+              onIslandError={onIslandError}
+            />
+          );
+        });
+      } else {
+        // General case for other components with island children
+        combinedChildren = (
+          <>
+            {islandChildren.map(childIsland => (
+              <ProductionIslandRendererWithHTMLChildren 
+                key={childIsland.id}
+                island={childIsland}
+                allIslands={allIslands}
+                residentData={residentData}
+                htmlChildren={null}
+                onIslandRender={onIslandRender}
+                onIslandError={onIslandError}
+              />
+            ))}
+          </>
+        );
+      }
+    } else if (htmlChildren) {
+      // Only HTML children
+      combinedChildren = htmlChildren;
+    }
+
+    
+    onIslandRender(island.id);
+    
+    return (
+      <ResidentDataProvider data={residentData}>
+        <Component {...island.props}>
+          {combinedChildren}
+        </Component>
+      </ResidentDataProvider>
+    );
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error(`ProductionIslandRendererWithHTMLChildren: Error in ${island.component}:`, err);
+    onIslandError(err, island.id);
+    return (
+      <div style={{ color: 'red', border: '1px solid red', padding: '4px' }}>
+        Error rendering {island.component}: {err.message}
+      </div>
+    );
+  }
 }
 
 function DirectIslandsRenderer({ 
@@ -478,11 +907,12 @@ function ProductionIslandRenderer({
               const tabContent = tabChildren.length > 0 ? (
                 <>
                   {tabChildren.map(grandChild => (
-                    <ProductionIslandRenderer 
+                    <ProductionIslandRendererWithHTMLChildren 
                       key={grandChild.id}
                       island={grandChild}
                       allIslands={allIslands}
                       residentData={residentData}
+                      htmlChildren={null}
                       onIslandRender={onIslandRender}
                       onIslandError={onIslandError}
                     />
@@ -499,11 +929,12 @@ function ProductionIslandRenderer({
           }
           
           return (
-            <ProductionIslandRenderer 
+            <ProductionIslandRendererWithHTMLChildren 
               key={childIsland.id}
               island={childIsland}
               allIslands={allIslands}
               residentData={residentData}
+              htmlChildren={null}
               onIslandRender={onIslandRender}
               onIslandError={onIslandError}
             />
@@ -519,11 +950,12 @@ function ProductionIslandRenderer({
               const conditionalContent = conditionalChildren.length > 0 ? (
                 <>
                   {conditionalChildren.map(grandChild => (
-                    <ProductionIslandRenderer 
+                    <ProductionIslandRendererWithHTMLChildren 
                       key={grandChild.id}
                       island={grandChild}
                       allIslands={allIslands}
                       residentData={residentData}
+                      htmlChildren={null}
                       onIslandRender={onIslandRender}
                       onIslandError={onIslandError}
                     />
@@ -540,11 +972,12 @@ function ProductionIslandRenderer({
           }
           
           return (
-            <ProductionIslandRenderer 
+            <ProductionIslandRendererWithHTMLChildren 
               key={childIsland.id}
               island={childIsland}
               allIslands={allIslands}
               residentData={residentData}
+              htmlChildren={null}
               onIslandRender={onIslandRender}
               onIslandError={onIslandError}
             />
@@ -566,8 +999,10 @@ function ProductionIslandRenderer({
           </>
         );
       }
+    } else {
     }
 
+    
     onIslandRender(island.id);
     
     return (

@@ -622,11 +622,11 @@ export const getServerSideProps: GetServerSideProps<BadgeManagerPageProps> = asy
       const ringHubClient = getRingHubClient();
       if (ringHubClient) {
         try {
-          console.log('[Badge Manager SSR] Fetching ring from RingHub:', slug);
+          // Fetching ring from RingHub
           const ring = await ringHubClient.getRing(slug);
           
           if (ring) {
-            console.log('[Badge Manager SSR] Found RingHub ring:', ring.slug);
+            // Found RingHub ring
             
             // Check ownership via local database tracking (source of truth)
             let canManage = false;
@@ -635,13 +635,13 @@ export const getServerSideProps: GetServerSideProps<BadgeManagerPageProps> = asy
               const ringHubOwnership = await db.ringHubOwnership.findUnique({
                 where: { ringSlug: slug }
               });
-              console.log('[Badge Manager SSR] Local ownership record:', ringHubOwnership);
+              // Local ownership record found
               
               if (ringHubOwnership && ringHubOwnership.ownerUserId === user.id) {
                 canManage = true;
-                console.log('[Badge Manager SSR] User is owner via local ownership tracking');
+                // User is owner via local ownership tracking
               } else {
-                console.log('[Badge Manager SSR] User is not owner of this ring');
+                // User is not owner of this ring
               }
               
             } catch (ownershipError) {

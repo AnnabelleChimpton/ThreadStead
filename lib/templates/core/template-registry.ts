@@ -164,7 +164,19 @@ export class ComponentRegistry {
   }
 
   get(name: string): ComponentRegistration | undefined {
-    return this.components.get(name);
+    // First try exact match
+    const registration = this.components.get(name);
+    if (registration) return registration;
+    
+    // Try case-insensitive match for template compatibility
+    const lowerName = name.toLowerCase();
+    for (const [key, value] of this.components.entries()) {
+      if (key.toLowerCase() === lowerName) {
+        return value;
+      }
+    }
+    
+    return undefined;
   }
 
   getAllowedTags(): string[] {

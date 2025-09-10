@@ -6,18 +6,49 @@ import { componentRegistry } from '../core/template-registry';
 
 // Define our custom sanitization schema
 function createCustomSchema() {
-  const schema = { ...defaultSchema };
+  // Start with a more permissive base instead of defaultSchema
+  const schema = {
+    tagNames: [...(defaultSchema.tagNames || [])],
+    attributes: { ...(defaultSchema.attributes || {}) },
+    protocols: { ...(defaultSchema.protocols || {}) }
+  };
+  
+  // Allow placeholder URLs like "#"
+  schema.protocols.src = ['http', 'https', 'mailto', 'tel', 'data', '#'];
+  schema.protocols.href = ['http', 'https', 'mailto', 'tel', '#'];
   
   // Allow custom component tags from the registry
   if (componentRegistry) {
-    if (!schema.tagNames) schema.tagNames = [];
-    
-    // Add all registered component names as allowed tags
     const allowedTags = componentRegistry.getAllowedTags();
     for (const tagName of allowedTags) {
+      // Add both original and lowercase versions
+      const lowerTagName = tagName.toLowerCase();
+      
       if (!schema.tagNames.includes(tagName)) {
         schema.tagNames.push(tagName);
       }
+      if (!schema.tagNames.includes(lowerTagName)) {
+        schema.tagNames.push(lowerTagName);
+      }
+      
+      // Allow ALL attributes for custom components - use a very permissive list
+      const allAttributes = [
+        '*', // Wildcard
+        'src', 'alt', 'caption', 'link', 'level', 'name', 'category', 'color', 'type', 'value',
+        'title', 'text', 'speed', 'amplitude', 'label', 'max', 'description', 'icon', 'priority',
+        'when', 'data', 'equals', 'exists', 'condition', 'variant', 'size', 'rotation', 'shadow',
+        'buttonText', 'revealText', 'buttonStyle', 'ratio', 'vertical', 'gap', 'responsive',
+        'expanded', 'theme', 'layout', 'showHeader', 'collapsible', 'maxMethods', 'showTitle',
+        'as', 'showLabel', 'intensity', 'glitchColor1', 'glitchColor2', 'showValues', 'display',
+        'showCategories', 'sortBy', 'maxDisplay', 'columns', 'copyable', 'autoplay', 'autoPlay',
+        'interval', 'showThumbnails', 'showthumbnails', 'showDots', 'showArrows', 'height',
+        'transition', 'loop', 'controls', 'direction', 'align', 'justify', 'wrap', 'gradient',
+        'padding', 'rounded', 'colors', 'opacity', 'limit', 'maxWidth', 'animation', 'position',
+        'yearsExperience', 'className', 'class'
+      ];
+      
+      schema.attributes[tagName] = allAttributes;
+      schema.attributes[lowerTagName] = allAttributes;
     }
   }
   
@@ -26,8 +57,59 @@ function createCustomSchema() {
 
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
 export function parseTemplate(htmlString: string): Root {
+  // Handle full HTML documents vs fragments
+  let processedHtml = htmlString.trim();
+  
+  // Check if this is a full HTML document
+  const isFullDocument = processedHtml.includes('<!DOCTYPE') || 
+                         (processedHtml.includes('<html') && processedHtml.includes('<body>'));
+  
+  if (isFullDocument) {
+    // Extract body content from full HTML document
+    const bodyMatch = processedHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    if (bodyMatch && bodyMatch[1]) {
+      const originalLength = processedHtml.length;
+      processedHtml = bodyMatch[1].trim();
+      console.log('🔍 Body extraction:', {
+        method: 'regex',
+        originalLength,
+        extractedLength: processedHtml.length,
+        preview: processedHtml.substring(0, 200) + '...',
+        endsAt: processedHtml.substring(processedHtml.length - 50)
+      });
+    } else {
+      // Fallback: try to extract content between body tags even if malformed
+      const bodyStart = processedHtml.indexOf('<body');
+      const bodyEnd = processedHtml.lastIndexOf('</body>');
+      if (bodyStart !== -1 && bodyEnd !== -1) {
+        const bodyOpenEnd = processedHtml.indexOf('>', bodyStart);
+        if (bodyOpenEnd !== -1) {
+          const originalLength = processedHtml.length;
+          processedHtml = processedHtml.substring(bodyOpenEnd + 1, bodyEnd).trim();
+          console.log('🔍 Body extraction:', {
+            method: 'fallback',
+            originalLength,
+            extractedLength: processedHtml.length,
+            bodyStart,
+            bodyEnd,
+            preview: processedHtml.substring(0, 200) + '...'
+          });
+        }
+      }
+    }
+  }
+  
   // Always convert self-closing custom tags to opening/closing pairs for better parsing
-  let processedHtml = htmlString.replace(/<([^>\s/]+)([^>]*?)\s*\/>/g, '<$1$2></$1>');
+  const originalLength = processedHtml.length;
+  const beforeConversion = processedHtml.substring(0, 500);
+  processedHtml = processedHtml.replace(/<([^>\s/]+)([^>]*?)\s*\/>/g, '<$1$2></$1>');
+  console.log('🔄 Self-closing tag conversion:', {
+    originalLength,
+    processedLength: processedHtml.length,
+    beforePreview: beforeConversion,
+    afterPreview: processedHtml.substring(0, 500),
+    exampleConversions: processedHtml.match(/<(carouselimage|skill|contactmethod)[^>]*>/gi)?.slice(0, 3)
+  });
   
   // Detect if we have multiple root-level components after conversion and wrap them
   const trimmedHtml = processedHtml.trim();
@@ -40,7 +122,7 @@ export function parseTemplate(htmlString: string): Root {
     processedHtml = `<div>${processedHtml}</div>`;
   }
 
-  // Test with basic sanitization 
+  // Parse as fragment (now we have clean body content)
   const processor = unified()
     .use(rehypeParse, { fragment: true })
     .use(rehypeSanitize, createCustomSchema());
@@ -170,17 +252,17 @@ export function validateTemplate(ast: TemplateNode): ValidationResult {
   const componentCounts = countComponents(ast);
   const totalComponents = Object.values(componentCounts).reduce((sum, count) => sum + count, 0);
 
-  // Check limits
-  if (nodeCount > 200) {
-    errors.push(`Too many nodes: ${nodeCount} (max: 200)`);
+  // Check limits (increased for showcase templates)
+  if (nodeCount > 500) {
+    errors.push(`Too many nodes: ${nodeCount} (max: 500)`);
   }
 
-  if (maxDepth > 20) {
-    errors.push(`Template too deeply nested: ${maxDepth} levels (max: 20)`);
+  if (maxDepth > 30) {
+    errors.push(`Template too deeply nested: ${maxDepth} levels (max: 30)`);
   }
 
-  if (totalComponents > 50) {
-    errors.push(`Too many components: ${totalComponents} (max: 50)`);
+  if (totalComponents > 100) {
+    errors.push(`Too many components: ${totalComponents} (max: 100)`);
   }
 
   return {

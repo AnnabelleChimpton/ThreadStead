@@ -837,7 +837,7 @@ export default function AdminPage() {
   }
 
   async function generateSeedPhraseForUser(userId: string) {
-    console.log("Generating seed phrase for user:", userId);
+    // Generating seed phrase for user
     setGeneratingSeed(userId);
     try {
       const res = await fetch("/api/admin/generate-user-seed", {
@@ -846,16 +846,16 @@ export default function AdminPage() {
         body: JSON.stringify({ userId }),
       });
 
-      console.log("API response status:", res.status);
+      // API response received
       
       if (res.ok) {
         const data = await res.json();
-        console.log("API response data:", data);
+        // API response data processed
         setGeneratedSeedPhrase(data.seedPhrase);
         setGeneratedSeedUser(data.user);
       } else {
         const error = await res.json();
-        console.log("API error response:", error);
+        // API error response received
         alert(error.error || "Failed to generate seed phrase");
       }
     } catch (error) {

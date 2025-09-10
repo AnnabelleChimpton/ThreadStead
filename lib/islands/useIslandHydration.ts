@@ -134,7 +134,7 @@ export function useProfileIslandHydration() {
   } = useIslandHydration({
     autoCleanup: true,
     onHydrationComplete: (result) => {
-      console.log(`Hydrated ${result.hydratedCount} islands successfully`);
+      // Hydration completed successfully
       setHydrationStatus('hydrated');
     },
     onHydrationError: (errors) => {

@@ -39,22 +39,21 @@ interface IslandRegistry {
 
 // Cleanup function to unmount all React roots in a specific container
 export function cleanupIslandsInContainer(containerId: string): void {
-  console.log(`🧹 CLEANUP CALLED for container: ${containerId}`);
-  console.trace('Cleanup called from:'); // Show the call stack
+  // Cleanup called for container
   
   const container = document.getElementById(containerId);
   if (!container) {
-    console.log(`Container ${containerId} not found during cleanup`);
+    // Container not found during cleanup
     return;
   }
 
   // Find all hydrated islands and unmount their React roots
   const hydratedElements = container.querySelectorAll('[data-hydrated="true"]');
-  console.log(`Found ${hydratedElements.length} hydrated elements to cleanup`);
+  // Found hydrated elements to cleanup
   
   hydratedElements.forEach(element => {
     const islandId = element.getAttribute('data-island');
-    console.log(`🧹 Cleaning up island: ${islandId}`);
+    // Cleaning up island
     
     if (islandId) {
       const root = islandRoots.get(islandId);
@@ -94,9 +93,7 @@ export async function hydrateProfileIslands(context: HydrationContext): Promise<
   // Find all island placeholders
   const placeholders = container.querySelectorAll('[data-island]');
   
-  console.log(`Found ${placeholders.length} island placeholders to hydrate`);
-  console.log('Islands to hydrate:', context.islands);
-  console.log('Container HTML:', container.innerHTML.substring(0, 500));
+  // Found island placeholders to hydrate
   
   // Hydrate each island
   await Promise.allSettled(

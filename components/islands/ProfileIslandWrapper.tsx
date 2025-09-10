@@ -1,5 +1,5 @@
 // Profile-aware island wrapper for template components
-import React, { Suspense, useMemo, useState, useEffect } from 'react';
+import React, { Suspense, useMemo, useState, useEffect, useCallback } from 'react';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { componentRegistry } from '@/lib/templates/core/template-registry';
@@ -82,7 +82,6 @@ export default function ProfileIslandWrapper({
   }
 
   if (!Component) {
-    console.error(`No component found for ${componentType} in island ${islandId}`);
     return <IslandSkeleton profileMode={profileMode} componentType={componentType} />;
   }
   
@@ -93,17 +92,7 @@ export default function ProfileIslandWrapper({
       data-component={componentType}
       data-profile-mode={profileMode}
       className="profile-island"
-      style={{ 
-        border: '2px solid red', 
-        padding: '8px', 
-        margin: '4px',
-        minHeight: '50px',
-        backgroundColor: '#f0f0f0'
-      }}
     >
-      <div style={{ fontSize: '12px', color: 'blue', marginBottom: '4px' }}>
-        🏝️ Island: {componentType} ({islandId})
-      </div>
       <Suspense fallback={<IslandSkeleton profileMode={profileMode} componentType={componentType} />}>
         <ResidentDataProvider data={contextValue}>
           <IslandErrorBoundary 
@@ -250,19 +239,21 @@ export interface UseIslandManagerResult {
   failedIslands: Map<string, Error>;
   islandsReady: boolean;
   totalIslands: number;
+  handleIslandRender: (islandId: string) => void;
+  handleIslandError: (error: Error, islandId: string) => void;
 }
 
 export function useIslandManager(expectedIslands: string[] = []): UseIslandManagerResult {
   const [loadedIslands, setLoadedIslands] = useState<Set<string>>(new Set());
   const [failedIslands, setFailedIslands] = useState<Map<string, Error>>(new Map());
 
-  const handleIslandRender = (islandId: string) => {
+  const handleIslandRender = useCallback((islandId: string) => {
     setLoadedIslands(prev => new Set([...prev, islandId]));
-  };
+  }, []);
 
-  const handleIslandError = (error: Error, islandId: string) => {
+  const handleIslandError = useCallback((error: Error, islandId: string) => {
     setFailedIslands(prev => new Map([...prev, [islandId, error]]));
-  };
+  }, []);
 
   const totalIslands = expectedIslands.length;
   const islandsReady = (loadedIslands.size + failedIslands.size) >= totalIslands;
@@ -271,7 +262,9 @@ export function useIslandManager(expectedIslands: string[] = []): UseIslandManag
     loadedIslands,
     failedIslands,
     islandsReady,
-    totalIslands
+    totalIslands,
+    handleIslandRender,
+    handleIslandError
   };
 }
 

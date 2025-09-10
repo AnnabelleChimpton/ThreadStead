@@ -87,7 +87,7 @@ export default function ThreadRingInvites({
       setInvites(prev => prev.filter(invite => invite.id !== inviteId));
       
       // Show success message (you could implement a toast system here)
-      console.log(result.message);
+      // Success handled by UI update
       
     } catch (error: any) {
       console.error("Error responding to invite:", error);

@@ -67,6 +67,26 @@ export default function ProgressTracker({
           description: props.description
         };
       }
+      
+      // Check if it's wrapped in ResidentDataProvider (from our DOM parsing)
+      if ((child.type as any)?.name === 'ResidentDataProvider' && props.children) {
+        const wrappedChild = props.children;
+        if (React.isValidElement(wrappedChild)) {
+          const wrappedProps = wrappedChild.props as any;
+          
+          // Check if the wrapped child is a ProgressItem component
+          if (wrappedChild.type === ProgressItem) {
+            return {
+              label: wrappedProps.label,
+              value: wrappedProps.value,
+              max: wrappedProps.max,
+              color: wrappedProps.color,
+              description: wrappedProps.description
+            };
+          }
+        }
+      }
+      
       // Check for data attributes (from template rendering)
       if (props['data-progress-label']) {
         return {

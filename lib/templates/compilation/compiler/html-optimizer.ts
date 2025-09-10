@@ -5,18 +5,34 @@ import type { Island } from './types';
 // Generate optimized static HTML with island placeholders
 export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string {
   const islandMap = new Map(islands.map(i => [i.id, i]));
+  let nodeCount = 0;
+  let islandReplacements = 0;
   
   function renderNode(node: TemplateNode): string {
+    nodeCount++;
+    
+    if (nodeCount <= 5) {
+      console.log(`🎨 Rendering node ${nodeCount}:`, { type: node.type, tagName: node.tagName });
+    }
     if (node.type === 'text') {
       return escapeHtml(node.value || '');
     }
     
     if (node.type === 'element' && node.tagName) {
-      // Check if this node should be replaced with island placeholder
+      // Check if this node should be rendered as an island placeholder
       const islandId = node.properties?.['data-island'] as string;
       if (islandId && islandMap.has(islandId)) {
         const island = islandMap.get(islandId)!;
-        return island.placeholder;
+        islandReplacements++;
+        
+        if (islandReplacements <= 3) {
+          console.log(`🏝️ Rendering island ${islandReplacements}:`, { islandId, component: island.component, hasChildren: !!node.children?.length });
+        }
+        
+        // Render as normal div with data-island attributes, but include children
+        const attrs = renderAttributes(node.properties || {});
+        const children = node.children?.map(renderNode).join('') || '';
+        return `<div${attrs ? ` ${attrs}` : ''}>${children}</div>`;
       }
       
       // Regular HTML rendering
@@ -39,7 +55,16 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
     return '';
   }
   
-  return renderNode(ast);
+  const result = renderNode(ast);
+  
+  console.log(`🎯 Static HTML generation complete:`, {
+    totalNodesRendered: nodeCount,
+    totalIslandReplacements: islandReplacements,
+    expectedIslands: islands.length,
+    resultLength: result.length
+  });
+  
+  return result;
 }
 
 // Render HTML attributes safely

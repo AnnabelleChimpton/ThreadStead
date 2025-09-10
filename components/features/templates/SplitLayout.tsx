@@ -20,6 +20,7 @@ export default function SplitLayout({
   const childrenArray = React.Children.toArray(children);
   const firstChild = childrenArray[0];
   const secondChild = childrenArray[1];
+  
 
   // Mobile-first: start with stacked layout, add complexity only when needed
   const baseClasses = "w-full flex flex-col";
@@ -77,7 +78,19 @@ export default function SplitLayout({
         {firstChild}
       </div>
       <div className={secondWidth}>
-        {secondChild}
+        {/* If we have extra children, group them into the second column */}
+        {childrenArray.length > 2 ? (
+          <>
+            {secondChild}
+            {childrenArray.slice(2).map((child, index) => (
+              <React.Fragment key={`extra-${index}`}>
+                {child}
+              </React.Fragment>
+            ))}
+          </>
+        ) : (
+          secondChild
+        )}
       </div>
     </div>
   );
