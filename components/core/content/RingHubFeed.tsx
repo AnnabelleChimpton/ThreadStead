@@ -325,7 +325,7 @@ export default function RingHubFeed({
         </div>
         <div className="text-sm text-gray-500">
           {type === "my-rings" 
-            ? "Join some ThreadRings to see posts in your feed" 
+            ? "Join some Rings to see posts in your feed" 
             : "Check back later for trending content"
           }
         </div>

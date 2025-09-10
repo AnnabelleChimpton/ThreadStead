@@ -174,7 +174,7 @@ describe('Welcome Ring Integration Flow', () => {
       
       // Should show step 1 (Join the Welcome Ring)
       expect(screen.getByText('Join the Welcome Ring')).toBeInTheDocument();
-      expect(screen.getByText('Click "Join ThreadRing" to become a member and get started!')).toBeInTheDocument();
+      expect(screen.getByText('Click "Join Ring" to become a member and get started!')).toBeInTheDocument();
       
       // Should show progress dots (5 total)
       const progressDots = document.querySelectorAll('.w-3.h-3.rounded-full');

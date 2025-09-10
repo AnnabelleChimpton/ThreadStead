@@ -738,7 +738,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     <Layout siteConfig={siteConfig}>
       {/* Welcome Ring Guide - shows only on welcome ring */}
       {ring.slug === 'welcome' && (
-        <WelcomeRingGuide ringSlug={ring.slug} viewer={currentUser} />
+        <WelcomeRingGuide ringSlug={ring.slug} viewer={currentUser} ring={ring} />
       )}
       
       <div className="tr-page-container grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -918,12 +918,12 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         </button>
                       )}
 
-                      {/* Start New Ring Button for Members */}
+                      {/* Branch Ring Button for Members */}
                       <button
                         onClick={() => router.push(`/tr/${ring.slug}/fork`)}
                         className="w-full text-sm border border-black px-3 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
                       >
-                        ✨ Start a New Ring
+                        Branch This Ring
                       </button>
 
                       {/* Leave Button */}
@@ -933,9 +933,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         className="w-full text-sm border border-black px-3 py-2 bg-white hover:bg-red-100 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         title={currentUserRole === "curator" 
                           ? "As Ring Host, you must transfer ownership first (unless you're the only member)" 
-                          : "Leave this ThreadRing"}
+                          : "Leave this Ring"}
                       >
-                        {joining ? "Leaving..." : "Leave ThreadRing"}
+                        {joining ? "Leaving..." : "Leave Ring"}
                       </button>
                     </>
                   ) : (
@@ -947,7 +947,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                           disabled={joining}
                           className="w-full border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium join-button"
                         >
-                          {joining ? "Joining..." : "Join ThreadRing"}
+                          {joining ? "Joining..." : "Join Ring"}
                         </button>
                       ) : ring.joinType === "invite" ? (
                         <div className="text-xs bg-gray-100 px-3 py-2 border border-gray-300 rounded text-center">
@@ -959,13 +959,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         </div>
                       ) : null}
 
-                      {/* Start New Ring button for non-members (if ring is public/unlisted) */}
+                      {/* Branch Ring button for non-members (if ring is public/unlisted) */}
                       {ring.visibility !== "private" && (
                         <button
                           onClick={() => router.push(`/tr/${ring.slug}/fork`)}
                           className="w-full text-sm border border-black px-3 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
                         >
-                          ✨ Start a New Ring
+                          Branch This Ring
                         </button>
                       )}
                     </>

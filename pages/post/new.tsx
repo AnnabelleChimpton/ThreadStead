@@ -981,7 +981,7 @@ code block
                 {threadRings.length === 0 && !ringsLoading && (
                   <div className="text-center py-4">
                     <div className="text-gray-500 text-sm mb-2">
-                      Join ThreadRings to share your posts with communities
+                      Join Rings to share your posts with communities
                     </div>
                     <Link 
                       href="/threadrings" 

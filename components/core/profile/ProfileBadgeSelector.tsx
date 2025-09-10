@@ -253,7 +253,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
             <div className="text-center py-12 bg-gray-50 border border-gray-200 rounded">
               <div className="text-6xl mb-4">🏆</div>
               <p className="text-lg font-medium text-gray-700 mb-2">No badges yet!</p>
-              <p className="text-gray-500">Join ThreadRings to collect badges and show them off here.</p>
+              <p className="text-gray-500">Join Rings to collect badges and show them off here.</p>
             </div>
           ) : (
             <div className="space-y-3">

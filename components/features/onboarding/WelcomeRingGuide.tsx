@@ -15,9 +15,14 @@ interface WelcomeRingGuideProps {
     primaryHandle?: string | null;
     threadRingMemberships?: Array<{ threadRingId: string }>;
   } | null;
+  ring?: {
+    curator?: {
+      id: string;
+    } | null;
+  } | null;
 }
 
-export default function WelcomeRingGuide({ ringSlug, viewer }: WelcomeRingGuideProps) {
+export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRingGuideProps) {
   const [progress, setProgress] = useState<WelcomeProgress | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -61,7 +66,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer }: WelcomeRingGuideP
     {
       id: 'joinedRing',
       title: 'Join the Welcome Ring',
-      description: 'Click "Join ThreadRing" to become a member and get started!',
+      description: 'Click "Join Ring" to become a member and get started!',
       target: '.join-button',
       completed: progress.joinedRing
     },
@@ -112,13 +117,22 @@ export default function WelcomeRingGuide({ ringSlug, viewer }: WelcomeRingGuideP
       membership => membership.threadRingId === 'welcome'
     );
     
-    // If they're a member but haven't completed the first step, auto-progress it
-    if (isWelcomeRingMember && !progress.joinedRing) {
+    // Also check if user is the Ring Host/Curator (important edge case!)
+    const isRingHost = ring?.curator && viewer.id === ring.curator.id;
+    
+    // If they're a member OR the host but haven't completed the first step, auto-progress it
+    if ((isWelcomeRingMember || isRingHost) && !progress.joinedRing) {
       const updatedProgress = updateWelcomeProgress({ joinedRing: true });
       setProgress(updatedProgress);
       celebrateAction('joinedRing');
+      
+      // Show appropriate toast message
+      if (isRingHost) {
+        // Special message for the Ring Host
+        showSuccess("Welcome back! As the Ring Host, you're automatically part of this community! 👑");
+      }
     }
-  }, [isClient, progress, viewer]);
+  }, [isClient, progress, viewer, ring]);
 
   // Check for completion
   useEffect(() => {

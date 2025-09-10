@@ -41,31 +41,54 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
   return (
     <Layout siteConfig={siteConfig}>
       <div className="space-y-6">
-        {/* Hero Section */}
-        <RetroCard title="Welcome to Threadstead!">
+        {/* Hero Section - Simplified and Action-Focused */}
+        <RetroCard title="Getting Started">
           <div className="text-center py-4">
-            <div className="text-4xl mb-4">🧵</div>
+            <div className="text-4xl mb-4">🚀</div>
             <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900">
-              Getting Started with Threadstead
+              Welcome to Threadstead!
             </h1>
-            <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed mb-6">
-              <strong>ThreadRings are themed communities you can join — like modern WebRings or clubhouses — where posts live in your profile but also appear in shared Ring feeds.</strong><br/>
-              Create your own customizable profile, join communities that match your interests, and connect with others in a unique, decentralized way.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-3">
-              <Link 
-                href="/onboarding" 
-                className="inline-block border border-black px-5 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all text-sm font-medium"
-              >
-                Create Your Profile
-              </Link>
-              <Link 
-                href="/threadrings" 
-                className="inline-block border border-black px-5 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all text-sm font-medium"
-              >
-                Explore Communities
-              </Link>
-            </div>
+            {!user ? (
+              <>
+                <p className="text-base text-gray-600 max-w-2xl mx-auto leading-relaxed mb-6">
+                  A unique social platform where you create customizable profiles, join themed communities called <strong>ThreadRings</strong>, and connect with others.
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center gap-3">
+                  <Link 
+                    href="/onboarding" 
+                    className="inline-block border border-black px-6 py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-bold"
+                  >
+                    Create Your Profile
+                  </Link>
+                  <Link 
+                    href="/threadrings" 
+                    className="inline-block border border-black px-5 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+                  >
+                    Browse Communities
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-base text-gray-600 max-w-2xl mx-auto leading-relaxed mb-6">
+                  Great to see you here! Use this guide to explore all the features and make the most of your Threadstead experience.
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center gap-3">
+                  <Link 
+                    href="/tr/welcome" 
+                    className="inline-block border border-black px-6 py-3 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-bold"
+                  >
+                    Start with Welcome Ring
+                  </Link>
+                  <Link 
+                    href="/settings/profile" 
+                    className="inline-block border border-black px-5 py-2 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+                  >
+                    Customize Profile
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
         </RetroCard>
 
@@ -84,50 +107,100 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
         <div className="space-y-6">
           {activeTab === "overview" && (
             <div className="space-y-6">
-              <RetroCard title="Quick Start Guide">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-yellow-200 border border-black w-8 h-8 flex items-center justify-center font-bold shadow-[2px_2px_0_#000] flex-shrink-0">1</div>
-                    <div>
-                      <h3 className="font-bold mb-1">Claim Your Username</h3>
-                      <p className="text-sm text-gray-600">Choose a unique handle that will be your identity on the platform.</p>
+              {!user ? (
+                // New user journey
+                <RetroCard title="Your First Steps">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-3 bg-green-50 border-l-4 border-green-400">
+                      <div className="text-2xl">👤</div>
+                      <div className="flex-1">
+                        <h3 className="font-bold mb-1">1. Create Your Profile</h3>
+                        <p className="text-sm text-gray-600">Choose a username and set up your personal space.</p>
+                      </div>
+                      <Link 
+                        href="/onboarding" 
+                        className="px-4 py-2 bg-green-200 hover:bg-green-300 border border-black shadow-[2px_2px_0_#000] font-medium text-sm"
+                      >
+                        Start
+                      </Link>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 border-l-4 border-blue-400">
+                      <div className="text-2xl">🧵</div>
+                      <div className="flex-1">
+                        <h3 className="font-bold mb-1">2. Join Communities</h3>
+                        <p className="text-sm text-gray-600">Find ThreadRings that match your interests.</p>
+                      </div>
+                      <Link 
+                        href="/threadrings" 
+                        className="px-4 py-2 bg-blue-200 hover:bg-blue-300 border border-black shadow-[2px_2px_0_#000] font-medium text-sm"
+                      >
+                        Browse
+                      </Link>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 p-3 bg-purple-50 border-l-4 border-purple-400">
+                      <div className="text-2xl">💬</div>
+                      <div className="flex-1">
+                        <h3 className="font-bold mb-1">3. Start Connecting</h3>
+                        <p className="text-sm text-gray-600">Share posts, leave comments, meet people.</p>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="bg-yellow-200 border border-black w-8 h-8 flex items-center justify-center font-bold shadow-[2px_2px_0_#000] flex-shrink-0">2</div>
-                    <div>
-                      <h3 className="font-bold mb-1">Customize Your Profile</h3>
-                      <p className="text-sm text-gray-600">Choose a theme, add a bio, photo, MIDI music, and even custom CSS to make your page unique.</p>
+                </RetroCard>
+              ) : (
+                // Existing user journey
+                <RetroCard title="Make the Most of Threadstead">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <h3 className="font-bold text-lg">Quick Actions</h3>
+                      <div className="space-y-2">
+                        <Link 
+                          href="/tr/welcome" 
+                          className="block p-3 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors"
+                        >
+                          <div className="font-medium">🎓 Try Welcome Ring</div>
+                          <div className="text-sm text-gray-600">Learn through guided activities</div>
+                        </Link>
+                        <Link 
+                          href="/post/new" 
+                          className="block p-3 bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                        >
+                          <div className="font-medium">✍️ Write a Post</div>
+                          <div className="text-sm text-gray-600">Share your thoughts</div>
+                        </Link>
+                        <Link 
+                          href="/threadrings" 
+                          className="block p-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                        >
+                          <div className="font-medium">🔍 Discover Rings</div>
+                          <div className="text-sm text-gray-600">Find new communities</div>
+                        </Link>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <h3 className="font-bold text-lg">Customize</h3>
+                      <div className="space-y-2">
+                        <Link 
+                          href="/settings/profile" 
+                          className="block p-3 bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 transition-colors"
+                        >
+                          <div className="font-medium">🎨 Edit Profile</div>
+                          <div className="text-sm text-gray-600">Update your info and theme</div>
+                        </Link>
+                        <Link 
+                          href="/design-tutorial" 
+                          className="block p-3 bg-pink-50 border border-pink-200 hover:bg-pink-100 transition-colors"
+                        >
+                          <div className="font-medium">💅 Custom CSS</div>
+                          <div className="text-sm text-gray-600">Style your profile</div>
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="bg-yellow-200 border border-black w-8 h-8 flex items-center justify-center font-bold shadow-[2px_2px_0_#000] flex-shrink-0">3</div>
-                    <div>
-                      <h3 className="font-bold mb-1">Join ThreadRings</h3>
-                      <p className="text-sm text-gray-600">Find communities that interest you and become part of the conversation.</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="bg-yellow-200 border border-black w-8 h-8 flex items-center justify-center font-bold shadow-[2px_2px_0_#000] flex-shrink-0">4</div>
-                    <div>
-                      <h3 className="font-bold mb-1">Start Creating</h3>
-                      <p className="text-sm text-gray-600">Share posts, leave comments, and connect with other users.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <Link 
-                    href="/onboarding" 
-                    className="w-full block text-center border border-black px-4 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
-                  >
-                    Let&apos;s Get Started!
-                  </Link>
-                </div>
-              </RetroCard>
+                </RetroCard>
+              )}
 
               <RetroCard title="What Makes Threadstead Special?">
                 <div className="grid md:grid-cols-2 gap-4">
@@ -140,18 +213,18 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
                   
                   <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0">🔐</div>
+                    <div className="text-2xl flex-shrink-0">🧵</div>
                     <div>
-                      <h3 className="font-bold mb-1">Decentralized Identity</h3>
-                      <p className="text-sm text-gray-600">Your identity belongs to you - no passwords, just cryptographic keys.</p>
+                      <h3 className="font-bold mb-1">Growing Communities</h3>
+                      <p className="text-sm text-gray-600">ThreadRings can branch and evolve, creating rich family trees.</p>
                     </div>
                   </div>
                   
                   <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0">🌳</div>
+                    <div className="text-2xl flex-shrink-0">🔐</div>
                     <div>
-                      <h3 className="font-bold mb-1">Ring Family Tree</h3>
-                      <p className="text-sm text-gray-600">ThreadRings can branch and evolve, creating rich family trees of communities.</p>
+                      <h3 className="font-bold mb-1">Own Your Identity</h3>
+                      <p className="text-sm text-gray-600">Your digital identity belongs to you, not a platform.</p>
                     </div>
                   </div>
                   
@@ -159,7 +232,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <div className="text-2xl flex-shrink-0">📖</div>
                     <div>
                       <h3 className="font-bold mb-1">Retro Charm</h3>
-                      <p className="text-sm text-gray-600">Experience the creativity and personal touch of the early internet.</p>
+                      <p className="text-sm text-gray-600">Experience the creativity of the early internet, modernized.</p>
                     </div>
                   </div>
                 </div>
@@ -252,7 +325,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                     <div>
                       <h4 className="font-bold mb-2">2. Join Open Communities</h4>
-                      <p className="text-gray-600">Click &quot;Join&quot; on any open ThreadRing to become a member.</p>
+                      <p className="text-gray-600">Click &quot;Join&quot; on any open Ring to become a member.</p>
                     </div>
 
                     <div>
@@ -267,7 +340,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                           href="/tr/spool/fork" 
                           className="block text-center border border-black px-3 py-1 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] text-sm"
                         >
-                          Start a New Ring
+                          Branch from The Spool
                         </Link>
                       </FeatureGate>
                     </div>

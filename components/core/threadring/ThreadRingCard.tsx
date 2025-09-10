@@ -56,7 +56,7 @@ export default function ThreadRingCard({
     try {
       await onJoin(threadRing.slug);
     } catch (error: any) {
-      setJoinError(error?.message || "Failed to join ThreadRing");
+      setJoinError(error?.message || "Failed to join Ring");
     } finally {
       setJoining(false);
     }
