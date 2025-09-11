@@ -34,6 +34,17 @@ export default function MidiPlayer({
   const reverbRef = useRef<ConvolverNode | null>(null);
   const compressorRef = useRef<DynamicsCompressorNode | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
+  
+  // Professional audio effects chain refs
+  const eqLowRef = useRef<BiquadFilterNode | null>(null);
+  const eqMidRef = useRef<BiquadFilterNode | null>(null);
+  const eqHighRef = useRef<BiquadFilterNode | null>(null);
+  const chorusDelayRef = useRef<DelayNode | null>(null);
+  const chorusLfoRef = useRef<OscillatorNode | null>(null);
+  const chorusGainRef = useRef<GainNode | null>(null);
+  const limiterRef = useRef<DynamicsCompressorNode | null>(null);
+  const stereoWidenerRef = useRef<{ left: GainNode; right: GainNode; delay: DelayNode } | null>(null);
+  const effectsInputRef = useRef<GainNode | null>(null);
   const activeNodesRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; endTime: number; id: string }>>([]); // Track active notes
   const autoplayTriggeredRef = useRef<boolean>(false);
   
@@ -46,6 +57,8 @@ export default function MidiPlayer({
   
   // Enhanced synthesis refs
   const pianoBuffersRef = useRef<Map<number, AudioBuffer>>(new Map()); // Pre-generated piano samples
+  const stringBuffersRef = useRef<Map<number, AudioBuffer>>(new Map()); // Pre-generated string samples
+  const brassBuffersRef = useRef<Map<number, AudioBuffer>>(new Map()); // Pre-generated brass samples
   const activeHarmoniesRef = useRef<Map<number, Set<number>>>(new Map()); // Track active notes per channel for chord detection
   const voiceImportanceRef = useRef<Map<string, number>>(new Map()); // Track voice importance scores
   
@@ -54,10 +67,14 @@ export default function MidiPlayer({
   const musicalPhrasesRef = useRef<Array<any>>([]); // Detected musical phrases
   const bassLineNotesRef = useRef<Set<number>>(new Set()); // Important bass notes
   const timeSignatureRef = useRef<{ numerator: number; denominator: number }>({ numerator: 4, denominator: 4 });
+  
+  // Web Worker refs
+  const midiWorkerRef = useRef<Worker | null>(null);
+  const workerPromisesRef = useRef<Map<string, { resolve: Function; reject: Function }>>(new Map());
 
   // Initialize optimized audio graph with per-instrument and per-channel routing
   const initializeOptimizedAudioGraph = () => {
-    if (!audioContextRef.current) return;
+    if (!audioContextRef.current || !effectsInputRef.current) return;
 
     // Create per-instrument gain nodes for better mixing
     const instrumentNumbers = [0, 3, 32, 40, 43, 57, 128]; // Common instruments
@@ -65,7 +82,7 @@ export default function MidiPlayer({
       if (!instrumentGainsRef.current.has(instrument)) {
         const gainNode = audioContextRef.current!.createGain();
         gainNode.gain.value = getInstrumentVolume(instrument);
-        gainNode.connect(masterGainRef.current!);
+        gainNode.connect(effectsInputRef.current!); // Route through professional effects chain
         instrumentGainsRef.current.set(instrument, gainNode);
       }
     });
@@ -75,7 +92,7 @@ export default function MidiPlayer({
       if (!channelGainsRef.current.has(channel)) {
         const gainNode = audioContextRef.current!.createGain();
         gainNode.gain.value = channel === 9 ? 0.7 : 1.0; // Drums slightly quieter
-        gainNode.connect(masterGainRef.current!);
+        gainNode.connect(effectsInputRef.current!); // Route through professional effects chain
         channelGainsRef.current.set(channel, gainNode);
       }
     }
@@ -144,6 +161,127 @@ export default function MidiPlayer({
     return buffer;
   };
 
+  // Generate realistic string samples with bowed characteristics
+  const generateStringSample = (frequency: number, duration: number = 4.0): AudioBuffer => {
+    const sampleRate = audioContextRef.current!.sampleRate;
+    const frameCount = Math.floor(sampleRate * duration);
+    const buffer = audioContextRef.current!.createBuffer(1, frameCount, sampleRate);
+    const channelData = buffer.getChannelData(0);
+    
+    // String synthesis with realistic bowing simulation
+    const fundamentalFreq = frequency;
+    const bowPressure = 0.9; // Consistent bow pressure
+    
+    // Complex harmonic structure for strings
+    const harmonics = [
+      { freq: fundamentalFreq, amp: 1.0, decay: 0.5 },
+      { freq: fundamentalFreq * 2, amp: 0.8, decay: 0.7 },
+      { freq: fundamentalFreq * 3, amp: 0.6, decay: 1.0 },
+      { freq: fundamentalFreq * 4, amp: 0.4, decay: 1.2 },
+      { freq: fundamentalFreq * 5, amp: 0.3, decay: 1.5 },
+      { freq: fundamentalFreq * 6, amp: 0.2, decay: 1.8 },
+      { freq: fundamentalFreq * 7, amp: 0.15, decay: 2.0 },
+    ];
+    
+    for (let i = 0; i < frameCount; i++) {
+      const time = i / sampleRate;
+      let sample = 0;
+      
+      // Slow attack characteristic of bowed strings
+      const attackTime = 0.06; // Consistent 60ms attack
+      const attackEnv = time < attackTime ? time / attackTime : 1.0;
+      
+      // Smooth bow vibrato simulation
+      const vibrato = 1 + Math.sin(time * 6.2) * 0.006 * bowPressure;
+      
+      for (const harmonic of harmonics) {
+        // Natural string decay
+        const envelope = Math.exp(-time * harmonic.decay) * attackEnv;
+        
+        // Subtle frequency modulation from bow pressure
+        const modulation = vibrato + Math.sin(time * 3.2) * 0.002;
+        
+        sample += harmonic.amp * envelope * Math.sin(2 * Math.PI * harmonic.freq * modulation * time);
+      }
+      
+      // Remove formant filtering to eliminate potential buzziness
+      
+      // Gentle saturation for warmth
+      sample = Math.tanh(sample * 0.8) * 0.7;
+      
+      channelData[i] = sample;
+    }
+    
+    return buffer;
+  };
+
+  // Generate realistic brass samples with breath characteristics
+  const generateBrassSample = (frequency: number, duration: number = 3.5): AudioBuffer => {
+    const sampleRate = audioContextRef.current!.sampleRate;
+    const frameCount = Math.floor(sampleRate * duration);
+    const buffer = audioContextRef.current!.createBuffer(1, frameCount, sampleRate);
+    const channelData = buffer.getChannelData(0);
+    
+    // Brass synthesis with breath simulation
+    const fundamentalFreq = frequency;
+    const breathPressure = 0.8; // Consistent breath pressure
+    
+    // Rich harmonic content typical of brass
+    const harmonics = [
+      { freq: fundamentalFreq, amp: 1.0, decay: 0.3 },
+      { freq: fundamentalFreq * 2, amp: 0.9, decay: 0.4 },
+      { freq: fundamentalFreq * 3, amp: 0.7, decay: 0.6 },
+      { freq: fundamentalFreq * 4, amp: 0.5, decay: 0.8 },
+      { freq: fundamentalFreq * 5, amp: 0.4, decay: 1.0 },
+      { freq: fundamentalFreq * 6, amp: 0.3, decay: 1.2 },
+      { freq: fundamentalFreq * 7, amp: 0.2, decay: 1.4 },
+      { freq: fundamentalFreq * 8, amp: 0.15, decay: 1.6 },
+    ];
+    
+    for (let i = 0; i < frameCount; i++) {
+      const time = i / sampleRate;
+      let sample = 0;
+      
+      // Sharp attack characteristic of brass
+      const attackTime = 0.02; // 20ms attack
+      const attackEnv = time < attackTime ? Math.pow(time / attackTime, 0.5) : 1.0;
+      
+      // Smooth vibrato without random noise  
+      const vibrato = 1 + Math.sin(time * 5.2) * 0.008 * breathPressure;
+      const breathNoise = Math.sin(time * 13.7) * 0.003 * breathPressure; // Controlled breath effect
+      
+      for (const harmonic of harmonics) {
+        // Brass sustain and decay
+        const sustainLevel = 0.8;
+        const sustainTime = duration * 0.7;
+        let envelope;
+        
+        if (time < sustainTime) {
+          envelope = attackEnv * sustainLevel;
+        } else {
+          const decayProgress = (time - sustainTime) / (duration - sustainTime);
+          envelope = attackEnv * sustainLevel * (1 - decayProgress);
+        }
+        
+        // Frequency modulation with vibrato and breath effects
+        const modulation = vibrato + breathNoise;
+        
+        sample += harmonic.amp * envelope * Math.sin(2 * Math.PI * harmonic.freq * modulation * time);
+      }
+      
+      // Add subtle brass "brassy" distortion for realism
+      if (sample > 0.3) {
+        sample = 0.3 + (sample - 0.3) * 0.7; // Soft limiting
+      }
+      
+      // Remove resonance boost to eliminate buzziness
+      
+      channelData[i] = sample * 0.8;
+    }
+    
+    return buffer;
+  };
+
   // Pre-generate piano samples for common notes (C3 to C6 range)
   const initializePianoSamples = async () => {
     if (!audioContextRef.current || pianoBuffersRef.current.size > 0) return;
@@ -158,6 +296,38 @@ export default function MidiPlayer({
     }
     
     console.log(`🎹 Generated ${pianoBuffersRef.current.size} piano samples`);
+  };
+
+  // Pre-generate string samples for violin/viola/cello range
+  const initializeStringSamples = async () => {
+    if (!audioContextRef.current || stringBuffersRef.current.size > 0) return;
+    
+    console.log('🎻 Generating realistic string samples...');
+    
+    // String instruments typically cover G3 to E7 range
+    for (let midiNote = 55; midiNote <= 88; midiNote += 4) { // Every 4th note for strings
+      const frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
+      const buffer = generateStringSample(frequency);
+      stringBuffersRef.current.set(midiNote, buffer);
+    }
+    
+    console.log(`🎻 Generated ${stringBuffersRef.current.size} string samples`);
+  };
+
+  // Pre-generate brass samples for trumpet/trombone range  
+  const initializeBrassSamples = async () => {
+    if (!audioContextRef.current || brassBuffersRef.current.size > 0) return;
+    
+    console.log('🎺 Generating realistic brass samples...');
+    
+    // Brass instruments typically cover Bb2 to Bb6 range
+    for (let midiNote = 46; midiNote <= 82; midiNote += 4) { // Every 4th note for brass
+      const frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
+      const buffer = generateBrassSample(frequency);
+      brassBuffersRef.current.set(midiNote, buffer);
+    }
+    
+    console.log(`🎺 Generated ${brassBuffersRef.current.size} brass samples`);
   };
 
   // Chord detection and harmony analysis
@@ -535,6 +705,138 @@ export default function MidiPlayer({
     return voiceData;
   };
 
+  // Enhanced string player using generated samples
+  const playStringNote = (frequency: number, startTime: number, duration: number, velocity: number, channel: number): any => {
+    if (!audioContextRef.current) return null;
+    
+    const midiNote = Math.round(12 * Math.log2(frequency / 440) + 69);
+    
+    // Find closest string sample (every 4th note)
+    let closestSample = 55; // Default to G3
+    let minDistance = 999;
+    
+    for (const sampleNote of stringBuffersRef.current.keys()) {
+      const distance = Math.abs(midiNote - sampleNote);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestSample = sampleNote;
+      }
+    }
+    
+    const sampleBuffer = stringBuffersRef.current.get(closestSample);
+    if (!sampleBuffer) return null;
+    
+    const source = audioContextRef.current.createBufferSource();
+    const gainNode = audioContextRef.current.createGain();
+    
+    source.buffer = sampleBuffer;
+    
+    // Pitch shifting for notes not exactly matching samples
+    const pitchRatio = frequency / (440 * Math.pow(2, (closestSample - 69) / 12));
+    source.playbackRate.value = pitchRatio;
+    
+    // Velocity-sensitive volume with string characteristics
+    const baseGain = (velocity / 127) * 0.35; // Slightly louder than piano
+    
+    // String-specific envelope - slow attack, sustained
+    const attackTime = 0.08; // Slower attack for bowing
+    const decayTime = Math.min(duration, 3.5);
+    
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(baseGain * 0.7, startTime + attackTime);
+    gainNode.gain.linearRampToValueAtTime(baseGain, startTime + attackTime * 2);
+    gainNode.gain.linearRampToValueAtTime(baseGain * 0.6, startTime + decayTime * 0.8);
+    gainNode.gain.exponentialRampToValueAtTime(Math.max(baseGain * 0.1, 0.001), startTime + decayTime);
+    
+    source.connect(gainNode);
+    
+    // Route to appropriate channel gain
+    const routingGain = channelGainsRef.current.get(channel) || masterGainRef.current;
+    if (routingGain) {
+      gainNode.connect(routingGain);
+    }
+    
+    source.start(startTime);
+    source.stop(startTime + decayTime);
+    
+    const noteId = `string-${startTime}-${midiNote}-${velocity}-${channel}`;
+    const voiceData = { osc: source as any, gain: gainNode, endTime: startTime + duration, id: noteId };
+    
+    // Track harmony
+    if (!activeHarmoniesRef.current.has(channel)) {
+      activeHarmoniesRef.current.set(channel, new Set());
+    }
+    activeHarmoniesRef.current.get(channel)!.add(midiNote % 12);
+    
+    return voiceData;
+  };
+
+  // Enhanced brass player using generated samples  
+  const playBrassNote = (frequency: number, startTime: number, duration: number, velocity: number, channel: number): any => {
+    if (!audioContextRef.current) return null;
+    
+    const midiNote = Math.round(12 * Math.log2(frequency / 440) + 69);
+    
+    // Find closest brass sample (every 4th note)
+    let closestSample = 58; // Default to Bb3
+    let minDistance = 999;
+    
+    for (const sampleNote of brassBuffersRef.current.keys()) {
+      const distance = Math.abs(midiNote - sampleNote);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestSample = sampleNote;
+      }
+    }
+    
+    const sampleBuffer = brassBuffersRef.current.get(closestSample);
+    if (!sampleBuffer) return null;
+    
+    const source = audioContextRef.current.createBufferSource();
+    const gainNode = audioContextRef.current.createGain();
+    
+    source.buffer = sampleBuffer;
+    
+    // Pitch shifting for notes not exactly matching samples
+    const pitchRatio = frequency / (440 * Math.pow(2, (closestSample - 69) / 12));
+    source.playbackRate.value = pitchRatio;
+    
+    // Velocity-sensitive volume with brass characteristics
+    const baseGain = (velocity / 127) * 0.3; // Strong but controlled
+    
+    // Brass-specific envelope - sharp attack, sustained, controlled decay
+    const attackTime = 0.025; // Quick brass attack
+    const sustainTime = Math.min(duration * 0.7, 2.0);
+    const decayTime = Math.min(duration, 3.0);
+    
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(baseGain, startTime + attackTime);
+    gainNode.gain.linearRampToValueAtTime(baseGain * 0.85, startTime + sustainTime);
+    gainNode.gain.exponentialRampToValueAtTime(Math.max(baseGain * 0.1, 0.001), startTime + decayTime);
+    
+    source.connect(gainNode);
+    
+    // Route to appropriate channel gain
+    const routingGain = channelGainsRef.current.get(channel) || masterGainRef.current;
+    if (routingGain) {
+      gainNode.connect(routingGain);
+    }
+    
+    source.start(startTime);
+    source.stop(startTime + decayTime);
+    
+    const noteId = `brass-${startTime}-${midiNote}-${velocity}-${channel}`;
+    const voiceData = { osc: source as any, gain: gainNode, endTime: startTime + duration, id: noteId };
+    
+    // Track harmony
+    if (!activeHarmoniesRef.current.has(channel)) {
+      activeHarmoniesRef.current.set(channel, new Set());
+    }
+    activeHarmoniesRef.current.get(channel)!.add(midiNote % 12);
+    
+    return voiceData;
+  };
+
   // Highly optimized note player with advanced features
   const playNoteAdvanced = (frequency: number, startTime: number, duration: number, velocity: number, instrument: number, channel: number = 0, priority: number = 1.0) => {
     if (!audioContextRef.current) return null;
@@ -560,12 +862,32 @@ export default function MidiPlayer({
       return playOptimizedDrum(startTime, velocity, frequency);
     }
 
-    // Use piano samples for piano instruments (0-7) if available
+    // Use appropriate sample-based synthesis for different instrument families
+    
+    // Piano instruments (0-7)
     if (instrument >= 0 && instrument <= 7 && pianoBuffersRef.current.size > 0) {
       const pianoVoice = playPianoNote(frequency, startTime, duration, velocity, channel);
       if (pianoVoice) {
         activeNodesRef.current.push(pianoVoice);
         return pianoVoice;
+      }
+    }
+    
+    // String instruments (40-47: violin, viola, cello, contrabass, etc.)
+    if (instrument >= 40 && instrument <= 47 && stringBuffersRef.current.size > 0) {
+      const stringVoice = playStringNote(frequency, startTime, duration, velocity, channel);
+      if (stringVoice) {
+        activeNodesRef.current.push(stringVoice);
+        return stringVoice;
+      }
+    }
+    
+    // Brass instruments (56-63: trumpet, trombone, tuba, french horn, etc.)
+    if (instrument >= 56 && instrument <= 63 && brassBuffersRef.current.size > 0) {
+      const brassVoice = playBrassNote(frequency, startTime, duration, velocity, channel);
+      if (brassVoice) {
+        activeNodesRef.current.push(brassVoice);
+        return brassVoice;
       }
     }
 
@@ -619,7 +941,8 @@ export default function MidiPlayer({
       if (routingGain) {
         gainNode.connect(routingGain);
       } else {
-        gainNode.connect(audioContextRef.current.destination);
+        // Fallback to effects input if no specific routing
+        gainNode.connect(effectsInputRef.current || audioContextRef.current.destination);
       }
       
       osc.start(startTime);
@@ -742,7 +1065,7 @@ export default function MidiPlayer({
     
     noise.connect(filter);
     filter.connect(gainNode);
-    gainNode.connect(audioContextRef.current.destination);
+    gainNode.connect(effectsInputRef.current || audioContextRef.current.destination);
     
     noise.start(startTime);
     noise.stop(startTime + 0.1);
@@ -1154,6 +1477,138 @@ export default function MidiPlayer({
     return impulse;
   };
 
+  // Initialize professional audio effects chain
+  const initializeProfessionalEffects = (audioContext: AudioContext): GainNode => {
+    // Create a 3-band EQ
+    eqLowRef.current = audioContext.createBiquadFilter();
+    eqLowRef.current.type = 'lowshelf';
+    eqLowRef.current.frequency.value = 320;
+    eqLowRef.current.gain.value = 2; // Slight bass boost
+    
+    eqMidRef.current = audioContext.createBiquadFilter();
+    eqMidRef.current.type = 'peaking';
+    eqMidRef.current.frequency.value = 1000;
+    eqMidRef.current.Q.value = 1;
+    eqMidRef.current.gain.value = 1; // Slight mid boost for clarity
+    
+    eqHighRef.current = audioContext.createBiquadFilter();
+    eqHighRef.current.type = 'highshelf';
+    eqHighRef.current.frequency.value = 3200;
+    eqHighRef.current.gain.value = 3; // High frequency presence
+    
+    // Create chorus effect for richness
+    chorusDelayRef.current = audioContext.createDelay(0.05);
+    chorusDelayRef.current.delayTime.value = 0.015; // 15ms base delay
+    
+    chorusLfoRef.current = audioContext.createOscillator();
+    chorusLfoRef.current.type = 'sine';
+    chorusLfoRef.current.frequency.value = 0.5; // 0.5 Hz LFO
+    
+    chorusGainRef.current = audioContext.createGain();
+    chorusGainRef.current.gain.value = 0.005; // 5ms modulation depth
+    
+    // Connect chorus LFO to delay modulation
+    chorusLfoRef.current.connect(chorusGainRef.current);
+    chorusGainRef.current.connect(chorusDelayRef.current.delayTime);
+    chorusLfoRef.current.start();
+    
+    // Create stereo widener for spacious sound
+    const splitter = audioContext.createChannelSplitter(2);
+    const merger = audioContext.createChannelMerger(2);
+    
+    stereoWidenerRef.current = {
+      left: audioContext.createGain(),
+      right: audioContext.createGain(),
+      delay: audioContext.createDelay(0.01)
+    };
+    
+    stereoWidenerRef.current.delay.delayTime.value = 0.005; // 5ms delay for width
+    stereoWidenerRef.current.left.gain.value = 1.0;
+    stereoWidenerRef.current.right.gain.value = 1.0;
+    
+    // Enhanced reverb
+    reverbRef.current = audioContext.createConvolver();
+    const reverbBuffer = createReverbImpulse(audioContext, 3, 0.4); // Longer, more lush reverb
+    reverbRef.current.buffer = reverbBuffer;
+    
+    // Multi-stage compression
+    compressorRef.current = audioContext.createDynamicsCompressor();
+    compressorRef.current.threshold.value = -18; // More aggressive
+    compressorRef.current.knee.value = 40;
+    compressorRef.current.ratio.value = 8;
+    compressorRef.current.attack.value = 0.002;
+    compressorRef.current.release.value = 0.2;
+    
+    // Final limiter for safety
+    limiterRef.current = audioContext.createDynamicsCompressor();
+    limiterRef.current.threshold.value = -3;
+    limiterRef.current.knee.value = 0;
+    limiterRef.current.ratio.value = 20; // Hard limiting
+    limiterRef.current.attack.value = 0.001;
+    limiterRef.current.release.value = 0.01;
+    
+    // Master gain remains the same
+    masterGainRef.current = audioContext.createGain();
+    masterGainRef.current.gain.value = volume / 100;
+    
+    // Professional effects chain routing:
+    // Input -> EQ (Low->Mid->High) -> Chorus -> Stereo Widener -> Reverb -> Compressor -> Limiter -> Master -> Output
+    
+    // Create input gain node for the chain
+    const inputGain = audioContext.createGain();
+    inputGain.gain.value = 1.0;
+    
+    // Create parallel processing for reverb
+    const dryGain = audioContext.createGain();
+    const wetGain = audioContext.createGain();
+    dryGain.gain.value = 0.9; // 90% dry
+    wetGain.gain.value = 0.1; // 10% wet (reduced from 20%)
+    
+    // EQ chain
+    inputGain.connect(eqLowRef.current);
+    eqLowRef.current.connect(eqMidRef.current);
+    eqMidRef.current.connect(eqHighRef.current);
+    
+    // Parallel chorus processing
+    const chorusSplitter = audioContext.createGain();
+    const chorusMixer = audioContext.createGain();
+    
+    eqHighRef.current.connect(chorusSplitter);
+    chorusSplitter.connect(chorusMixer); // Dry signal
+    chorusSplitter.connect(chorusDelayRef.current); // Wet signal
+    chorusDelayRef.current.connect(chorusMixer);
+    chorusMixer.gain.value = 0.7; // Mix level
+    
+    // Stereo processing
+    chorusMixer.connect(splitter);
+    splitter.connect(stereoWidenerRef.current.left, 0);
+    splitter.connect(stereoWidenerRef.current.right, 1);
+    splitter.connect(stereoWidenerRef.current.delay, 1);
+    
+    stereoWidenerRef.current.left.connect(merger, 0, 0);
+    stereoWidenerRef.current.right.connect(merger, 0, 1);
+    stereoWidenerRef.current.delay.connect(merger, 0, 0);
+    
+    // Parallel reverb processing
+    merger.connect(dryGain);
+    merger.connect(wetGain);
+    wetGain.connect(reverbRef.current);
+    
+    const reverbMixer = audioContext.createGain();
+    dryGain.connect(reverbMixer);
+    reverbRef.current.connect(reverbMixer);
+    
+    // Final compression and limiting
+    reverbMixer.connect(compressorRef.current);
+    compressorRef.current.connect(limiterRef.current);
+    limiterRef.current.connect(masterGainRef.current);
+    masterGainRef.current.connect(audioContext.destination);
+    
+    console.log(`🎛️ Professional audio effects chain initialized: EQ → Chorus → Stereo → Reverb → Compression → Limiting`);
+    
+    return inputGain; // Return the input node for instruments to connect to
+  };
+
   // Load and parse MIDI file
   const loadMidi = async () => {
     try {
@@ -1189,32 +1644,9 @@ export default function MidiPlayer({
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
     
-    // Create master gain node for volume control (always needed)
-    if (!masterGainRef.current) {
-      masterGainRef.current = audioContextRef.current.createGain();
-      masterGainRef.current.gain.setValueAtTime(volume / 100, audioContextRef.current.currentTime);
-      masterGainRef.current.connect(audioContextRef.current.destination);
-    }
-    
-    // Initialize effects (separate from AudioContext creation)
-    if (!reverbRef.current || !compressorRef.current) {
-      // Create reverb effect
-      reverbRef.current = audioContextRef.current.createConvolver();
-      const reverbBuffer = createReverbImpulse(audioContextRef.current, 2, 0.3);
-      reverbRef.current.buffer = reverbBuffer;
-      
-      // Create compressor for better dynamics
-      compressorRef.current = audioContextRef.current.createDynamicsCompressor();
-      compressorRef.current.threshold.value = -24;
-      compressorRef.current.knee.value = 30;
-      compressorRef.current.ratio.value = 12;
-      compressorRef.current.attack.value = 0.003;
-      compressorRef.current.release.value = 0.25;
-      
-      // Connect effects chain: reverb -> compressor -> masterGain -> destination
-      reverbRef.current.connect(compressorRef.current);
-      compressorRef.current.connect(masterGainRef.current);
-      // masterGain already connected to destination above
+    // Initialize professional audio effects chain (only once)
+    if (!effectsInputRef.current) {
+      effectsInputRef.current = initializeProfessionalEffects(audioContextRef.current);
     }
 
     if (audioContextRef.current.state === 'suspended') {
@@ -1296,9 +1728,18 @@ export default function MidiPlayer({
     console.log(`Loaded MIDI with ${allNotes.length} notes across ${totalChannels} channels`);
     console.log(`Track breakdown:`, trackStats.map((t: any) => `T${t.trackIndex + 1}:${t.noteCount}n`).join(', '));
 
-    // Initialize optimized audio graph and piano samples
+    // Perform background analysis using Web Worker (non-blocking)
+    analyzeMidiInWorker(allNotes);
+
+    // Initialize optimized audio graph and all instrument samples
     initializeOptimizedAudioGraph();
-    await initializePianoSamples();
+    
+    // Generate samples in parallel for better performance
+    await Promise.all([
+      initializePianoSamples(),
+      initializeStringSamples(), 
+      initializeBrassSamples()
+    ]);
     
     // MUSICAL ANALYSIS PHASE - NEW!
     console.log(`🎼 Performing musical analysis...`);
@@ -1436,10 +1877,12 @@ export default function MidiPlayer({
           const cleaned = initialLength - activeNodesRef.current.length;
           const voiceStealCount = voiceStealingRef.current.lastStealTime > currentTime - 1 ? 1 : 0;
           const pianoVoices = activeNodesRef.current.filter(v => v.id.startsWith('piano-')).length;
+          const stringVoices = activeNodesRef.current.filter(v => v.id.startsWith('string-')).length;
+          const brassVoices = activeNodesRef.current.filter(v => v.id.startsWith('brass-')).length;
           const synthVoices = activeNodesRef.current.filter(v => v.id.startsWith('synth-')).length;
           const drumVoices = activeNodesRef.current.filter(v => v.id.startsWith('drum-')).length;
           
-          console.log(`🎹 Enhanced Performance: ${cleaned} cleaned, ${activeNodesRef.current.length}/200 active (🎹${pianoVoices} 🎵${synthVoices} 🥁${drumVoices}), ${voiceStealCount} stolen, ${scheduledCount} scheduled`);
+          console.log(`🎼 Orchestra Performance: ${cleaned} cleaned, ${activeNodesRef.current.length}/200 active (🎹${pianoVoices} 🎻${stringVoices} 🎺${brassVoices} 🎵${synthVoices} 🥁${drumVoices}), ${voiceStealCount} stolen, ${scheduledCount} scheduled`);
         }
       }
 
@@ -1490,15 +1933,38 @@ export default function MidiPlayer({
     // Clear the active nodes array
     activeNodesRef.current = [];
     
-    // Clean up master gain node
-    if (masterGainRef.current) {
-      try {
-        masterGainRef.current.disconnect();
-        masterGainRef.current = null;
-      } catch (e) {
-        console.warn('Error cleaning up master gain:', e);
+    // Clean up professional effects chain
+    try {
+      if (chorusLfoRef.current) {
+        chorusLfoRef.current.stop();
+        chorusLfoRef.current = null;
       }
+      
+      // Clean up all effect nodes
+      [masterGainRef, effectsInputRef, eqLowRef, eqMidRef, eqHighRef, 
+       chorusDelayRef, chorusGainRef, reverbRef, compressorRef, limiterRef].forEach(ref => {
+        if (ref.current) {
+          try {
+            ref.current.disconnect();
+            ref.current = null;
+          } catch (e) { /* ignore */ }
+        }
+      });
+      
+      // Clean up stereo widener
+      if (stereoWidenerRef.current) {
+        try {
+          stereoWidenerRef.current.left.disconnect();
+          stereoWidenerRef.current.right.disconnect();
+          stereoWidenerRef.current.delay.disconnect();
+          stereoWidenerRef.current = null;
+        } catch (e) { /* ignore */ }
+      }
+      
+    } catch (e) {
+      console.warn('Error cleaning up effects chain:', e);
     }
+    
     // All audio stopped
   };
 
@@ -1551,7 +2017,137 @@ export default function MidiPlayer({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Initialize Web Worker for background MIDI analysis
+  const initializeWorker = () => {
+    if (typeof window !== 'undefined' && !midiWorkerRef.current) {
+      try {
+        midiWorkerRef.current = new Worker('/midi-analyzer-worker.js');
+        
+        midiWorkerRef.current.onmessage = (event) => {
+          const { type, result, error } = event.data;
+          
+          // Handle worker responses
+          switch (type) {
+            case 'WORKER_READY':
+              console.log('🔧 MIDI Worker initialized successfully');
+              break;
+              
+            case 'ANALYSIS_COMPLETE':
+              handleAnalysisComplete(result);
+              break;
+              
+            case 'RHYTHM_COMPLETE':
+              handleRhythmAnalysisComplete(result);
+              break;
+              
+            case 'PHRASES_COMPLETE':
+              handlePhrasesComplete(result);
+              break;
+              
+            case 'BASS_COMPLETE':
+              handleBassAnalysisComplete(result);
+              break;
+              
+            case 'ERROR':
+              console.error('Worker error:', error);
+              break;
+          }
+        };
+        
+        midiWorkerRef.current.onerror = (error) => {
+          console.error('Worker failed to initialize:', error);
+          midiWorkerRef.current = null;
+        };
+        
+      } catch (error) {
+        console.warn('Web Worker not supported, falling back to main thread analysis:', error);
+      }
+    }
+  };
+
+  // Handle analysis results from worker
+  const handleAnalysisComplete = (result: any) => {
+    if (result) {
+      const { timeSignature, complexity, channels } = result;
+      timeSignatureRef.current = timeSignature;
+      console.log(`🎼 Worker Analysis: ${complexity.totalNotes} notes, ${Object.keys(channels).length} channels`);
+    }
+  };
+
+  const handleRhythmAnalysisComplete = (result: any) => {
+    if (result) {
+      rhythmicAnalysisRef.current.clear();
+      Object.entries(result.rhythmicImportance).forEach(([key, importance]) => {
+        rhythmicAnalysisRef.current.set(key, importance);
+      });
+      console.log(`🥁 Worker Rhythm: ${result.downbeatCount} downbeats, ${result.strongBeatCount} strong beats`);
+    }
+  };
+
+  const handlePhrasesComplete = (result: any) => {
+    if (result && result.phrases) {
+      musicalPhrasesRef.current = result.phrases;
+      console.log(`🎶 Worker Phrases: ${result.totalPhrases} phrases, ${result.importantPhrases} important`);
+    }
+  };
+
+  const handleBassAnalysisComplete = (result: any) => {
+    if (result) {
+      bassLineNotesRef.current.clear();
+      result.bassNoteClasses.forEach((noteClass: number) => {
+        bassLineNotesRef.current.add(noteClass);
+      });
+      console.log(`🎸 Worker Bass: ${result.bassNoteCount} unique bass notes`);
+    }
+  };
+
+  // Analyze MIDI structure using Web Worker
+  const analyzeMidiInWorker = (allNotes: any[]) => {
+    if (!midiWorkerRef.current || allNotes.length === 0) return;
+    
+    try {
+      // Send initial structure analysis
+      midiWorkerRef.current.postMessage({
+        type: 'ANALYZE_MIDI',
+        data: allNotes
+      });
+      
+      // Send rhythm analysis
+      midiWorkerRef.current.postMessage({
+        type: 'ANALYZE_RHYTHM',
+        data: { notes: allNotes, timeSignature: timeSignatureRef.current }
+      });
+      
+      // Send phrase detection
+      midiWorkerRef.current.postMessage({
+        type: 'DETECT_PHRASES',
+        data: allNotes
+      });
+      
+      // Send bass analysis
+      midiWorkerRef.current.postMessage({
+        type: 'ANALYZE_BASS',
+        data: allNotes
+      });
+      
+    } catch (error) {
+      console.warn('Failed to send data to worker:', error);
+    }
+  };
+
+  // Cleanup worker on unmount
+  const cleanupWorker = () => {
+    if (midiWorkerRef.current) {
+      midiWorkerRef.current.terminate();
+      midiWorkerRef.current = null;
+    }
+    workerPromisesRef.current.clear();
+  };
+
   useEffect(() => {
+    // Initialize worker on component mount
+    initializeWorker();
+    
     if (autoplay) {
       loadMidi();
     }
@@ -1563,6 +2159,8 @@ export default function MidiPlayer({
       // Stop any playing audio when component unmounts
       stopAllAudio();
       resetPauseState(); // Reset pause state when component unmounts
+      // Cleanup worker
+      cleanupWorker();
     };
   }, [midiUrl, autoplay]);
 
