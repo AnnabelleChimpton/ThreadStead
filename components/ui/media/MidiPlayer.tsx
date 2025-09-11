@@ -48,6 +48,12 @@ export default function MidiPlayer({
   const pianoBuffersRef = useRef<Map<number, AudioBuffer>>(new Map()); // Pre-generated piano samples
   const activeHarmoniesRef = useRef<Map<number, Set<number>>>(new Map()); // Track active notes per channel for chord detection
   const voiceImportanceRef = useRef<Map<string, number>>(new Map()); // Track voice importance scores
+  
+  // Musical analysis refs
+  const rhythmicAnalysisRef = useRef<Map<string, any>>(new Map()); // Rhythmic importance per note
+  const musicalPhrasesRef = useRef<Array<any>>([]); // Detected musical phrases
+  const bassLineNotesRef = useRef<Set<number>>(new Set()); // Important bass notes
+  const timeSignatureRef = useRef<{ numerator: number; denominator: number }>({ numerator: 4, denominator: 4 });
 
   // Initialize optimized audio graph with per-instrument and per-channel routing
   const initializeOptimizedAudioGraph = () => {
@@ -168,6 +174,191 @@ export default function MidiPlayer({
     return consonantIntervals.includes(interval);
   };
 
+  // Detect time signature from MIDI data
+  const detectTimeSignature = (notes: any[], timeDivision: number) => {
+    // Analyze note spacing patterns to detect time signature
+    if (notes.length < 10) return { numerator: 4, denominator: 4 };
+    
+    const noteTimes = notes.map(note => note.time).sort((a, b) => a - b);
+    const intervals = [];
+    
+    // Calculate intervals between consecutive notes
+    for (let i = 1; i < Math.min(noteTimes.length, 100); i++) {
+      intervals.push(noteTimes[i] - noteTimes[i-1]);
+    }
+    
+    // Find most common interval (likely beat length)
+    const intervalCounts = new Map();
+    intervals.forEach(interval => {
+      const rounded = Math.round(interval * 4) / 4; // Round to quarter notes
+      intervalCounts.set(rounded, (intervalCounts.get(rounded) || 0) + 1);
+    });
+    
+    // Simple heuristic: default to 4/4 for most music
+    // Could be enhanced with more sophisticated analysis
+    return { numerator: 4, denominator: 4 };
+  };
+
+  // Calculate rhythmic importance for a note
+  const calculateRhythmicImportance = (noteTime: number, timeDivision: number = 384) => {
+    const timeSignature = timeSignatureRef.current;
+    
+    // Convert time to musical beats (assuming 120 BPM for analysis)
+    const quarterNoteLength = 0.5; // seconds at 120 BPM
+    const measureLength = quarterNoteLength * timeSignature.numerator;
+    
+    // Calculate position within measure
+    const measurePosition = (noteTime % measureLength) / quarterNoteLength;
+    const beat = Math.floor(measurePosition) + 1;
+    const subdivision = measurePosition - Math.floor(measurePosition);
+    
+    let rhythmicImportance = 0.5; // Base importance
+    
+    // Downbeats (beat 1) are most important - NEVER STEAL
+    if (beat === 1 && subdivision < 0.1) {
+      rhythmicImportance = 1.0; // Maximum protection
+    }
+    // Strong beats (beat 3 in 4/4) are very important
+    else if (beat === 3 && timeSignature.numerator === 4 && subdivision < 0.1) {
+      rhythmicImportance = 0.9;
+    }
+    // Weak beats (2 and 4 in 4/4) are moderately important
+    else if ((beat === 2 || beat === 4) && subdivision < 0.1) {
+      rhythmicImportance = 0.7;
+    }
+    // Off-beat notes (syncopation) can be important
+    else if (subdivision > 0.4 && subdivision < 0.6) {
+      rhythmicImportance = 0.75; // Syncopated notes
+    }
+    // Eighth note positions
+    else if (Math.abs(subdivision - 0.5) < 0.1) {
+      rhythmicImportance = 0.6;
+    }
+    
+    return rhythmicImportance;
+  };
+
+  // Detect and analyze bass line notes
+  const analyzeBassLine = (notes: any[]): Set<number> => {
+    const bassNotes = new Set<number>();
+    
+    // Find notes below C3 (MIDI note 48) - likely bass notes
+    const lowNotes = notes.filter(note => {
+      const midiNote = Math.round(12 * Math.log2(note.frequency / 440) + 69);
+      return midiNote < 48;
+    });
+    
+    // Group by time and find lowest note at each time point
+    const timeGroups = new Map();
+    lowNotes.forEach(note => {
+      const timeKey = Math.round(note.time * 4); // Quarter note resolution
+      if (!timeGroups.has(timeKey)) {
+        timeGroups.set(timeKey, []);
+      }
+      timeGroups.get(timeKey)!.push(note);
+    });
+    
+    // For each time group, mark the lowest note as important bass
+    timeGroups.forEach(group => {
+      if (group.length > 0) {
+        const lowestNote = group.reduce((lowest: any, note: any) => {
+          const midiNote1 = Math.round(12 * Math.log2(lowest.frequency / 440) + 69);
+          const midiNote2 = Math.round(12 * Math.log2(note.frequency / 440) + 69);
+          return midiNote2 < midiNote1 ? note : lowest;
+        });
+        
+        const midiNote = Math.round(12 * Math.log2(lowestNote.frequency / 440) + 69);
+        bassNotes.add(midiNote % 12); // Store pitch class (0-11) for easier comparison
+      }
+    });
+    
+    return bassNotes;
+  };
+
+  // Detect musical phrases based on timing gaps and melodic contour
+  const detectMusicalPhrases = (notes: any[]) => {
+    if (notes.length < 5) return [];
+    
+    const phrases = [];
+    let currentPhrase = [];
+    let lastNoteTime = 0;
+    
+    // Sort notes by time
+    const sortedNotes = [...notes].sort((a, b) => a.time - b.time);
+    
+    for (const note of sortedNotes) {
+      const gap = note.time - lastNoteTime;
+      
+      // Phrase break detected (gap > 1 second or significant tempo change)
+      if (gap > 1.0 && currentPhrase.length > 0) {
+        const phrase = {
+          startTime: currentPhrase[0].time,
+          endTime: currentPhrase[currentPhrase.length - 1].time + currentPhrase[currentPhrase.length - 1].duration,
+          notes: currentPhrase,
+          importance: calculatePhraseImportance(currentPhrase),
+          channel: currentPhrase[0].channel || 0
+        };
+        phrases.push(phrase);
+        currentPhrase = [];
+      }
+      
+      currentPhrase.push(note);
+      lastNoteTime = note.time + note.duration;
+    }
+    
+    // Add final phrase
+    if (currentPhrase.length > 0) {
+      const phrase = {
+        startTime: currentPhrase[0].time,
+        endTime: currentPhrase[currentPhrase.length - 1].time + currentPhrase[currentPhrase.length - 1].duration,
+        notes: currentPhrase,
+        importance: calculatePhraseImportance(currentPhrase),
+        channel: currentPhrase[0].channel || 0
+      };
+      phrases.push(phrase);
+    }
+    
+    return phrases;
+  };
+
+  const calculatePhraseImportance = (notes: any[]) => {
+    let importance = 0;
+    
+    // Longer phrases are more important
+    importance += Math.min(notes.length / 20, 0.4);
+    
+    // Higher average velocity = more important
+    const avgVelocity = notes.reduce((sum, note) => sum + note.velocity, 0) / notes.length;
+    importance += (avgVelocity / 127) * 0.3;
+    
+    // Melodic movement (larger intervals) = more important
+    if (notes.length > 1) {
+      let totalMovement = 0;
+      for (let i = 1; i < notes.length; i++) {
+        const midiNote1 = Math.round(12 * Math.log2(notes[i-1].frequency / 440) + 69);
+        const midiNote2 = Math.round(12 * Math.log2(notes[i].frequency / 440) + 69);
+        const interval = Math.abs(midiNote2 - midiNote1);
+        totalMovement += Math.min(interval / 12, 1.0); // Normalize to octave
+      }
+      importance += Math.min(totalMovement / notes.length, 0.3);
+    }
+    
+    return Math.min(importance, 1.0);
+  };
+
+  // Check if a note is in an important musical phrase
+  const isInImportantPhrase = (noteTime: number, channel: number = 0) => {
+    for (const phrase of musicalPhrasesRef.current) {
+      if (noteTime >= phrase.startTime && 
+          noteTime <= phrase.endTime && 
+          phrase.channel === channel &&
+          phrase.importance > 0.7) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   const calculateMusicalImportance = (voice: any, newNote: { note: number; velocity: number; channel: number; instrument: number }): number => {
     if (!voice.id) return 0;
     
@@ -178,27 +369,55 @@ export default function MidiPlayer({
     const voiceIdParts = voice.id.split('-');
     const voiceNote = parseInt(voiceIdParts[2]) || 0;
     const voiceVelocity = parseFloat(voiceIdParts[3]) || 0;
+    const voiceChannel = parseInt(voiceIdParts[4]) || 0;
     
-    // Channel priority (melody channels more important)
-    if (newNote.channel === 0) importance += 0.4; // Main melody
-    if (newNote.channel === 9) importance += 0.2; // Drums important for rhythm
+    // Extract timing from voice start time (approximate)
+    const voiceStartTime = parseFloat(voiceIdParts[1]) || now;
     
-    // Velocity priority
-    importance += (voiceVelocity / 127) * 0.3;
+    // 1. RHYTHMIC IMPORTANCE (25% weight) - NEW!
+    const voiceRhythmicImportance = calculateRhythmicImportance(voiceStartTime);
+    importance += voiceRhythmicImportance * 0.25;
     
-    // Remaining time priority
-    const remainingTime = Math.max(0, voice.endTime - now);
-    importance += Math.min(remainingTime / 2.0, 0.2); // Max 0.2 for time
-    
-    // Harmonic relationship penalty (avoid stealing harmonically related notes)
-    if (areNotesHarmonicallyRelated(voiceNote, newNote.note)) {
-      importance += 0.25; // Make it harder to steal harmonious notes
+    // NEVER steal downbeat notes (beat 1)
+    if (voiceRhythmicImportance >= 1.0) {
+      importance += 1.0; // Make it nearly impossible to steal
     }
     
-    // Instrument priority
-    if (newNote.instrument >= 0 && newNote.instrument <= 7) importance += 0.1; // Piano priority
+    // 2. BASS LINE PROTECTION (20% weight) - NEW!
+    if (voiceNote < 48) { // Below C3
+      importance += 0.2;
+      
+      // Extra protection for identified bass line notes
+      if (bassLineNotesRef.current.has(voiceNote % 12)) {
+        importance += 0.15; // Strong bass protection
+      }
+    }
     
-    return importance;
+    // 3. PHRASE PROTECTION (15% weight) - NEW!
+    if (isInImportantPhrase(voiceStartTime, voiceChannel)) {
+      importance += 0.15; // Protect notes in important phrases
+    }
+    
+    // 4. Channel priority (15% weight)
+    if (voiceChannel === 0) importance += 0.15; // Main melody
+    if (voiceChannel === 9) importance += 0.1; // Drums important for rhythm
+    
+    // 5. Velocity priority (10% weight)
+    importance += (voiceVelocity / 127) * 0.1;
+    
+    // 6. Remaining time priority (5% weight)
+    const remainingTime = Math.max(0, voice.endTime - now);
+    importance += Math.min(remainingTime / 2.0, 0.05);
+    
+    // 7. Harmonic relationship penalty (10% weight)
+    if (areNotesHarmonicallyRelated(voiceNote, newNote.note)) {
+      importance += 0.1; // Protect harmonious notes
+    }
+    
+    // 8. Instrument priority (5% weight)
+    if (newNote.instrument >= 0 && newNote.instrument <= 7) importance += 0.05; // Piano priority
+    
+    return Math.min(importance, 2.0); // Allow higher importance scores for critical notes
   };
 
   // Enhanced voice stealing with musical intelligence
@@ -227,6 +446,7 @@ export default function MidiPlayer({
       const voiceIdParts = weakestVoice.id.split('-');
       const voiceNote = parseInt(voiceIdParts[2]) || 0;
       const voiceChannel = parseInt(voiceIdParts[4]) || 0;
+      const voiceStartTime = parseFloat(voiceIdParts[1]) || now;
       
       if (activeHarmoniesRef.current.has(voiceChannel)) {
         activeHarmoniesRef.current.get(voiceChannel)!.delete(voiceNote % 12);
@@ -239,7 +459,12 @@ export default function MidiPlayer({
         activeNodesRef.current = activeNodesRef.current.filter(v => v !== weakestVoice);
         voiceStealingRef.current.lastStealTime = now;
         
-        console.log(`🎵 Voice stolen: Note ${voiceNote} (importance: ${weakestImportance.toFixed(2)}) for new note ${newNote.note} (priority: ${newNote.priority.toFixed(2)})`);
+        const voiceRhythmicImportance = calculateRhythmicImportance(voiceStartTime);
+        const rhythmicInfo = voiceRhythmicImportance >= 1.0 ? ' [DOWNBEAT!]' : voiceRhythmicImportance >= 0.9 ? ' [STRONG]' : '';
+        const bassInfo = voiceNote < 48 ? ' [BASS]' : '';
+        const phraseInfo = isInImportantPhrase(voiceStartTime, voiceChannel) ? ' [PHRASE]' : '';
+        
+        console.log(`🎵 Voice stolen: Note ${voiceNote}${rhythmicInfo}${bassInfo}${phraseInfo} (importance: ${weakestImportance.toFixed(2)}) for new note ${newNote.note} (priority: ${newNote.priority.toFixed(2)})`);
         return true;
       } catch (e) {
         // Voice already stopped
@@ -1075,6 +1300,34 @@ export default function MidiPlayer({
     initializeOptimizedAudioGraph();
     await initializePianoSamples();
     
+    // MUSICAL ANALYSIS PHASE - NEW!
+    console.log(`🎼 Performing musical analysis...`);
+    
+    // Detect time signature
+    timeSignatureRef.current = detectTimeSignature(allNotes, 384);
+    console.log(`🎵 Time signature: ${timeSignatureRef.current.numerator}/${timeSignatureRef.current.denominator}`);
+    
+    // Analyze bass lines
+    bassLineNotesRef.current = analyzeBassLine(allNotes);
+    console.log(`🎸 Identified ${bassLineNotesRef.current.size} important bass notes`);
+    
+    // Detect musical phrases
+    musicalPhrasesRef.current = detectMusicalPhrases(allNotes);
+    const importantPhrases = musicalPhrasesRef.current.filter(p => p.importance > 0.7);
+    console.log(`🎶 Detected ${musicalPhrasesRef.current.length} phrases (${importantPhrases.length} important)`);
+    
+    // Calculate rhythmic importance for all notes
+    let downbeatCount = 0;
+    let strongBeatCount = 0;
+    allNotes.forEach(note => {
+      const rhythmicImportance = calculateRhythmicImportance(note.time);
+      rhythmicAnalysisRef.current.set(`${note.time}-${note.frequency}`, rhythmicImportance);
+      
+      if (rhythmicImportance >= 1.0) downbeatCount++;
+      else if (rhythmicImportance >= 0.9) strongBeatCount++;
+    });
+    console.log(`🥁 Rhythmic analysis: ${downbeatCount} downbeats, ${strongBeatCount} strong beats protected`);
+    
     // Enhanced limits with intelligent voice management
     const MAX_CONCURRENT_NOTES = 200; // Increased from 120
     let MAX_TOTAL_NOTES = 7500; // Increased from 6000 for better quality
@@ -1084,11 +1337,11 @@ export default function MidiPlayer({
     if (allNotes.length > 8000) {
       MAX_TOTAL_NOTES = 6500; // Allow 77% of notes vs previous 60%
       VELOCITY_THRESHOLD = 5;
-      console.log(`🎹 Very complex MIDI detected (${allNotes.length} notes), using enhanced piano synthesis`);
+      console.log(`🎹 Very complex MIDI detected (${allNotes.length} notes), using musically-intelligent mode`);
     } else if (allNotes.length > 5000) {
       MAX_TOTAL_NOTES = 7000; // Allow 95%+ for medium complexity  
       VELOCITY_THRESHOLD = 4;
-      console.log(`🎹 Complex MIDI detected (${allNotes.length} notes), using piano-enhanced mode`);
+      console.log(`🎹 Complex MIDI detected (${allNotes.length} notes), using enhanced musical mode`);
     }
 
     // Much more permissive note selection
