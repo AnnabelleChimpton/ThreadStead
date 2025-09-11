@@ -104,7 +104,7 @@ export default function MidiPlayer({
   
   // Web Worker refs
   const midiWorkerRef = useRef<Worker | null>(null);
-  const workerPromisesRef = useRef<Map<string, { resolve: Function; reject: Function }>>(new Map());
+  const workerPromisesRef = useRef<Map<string, { resolve: (value: any) => void; reject: (reason?: any) => void }>>(new Map());
 
   // Initialize optimized audio graph with per-instrument and per-channel routing
   const initializeOptimizedAudioGraph = () => {
@@ -2278,7 +2278,7 @@ export default function MidiPlayer({
         const instrumentType = parts[0]; // piano, string, brass, synth, drum, legacy
         const startTime = parseFloat(parts[1]) || currentTime;
         
-        let frequency, velocity, midiNote, instrument;
+        let frequency, velocity, midiNote;
         
         if (instrumentType === 'legacy') {
           // legacy-startTime-frequency-suffix
@@ -2306,7 +2306,7 @@ export default function MidiPlayer({
           'drum': 128,
           'legacy': 0
         };
-        instrument = instrumentMap[instrumentType] || 0;
+        const instrument = instrumentMap[instrumentType] || 0;
         
         return { frequency, velocity, instrument, startTime, midiNote };
       })
@@ -2348,7 +2348,7 @@ export default function MidiPlayer({
     const criticalBand = frequencyToCriticalBand(frequency);
     const bandWidth = criticalBand * 100; // Approximate bandwidth
     
-    for (let [maskFreq, maskData] of frequencyMaskingRef.current) {
+    for (const [maskFreq, maskData] of frequencyMaskingRef.current) {
       if (currentTimeMs - maskData.lastUpdate > 100) continue; // Only recent masks
       
       const frequencyDiff = Math.abs(frequency - maskFreq);
