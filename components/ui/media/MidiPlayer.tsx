@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+type PlayerMode = 'compact' | 'hybrid' | 'full';
+
 interface MidiPlayerProps {
   midiUrl: string;
   title?: string;
   autoplay?: boolean;
   loop?: boolean;
   className?: string;
-  compact?: boolean;
+  compact?: boolean; // Deprecated, use defaultMode instead
+  defaultMode?: PlayerMode;
 }
 
 export default function MidiPlayer({ 
@@ -15,7 +18,8 @@ export default function MidiPlayer({
   autoplay = false, 
   loop = false,
   className = '',
-  compact = false
+  compact = false,
+  defaultMode = 'compact'
 }: MidiPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +30,13 @@ export default function MidiPlayer({
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [pausedAt, setPausedAt] = useState(0); // Track where we paused (in seconds)
+  const [showVisualization, setShowVisualization] = useState(false);
+  const [playerMode, setPlayerMode] = useState<PlayerMode>(compact ? 'compact' : defaultMode);
+  
+  // Visualization state
+  const [activeNotes, setActiveNotes] = useState<Array<{frequency: number, velocity: number, instrument: number, startTime: number, midiNote?: number}>>([]);
+  const [spectrumData, setSpectrumData] = useState<Uint8Array>(new Uint8Array(256));
+  const [waveformData, setWaveformData] = useState<Uint8Array>(new Uint8Array(256));
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const midiDataRef = useRef<any>(null);
@@ -45,8 +56,14 @@ export default function MidiPlayer({
   const limiterRef = useRef<DynamicsCompressorNode | null>(null);
   const stereoWidenerRef = useRef<{ left: GainNode; right: GainNode; delay: DelayNode } | null>(null);
   const effectsInputRef = useRef<GainNode | null>(null);
+  
+  // Audio analysis refs for visualization
+  const analyzerRef = useRef<AnalyserNode | null>(null);
+  const visualizationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   const activeNodesRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; endTime: number; id: string }>>([]); // Track active notes
   const autoplayTriggeredRef = useRef<boolean>(false);
+  const playButtonClickedRef = useRef<boolean>(false);
   
   // Advanced performance optimization refs
   const nodePoolRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; available: boolean }>>([]);
@@ -67,6 +84,23 @@ export default function MidiPlayer({
   const musicalPhrasesRef = useRef<Array<any>>([]); // Detected musical phrases
   const bassLineNotesRef = useRef<Set<number>>(new Set()); // Important bass notes
   const timeSignatureRef = useRef<{ numerator: number; denominator: number }>({ numerator: 4, denominator: 4 });
+  
+  // Advanced psychoacoustic voice stealing refs
+  const frequencyMaskingRef = useRef<Map<number, { level: number; lastUpdate: number }>>(new Map());
+  const temporalMaskingRef = useRef<Array<{ frequency: number; level: number; endTime: number }>>([]); 
+  const criticalBandsRef = useRef<Array<{ notes: string[]; dominantLevel: number }>>(Array(24).fill(null).map(() => ({ notes: [], dominantLevel: 0 })));
+  
+  // Instrument-specific effects refs
+  const pianoSustainRef = useRef<{ enabled: boolean; sustainedNotes: Map<string, GainNode> }>({
+    enabled: false,
+    sustainedNotes: new Map()
+  });
+  const stringVibratoRef = useRef<Map<string, { lfo: OscillatorNode; depth: GainNode }>>
+
+  (new Map());
+  const brassDynamicsRef = useRef<Map<string, { breathController: GainNode; muteFilter: BiquadFilterNode }>>
+
+  (new Map());
   
   // Web Worker refs
   const midiWorkerRef = useRef<Worker | null>(null);
@@ -286,7 +320,6 @@ export default function MidiPlayer({
   const initializePianoSamples = async () => {
     if (!audioContextRef.current || pianoBuffersRef.current.size > 0) return;
     
-    console.log('🎹 Generating high-quality piano samples...');
     
     // Generate samples for every 3rd note (fill gaps with pitch shifting)
     for (let midiNote = 48; midiNote <= 84; midiNote += 3) { // C3 to C6, every 3 semitones
@@ -295,14 +328,12 @@ export default function MidiPlayer({
       pianoBuffersRef.current.set(midiNote, buffer);
     }
     
-    console.log(`🎹 Generated ${pianoBuffersRef.current.size} piano samples`);
   };
 
   // Pre-generate string samples for violin/viola/cello range
   const initializeStringSamples = async () => {
     if (!audioContextRef.current || stringBuffersRef.current.size > 0) return;
     
-    console.log('🎻 Generating realistic string samples...');
     
     // String instruments typically cover G3 to E7 range
     for (let midiNote = 55; midiNote <= 88; midiNote += 4) { // Every 4th note for strings
@@ -311,14 +342,12 @@ export default function MidiPlayer({
       stringBuffersRef.current.set(midiNote, buffer);
     }
     
-    console.log(`🎻 Generated ${stringBuffersRef.current.size} string samples`);
   };
 
   // Pre-generate brass samples for trumpet/trombone range  
   const initializeBrassSamples = async () => {
     if (!audioContextRef.current || brassBuffersRef.current.size > 0) return;
     
-    console.log('🎺 Generating realistic brass samples...');
     
     // Brass instruments typically cover Bb2 to Bb6 range
     for (let midiNote = 46; midiNote <= 82; midiNote += 4) { // Every 4th note for brass
@@ -327,7 +356,6 @@ export default function MidiPlayer({
       brassBuffersRef.current.set(midiNote, buffer);
     }
     
-    console.log(`🎺 Generated ${brassBuffersRef.current.size} brass samples`);
   };
 
   // Chord detection and harmony analysis
@@ -590,7 +618,7 @@ export default function MidiPlayer({
     return Math.min(importance, 2.0); // Allow higher importance scores for critical notes
   };
 
-  // Enhanced voice stealing with musical intelligence
+  // Advanced psychoacoustic voice stealing with musical intelligence
   const stealVoiceIfNeeded = (newNote: { note: number; velocity: number; channel: number; instrument: number; priority: number }): boolean => {
     const now = audioContextRef.current?.currentTime || 0;
     const activeVoices = activeNodesRef.current.filter(node => node.endTime > now);
@@ -598,24 +626,36 @@ export default function MidiPlayer({
     // Increased limit to 200 voices
     if (activeVoices.length < 200) return true;
     
-    // Find least important voice to steal using musical intelligence
-    let weakestVoice = null;
-    let weakestImportance = newNote.priority + 0.1; // New note needs to be more important
+    // Use psychoacoustic model to select voices for stealing
+    const voicesToSteal = selectVoicesForStealing(199); // Keep one slot for new note
     
-    for (const voice of activeVoices) {
-      const importance = calculateMusicalImportance(voice, newNote);
+    if (voicesToSteal.length === 0) {
+      // Fallback to traditional importance-based stealing
+      let weakestVoice = null;
+      let weakestImportance = newNote.priority + 0.1;
       
-      if (importance < weakestImportance) {
-        weakestVoice = voice;
-        weakestImportance = importance;
+      for (const voice of activeVoices) {
+        const importance = calculateMusicalImportance(voice, newNote);
+        if (importance < weakestImportance) {
+          weakestVoice = voice;
+          weakestImportance = importance;
+        }
+      }
+      
+      if (weakestVoice) {
+        voicesToSteal.push(weakestVoice.id);
       }
     }
     
-    if (weakestVoice) {
+    // Steal selected voices
+    for (const voiceId of voicesToSteal) {
+      const voice = activeNodesRef.current.find(v => v.id === voiceId);
+      if (!voice) continue;
+      
       // Update active harmonies tracking
-      const voiceIdParts = weakestVoice.id.split('-');
+      const voiceIdParts = voice.id.split('-');
       const voiceNote = parseInt(voiceIdParts[2]) || 0;
-      const voiceChannel = parseInt(voiceIdParts[4]) || 0;
+      const voiceChannel = parseInt(voiceIdParts[6]) || 0;
       const voiceStartTime = parseFloat(voiceIdParts[1]) || now;
       
       if (activeHarmoniesRef.current.has(voiceChannel)) {
@@ -624,9 +664,9 @@ export default function MidiPlayer({
       
       // Fade out quickly and stop
       try {
-        weakestVoice.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
-        weakestVoice.osc.stop(now + 0.02);
-        activeNodesRef.current = activeNodesRef.current.filter(v => v !== weakestVoice);
+        voice.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+        voice.osc.stop(now + 0.02);
+        activeNodesRef.current = activeNodesRef.current.filter(v => v !== voice);
         voiceStealingRef.current.lastStealTime = now;
         
         const voiceRhythmicImportance = calculateRhythmicImportance(voiceStartTime);
@@ -634,7 +674,6 @@ export default function MidiPlayer({
         const bassInfo = voiceNote < 48 ? ' [BASS]' : '';
         const phraseInfo = isInImportantPhrase(voiceStartTime, voiceChannel) ? ' [PHRASE]' : '';
         
-        console.log(`🎵 Voice stolen: Note ${voiceNote}${rhythmicInfo}${bassInfo}${phraseInfo} (importance: ${weakestImportance.toFixed(2)}) for new note ${newNote.note} (priority: ${newNote.priority.toFixed(2)})`);
         return true;
       } catch (e) {
         // Voice already stopped
@@ -695,6 +734,12 @@ export default function MidiPlayer({
     
     const noteId = `piano-${startTime}-${midiNote}-${velocity}-${channel}`;
     const voiceData = { osc: source as any, gain: gainNode, endTime: startTime + duration, id: noteId };
+    
+    // Update psychoacoustic model
+    updatePsychoacousticModel(frequency, velocity, startTime, noteId);
+    
+    // Apply piano-specific effects
+    applyInstrumentEffects(noteId, gainNode, source, frequency, velocity, 0);
     
     // Track harmony
     if (!activeHarmoniesRef.current.has(channel)) {
@@ -762,6 +807,12 @@ export default function MidiPlayer({
     const noteId = `string-${startTime}-${midiNote}-${velocity}-${channel}`;
     const voiceData = { osc: source as any, gain: gainNode, endTime: startTime + duration, id: noteId };
     
+    // Update psychoacoustic model
+    updatePsychoacousticModel(frequency, velocity, startTime, noteId);
+    
+    // Apply string-specific effects  
+    applyInstrumentEffects(noteId, gainNode, source, frequency, velocity, 40);
+    
     // Track harmony
     if (!activeHarmoniesRef.current.has(channel)) {
       activeHarmoniesRef.current.set(channel, new Set());
@@ -827,6 +878,12 @@ export default function MidiPlayer({
     
     const noteId = `brass-${startTime}-${midiNote}-${velocity}-${channel}`;
     const voiceData = { osc: source as any, gain: gainNode, endTime: startTime + duration, id: noteId };
+    
+    // Update psychoacoustic model
+    updatePsychoacousticModel(frequency, velocity, startTime, noteId);
+    
+    // Apply brass-specific effects
+    applyInstrumentEffects(noteId, gainNode, source, frequency, velocity, 56);
     
     // Track harmony
     if (!activeHarmoniesRef.current.has(channel)) {
@@ -951,6 +1008,9 @@ export default function MidiPlayer({
       const voiceData = { osc, gain: gainNode, endTime: startTime + duration, id: noteId };
       activeNodesRef.current.push(voiceData);
       
+      // Update psychoacoustic model for advanced voice stealing
+      updatePsychoacousticModel(frequency, velocity, startTime, noteId);
+      
       // Track harmony for non-piano instruments too
       if (!activeHarmoniesRef.current.has(channel)) {
         activeHarmoniesRef.current.set(channel, new Set());
@@ -960,7 +1020,6 @@ export default function MidiPlayer({
       return voiceData;
       
     } catch (error) {
-      console.warn('Note scheduling error:', error);
       try {
         osc.disconnect();
         gainNode.disconnect();
@@ -1547,6 +1606,11 @@ export default function MidiPlayer({
     limiterRef.current.attack.value = 0.001;
     limiterRef.current.release.value = 0.01;
     
+    // Create analyzer node for visualization
+    analyzerRef.current = audioContext.createAnalyser();
+    analyzerRef.current.fftSize = 512; // 256 frequency bins
+    analyzerRef.current.smoothingTimeConstant = 0.8;
+    
     // Master gain remains the same
     masterGainRef.current = audioContext.createGain();
     masterGainRef.current.gain.value = volume / 100;
@@ -1602,9 +1666,11 @@ export default function MidiPlayer({
     reverbMixer.connect(compressorRef.current);
     compressorRef.current.connect(limiterRef.current);
     limiterRef.current.connect(masterGainRef.current);
+    
+    // Connect analyzer for visualization (parallel path)
+    masterGainRef.current.connect(analyzerRef.current);
     masterGainRef.current.connect(audioContext.destination);
     
-    console.log(`🎛️ Professional audio effects chain initialized: EQ → Chorus → Stereo → Reverb → Compression → Limiting`);
     
     return inputGain; // Return the input node for instruments to connect to
   };
@@ -1629,7 +1695,6 @@ export default function MidiPlayer({
       setIsLoading(false);
 
     } catch (err) {
-      console.error('Error loading MIDI:', err);
       setError('Failed to load MIDI file');
       setIsLoading(false);
     }
@@ -1725,8 +1790,6 @@ export default function MidiPlayer({
     });
 
     const totalChannels = Math.max(...allNotes.map(n => n.channel)) + 1;
-    console.log(`Loaded MIDI with ${allNotes.length} notes across ${totalChannels} channels`);
-    console.log(`Track breakdown:`, trackStats.map((t: any) => `T${t.trackIndex + 1}:${t.noteCount}n`).join(', '));
 
     // Perform background analysis using Web Worker (non-blocking)
     analyzeMidiInWorker(allNotes);
@@ -1742,20 +1805,16 @@ export default function MidiPlayer({
     ]);
     
     // MUSICAL ANALYSIS PHASE - NEW!
-    console.log(`🎼 Performing musical analysis...`);
     
     // Detect time signature
     timeSignatureRef.current = detectTimeSignature(allNotes, 384);
-    console.log(`🎵 Time signature: ${timeSignatureRef.current.numerator}/${timeSignatureRef.current.denominator}`);
     
     // Analyze bass lines
     bassLineNotesRef.current = analyzeBassLine(allNotes);
-    console.log(`🎸 Identified ${bassLineNotesRef.current.size} important bass notes`);
     
     // Detect musical phrases
     musicalPhrasesRef.current = detectMusicalPhrases(allNotes);
     const importantPhrases = musicalPhrasesRef.current.filter(p => p.importance > 0.7);
-    console.log(`🎶 Detected ${musicalPhrasesRef.current.length} phrases (${importantPhrases.length} important)`);
     
     // Calculate rhythmic importance for all notes
     let downbeatCount = 0;
@@ -1767,7 +1826,6 @@ export default function MidiPlayer({
       if (rhythmicImportance >= 1.0) downbeatCount++;
       else if (rhythmicImportance >= 0.9) strongBeatCount++;
     });
-    console.log(`🥁 Rhythmic analysis: ${downbeatCount} downbeats, ${strongBeatCount} strong beats protected`);
     
     // Enhanced limits with intelligent voice management
     const MAX_CONCURRENT_NOTES = 200; // Increased from 120
@@ -1778,11 +1836,9 @@ export default function MidiPlayer({
     if (allNotes.length > 8000) {
       MAX_TOTAL_NOTES = 6500; // Allow 77% of notes vs previous 60%
       VELOCITY_THRESHOLD = 5;
-      console.log(`🎹 Very complex MIDI detected (${allNotes.length} notes), using musically-intelligent mode`);
     } else if (allNotes.length > 5000) {
       MAX_TOTAL_NOTES = 7000; // Allow 95%+ for medium complexity  
       VELOCITY_THRESHOLD = 4;
-      console.log(`🎹 Complex MIDI detected (${allNotes.length} notes), using enhanced musical mode`);
     }
 
     // Much more permissive note selection
@@ -1795,9 +1851,7 @@ export default function MidiPlayer({
       // Re-sort by time for playback
       selectedNotes.sort((a, b) => a.time - b.time);
       
-      console.log(`Smart note selection: ${allNotes.length} → ${selectedNotes.length} notes (${((selectedNotes.length / allNotes.length) * 100).toFixed(1)}% kept)`);
     } else {
-      console.log(`Playing full MIDI: ${selectedNotes.length} notes (${((selectedNotes.length / allNotes.length) * 100).toFixed(1)}% kept after velocity filtering)`);
     }
 
     const notesToPlay = selectedNotes;
@@ -1845,6 +1899,9 @@ export default function MidiPlayer({
     
     setIsPlaying(true);
 
+    // Always start visualization when playing (it will only update if shown)
+    startVisualization();
+
     // Optimized progress tracking with batched scheduling
     progressIntervalRef.current = setInterval(() => {
       const elapsed = (Date.now() - playbackStartTimeRef.current) / 1000;
@@ -1882,7 +1939,6 @@ export default function MidiPlayer({
           const synthVoices = activeNodesRef.current.filter(v => v.id.startsWith('synth-')).length;
           const drumVoices = activeNodesRef.current.filter(v => v.id.startsWith('drum-')).length;
           
-          console.log(`🎼 Orchestra Performance: ${cleaned} cleaned, ${activeNodesRef.current.length}/200 active (🎹${pianoVoices} 🎻${stringVoices} 🎺${brassVoices} 🎵${synthVoices} 🥁${drumVoices}), ${voiceStealCount} stolen, ${scheduledCount} scheduled`);
         }
       }
 
@@ -1893,14 +1949,19 @@ export default function MidiPlayer({
         
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
         }
         
         // Clean up any remaining nodes
         activeNodesRef.current = [];
-        console.log(`MIDI playback completed. Scheduled ${scheduledCount} notes total.`);
 
-        if (loop) {
-          setTimeout(() => playMidi(), 100);
+        if (loop && isPlaying) {
+          setTimeout(() => {
+            // Double-check that we're still supposed to be playing
+            if (isPlaying && loop) {
+              playMidi();
+            }
+          }, 100);
         }
       } else {
         setProgress(progressPercent);
@@ -1933,6 +1994,9 @@ export default function MidiPlayer({
     // Clear the active nodes array
     activeNodesRef.current = [];
     
+    // Stop visualization
+    stopVisualization();
+    
     // Clean up professional effects chain
     try {
       if (chorusLfoRef.current) {
@@ -1962,7 +2026,6 @@ export default function MidiPlayer({
       }
       
     } catch (e) {
-      console.warn('Error cleaning up effects chain:', e);
     }
     
     // All audio stopped
@@ -1972,24 +2035,65 @@ export default function MidiPlayer({
   const resetPauseState = () => {
     setIsPaused(false);
     setPausedAt(0);
+    // Reset autoplay flag to prevent unexpected restarts
+    autoplayTriggeredRef.current = false;
   };
 
   const play = async () => {
+    // Prevent multiple concurrent calls and rapid clicking
+    if (isLoading || playButtonClickedRef.current) {
+      return;
+    }
+    
+    playButtonClickedRef.current = true;
+    
+    // Reset the debounce flag after a delay
+    setTimeout(() => {
+      playButtonClickedRef.current = false;
+    }, 300);
+
     if (!midiDataRef.current) {
       await loadMidi();
+      // Double-check after loading in case component state changed
+      if (!midiDataRef.current) {
+        return;
+      }
     }
 
     if (isPlaying) {
-      // Pause playback - calculate current position
+      // Stop playback
       const elapsed = (Date.now() - playbackStartTimeRef.current) / 1000;
       setPausedAt(elapsed);
       setIsPaused(true);
       
-      stopAllAudio();
+      // Stop only the active notes, not the entire audio chain
+      const currentTime = audioContextRef.current?.currentTime || 0;
+      activeNodesRef.current.forEach(node => {
+        try {
+          if (node.gain && node.gain.gain) {
+            node.gain.gain.cancelScheduledValues(currentTime);
+            node.gain.gain.setValueAtTime(node.gain.gain.value, currentTime);
+            node.gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.05);
+          }
+          if (node.osc && node.osc.stop) {
+            node.osc.stop(currentTime + 0.05);
+          }
+        } catch (e) {
+          // Ignore errors
+        }
+      });
+      
+      // Clear the active nodes array
+      activeNodesRef.current = [];
+      
+      // Stop visualization
+      stopVisualization();
+      
       setIsPlaying(false);
       
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
       }
     } else {
       // Resume playback from pause point or start from beginning
@@ -2029,7 +2133,6 @@ export default function MidiPlayer({
           // Handle worker responses
           switch (type) {
             case 'WORKER_READY':
-              console.log('🔧 MIDI Worker initialized successfully');
               break;
               
             case 'ANALYSIS_COMPLETE':
@@ -2049,18 +2152,15 @@ export default function MidiPlayer({
               break;
               
             case 'ERROR':
-              console.error('Worker error:', error);
               break;
           }
         };
         
         midiWorkerRef.current.onerror = (error) => {
-          console.error('Worker failed to initialize:', error);
           midiWorkerRef.current = null;
         };
         
       } catch (error) {
-        console.warn('Web Worker not supported, falling back to main thread analysis:', error);
       }
     }
   };
@@ -2070,7 +2170,6 @@ export default function MidiPlayer({
     if (result) {
       const { timeSignature, complexity, channels } = result;
       timeSignatureRef.current = timeSignature;
-      console.log(`🎼 Worker Analysis: ${complexity.totalNotes} notes, ${Object.keys(channels).length} channels`);
     }
   };
 
@@ -2080,14 +2179,12 @@ export default function MidiPlayer({
       Object.entries(result.rhythmicImportance).forEach(([key, importance]) => {
         rhythmicAnalysisRef.current.set(key, importance);
       });
-      console.log(`🥁 Worker Rhythm: ${result.downbeatCount} downbeats, ${result.strongBeatCount} strong beats`);
     }
   };
 
   const handlePhrasesComplete = (result: any) => {
     if (result && result.phrases) {
       musicalPhrasesRef.current = result.phrases;
-      console.log(`🎶 Worker Phrases: ${result.totalPhrases} phrases, ${result.importantPhrases} important`);
     }
   };
 
@@ -2097,7 +2194,6 @@ export default function MidiPlayer({
       result.bassNoteClasses.forEach((noteClass: number) => {
         bassLineNotesRef.current.add(noteClass);
       });
-      console.log(`🎸 Worker Bass: ${result.bassNoteCount} unique bass notes`);
     }
   };
 
@@ -2131,7 +2227,6 @@ export default function MidiPlayer({
       });
       
     } catch (error) {
-      console.warn('Failed to send data to worker:', error);
     }
   };
 
@@ -2144,6 +2239,446 @@ export default function MidiPlayer({
     workerPromisesRef.current.clear();
   };
 
+  // Real-time visualization functions
+  const updateVisualization = () => {
+    if (!analyzerRef.current) {
+      return;
+    }
+
+    // Check if audio context is running
+    if (audioContextRef.current?.state !== 'running') {
+      return;
+    }
+
+    // Update spectrum data (frequency analysis)
+    const bufferLength = analyzerRef.current.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    analyzerRef.current.getByteFrequencyData(dataArray);
+    
+    // Check if we're getting any data
+    const hasData = dataArray.some(value => value > 0);
+    const maxValue = Math.max(...dataArray);
+    const averageValue = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
+    
+    
+    setSpectrumData(dataArray);
+
+    // Update waveform data (time domain)
+    const waveformArray = new Uint8Array(bufferLength);
+    analyzerRef.current.getByteTimeDomainData(waveformArray);
+    setWaveformData(waveformArray);
+
+    // Update active notes display
+    const currentTime = audioContextRef.current?.currentTime || 0;
+    const currentActiveNotes = activeNodesRef.current
+      .filter(node => node.endTime > currentTime)
+      .map((node, index) => {
+        // Extract note info from node ID
+        const parts = node.id.split('-');
+        const instrumentType = parts[0]; // piano, string, brass, synth, drum, legacy
+        const startTime = parseFloat(parts[1]) || currentTime;
+        
+        let frequency, velocity, midiNote, instrument;
+        
+        if (instrumentType === 'legacy') {
+          // legacy-startTime-frequency-suffix
+          frequency = parseFloat(parts[2]) || 440;
+          velocity = 64; // Default for legacy
+          midiNote = Math.round(12 * Math.log2(frequency / 440) + 69);
+        } else if (instrumentType === 'drum') {
+          // drum-startTime-midiNote
+          midiNote = parseFloat(parts[2]) || 36;
+          frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
+          velocity = 64; // Default for drums
+        } else {
+          // piano/string/brass/synth-startTime-midiNote-velocity-channel
+          midiNote = parseFloat(parts[2]) || 60;
+          velocity = parseFloat(parts[3]) || 64;
+          frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
+        }
+        
+        // Map instrument types to numbers for visualization
+        const instrumentMap: Record<string, number> = {
+          'piano': 0,
+          'string': 40,
+          'brass': 56,
+          'synth': 80,
+          'drum': 128,
+          'legacy': 0
+        };
+        instrument = instrumentMap[instrumentType] || 0;
+        
+        return { frequency, velocity, instrument, startTime, midiNote };
+      })
+      .slice(0, 32); // Limit to 32 visible notes for performance
+
+    setActiveNotes(currentActiveNotes);
+  };
+
+  const startVisualization = () => {
+    if (visualizationIntervalRef.current) return;
+    
+    
+    visualizationIntervalRef.current = setInterval(updateVisualization, 50); // 20 FPS
+  };
+
+  const stopVisualization = () => {
+    if (visualizationIntervalRef.current) {
+      clearInterval(visualizationIntervalRef.current);
+      visualizationIntervalRef.current = null;
+    }
+    setActiveNotes([]);
+    setSpectrumData(new Uint8Array(256));
+    setWaveformData(new Uint8Array(256));
+  };
+
+  // Advanced Psychoacoustic Voice Stealing System
+  const frequencyToCriticalBand = (frequency: number): number => {
+    // Convert frequency to Bark scale (critical bands)
+    // 24 critical bands cover human hearing range
+    const bark = 13 * Math.atan(0.00076 * frequency) + 3.5 * Math.atan(Math.pow(frequency / 7500, 2));
+    return Math.min(23, Math.max(0, Math.floor(bark)));
+  };
+
+  const calculateMaskingThreshold = (frequency: number, currentTime: number): number => {
+    const currentTimeMs = currentTime * 1000;
+    let maskingLevel = 0;
+
+    // Frequency masking - simultaneous masking
+    const criticalBand = frequencyToCriticalBand(frequency);
+    const bandWidth = criticalBand * 100; // Approximate bandwidth
+    
+    for (let [maskFreq, maskData] of frequencyMaskingRef.current) {
+      if (currentTimeMs - maskData.lastUpdate > 100) continue; // Only recent masks
+      
+      const frequencyDiff = Math.abs(frequency - maskFreq);
+      const bandDiff = Math.abs(frequencyToCriticalBand(maskFreq) - criticalBand);
+      
+      if (bandDiff <= 2) { // Within 2 critical bands
+        // Masking strength decreases with frequency distance
+        const maskingStrength = maskData.level * Math.exp(-frequencyDiff / bandWidth);
+        maskingLevel = Math.max(maskingLevel, maskingStrength);
+      }
+    }
+
+    // Temporal masking - sequential masking  
+    const temporalMasks = temporalMaskingRef.current.filter(mask => mask.endTime > currentTime);
+    for (const mask of temporalMasks) {
+      const timeSinceEnd = currentTime - (mask.endTime - 0.1); // 100ms temporal window
+      if (timeSinceEnd >= 0 && timeSinceEnd <= 0.1) {
+        const frequencyDiff = Math.abs(frequency - mask.frequency);
+        const bandDiff = Math.abs(frequencyToCriticalBand(mask.frequency) - criticalBand);
+        
+        if (bandDiff <= 1) {
+          // Temporal masking decays quickly but can be significant
+          const temporalDecay = Math.exp(-timeSinceEnd * 50); // 50ms decay
+          const temporalMask = mask.level * 0.3 * temporalDecay; // 30% of original level
+          maskingLevel = Math.max(maskingLevel, temporalMask);
+        }
+      }
+    }
+
+    return maskingLevel;
+  };
+
+  const updatePsychoacousticModel = (frequency: number, velocity: number, startTime: number, noteId: string) => {
+    const currentTime = audioContextRef.current?.currentTime || 0;
+    const level = velocity / 127;
+    
+    // Update frequency masking map
+    frequencyMaskingRef.current.set(frequency, {
+      level: level,
+      lastUpdate: currentTime * 1000
+    });
+
+    // Add to temporal masking (for notes that just ended)
+    const estimatedDuration = 0.5; // Rough estimate
+    temporalMaskingRef.current.push({
+      frequency: frequency,
+      level: level,
+      endTime: startTime + estimatedDuration
+    });
+
+    // Update critical band analysis
+    const criticalBand = frequencyToCriticalBand(frequency);
+    const band = criticalBandsRef.current[criticalBand];
+    band.notes.push(noteId);
+    band.dominantLevel = Math.max(band.dominantLevel, level);
+
+    // Cleanup old temporal masks
+    const cutoffTime = currentTime - 0.2; // 200ms history
+    temporalMaskingRef.current = temporalMaskingRef.current.filter(mask => mask.endTime > cutoffTime);
+  };
+
+  const calculatePerceptualImportance = (frequency: number, velocity: number, startTime: number, instrument: number, channel: number): number => {
+    const currentTime = audioContextRef.current?.currentTime || 0;
+    let importance = velocity / 127; // Base importance from velocity
+    
+    // Psychoacoustic masking analysis
+    const maskingThreshold = calculateMaskingThreshold(frequency, currentTime);
+    const signalToMaskRatio = (velocity / 127) / Math.max(0.01, maskingThreshold);
+    
+    // If this note would be masked, reduce importance significantly
+    if (signalToMaskRatio < 1.2) { // Less than 20% above masking threshold
+      importance *= 0.3; // Heavily reduce importance
+    } else if (signalToMaskRatio < 2.0) { // Barely audible
+      importance *= 0.6; // Moderately reduce
+    }
+
+    // Critical band dominance - if this frequency band is already busy, reduce importance
+    const criticalBand = frequencyToCriticalBand(frequency);
+    const band = criticalBandsRef.current[criticalBand];
+    if (band.notes.length > 3) { // Band is crowded
+      importance *= 0.7;
+    }
+    if ((velocity / 127) < band.dominantLevel * 0.8) { // Much quieter than dominant note
+      importance *= 0.5;
+    }
+
+    // Frequency range importance (human hearing sensitivity)
+    if (frequency >= 1000 && frequency <= 4000) {
+      importance *= 1.3; // Most sensitive hearing range
+    } else if (frequency >= 200 && frequency <= 8000) {
+      importance *= 1.1; // Good hearing range
+    } else if (frequency < 80 || frequency > 16000) {
+      importance *= 0.6; // Outside primary hearing range
+    }
+
+    // Instrument importance in mix
+    if (instrument >= 32 && instrument <= 39) { // Bass
+      importance *= 1.4; // Bass is crucial for mix
+    } else if (channel === 9) { // Drums
+      importance *= 1.2; // Rhythm is important
+    } else if (instrument >= 0 && instrument <= 7) { // Piano/keyboard
+      importance *= 1.1; // Lead instruments slightly more important
+    }
+
+    return Math.min(1.0, importance);
+  };
+
+  const selectVoicesForStealing = (maxVoices: number): string[] => {
+    const currentTime = audioContextRef.current?.currentTime || 0;
+    const activeVoices = activeNodesRef.current.filter(node => node.endTime > currentTime);
+    
+    if (activeVoices.length <= maxVoices) return [];
+
+    // Calculate perceptual importance for each active voice
+    const voicesWithImportance = activeVoices.map(node => {
+      const parts = node.id.split('-');
+      const frequency = parseFloat(parts[2]) || 440;
+      const velocity = parseFloat(parts[3]) || 64;
+      const instrument = parseInt(parts[5]) || 0;
+      const channel = parseInt(parts[6]) || 0;
+      const startTime = parseFloat(parts[1]) || currentTime;
+      
+      const importance = calculatePerceptualImportance(frequency, velocity, startTime, instrument, channel);
+      
+      return {
+        node,
+        importance,
+        frequency,
+        age: currentTime - startTime
+      };
+    });
+
+    // Sort by importance (lowest first), then by age (oldest first)
+    voicesWithImportance.sort((a, b) => {
+      if (Math.abs(a.importance - b.importance) < 0.1) {
+        return b.age - a.age; // Prefer older notes for stealing
+      }
+      return a.importance - b.importance; // Prefer less important notes
+    });
+
+    // Select least important voices for stealing
+    const voicesToSteal = voicesWithImportance
+      .slice(0, activeVoices.length - maxVoices)
+      .map(voice => voice.node.id);
+
+    return voicesToSteal;
+  };
+
+  // Instrument-Specific Effects System
+  
+  // Piano sustain pedal simulation
+  const togglePianoSustain = (enabled: boolean) => {
+    pianoSustainRef.current.enabled = enabled;
+    
+    if (!enabled) {
+      // Release all sustained notes
+      const currentTime = audioContextRef.current?.currentTime || 0;
+      pianoSustainRef.current.sustainedNotes.forEach((gainNode, noteId) => {
+        try {
+          gainNode.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.5);
+        } catch (e) { /* ignore */ }
+      });
+      pianoSustainRef.current.sustainedNotes.clear();
+    }
+    
+  };
+
+  const applyPianoSustain = (noteId: string, gainNode: GainNode, frequency: number) => {
+    if (!pianoSustainRef.current.enabled) return;
+    
+    // Add sympathetic string resonance for piano
+    const currentTime = audioContextRef.current?.currentTime || 0;
+    
+    // Create resonant filter for sympathetic strings
+    if (audioContextRef.current) {
+      const resonanceFilter = audioContextRef.current.createBiquadFilter();
+      resonanceFilter.type = 'bandpass';
+      resonanceFilter.frequency.value = frequency * 2; // Octave resonance
+      resonanceFilter.Q.value = 10; // High resonance
+      
+      const resonanceGain = audioContextRef.current.createGain();
+      resonanceGain.gain.value = 0.1; // Subtle effect
+      
+      // Connect: gainNode -> resonanceFilter -> resonanceGain -> effects input
+      gainNode.connect(resonanceFilter);
+      resonanceFilter.connect(resonanceGain);
+      resonanceGain.connect(effectsInputRef.current || audioContextRef.current.destination);
+      
+      // Store for sustain control
+      pianoSustainRef.current.sustainedNotes.set(noteId, resonanceGain);
+    }
+  };
+
+  // String vibrato control
+  const applyStringVibrato = (noteId: string, sourceNode: any, frequency: number, intensity: number = 0.02) => {
+    if (!audioContextRef.current) return;
+    
+    try {
+      // Create LFO for vibrato
+      const lfo = audioContextRef.current.createOscillator();
+      const depthGain = audioContextRef.current.createGain();
+      
+      lfo.type = 'sine';
+      lfo.frequency.value = 5.5; // 5.5 Hz vibrato rate
+      depthGain.gain.value = frequency * intensity; // Vibrato depth
+      
+      // Connect LFO to frequency modulation
+      lfo.connect(depthGain);
+      depthGain.connect(sourceNode.frequency || sourceNode.playbackRate);
+      
+      lfo.start();
+      
+      // Store for cleanup
+      stringVibratoRef.current.set(noteId, { lfo, depth: depthGain });
+      
+      // Auto-cleanup after note ends
+      setTimeout(() => {
+        try {
+          lfo.stop();
+          stringVibratoRef.current.delete(noteId);
+        } catch (e) { /* ignore */ }
+      }, 5000); // 5 second max
+      
+    } catch (e) {
+    }
+  };
+
+  // Brass breath dynamics
+  const applyBrassDynamics = (noteId: string, gainNode: GainNode, velocity: number, frequency: number) => {
+    if (!audioContextRef.current) return;
+    
+    try {
+      const currentTime = audioContextRef.current.currentTime;
+      
+      // Create breath controller (envelope follower simulation)
+      const breathController = audioContextRef.current.createGain();
+      breathController.gain.value = 1.0;
+      
+      // Create mute filter for brass muting effects
+      const muteFilter = audioContextRef.current.createBiquadFilter();
+      muteFilter.type = 'lowpass';
+      muteFilter.frequency.value = frequency * 2; // Start open
+      muteFilter.Q.value = 1.0;
+      
+      // Breath pressure dynamics based on velocity
+      const breathIntensity = velocity / 127;
+      const breathRate = 3 + (breathIntensity * 2); // 3-5 Hz breathing
+      
+      // Create breath modulation
+      const breathLfo = audioContextRef.current.createOscillator();
+      const breathDepth = audioContextRef.current.createGain();
+      
+      breathLfo.type = 'sine';
+      breathLfo.frequency.value = breathRate;
+      breathDepth.gain.value = 0.15 * breathIntensity; // Breathing depth
+      
+      // Apply breath modulation to volume
+      breathLfo.connect(breathDepth);
+      breathDepth.connect(breathController.gain);
+      breathLfo.start();
+      
+      // Dynamic mute effect for lower velocities
+      if (velocity < 80) {
+        const muteAmount = 1 - (velocity / 80);
+        muteFilter.frequency.value = frequency * (1 - muteAmount * 0.5);
+        muteFilter.Q.value = 1 + muteAmount * 3;
+      }
+      
+      // Connect effects chain
+      gainNode.connect(breathController);
+      breathController.connect(muteFilter);
+      muteFilter.connect(effectsInputRef.current || audioContextRef.current.destination);
+      
+      // Store for control
+      brassDynamicsRef.current.set(noteId, { breathController, muteFilter });
+      
+      // Auto-cleanup
+      setTimeout(() => {
+        try {
+          breathLfo.stop();
+          brassDynamicsRef.current.delete(noteId);
+        } catch (e) { /* ignore */ }
+      }, 8000); // 8 second max
+      
+    } catch (e) {
+    }
+  };
+
+  // Apply appropriate effects based on instrument
+  const applyInstrumentEffects = (noteId: string, gainNode: GainNode, sourceNode: any, frequency: number, velocity: number, instrument: number) => {
+    // Piano family (0-7)
+    if (instrument >= 0 && instrument <= 7) {
+      applyPianoSustain(noteId, gainNode, frequency);
+    }
+    
+    // String family (40-47)
+    else if (instrument >= 40 && instrument <= 47) {
+      const vibratoIntensity = 0.015 + (velocity / 127) * 0.01; // 1.5-2.5% vibrato
+      applyStringVibrato(noteId, sourceNode, frequency, vibratoIntensity);
+    }
+    
+    // Brass family (56-63)
+    else if (instrument >= 56 && instrument <= 63) {
+      applyBrassDynamics(noteId, gainNode, velocity, frequency);
+    }
+  };
+
+  // Handle visualization state changes
+  useEffect(() => {
+    if (showVisualization && isPlaying) {
+      startVisualization();
+    } else if (!showVisualization) {
+      stopVisualization();
+    }
+  }, [showVisualization, isPlaying]);
+
+  // Handle visualization when switching to modes that support it
+  useEffect(() => {
+    if ((playerMode === 'hybrid' || playerMode === 'full') && isPlaying && showVisualization) {
+      if (!visualizationIntervalRef.current) {
+        startVisualization();
+      }
+    } else if (playerMode === 'compact') {
+      // Stop visualization when in compact mode
+      if (visualizationIntervalRef.current) {
+        stopVisualization();
+      }
+    }
+  }, [playerMode, isPlaying, showVisualization]);
+
   useEffect(() => {
     // Initialize worker on component mount
     initializeWorker();
@@ -2155,10 +2690,13 @@ export default function MidiPlayer({
     return () => {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
       }
       // Stop any playing audio when component unmounts
       stopAllAudio();
       resetPauseState(); // Reset pause state when component unmounts
+      // Reset click debounce
+      playButtonClickedRef.current = false;
       // Cleanup worker
       cleanupWorker();
     };
@@ -2169,11 +2707,13 @@ export default function MidiPlayer({
     if (autoplay && midiDataRef.current && !isLoading && !isPlaying && !autoplayTriggeredRef.current) {
       // Use setTimeout to avoid immediate execution conflicts
       const timer = setTimeout(() => {
-        if (midiDataRef.current && !isPlaying && !autoplayTriggeredRef.current) {
+        // Extra safety checks before autoplay
+        if (midiDataRef.current && !isPlaying && !autoplayTriggeredRef.current && !isLoading) {
           autoplayTriggeredRef.current = true; // Mark autoplay as triggered
           play();
+        } else {
         }
-      }, 100);
+      }, 200); // Slightly longer delay to avoid conflicts
       return () => clearTimeout(timer);
     }
   }, [autoplay, isLoading, isPlaying]); // Restore isPlaying dependency but prevent multiple triggers
@@ -2199,7 +2739,8 @@ export default function MidiPlayer({
     );
   }
 
-  if (compact) {
+  // Compact mode (minimal floating player)
+  if (playerMode === 'compact') {
     return (
       <div className={`fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border-2 border-black p-3 z-50 ${className}`}>
         <div className="flex items-center gap-3">
@@ -2246,14 +2787,259 @@ export default function MidiPlayer({
               </div>
             )}
           </div>
+          
+          <button
+            onClick={() => {
+              setPlayerMode('hybrid');
+              // Start visualization if playing
+              if (isPlaying && !visualizationIntervalRef.current) {
+                startVisualization();
+              }
+            }}
+            className="text-gray-600 hover:text-gray-800 text-sm"
+            title="Expand player"
+          >
+            ⬜
+          </button>
         </div>
       </div>
     );
   }
 
+  // Hybrid mode (floating with visualizer)
+  if (playerMode === 'hybrid') {
+    return (
+      <div className={`fixed bottom-4 right-4 z-50 bg-white rounded-lg shadow-lg border-2 border-black p-4 ${className}`} style={{ maxWidth: '400px' }}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold">🎵 {title}</h3>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setPlayerMode('compact')}
+              className="text-gray-600 hover:text-gray-800 text-xs"
+              title="Minimize"
+            >
+              ➖
+            </button>
+            <button
+              onClick={() => {
+                setPlayerMode('full');
+                // Start visualization if playing
+                if (isPlaying && !visualizationIntervalRef.current) {
+                  startVisualization();
+                }
+              }}
+              className="text-gray-600 hover:text-gray-800 text-xs"
+              title="Full mode"
+            >
+              ⬜
+            </button>
+          </div>
+        </div>
+      
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={play}
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-sm transition-colors"
+          >
+            {isPlaying ? 'Stop' : 'Play'}
+          </button>
+          
+          {loop && (
+            <span className="text-xs text-gray-600">🔁</span>
+          )}
+        </div>
+        
+        {duration > 0 && (
+          <div>
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>{formatTime((progress / 100) * duration)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-blue-500 h-2 rounded-full transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+        
+        <div className="flex items-center gap-3">
+          <span className="text-sm">🔊</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={volume}
+            onChange={handleVolumeChange}
+            className="flex-1"
+            aria-label="Volume"
+          />
+          <span className="text-sm text-gray-600">{volume}%</span>
+          <button
+            onClick={() => {
+              const newState = !showVisualization;
+              setShowVisualization(newState);
+              if (newState && isPlaying) {
+                startVisualization();
+              } else {
+                stopVisualization();
+              }
+            }}
+            className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors"
+            title="Toggle retro visualizer"
+          >
+            📺
+          </button>
+          <button
+            onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
+            className={`px-3 py-1 text-sm rounded transition-colors ${
+              pianoSustainRef.current.enabled 
+                ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
+                : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+            }`}
+            title="Piano sustain pedal"
+          >
+            🎹
+          </button>
+        </div>
+
+        {/* Retro Pixel-Art Visualizer - Compact */}
+        {showVisualization && (
+          <div className="bg-black rounded border-2 border-green-400 p-2 font-mono">
+            <div className="text-green-400 text-xs mb-1 flex justify-between items-center">
+              <span>◉ VISUALIZER</span>
+              <span className="animate-pulse text-xs">●</span>
+            </div>
+            
+            {/* Spectrum Analyzer - Compact */}
+            <div className="mb-2">
+              <div className="h-12 bg-gray-900 border border-green-400 flex items-end gap-px p-1">
+                {Array.from(spectrumData.slice(0, 24)).map((value, i) => {
+                  const height = Math.max(2, (value / 255) * 40); // 2px min, 40px max
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 bg-gradient-to-t from-green-500 via-yellow-400 to-red-500"
+                      style={{ 
+                        height: `${height}px`,
+                        filter: 'contrast(1.2) saturate(1.5)', // Retro CRT effect
+                        imageRendering: 'pixelated'
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Waveform - Compact */}
+            <div className="mb-2">
+              <div className="h-8 bg-gray-900 border border-green-400 relative">
+                <svg width="100%" height="32" className="absolute inset-0">
+                  <polyline
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="1"
+                    points={Array.from(waveformData.slice(0, 48)).map((value, i) => {
+                      const x = (i / 47) * 100;
+                      const y = 16 - ((value - 128) / 127) * 16 + 16;
+                      return `${x}%,${y}`;
+                    }).join(' ')}
+                    style={{ filter: 'drop-shadow(0 0 2px #10b981)' }}
+                  />
+                  {/* Retro grid lines */}
+                  <defs>
+                    <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#065f46" strokeWidth="0.5" opacity="0.3"/>
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#grid)"/>
+                </svg>
+              </div>
+            </div>
+
+            {/* Active Notes - Retro MIDI Monitor */}
+            <div>
+              <div className="text-green-400 text-xs mb-1">
+                ACTIVE NOTES [{activeNotes.length}/32]
+              </div>
+              <div className="h-20 bg-gray-900 border border-green-400 overflow-hidden">
+                <div className="grid grid-cols-8 gap-px p-1 h-full">
+                  {Array.from({ length: 32 }).map((_, i) => {
+                    const note = activeNotes[i];
+                    const isEmpty = !note;
+                    
+                    if (isEmpty) {
+                      return (
+                        <div 
+                          key={i} 
+                          className="bg-gray-800 border border-gray-700 opacity-30"
+                          style={{ imageRendering: 'pixelated' }}
+                        />
+                      );
+                    }
+
+                    // Get instrument color (retro palette)
+                    const instrumentColors = {
+                      0: 'bg-blue-500',    // Piano
+                      40: 'bg-yellow-500', // Strings  
+                      56: 'bg-red-500',    // Brass
+                      80: 'bg-green-500',  // Synth
+                      128: 'bg-purple-500', // Drums
+                    };
+                    
+                    const instrFamily = note.instrument >= 40 && note.instrument <= 47 ? 40 :
+                                       note.instrument >= 56 && note.instrument <= 63 ? 56 :
+                                       note.instrument >= 80 && note.instrument <= 87 ? 80 :
+                                       note.instrument === 128 ? 128 : 0;
+                    
+                    const color = instrumentColors[instrFamily as keyof typeof instrumentColors] || 'bg-green-500';
+                    const intensity = Math.min(1, note.velocity / 127);
+                    
+                    return (
+                      <div 
+                        key={i}
+                        className={`${color} border border-white animate-pulse`}
+                        style={{ 
+                          opacity: intensity,
+                          imageRendering: 'pixelated',
+                          animationDuration: '0.5s'
+                        }}
+                        title={`${getNoteName(note.midiNote || 60)} (${note.frequency.toFixed(1)}Hz) vel:${note.velocity}`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* Retro Status Bar */}
+              <div className="text-green-400 text-xs mt-2 flex justify-between">
+                <span>CPU: {Math.min(99, activeNotes.length * 3)}%</span>
+                <span>VOICES: {activeNodesRef.current.length}</span>
+                <span>FREQ: 44.1kHz</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+    );
+  }
+
+  // Full mode (large, non-floating)
   return (
     <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-6 ${className}`}>
-      <h3 className="text-lg font-bold mb-4">🎵 {title}</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-bold">🎵 {title}</h3>
+        <button
+          onClick={() => setPlayerMode('compact')}
+          className="text-gray-600 hover:text-gray-800 text-sm"
+          title="Minimize to compact mode"
+        >
+          ➖
+        </button>
+      </div>
       
       <div className="space-y-4">
         <div className="flex items-center gap-4">
@@ -2296,7 +3082,140 @@ export default function MidiPlayer({
             aria-label="Volume"
           />
           <span className="text-sm text-gray-600">{volume}%</span>
+          <button
+            onClick={() => {
+              const newState = !showVisualization;
+              setShowVisualization(newState);
+              if (newState && isPlaying) {
+                startVisualization();
+              } else {
+                stopVisualization();
+              }
+            }}
+            className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors"
+            title="Toggle retro visualizer"
+          >
+            📺
+          </button>
+          <button
+            onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
+            className={`px-3 py-1 text-sm rounded transition-colors ${
+              pianoSustainRef.current.enabled 
+                ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
+                : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+            }`}
+            title="Piano sustain pedal"
+          >
+            🎹
+          </button>
         </div>
+
+        {/* Full-size Retro Visualizer */}
+        {showVisualization && (
+          <div className="bg-black rounded border-2 border-green-400 p-4 font-mono">
+            <div className="text-green-400 text-xs mb-2 flex justify-between items-center">
+              <span>◉ AUDIO VISUALIZER v1.0</span>
+              <span className="animate-pulse">●REC</span>
+            </div>
+            
+            {/* Full spectrum analyzer */}
+            <div className="mb-4">
+              <div className="text-green-400 text-xs mb-1">SPECTRUM</div>
+              <div className="h-16 bg-gray-900 border border-green-400 flex items-end gap-px p-1">
+                {Array.from(spectrumData.slice(0, 32)).map((value, i) => {
+                  const height = Math.max(2, (value / 255) * 56);
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 bg-gradient-to-t from-green-500 via-yellow-400 to-red-500"
+                      style={{ 
+                        height: `${height}px`,
+                        filter: 'contrast(1.2) saturate(1.5)',
+                        imageRendering: 'pixelated'
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Full waveform */}
+            <div className="mb-4">
+              <div className="text-green-400 text-xs mb-1">WAVEFORM</div>
+              <div className="h-12 bg-gray-900 border border-green-400 relative">
+                <svg width="100%" height="48" className="absolute inset-0">
+                  <polyline
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="1"
+                    points={Array.from(waveformData.slice(0, 64)).map((value, i) => {
+                      const x = (i / 63) * 100;
+                      const y = 48 - ((value - 128) / 127) * 24 - 24;
+                      return `${x}%,${y}`;
+                    }).join(' ')}
+                    style={{ filter: 'drop-shadow(0 0 2px #10b981)' }}
+                  />
+                </svg>
+              </div>
+            </div>
+
+            {/* Full note activity */}
+            <div>
+              <div className="text-green-400 text-xs mb-1">
+                ACTIVE NOTES [{activeNotes.length}/32]
+              </div>
+              <div className="h-20 bg-gray-900 border border-green-400 overflow-hidden">
+                <div className="grid grid-cols-8 gap-px p-1 h-full">
+                  {Array.from({ length: 32 }).map((_, i) => {
+                    const note = activeNotes[i];
+                    if (!note) {
+                      return (
+                        <div 
+                          key={i} 
+                          className="bg-gray-800 border border-gray-700 opacity-30"
+                          style={{ imageRendering: 'pixelated' }}
+                        />
+                      );
+                    }
+
+                    const instrumentColors = {
+                      0: 'bg-blue-500',
+                      40: 'bg-yellow-500',
+                      56: 'bg-red-500',
+                      128: 'bg-purple-500',
+                    };
+                    
+                    const instrFamily = note.instrument >= 40 && note.instrument <= 47 ? 40 :
+                                       note.instrument >= 56 && note.instrument <= 63 ? 56 :
+                                       note.instrument === 128 ? 128 : 0;
+                    
+                    const color = instrumentColors[instrFamily as keyof typeof instrumentColors] || 'bg-green-500';
+                    const intensity = Math.min(1, note.velocity / 127);
+                    
+                    return (
+                      <div 
+                        key={i}
+                        className={`${color} border border-white animate-pulse`}
+                        style={{ 
+                          opacity: intensity,
+                          imageRendering: 'pixelated',
+                          animationDuration: '0.5s'
+                        }}
+                        title={`${getNoteName(note.midiNote || 60)} (${note.frequency.toFixed(1)}Hz) vel:${note.velocity}`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div className="text-green-400 text-xs mt-2 flex justify-between">
+                <span>CPU: {Math.min(99, activeNotes.length * 3)}%</span>
+                <span>VOICES: {activeNodesRef.current.length}</span>
+                <span>FREQ: 44.1kHz</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -202,9 +202,7 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
           const startTime = currentTime + note.time;
           playNote(note.frequency, startTime, note.duration, note.velocity);
         });
-        
-        console.log(`GlobalAudio: Scheduled ${allNotes.length} notes for background music`);
-        
+                
         // Schedule next loop
         setTimeout(() => {
           if (midiPlayerRef.current === 'playing') {

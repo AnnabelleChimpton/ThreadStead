@@ -314,7 +314,7 @@ export default function ProfilePage({
           title={profileMidi.title}
           autoplay={profileMidi.autoplay}
           loop={profileMidi.loop}
-          compact={true}
+          compact={false}
         />
       )}
 
