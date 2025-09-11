@@ -618,7 +618,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
               <span className="text-3xl">🎼</span>
               <div>
                 <h3 className="text-lg font-semibold text-purple-800">MIDI Music Manager</h3>
-                <p className="text-sm text-purple-600">Upload and manage your profile's background music</p>
+                <p className="text-sm text-purple-600">Upload and manage your profile&apos;s background music</p>
               </div>
             </div>
             
@@ -629,7 +629,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="font-semibold text-blue-800 mb-2">💡 Music Tips</h4>
             <div className="text-sm text-blue-700 space-y-2">
-              <p>• <strong>MIDI files are perfect</strong> for profile music - they're tiny, load instantly, and create a nostalgic web atmosphere</p>
+              <p>• <strong>MIDI files are perfect</strong> for profile music - they&apos;re tiny, load instantly, and create a nostalgic web atmosphere</p>
               <p>• <strong>Keep it subtle</strong> - background music should enhance, not distract from your content</p>
               <p>• <strong>Consider your visitors</strong> - some prefer browsing without sound, so make music easy to control</p>
               <p>• <strong>Shorter loops work best</strong> - 30-60 second tracks that loop seamlessly are ideal</p>

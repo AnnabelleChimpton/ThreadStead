@@ -2922,7 +2922,7 @@ export default function MidiPlayer({
             {/* Spectrum Analyzer - Compact */}
             <div className="mb-2">
               <div className="h-8 sm:h-12 bg-gray-900 border border-green-400 flex items-end gap-px p-1">
-                {Array.from(spectrumData.slice(0, window.innerWidth < 640 ? 16 : 24)).map((value, i) => {
+                {Array.from(spectrumData.slice(0, 24)).map((value, i) => {
                   const height = Math.max(2, (value / 255) * 40); // 2px min, 40px max
                   return (
                     <div
