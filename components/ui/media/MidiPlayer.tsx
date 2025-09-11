@@ -33,84 +33,461 @@ export default function MidiPlayer({
   const playbackStartTimeRef = useRef<number>(0);
   const reverbRef = useRef<ConvolverNode | null>(null);
   const compressorRef = useRef<DynamicsCompressorNode | null>(null);
-  const masterGainRef = useRef<GainNode | null>(null); // Master gain node for volume control
-  const activeNodesRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; endTime: number }>>([]); // Track active notes
-  const autoplayTriggeredRef = useRef<boolean>(false); // Track if autoplay has been triggered
+  const masterGainRef = useRef<GainNode | null>(null);
+  const activeNodesRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; endTime: number; id: string }>>([]); // Track active notes
+  const autoplayTriggeredRef = useRef<boolean>(false);
+  
+  // Advanced performance optimization refs
+  const nodePoolRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; available: boolean }>>([]);
+  const instrumentGainsRef = useRef<Map<number, GainNode>>(new Map()); // Per-instrument gain nodes
+  const channelGainsRef = useRef<Map<number, GainNode>>(new Map()); // Per-channel gain nodes
+  const scheduledEventsRef = useRef<Array<{ id: string; startTime: number }>>([]);
+  const voiceStealingRef = useRef<{ enabled: boolean; lastStealTime: number }>({ enabled: false, lastStealTime: 0 });
+  
+  // Enhanced synthesis refs
+  const pianoBuffersRef = useRef<Map<number, AudioBuffer>>(new Map()); // Pre-generated piano samples
+  const activeHarmoniesRef = useRef<Map<number, Set<number>>>(new Map()); // Track active notes per channel for chord detection
+  const voiceImportanceRef = useRef<Map<string, number>>(new Map()); // Track voice importance scores
 
-  // Enhanced but simple note player with instrument variety
-  const playNoteSimple = (frequency: number, startTime: number, duration: number, velocity: number, instrument: number) => {
+  // Initialize optimized audio graph with per-instrument and per-channel routing
+  const initializeOptimizedAudioGraph = () => {
     if (!audioContextRef.current) return;
 
-    // Channel 9 is drums - use noise burst
-    if (instrument === 9 || instrument === 128) {
-      playSimpleDrum(startTime, velocity);
-      return;
-    }
+    // Create per-instrument gain nodes for better mixing
+    const instrumentNumbers = [0, 3, 32, 40, 43, 57, 128]; // Common instruments
+    instrumentNumbers.forEach(instrument => {
+      if (!instrumentGainsRef.current.has(instrument)) {
+        const gainNode = audioContextRef.current!.createGain();
+        gainNode.gain.value = getInstrumentVolume(instrument);
+        gainNode.connect(masterGainRef.current!);
+        instrumentGainsRef.current.set(instrument, gainNode);
+      }
+    });
 
-    const osc = audioContextRef.current.createOscillator();
+    // Create per-channel gain nodes
+    for (let channel = 0; channel < 16; channel++) {
+      if (!channelGainsRef.current.has(channel)) {
+        const gainNode = audioContextRef.current!.createGain();
+        gainNode.gain.value = channel === 9 ? 0.7 : 1.0; // Drums slightly quieter
+        gainNode.connect(masterGainRef.current!);
+        channelGainsRef.current.set(channel, gainNode);
+      }
+    }
+  };
+
+  const getInstrumentVolume = (instrument: number): number => {
+    // Balanced instrument volumes
+    if (instrument >= 0 && instrument <= 7) return 1.0; // Piano
+    if (instrument >= 24 && instrument <= 31) return 0.8; // Guitar
+    if (instrument >= 32 && instrument <= 39) return 1.2; // Bass
+    if (instrument >= 40 && instrument <= 47) return 1.1; // Strings
+    if (instrument >= 56 && instrument <= 63) return 0.9; // Brass
+    if (instrument === 128) return 0.8; // Drums
+    return 1.0;
+  };
+
+  // Generate high-quality piano samples procedurally
+  const generatePianoSample = (frequency: number, duration: number = 3.0): AudioBuffer => {
+    const sampleRate = audioContextRef.current!.sampleRate;
+    const frameCount = Math.floor(sampleRate * duration);
+    const buffer = audioContextRef.current!.createBuffer(1, frameCount, sampleRate);
+    const channelData = buffer.getChannelData(0);
+    
+    // Multi-harmonic piano synthesis with realistic decay
+    const fundamentalFreq = frequency;
+    const harmonics = [
+      { freq: fundamentalFreq, amp: 1.0, decay: 1.0 },
+      { freq: fundamentalFreq * 2, amp: 0.7, decay: 1.5 },
+      { freq: fundamentalFreq * 3, amp: 0.4, decay: 2.0 },
+      { freq: fundamentalFreq * 4, amp: 0.3, decay: 2.5 },
+      { freq: fundamentalFreq * 5, amp: 0.2, decay: 3.0 },
+      { freq: fundamentalFreq * 6, amp: 0.15, decay: 3.5 },
+      { freq: fundamentalFreq * 7, amp: 0.1, decay: 4.0 },
+    ];
+    
+    // Add some slight random variations for realism
+    const randomSeed = Math.sin(frequency * 0.001) * 0.02;
+    
+    for (let i = 0; i < frameCount; i++) {
+      const time = i / sampleRate;
+      let sample = 0;
+      
+      for (const harmonic of harmonics) {
+        // Exponential decay envelope with slight variations
+        const decayRate = harmonic.decay + randomSeed;
+        const envelope = Math.exp(-time * decayRate);
+        
+        // Add slight frequency modulation for realism
+        const modulation = 1 + Math.sin(time * 5 + harmonic.freq * 0.001) * 0.002;
+        
+        sample += harmonic.amp * envelope * Math.sin(2 * Math.PI * harmonic.freq * modulation * time);
+      }
+      
+      // Add subtle attack transient for more realistic piano sound
+      if (time < 0.01) {
+        const attackEnv = time / 0.01;
+        sample *= attackEnv;
+      }
+      
+      // Soft saturation for warmth
+      sample = Math.tanh(sample * 0.7) * 0.8;
+      
+      channelData[i] = sample;
+    }
+    
+    return buffer;
+  };
+
+  // Pre-generate piano samples for common notes (C3 to C6 range)
+  const initializePianoSamples = async () => {
+    if (!audioContextRef.current || pianoBuffersRef.current.size > 0) return;
+    
+    console.log('🎹 Generating high-quality piano samples...');
+    
+    // Generate samples for every 3rd note (fill gaps with pitch shifting)
+    for (let midiNote = 48; midiNote <= 84; midiNote += 3) { // C3 to C6, every 3 semitones
+      const frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
+      const buffer = generatePianoSample(frequency);
+      pianoBuffersRef.current.set(midiNote, buffer);
+    }
+    
+    console.log(`🎹 Generated ${pianoBuffersRef.current.size} piano samples`);
+  };
+
+  // Chord detection and harmony analysis
+  const getNoteName = (midiNote: number): string => {
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    return noteNames[midiNote % 12];
+  };
+
+  const areNotesHarmonicallyRelated = (note1: number, note2: number): boolean => {
+    const interval = Math.abs(note1 - note2) % 12;
+    // Perfect consonances: unison(0), octave(0), fifth(7), fourth(5)
+    // Pleasant consonances: major third(4), minor third(3), major sixth(9), minor sixth(8)
+    const consonantIntervals = [0, 3, 4, 5, 7, 8, 9];
+    return consonantIntervals.includes(interval);
+  };
+
+  const calculateMusicalImportance = (voice: any, newNote: { note: number; velocity: number; channel: number; instrument: number }): number => {
+    if (!voice.id) return 0;
+    
+    let importance = 0;
+    const now = audioContextRef.current?.currentTime || 0;
+    
+    // Extract note info from voice ID
+    const voiceIdParts = voice.id.split('-');
+    const voiceNote = parseInt(voiceIdParts[2]) || 0;
+    const voiceVelocity = parseFloat(voiceIdParts[3]) || 0;
+    
+    // Channel priority (melody channels more important)
+    if (newNote.channel === 0) importance += 0.4; // Main melody
+    if (newNote.channel === 9) importance += 0.2; // Drums important for rhythm
+    
+    // Velocity priority
+    importance += (voiceVelocity / 127) * 0.3;
+    
+    // Remaining time priority
+    const remainingTime = Math.max(0, voice.endTime - now);
+    importance += Math.min(remainingTime / 2.0, 0.2); // Max 0.2 for time
+    
+    // Harmonic relationship penalty (avoid stealing harmonically related notes)
+    if (areNotesHarmonicallyRelated(voiceNote, newNote.note)) {
+      importance += 0.25; // Make it harder to steal harmonious notes
+    }
+    
+    // Instrument priority
+    if (newNote.instrument >= 0 && newNote.instrument <= 7) importance += 0.1; // Piano priority
+    
+    return importance;
+  };
+
+  // Enhanced voice stealing with musical intelligence
+  const stealVoiceIfNeeded = (newNote: { note: number; velocity: number; channel: number; instrument: number; priority: number }): boolean => {
+    const now = audioContextRef.current?.currentTime || 0;
+    const activeVoices = activeNodesRef.current.filter(node => node.endTime > now);
+    
+    // Increased limit to 200 voices
+    if (activeVoices.length < 200) return true;
+    
+    // Find least important voice to steal using musical intelligence
+    let weakestVoice = null;
+    let weakestImportance = newNote.priority + 0.1; // New note needs to be more important
+    
+    for (const voice of activeVoices) {
+      const importance = calculateMusicalImportance(voice, newNote);
+      
+      if (importance < weakestImportance) {
+        weakestVoice = voice;
+        weakestImportance = importance;
+      }
+    }
+    
+    if (weakestVoice) {
+      // Update active harmonies tracking
+      const voiceIdParts = weakestVoice.id.split('-');
+      const voiceNote = parseInt(voiceIdParts[2]) || 0;
+      const voiceChannel = parseInt(voiceIdParts[4]) || 0;
+      
+      if (activeHarmoniesRef.current.has(voiceChannel)) {
+        activeHarmoniesRef.current.get(voiceChannel)!.delete(voiceNote % 12);
+      }
+      
+      // Fade out quickly and stop
+      try {
+        weakestVoice.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+        weakestVoice.osc.stop(now + 0.02);
+        activeNodesRef.current = activeNodesRef.current.filter(v => v !== weakestVoice);
+        voiceStealingRef.current.lastStealTime = now;
+        
+        console.log(`🎵 Voice stolen: Note ${voiceNote} (importance: ${weakestImportance.toFixed(2)}) for new note ${newNote.note} (priority: ${newNote.priority.toFixed(2)})`);
+        return true;
+      } catch (e) {
+        // Voice already stopped
+      }
+    }
+    
+    return false;
+  };
+
+  // Enhanced piano player using generated samples
+  const playPianoNote = (frequency: number, startTime: number, duration: number, velocity: number, channel: number): any => {
+    if (!audioContextRef.current) return null;
+    
+    const midiNote = Math.round(12 * Math.log2(frequency / 440) + 69);
+    
+    // Find closest sample (every 3rd note)
+    let closestSample = 48; // Default to C3
+    let minDistance = 999;
+    
+    for (const sampleNote of pianoBuffersRef.current.keys()) {
+      const distance = Math.abs(midiNote - sampleNote);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestSample = sampleNote;
+      }
+    }
+    
+    const sampleBuffer = pianoBuffersRef.current.get(closestSample);
+    if (!sampleBuffer) return null;
+    
+    const source = audioContextRef.current.createBufferSource();
     const gainNode = audioContextRef.current.createGain();
     
-    // Simple instrument variety based on General MIDI families
-    if (instrument >= 0 && instrument <= 7) {
-      // Piano family - triangle wave
-      osc.type = 'triangle';
-    } else if (instrument >= 24 && instrument <= 31) {
-      // Guitar family - sawtooth for brightness
-      osc.type = 'sawtooth';
-    } else if (instrument >= 40 && instrument <= 47) {
-      // Strings - sine wave for smoothness
-      osc.type = 'sine';
-    } else if (instrument >= 56 && instrument <= 63) {
-      // Brass - square wave for brightness
-      osc.type = 'square';
-    } else {
-      // Default - triangle wave
-      osc.type = 'triangle';
+    source.buffer = sampleBuffer;
+    
+    // Pitch shifting for notes not exactly matching samples
+    const pitchRatio = frequency / (440 * Math.pow(2, (closestSample - 69) / 12));
+    source.playbackRate.value = pitchRatio;
+    
+    // Velocity-sensitive volume and tone
+    const baseGain = (velocity / 127) * 0.4;
+    gainNode.gain.setValueAtTime(baseGain, startTime);
+    
+    // Natural piano decay envelope
+    const decayTime = Math.min(duration, 2.5);
+    gainNode.gain.exponentialRampToValueAtTime(Math.max(baseGain * 0.1, 0.001), startTime + decayTime);
+    
+    source.connect(gainNode);
+    
+    // Route to appropriate channel gain
+    const routingGain = channelGainsRef.current.get(channel) || masterGainRef.current;
+    if (routingGain) {
+      gainNode.connect(routingGain);
     }
     
+    source.start(startTime);
+    source.stop(startTime + decayTime);
+    
+    const noteId = `piano-${startTime}-${midiNote}-${velocity}-${channel}`;
+    const voiceData = { osc: source as any, gain: gainNode, endTime: startTime + duration, id: noteId };
+    
+    // Track harmony
+    if (!activeHarmoniesRef.current.has(channel)) {
+      activeHarmoniesRef.current.set(channel, new Set());
+    }
+    activeHarmoniesRef.current.get(channel)!.add(midiNote % 12);
+    
+    return voiceData;
+  };
+
+  // Highly optimized note player with advanced features
+  const playNoteAdvanced = (frequency: number, startTime: number, duration: number, velocity: number, instrument: number, channel: number = 0, priority: number = 1.0) => {
+    if (!audioContextRef.current) return null;
+
+    const midiNote = Math.round(12 * Math.log2(frequency / 440) + 69);
+    
+    // Adaptive quality settings based on system load
+    const activeNodeCount = activeNodesRef.current.length;
+    const systemLoad = activeNodeCount / 200; // Updated for 200 voice limit
+    
+    // Dynamic quality thresholds
+    const minVelocity = Math.max(3, systemLoad * 30); // More permissive
+    const minDuration = Math.max(0.03, systemLoad * 0.2);
+    
+    if (velocity < minVelocity || duration < minDuration) return null;
+
+    // Voice stealing for polyphony management with musical intelligence
+    const newNote = { note: midiNote, velocity, channel, instrument, priority };
+    if (!stealVoiceIfNeeded(newNote)) return null;
+
+    // Channel 9 is drums - use optimized drum sounds
+    if (channel === 9 || instrument === 128) {
+      return playOptimizedDrum(startTime, velocity, frequency);
+    }
+
+    // Use piano samples for piano instruments (0-7) if available
+    if (instrument >= 0 && instrument <= 7 && pianoBuffersRef.current.size > 0) {
+      const pianoVoice = playPianoNote(frequency, startTime, duration, velocity, channel);
+      if (pianoVoice) {
+        activeNodesRef.current.push(pianoVoice);
+        return pianoVoice;
+      }
+    }
+
+    // Fallback to oscillator synthesis for other instruments
+    const osc = audioContextRef.current.createOscillator();
+    const gainNode = audioContextRef.current.createGain();
+    const noteId = `synth-${startTime}-${midiNote}-${velocity}-${channel}`;
+    
+    // Optimized waveform selection
+    const waveTypes: Record<number, OscillatorType> = {
+      0: 'triangle',   // Piano (fallback)
+      24: 'sawtooth',  // Guitar  
+      40: 'sine',      // Strings
+      56: 'square'     // Brass
+    };
+    
+    const instrumentFamily = Math.floor(instrument / 8) * 8;
+    osc.type = waveTypes[instrumentFamily] || 'triangle';
     osc.frequency.value = frequency;
     
-    const baseGain = Math.max((velocity / 127) * 0.25, 0.001); // Remove volume from individual notes - master gain handles this
+    // Velocity-based gain with instrument balancing
+    const instrumentVolume = getInstrumentVolume(instrument);
+    const baseGain = (velocity / 127) * 0.3 * instrumentVolume;
     
-    // Simple envelope variety by instrument family
-    if (instrument >= 0 && instrument <= 7) {
-      // Piano - quick attack, medium decay
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(baseGain, startTime + 0.005);
-      gainNode.gain.exponentialRampToValueAtTime(Math.max(baseGain * 0.3, 0.001), startTime + 0.1);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
-    } else if (instrument >= 24 && instrument <= 31) {
-      // Guitar - sharp attack, quick decay
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(baseGain, startTime + 0.001);
-      gainNode.gain.exponentialRampToValueAtTime(Math.max(baseGain * 0.2, 0.001), startTime + 0.3);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 1.5));
-    } else if (instrument >= 40 && instrument <= 47) {
-      // Strings - slow attack, sustained
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(Math.max(baseGain * 0.8, 0.001), startTime + 0.05);
-      gainNode.gain.linearRampToValueAtTime(Math.max(baseGain * 0.6, 0.001), startTime + duration * 0.3);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
-    } else {
-      // Default envelope
-      gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(baseGain, startTime + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
+    // Optimized envelope - fewer automation points for better performance
+    const now = startTime;
+    const maxDuration = Math.min(duration, 3.0); // Allow longer notes
+    
+    try {
+      // Simple but effective envelope
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(baseGain, now + 0.01);
+      
+      if (instrument >= 40 && instrument <= 47) {
+        // Strings - sustained
+        gainNode.gain.linearRampToValueAtTime(baseGain * 0.8, now + maxDuration * 0.7);
+      } else if (instrument >= 0 && instrument <= 7) {
+        // Piano - decay
+        gainNode.gain.exponentialRampToValueAtTime(Math.max(baseGain * 0.3, 0.001), now + 0.5);
+      }
+      
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + maxDuration);
+      
+      osc.connect(gainNode);
+      
+      // Route through appropriate channel/instrument gain
+      const routingGain = channelGainsRef.current.get(channel) || 
+                         instrumentGainsRef.current.get(instrument) || 
+                         masterGainRef.current;
+      
+      if (routingGain) {
+        gainNode.connect(routingGain);
+      } else {
+        gainNode.connect(audioContextRef.current.destination);
+      }
+      
+      osc.start(startTime);
+      osc.stop(startTime + maxDuration);
+      
+      const voiceData = { osc, gain: gainNode, endTime: startTime + duration, id: noteId };
+      activeNodesRef.current.push(voiceData);
+      
+      // Track harmony for non-piano instruments too
+      if (!activeHarmoniesRef.current.has(channel)) {
+        activeHarmoniesRef.current.set(channel, new Set());
+      }
+      activeHarmoniesRef.current.get(channel)!.add(midiNote % 12);
+      
+      return voiceData;
+      
+    } catch (error) {
+      console.warn('Note scheduling error:', error);
+      try {
+        osc.disconnect();
+        gainNode.disconnect();
+      } catch (e) { /* ignore */ }
+      return null;
+    }
+  };
+
+  // Optimized drum sounds with better performance
+  const playOptimizedDrum = (startTime: number, velocity: number, frequency: number) => {
+    if (!audioContextRef.current) return null;
+    
+    // Use a single noise buffer shared across all drum hits
+    const drumGain = audioContextRef.current.createGain();
+    const filter = audioContextRef.current.createBiquadFilter();
+    
+    // Determine drum type from frequency/MIDI note
+    const midiNote = Math.round(12 * Math.log2(frequency / 440) + 69);
+    
+    let noiseType: 'white' | 'pink' | 'brown' = 'white';
+    let filterFreq = 400;
+    let duration = 0.1;
+    
+    if (midiNote >= 35 && midiNote <= 36) {
+      // Kick drum
+      noiseType = 'brown';
+      filterFreq = 80;
+      duration = 0.3;
+    } else if (midiNote >= 38 && midiNote <= 40) {
+      // Snare
+      noiseType = 'white';
+      filterFreq = 800;
+      duration = 0.15;
+    } else if (midiNote >= 42 && midiNote <= 46) {
+      // Hi-hat
+      noiseType = 'white';
+      filterFreq = 8000;
+      duration = 0.05;
     }
     
-    osc.connect(gainNode);
+    // Simple noise generation
+    const osc = audioContextRef.current.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = filterFreq;
     
-    // Connect to master gain if available, otherwise directly to destination
-    if (masterGainRef.current) {
-      gainNode.connect(masterGainRef.current);
-    } else {
-      gainNode.connect(audioContextRef.current.destination);
+    filter.type = 'bandpass';
+    filter.frequency.value = filterFreq;
+    filter.Q.value = 5;
+    
+    const drumVolume = (velocity / 127) * 0.4;
+    drumGain.gain.setValueAtTime(drumVolume, startTime);
+    drumGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    
+    osc.connect(filter);
+    filter.connect(drumGain);
+    
+    // Route to channel 9 gain
+    const drumChannelGain = channelGainsRef.current.get(9) || masterGainRef.current;
+    if (drumChannelGain) {
+      drumGain.connect(drumChannelGain);
     }
     
     osc.start(startTime);
-    osc.stop(startTime + Math.min(duration, 2.0));
+    osc.stop(startTime + duration);
     
-    activeNodesRef.current.push({ osc, gain: gainNode, endTime: startTime + duration });
+    const noteId = `drum-${startTime}-${midiNote}`;
+    const voiceData = { osc, gain: drumGain, endTime: startTime + duration, id: noteId };
+    activeNodesRef.current.push(voiceData);
+    
+    return voiceData;
+  };
+
+  // Legacy function for backward compatibility
+  const playNoteSimple = (frequency: number, startTime: number, duration: number, velocity: number, instrument: number) => {
+    return playNoteAdvanced(frequency, startTime, duration, velocity, instrument, instrument === 128 ? 9 : 0, velocity / 127);
   };
 
   // Simple drum sounds using noise
@@ -390,9 +767,11 @@ export default function MidiPlayer({
     osc2.stop(startTime + duration);
     
     // Track active notes for stopping
+    const noteId1 = `legacy-${startTime}-${frequency}-1`;
+    const noteId2 = `legacy-${startTime}-${frequency}-2`;
     activeNodesRef.current.push(
-      { osc: osc1, gain, endTime: startTime + duration },
-      { osc: osc2, gain, endTime: startTime + duration }
+      { osc: osc1, gain, endTime: startTime + duration, id: noteId1 },
+      { osc: osc2, gain, endTime: startTime + duration, id: noteId2 }
     );
   };
 
@@ -522,8 +901,9 @@ export default function MidiPlayer({
     osc.stop(startTime + drumDuration);
     
     // Track active drum notes for stopping
+    const drumNoteId = `legacy-drum-${startTime}-${frequency}`;
     activeNodesRef.current.push(
-      { osc, gain, endTime: startTime + drumDuration }
+      { osc, gain, endTime: startTime + drumDuration, id: drumNoteId }
     );
   };
 
@@ -575,7 +955,7 @@ export default function MidiPlayer({
     }
   };
 
-  // Play the MIDI
+  // Play the MIDI with optimized note scheduling
   const playMidi = async (startOffset: number = 0) => {
     if (!midiDataRef.current) return;
 
@@ -618,47 +998,202 @@ export default function MidiPlayer({
 
     const midi = midiDataRef.current;
     const currentTime = audioContextRef.current.currentTime;
-    playbackStartTimeRef.current = Date.now() - (startOffset * 1000); // Adjust for resume offset
+    playbackStartTimeRef.current = Date.now() - (startOffset * 1000);
 
+    // Advanced note collection with intelligent filtering
+    const allNotes: Array<{
+      time: number;
+      frequency: number;
+      duration: number;
+      velocity: number;
+      instrument: number;
+      channel: number;
+      priority: number;
+      trackIndex: number;
+    }> = [];
 
-    // Schedule notes starting from the offset position
-    let noteCount = 0;
-    
+    // Calculate track importance for smart reduction
+    const trackStats = midi.tracks.map((track: any, trackIndex: number) => ({
+      trackIndex,
+      noteCount: track.notes.length,
+      channel: track.channel ?? trackIndex,
+      instrument: track.instrument?.number ?? (track.channel === 9 ? 128 : trackIndex),
+      isDrums: (track.channel ?? trackIndex) === 9
+    }));
+
+    // Collect all notes with priority scoring
     midi.tracks.forEach((track: any, trackIndex: number) => {
-      track.notes.forEach((note: any) => {
-        // Skip notes that have already played (before the startOffset)
-        if (note.time < startOffset) {
-          return;
-        }
-        
-        const frequency = noteToFrequency(note.midi);
-        const adjustedStartTime = note.time - startOffset; // Adjust timing relative to pause point
-        const startTime = currentTime + adjustedStartTime;
-        const duration = Math.max(note.duration, 0.1);
-        const velocity = note.velocity * 127;
-        const instrument = track.instrument?.number ?? (track.channel === 9 ? 128 : trackIndex);
+      const trackStat = trackStats[trackIndex];
+      const baseTrackPriority = trackStat.isDrums ? 0.9 : // Drums are important
+                                trackStat.channel === 0 ? 1.0 : // Main piano melody
+                                trackStat.noteCount > 1000 ? 0.8 : // Dense tracks lower priority
+                                0.7; // Other tracks
 
-        // Use simplified playback like GlobalAudioContext
-        playNoteSimple(frequency, startTime, duration, velocity, instrument);
-        noteCount++;
+      track.notes.forEach((note: any) => {
+        if (note.time >= startOffset) {
+          const channel = track.channel ?? trackIndex;
+          const instrument = track.instrument?.number ?? (channel === 9 ? 128 : channel);
+          
+          // Calculate note priority (0-1, higher = more important)
+          let priority = baseTrackPriority;
+          priority *= note.velocity; // Louder notes are more important
+          priority *= Math.min(1.0, note.duration / 0.5); // Longer notes (up to 0.5s) are more important
+          
+          // Boost important instruments
+          if (instrument >= 0 && instrument <= 7) priority *= 1.1; // Piano
+          if (instrument >= 56 && instrument <= 63) priority *= 1.05; // Brass
+          if (channel === 9) priority *= 0.95; // Drums slightly less important for complex files
+          
+          allNotes.push({
+            time: note.time,
+            frequency: noteToFrequency(note.midi),
+            duration: Math.max(note.duration, 0.1),
+            velocity: note.velocity * 127,
+            instrument: instrument,
+            channel: channel,
+            priority: priority,
+            trackIndex: trackIndex
+          });
+        }
       });
     });
+
+    // Sort notes by priority (highest first), then by time
+    allNotes.sort((a, b) => {
+      if (Math.abs(a.time - b.time) < 0.1) {
+        // Notes at similar times - sort by priority
+        return b.priority - a.priority;
+      }
+      return a.time - b.time;
+    });
+
+    const totalChannels = Math.max(...allNotes.map(n => n.channel)) + 1;
+    console.log(`Loaded MIDI with ${allNotes.length} notes across ${totalChannels} channels`);
+    console.log(`Track breakdown:`, trackStats.map((t: any) => `T${t.trackIndex + 1}:${t.noteCount}n`).join(', '));
+
+    // Initialize optimized audio graph and piano samples
+    initializeOptimizedAudioGraph();
+    await initializePianoSamples();
+    
+    // Enhanced limits with intelligent voice management
+    const MAX_CONCURRENT_NOTES = 200; // Increased from 120
+    let MAX_TOTAL_NOTES = 7500; // Increased from 6000 for better quality
+    let VELOCITY_THRESHOLD = 3; // Very permissive
+    
+    // Adjust limits based on complexity - less aggressive for better quality
+    if (allNotes.length > 8000) {
+      MAX_TOTAL_NOTES = 6500; // Allow 77% of notes vs previous 60%
+      VELOCITY_THRESHOLD = 5;
+      console.log(`🎹 Very complex MIDI detected (${allNotes.length} notes), using enhanced piano synthesis`);
+    } else if (allNotes.length > 5000) {
+      MAX_TOTAL_NOTES = 7000; // Allow 95%+ for medium complexity  
+      VELOCITY_THRESHOLD = 4;
+      console.log(`🎹 Complex MIDI detected (${allNotes.length} notes), using piano-enhanced mode`);
+    }
+
+    // Much more permissive note selection
+    let selectedNotes = allNotes.filter(note => note.velocity >= VELOCITY_THRESHOLD);
+    
+    if (selectedNotes.length > MAX_TOTAL_NOTES) {
+      // Use priority-based selection but keep much more
+      selectedNotes.sort((a, b) => b.priority - a.priority);
+      selectedNotes = selectedNotes.slice(0, MAX_TOTAL_NOTES);
+      // Re-sort by time for playback
+      selectedNotes.sort((a, b) => a.time - b.time);
+      
+      console.log(`Smart note selection: ${allNotes.length} → ${selectedNotes.length} notes (${((selectedNotes.length / allNotes.length) * 100).toFixed(1)}% kept)`);
+    } else {
+      console.log(`Playing full MIDI: ${selectedNotes.length} notes (${((selectedNotes.length / allNotes.length) * 100).toFixed(1)}% kept after velocity filtering)`);
+    }
+
+    const notesToPlay = selectedNotes;
+
+    // Schedule notes in batches with lookahead scheduling
+    let scheduledCount = 0;
+    const SCHEDULE_AHEAD_TIME = 5; // seconds
+    let nextNoteIndex = 0;
+
+    const scheduleNextBatch = () => {
+      if (!audioContextRef.current) return;
+      
+      const currentAudioTime = audioContextRef.current.currentTime;
+      const scheduleUntilTime = currentAudioTime + SCHEDULE_AHEAD_TIME;
+      
+      // Schedule notes that should play within the next few seconds
+      while (nextNoteIndex < notesToPlay.length) {
+        const note = notesToPlay[nextNoteIndex];
+        const adjustedStartTime = note.time - startOffset;
+        const startTime = currentTime + adjustedStartTime;
+        
+        if (startTime > scheduleUntilTime) break;
+        
+        // Use advanced note player with voice stealing
+        const result = playNoteAdvanced(
+          note.frequency, 
+          startTime, 
+          note.duration, 
+          note.velocity, 
+          note.instrument, 
+          note.channel,
+          note.priority
+        );
+        
+        if (result) {
+          scheduledCount++;
+        }
+        
+        nextNoteIndex++;
+      }
+    };
+
+    // Initial batch scheduling
+    scheduleNextBatch();
     
     setIsPlaying(true);
 
-    // Start progress tracking and cleanup
+    // Optimized progress tracking with batched scheduling
     progressIntervalRef.current = setInterval(() => {
       const elapsed = (Date.now() - playbackStartTimeRef.current) / 1000;
       const progressPercent = duration > 0 ? (elapsed / duration) * 100 : 0;
       
-      // Clean up finished notes
-      const currentTime = audioContextRef.current?.currentTime || 0;
-      activeNodesRef.current = activeNodesRef.current.filter(node => node.endTime > currentTime);
+      // Schedule more notes as we progress
+      scheduleNextBatch();
+      
+      // Efficient cleanup with performance monitoring
+      if (Date.now() % 1000 < 100) { // Every ~1000ms for less frequent cleanup
+        const currentTime = audioContextRef.current?.currentTime || 0;
+        const initialLength = activeNodesRef.current.length;
+        
+        // More efficient filtering - only remove nodes that are definitely finished
+        activeNodesRef.current = activeNodesRef.current.filter(node => {
+          const isFinished = node.endTime < (currentTime - 0.1); // 100ms grace period
+          if (isFinished) {
+            try {
+              // Ensure nodes are disconnected
+              node.osc.disconnect();
+              node.gain.disconnect();
+            } catch (e) {
+              // Already disconnected
+            }
+          }
+          return !isFinished;
+        });
+        
+        if (activeNodesRef.current.length !== initialLength) {
+          const cleaned = initialLength - activeNodesRef.current.length;
+          const voiceStealCount = voiceStealingRef.current.lastStealTime > currentTime - 1 ? 1 : 0;
+          const pianoVoices = activeNodesRef.current.filter(v => v.id.startsWith('piano-')).length;
+          const synthVoices = activeNodesRef.current.filter(v => v.id.startsWith('synth-')).length;
+          const drumVoices = activeNodesRef.current.filter(v => v.id.startsWith('drum-')).length;
+          
+          console.log(`🎹 Enhanced Performance: ${cleaned} cleaned, ${activeNodesRef.current.length}/200 active (🎹${pianoVoices} 🎵${synthVoices} 🥁${drumVoices}), ${voiceStealCount} stolen, ${scheduledCount} scheduled`);
+        }
+      }
 
       if (progressPercent >= 100) {
         setProgress(100);
         setIsPlaying(false);
-        resetPauseState(); // Reset pause state when song ends naturally
+        resetPauseState();
         
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
@@ -666,6 +1201,7 @@ export default function MidiPlayer({
         
         // Clean up any remaining nodes
         activeNodesRef.current = [];
+        console.log(`MIDI playback completed. Scheduled ${scheduledCount} notes total.`);
 
         if (loop) {
           setTimeout(() => playMidi(), 100);

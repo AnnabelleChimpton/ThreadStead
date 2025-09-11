@@ -173,18 +173,37 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       
       const currentTime = audioContext.currentTime;
       
-      // Schedule notes for looping playback
+      // Optimized note scheduling for looping playback
       const scheduleNotes = () => {
+        let noteCount = 0;
+        const MAX_GLOBAL_NOTES = 500; // Lower limit for background audio
+        
+        // Collect and limit notes
+        const allNotes: Array<{time: number, frequency: number, duration: number, velocity: number}> = [];
+        
         midi.tracks.forEach((track: any) => {
           track.notes.forEach((note: any) => {
-            const frequency = noteToFrequency(note.midi);
-            const startTime = currentTime + note.time;
-            const duration = Math.max(note.duration, 0.1);
-            const velocity = note.velocity * 127;
-            
-            playNote(frequency, startTime, duration, velocity);
+            if (noteCount < MAX_GLOBAL_NOTES) {
+              allNotes.push({
+                time: note.time,
+                frequency: noteToFrequency(note.midi),
+                duration: Math.max(note.duration, 0.1),
+                velocity: note.velocity * 127
+              });
+              noteCount++;
+            }
           });
         });
+        
+        // Sort by time and schedule
+        allNotes.sort((a, b) => a.time - b.time);
+        
+        allNotes.forEach(note => {
+          const startTime = currentTime + note.time;
+          playNote(note.frequency, startTime, note.duration, note.velocity);
+        });
+        
+        console.log(`GlobalAudio: Scheduled ${allNotes.length} notes for background music`);
         
         // Schedule next loop
         setTimeout(() => {

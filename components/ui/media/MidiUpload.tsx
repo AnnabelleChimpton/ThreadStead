@@ -20,7 +20,50 @@ export default function MidiUpload({ onUploadSuccess, onCancel, disabled = false
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (file: File) => {
+  const analyzeMIDIComplexity = async (file: File) => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const { Midi } = await import('@tonejs/midi');
+      const midi = new Midi(arrayBuffer);
+      
+      let totalNotes = 0;
+      let maxConcurrent = 0;
+      let currentConcurrent = 0;
+      const allEvents: Array<{time: number, type: 'on' | 'off'}> = [];
+      
+      midi.tracks.forEach(track => {
+        track.notes.forEach(note => {
+          allEvents.push({ time: note.time, type: 'on' });
+          allEvents.push({ time: note.time + note.duration, type: 'off' });
+          totalNotes++;
+        });
+      });
+      
+      allEvents.sort((a, b) => a.time - b.time);
+      
+      for (const event of allEvents) {
+        if (event.type === 'on') {
+          currentConcurrent++;
+          maxConcurrent = Math.max(maxConcurrent, currentConcurrent);
+        } else {
+          currentConcurrent = Math.max(0, currentConcurrent - 1);
+        }
+      }
+      
+      return {
+        totalNotes,
+        maxConcurrent,
+        duration: midi.duration,
+        tracks: midi.tracks.length,
+        isComplex: totalNotes > 2000 || maxConcurrent > 64
+      };
+    } catch (error) {
+      console.warn('Could not analyze MIDI complexity:', error);
+      return null;
+    }
+  };
+
+  const handleFileSelect = async (file: File) => {
     if (!file) return;
 
     // Validate file type
@@ -46,11 +89,26 @@ export default function MidiUpload({ onUploadSuccess, onCancel, disabled = false
     setSelectedFile(file);
     setError(null);
     
-    // Extract file info
+    // Extract file info and analyze complexity
     const sizeKB = (file.size / 1024).toFixed(1);
+    let complexityInfo = '';
+    
+    const complexity = await analyzeMIDIComplexity(file);
+    if (complexity) {
+      const { totalNotes, maxConcurrent, duration, tracks, isComplex } = complexity;
+      
+      if (isComplex) {
+        complexityInfo = ` ⚠️ Complex file (${totalNotes} notes)`;
+        setError(`This MIDI file is quite complex (${totalNotes} notes across ${tracks} tracks). It may have reduced playback quality for performance reasons.`);
+      } else {
+        complexityInfo = ` ✅ Optimized (${totalNotes} notes)`;
+      }
+    }
+    
     setFileInfo({
       name: file.name,
-      size: `${sizeKB} KB`,
+      size: `${sizeKB} KB${complexityInfo}`,
+      duration: complexity ? `${complexity.duration.toFixed(1)}s` : undefined,
     });
 
     // Auto-fill title from filename if empty
