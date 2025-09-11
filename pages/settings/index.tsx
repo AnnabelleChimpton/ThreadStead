@@ -597,9 +597,54 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
           </div>
 
 
-          {/* MIDI Music Section */}
-          <div className="border-t border-black pt-6">
+        </div>
+      )
+    },
+    {
+      id: "music",
+      label: "🎵 Music",
+      content: (
+        <div className="space-y-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold mb-2">Profile Music</h2>
+            <p className="text-gray-600 mb-6">
+              Add background music to your profile with MIDI files. Create the perfect soundtrack for your digital home.
+            </p>
+          </div>
+
+          {/* Enhanced MIDI Manager */}
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-3xl">🎼</span>
+              <div>
+                <h3 className="text-lg font-semibold text-purple-800">MIDI Music Manager</h3>
+                <p className="text-sm text-purple-600">Upload and manage your profile's background music</p>
+              </div>
+            </div>
+            
             <MidiManager username={username} />
+          </div>
+
+          {/* Music Tips */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-800 mb-2">💡 Music Tips</h4>
+            <div className="text-sm text-blue-700 space-y-2">
+              <p>• <strong>MIDI files are perfect</strong> for profile music - they're tiny, load instantly, and create a nostalgic web atmosphere</p>
+              <p>• <strong>Keep it subtle</strong> - background music should enhance, not distract from your content</p>
+              <p>• <strong>Consider your visitors</strong> - some prefer browsing without sound, so make music easy to control</p>
+              <p>• <strong>Shorter loops work best</strong> - 30-60 second tracks that loop seamlessly are ideal</p>
+            </div>
+          </div>
+
+          {/* Future Features Preview */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 opacity-75">
+            <h4 className="font-semibold text-gray-600 mb-2">🚀 Coming Soon</h4>
+            <div className="text-sm text-gray-500 space-y-1">
+              <p>• Multiple music tracks with playlist support</p>
+              <p>• Mood-based music selection (energetic, calm, mysterious)</p>
+              <p>• Seasonal music rotation</p>
+              <p>• Music visualization themes</p>
+            </div>
           </div>
         </div>
       )

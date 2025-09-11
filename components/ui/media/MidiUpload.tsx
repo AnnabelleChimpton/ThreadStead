@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface MidiUploadProps {
   onUploadSuccess: (media: any) => void;
@@ -19,6 +19,7 @@ export default function MidiUpload({ onUploadSuccess, onCancel, disabled = false
     duration?: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const analyzeMIDIComplexity = async (file: File) => {
     try {
@@ -288,15 +289,26 @@ export default function MidiUpload({ onUploadSuccess, onCancel, disabled = false
               disabled={disabled || uploading}
             />
             
-            <div className="space-y-2">
-              <div className="text-4xl">🎹</div>
+            <div className="space-y-3">
+              <div className="text-4xl animate-bounce">🎹</div>
               <div>
-                <p className="font-medium text-purple-700">
-                  {dragOver ? 'Drop your MIDI file here!' : 'Click to select MIDI file'}
+                <p className="font-medium text-purple-700 mb-1">
+                  {dragOver ? '🎯 Drop your MIDI file here!' : '📂 Select MIDI File'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  or drag and drop • .mid or .midi • Max 1MB
+                <p className="text-sm text-purple-600 mb-2">
+                  File dialog should open automatically, or click here
                 </p>
+                <div className="inline-flex items-center gap-4 text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <span>🎵</span> .mid or .midi files
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span>📏</span> Max 1MB
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span>🎧</span> Drag & drop supported
+                  </span>
+                </div>
               </div>
             </div>
           </div>

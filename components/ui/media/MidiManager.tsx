@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import MidiUpload from './MidiUpload';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface MidiFile {
   id: string;
@@ -21,11 +20,12 @@ export default function MidiManager({ username }: MidiManagerProps) {
   const [midiFiles, setMidiFiles] = useState<MidiFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showUpload, setShowUpload] = useState(false);
   const [selectedMidi, setSelectedMidi] = useState<string | null>(null);
   const [autoplayEnabled, setAutoplayEnabled] = useState(false);
   const [loopEnabled, setLoopEnabled] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadMidiFiles = async () => {
     try {
@@ -73,14 +73,6 @@ export default function MidiManager({ username }: MidiManagerProps) {
     loadCurrentSettings();
   }, [username]);
 
-  const handleUploadSuccess = (newMedia: any) => {
-    if (newMedia.mediaType === 'midi') {
-      setMidiFiles(prev => [newMedia, ...prev]);
-      setShowUpload(false);
-      // Reload to get the full data
-      loadMidiFiles();
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this MIDI file?')) return;
@@ -186,6 +178,86 @@ export default function MidiManager({ username }: MidiManagerProps) {
     });
   };
 
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      // Get capability token
+      const capRes = await fetch("/api/cap/media", { method: "POST" });
+      if (capRes.status === 401) {
+        setError("Please log in to upload MIDI files");
+        setUploading(false);
+        return;
+      }
+      const { token } = await capRes.json();
+
+      // Upload each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Validate file
+        const allowedTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi'];
+        const allowedExtensions = ['.mid', '.midi'];
+        
+        const hasValidType = allowedTypes.includes(file.type);
+        const hasValidExtension = allowedExtensions.some(ext => 
+          file.name.toLowerCase().endsWith(ext)
+        );
+
+        if (!hasValidType && !hasValidExtension) {
+          setError(`"${file.name}" is not a valid MIDI file`);
+          continue;
+        }
+
+        if (file.size > 1 * 1024 * 1024) {
+          setError(`"${file.name}" is too large (max 1MB)`);
+          continue;
+        }
+
+        // Create form data
+        const formData = new FormData();
+        formData.append('image', file); // Using 'image' field name for compatibility
+        formData.append('cap', token);
+        formData.append('title', file.name.replace(/\.(mid|midi)$/i, '')); // Auto title from filename
+
+        // Upload file
+        const response = await fetch('/api/media/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          // Add to local state
+          setMidiFiles(prev => [result.media, ...prev]);
+        } else {
+          setError(result.error || `Failed to upload "${file.name}"`);
+        }
+      }
+
+      // Reload files to ensure we have the latest data
+      loadMidiFiles();
+      
+    } catch (err) {
+      setError('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+      // Clear the input so the same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -196,96 +268,103 @@ export default function MidiManager({ username }: MidiManagerProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h3 className="text-lg font-bold flex items-center gap-2 mb-2">
-          <span className="text-2xl">🎵</span>
-          Profile MIDI Music
-        </h3>
-        <p className="text-gray-600">
-          Add nostalgic background music to your profile with MIDI files. Visitors can play, pause, and enjoy your musical selection.
-        </p>
+    <div className="space-y-4">
+      {/* Current Profile Music Status - Most Important Info First */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🎵</span>
+            <div>
+              <h3 className="font-semibold">Profile Music</h3>
+              {selectedMidi ? (
+                <p className="text-sm text-green-600">
+                  ✅ Background music is active ({midiFiles.find(f => f.id === selectedMidi)?.title || 'Unnamed Track'})
+                </p>
+              ) : midiFiles.length > 0 ? (
+                <p className="text-sm text-amber-600">
+                  ⚠️ You have {midiFiles.length} track{midiFiles.length === 1 ? '' : 's'} but none selected for your profile
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  No background music set up yet
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {/* Quick Upload Button */}
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".mid,.midi,audio/midi"
+              onChange={handleFileInputChange}
+              className="hidden"
+              multiple
+            />
+            <button
+              onClick={handleButtonClick}
+              disabled={uploading}
+              className={`px-3 py-1.5 text-sm border font-medium rounded transition-all ${
+                uploading 
+                  ? 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed' 
+                  : 'border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100'
+              }`}
+            >
+              {uploading ? (
+                <span className="flex items-center gap-1">
+                  <span className="animate-spin text-xs">⏳</span>
+                  Uploading...
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <span>📁</span>
+                  Add Files
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Main Control Panel */}
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h4 className="font-semibold">Music Library</h4>
-            <p className="text-sm text-gray-600 mt-1">
-              {midiFiles.length === 0 ? 'No MIDI files uploaded yet' : `${midiFiles.length} MIDI file${midiFiles.length === 1 ? '' : 's'} in your library`}
-            </p>
-          </div>
-          {!showUpload && (
-            <button
-              onClick={() => setShowUpload(true)}
-              className="px-4 py-2 border border-black bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
-            >
-              <span className="flex items-center gap-2">
-                <span>➕</span>
-                Upload MIDI
-              </span>
-            </button>
-          )}
-        </div>
+      <div className="space-y-4">
 
-        {/* Playback Settings - Only show if there are files */}
+        {/* Playback Settings - Compact version, only show if there are files */}
         {midiFiles.length > 0 && (
-          <div className="bg-white border border-purple-200 rounded p-4 space-y-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-sm">Global Playback Settings</h4>
-              {selectedMidi && (
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  Applied to selected track
-                </span>
-              )}
+              <h4 className="font-medium text-sm text-gray-700">Playback Settings</h4>
+              <button
+                onClick={saveGlobalSettings}
+                className="px-2 py-1 text-xs border border-gray-300 bg-white hover:bg-gray-50 rounded font-medium transition-colors"
+              >
+                💾 Save
+              </button>
             </div>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer hover:bg-purple-50 p-2 rounded transition-colors">
+            <div className="flex items-center gap-6 mt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={autoplayEnabled}
                   onChange={(e) => setAutoplayEnabled(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                  className="w-3 h-3 text-purple-600 focus:ring-purple-500"
                 />
-                <div>
-                  <span className="text-sm font-medium">Autoplay on profile load</span>
-                  <p className="text-xs text-gray-500">Music starts automatically when someone visits your profile</p>
-                </div>
+                <span className="text-xs text-gray-600">Autoplay when visitors arrive</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer hover:bg-purple-50 p-2 rounded transition-colors">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={loopEnabled}
                   onChange={(e) => setLoopEnabled(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                  className="w-3 h-3 text-purple-600 focus:ring-purple-500"
                 />
-                <div>
-                  <span className="text-sm font-medium">Loop continuously</span>
-                  <p className="text-xs text-gray-500">Replay the track when it ends</p>
-                </div>
+                <span className="text-xs text-gray-600">Loop continuously</span>
               </label>
-            </div>
-            <div className="flex justify-end pt-2 border-t border-purple-100">
-              <button
-                onClick={saveGlobalSettings}
-                className="px-3 py-1.5 text-sm border border-purple-300 bg-purple-100 hover:bg-purple-200 rounded font-medium transition-colors"
-              >
-                💾 Save Settings
-              </button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Upload Section */}
-      {showUpload && (
-        <MidiUpload 
-          onUploadSuccess={handleUploadSuccess}
-          onCancel={() => setShowUpload(false)}
-        />
-      )}
 
       {/* MIDI Files List */}
       {midiFiles.length > 0 && (
@@ -374,22 +453,6 @@ export default function MidiManager({ username }: MidiManagerProps) {
         </div>
       )}
 
-      {/* Empty state */}
-      {midiFiles.length === 0 && !showUpload && (
-          <div className="text-center py-12 bg-gray-50 border border-gray-200 rounded-lg">
-            <div className="text-5xl mb-3">🎼</div>
-            <h4 className="font-medium mb-2">No MIDI files yet</h4>
-            <p className="text-sm text-gray-600 mb-4">
-              Upload MIDI files to add background music to your profile
-            </p>
-            <button
-              onClick={() => setShowUpload(true)}
-              className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium"
-            >
-              Upload Your First MIDI
-            </button>
-          </div>
-      )}
 
       {error && (
         <div className="p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">

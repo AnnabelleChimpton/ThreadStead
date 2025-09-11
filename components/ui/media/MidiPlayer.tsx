@@ -2742,18 +2742,20 @@ export default function MidiPlayer({
   // Compact mode (minimal floating player)
   if (playerMode === 'compact') {
     return (
-      <div className={`fixed bottom-4 right-4 bg-white rounded-lg shadow-lg border-2 border-black p-3 z-50 ${className}`}>
-        <div className="flex items-center gap-3">
+      <div className={`fixed bottom-4 z-50 bg-white rounded-lg shadow-lg border-2 border-black p-3 ${className}
+        sm:right-4 sm:left-auto
+        max-sm:left-1/2 max-sm:transform max-sm:-translate-x-1/2 max-sm:max-w-[calc(100vw-2rem)]`}>
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={play}
-            className="w-10 h-10 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
+            className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex-shrink-0"
             aria-label={isPlaying ? 'Stop' : 'Play'}
           >
             {isPlaying ? '⏸' : '▶'}
           </button>
           
-          <div className="flex-1">
-            <div className="text-sm font-medium truncate max-w-[150px]">{title}</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs sm:text-sm font-medium truncate">{title}</div>
             {isPlaying && (
               <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
                 <div 
@@ -2809,7 +2811,9 @@ export default function MidiPlayer({
   // Hybrid mode (floating with visualizer)
   if (playerMode === 'hybrid') {
     return (
-      <div className={`fixed bottom-4 right-4 z-50 bg-white rounded-lg shadow-lg border-2 border-black p-4 ${className}`} style={{ maxWidth: '400px' }}>
+      <div className={`fixed bottom-4 z-50 bg-white rounded-lg shadow-lg border-2 border-black p-4 ${className} 
+        sm:right-4 sm:left-auto sm:max-w-[400px]
+        max-sm:left-1/2 max-sm:transform max-sm:-translate-x-1/2 max-sm:max-w-[calc(100vw-2rem)] max-sm:w-full max-sm:mx-4`}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold">🎵 {title}</h3>
           <div className="flex gap-1">
@@ -2840,7 +2844,7 @@ export default function MidiPlayer({
         <div className="flex items-center gap-2">
           <button
             onClick={play}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-sm transition-colors"
+            className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-sm transition-colors flex-shrink-0"
           >
             {isPlaying ? 'Stop' : 'Play'}
           </button>
@@ -2865,44 +2869,46 @@ export default function MidiPlayer({
           </div>
         )}
         
-        <div className="flex items-center gap-3">
-          <span className="text-sm">🔊</span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="text-sm flex-shrink-0">🔊</span>
           <input
             type="range"
             min="0"
             max="100"
             value={volume}
             onChange={handleVolumeChange}
-            className="flex-1"
+            className="flex-1 min-w-0"
             aria-label="Volume"
           />
-          <span className="text-sm text-gray-600">{volume}%</span>
-          <button
-            onClick={() => {
-              const newState = !showVisualization;
-              setShowVisualization(newState);
-              if (newState && isPlaying) {
-                startVisualization();
-              } else {
-                stopVisualization();
-              }
-            }}
-            className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors"
-            title="Toggle retro visualizer"
-          >
-            📺
-          </button>
-          <button
-            onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
-            className={`px-3 py-1 text-sm rounded transition-colors ${
-              pianoSustainRef.current.enabled 
-                ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
-                : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-            }`}
-            title="Piano sustain pedal"
-          >
-            🎹
-          </button>
+          <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">{volume}%</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => {
+                const newState = !showVisualization;
+                setShowVisualization(newState);
+                if (newState && isPlaying) {
+                  startVisualization();
+                } else {
+                  stopVisualization();
+                }
+              }}
+              className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors flex-shrink-0"
+              title="Toggle retro visualizer"
+            >
+              📺
+            </button>
+            <button
+              onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
+              className={`px-2 py-1 text-sm rounded transition-colors flex-shrink-0 ${
+                pianoSustainRef.current.enabled 
+                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
+                  : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+              }`}
+              title="Piano sustain pedal"
+            >
+              🎹
+            </button>
+          </div>
         </div>
 
         {/* Retro Pixel-Art Visualizer - Compact */}
@@ -2915,8 +2921,8 @@ export default function MidiPlayer({
             
             {/* Spectrum Analyzer - Compact */}
             <div className="mb-2">
-              <div className="h-12 bg-gray-900 border border-green-400 flex items-end gap-px p-1">
-                {Array.from(spectrumData.slice(0, 24)).map((value, i) => {
+              <div className="h-8 sm:h-12 bg-gray-900 border border-green-400 flex items-end gap-px p-1">
+                {Array.from(spectrumData.slice(0, window.innerWidth < 640 ? 16 : 24)).map((value, i) => {
                   const height = Math.max(2, (value / 255) * 40); // 2px min, 40px max
                   return (
                     <div
@@ -2935,8 +2941,8 @@ export default function MidiPlayer({
 
             {/* Waveform - Compact */}
             <div className="mb-2">
-              <div className="h-8 bg-gray-900 border border-green-400 relative">
-                <svg width="100%" height="32" className="absolute inset-0">
+              <div className="h-6 sm:h-8 bg-gray-900 border border-green-400 relative">
+                <svg width="100%" height="100%" className="absolute inset-0">
                   <polyline
                     fill="none"
                     stroke="#10b981"
@@ -2964,8 +2970,8 @@ export default function MidiPlayer({
               <div className="text-green-400 text-xs mb-1">
                 ACTIVE NOTES [{activeNotes.length}/32]
               </div>
-              <div className="h-20 bg-gray-900 border border-green-400 overflow-hidden">
-                <div className="grid grid-cols-8 gap-px p-1 h-full">
+              <div className="h-16 sm:h-20 bg-gray-900 border border-green-400 overflow-hidden">
+                <div className="grid grid-cols-6 sm:grid-cols-8 gap-px p-1 h-full">
                   {Array.from({ length: 32 }).map((_, i) => {
                     const note = activeNotes[i];
                     const isEmpty = !note;
@@ -3014,10 +3020,10 @@ export default function MidiPlayer({
               </div>
               
               {/* Retro Status Bar */}
-              <div className="text-green-400 text-xs mt-2 flex justify-between">
-                <span>CPU: {Math.min(99, activeNotes.length * 3)}%</span>
-                <span>VOICES: {activeNodesRef.current.length}</span>
-                <span>FREQ: 44.1kHz</span>
+              <div className="text-green-400 text-xs mt-2 flex justify-between gap-2 overflow-hidden">
+                <span className="flex-shrink-0">CPU: {Math.min(99, activeNotes.length * 3)}%</span>
+                <span className="flex-shrink-0 hidden sm:inline">VOICES: {activeNodesRef.current.length}</span>
+                <span className="flex-shrink-0">FREQ: 44.1kHz</span>
               </div>
             </div>
           </div>
@@ -3029,12 +3035,12 @@ export default function MidiPlayer({
 
   // Full mode (large, non-floating)
   return (
-    <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-6 ${className}`}>
+    <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-4 sm:p-6 ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold">🎵 {title}</h3>
+        <h3 className="text-base sm:text-lg font-bold truncate flex-1">🎵 {title}</h3>
         <button
           onClick={() => setPlayerMode('compact')}
-          className="text-gray-600 hover:text-gray-800 text-sm"
+          className="text-gray-600 hover:text-gray-800 text-sm flex-shrink-0 ml-2"
           title="Minimize to compact mode"
         >
           ➖
@@ -3042,10 +3048,10 @@ export default function MidiPlayer({
       </div>
       
       <div className="space-y-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             onClick={play}
-            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+            className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex-shrink-0"
           >
             {isPlaying ? 'Stop' : 'Play'}
           </button>
@@ -3070,44 +3076,46 @@ export default function MidiPlayer({
           </div>
         )}
         
-        <div className="flex items-center gap-3">
-          <span className="text-sm">🔊</span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="text-sm flex-shrink-0">🔊</span>
           <input
             type="range"
             min="0"
             max="100"
             value={volume}
             onChange={handleVolumeChange}
-            className="flex-1"
+            className="flex-1 min-w-0"
             aria-label="Volume"
           />
-          <span className="text-sm text-gray-600">{volume}%</span>
-          <button
-            onClick={() => {
-              const newState = !showVisualization;
-              setShowVisualization(newState);
-              if (newState && isPlaying) {
-                startVisualization();
-              } else {
-                stopVisualization();
-              }
-            }}
-            className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors"
-            title="Toggle retro visualizer"
-          >
-            📺
-          </button>
-          <button
-            onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
-            className={`px-3 py-1 text-sm rounded transition-colors ${
-              pianoSustainRef.current.enabled 
-                ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
-                : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-            }`}
-            title="Piano sustain pedal"
-          >
-            🎹
-          </button>
+          <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">{volume}%</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => {
+                const newState = !showVisualization;
+                setShowVisualization(newState);
+                if (newState && isPlaying) {
+                  startVisualization();
+                } else {
+                  stopVisualization();
+                }
+              }}
+              className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors flex-shrink-0"
+              title="Toggle retro visualizer"
+            >
+              📺
+            </button>
+            <button
+              onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
+              className={`px-2 py-1 text-sm rounded transition-colors flex-shrink-0 ${
+                pianoSustainRef.current.enabled 
+                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
+                  : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+              }`}
+              title="Piano sustain pedal"
+            >
+              🎹
+            </button>
+          </div>
         </div>
 
         {/* Full-size Retro Visualizer */}
@@ -3164,8 +3172,8 @@ export default function MidiPlayer({
               <div className="text-green-400 text-xs mb-1">
                 ACTIVE NOTES [{activeNotes.length}/32]
               </div>
-              <div className="h-20 bg-gray-900 border border-green-400 overflow-hidden">
-                <div className="grid grid-cols-8 gap-px p-1 h-full">
+              <div className="h-16 sm:h-20 bg-gray-900 border border-green-400 overflow-hidden">
+                <div className="grid grid-cols-6 sm:grid-cols-8 gap-px p-1 h-full">
                   {Array.from({ length: 32 }).map((_, i) => {
                     const note = activeNotes[i];
                     if (!note) {
