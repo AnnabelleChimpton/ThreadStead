@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import DecorationIcon from './DecorationIcon'
 import DecorationSVG from './DecorationSVG'
 import ThemePicker from './ThemePicker'
+import TouchDecorationPlacer from './TouchDecorationPlacer'
+import MobileItemPalette from './MobileItemPalette'
+import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
 import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 
 // Import palette colors to convert themes to explicit colors
@@ -143,6 +146,10 @@ export default function DecorationMode({
   initialHouseCustomizations,
   initialAtmosphere
 }: DecorationModeProps) {
+  // Mobile detection
+  const isMobile = useIsMobile(768)
+  const isTouch = useIsTouch()
+  
   const [placedDecorations, setPlacedDecorations] = useState<DecorationItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof BETA_ITEMS | 'themes' | 'text'>('plants')
   const [selectedItem, setSelectedItem] = useState<any>(null)
@@ -338,6 +345,31 @@ export default function DecorationMode({
       setDraggedItem(null)
       setIsDragging(false)
     }
+  }
+  
+  // Touch placement handler for mobile
+  const handleTouchPlace = (x: number, y: number) => {
+    if (!selectedItem || selectedItem.type === 'sky' || selectedItem.type === 'house_custom' || selectedItem.type === 'house_template' || selectedItem.type === 'house_color') return
+    
+    // Constrain to canvas bounds
+    const adjustedX = Math.max(0, Math.min(x - 12, 500 - 24))
+    const adjustedY = Math.max(0, Math.min(y - 12, 350 - 24))
+    
+    const newDecoration: DecorationItem = {
+      id: `${selectedItem.id}_${Date.now()}`,
+      type: selectedItem.type,
+      zone: selectedItem.zone,
+      position: { x: adjustedX, y: adjustedY },
+      variant: selectedItem.variant || 'default',
+      size: selectedItem.size || 'medium'
+    }
+    
+    const newDecorations = [...placedDecorations, newDecoration]
+    updateHistory(newDecorations)
+    
+    // Clear selection after placement on mobile for easier workflow
+    setSelectedItem(null)
+    setIsPlacing(false)
   }
 
   const handleDecorationClick = (decorationId: string, event: React.MouseEvent) => {
@@ -734,114 +766,173 @@ export default function DecorationMode({
     setShowThemeConfirm({show: false, template: 'cottage_v1', palette: 'thread_sage'})
   }
 
+  // Generate all available items for mobile palette
+  const allAvailableItems = useMemo(() => {
+    const items: any[] = []
+    
+    // Add regular decoration items
+    Object.entries(BETA_ITEMS).forEach(([category, categoryItems]) => {
+      categoryItems.forEach(item => {
+        items.push({ ...item, category })
+      })
+    })
+    
+    // Add themes
+    items.push(
+      { id: 'cottage_v1_thread_sage', name: 'Thread Sage Cottage', type: 'theme', category: 'themes' },
+      { id: 'cottage_v1_charcoal_nights', name: 'Charcoal Nights Cottage', type: 'theme', category: 'themes' },
+      { id: 'cottage_v1_pixel_petals', name: 'Pixel Petals Cottage', type: 'theme', category: 'themes' }
+    )
+    
+    // Add templates 
+    items.push(
+      { id: 'cottage_v1', name: 'Cozy Cottage', type: 'template', category: 'templates' },
+      { id: 'modern_v1', name: 'Modern Home', type: 'template', category: 'templates' },
+      { id: 'townhouse_v1', name: 'City Townhouse', type: 'template', category: 'templates' }
+    )
+    
+    // Add colors
+    items.push(
+      { id: 'wall_color', name: 'Wall Color', type: 'color', category: 'colors' },
+      { id: 'roof_color', name: 'Roof Color', type: 'color', category: 'colors' },
+      { id: 'trim_color', name: 'Trim Color', type: 'color', category: 'colors' }
+    )
+    
+    return items
+  }, [])
+
   return (
-    <div className="bg-gradient-to-b from-thread-paper to-thread-cream flex flex-col">
-      {/* Top Toolbar */}
-      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shadow-sm">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-headline font-bold text-thread-pine">
-            🎨 Decorate Your Home
+    <div className="bg-gradient-to-b from-thread-paper to-thread-cream flex flex-col h-screen">
+      {/* Top Toolbar - Mobile Responsive */}
+      <div className={`flex items-center justify-between bg-white border-b border-gray-200 shadow-sm ${
+        isMobile ? 'px-4 py-3' : 'px-6 py-4'
+      }`}>
+        <div className="flex items-center gap-2">
+          <h2 className={`font-headline font-bold text-thread-pine ${
+            isMobile ? 'text-lg' : 'text-xl'
+          }`}>
+            🎨 {isMobile ? 'Decorate' : 'Decorate Your Home'}
           </h2>
-          <span className="text-sm text-thread-sage bg-thread-cream px-3 py-1 rounded-full">
-            @{username}&apos;s Pixel Home
-          </span>
+          {!isMobile && (
+            <span className="text-sm text-thread-sage bg-thread-cream px-3 py-1 rounded-full">
+              @{username}&apos;s Pixel Home
+            </span>
+          )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
           {selectedDecorations.size > 0 && (
             <>
-              <span className="text-sm text-thread-sage px-2 py-1 bg-thread-cream rounded">
+              <span className={`text-sm text-thread-sage bg-thread-cream rounded ${
+                isMobile ? 'px-2 py-1' : 'px-2 py-1'
+              }`}>
                 {selectedDecorations.size} selected
               </span>
-              <span className="text-xs text-gray-500">Del to delete</span>
+              {!isMobile && <span className="text-xs text-gray-500">Del to delete</span>}
               <button
                 onClick={handleDeleteSelected}
-                className="px-3 py-2 bg-red-500 text-white hover:bg-red-600 rounded-lg transition-colors font-medium"
+                className={`bg-red-500 text-white hover:bg-red-600 rounded-lg transition-colors font-medium ${
+                  isMobile ? 'px-2 py-2 text-sm' : 'px-3 py-2'
+                }`}
               >
-                🗑️ Delete Selected
+                🗑️ {isMobile ? '' : 'Delete Selected'}
               </button>
               <button
                 onClick={handleDeselectAll}
-                className="px-3 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium"
+                className={`border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium ${
+                  isMobile ? 'px-2 py-2 text-sm' : 'px-3 py-2'
+                }`}
               >
-                Deselect All
+                {isMobile ? '✕' : 'Deselect All'}
+              </button>
+            </>
+          )}
+          
+          {!isMobile && (
+            <>
+              <button
+                onClick={undo}
+                disabled={history.past.length === 0}
+                className="px-3 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ↶ Undo
+              </button>
+              
+              <button
+                onClick={redo}
+                disabled={history.future.length === 0}
+                className="px-3 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ↷ Redo
+              </button>
+              
+              <button
+                onClick={handleSelectAll}
+                disabled={placedDecorations.length === 0}
+                className="px-3 py-2 border border-thread-sage text-thread-sage hover:bg-thread-cream rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Select All
+              </button>
+              
+              <button
+                onClick={handleDeleteToggle}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isDeleting 
+                    ? 'bg-red-500 text-white hover:bg-red-600' 
+                    : 'border border-red-500 text-red-500 hover:bg-red-50'
+                }`}
+              >
+                🗑️ {isDeleting ? 'Exit Delete' : 'Delete Mode'}
+              </button>
+              
+              <button
+                onClick={handleReset}
+                className="px-4 py-2 border border-thread-sage text-thread-sage hover:bg-thread-cream rounded-lg transition-colors font-medium"
+              >
+                🔄 Reset
               </button>
             </>
           )}
           
           <button
-            onClick={undo}
-            disabled={history.past.length === 0}
-            className="px-3 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            ↶ Undo
-          </button>
-          
-          <button
-            onClick={redo}
-            disabled={history.future.length === 0}
-            className="px-3 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            ↷ Redo
-          </button>
-          
-          <button
-            onClick={handleSelectAll}
-            disabled={placedDecorations.length === 0}
-            className="px-3 py-2 border border-thread-sage text-thread-sage hover:bg-thread-cream rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Select All
-          </button>
-          
-          <button
-            onClick={handleDeleteToggle}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              isDeleting 
-                ? 'bg-red-500 text-white hover:bg-red-600' 
-                : 'border border-red-500 text-red-500 hover:bg-red-50'
+            onClick={onCancel}
+            className={`border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium ${
+              isMobile ? 'px-2 py-2 text-sm' : 'px-4 py-2'
             }`}
           >
-            🗑️ {isDeleting ? 'Exit Delete' : 'Delete Mode'}
-          </button>
-          
-          <button
-            onClick={handleReset}
-            className="px-4 py-2 border border-thread-sage text-thread-sage hover:bg-thread-cream rounded-lg transition-colors font-medium"
-          >
-            🔄 Reset
-          </button>
-          
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium"
-          >
-            🏠 Return to Home Page
+            {isMobile ? '🏠' : '🏠 Return to Home Page'}
           </button>
           
           <button
             onClick={handleSave}
-            className="px-6 py-2 bg-thread-sage text-thread-paper hover:bg-thread-pine rounded-lg transition-all duration-200 font-medium hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+            className={`bg-thread-sage text-thread-paper hover:bg-thread-pine rounded-lg transition-all duration-200 font-medium hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 ${
+              isMobile ? 'px-3 py-2 text-sm' : 'px-6 py-2'
+            }`}
           >
-            💾 Save
+            {isMobile ? '💾' : '💾 Save'}
           </button>
         </div>
       </div>
 
-      {/* Main Canvas Area */}
-      <div className="flex-1 flex items-center justify-center p-8 relative">
+      {/* Main Canvas Area - Mobile Responsive */}
+      <div className={`flex-1 flex items-center justify-center relative ${
+        isMobile ? 'p-4' : 'p-8'
+      }`}>
         <div 
           className={`decoration-canvas relative ${
             draggedDecoration ? 'cursor-grabbing' :
             isDragging ? 'cursor-grabbing' : 
-            isPlacing ? 'cursor-crosshair' : 
+            isPlacing ? (isMobile ? 'cursor-pointer' : 'cursor-crosshair') : 
             isDeleting ? 'cursor-pointer' : 
             'cursor-default'
+          } ${
+            isMobile ? 'scale-75 sm:scale-90 md:scale-100' : ''
           }`}
-          onClick={handleCanvasClick}
-          onMouseMove={handleCanvasMouseMove}
-          onMouseLeave={handleCanvasMouseLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
+          onClick={!isMobile ? handleCanvasClick : undefined}
+          onMouseMove={!isMobile ? handleCanvasMouseMove : undefined}
+          onMouseLeave={!isMobile ? handleCanvasMouseLeave : undefined}
+          onDragOver={!isMobile ? handleDragOver : undefined}
+          onDrop={!isMobile ? handleDrop : undefined}
         >
           <EnhancedHouseCanvas
             template={currentTemplate}
@@ -851,9 +942,20 @@ export default function DecorationMode({
             atmosphere={atmosphere}
             isDecorationMode={true}
             onDecorationClick={handleDecorationClick}
-            onDecorationMouseDown={handleDecorationMouseDown}
+            onDecorationMouseDown={!isMobile ? handleDecorationMouseDown : undefined}
             className="shadow-2xl"
           />
+          
+          {/* Touch Decoration Placer for Mobile */}
+          {isMobile && (
+            <TouchDecorationPlacer
+              onTouchPlace={handleTouchPlace}
+              selectedDecoration={selectedItem}
+              canvasWidth={500}
+              canvasHeight={350}
+              className="touch-decoration-overlay"
+            />
+          )}
           
           {/* Enhanced selection indicators with animation */}
           {placedDecorations.map(decoration => {
@@ -918,18 +1020,61 @@ export default function DecorationMode({
         </div>
         
         {/* Enhanced status overlay */}
-        <div className="absolute top-4 left-4 bg-white bg-opacity-95 px-4 py-2 rounded-xl shadow-lg border border-gray-200 backdrop-blur-sm">
-          <div className="text-sm text-gray-700 font-medium flex items-center gap-2">
+        <div className={`absolute bg-white bg-opacity-95 rounded-xl shadow-lg border border-gray-200 backdrop-blur-sm ${
+          isMobile ? 'top-2 left-2 px-3 py-2' : 'top-4 left-4 px-4 py-2'
+        }`}>
+          <div className={`text-gray-700 font-medium flex items-center gap-2 ${
+            isMobile ? 'text-xs' : 'text-sm'
+          }`}>
             <div className={`w-2 h-2 rounded-full ${placedDecorations.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
             {placedDecorations.length} decoration{placedDecorations.length !== 1 ? 's' : ''} placed
           </div>
         </div>
+        
+        {/* Mobile Quick Actions */}
+        {isMobile && (
+          <div className="absolute top-2 right-2 flex flex-col gap-2">
+            <button
+              onClick={undo}
+              disabled={history.past.length === 0}
+              className="w-10 h-10 bg-white bg-opacity-95 border border-gray-200 rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg backdrop-blur-sm touch-manipulation active:scale-95"
+            >
+              ↶
+            </button>
+            <button
+              onClick={redo}
+              disabled={history.future.length === 0}
+              className="w-10 h-10 bg-white bg-opacity-95 border border-gray-200 rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg backdrop-blur-sm touch-manipulation active:scale-95"
+            >
+              ↷
+            </button>
+            <button
+              onClick={handleReset}
+              className="w-10 h-10 bg-white bg-opacity-95 border border-gray-200 rounded-lg flex items-center justify-center shadow-lg backdrop-blur-sm touch-manipulation active:scale-95"
+            >
+              🔄
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Bottom Decoration Palette */}
-      <div className="bg-white border-t border-gray-200 shadow-lg">
-        {/* Category Tabs */}
-        <div className="flex border-b border-gray-200 px-4">
+      {/* Bottom Decoration Palette - Mobile Responsive */}
+      <div className={`bg-white border-t border-gray-200 shadow-lg ${
+        isMobile ? 'h-80' : 'h-auto'
+      }`}>
+        {isMobile ? (
+          /* Mobile Item Palette */
+          <MobileItemPalette
+            items={allAvailableItems}
+            selectedItem={selectedItem}
+            onItemSelect={handleItemSelect}
+            className="h-full"
+          />
+        ) : (
+          /* Desktop Category Tabs and Items */
+          <>
+            {/* Category Tabs */}
+            <div className="flex border-b border-gray-200 px-4">
           <button
             onClick={() => setSelectedCategory('themes')}
             className={`py-3 px-6 text-sm font-medium capitalize whitespace-nowrap transition-all ${
@@ -1222,6 +1367,8 @@ export default function DecorationMode({
             )}
           </div>
         </div>
+            </>
+        )}
       </div>
 
       {/* Theme Confirmation Modal */}
