@@ -15,6 +15,7 @@ import FriendManager, { SelectedFriend } from "@/components/core/social/FriendMa
 import ProfileBadgeSelector from "@/components/core/profile/ProfileBadgeSelector";
 import BetaInviteCodesManager from "@/components/features/admin/BetaInviteCodesManager";
 import MidiManager from "@/components/ui/media/MidiManager";
+import ThemePicker from "@/components/pixel-homes/ThemePicker";
 // Full identity management imports
 import { 
   getExistingDid, 
@@ -94,6 +95,35 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
   const [showEmailSection, setShowEmailSection] = useState(false);
   const [emailInput, setEmailInput] = useState<string>('');
   const [isEmailLoading, setIsEmailLoading] = useState(false);
+  
+  // Pixel Home state
+  const [pixelHomeLoading, setPixelHomeLoading] = useState(false);
+
+  // Handle pixel home theme updates
+  const handlePixelHomeUpdate = async (template: string, palette: string) => {
+    if (!currentUser?.primaryHandle) return;
+    
+    setPixelHomeLoading(true);
+    try {
+      const response = await fetch(`/api/home/${username}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ houseTemplate: template, palette })
+      });
+      
+      if (response.ok) {
+        setSaveMessage("Pixel Home updated successfully!");
+        setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        throw new Error('Failed to update pixel home');
+      }
+    } catch (error) {
+      setSaveMessage("Failed to update pixel home. Please try again.");
+      setTimeout(() => setSaveMessage(null), 3000);
+    } finally {
+      setPixelHomeLoading(false);
+    }
+  };
 
   // Password auth state
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -597,6 +627,68 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
           </div>
 
 
+        </div>
+      )
+    },
+    {
+      id: "pixel-home",
+      label: "🏠 Pixel Home",
+      content: (
+        <div className="space-y-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold mb-2">Pixel Home Customization</h2>
+            <p className="text-gray-600 mb-6">
+              Customize your interactive Pixel Home - choose your house style and color palette to create your unique digital front door.
+            </p>
+          </div>
+          
+          {currentUser?.primaryHandle && (
+            <div className="bg-thread-paper border border-thread-sage rounded-lg p-4 mb-4">
+              <div className="text-center text-sm text-thread-sage mb-2">
+                Preview your current Pixel Home:
+              </div>
+              <div className="text-center space-y-2">
+                <div>
+                  <a 
+                    href={`/home/${username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors mr-2"
+                  >
+                    🏠 View My Pixel Home
+                    <span className="text-xs">↗</span>
+                  </a>
+                  <a 
+                    href={`/home/${username}/decorate`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-thread-pine text-thread-paper rounded-md hover:bg-thread-charcoal transition-colors"
+                  >
+                    🎨 Decorate Home
+                    <span className="text-xs">↗</span>
+                  </a>
+                </div>
+                <div className="text-xs text-thread-sage">
+                  Use the decorator to place decorations, change themes, and customize your home&apos;s atmosphere
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <ThemePicker 
+            onSelection={handlePixelHomeUpdate}
+            showExplanation={false}
+            className={pixelHomeLoading ? 'opacity-50 pointer-events-none' : ''}
+          />
+          
+          {pixelHomeLoading && (
+            <div className="text-center text-thread-sage">
+              <div className="inline-flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-thread-sage"></div>
+                Updating your Pixel Home...
+              </div>
+            </div>
+          )}
         </div>
       )
     },
@@ -1213,7 +1305,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
             </div>
           )}
 
-          <Tabs tabs={settingsTabs} initialId="profile" />
+          <Tabs tabs={settingsTabs} initialId={router.query.tab as string || "profile"} />
         </RetroCard>
       </Layout>
     </>

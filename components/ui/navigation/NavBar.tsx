@@ -206,6 +206,9 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             <div className="site-nav-links flex items-center gap-6">
               <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/">Home</Link>
               
+              {/* Feed promoted to top-level */}
+              <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/feed">Feed</Link>
+              
               {/* Top level custom pages before dropdowns */}
               {topLevelPages.map(page => (
                 <Link 
@@ -217,23 +220,26 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 </Link>
               ))}
               
-              {/* Discovery dropdown - show only if there are items */}
-              {(discoveryPages.length > 0 || true) && (
-                <DropdownMenu 
-                  title="Discovery"
-                  dropdownKey="discovery"
-                  activeDropdown={activeDropdown}
-                  setActiveDropdown={setActiveDropdown}
-                  items={[
-                    { href: "/feed", label: "Feed" },
-                    { href: "/directory", label: "Directory" },
-                    ...discoveryPages.map(page => ({
-                      href: `/page/${page.slug}`,
-                      label: page.title
-                    }))
-                  ]}
-                />
-              )}
+              {/* Explore dropdown - unified community browsing */}
+              <DropdownMenu 
+                title="Explore"
+                dropdownKey="explore"
+                activeDropdown={activeDropdown}
+                setActiveDropdown={setActiveDropdown}
+                items={[
+                  { href: "/neighborhood/explore/all", label: "🏘️ All Homes" },
+                  { href: "/neighborhood/explore/recent", label: "🌍 Recent Activity" },
+                  { href: "/directory", label: "📋 Directory" },
+                  ...(me?.loggedIn && me?.user?.primaryHandle ? [
+                    { href: `/home/${me.user.primaryHandle.split('@')[0]}`, label: "🏠 My Pixel Home" },
+                    { href: `/resident/${me.user.primaryHandle.split('@')[0]}`, label: "👤 My Profile" }
+                  ] : []),
+                  ...discoveryPages.map(page => ({
+                    href: `/page/${page.slug}`,
+                    label: page.title
+                  }))
+                ]}
+              />
               
               {/* ThreadRings dropdown */}
               <DropdownMenu 
@@ -340,15 +346,25 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               </Link>
             ))}
             
-            {/* Discovery Section */}
+            {/* Feed as top-level link */}
+            <Link 
+              href="/feed" 
+              className="block px-4 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
+              onClick={() => setMobileMenuOpen(false)}
+              role="menuitem"
+            >
+              Feed
+            </Link>
+            
+            {/* Explore Section - unified community browsing */}
             <div>
               <button
                 className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between"
-                onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'discovery' ? null : 'discovery')}
+                onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'explore' ? null : 'explore')}
               >
-                <span>Discovery</span>
+                <span>Explore</span>
                 <svg 
-                  className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'discovery' ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'explore' ? 'rotate-180' : ''}`}
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -356,22 +372,47 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              {mobileDropdownOpen === 'discovery' && (
+              {mobileDropdownOpen === 'explore' && (
                 <div className="ml-6 mt-2 space-y-2">
                   <Link 
-                    href="/feed" 
+                    href="/neighborhood/explore/all" 
                     className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Feed
+                    🏘️ All Homes
+                  </Link>
+                  <Link 
+                    href="/neighborhood/explore/recent" 
+                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    🌍 Recent Activity
                   </Link>
                   <Link 
                     href="/directory" 
                     className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Directory
+                    📋 Directory
                   </Link>
+                  {me?.loggedIn && me?.user?.primaryHandle && (
+                    <>
+                      <Link 
+                        href={`/home/${me.user.primaryHandle.split('@')[0]}`}
+                        className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        🏠 My Pixel Home
+                      </Link>
+                      <Link 
+                        href={`/resident/${me.user.primaryHandle.split('@')[0]}`}
+                        className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        👤 My Profile
+                      </Link>
+                    </>
+                  )}
                   {discoveryPages.map(page => (
                     <Link 
                       key={page.id}

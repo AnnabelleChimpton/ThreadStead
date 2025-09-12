@@ -112,6 +112,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.error('Failed to generate beta invite codes for new user:', codeError);
       }
       
+      // Create default pixel home configuration for new user
+      try {
+        // Add some variety to default homes
+        const templates = ['cottage_v1', 'townhouse_v1', 'loft_v1', 'cabin_v1'];
+        const palettes = ['thread_sage', 'charcoal_nights', 'pixel_petals', 'crt_glow', 'classic_linen'];
+        
+        // Use user ID to deterministically pick a template and palette
+        const userIdHash = user.id.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+        const randomTemplate = templates[userIdHash % templates.length];
+        const randomPalette = palettes[(userIdHash * 2) % palettes.length];
+        
+        await db.userHomeConfig.create({
+          data: {
+            userId: user.id,
+            houseTemplate: randomTemplate,
+            palette: randomPalette,
+            bookSkin: 'linen_v1',
+            seasonalOptIn: false,
+            preferPixelHome: false
+          }
+        });
+      } catch (homeError) {
+        // Log error but don't fail user creation
+        console.error('Failed to create default home config for new user:', homeError);
+      }
+      
     } catch (error: unknown) {
       const errorMessage = (error as Error).message;
       return res.status(400).json({ error: errorMessage });

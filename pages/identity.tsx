@@ -680,7 +680,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                 </p>
                 <div className="bg-amber-100 border border-amber-200 rounded p-3 mb-4">
                   <p className="text-sm text-amber-800">
-                    <strong>Logged in as:</strong> @{initialUser?.primaryHandle}
+                    <strong>Logged in as:</strong> @{initialUser?.primaryHandle?.split('@')[0]}
                   </p>
                   <p className="text-sm text-amber-700">
                     But your browser doesn&apos;t have the matching identity keys stored locally.
@@ -720,7 +720,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               {initialUser?.primaryHandle && (
                 <div>
                   <label className="text-sm font-medium text-thread-sage block mb-1">Username:</label>
-                  <span className="text-thread-pine font-medium">{initialUser.primaryHandle}</span>
+                  <span className="text-thread-pine font-medium">{initialUser.primaryHandle?.split('@')[0]}</span>
                 </div>
               )}
               <div className="flex items-center gap-2">

@@ -59,9 +59,8 @@ export default function UserDropdown() {
     return null;
   }
 
-  const userDisplayName = me.user?.primaryHandle || me.user?.did || "User";
-  const isAdmin = me.user?.role === "admin";
   const username = me.user?.primaryHandle?.split("@")[0] || "User";
+  const isAdmin = me.user?.role === "admin";
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -70,7 +69,7 @@ export default function UserDropdown() {
         onClick={() => setIsOpen(!isOpen)}
         className="user-dropdown-trigger flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm text-thread-charcoal"
       >
-        <span className="thread-label">{userDisplayName}</span>
+        <span className="thread-label">{username}</span>
         <span className="text-xs text-thread-sage">
           {isOpen ? "▲" : "▼"}
         </span>
@@ -89,7 +88,7 @@ export default function UserDropdown() {
         >
           <div className="p-2 border-b border-thread-sage bg-thread-cream">
             <div className="text-xs thread-label">signed in as</div>
-            <div className="font-medium text-thread-pine text-xs sm:text-sm overflow-hidden text-ellipsis">{userDisplayName}</div>
+            <div className="font-medium text-thread-pine text-xs sm:text-sm overflow-hidden text-ellipsis">{username}</div>
           </div>
           
           <div className="py-1">

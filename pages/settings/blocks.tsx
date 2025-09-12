@@ -147,8 +147,8 @@ export default function BlocksPage() {
                               className="w-6 h-6 rounded-full bg-cover bg-center"
                             />
                           )}
-                          👤 {block.blockedUser.profile?.displayName || block.blockedUser.primaryHandle}
-                          <span className="text-sm text-gray-500">(@{block.blockedUser.primaryHandle})</span>
+                          👤 {block.blockedUser.profile?.displayName || block.blockedUser.primaryHandle?.split('@')[0]}
+                          <span className="text-sm text-gray-500">(@{block.blockedUser.primaryHandle?.split('@')[0]})</span>
                         </div>
                         <div className="text-sm text-gray-600">User</div>
                       </>

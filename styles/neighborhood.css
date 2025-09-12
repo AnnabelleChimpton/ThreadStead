@@ -1,0 +1,187 @@
+/* Neighborhood Street View Styles */
+
+/* Cloud animations */
+.cloud {
+  position: absolute;
+  font-size: 2rem;
+  animation: float-cloud linear infinite;
+  opacity: 0.7;
+}
+
+.cloud-1 {
+  top: 20%;
+  left: 10%;
+  animation-duration: 60s;
+}
+
+.cloud-2 {
+  top: 10%;
+  left: 50%;
+  animation-duration: 80s;
+  animation-delay: -20s;
+}
+
+.cloud-3 {
+  top: 25%;
+  left: 80%;
+  animation-duration: 70s;
+  animation-delay: -40s;
+}
+
+@keyframes float-cloud {
+  from {
+    transform: translateX(-100px);
+  }
+  to {
+    transform: translateX(calc(100vw + 100px));
+  }
+}
+
+/* House layers */
+.house-layer {
+  position: absolute;
+  width: max-content;
+  transition: transform 0.1s ease-out;
+}
+
+.house-layer-back {
+  z-index: 10;
+}
+
+.house-layer-middle {
+  z-index: 20;
+}
+
+.house-layer-front {
+  z-index: 30;
+}
+
+/* House interactions */
+.house-container {
+  transition: transform 0.3s ease;
+  min-width: fit-content;
+}
+
+.house-container.hover-lift:hover {
+  transform: translateY(-20px);
+}
+
+.house-wrapper.interactive {
+  position: relative;
+}
+
+.house-wrapper.interactive::after {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+.house-wrapper.interactive:hover::after {
+  opacity: 1;
+}
+
+/* Window light glow for active houses */
+.window-light-glow {
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, rgba(255, 255, 200, 0.8), transparent);
+  animation: pulse-light 2s ease-in-out infinite;
+}
+
+@keyframes pulse-light {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Street layer */
+.street-layer {
+  position: relative;
+  width: max-content;
+  min-width: 100%;
+  transition: transform 0.1s ease-out;
+}
+
+/* Scrollbar styling */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: var(--thread-cream);
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--thread-sage);
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--thread-pine);
+}
+
+/* Map View Styles */
+.neighborhood-map-view .map-perspective {
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.neighborhood-map-view .map-surface {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  aspect-ratio: 1;
+}
+
+.map-house-plot {
+  transition: all 0.3s ease;
+}
+
+.map-house-plot:hover {
+  z-index: 10;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .house-layer-back {
+    display: none; /* Hide back layer on mobile for performance */
+  }
+  
+  .house-layer-middle .house-wrapper {
+    transform: scale(0.8);
+  }
+  
+  .house-layer-front .house-wrapper {
+    transform: scale(0.9);
+  }
+  
+  .neighborhood-map-view .map-surface {
+    transform: rotateX(30deg) !important; /* Less extreme angle on mobile */
+  }
+}
+
+/* Color variables for Tailwind integration */
+:root {
+  --thread-paper: #FAF8F3;
+  --thread-cream: #F5F2E8;
+  --thread-sage: #6B7F5C;
+  --thread-pine: #3A4A2F;
+  --thread-charcoal: #2C2C2C;
+}

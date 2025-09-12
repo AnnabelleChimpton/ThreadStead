@@ -281,9 +281,9 @@ export default function ReportsSection() {
                   )}
 
                   <div className="text-sm mb-2">
-                    <strong>Reporter:</strong> {report.reporter.primaryHandle}
+                    <strong>Reporter:</strong> {report.reporter.primaryHandle?.split('@')[0]}
                     {report.reportedUser && (
-                      <span> | <strong>Reported User:</strong> {report.reportedUser.primaryHandle}</span>
+                      <span> | <strong>Reported User:</strong> {report.reportedUser.primaryHandle?.split('@')[0]}</span>
                     )}
                   </div>
 
@@ -309,7 +309,7 @@ export default function ReportsSection() {
                       <strong>Resolution:</strong> {report.resolution}
                       {report.reviewer && (
                         <div className="text-xs text-gray-600 mt-1">
-                          Reviewed by {report.reviewer.primaryHandle} on {new Date(report.reviewedAt!).toLocaleDateString()}
+                          Reviewed by {report.reviewer.primaryHandle?.split('@')[0]} on {new Date(report.reviewedAt!).toLocaleDateString()}
                         </div>
                       )}
                     </div>

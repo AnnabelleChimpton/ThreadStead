@@ -1,0 +1,170 @@
+import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
+
+interface Visitor {
+  id: string
+  username: string
+  displayName?: string
+  avatarUrl?: string
+  visitedAt: string
+}
+
+interface VisitorTrailProps {
+  username: string
+  className?: string
+}
+
+export default function VisitorTrail({ username, className = '' }: VisitorTrailProps) {
+  const [visitors, setVisitors] = useState<Visitor[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchVisitors = async () => {
+      try {
+        const response = await fetch(`/api/home/${username}/visitors`)
+        if (response.ok) {
+          const data = await response.json()
+          setVisitors(data.visitors || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch visitors:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchVisitors()
+  }, [username])
+
+  // Record the current user's visit when component mounts
+  useEffect(() => {
+    const recordVisit = async () => {
+      try {
+        await fetch(`/api/home/${username}/visitors`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+      } catch (error) {
+        // Silently fail - visit tracking is not critical
+        console.debug('Visit tracking failed:', error)
+      }
+    }
+
+    recordVisit()
+  }, [username])
+
+  if (loading || visitors.length === 0) {
+    return null
+  }
+
+  return (
+    <div className={`visitor-trail absolute ${className}`}>
+      {/* Recent Visitors Container - positioned near the house */}
+      <div className="flex flex-col items-end space-y-1">
+        {/* Visitors Label */}
+        <div className="text-xs text-thread-sage bg-thread-paper bg-opacity-90 px-2 py-1 rounded shadow-sm">
+          Recent visitors
+        </div>
+        
+        {/* Visitor Avatars */}
+        <div className="flex items-center space-x-1">
+          {visitors.map((visitor, index) => (
+            <Link
+              key={visitor.id}
+              href={`/resident/${visitor.username}`}
+              className="group relative transform transition-all duration-200 hover:scale-110"
+              style={{
+                // Stagger the avatars with slight z-index and position variations
+                zIndex: visitors.length - index,
+                transform: `translateY(${index * -2}px) translateX(${index * -4}px)`,
+                animation: `visitor-fade-in 0.5s ease-out ${index * 0.1}s both`
+              }}
+              title={`${visitor.displayName || visitor.username} visited ${getTimeAgo(visitor.visitedAt)}`}
+            >
+              <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm bg-thread-cream group-hover:border-thread-sage transition-colors">
+                {visitor.avatarUrl ? (
+                  <img
+                    src={visitor.avatarUrl}
+                    alt={`${visitor.displayName || visitor.username}'s avatar`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-thread-pine font-bold text-xs bg-gradient-to-br from-thread-cream to-thread-sage">
+                    {(visitor.displayName || visitor.username).charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              
+              {/* Hover tooltip */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                <div className="bg-thread-charcoal text-thread-paper text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg">
+                  {visitor.displayName || `@${visitor.username}`}
+                  <div className="text-thread-sage">
+                    {getTimeAgo(visitor.visitedAt)}
+                  </div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-thread-charcoal"></div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Visit counter */}
+        {visitors.length > 0 && (
+          <div className="text-xs text-thread-sage opacity-75">
+            {visitors.length} recent {visitors.length === 1 ? 'visitor' : 'visitors'}
+          </div>
+        )}
+      </div>
+
+      {/* CSS for fade-in animation */}
+      <style jsx>{`
+        @keyframes visitor-fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.8);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        .visitor-trail {
+          /* Subtle floating animation */
+          animation: visitor-float 3s ease-in-out infinite;
+        }
+        
+        @keyframes visitor-float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-2px);
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+function getTimeAgo(isoString: string): string {
+  const now = new Date()
+  const visitTime = new Date(isoString)
+  const diffMs = now.getTime() - visitTime.getTime()
+  const diffMins = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+  if (diffMins < 1) {
+    return 'just now'
+  } else if (diffMins < 60) {
+    return `${diffMins}m ago`
+  } else if (diffHours < 24) {
+    return `${diffHours}h ago`
+  } else {
+    return visitTime.toLocaleDateString(undefined, { 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  }
+}

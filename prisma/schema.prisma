@@ -36,6 +36,7 @@ model User {
   posts                     Post[]
   postThreadRingAdditions   PostThreadRing[]   @relation("PostThreadRingAdditions")
   profile                   Profile?
+  homeConfig                UserHomeConfig?
   ringHubOwnerships         RingHubOwnership[] @relation("RingHubOwnerships")
   sessions                  Session[]
   curatedThreadRings        ThreadRing[]       @relation("ThreadRingCurator")
@@ -50,6 +51,8 @@ model User {
   reportsReviewed           UserReport[]       @relation("UserReportsReviewed")
   blocksCreated             UserBlock[]        @relation("UserBlocksCreated")
   blocksReceived            UserBlock[]        @relation("UserBlocksReceived")
+  pixelHomeVisitors         PixelHomeVisitor[] @relation("PixelHomeOwner")
+  pixelHomeVisits           PixelHomeVisitor[] @relation("PixelHomeVisitor")
   betaInviteCodesGenerated  BetaInviteCode[]   @relation("BetaInviteCodesGenerated")
   betaInviteCodesUsed       BetaInviteCode[]   @relation("BetaInviteCodesUsed")
   emojisCreated             Emoji[]            @relation("EmojiCreator")
@@ -95,6 +98,71 @@ model Profile {
   templateIslands    Json?
   templateCompiledAt DateTime?
   user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserHomeConfig {
+  userId              String  @id
+  houseTemplate       String  @default("cottage_v1")
+  palette             String  @default("thread_sage")
+  bookSkin            String? @default("linen_v1")
+  seasonalOptIn       Boolean @default(false)
+  preferPixelHome     Boolean @default(false)
+  atmosphereSky       String  @default("sunny")   // sunny, cloudy, sunset, night
+  atmosphereWeather   String  @default("clear")   // clear, light_rain, light_snow
+  atmosphereTimeOfDay String  @default("midday")  // morning, midday, evening, night
+  // House color customizations
+  wallColor           String? // Override base color
+  roofColor           String? // Override primary color
+  trimColor           String? // Override secondary color
+  windowColor         String? // Override accent color
+  detailColor         String? // Override detail color
+  // House style customizations
+  windowStyle         String? @default("default") // default, round, arched, bay
+  doorStyle           String? @default("default") // default, arched, double, cottage
+  roofTrim            String? @default("default") // default, ornate, scalloped, gabled
+  // House text customizations
+  houseTitle          String? // Custom title text shown above house description (max 50 characters)
+  houseDescription    String? // Custom description text shown below house (max 200 characters)
+  houseBoardText      String? // Custom text shown on house board/sign (max 30 characters)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decorations UserHomeDecoration[]
+}
+
+model UserHomeDecoration {
+  id             String   @id @default(cuid())
+  userId         String
+  decorationType String   // plant, path, feature, seasonal
+  decorationId   String   // roses_red, stone_path, bird_bath, etc.
+  zone          String   // front_yard, house_facade, background
+  positionX     Int      // X coordinate on canvas
+  positionY     Int      // Y coordinate on canvas
+  layer         Int      @default(1) // Z-layer for rendering order
+  variant       String?  // color variant, size, etc.
+  size          String?  @default("medium") // small, medium, large
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  homeConfig UserHomeConfig @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([userId, zone])
+}
+
+model PixelHomeVisitor {
+  id           String   @id @default(cuid())
+  homeOwnerId  String
+  visitorId    String
+  visitedAt    DateTime @default(now())
+  
+  homeOwner User @relation("PixelHomeOwner", fields: [homeOwnerId], references: [id], onDelete: Cascade)
+  visitor   User @relation("PixelHomeVisitor", fields: [visitorId], references: [id], onDelete: Cascade)
+  
+  @@unique([homeOwnerId, visitorId])
+  @@index([homeOwnerId, visitedAt])
+  @@index([visitorId, visitedAt])
 }
 
 model Post {

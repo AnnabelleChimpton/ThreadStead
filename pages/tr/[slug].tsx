@@ -908,6 +908,15 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         </span>
                       </div>
 
+                      {/* Neighborhood Link */}
+                      <button
+                        onClick={() => router.push(`/neighborhood/ring/${ring.slug}`)}
+                        className="w-full text-sm border border-black px-3 py-2 bg-yellow-100 hover:bg-yellow-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
+                        title="Explore member homes in Ring Streets"
+                      >
+                        🏘️ Ring Neighborhood
+                      </button>
+
                       {/* Ring Host Settings Button */}
                       {currentUserRole === "curator" && (
                         <button
@@ -958,6 +967,17 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                           🚫 Closed to New Members
                         </div>
                       ) : null}
+
+                      {/* Neighborhood Link for non-members */}
+                      {ring.visibility !== "private" && (
+                        <button
+                          onClick={() => router.push(`/neighborhood/ring/${ring.slug}`)}
+                          className="w-full text-sm border border-black px-3 py-2 bg-yellow-100 hover:bg-yellow-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
+                          title="Explore member homes in Ring Streets"
+                        >
+                          🏘️ Explore Homes
+                        </button>
+                      )}
 
                       {/* Branch Ring button for non-members (if ring is public/unlisted) */}
                       {ring.visibility !== "private" && (

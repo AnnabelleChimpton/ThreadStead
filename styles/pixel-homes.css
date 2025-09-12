@@ -1,0 +1,192 @@
+/* Pixel Homes specific animations and styles */
+
+/* Badge sparkle animations */
+@keyframes sparkle {
+  0%, 100% { 
+    opacity: 0.6; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 1; 
+    transform: scale(1.2);
+  }
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px);
+  }
+  50% { 
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% { 
+    box-shadow: 0 0 5px rgba(142, 197, 232, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 15px rgba(142, 197, 232, 0.6);
+  }
+}
+
+.badge-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.badge-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.badge-glow {
+  animation: glow 2.5s ease-in-out infinite;
+}
+
+/* Hotspot hover effects */
+.hotspot-glow {
+  transition: all 0.2s ease-in-out;
+}
+
+.hotspot-glow:hover {
+  background-color: rgba(142, 197, 232, 0.15);
+  border-radius: 6px;
+}
+
+.hotspot-glow:focus {
+  outline: 2px solid rgba(142, 197, 232, 0.6);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* House interaction states */
+.house-container {
+  transition: transform 0.3s ease-in-out;
+}
+
+.house-container:hover {
+  transform: scale(1.02);
+}
+
+/* Seasonal decoration animations */
+@keyframes snow-fall {
+  0% { 
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% { 
+    transform: translateY(200px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes leaf-drift {
+  0% { 
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(100px) translateX(20px) rotate(180deg);
+  }
+  100% { 
+    transform: translateY(200px) translateX(-10px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.snow-particle {
+  animation: snow-fall 8s linear infinite;
+}
+
+.leaf-particle {
+  animation: leaf-drift 6s ease-in-out infinite;
+}
+
+/* Modal animations for pixel home context */
+.pixel-modal-enter {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+}
+
+.pixel-modal-enter-active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: all 0.2s ease-out;
+}
+
+.pixel-modal-exit {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.pixel-modal-exit-active {
+  opacity: 0;
+  transform: scale(0.95) translateY(-10px);
+  transition: all 0.15s ease-in;
+}
+
+/* ASCII tree styling */
+.ascii-tree {
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .house-container {
+    max-width: 280px;
+  }
+  
+  .hotspot-tooltip {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+  }
+  
+  .badge-sparkle {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .badge-sparkle,
+  .badge-float,
+  .badge-glow,
+  .snow-particle,
+  .leaf-particle {
+    animation: none;
+  }
+  
+  .hotspot-glow {
+    background-color: transparent !important;
+    border: 1px dashed #ccc;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .badge-sparkle,
+  .badge-float,
+  .badge-glow,
+  .snow-particle,
+  .leaf-particle,
+  .house-container {
+    animation: none;
+    transition: none;
+  }
+  
+  .house-container:hover {
+    transform: none;
+  }
+}

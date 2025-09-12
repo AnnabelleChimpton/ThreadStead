@@ -19,6 +19,44 @@ module.exports = {
           stone: "#B8B8B8",      // mid gray
           charcoal: "#2F2F2F",   // dark charcoal
         },
+        // Pixel Homes themed palettes
+        'pixel-homes': {
+          'thread-sage': {
+            primary: '#A18463',    // sage
+            secondary: '#2E4B3F',  // pine  
+            accent: '#8EC5E8',     // sky
+            base: '#F5E9D4',       // cream
+            detail: '#4FAF6D'      // meadow
+          },
+          'charcoal-nights': {
+            primary: '#2F2F2F',    // charcoal
+            secondary: '#B8B8B8',  // stone
+            accent: '#E27D60',     // sunset
+            base: '#FCFAF7',       // paper
+            detail: '#A18463'      // sage
+          },
+          'pixel-petals': {
+            primary: '#E27D60',    // sunset
+            secondary: '#4FAF6D',  // meadow
+            accent: '#8EC5E8',     // sky
+            base: '#F5E9D4',       // cream
+            detail: '#2E4B3F'      // pine
+          },
+          'crt-glow': {
+            primary: '#8EC5E8',    // sky
+            secondary: '#2F2F2F',  // charcoal
+            accent: '#4FAF6D',     // meadow
+            base: '#FCFAF7',       // paper
+            detail: '#E27D60'      // sunset
+          },
+          'classic-linen': {
+            primary: '#F5E9D4',    // cream
+            secondary: '#A18463',  // sage
+            accent: '#2E4B3F',     // pine
+            base: '#FCFAF7',       // paper
+            detail: '#8EC5E8'      // sky
+          }
+        },
         // Legacy retro colors for backward compatibility
         retro: {
           paper: "#FCFAF7",

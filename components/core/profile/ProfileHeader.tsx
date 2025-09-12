@@ -5,6 +5,7 @@ import FollowButton from "../social/FollowButton";
 import FriendBadge from "../social/FriendBadge";
 import MutualFriends from "../social/MutualFriends";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
+import { trackNavigation } from "../../../lib/analytics/pixel-homes";
 
 interface ProfileHeaderProps {
   username: string;
@@ -49,6 +50,14 @@ export default function ProfileHeader({
             {relStatus === "friends" && <FriendBadge />}
             <FollowButton username={username} onStatus={onRelStatusChange} />
             <MutualFriends username={username} />
+            <Link
+              href={`/home/${username}`}
+              className="ts-profile-button ts-pixel-home-button thread-button text-sm bg-thread-sage text-thread-paper hover:bg-thread-pine transition-colors"
+              title="View Pixel Home"
+              onClick={() => trackNavigation('profile', 'pixel_home', username)}
+            >
+              🏠 Pixel Home
+            </Link>
             {relStatus === "owner" && (
               <Link
                 href={`/resident/${username}/edit`}
