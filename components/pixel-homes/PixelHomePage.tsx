@@ -369,35 +369,22 @@ export default function PixelHomePage({
           {/* Center - Main House Display */}
           <div className="lg:col-span-2 flex flex-col items-center justify-start">
             <div className="bg-gradient-to-br from-thread-sky from-opacity-10 to-thread-cream rounded-3xl p-8 shadow-2xl border-4 border-thread-sage border-opacity-30 max-w-2xl w-full">
-              {/* Pure House Display - No Interactive Elements */}
+              {/* Pure House Display - Always show house */}
               <div className="flex justify-center">
-                {decorations.length > 0 || isOwner ? (
-                  <div className="relative">
-                    <EnhancedHouseCanvas
-                      template={config.houseTemplate}
-                      palette={config.palette}
-                      decorations={decorations}
-                      houseCustomizations={config.houseCustomizations as HouseCustomizations}
-                      atmosphere={atmosphere}
-                      hasUnreadGuestbook={hasUnreadGuestbook}
-                      className="w-full max-w-xl drop-shadow-2xl transform hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                ) : (
-                  <div className="relative">
-                    {/* Use raw HouseSVG instead of interactive version */}
-                    <div className="w-full max-w-xl">
-                      <InteractiveHouseSVG 
-                        template={config.houseTemplate} 
-                        palette={config.palette}
-                        customizations={config.houseCustomizations as HouseCustomizations}
-                        className="w-full h-auto drop-shadow-2xl transform hover:scale-105 transition-transform duration-500"
-                        hasUnreadGuestbook={hasUnreadGuestbook}
-                      />
-                      
-                      {/* Badge sparkles overlay - preserved for visual appeal */}
-                      {badges && badges.length > 0 && (
-                        <div className="absolute inset-0 pointer-events-none">
+                <div className="relative">
+                  <EnhancedHouseCanvas
+                    template={config.houseTemplate}
+                    palette={config.palette}
+                    decorations={decorations}
+                    houseCustomizations={config.houseCustomizations as HouseCustomizations}
+                    atmosphere={atmosphere}
+                    hasUnreadGuestbook={hasUnreadGuestbook}
+                    className="w-full max-w-xl drop-shadow-2xl transform hover:scale-105 transition-transform duration-500"
+                  />
+                  
+                  {/* Badge sparkles overlay - preserved for visual appeal */}
+                  {badges && badges.length > 0 && (
+                    <div className="absolute inset-0 pointer-events-none">
                           {badges.slice(0, 3).map((badge, index) => (
                             <div
                               key={badge.id}
@@ -429,17 +416,15 @@ export default function PixelHomePage({
                               +{badges.length - 3}
                             </div>
                           )}
-                        </div>
-                      )}
-                      
-                      {/* Visitor trail - positioned on the right side */}
-                      <VisitorTrail 
-                        username={username}
-                        className="top-4 right-4"
-                      />
                     </div>
-                  </div>
-                )}
+                  )}
+                  
+                  {/* Visitor trail - positioned on the right side */}
+                  <VisitorTrail 
+                    username={username}
+                    className="top-4 right-4"
+                  />
+                </div>
               </div>
               
               {/* House Description */}

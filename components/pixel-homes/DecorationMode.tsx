@@ -5,7 +5,7 @@ import DecorationSVG from './DecorationSVG'
 import ThemePicker from './ThemePicker'
 import TouchDecorationPlacer from './TouchDecorationPlacer'
 import MobileItemPalette from './MobileItemPalette'
-import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
+import useIsMobile, { useIsTouch, usePrefersReducedMotion } from '../../hooks/useIsMobile'
 import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 
 // Import palette colors to convert themes to explicit colors
@@ -111,15 +111,23 @@ const BETA_ITEMS = {
     { id: 'sunset_sky', name: 'Sunset', type: 'sky', zone: 'background' }
   ],
   house: [
-    { id: 'round_windows', name: 'Round Windows', type: 'house_custom', zone: 'house_facade' },
-    { id: 'arched_windows', name: 'Arched Windows', type: 'house_custom', zone: 'house_facade' },
-    { id: 'bay_windows', name: 'Bay Windows', type: 'house_custom', zone: 'house_facade' },
-    { id: 'arched_door', name: 'Arched Door', type: 'house_custom', zone: 'house_facade' },
-    { id: 'double_door', name: 'Double Door', type: 'house_custom', zone: 'house_facade' },
-    { id: 'cottage_door', name: 'Cottage Door', type: 'house_custom', zone: 'house_facade' },
-    { id: 'ornate_trim', name: 'Ornate Roof Trim', type: 'house_custom', zone: 'house_facade' },
-    { id: 'scalloped_trim', name: 'Scalloped Trim', type: 'house_custom', zone: 'house_facade' },
-    { id: 'gabled_trim', name: 'Gabled Trim', type: 'house_custom', zone: 'house_facade' }
+    // Doors Section
+    { id: 'default_door', name: 'Default Door', type: 'house_custom', zone: 'house_facade', section: 'doors', isDefault: true },
+    { id: 'arched_door', name: 'Arched Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
+    { id: 'double_door', name: 'Double Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
+    { id: 'cottage_door', name: 'Cottage Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
+    
+    // Windows Section
+    { id: 'default_windows', name: 'Default Windows', type: 'house_custom', zone: 'house_facade', section: 'windows', isDefault: true },
+    { id: 'round_windows', name: 'Round Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
+    { id: 'arched_windows', name: 'Arched Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
+    { id: 'bay_windows', name: 'Bay Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
+    
+    // Roof Trim Section
+    { id: 'default_trim', name: 'Default Trim', type: 'house_custom', zone: 'house_facade', section: 'roof', isDefault: true },
+    { id: 'ornate_trim', name: 'Ornate Roof Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
+    { id: 'scalloped_trim', name: 'Scalloped Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
+    { id: 'gabled_trim', name: 'Gabled Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' }
   ],
   templates: [
     { id: 'cottage_v1', name: 'Cottage', type: 'house_template', zone: 'house_facade' },
@@ -146,9 +154,10 @@ export default function DecorationMode({
   initialHouseCustomizations,
   initialAtmosphere
 }: DecorationModeProps) {
-  // Mobile detection
+  // Mobile detection and accessibility
   const isMobile = useIsMobile(768)
   const isTouch = useIsTouch()
+  const prefersReducedMotion = usePrefersReducedMotion()
   
   const [placedDecorations, setPlacedDecorations] = useState<DecorationItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof BETA_ITEMS | 'themes' | 'text'>('plants')
@@ -287,18 +296,21 @@ export default function DecorationMode({
       const customizationUpdate: Partial<HouseCustomizations> = {}
       
       // Map decoration IDs to customization properties
-      if (item.id.includes('windows')) {
+      if (item.id.includes('windows') || item.id === 'default_windows') {
         if (item.id === 'round_windows') customizationUpdate.windowStyle = 'round'
         else if (item.id === 'arched_windows') customizationUpdate.windowStyle = 'arched'
         else if (item.id === 'bay_windows') customizationUpdate.windowStyle = 'bay'
-      } else if (item.id.includes('door')) {
+        else if (item.id === 'default_windows') customizationUpdate.windowStyle = 'default'
+      } else if (item.id.includes('door') || item.id === 'default_door') {
         if (item.id === 'arched_door') customizationUpdate.doorStyle = 'arched'
         else if (item.id === 'double_door') customizationUpdate.doorStyle = 'double'
         else if (item.id === 'cottage_door') customizationUpdate.doorStyle = 'cottage'
-      } else if (item.id.includes('trim')) {
+        else if (item.id === 'default_door') customizationUpdate.doorStyle = 'default'
+      } else if (item.id.includes('trim') || item.id === 'default_trim') {
         if (item.id === 'ornate_trim') customizationUpdate.roofTrim = 'ornate'
         else if (item.id === 'scalloped_trim') customizationUpdate.roofTrim = 'scalloped'
         else if (item.id === 'gabled_trim') customizationUpdate.roofTrim = 'gabled'
+        else if (item.id === 'default_trim') customizationUpdate.roofTrim = 'default'
       }
       
       // Update house customizations immediately
@@ -802,7 +814,7 @@ export default function DecorationMode({
   }, [])
 
   return (
-    <div className="bg-gradient-to-b from-thread-paper to-thread-cream flex flex-col h-screen">
+    <div className="bg-gradient-to-b from-thread-paper to-thread-cream flex flex-col min-h-full">
       {/* Top Toolbar - Mobile Responsive */}
       <div className={`flex items-center justify-between bg-white border-b border-gray-200 shadow-sm ${
         isMobile ? 'px-4 py-3' : 'px-6 py-4'
@@ -905,9 +917,9 @@ export default function DecorationMode({
           
           <button
             onClick={handleSave}
-            className={`bg-thread-sage text-thread-paper hover:bg-thread-pine rounded-lg transition-all duration-200 font-medium hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 ${
+            className={`bg-thread-sage text-thread-paper hover:bg-thread-pine rounded-lg font-medium btn-save btn-hover-lift ${
               isMobile ? 'px-3 py-2 text-sm' : 'px-6 py-2'
-            }`}
+            } ${prefersReducedMotion ? 'reduce-motion' : ''}`}
           >
             {isMobile ? '💾' : '💾 Save'}
           </button>
@@ -919,7 +931,7 @@ export default function DecorationMode({
         isMobile ? 'p-4' : 'p-8'
       }`}>
         <div 
-          className={`decoration-canvas relative ${
+          className={`decoration-canvas relative house-canvas gpu-accelerated ${
             draggedDecoration ? 'cursor-grabbing' :
             isDragging ? 'cursor-grabbing' : 
             isPlacing ? (isMobile ? 'cursor-pointer' : 'cursor-crosshair') : 
@@ -963,7 +975,7 @@ export default function DecorationMode({
             return (
               <div
                 key={`selection-${decoration.id}`}
-                className="absolute pointer-events-none"
+                className={`absolute pointer-events-none decoration-item selected ${prefersReducedMotion ? 'reduce-motion' : ''}`}
                 style={{
                   left: decoration.position.x - 6,
                   top: decoration.position.y - 6,
@@ -972,9 +984,11 @@ export default function DecorationMode({
                   zIndex: 15
                 }}
               >
-                {/* Selection ring with pulse animation */}
-                <div className="absolute inset-0 border-2 border-blue-500 rounded-full animate-pulse" />
-                <div className="absolute inset-1 border border-blue-300 border-dashed rounded-full animate-ping" style={{ animationDuration: '2s' }} />
+                {/* Selection ring with enhanced animation */}
+                <div className="absolute inset-0 border-2 border-blue-500 rounded-full" 
+                     style={{ animation: prefersReducedMotion ? 'none' : 'selectionPulse 2s infinite' }} />
+                <div className="absolute inset-1 border border-blue-300 border-dashed rounded-full" 
+                     style={{ animation: prefersReducedMotion ? 'none' : 'spin 3s linear infinite' }} />
                 {/* Selection handles */}
                 <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full" />
                 <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
@@ -984,17 +998,17 @@ export default function DecorationMode({
             )
           })}
           
-          {/* Preview decoration with animation */}
+          {/* Preview decoration with enhanced animation */}
           {previewPosition && (selectedItem || draggedItem) && (
             <div
-              className="absolute pointer-events-none animate-pulse"
+              className={`absolute pointer-events-none decoration-item ${isDragging ? 'placing' : ''} ${prefersReducedMotion ? 'reduce-motion' : ''}`}
               style={{
                 left: previewPosition.x,
                 top: previewPosition.y,
                 zIndex: 20,
-                opacity: isDragging ? 0.8 : 0.6,
+                opacity: isDragging ? 0.9 : 0.7,
                 transform: `scale(${isDragging ? 1.1 : 1})`,
-                transition: 'transform 0.2s ease-out'
+                transition: prefersReducedMotion ? 'none' : 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
             >
               {(() => {
@@ -1060,7 +1074,7 @@ export default function DecorationMode({
 
       {/* Bottom Decoration Palette - Mobile Responsive */}
       <div className={`bg-white border-t border-gray-200 shadow-lg ${
-        isMobile ? 'h-80' : 'h-auto'
+        isMobile ? 'h-80' : 'max-h-96 min-h-0 overflow-y-auto'
       }`}>
         {isMobile ? (
           /* Mobile Item Palette */
@@ -1117,7 +1131,7 @@ export default function DecorationMode({
         </div>
 
         {/* Decoration Grid - Larger previews */}
-        <div className="p-4 overflow-x-auto">
+        <div className="p-4">
           {selectedCategory === 'themes' ? (
             <div className="max-w-4xl mx-auto">
               <ThemePicker 
@@ -1252,13 +1266,87 @@ export default function DecorationMode({
                 </div>
               </div>
             </div>
+          ) : selectedCategory === 'house' ? (
+            // House tab with organized sections
+            <div className="space-y-4">
+                {/* Group items by section */}
+                {['doors', 'windows', 'roof'].map((section) => {
+                  const sectionItems = BETA_ITEMS[selectedCategory].filter(item => 
+                    'section' in item && item.section === section
+                  )
+                  
+                  if (sectionItems.length === 0) return null
+                  
+                  const sectionTitles = {
+                    doors: 'Doors',
+                    windows: 'Windows', 
+                    roof: 'Roof Trim'
+                  }
+                  
+                  return (
+                    <div key={section} className="bg-white rounded-lg p-3 border border-gray-100">
+                      <h4 className="text-sm font-semibold text-thread-pine mb-3 px-1 flex items-center">
+                        <span className="w-2 h-2 bg-thread-sage rounded-full mr-2"></span>
+                        {sectionTitles[section as keyof typeof sectionTitles]}
+                      </h4>
+                      <div className="flex gap-2 flex-wrap">
+                        {sectionItems.map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => handleItemSelect(item)}
+                            className={`p-3 rounded-lg border-2 text-center transition-all duration-200 flex-shrink-0 group ${
+                              selectedItem?.id === item.id
+                                ? 'border-thread-sage bg-thread-cream text-thread-pine shadow-md ring-1 ring-thread-sage ring-opacity-30'
+                                : 'border-gray-200 hover:border-thread-sage hover:bg-thread-paper hover:shadow-sm'
+                            } cursor-pointer ${
+                              'isDefault' in item && item.isDefault 
+                                ? 'border-thread-sky border-opacity-50 bg-thread-sky bg-opacity-5' 
+                                : ''
+                            }`}
+                            style={{ minWidth: '90px', width: 'auto', height: '90px', maxWidth: '120px' }}
+                          >
+                            <div className="flex items-center justify-center mb-1 h-12 relative">
+                              <DecorationIcon 
+                                type={item.type} 
+                                id={item.id} 
+                                size={36}
+                                className={`drop-shadow-sm pointer-events-none transition-transform duration-200 group-hover:scale-110 ${
+                                  selectedItem?.id === item.id ? 'filter brightness-110' : ''
+                                }`}
+                                color={'color' in item ? item.color as string : undefined}
+                              />
+                              {/* Default indicator */}
+                              {'isDefault' in item && item.isDefault && (
+                                <div className="absolute -top-1 -right-1 bg-thread-sky text-white text-xs px-1 py-0.5 rounded-full text-[8px] font-medium">
+                                  DEFAULT
+                                </div>
+                              )}
+                              {/* Sparkle effect for selected items */}
+                              {selectedItem?.id === item.id && (
+                                <div className="absolute inset-0 animate-pulse">
+                                  <div className="absolute top-0 right-0 text-yellow-400 text-xs">✨</div>
+                                  <div className="absolute bottom-0 left-0 text-yellow-400 text-xs">✨</div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-xs font-medium leading-tight text-center px-2 pointer-events-none break-words">
+                              {item.name}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
           ) : (
+            // Other categories (decorations, templates, sky) with original layout
             <div className="flex gap-3 min-w-max">
               {BETA_ITEMS[selectedCategory].map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleItemSelect(item)}
-                draggable={item.type !== 'sky' && item.type !== 'house_custom' && item.type !== 'house_template' && item.type !== 'house_color'}
+                draggable={item.type !== 'sky' && item.type !== 'house_template' && item.type !== 'house_color'}
                 onDragStart={() => handleDragStart(item)}
                 onDragEnd={handleDragEnd}
                 className={`p-4 rounded-xl border-2 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1 flex-shrink-0 group ${
@@ -1266,7 +1354,7 @@ export default function DecorationMode({
                     ? 'border-thread-sage bg-thread-cream text-thread-pine shadow-lg transform scale-105 -translate-y-1 ring-2 ring-thread-sage ring-opacity-50'
                     : 'border-gray-200 hover:border-thread-sage hover:bg-thread-paper hover:shadow-md'
                 } ${
-                  item.type !== 'sky' && item.type !== 'house_custom' && item.type !== 'house_template' && item.type !== 'house_color'
+                  item.type !== 'sky' && item.type !== 'house_template' && item.type !== 'house_color'
                     ? 'cursor-grab active:cursor-grabbing hover:cursor-grab' 
                     : 'cursor-pointer'
                 }`}
@@ -1280,7 +1368,7 @@ export default function DecorationMode({
                     className={`drop-shadow-sm pointer-events-none transition-transform duration-200 group-hover:scale-110 ${
                       selectedItem?.id === item.id ? 'filter brightness-110' : ''
                     }`}
-                    color={'color' in item ? item.color : undefined}
+                    color={'color' in item ? item.color as string : undefined}
                   />
                   {/* Sparkle effect for selected items */}
                   {selectedItem?.id === item.id && (

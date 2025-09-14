@@ -19,24 +19,24 @@ interface HomeDecoration {
 interface NeighborhoodMember {
   userId: string
   username: string
-  displayName?: string
-  avatarUrl?: string
+  displayName?: string | null
+  avatarUrl?: string | null
   homeConfig: {
     houseTemplate: HouseTemplate
     palette: ColorPalette
     seasonalOptIn: boolean
     houseCustomizations?: {
-      windowStyle?: string
-      doorStyle?: string
-      roofTrim?: string
-      wallColor?: string
-      roofColor?: string
-      trimColor?: string
-      windowColor?: string
-      detailColor?: string
-      houseTitle?: string
-      houseDescription?: string
-      houseBoardText?: string
+      windowStyle?: string | null
+      doorStyle?: string | null
+      roofTrim?: string | null
+      wallColor?: string | null
+      roofColor?: string | null
+      trimColor?: string | null
+      windowColor?: string | null
+      detailColor?: string | null
+      houseTitle?: string | null
+      houseDescription?: string | null
+      houseBoardText?: string | null
     }
     atmosphere?: {
       sky: string

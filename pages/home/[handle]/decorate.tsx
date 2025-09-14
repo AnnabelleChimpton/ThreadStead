@@ -151,17 +151,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         palette: homeConfig.palette || 'thread_sage',
         initialDecorations: transformedDecorations,
         initialHouseCustomizations: {
-          windowStyle: homeConfig.windowStyle,
-          doorStyle: homeConfig.doorStyle,
-          roofTrim: homeConfig.roofTrim,
-          wallColor: homeConfig.wallColor,
-          roofColor: homeConfig.roofColor,
-          trimColor: homeConfig.trimColor,
-          windowColor: homeConfig.windowColor,
-          detailColor: homeConfig.detailColor,
-          houseTitle: homeConfig.houseTitle,
-          houseDescription: homeConfig.houseDescription,
-          houseBoardText: homeConfig.houseBoardText
+          windowStyle: homeConfig.windowStyle || null,
+          doorStyle: homeConfig.doorStyle || null,
+          roofTrim: homeConfig.roofTrim || null,
+          wallColor: homeConfig.wallColor || null,
+          roofColor: homeConfig.roofColor || null,
+          trimColor: homeConfig.trimColor || null,
+          windowColor: homeConfig.windowColor || null,
+          detailColor: homeConfig.detailColor || null,
+          houseTitle: homeConfig.houseTitle || null,
+          houseDescription: homeConfig.houseDescription || null,
+          houseBoardText: homeConfig.houseBoardText || null
         },
         initialAtmosphere: {
           sky: homeConfig.atmosphereSky || 'sunny',

@@ -7,8 +7,8 @@ import { trackNavigation } from '../../lib/analytics/pixel-homes'
 interface NeighborhoodMember {
   userId: string
   username: string
-  displayName?: string
-  avatarUrl?: string
+  displayName?: string | null
+  avatarUrl?: string | null
   homeConfig: {
     houseTemplate: HouseTemplate
     palette: ColorPalette

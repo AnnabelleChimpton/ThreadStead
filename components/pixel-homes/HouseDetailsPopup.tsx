@@ -21,24 +21,24 @@ interface HouseDetailsPopupProps {
   member: {
     userId: string
     username: string
-    displayName?: string
-    avatarUrl?: string
+    displayName?: string | null
+    avatarUrl?: string | null
     homeConfig: {
       houseTemplate: HouseTemplate
       palette: ColorPalette
       seasonalOptIn: boolean
       houseCustomizations?: {
-        windowStyle?: string
-        doorStyle?: string
-        roofTrim?: string
-        wallColor?: string
-        roofColor?: string
-        trimColor?: string
-        windowColor?: string
-        detailColor?: string
-        houseTitle?: string
-        houseDescription?: string
-        houseBoardText?: string
+        windowStyle?: string | null
+        doorStyle?: string | null
+        roofTrim?: string | null
+        wallColor?: string | null
+        roofColor?: string | null
+        trimColor?: string | null
+        windowColor?: string | null
+        detailColor?: string | null
+        houseTitle?: string | null
+        houseDescription?: string | null
+        houseBoardText?: string | null
       }
       atmosphere?: {
         sky: string
@@ -70,24 +70,38 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
     timeOfDay: 'midday' as const
   })
 
+  // Reset decorations whenever member changes (using userId as dependency for reliable detection)
+  useEffect(() => {
+    if (member) {
+      setDecorations([])
+    }
+  }, [member?.userId])
+
   useEffect(() => {
     if (isOpen && member) {
-      // Always load decorations from API to get correct format
-      loadDecorations()
+      // Ensure clean state - double safety net
+      setDecorations([])
+      
+      // Use server-side decorations first if available
+      if (member.homeConfig.decorations && member.homeConfig.decorations.length > 0) {
+        setDecorations(member.homeConfig.decorations)
+      } else {
+        // Fallback to API only if no server data
+        loadDecorations()
+      }
       
       // Set atmosphere from member data if available
       if (member.homeConfig.atmosphere) {
         setAtmosphere(member.homeConfig.atmosphere as any)
       }
     }
-  }, [isOpen, member])
+  }, [isOpen, member?.userId])
 
   const loadDecorations = async () => {
     try {
       const response = await fetch(`/api/home/decorations/load?username=${encodeURIComponent(member.username)}`)
       if (response.ok) {
         const data = await response.json()
-        console.log('API decoration data:', data)
         setDecorations(data.decorations || [])
         if (data.atmosphere) {
           setAtmosphere(data.atmosphere)
@@ -198,22 +212,6 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
                 @{member.username}
               </p>
               
-              {/* Activity Status */}
-              <div className="flex items-center gap-2 mt-2">
-                <div className={`w-2 h-2 rounded-full ${member.stats?.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                <span className="text-sm text-thread-cream opacity-75">
-                  {member.stats?.isActive ? 'Active recently' : 'Away'}
-                </span>
-                {member.homeConfig.decorationCount && member.homeConfig.decorationCount > 0 && (
-                  <>
-                    <span className="text-thread-cream opacity-50">•</span>
-                    <span className="text-sm text-thread-cream opacity-75">
-                      {member.homeConfig.decorationCount} decorations
-                    </span>
-                  </>
-                )}
-              </div>
-              
               {/* Connection Labels */}
               {connectionLabels.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
@@ -241,14 +239,16 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
                   template={member.homeConfig.houseTemplate}
                   palette={member.homeConfig.palette}
                   houseCustomizations={(member.homeConfig.houseCustomizations || {}) as HouseCustomizations}
-                  decorations={decorations.map(dec => ({
-                    id: dec.id,
-                    type: dec.decorationType,
-                    zone: 'front_yard' as const, // Default zone for popup decorations
-                    position: { x: dec.x, y: dec.y, layer: dec.layer },
-                    variant: dec.variant,
-                    size: dec.size
-                  }))}
+                  decorations={(() => {
+                    return decorations.map(dec => ({
+                      id: dec.decorationId + '_' + Date.now(), // Add timestamp suffix that EnhancedHouseCanvas expects
+                      type: dec.decorationType,
+                      zone: 'front_yard' as const,
+                      position: { x: dec.x, y: dec.y, layer: dec.layer },
+                      variant: dec.variant,
+                      size: dec.size
+                    }))
+                  })()}
                   atmosphere={atmosphere}
                   className="w-full h-auto"
                 />

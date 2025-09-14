@@ -34,6 +34,16 @@ interface HomeExploreData {
     }
     hasDecorations?: boolean
     decorationCount?: number
+    decorations?: {
+      id: string
+      decorationType: 'plant' | 'path' | 'feature' | 'seasonal'
+      decorationId: string
+      variant?: string
+      size?: 'small' | 'medium' | 'large'
+      x: number
+      y: number
+      layer: number
+    }[]
   }
   stats: {
     recentVisits: number
@@ -82,9 +92,14 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
 
   const handleHomeClick = (e: React.MouseEvent, home: HomeExploreData) => {
     e.preventDefault()
-    trackNavigation('pixel_home', 'pixel_home', home.username)
+    trackNavigation('profile', 'pixel_home', home.username)
     setSelectedHome(home)
     setShowPopup(true)
+  }
+
+  // Handle home click with custom source parameter
+  const handleHomeClickWithSource = (username: string, source: 'profile' | 'pixel_home' = 'profile') => {
+    trackNavigation(source, 'pixel_home', username)
   }
 
   // Convert HomeExploreData to NeighborhoodMember format for popup
@@ -102,6 +117,7 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
         atmosphere: home.homeConfig.atmosphere,
         hasDecorations: home.homeConfig.hasDecorations,
         decorationCount: home.homeConfig.decorationCount,
+        decorations: home.homeConfig.decorations,
       },
       stats: {
         isActive: home.stats.isActive

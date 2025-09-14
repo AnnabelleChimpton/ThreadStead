@@ -308,32 +308,32 @@ export default function DecorationIcon({
         case 'townhouse_v1':
           return (
             <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
-              {/* Townhouse base - taller and narrower */}
-              <rect x="7" y="12" width="10" height="10" fill="#E5D4B1" stroke="#A18463" strokeWidth="1"/>
-              {/* Flat roof with slight pitch */}
-              <path d="M6 12 L12 8 L18 12 Z" fill="#654321" stroke="#4A2C17" strokeWidth="1"/>
-              {/* Door with steps */}
-              <rect x="11" y="18" width="2.5" height="4" fill="#8B4513"/>
+              {/* Modern townhouse base */}
+              <rect x="5" y="10" width="14" height="12" fill="#E5D4B1" stroke="#A18463" strokeWidth="1"/>
+              {/* Flat modern roof */}
+              <rect x="4" y="9" width="16" height="2" fill="#654321" stroke="#4A2C17" strokeWidth="1"/>
+              {/* Modern door with steps */}
+              <rect x="11" y="17" width="2.5" height="5" fill="#8B4513"/>
               <rect x="10.5" y="21.5" width="3.5" height="0.5" fill="#9CA3AF"/>
-              {/* Larger windows */}
-              <rect x="8" y="14" width="2.5" height="3" fill="#A8E6CF" stroke="#2E4B3F" strokeWidth="0.5"/>
-              <rect x="13.5" y="14" width="2.5" height="3" fill="#A8E6CF" stroke="#2E4B3F" strokeWidth="0.5"/>
+              {/* Large modern windows */}
+              <rect x="6" y="12" width="3" height="7" fill="#A8E6CF" stroke="#2E4B3F" strokeWidth="0.5"/>
+              <rect x="15" y="12" width="3" height="7" fill="#A8E6CF" stroke="#2E4B3F" strokeWidth="0.5"/>
             </svg>
           )
         case 'loft_v1':
           return (
             <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
-              {/* Modern loft base */}
-              <rect x="5" y="10" width="14" height="12" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1"/>
-              {/* Flat modern roof */}
-              <rect x="4" y="9" width="16" height="2" fill="#4B5563" stroke="#374151" strokeWidth="1"/>
+              {/* Modern loft base - taller and narrower */}
+              <rect x="7" y="12" width="10" height="10" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1"/>
+              {/* Angular roof */}
+              <path d="M6 12 L12 8 L18 12 Z" fill="#4B5563" stroke="#374151" strokeWidth="1"/>
               {/* Modern door */}
-              <rect x="11" y="17" width="2.5" height="5" fill="#374151"/>
-              {/* Large modern windows */}
-              <rect x="6" y="12" width="3" height="7" fill="#A8E6CF" stroke="#2E4B3F" strokeWidth="0.5"/>
-              <rect x="15" y="12" width="3" height="7" fill="#A8E6CF" stroke="#2E4B3F" strokeWidth="0.5"/>
+              <rect x="11" y="18" width="2.5" height="4" fill="#374151"/>
+              {/* Larger windows */}
+              <rect x="8" y="14" width="2.5" height="3" fill="#A8E6CF" stroke="#2E4B3F" strokeWidth="0.5"/>
+              <rect x="13.5" y="14" width="2.5" height="3" fill="#A8E6CF" stroke="#2E4B3F" strokeWidth="0.5"/>
               {/* Modern detail */}
-              <rect x="7" y="8" width="10" height="1" fill="#6B7280"/>
+              <rect x="8" y="8" width="6" height="1" fill="#6B7280"/>
             </svg>
           )
         case 'cabin_v1':
