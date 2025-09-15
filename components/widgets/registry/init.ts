@@ -7,6 +7,9 @@ import { threadRingActivityWidget } from '../examples/ThreadRingActivityWidget';
 import { friendActivityWidget } from '../examples/FriendActivityWidget';
 import { trendingContentWidget } from '../examples/TrendingContentWidget';
 import { pixelHomesNeighborhoodWidget } from '../examples/PixelHomesNeighborhoodWidget';
+import { weatherWidget } from '../examples/WeatherWidget';
+import { siteNewsWidget } from '../examples/SiteNewsWidget';
+import { quickActionsWidget } from '../examples/QuickActionsWidget';
 
 // Register all widgets
 export function initializeWidgets() {
@@ -23,6 +26,13 @@ export function initializeWidgets() {
 
   // Community widgets
   widgetRegistry.register(pixelHomesNeighborhoodWidget);
+
+  // Utility widgets
+  widgetRegistry.register(weatherWidget);
+  widgetRegistry.register(quickActionsWidget);
+
+  // Information widgets
+  widgetRegistry.register(siteNewsWidget);
 }
 
 // Auto-initialize when this module is imported

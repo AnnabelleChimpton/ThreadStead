@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { WidgetProps, WidgetConfig } from '../types/widget';
 
@@ -31,6 +31,13 @@ interface NewNeighborsData {
 }
 
 function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: NewNeighborsData }) {
+  // Prevent hydration mismatch from date formatting by only rendering after client hydration
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -64,6 +71,8 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
   }
 
   const formatJoinDate = (createdAt: string) => {
+    if (!isClient) return 'Recently'; // Static text during SSR
+
     const date = new Date(createdAt);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
@@ -103,8 +112,6 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
                 <Link
                   href={`/resident/${user.username}`}
                   className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                  target="_blank"
-                  rel="noopener noreferrer"
                 >
                   @{user.username}
                 </Link>

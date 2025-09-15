@@ -19,6 +19,7 @@ const DEFAULT_CONFIG = {
   guestbook_prompt: "Share a friendly thought or memory…",
   site_description: "A cozy corner of the internet for thoughtful conversations and creative expression.",
   disable_default_home: "false",
+  disable_default_landing: "false",
   default_profile_css: "",
   terms_simple: "By creating an account, you agree to use our platform respectfully and responsibly.",
   terms_full: "Full terms and conditions not yet configured.",

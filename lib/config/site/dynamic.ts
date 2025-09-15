@@ -13,6 +13,7 @@ export type SiteConfig = {
   guestbook_prompt: string;
   site_description: string;
   disable_default_home: string;
+  disable_default_landing: string;
   default_profile_css: string;
   terms_simple: string;
   terms_full: string;
@@ -36,6 +37,7 @@ const DEFAULT_CONFIG: SiteConfig = {
   guestbook_prompt: "Share a friendly thought or memory…",
   site_description: "A cozy corner of the internet for thoughtful conversations and creative expression.",
   disable_default_home: "false",
+  disable_default_landing: "false",
   default_profile_css: "",
   terms_simple: "By creating an account, you agree to use our platform respectfully and responsibly.",
   terms_full: "Full terms and conditions not yet configured.",

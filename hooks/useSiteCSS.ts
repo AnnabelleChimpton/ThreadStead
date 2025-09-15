@@ -1,19 +1,24 @@
 import { useEffect, useState, useRef } from "react";
 
 export function useSiteCSS() {
-  const [css, setCSS] = useState("");
+  const [css, setCSS] = useState("/* Site CSS loading... */");
   const [loading, setLoading] = useState(true);
   const hasInitialized = useRef(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we know when we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
-    // Prevent multiple initializations
-    if (hasInitialized.current) {
+    // Only run on client side and prevent multiple initializations
+    if (!isClient || hasInitialized.current) {
       return;
     }
-    
+
     hasInitialized.current = true;
 
-    
     async function fetchSiteCSS() {
       try {
         const res = await fetch("/api/site-css");
@@ -42,7 +47,7 @@ export function useSiteCSS() {
     }
 
     fetchSiteCSS();
-  }, []);
+  }, [isClient]);
 
   return { css, loading };
 }

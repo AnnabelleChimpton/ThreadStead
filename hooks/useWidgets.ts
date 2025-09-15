@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Widget } from '@/components/widgets/types/widget';
 import { widgetRegistry } from '@/components/widgets/registry/WidgetRegistry';
 
@@ -16,14 +16,19 @@ export function useWidgets({
   const [widgets, setWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Memoize the enabledWidgetIds to prevent unnecessary re-renders
+  const memoizedEnabledWidgetIds = useMemo(() => {
+    return enabledWidgetIds ? [...enabledWidgetIds] : undefined;
+  }, [enabledWidgetIds?.join(',')]);
+
   useEffect(() => {
     setLoading(true);
 
     let availableWidgets: Widget[];
 
-    if (enabledWidgetIds) {
+    if (memoizedEnabledWidgetIds) {
       // Get only enabled widgets
-      availableWidgets = widgetRegistry.getEnabledWidgets(enabledWidgetIds, user);
+      availableWidgets = widgetRegistry.getEnabledWidgets(memoizedEnabledWidgetIds, user);
     } else if (category) {
       // Get widgets by category
       availableWidgets = widgetRegistry.getByCategory(category)
@@ -40,7 +45,7 @@ export function useWidgets({
 
     setWidgets(availableWidgets);
     setLoading(false);
-  }, [enabledWidgetIds, user?.role, category]);
+  }, [memoizedEnabledWidgetIds, user?.role, category]);
 
   return {
     widgets,
@@ -51,12 +56,14 @@ export function useWidgets({
 
 export function useDefaultWidgets(user?: { role: string } | null) {
   const defaultWidgetIds = [
-    'new-neighbors',
+    // 'new-neighbors', // Temporarily disabled to test navigation
     'threadring-activity',
     'friend-activity',
     'trending-content',
     'pixel-homes-neighborhood',
-    'welcome'
+    'welcome',
+    'weather',
+    'site-news'
   ];
 
   return useWidgets({

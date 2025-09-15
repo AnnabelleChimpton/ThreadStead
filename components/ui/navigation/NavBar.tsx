@@ -145,12 +145,19 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   const { pages: navPages } = useNavPages();
   const { me } = useMe();
   const config = siteConfig || hookConfig;
-  
+
   // State to track which dropdown is open (only one at a time)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   // State for mobile menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileDropdownOpen, setMobileDropdownOpen] = useState<string | null>(null);
+
+  // Prevent hydration mismatch by only rendering user-dependent content after hydration
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   // Add swipe gesture support
   const swipeHandlers = useSwipeGesture((direction) => {
@@ -230,7 +237,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                   { href: "/neighborhood/explore/all", label: " All Homes" },
                   { href: "/neighborhood/explore/recent", label: " Recent Activity" },
                   { href: "/directory", label: " Directory" },
-                  ...(me?.loggedIn && me?.user?.primaryHandle ? [
+                  ...(isClient && me?.loggedIn && me?.user?.primaryHandle ? [
                     { href: `/home/${me.user.primaryHandle.split('@')[0]}`, label: " My Pixel Home" },
                     { href: `/resident/${me.user.primaryHandle.split('@')[0]}`, label: " My Profile" }
                   ] : []),
@@ -276,8 +283,8 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               />
             </div>
             <div className="site-nav-actions flex items-center gap-4">
-              {me?.loggedIn && (
-                <Link 
+              {isClient && me?.loggedIn && (
+                <Link
                   href="/post/new"
                   className="new-post-button"
                 >
@@ -395,16 +402,16 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                   >
                     📋 Directory
                   </Link>
-                  {me?.loggedIn && me?.user?.primaryHandle && (
+                  {isClient && me?.loggedIn && me?.user?.primaryHandle && (
                     <>
-                      <Link 
+                      <Link
                         href={`/home/${me.user.primaryHandle.split('@')[0]}`}
                         className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         🏠 My Pixel Home
                       </Link>
-                      <Link 
+                      <Link
                         href={`/resident/${me.user.primaryHandle.split('@')[0]}`}
                         className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
                         onClick={() => setMobileMenuOpen(false)}
@@ -535,8 +542,8 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             
             {/* User Actions */}
             <div className="border-t border-thread-sage pt-3 mt-3">
-              {me?.loggedIn && (
-                <Link 
+              {isClient && me?.loggedIn && (
+                <Link
                   href="/post/new"
                   className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
                   onClick={() => setMobileMenuOpen(false)}

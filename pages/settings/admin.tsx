@@ -8,6 +8,7 @@ import ReportsSection from "@/components/features/admin/ReportsSection";
 import PostsSection from "@/components/features/admin/PostsSection";
 import SignupAudioSection from "@/components/features/admin/SignupAudioSection";
 import FoundersNoteSection from "@/components/features/admin/FoundersNoteSection";
+import SiteNewsSection from "@/components/features/admin/SiteNewsSection";
 
 // Collapsible Section Component
 function CollapsibleSection({ 
@@ -67,6 +68,7 @@ function PageForm({
     navDropdown: page?.navDropdown || null,
     hideNavbar: page?.hideNavbar || false,
     isHomepage: page?.isHomepage || false,
+    isLandingPage: page?.isLandingPage || false,
   });
 
   // Update form data when page prop changes
@@ -81,6 +83,7 @@ function PageForm({
       navDropdown: page?.navDropdown || null,
       hideNavbar: page?.hideNavbar || false,
       isHomepage: page?.isHomepage || false,
+      isLandingPage: page?.isLandingPage || false,
     });
   }, [page]);
 
@@ -210,9 +213,21 @@ function PageForm({
               />
               <span className="text-sm font-bold text-orange-700">🏠 Use as Homepage</span>
             </label>
-            <p className="text-xs text-gray-500">Override the default homepage with this page</p>
+            <p className="text-xs text-gray-500">Override the default homepage for logged-in users</p>
           </div>
-          
+
+          <div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.isLandingPage}
+                onChange={(e) => setFormData({...formData, isLandingPage: e.target.checked})}
+              />
+              <span className="text-sm font-bold text-green-700">🌟 Use as Landing Page</span>
+            </label>
+            <p className="text-xs text-gray-500">Override the default landing page for visitors</p>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Nav Order</label>
             <input
@@ -285,6 +300,7 @@ type CustomPage = {
   navDropdown: string | null;
   hideNavbar: boolean;
   isHomepage: boolean;
+  isLandingPage: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -343,6 +359,12 @@ export default function AdminPage() {
   const [loadingHomeSetting, setLoadingHomeSetting] = useState(false);
   const [savingHomeSetting, setSavingHomeSetting] = useState(false);
   const [homeMessage, setHomeMessage] = useState<string | null>(null);
+
+  // Default landing page state
+  const [disableDefaultLanding, setDisableDefaultLanding] = useState(false);
+  const [loadingLandingSetting, setLoadingLandingSetting] = useState(false);
+  const [savingLandingSetting, setSavingLandingSetting] = useState(false);
+  const [landingMessage, setLandingMessage] = useState<string | null>(null);
   
   // Default profile CSS state
   const [defaultProfileCSS, setDefaultProfileCSS] = useState("");
@@ -757,6 +779,49 @@ export default function AdminPage() {
     }
   }
 
+  async function loadLandingSetting() {
+    setLoadingLandingSetting(true);
+    try {
+      const res = await fetch("/api/admin/site-config");
+      if (res.ok) {
+        const data = await res.json();
+        setDisableDefaultLanding(data.config.disable_default_landing === "true");
+      }
+    } catch (error) {
+      console.error("Failed to load landing setting:", error);
+    } finally {
+      setLoadingLandingSetting(false);
+    }
+  }
+
+  async function saveLandingSetting() {
+    setSavingLandingSetting(true);
+    setLandingMessage(null);
+    try {
+      const res = await fetch("/api/admin/site-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          config: {
+            disable_default_landing: disableDefaultLanding ? "true" : "false"
+          }
+        }),
+      });
+      if (res.ok) {
+        setLandingMessage("✅ Landing page setting saved successfully!");
+        setTimeout(() => setLandingMessage(null), 3000);
+      } else {
+        const error = await res.json();
+        setLandingMessage(`❌ ${error.error || "Failed to save setting"}`);
+      }
+    } catch (error) {
+      console.error("Failed to save landing setting:", error);
+      setLandingMessage("❌ Failed to save landing setting");
+    } finally {
+      setSavingLandingSetting(false);
+    }
+  }
+
   async function loadDefaultProfileCSS() {
     setLoadingDefaultProfileCSS(true);
     try {
@@ -1105,6 +1170,13 @@ export default function AdminPage() {
                   </p>
                   <div className="flex items-center gap-3">
                     <button
+                      onClick={loadHomeSetting}
+                      disabled={loadingHomeSetting}
+                      className="border border-black px-3 py-1 bg-blue-200 hover:bg-blue-100 shadow-[1px_1px_0_#000] text-sm disabled:opacity-50"
+                    >
+                      {loadingHomeSetting ? "Loading..." : "Load Current Setting"}
+                    </button>
+                    <button
                       onClick={saveHomeSetting}
                       disabled={savingHomeSetting}
                       className="border border-black px-3 py-1 bg-green-200 hover:bg-green-100 shadow-[1px_1px_0_#000] text-sm disabled:opacity-50"
@@ -1118,7 +1190,52 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
-            
+
+            {/* Landing Page Control */}
+            <div className="border border-green-300 bg-green-50 p-3 rounded mb-4">
+              <h4 className="font-bold text-green-800 mb-2">🌟 Visitor Landing Page</h4>
+              <p className="text-sm text-green-700 mb-3">
+                Create a custom page and check &quot;🌟 Use as Landing Page&quot; to override the default visitor landing page, or use the setting below to redirect visitors to another page.
+              </p>
+
+              {loadingLandingSetting ? (
+                <div className="text-sm">Loading landing page setting...</div>
+              ) : (
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={disableDefaultLanding}
+                      onChange={(e) => setDisableDefaultLanding(e.target.checked)}
+                    />
+                    <span className="text-sm font-medium">Disable default visitor landing page - redirect to /feed</span>
+                  </label>
+                  <p className="text-xs text-green-600">
+                    When enabled, visitors will be redirected straight to the community feed instead of seeing the default landing page with signup/login options.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={loadLandingSetting}
+                      disabled={loadingLandingSetting}
+                      className="border border-black px-3 py-1 bg-blue-200 hover:bg-blue-100 shadow-[1px_1px_0_#000] text-sm disabled:opacity-50"
+                    >
+                      {loadingLandingSetting ? "Loading..." : "Load Current Setting"}
+                    </button>
+                    <button
+                      onClick={saveLandingSetting}
+                      disabled={savingLandingSetting}
+                      className="border border-black px-3 py-1 bg-green-200 hover:bg-green-100 shadow-[1px_1px_0_#000] text-sm disabled:opacity-50"
+                    >
+                      {savingLandingSetting ? "Saving..." : "Save Landing Page Setting"}
+                    </button>
+                    {landingMessage && (
+                      <span className="text-sm">{landingMessage}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => {
@@ -1891,6 +2008,11 @@ We collect information you provide when creating an account..."
           <div className="mt-8 border-t pt-8">
             <FoundersNoteSection />
           </div>
+        </CollapsibleSection>
+
+        {/* SITE CONTENT MANAGEMENT */}
+        <CollapsibleSection title="Site Content Management" defaultOpen={false} icon="📰">
+          <SiteNewsSection />
         </CollapsibleSection>
 
         {/* CONTENT MODERATION */}

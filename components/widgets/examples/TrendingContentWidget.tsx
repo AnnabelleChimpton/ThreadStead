@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { WidgetProps, WidgetConfig } from '../types/widget';
 
@@ -36,6 +36,12 @@ interface TrendingContentData {
 }
 
 function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?: TrendingContentData }) {
+  // Prevent hydration mismatch from time formatting by only rendering after client hydration
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -80,6 +86,8 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
   }
 
   const formatTimeAgo = (createdAt: string) => {
+    if (!isClient) return 'Recently'; // Static text during SSR
+
     const date = new Date(createdAt);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());

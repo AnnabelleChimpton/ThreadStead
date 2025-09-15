@@ -30,27 +30,46 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     }
   }, []);
 
-  // Handle browser back/forward navigation to ensure proper page refresh
-  useEffect(() => {
-    const handleRouteChangeComplete = () => {
-      // Check if this was a back/forward navigation using the Navigation API
-      if (typeof window !== 'undefined' && window.performance) {
-        const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-        if (navigation && navigation.type === 'back_forward') {
-          // Small delay to ensure the page has loaded before refreshing
-          setTimeout(() => {
-            window.location.reload();
-          }, 100);
-        }
-      }
-    };
+  // Handle navigation state tracking - TEMPORARILY DISABLED FOR DEBUGGING
+  // useEffect(() => {
+  //   const handleRouteChangeStart = (url: string) => {
+  //     // Store navigation timestamp to help with back/forward detection
+  //     if (typeof window !== 'undefined') {
+  //       window.sessionStorage.setItem('lastNavigationTimestamp', Date.now().toString());
+  //     }
+  //   };
 
-    router.events.on('routeChangeComplete', handleRouteChangeComplete);
+  //   const handleRouteChangeComplete = (url: string) => {
+  //     // Only force refresh in very specific cases where we know there are rendering issues
+  //     // This is a more conservative approach than the previous implementation
+  //     if (typeof window !== 'undefined') {
+  //       const lastTimestamp = window.sessionStorage.getItem('lastNavigationTimestamp');
+  //       const now = Date.now();
 
-    return () => {
-      router.events.off('routeChangeComplete', handleRouteChangeComplete);
-    };
-  }, [router]);
+  //       // Only consider forcing refresh if navigation happened very quickly (likely browser back/forward)
+  //       // and only for certain problematic routes that need full refresh
+  //       if (lastTimestamp && (now - parseInt(lastTimestamp)) < 50) {
+  //         const problematicRoutes = ['/preview-temp', '/resident/'];
+  //         const needsRefresh = problematicRoutes.some(route => url.includes(route));
+
+  //         if (needsRefresh) {
+  //           // Only refresh for specific problematic routes, not all navigation
+  //           setTimeout(() => {
+  //             window.location.reload();
+  //           }, 50);
+  //         }
+  //       }
+  //     }
+  //   };
+
+  //   router.events.on('routeChangeStart', handleRouteChangeStart);
+  //   router.events.on('routeChangeComplete', handleRouteChangeComplete);
+
+  //   return () => {
+  //     router.events.off('routeChangeStart', handleRouteChangeStart);
+  //     router.events.off('routeChangeComplete', handleRouteChangeComplete);
+  //   };
+  // }, [router]);
 
   // Handle tab routing for pages with tabs
   useEffect(() => {
@@ -126,10 +145,10 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         
         {/* Load site-wide CSS based on page type and user preference */}
         {(!isProfilePage || includeSiteCSS) && (
-          <style 
+          <style
             id="site-wide-css"
             key="site-css"
-            dangerouslySetInnerHTML={{ __html: css || '/* Site CSS loading... */' }} 
+            dangerouslySetInnerHTML={{ __html: css || '/* Site CSS loading... */' }}
           />
         )}
         

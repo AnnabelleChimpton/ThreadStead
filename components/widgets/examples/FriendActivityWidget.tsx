@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { WidgetProps, WidgetConfig } from '../types/widget';
 
@@ -40,6 +40,12 @@ interface FriendActivityData {
 }
 
 function FriendActivityWidget({ data, isLoading, error, user }: WidgetProps & { data?: FriendActivityData }) {
+  // Prevent hydration mismatch from time formatting by only rendering after client hydration
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   if (!user) {
     return (
       <div className="text-center py-4 text-gray-500">
@@ -90,6 +96,8 @@ function FriendActivityWidget({ data, isLoading, error, user }: WidgetProps & { 
   }
 
   const formatTimeAgo = (createdAt: string) => {
+    if (!isClient) return 'Recently'; // Static text during SSR
+
     const date = new Date(createdAt);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
@@ -106,6 +114,13 @@ function FriendActivityWidget({ data, isLoading, error, user }: WidgetProps & { 
   const truncateText = (text: string | null, maxLength: number = 100) => {
     if (!text) return '';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  };
+
+  const extractUsername = (handle: string | null) => {
+    if (!handle) return null;
+    // Remove @sitename suffix if present
+    const atIndex = handle.indexOf('@');
+    return atIndex > 0 ? handle.substring(0, atIndex) : handle;
   };
 
   return (
@@ -133,10 +148,10 @@ function FriendActivityWidget({ data, isLoading, error, user }: WidgetProps & { 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
                     <Link
-                      href={`/resident/${post.authorUsername}`}
+                      href={`/resident/${extractUsername(post.authorUsername)}`}
                       className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors truncate"
                     >
-                      {post.authorDisplayName || post.authorUsername || 'Anonymous'}
+                      {post.authorDisplayName || extractUsername(post.authorUsername) || 'Anonymous'}
                     </Link>
                     <span className="text-xs text-gray-500">
                       {formatTimeAgo(post.createdAt)}
@@ -144,7 +159,7 @@ function FriendActivityWidget({ data, isLoading, error, user }: WidgetProps & { 
                   </div>
 
                   <Link
-                    href={`/resident/${post.authorUsername}/post/${post.id}`}
+                    href={`/resident/${extractUsername(post.authorUsername)}/post/${post.id}`}
                     className="block hover:text-blue-600 transition-colors"
                   >
                     {post.title && (
@@ -184,7 +199,7 @@ function FriendActivityWidget({ data, isLoading, error, user }: WidgetProps & { 
               {data.friends.slice(0, 4).map((friend) => (
                 <Link
                   key={friend.id}
-                  href={`/resident/${friend.handle}`}
+                  href={`/resident/${extractUsername(friend.handle)}`}
                   className="w-6 h-6 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center overflow-hidden hover:z-10 transition-transform hover:scale-110"
                 >
                   {friend.avatarUrl ? (

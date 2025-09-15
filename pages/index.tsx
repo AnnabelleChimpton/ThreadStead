@@ -6,7 +6,7 @@ import { PrismaClient } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth/server";
 import Link from "next/link";
 import { WidgetContainer } from "@/components/widgets";
-import { useDefaultWidgets } from "@/hooks/useWidgets";
+import { useDefaultWidgets, useWidgets } from "@/hooks/useWidgets";
 import { useState, useEffect } from "react";
 import EnhancedHouseCanvas from "../components/pixel-homes/EnhancedHouseCanvas";
 import { HouseTemplate, ColorPalette, HouseCustomizations } from "../components/pixel-homes/HouseSVG";
@@ -106,9 +106,15 @@ function UserPixelHome({ user }: { user: any }) {
   const [homeConfig, setHomeConfig] = useState<UserHomeConfig | null>(null);
   const [decorations, setDecorations] = useState<DecorationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+
+  // Prevent hydration mismatch by only rendering after client hydration
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
-    if (!user?.primaryHandle) return;
+    if (!isClient || !user?.primaryHandle) return;
 
     const fetchHomeData = async () => {
       try {
@@ -142,7 +148,7 @@ function UserPixelHome({ user }: { user: any }) {
     };
 
     fetchHomeData();
-  }, [user?.primaryHandle]);
+  }, [isClient, user?.primaryHandle]);
 
   if (loading) {
     return (
@@ -279,100 +285,111 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
 }
 
 function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; user: any }) {
-  const { widgets } = useDefaultWidgets(user);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Load ALL available widgets for that classic early internet portal feel
+  const { widgets } = useWidgets({
+    user
+  });
+
+  // Distribute widgets as evenly as possible across three columns
+  const totalWidgets = widgets.length;
+  const basePerColumn = Math.floor(totalWidgets / 3);
+  const remainder = totalWidgets % 3;
+
+  // Calculate exact number of widgets per column for maximum even distribution
+  const leftCount = basePerColumn + (remainder > 0 ? 1 : 0);
+  const centerCount = basePerColumn + (remainder > 1 ? 1 : 0);
+  const rightCount = basePerColumn;
+
+  const leftWidgets = widgets.slice(0, leftCount);
+  const centerWidgets = widgets.slice(leftCount, leftCount + centerCount);
+  const rightWidgets = widgets.slice(leftCount + centerCount);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    // Navigate to discover page with search query
+    const searchParams = new URLSearchParams({ q: searchQuery });
+    window.location.href = `/discover?${searchParams}`;
+  };
 
   return (
     <Layout siteConfig={siteConfig}>
       <div className="w-full max-w-7xl mx-auto px-4 py-6">
-        {/* Welcome Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-[#2E4B3F] mb-2">
             Welcome home{user?.primaryHandle ? `, ${user.primaryHandle}` : ''}!
           </h1>
           <p className="text-gray-600">
-            Here&apos;s what&apos;s happening in your community
+            Your personalized portal to the community • News • Neighbors • Activity
           </p>
         </div>
 
-        {/* Pixel Home Centered Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Sidebar Widgets */}
-          <div className="lg:col-span-3 space-y-4">
-            <div className="lg:sticky lg:top-6">
-              <WidgetContainer
-                widgets={widgets.slice(0, Math.ceil(widgets.length / 2))}
-                user={user}
-                layout="stack"
-                maxColumns={1}
+        {/* Global Search Bar */}
+        <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 mb-8">
+          <form onSubmit={handleSearch} className="flex gap-3">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="🔍 Search ThreadRings, users, posts..."
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>
+            <button
+              type="submit"
+              disabled={!searchQuery.trim()}
+              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors shadow-[2px_2px_0_#2563eb]"
+            >
+              Search
+            </button>
+          </form>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Find anything in your community • Discover new ThreadRings • Connect with neighbors
+          </p>
+        </div>
+
+        {/* Main Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          {/* Left Sidebar - Widgets */}
+          <div className="lg:col-span-3 space-y-4">
+            <WidgetContainer
+              widgets={leftWidgets}
+              user={user}
+              layout="stack"
+              maxColumns={1}
+            />
           </div>
 
           {/* Center - Pixel Home */}
           <div className="lg:col-span-6">
-            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-6">
-              <div className="text-center mb-4">
-                <h2 className="text-xl font-bold text-[#2E4B3F] mb-2">Your Home</h2>
-                <p className="text-sm text-gray-600">
-                  Click to visit your pixel home or explore your space
-                </p>
-              </div>
-
-              {/* Pixel Home Preview */}
+            <SimpleCard title="Your Pixel Home">
               <UserPixelHome user={user} />
-
-              {/* Home Action Buttons */}
-              <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
-                <Link
-                  href={`/home/${user?.primaryHandle?.split('@')[0]}`}
-                  className="text-center border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] inline-block font-medium"
-                >
-                  Visit Your Pixel Home
-                </Link>
-                <Link
-                  href={`/home/${user?.primaryHandle?.split('@')[0]}/decorate`}
-                  className="text-center border border-black px-6 py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] inline-block font-medium"
-                >
-                  Decorate Your Home
-                </Link>
-              </div>
-            </div>
-
-            {/* Quick Actions Below Home */}
-            <SimpleCard title="Quick Actions">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Link
-                  href="/post/new"
-                  className="text-center border border-black px-4 py-3 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] block font-medium"
-                >
-                  Create Post
-                </Link>
-                <Link
-                  href="/threadrings"
-                  className="text-center border border-black px-4 py-3 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] block font-medium"
-                >
-                  Join ThreadRings
-                </Link>
-                <Link
-                  href="/explore/homes"
-                  className="text-center border border-black px-4 py-3 bg-orange-200 hover:bg-orange-100 shadow-[2px_2px_0_#000] block font-medium"
-                >
-                  Explore Homes
-                </Link>
-              </div>
             </SimpleCard>
-          </div>
 
-          {/* Right Sidebar Widgets */}
-          <div className="lg:col-span-3 space-y-4">
-            <div className="lg:sticky lg:top-6">
+            {/* Additional center widgets for that portal feel */}
+            {centerWidgets.length > 0 && (
               <WidgetContainer
-                widgets={widgets.slice(Math.ceil(widgets.length / 2))}
+                widgets={centerWidgets}
                 user={user}
                 layout="stack"
                 maxColumns={1}
               />
-            </div>
+            )}
+          </div>
+
+          {/* Right Sidebar - Widgets */}
+          <div className="lg:col-span-3 space-y-4">
+            <WidgetContainer
+              widgets={rightWidgets}
+              user={user}
+              layout="stack"
+              maxColumns={1}
+            />
           </div>
         </div>
       </div>
@@ -470,51 +487,51 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
   const user = await getSessionUser(context.req as any);
 
   try {
-    // 1. Custom Homepage Override (highest priority)
-    const customPage = await db.customPage.findFirst({
-      where: {
-        published: true,
-        isHomepage: true,
-      },
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        content: true,
-        hideNavbar: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (customPage) {
-      return {
-        props: {
-          siteConfig,
-          pageType: 'custom' as const,
-          customPage: {
-            ...customPage,
-            createdAt: customPage.createdAt.toISOString(),
-            updatedAt: customPage.updatedAt.toISOString(),
-          }
-        },
-      };
-    }
-
-    // 2. Check if default homepage is disabled - redirect to feed if so (backward compatibility)
-    if (siteConfig.disable_default_home === "true") {
-      return {
-        redirect: {
-          destination: "/feed",
-          permanent: false,
-        },
-      };
-    }
-
-    // 3. For now, implement basic auth-aware logic (we'll add config options later)
-    // This demonstrates the different experiences
     if (user) {
-      // Logged in user gets personalized homepage
+      // === LOGGED-IN USER LOGIC ===
+
+      // 1. Custom Homepage Override for logged-in users (highest priority)
+      const customHomepage = await db.customPage.findFirst({
+        where: {
+          published: true,
+          isHomepage: true,
+        },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          content: true,
+          hideNavbar: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      if (customHomepage) {
+        return {
+          props: {
+            siteConfig,
+            pageType: 'custom' as const,
+            customPage: {
+              ...customHomepage,
+              createdAt: customHomepage.createdAt.toISOString(),
+              updatedAt: customHomepage.updatedAt.toISOString(),
+            }
+          },
+        };
+      }
+
+      // 2. Check if default homepage is disabled - redirect to feed if so
+      if (siteConfig.disable_default_home === "true") {
+        return {
+          redirect: {
+            destination: "/feed",
+            permanent: false,
+          },
+        };
+      }
+
+      // 3. Default: Logged-in user gets personalized homepage
       return {
         props: {
           siteConfig,
@@ -528,7 +545,50 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
         },
       };
     } else {
-      // Visitors get landing page
+      // === VISITOR LOGIC ===
+
+      // 1. Custom Landing Page Override for visitors (highest priority)
+      const customLandingPage = await db.customPage.findFirst({
+        where: {
+          published: true,
+          isLandingPage: true,
+        },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          content: true,
+          hideNavbar: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      if (customLandingPage) {
+        return {
+          props: {
+            siteConfig,
+            pageType: 'custom' as const,
+            customPage: {
+              ...customLandingPage,
+              createdAt: customLandingPage.createdAt.toISOString(),
+              updatedAt: customLandingPage.updatedAt.toISOString(),
+            }
+          },
+        };
+      }
+
+      // 2. Check if default landing page is disabled - redirect to feed if so
+      if (siteConfig.disable_default_landing === "true") {
+        return {
+          redirect: {
+            destination: "/feed",
+            permanent: false,
+          },
+        };
+      }
+
+      // 3. Default: Visitors get landing page
       return {
         props: {
           siteConfig,

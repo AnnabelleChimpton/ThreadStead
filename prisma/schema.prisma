@@ -56,6 +56,7 @@ model User {
   betaInviteCodesGenerated  BetaInviteCode[]   @relation("BetaInviteCodesGenerated")
   betaInviteCodesUsed       BetaInviteCode[]   @relation("BetaInviteCodesUsed")
   emojisCreated             Emoji[]            @relation("EmojiCreator")
+  siteNewsCreated           SiteNews[]         @relation("SiteNewsAuthor")
 }
 
 model Handle {
@@ -335,9 +336,11 @@ model CustomPage {
   updatedAt  DateTime @updatedAt
   hideNavbar Boolean  @default(false)
   isHomepage Boolean  @default(false)
+  isLandingPage Boolean  @default(false)
 
   @@index([published, showInNav, navOrder])
   @@index([isHomepage])
+  @@index([isLandingPage])
   @@index([navDropdown])
 }
 
@@ -739,4 +742,39 @@ model Emoji {
 
   @@index([name])
   @@index([createdBy])
+}
+
+model SiteNews {
+  id          String      @id @default(cuid())
+  title       String
+  summary     String
+  content     String?     // Optional full content for dedicated news pages
+  url         String?     // Optional custom URL, defaults to /news/{id}
+  publishedAt DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  type        NewsType    @default(announcement)
+  priority    NewsPriority @default(medium)
+  isPublished Boolean     @default(true)
+  createdBy   String
+  author      User        @relation("SiteNewsAuthor", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([publishedAt])
+  @@index([type])
+  @@index([priority])
+  @@index([isPublished])
+  @@index([createdBy])
+}
+
+enum NewsType {
+  announcement
+  feature
+  maintenance
+  community
+}
+
+enum NewsPriority {
+  high
+  medium
+  low
 }

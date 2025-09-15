@@ -21,6 +21,12 @@ export default function BaseWidget({
   const [data, setData] = useState<WidgetData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // Prevent hydration mismatch by only running after client hydration
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const loadData = async () => {
     if (!fetchData) return;
@@ -44,12 +50,15 @@ export default function BaseWidget({
   };
 
   useEffect(() => {
-    loadData();
-  }, [user?.id, config.id]);
+    // Only start loading data after client hydration
+    if (isClient) {
+      loadData();
+    }
+  }, [isClient, user?.id, config.id]);
 
-  // Auto-refresh if interval is set
+  // Auto-refresh if interval is set (only after client hydration)
   useEffect(() => {
-    if (!config.refreshInterval || config.refreshInterval <= 0) return;
+    if (!isClient || !config.refreshInterval || config.refreshInterval <= 0) return;
 
     const interval = setInterval(() => {
       if (!isLoading) {
@@ -58,7 +67,7 @@ export default function BaseWidget({
     }, config.refreshInterval);
 
     return () => clearInterval(interval);
-  }, [config.refreshInterval, isLoading]);
+  }, [isClient, config.refreshInterval, isLoading]);
 
   return (
     <div className="widget-container">

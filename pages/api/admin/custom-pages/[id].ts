@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === "PUT") {
     try {
-      const { slug, title, content, published, showInNav, navOrder, navDropdown, hideNavbar, isHomepage } = req.body;
+      const { slug, title, content, published, showInNav, navOrder, navDropdown, hideNavbar, isHomepage, isLandingPage } = req.body;
       
       if (!slug || !title) {
         return res.status(400).json({ error: "Slug and title are required" });
@@ -48,11 +48,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // If setting as homepage, unset any existing homepage (except this one)
       if (Boolean(isHomepage)) {
         await db.customPage.updateMany({
-          where: { 
+          where: {
             isHomepage: true,
             NOT: { id }
           },
           data: { isHomepage: false },
+        });
+      }
+
+      // If setting as landing page, unset any existing landing page (except this one)
+      if (Boolean(isLandingPage)) {
+        await db.customPage.updateMany({
+          where: {
+            isLandingPage: true,
+            NOT: { id }
+          },
+          data: { isLandingPage: false },
         });
       }
 
@@ -68,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           navDropdown: navDropdown || null,
           hideNavbar: hideNavbar !== undefined ? Boolean(hideNavbar) : false,
           isHomepage: Boolean(isHomepage),
+          isLandingPage: Boolean(isLandingPage),
         },
       });
 

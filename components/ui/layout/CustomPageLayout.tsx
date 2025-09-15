@@ -14,11 +14,18 @@ export default function CustomPageLayout({ children, siteConfig, hideNavbar = fa
   const { config: hookConfig } = useSiteConfig();
   const { hasMismatch, fixMismatch } = useIdentitySync();
   const config = siteConfig || hookConfig;
+
+  // Prevent hydration mismatch by only showing identity sync banner after client hydration
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   return (
     <div className="site-layout min-h-screen thread-surface flex flex-col">
       {/* Identity Sync Issue Banner */}
-      {hasMismatch && (
+      {isClient && hasMismatch && (
         <div className="bg-amber-100 border-b border-amber-300 px-6 py-2">
           <div className="mx-auto max-w-5xl flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
