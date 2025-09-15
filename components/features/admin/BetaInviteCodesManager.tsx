@@ -44,27 +44,62 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
     }
   };
 
-  const copyToClipboard = async (code: string, codeId: string) => {
+  const trackShare = async (codeId: string, shareMethod: string, platform?: string) => {
     try {
-      // Create shareable URL
-      const baseUrl = window.location.origin;
-      const inviteUrl = `${baseUrl}/signup?beta=${encodeURIComponent(code)}`;
-      
-      await navigator.clipboard.writeText(inviteUrl);
+      await fetch(`/api/beta-invite-codes/${codeId}/track-share`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          shareMethod,
+          platform,
+          referrer: document.referrer || window.location.href
+        })
+      });
+    } catch (err) {
+      console.error('Failed to track share:', err);
+      // Don't block the copy operation if tracking fails
+    }
+  };
+
+  const copyToClipboard = async (code: string, codeId: string, shareMethod: 'copy_link' | 'copy_code' = 'copy_link') => {
+    try {
+      let textToCopy: string;
+
+      if (shareMethod === 'copy_link') {
+        // Create shareable URL
+        const baseUrl = window.location.origin;
+        textToCopy = `${baseUrl}/signup?beta=${encodeURIComponent(code)}`;
+      } else {
+        // Just copy the code
+        textToCopy = code;
+      }
+
+      await navigator.clipboard.writeText(textToCopy);
       setCopiedCodeId(codeId);
-      
+
+      // Track the share
+      await trackShare(codeId, shareMethod);
+
       // Reset copied state after 2 seconds
       setTimeout(() => setCopiedCodeId(null), 2000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
       // Fallback: select the text
       const textArea = document.createElement('textarea');
-      textArea.value = code;
+      textArea.value = shareMethod === 'copy_link'
+        ? `${window.location.origin}/signup?beta=${encodeURIComponent(code)}`
+        : code;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
       setCopiedCodeId(codeId);
+
+      // Track the share even if clipboard API failed
+      await trackShare(codeId, shareMethod);
+
       setTimeout(() => setCopiedCodeId(null), 2000);
     }
   };
@@ -141,27 +176,38 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {unusedCodes.map((code) => (
-              <div 
+              <div
                 key={code.id}
-                className="bg-white border border-black rounded-none p-4 shadow-[2px_2px_0_#000] hover:shadow-[1px_1px_0_#000] transition-all cursor-pointer hover:translate-x-[1px] hover:translate-y-[1px]"
-                onClick={() => copyToClipboard(code.code, code.id)}
+                className="bg-white border border-black rounded-none p-4 shadow-[2px_2px_0_#000]"
               >
                 <div className="flex items-center justify-between mb-2">
                   <code className="text-lg font-bold text-green-700 bg-green-50 px-2 py-1 rounded">
                     {code.code}
                   </code>
-                  {copiedCodeId === code.id ? (
+                  {copiedCodeId === code.id && (
                     <span className="text-xs text-green-600 font-medium">
                       ✓ Copied!
                     </span>
-                  ) : (
-                    <span className="text-xs text-gray-500">
-                      Click to copy
-                    </span>
                   )}
                 </div>
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-gray-600 mb-3">
                   Created: {formatDate(code.createdAt)}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => copyToClipboard(code.code, code.id, 'copy_link')}
+                    className="flex-1 border border-black px-2 py-1 bg-blue-200 hover:bg-blue-100 shadow-[1px_1px_0_#000] text-xs"
+                    title="Copy signup link"
+                  >
+                    📋 Copy Link
+                  </button>
+                  <button
+                    onClick={() => copyToClipboard(code.code, code.id, 'copy_code')}
+                    className="flex-1 border border-black px-2 py-1 bg-green-200 hover:bg-green-100 shadow-[1px_1px_0_#000] text-xs"
+                    title="Copy just the code"
+                  >
+                    🔑 Copy Code
+                  </button>
                 </div>
               </div>
             ))}

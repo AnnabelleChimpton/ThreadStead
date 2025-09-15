@@ -26,6 +26,11 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedAuthMethod, setSelectedAuthMethod] = useState<AuthMethod | null>(null);
 
+  // Beta landing page tracking
+  const [signupSource, setSignupSource] = useState<string | null>(null);
+  const [landingSlug, setLandingSlug] = useState<string | null>(null);
+  const [trackingId, setTrackingId] = useState<string | null>(null);
+
   // Step 1: Username and Beta Key
   const [username, setUsername] = useState('');
   const [betaKey, setBetaKey] = useState(urlBetaKey || '');
@@ -62,7 +67,16 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
     if (urlBetaKey && !betaKey) {
       setBetaKey(urlBetaKey);
     }
-  }, [urlBetaKey, betaKey]);
+
+    // Extract tracking parameters from URL
+    const source = router.query.source as string;
+    const landing = router.query.landing as string;
+    const tracking = router.query.tracking as string;
+
+    if (source) setSignupSource(source);
+    if (landing) setLandingSlug(landing);
+    if (tracking) setTrackingId(tracking);
+  }, [urlBetaKey, betaKey, router.query]);
 
   useEffect(() => {
     // Scroll to top when step changes
@@ -258,7 +272,34 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
           // Audio failed but don't block signup flow
         }
       }
-      
+
+      // Complete beta landing page tracking if applicable
+      if (signupSource === 'beta-landing' && landingSlug && trackingId) {
+        try {
+          // Get current user ID from session
+          const userResponse = await fetch('/api/auth/me');
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            if (userData.user?.id) {
+              await fetch(`/api/beta-landing-pages/${landingSlug}/complete`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  signupId: trackingId,
+                  userId: userData.user.id,
+                  betaCode: betaKey
+                })
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Failed to complete landing page tracking:', error);
+          // Don't block signup flow for tracking errors
+        }
+      }
+
       // Move to finale animation
       setCurrentStep('finale');
     } catch (err) {

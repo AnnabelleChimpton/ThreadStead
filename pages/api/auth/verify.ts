@@ -1,6 +1,7 @@
 // pages/api/auth/verify.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
+import { rateLimitMiddleware } from "@/lib/middleware/rateLimiting";
 
 import * as ed from "@noble/ed25519";
 import { fromBase64Url } from "@/lib/utils/encoding/base64url";
@@ -15,6 +16,12 @@ function readCookie(req: NextApiRequest, name: string) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
+
+  // Apply rate limiting for new account creation attempts
+  const rateLimitPassed = await rateLimitMiddleware(req, res);
+  if (!rateLimitPassed) {
+    return; // Response already sent by middleware
+  }
 
   const { did, publicKey, signature, betaKey, authMethod } = (req.body || {}) as {
     did?: string; publicKey?: string; signature?: string; betaKey?: string; authMethod?: string;

@@ -9,6 +9,9 @@ import PostsSection from "@/components/features/admin/PostsSection";
 import SignupAudioSection from "@/components/features/admin/SignupAudioSection";
 import FoundersNoteSection from "@/components/features/admin/FoundersNoteSection";
 import SiteNewsSection from "@/components/features/admin/SiteNewsSection";
+import BetaLandingPagesSection from "@/components/features/admin/BetaLandingPagesSection";
+import IpManagementSection from "@/components/features/admin/IpManagementSection";
+import BetaInviteAnalyticsSection from "@/components/features/admin/BetaInviteAnalyticsSection";
 
 // Collapsible Section Component
 function CollapsibleSection({ 
@@ -2023,7 +2026,16 @@ We collect information you provide when creating an account..."
 
         {/* USER & ACCESS MANAGEMENT */}
         <CollapsibleSection title="User & Access Management" defaultOpen={false} icon="👥">
-          
+
+          {/* Beta Invite Analytics */}
+          <BetaInviteAnalyticsSection />
+
+          {/* Beta Landing Pages */}
+          <BetaLandingPagesSection />
+
+          {/* IP Address Management */}
+          <IpManagementSection />
+
           {/* Beta Key Management */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">

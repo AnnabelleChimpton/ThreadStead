@@ -53,10 +53,16 @@ model User {
   blocksReceived            UserBlock[]        @relation("UserBlocksReceived")
   pixelHomeVisitors         PixelHomeVisitor[] @relation("PixelHomeOwner")
   pixelHomeVisits           PixelHomeVisitor[] @relation("PixelHomeVisitor")
-  betaInviteCodesGenerated  BetaInviteCode[]   @relation("BetaInviteCodesGenerated")
-  betaInviteCodesUsed       BetaInviteCode[]   @relation("BetaInviteCodesUsed")
-  emojisCreated             Emoji[]            @relation("EmojiCreator")
-  siteNewsCreated           SiteNews[]         @relation("SiteNewsAuthor")
+  betaInviteCodesGenerated  BetaInviteCode[]     @relation("BetaInviteCodesGenerated")
+  betaInviteCodesUsed       BetaInviteCode[]     @relation("BetaInviteCodesUsed")
+  betaInviteShares          BetaInviteShare[]    @relation("BetaInviteShares")
+  emojisCreated             Emoji[]              @relation("EmojiCreator")
+  siteNewsCreated           SiteNews[]           @relation("SiteNewsAuthor")
+  betaLandingPagesCreated   BetaLandingPage[]    @relation("BetaLandingPagesCreated")
+  betaLandingPagesEnded     BetaLandingPage[]    @relation("BetaLandingPagesEnded")
+  betaLandingSignups        BetaLandingSignup[]  @relation("BetaLandingSignups")
+  ipBlocksCreated           IpSignupTracking[]   @relation("IpBlocksCreated")
+  signupAttempts            SignupAttempt[]      @relation("SignupAttempts")
 }
 
 model Handle {
@@ -292,6 +298,7 @@ model BetaInviteCode {
   usedAt      DateTime?
   generator   User      @relation("BetaInviteCodesGenerated", fields: [generatedBy], references: [id], onDelete: Cascade)
   user        User?     @relation("BetaInviteCodesUsed", fields: [usedBy], references: [id], onDelete: SetNull)
+  shares      BetaInviteShare[]
 
   @@index([generatedBy])
   @@index([code])
@@ -777,4 +784,120 @@ enum NewsPriority {
   high
   medium
   low
+}
+
+model BetaLandingPage {
+  id             String   @id @default(cuid())
+  name           String   // Admin-friendly name (e.g., "Twitter Campaign", "Reddit Launch")
+  slug           String   @unique // URL slug for the landing page
+  title          String   // Page title shown to users
+  description    String?  // Optional description/subtitle
+  content        String?  // Optional custom HTML content
+  isActive       Boolean  @default(true)
+  isPaused       Boolean  @default(false) // Temporarily disable without deleting
+  signupLimit    Int      @default(50)    // Max signups allowed
+  signupCount    Int      @default(0)     // Current signup count (tracked automatically)
+  limitReached   Boolean  @default(false) // Computed field for quick checks
+  endedAt        DateTime? // When campaign was manually ended
+  endedBy        String?   // Admin who ended the campaign
+  createdBy      String   // Admin who created it
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  creator User @relation("BetaLandingPagesCreated", fields: [createdBy], references: [id], onDelete: Cascade)
+  ender   User? @relation("BetaLandingPagesEnded", fields: [endedBy], references: [id], onDelete: SetNull)
+  signups BetaLandingSignup[] @relation("BetaLandingPageSignups")
+  attempts SignupAttempt[] @relation("BetaLandingPageAttempts")
+
+  @@index([slug])
+  @@index([isActive, isPaused])
+  @@index([createdBy])
+  @@index([limitReached])
+}
+
+model BetaLandingSignup {
+  id                String   @id @default(cuid())
+  landingPageId     String
+  userId            String?  // Set when signup completes
+  betaCode          String?  // Which beta code was used
+  signupStartedAt   DateTime @default(now())
+  signupCompletedAt DateTime?
+  ipAddress         String?  // For analytics
+  userAgent         String?  // For analytics
+  status            BetaSignupStatus @default(started)
+
+  landingPage BetaLandingPage @relation("BetaLandingPageSignups", fields: [landingPageId], references: [id], onDelete: Cascade)
+  user        User?           @relation("BetaLandingSignups", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([landingPageId, status])
+  @@index([userId])
+  @@index([ipAddress, signupStartedAt])
+}
+
+model IpSignupTracking {
+  id              String   @id @default(cuid())
+  ipAddress       String   @unique
+  signupAttempts  Int      @default(1)
+  successfulSignups Int    @default(0)
+  firstAttemptAt  DateTime @default(now())
+  lastAttemptAt   DateTime @default(now())
+  isBlocked       Boolean  @default(false)
+  blockedAt       DateTime?
+  blockedBy       String?
+  blockedReason   String?
+  autoBlocked     Boolean  @default(false) // Whether block was automatic
+  unblockAt       DateTime? // When auto-block expires
+
+  blocker User? @relation("IpBlocksCreated", fields: [blockedBy], references: [id], onDelete: SetNull)
+
+  @@index([ipAddress])
+  @@index([isBlocked])
+  @@index([lastAttemptAt])
+  @@index([autoBlocked, unblockAt])
+}
+
+model SignupAttempt {
+  id              String   @id @default(cuid())
+  ipAddress       String
+  userAgent       String?
+  landingPageId   String?
+  betaCode        String?
+  attemptedAt     DateTime @default(now())
+  success         Boolean  @default(false)
+  failureReason   String?
+  userId          String?  // Set if signup succeeded
+  suspicious      Boolean  @default(false) // Flagged by detection algorithms
+
+  landingPage BetaLandingPage? @relation("BetaLandingPageAttempts", fields: [landingPageId], references: [id], onDelete: SetNull)
+  user        User?            @relation("SignupAttempts", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([ipAddress, attemptedAt])
+  @@index([landingPageId, attemptedAt])
+  @@index([success])
+  @@index([suspicious])
+}
+
+enum BetaSignupStatus {
+  started    // User clicked the landing page
+  completed  // User finished account creation
+  abandoned  // User started but didn't complete (tracked after timeout)
+}
+
+model BetaInviteShare {
+  id              String   @id @default(cuid())
+  codeId          String   // Which beta invite code was shared
+  sharedBy        String   // User who shared the code
+  shareMethod     String   // How it was shared: "copy_link", "copy_code", "social_share"
+  sharedAt        DateTime @default(now())
+  ipAddress       String?  // IP of the person sharing
+  userAgent       String?  // Browser info
+  referrer        String?  // Where they shared from
+  platform        String?  // Social platform if applicable
+
+  code       BetaInviteCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  sharer     User           @relation("BetaInviteShares", fields: [sharedBy], references: [id], onDelete: Cascade)
+
+  @@index([codeId, sharedAt])
+  @@index([sharedBy, sharedAt])
+  @@index([shareMethod])
 }
