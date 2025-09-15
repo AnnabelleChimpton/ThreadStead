@@ -401,7 +401,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
-  const [ringInfoCollapsed, setRingInfoCollapsed] = useState(true);
+  const [ringInfoCollapsed, setRingInfoCollapsed] = useState(false);
   const [badgeInfoCollapsed, setBadgeInfoCollapsed] = useState(true);
   const [statsCollapsed, setStatsCollapsed] = useState(true);
   const [lineageCollapsed, setLineageCollapsed] = useState(true);

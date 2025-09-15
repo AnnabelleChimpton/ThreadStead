@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
 
 type PlayerMode = 'compact' | 'hybrid' | 'full';
 
@@ -21,6 +22,7 @@ export default function MidiPlayer({
   compact = false,
   defaultMode = 'compact'
 }: MidiPlayerProps) {
+  const globalAudio = useGlobalAudio();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -953,30 +955,55 @@ export default function MidiPlayer({
     const gainNode = audioContextRef.current.createGain();
     const noteId = `synth-${startTime}-${midiNote}-${velocity}-${channel}`;
     
-    // Optimized waveform selection
-    const waveTypes: Record<number, OscillatorType> = {
-      0: 'triangle',   // Piano (fallback)
-      24: 'sawtooth',  // Guitar  
-      40: 'sine',      // Strings
-      56: 'square'     // Brass
-    };
-    
+    // Create filter for warmer, less squeaky sound
+    const filter = audioContextRef.current!.createBiquadFilter();
+    filter.type = 'lowpass';
+
+    // Warmer waveform selection based on frequency
     const instrumentFamily = Math.floor(instrument / 8) * 8;
-    osc.type = waveTypes[instrumentFamily] || 'triangle';
+
+    // Use smoother waveforms for high frequencies to avoid squeakiness
+    if (frequency > 800) {
+      // High notes - use sine to avoid harshness
+      osc.type = 'sine';
+      filter.frequency.value = Math.min(frequency * 2, 2500); // Gentle filtering
+    } else if (frequency > 400) {
+      // Mid notes - triangle for warmth
+      osc.type = 'triangle';
+      filter.frequency.value = Math.min(frequency * 3, 3000);
+    } else {
+      // Low notes - can use richer waveforms
+      const waveTypes: Record<number, OscillatorType> = {
+        0: 'triangle',   // Piano
+        24: 'triangle',  // Guitar (was sawtooth - too harsh)
+        40: 'sine',      // Strings
+        56: 'triangle'   // Brass (was square - way too harsh)
+      };
+      osc.type = waveTypes[instrumentFamily] || 'sine';
+      filter.frequency.value = frequency * 4;
+    }
+
+    filter.Q.value = 0.5; // Very gentle resonance for warmth
     osc.frequency.value = frequency;
-    
+
+    // Add subtle detuning for analog warmth
+    osc.detune.value = (Math.random() - 0.5) * 3; // ±1.5 cents
+
+    // Frequency-dependent gain (reduce high frequency volume)
+    const frequencyAttenuation = frequency > 1500 ? 0.5 : frequency > 800 ? 0.7 : frequency > 400 ? 0.85 : 1.0;
+
     // Velocity-based gain with instrument balancing
     const instrumentVolume = getInstrumentVolume(instrument);
-    const baseGain = (velocity / 127) * 0.3 * instrumentVolume;
-    
+    const baseGain = (velocity / 127) * 0.3 * instrumentVolume * frequencyAttenuation;
+
     // Optimized envelope - fewer automation points for better performance
     const now = startTime;
     const maxDuration = Math.min(duration, 3.0); // Allow longer notes
-    
+
     try {
-      // Simple but effective envelope
+      // Smoother envelope with longer attack to prevent clicks
       gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(baseGain, now + 0.01);
+      gainNode.gain.linearRampToValueAtTime(baseGain, now + 0.025); // 25ms attack (was 10ms)
       
       if (instrument >= 40 && instrument <= 47) {
         // Strings - sustained
@@ -985,10 +1012,12 @@ export default function MidiPlayer({
         // Piano - decay
         gainNode.gain.exponentialRampToValueAtTime(Math.max(baseGain * 0.3, 0.001), now + 0.5);
       }
-      
+
       gainNode.gain.exponentialRampToValueAtTime(0.001, now + maxDuration);
-      
-      osc.connect(gainNode);
+
+      // Connect through filter for warmer sound
+      osc.connect(filter);
+      filter.connect(gainNode);
       
       // Route through appropriate channel/instrument gain
       const routingGain = channelGainsRef.current.get(channel) || 
@@ -1433,24 +1462,24 @@ export default function MidiPlayer({
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
       
     } else if (midiNote >= 38 && midiNote <= 40) {
-      // Snare - noise-like square wave
-      osc.type = 'square';
+      // Snare - softer triangle wave with noise character
+      osc.type = 'triangle'; // Changed from square - much less harsh
       osc.frequency.value = 200;
       filter.type = 'bandpass';
       filter.frequency.value = 400;
-      filter.Q.value = 2;
+      filter.Q.value = 1.5; // Reduced resonance
       
       gain.gain.setValueAtTime(0, startTime);
       gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.005);
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.15);
       
     } else if (midiNote >= 42 && midiNote <= 46) {
-      // Hi-hat - high frequency noise
-      osc.type = 'sawtooth';
-      osc.frequency.value = 1000;
+      // Hi-hat - softer high frequency sound
+      osc.type = 'triangle'; // Changed from sawtooth - less harsh
+      osc.frequency.value = 800; // Lowered frequency
       filter.type = 'highpass';
-      filter.frequency.value = 800;
-      filter.Q.value = 1;
+      filter.frequency.value = 600; // Lowered cutoff
+      filter.Q.value = 0.5; // Reduced resonance
       
       const drumDuration = 0.05;
       gain.gain.setValueAtTime(0, startTime);
@@ -1458,12 +1487,12 @@ export default function MidiPlayer({
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + drumDuration);
       
     } else if (midiNote === 75 || midiNote === 76) {
-      // Claves - short, sharp, woody sound
-      osc.type = 'square';
-      osc.frequency.value = 800;
+      // Claves - short, woody sound (less sharp)
+      osc.type = 'sine'; // Changed from square - much warmer
+      osc.frequency.value = 700; // Slightly lower
       filter.type = 'bandpass';
-      filter.frequency.value = 1200;
-      filter.Q.value = 4;
+      filter.frequency.value = 1000; // Lower cutoff
+      filter.Q.value = 2; // Less resonance
       
       const drumDuration = 0.08; // Very short
       gain.gain.setValueAtTime(0, startTime);
@@ -1471,11 +1500,12 @@ export default function MidiPlayer({
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + drumDuration);
       
     } else {
-      // Other percussion - generic drum sound
-      osc.type = 'square';
+      // Other percussion - softer generic drum sound
+      osc.type = 'triangle'; // Changed from square - less harsh
       osc.frequency.value = 150;
       filter.type = 'bandpass';
       filter.frequency.value = 300;
+      filter.Q.value = 1; // Add gentle resonance
       
       gain.gain.setValueAtTime(0, startTime);
       gain.gain.linearRampToValueAtTime(gainValue, startTime + 0.01);
@@ -1898,6 +1928,7 @@ export default function MidiPlayer({
     scheduleNextBatch();
     
     setIsPlaying(true);
+    globalAudio.setProfileMidiPlaying(true);
 
     // Always start visualization when playing (it will only update if shown)
     startVisualization();
@@ -1945,6 +1976,7 @@ export default function MidiPlayer({
       if (progressPercent >= 100) {
         setProgress(100);
         setIsPlaying(false);
+        globalAudio.setProfileMidiPlaying(false);
         resetPauseState();
         
         if (progressIntervalRef.current) {
@@ -2040,6 +2072,11 @@ export default function MidiPlayer({
   };
 
   const play = async () => {
+    // Stop global audio to prevent conflicts
+    if (globalAudio.state.isPlaying) {
+      globalAudio.stopAudio();
+    }
+
     // Prevent multiple concurrent calls and rapid clicking
     if (isLoading || playButtonClickedRef.current) {
       return;
@@ -2088,8 +2125,9 @@ export default function MidiPlayer({
       
       // Stop visualization
       stopVisualization();
-      
+
       setIsPlaying(false);
+      globalAudio.setProfileMidiPlaying(false);
       
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
@@ -2697,6 +2735,8 @@ export default function MidiPlayer({
       resetPauseState(); // Reset pause state when component unmounts
       // Reset click debounce
       playButtonClickedRef.current = false;
+      // Clear profile MIDI playing flag
+      globalAudio.setProfileMidiPlaying(false);
       // Cleanup worker
       cleanupWorker();
     };

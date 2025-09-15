@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
 
 interface AudioConfig {
   enabled: boolean;
@@ -12,6 +13,7 @@ interface GlobalAudioState {
   currentTrack?: string;
   volume: number;
   fadeState: 'idle' | 'fading-in' | 'fading-out';
+  profileMidiPlaying: boolean; // Track if profile MIDI is active
 }
 
 interface GlobalAudioContextType {
@@ -20,15 +22,31 @@ interface GlobalAudioContextType {
   stopAudio: () => void;
   fadeOut: (duration?: number) => Promise<void>;
   setVolume: (volume: number) => void;
+  setProfileMidiPlaying: (playing: boolean) => void;
 }
 
 const GlobalAudioContext = createContext<GlobalAudioContextType | null>(null);
 
 export function GlobalAudioProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  // Load saved volume from localStorage or default to 0.7
+  const getSavedVolume = () => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('threadstead-audio-volume');
+      if (saved) {
+        const volume = parseFloat(saved);
+        return isNaN(volume) ? 0.7 : Math.max(0, Math.min(1, volume)); // Clamp between 0-1
+      }
+    }
+    return 0.7;
+  };
+
   const [state, setState] = useState<GlobalAudioState>({
     isPlaying: false,
-    volume: 0.7,
-    fadeState: 'idle'
+    volume: getSavedVolume(),
+    fadeState: 'idle',
+    profileMidiPlaying: false
   });
   
   const [adminAudio, setAdminAudio] = useState<AudioConfig>({ enabled: false });
@@ -39,6 +57,27 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
+
+  // Shared audio context management to prevent browser limits
+  const getOrCreateAudioContext = useCallback(() => {
+    if (!audioContextRef.current) {
+      try {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      } catch (error) {
+        console.warn('Failed to create AudioContext:', error);
+        return null;
+      }
+    }
+
+    // Handle suspended state (required on some browsers)
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume().catch(err =>
+        console.warn('Failed to resume AudioContext:', err)
+      );
+    }
+
+    return audioContextRef.current;
+  }, []);
   
   // Fetch admin audio config on mount
   useEffect(() => {
@@ -118,52 +157,123 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
 
   const playMidiAudio = useCallback(async (midiUrl: string, targetVolume: number) => {
     try {
-      // Fetch MIDI file
-      const response = await fetch(midiUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch MIDI: ${response.status}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
+      // Fetch MIDI file with retry logic
+      let response: Response;
+      let lastError: Error | null = null;
 
-      // Parse MIDI using @tonejs/midi
-      const { Midi } = await import('@tonejs/midi');
-      const midi = new Midi(arrayBuffer);
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          response = await fetch(midiUrl, {
+            headers: {
+              'Accept': 'audio/midi, audio/x-midi, application/x-midi, */*'
+            }
+          });
 
-      // Create or reuse audio context
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+          if (response.ok) break;
+
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        } catch (error) {
+          lastError = error as Error;
+          if (attempt === 3) throw lastError;
+
+          // Wait before retry (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
       }
-      const audioContext = audioContextRef.current;
-      
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
+
+      const arrayBuffer = await response!.arrayBuffer();
+
+      // Validate MIDI file size (reasonable limits)
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('MIDI file is empty');
+      }
+      if (arrayBuffer.byteLength > 5 * 1024 * 1024) { // 5MB limit
+        throw new Error('MIDI file too large (>5MB)');
+      }
+
+      // Parse MIDI using @tonejs/midi with error handling
+      let midi: any;
+      try {
+        const { Midi } = await import('@tonejs/midi');
+        midi = new Midi(arrayBuffer);
+
+        if (!midi.tracks || midi.tracks.length === 0) {
+          throw new Error('MIDI file contains no tracks');
+        }
+      } catch (midiError) {
+        const errorMessage = midiError instanceof Error ? midiError.message : 'Unknown parsing error';
+        throw new Error(`Failed to parse MIDI file: ${errorMessage}`);
+      }
+
+      // Use shared audio context
+      const audioContext = getOrCreateAudioContext();
+      if (!audioContext) {
+        throw new Error('Could not create AudioContext');
       }
       
       // Create master gain node for volume control
       if (!masterGainRef.current) {
         masterGainRef.current = audioContext.createGain();
         masterGainRef.current.connect(audioContext.destination);
-        masterGainRef.current.gain.setValueAtTime(targetVolume, audioContext.currentTime);
+        // Start at zero for gentle fade-in (prevents startling users)
+        masterGainRef.current.gain.setValueAtTime(0, audioContext.currentTime);
+        // Gentle 3-second fade-in for autoplay
+        masterGainRef.current.gain.linearRampToValueAtTime(targetVolume, audioContext.currentTime + 3);
       }
       
-      // Simple piano-like sound for background audio
+      // Warmer, smoother piano-like sound for background audio
       const playNote = (frequency: number, startTime: number, duration: number, velocity: number) => {
         const osc = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
-        
-        osc.type = 'triangle';
+        const filter = audioContext.createBiquadFilter();
+
+        // Use sine wave for smoother sound, especially in high frequencies
+        // Mix between sine and triangle based on frequency for warmth
+        if (frequency > 800) {
+          osc.type = 'sine'; // Pure sine for high notes to avoid squeakiness
+        } else {
+          osc.type = 'triangle'; // Triangle for lower notes for more character
+        }
         osc.frequency.value = frequency;
-        
-        const gainValue = (velocity / 127) * 1.0 * 0.25; // Remove targetVolume since master gain controls this
+
+        // Add slight detuning for warmth (more detuning for higher notes)
+        const detuneAmount = Math.min(frequency / 1000, 5); // Max 5 cents detune
+        osc.detune.value = (Math.random() - 0.5) * detuneAmount;
+
+        // Low-pass filter to remove harsh high frequencies
+        filter.type = 'lowpass';
+        // Lower cutoff for higher notes to reduce squeakiness
+        filter.frequency.value = Math.min(frequency * 3, 2000); // Cap at 2kHz
+        filter.Q.value = 1; // Gentle resonance
+
+        // Adjust gain based on frequency (reduce volume for high notes)
+        const frequencyAttenuation = frequency > 1000 ? 0.6 : frequency > 500 ? 0.8 : 1.0;
+        const gainValue = (velocity / 127) * 0.25 * frequencyAttenuation;
+
+        // Smoother envelope with longer attack to avoid clicks
         gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(gainValue, startTime + 0.01);
+        gainNode.gain.linearRampToValueAtTime(gainValue, startTime + 0.03); // Slower attack (30ms)
         gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
-        
-        osc.connect(gainNode);
+
+        // Connect through filter for warmer sound
+        osc.connect(filter);
+        filter.connect(gainNode);
         gainNode.connect(masterGainRef.current!); // Connect to master gain instead of destination
-        
+
         osc.start(startTime);
-        osc.stop(startTime + Math.min(duration, 2.0));
+        const stopTime = startTime + Math.min(duration, 2.0);
+        osc.stop(stopTime);
+
+        // Properly cleanup audio nodes to prevent memory leaks
+        osc.addEventListener('ended', () => {
+          try {
+            osc.disconnect();
+            filter.disconnect();
+            gainNode.disconnect();
+          } catch (e) {
+            // Nodes may already be disconnected
+          }
+        });
       };
       
       // Convert MIDI note to frequency
@@ -178,9 +288,9 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
         let noteCount = 0;
         const MAX_GLOBAL_NOTES = 500; // Lower limit for background audio
         
-        // Collect and limit notes
+        // Collect and intelligently limit notes
         const allNotes: Array<{time: number, frequency: number, duration: number, velocity: number}> = [];
-        
+
         midi.tracks.forEach((track: any) => {
           track.notes.forEach((note: any) => {
             if (noteCount < MAX_GLOBAL_NOTES) {
@@ -194,11 +304,26 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
             }
           });
         });
+
+        // Voice limiting: filter out notes that would cause overload
+        const MAX_SIMULTANEOUS_VOICES = 12; // Reasonable limit for background audio
+        const activeVoices = new Map<number, number>(); // time -> voice count
+        const filteredNotes = allNotes.filter(note => {
+          const timeSlot = Math.floor(note.time * 10); // 100ms time slots
+          const count = activeVoices.get(timeSlot) || 0;
+
+          if (count >= MAX_SIMULTANEOUS_VOICES) {
+            return false; // Skip this note
+          }
+
+          activeVoices.set(timeSlot, count + 1);
+          return true; // Keep this note
+        });
         
-        // Sort by time and schedule
-        allNotes.sort((a, b) => a.time - b.time);
-        
-        allNotes.forEach(note => {
+        // Sort by time and schedule (use filtered notes)
+        filteredNotes.sort((a, b) => a.time - b.time);
+
+        filteredNotes.forEach(note => {
           const startTime = currentTime + note.time;
           playNote(note.frequency, startTime, note.duration, note.velocity);
         });
@@ -224,11 +349,24 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       // Store playing state
       midiPlayerRef.current = 'playing';
       
-      
-    } catch (e) {
-      console.error('MIDI playback failed, falling back to Web Audio:', e);
+
+    } catch (error) {
+      console.error('MIDI playback failed:', error);
+
+      // Provide user-friendly error handling
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('HTTP')) {
+        console.warn('Network issue loading MIDI, using fallback audio');
+      } else if (errorMessage.includes('parse')) {
+        console.warn('Invalid MIDI file format, using fallback audio');
+      } else {
+        console.warn('MIDI playback failed, using fallback audio:', errorMessage);
+      }
+
+      // Fallback to simple audio
       createFallbackAudio(targetVolume);
-      
+
       setState(prev => ({
         ...prev,
         isPlaying: true,
@@ -330,10 +468,10 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   }, [clearFadeInterval]);
 
   const startSignupAudio = useCallback(async () => {
-    if (state.isPlaying) {
+    if (state.isPlaying || state.profileMidiPlaying) {
       return;
     }
-    
+
     if (!adminAudio.enabled || !adminAudio.url) {
       return;
     }
@@ -380,21 +518,78 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   }, [state.isPlaying, state.fadeState, state.volume, stopAudio]);
 
   const setVolume = useCallback((volume: number) => {
-    if (!state.isPlaying) return;
-    
-    setState(prev => ({ ...prev, volume }));
-    
+    // Clamp volume between 0 and 1
+    const clampedVolume = Math.max(0, Math.min(1, volume));
+
+    setState(prev => ({ ...prev, volume: clampedVolume }));
+
+    // Save to localStorage for persistence across sessions
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('threadstead-audio-volume', clampedVolume.toString());
+    }
+
     // Apply volume to regular audio
     if (audioRef.current && !audioRef.current.paused) {
-      audioRef.current.volume = volume;
+      audioRef.current.volume = clampedVolume;
     }
-    
+
     // Apply volume to Web Audio MIDI via master gain node
     if (masterGainRef.current && audioContextRef.current) {
       const currentTime = audioContextRef.current.currentTime;
-      masterGainRef.current.gain.setValueAtTime(volume, currentTime);
+      masterGainRef.current.gain.setValueAtTime(clampedVolume, currentTime);
     }
-  }, [state.isPlaying]);
+  }, []);
+
+  const setProfileMidiPlaying = useCallback((playing: boolean) => {
+    setState(prev => ({ ...prev, profileMidiPlaying: playing }));
+  }, []);
+
+  // Stop signup audio when navigating away from profile page (but not during signup flow)
+  useEffect(() => {
+    const handleRouteChangeStart = (url: string) => {
+      // Only handle cleanup if audio is playing
+      if (state.isPlaying) {
+        const currentPath = router.asPath;
+
+        // Check if we're currently on a profile page
+        const isCurrentlyOnProfile = currentPath.includes('/resident/');
+
+        // Check if we're navigating to a profile page
+        const isNavigatingToProfile = url.includes('/resident/');
+
+        // Check if we're coming from signup (signup page would be in the path)
+        const isComingFromSignup = currentPath.includes('/signup');
+
+        // Preserve audio during signup → profile transition
+        if (isComingFromSignup && isNavigatingToProfile) {
+          // This is the signup completion flow - keep audio playing
+          return;
+        }
+
+        // Stop audio when navigating AWAY from a profile page
+        if (isCurrentlyOnProfile && !isNavigatingToProfile) {
+          fadeOut(1000); // Fade out over 1 second when leaving profiles
+        }
+
+        // Also stop when switching between different user profiles
+        if (isCurrentlyOnProfile && isNavigatingToProfile) {
+          // Extract usernames to check if switching profiles
+          const currentUser = currentPath.match(/\/resident\/([^/?]+)/)?.[1];
+          const newUser = url.match(/\/resident\/([^/?]+)/)?.[1];
+
+          if (currentUser && newUser && currentUser !== newUser) {
+            fadeOut(1000); // Fade out when switching to a different user's profile
+          }
+        }
+      }
+    };
+
+    router.events.on('routeChangeStart', handleRouteChangeStart);
+
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChangeStart);
+    };
+  }, [state.isPlaying, router.asPath, router.events, fadeOut]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -409,6 +604,7 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     stopAudio,
     fadeOut,
     setVolume,
+    setProfileMidiPlaying,
   };
 
   return (
