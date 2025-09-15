@@ -20,6 +20,7 @@
     "email:generate-key": "tsx scripts/generate-email-encryption-key.ts",
     "email:test-encryption": "tsx scripts/test-email-encryption.ts",
     "threadrings:reconcile": "tsx scripts/reconcile-threadring-counters.ts",
+    "randomize-pixel-homes": "tsx scripts/randomize-pixel-homes.ts",
     "ringhub:test": "tsx scripts/quick-ringhub-test.ts",
     "ringhub:test-full": "tsx scripts/test-ringhub-production.ts",
     "ringhub:test-write": "tsx scripts/test-ringhub-write-operations.ts",
