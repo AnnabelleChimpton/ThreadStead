@@ -1,7 +1,6 @@
 import React from "react";
 import Link from "next/link";
 import NavBar from "../navigation/NavBar";
-import Breadcrumb from "../navigation/Breadcrumb";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
 
@@ -65,8 +64,8 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
         {/* Navigation - positioned to not interfere with user content */}
         <NavBar siteConfig={config} fullWidth={true} advancedTemplate={true} />
 
-        {/* Breadcrumb Navigation */}
-        <Breadcrumb className="mx-auto max-w-5xl px-6 py-2" autoGenerate={true} />
+        {/* Spacing after navbar */}
+        <div className="py-4"></div>
 
         {/* Creative header section - users can style this wildly! */}
         <div className="site-creative-header"></div>
@@ -137,8 +136,8 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       
       <NavBar siteConfig={config} fullWidth={fullWidth} />
 
-      {/* Breadcrumb Navigation */}
-      <Breadcrumb className="mx-auto max-w-5xl px-6 py-2" autoGenerate={true} />
+      {/* Spacing after navbar */}
+      <div className="py-4"></div>
 
       {/* Creative header section - users can style this wildly! */}
       <div className="site-creative-header"></div>
