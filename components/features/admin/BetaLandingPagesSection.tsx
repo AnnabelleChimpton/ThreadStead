@@ -372,7 +372,7 @@ export default function BetaLandingPagesSection() {
                   className="w-full border border-black p-2 bg-white text-sm"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="Twitter Launch Campaign"
+                  placeholder="Community Launch Campaign"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">Internal name for admin reference</p>
@@ -385,7 +385,7 @@ export default function BetaLandingPagesSection() {
                   className="w-full border border-black p-2 bg-white text-sm"
                   value={formData.slug}
                   onChange={(e) => setFormData({...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '')})}
-                  placeholder="twitter-launch"
+                  placeholder="community-launch"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">Will be available at /beta/{formData.slug || 'your-slug'}</p>
@@ -399,7 +399,7 @@ export default function BetaLandingPagesSection() {
                 className="w-full border border-black p-2 bg-white text-sm"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                placeholder="Join Our Twitter Community Beta!"
+                placeholder="Join Our Community Beta!"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">Main heading shown to visitors</p>
@@ -412,7 +412,7 @@ export default function BetaLandingPagesSection() {
                 className="w-full border border-black p-2 bg-white text-sm"
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Get early access and connect with our Twitter community"
+                placeholder="Get early access and connect with our community"
               />
               <p className="text-xs text-gray-500 mt-1">Subtitle text below the title</p>
             </div>

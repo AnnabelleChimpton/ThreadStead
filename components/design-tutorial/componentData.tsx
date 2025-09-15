@@ -1190,7 +1190,7 @@ export const componentData = {
   <ContactMethod type="email" value="hello@designer.com" label="Email Me" />
   <ContactMethod type="website" value="myportfolio.com" label="Portfolio" />
   <ContactMethod type="github" value="github.com/designer" label="Code" />
-  <ContactMethod type="twitter" value="twitter.com/designer" label="Social" />
+  <ContactMethod type="website" value="designer.social" label="Social" />
 </ContactCard>
 
 <!-- Minimal contact strip -->
