@@ -12,7 +12,7 @@ interface GettingStartedProps {
 }
 
 export default function GettingStarted({ siteConfig }: GettingStartedProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "threadrings" | "profiles" | "social" | "content">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "threadrings" | "profiles" | "pixel-homes" | "social" | "content">("overview");
   const { user } = useCurrentUser();
 
   const TabButton = ({ 
@@ -98,6 +98,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
             <TabButton tabId="overview" label="Quick Start" icon="⚡" />
             <TabButton tabId="threadrings" label="ThreadRings" icon="🧵" />
             <TabButton tabId="profiles" label="Your Profile" icon="👤" />
+            <TabButton tabId="pixel-homes" label="Pixel Homes" icon="🏠" />
             <TabButton tabId="social" label="Social Features" icon="💬" />
             <TabButton tabId="content" label="Creating Content" icon="✍️" />
           </div>
@@ -189,6 +190,23 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                           <div className="font-medium">🎨 Edit Profile</div>
                           <div className="text-sm text-gray-600">Update your info and theme</div>
                         </Link>
+                        {user ? (
+                          <Link 
+                            href={`/home/${user.primaryHandle?.split('@')[0]}/decorate`}
+                            className="block p-3 bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                          >
+                            <div className="font-medium">🏠 Decorate Pixel Home</div>
+                            <div className="text-sm text-gray-600">Customize your 8-bit house</div>
+                          </Link>
+                        ) : (
+                          <Link 
+                            href="/onboarding"
+                            className="block p-3 bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                          >
+                            <div className="font-medium">🏠 Decorate Pixel Home</div>
+                            <div className="text-sm text-gray-600">Sign up to create your 8-bit house</div>
+                          </Link>
+                        )}
                         <Link 
                           href="/design-tutorial" 
                           className="block p-3 bg-pink-50 border border-pink-200 hover:bg-pink-100 transition-colors"
@@ -209,6 +227,14 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <div>
                       <h3 className="font-bold mb-1">Full Customization</h3>
                       <p className="text-sm text-gray-600">Style your profile with custom CSS, just like the old web.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl flex-shrink-0">🏠</div>
+                    <div>
+                      <h3 className="font-bold mb-1">Pixel Homes</h3>
+                      <p className="text-sm text-gray-600">Decorate your own customizable 8-bit house with gardens and atmosphere.</p>
                     </div>
                   </div>
                   
@@ -590,6 +616,214 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   <p className="text-xs text-gray-600">
                     This is your permanent home on Threadstead - customize it to reflect who you are!
                   </p>
+                </div>
+              </RetroCard>
+            </div>
+          )}
+
+          {activeTab === "pixel-homes" && (
+            <div className="space-y-6">
+              <RetroCard title="Your Digital Pixel Home">
+                <div className="space-y-4">
+                  <p className="text-gray-700 leading-relaxed">
+                    Every Threadstead user gets their own customizable pixel home - a charming 8-bit style house 
+                    that serves as a visual representation of your digital space. Think of it as your own little 
+                    corner of a virtual neighborhood!
+                  </p>
+
+                  <div className="bg-gradient-to-br from-green-50 to-blue-50 border-l-4 border-green-400 p-4 rounded">
+                    <h3 className="font-bold text-green-800 mb-2">✨ What Makes Pixel Homes Special</h3>
+                    <ul className="text-sm text-green-700 space-y-1">
+                      <li>• <strong>Multiple House Templates:</strong> Choose from cottage, townhouse, modern loft, or log cabin styles</li>
+                      <li>• <strong>Complete Customization:</strong> Change colors, door styles, windows, roof trim, and more</li>
+                      <li>• <strong>Garden Decorations:</strong> Add plants, paths, seasonal decorations, and special features</li>
+                      <li>• <strong>Atmosphere Control:</strong> Set the sky, weather, and time of day around your home</li>
+                      <li>• <strong>House Signage:</strong> Add custom text to welcome visitors to your space</li>
+                      <li>• <strong>Interactive Elements:</strong> Mailbox, guestbook, and music player integration</li>
+                    </ul>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="border border-gray-300 p-4 bg-blue-50 rounded">
+                      <h4 className="font-bold text-blue-800 mb-2">🏠 House Templates</h4>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li><strong>Cottage:</strong> Classic cozy home with pitched roof</li>
+                        <li><strong>Townhouse:</strong> Modern city dwelling with flat roof</li>
+                        <li><strong>Modern Loft:</strong> Contemporary style with angular design</li>
+                        <li><strong>Log Cabin:</strong> Rustic wooden retreat</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="border border-gray-300 p-4 bg-purple-50 rounded">
+                      <h4 className="font-bold text-purple-800 mb-2">🎨 Customization Options</h4>
+                      <ul className="text-sm text-purple-700 space-y-1">
+                        <li><strong>Colors:</strong> Walls, roof, trim, windows, details</li>
+                        <li><strong>Doors:</strong> Default, arched, double, cottage styles</li>
+                        <li><strong>Windows:</strong> Round, arched, bay window options</li>
+                        <li><strong>Roof Trim:</strong> Simple, ornate, or gabled styles</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </RetroCard>
+
+              <RetroCard title="Decorating Your Pixel Home">
+                <div className="space-y-4">
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <h3 className="font-bold text-yellow-800 mb-2">🌱 Garden & Yard Decorations</h3>
+                    <p className="text-sm text-yellow-700 mb-3">
+                      Transform your front yard into a personalized garden space with a wide variety of decorative elements:
+                    </p>
+                    <div className="grid md:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <strong className="text-yellow-800">Plants:</strong>
+                        <div className="text-yellow-700">Trees, flowers, bushes, succulents, herb gardens</div>
+                      </div>
+                      <div>
+                        <strong className="text-yellow-800">Paths:</strong>
+                        <div className="text-yellow-700">Stone walkways, brick paths, wooden planks</div>
+                      </div>
+                      <div>
+                        <strong className="text-yellow-800">Features:</strong>
+                        <div className="text-yellow-700">Fountains, benches, lanterns, garden gnomes</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-orange-50 border-l-4 border-orange-400 p-4">
+                    <h3 className="font-bold text-orange-800 mb-2">🍂 Seasonal Decorations</h3>
+                    <p className="text-sm text-orange-700">
+                      Celebrate the seasons with special decorations that automatically appear during holidays 
+                      and special times of year - or add them manually to create year-round festive vibes!
+                    </p>
+                  </div>
+
+                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+                    <h3 className="font-bold text-blue-800 mb-2">🌤️ Atmosphere & Ambiance</h3>
+                    <p className="text-sm text-blue-700 mb-2">
+                      Set the perfect mood for your home with atmospheric controls:
+                    </p>
+                    <div className="grid md:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <strong className="text-blue-800">Sky Types:</strong>
+                        <div className="text-blue-700">Sunny, sunset, cloudy, starry night</div>
+                      </div>
+                      <div>
+                        <strong className="text-blue-800">Weather:</strong>
+                        <div className="text-blue-700">Clear, rain, snow, fog</div>
+                      </div>
+                      <div>
+                        <strong className="text-blue-800">Time of Day:</strong>
+                        <div className="text-blue-700">Dawn, midday, dusk, night</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </RetroCard>
+
+              <RetroCard title="Getting Started with Your Pixel Home">
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 p-4 rounded">
+                    <h3 className="font-bold text-purple-800 mb-2">🎯 Quick Start Guide</h3>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-start gap-3">
+                        <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span>
+                        <div>
+                          <strong className="text-purple-800">Visit Your Home:</strong>
+                          <p className="text-purple-700">Go to your profile and click &quot;Decorate Home&quot; to access the pixel home editor</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">2</span>
+                        <div>
+                          <strong className="text-purple-800">Choose a Template:</strong>
+                          <p className="text-purple-700">Select from cottage, townhouse, loft, or cabin to match your style</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">3</span>
+                        <div>
+                          <strong className="text-purple-800">Customize Your House:</strong>
+                          <p className="text-purple-700">Change colors, doors, windows, and roof trim to make it uniquely yours</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">4</span>
+                        <div>
+                          <strong className="text-purple-800">Decorate the Yard:</strong>
+                          <p className="text-purple-700">Drag and drop plants, paths, and features to create your perfect garden</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">5</span>
+                        <div>
+                          <strong className="text-purple-800">Set the Scene:</strong>
+                          <p className="text-purple-700">Choose your sky, weather, and time of day to complete the atmosphere</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {user ? (
+                    <div className="text-center">
+                      <Link 
+                        href={`/home/${user.primaryHandle?.split('@')[0]}/decorate`}
+                        className="inline-block border border-black px-6 py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-bold"
+                      >
+                        🎨 Decorate Your Home Now
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <Link 
+                        href="/onboarding"
+                        className="inline-block border border-black px-6 py-3 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-bold"
+                      >
+                        🎨 Sign Up to Create Your Home
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </RetroCard>
+
+              <RetroCard title="Share Your Pixel Home">
+                <div className="space-y-4">
+                  <p className="text-gray-700">
+                    Your pixel home is visible to all visitors on your profile, serving as a welcoming 
+                    digital front door that reflects your personality and creativity.
+                  </p>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="border border-gray-300 p-4 bg-green-50 rounded">
+                      <h4 className="font-bold text-green-800 mb-2">👥 Visitor Experience</h4>
+                      <ul className="text-sm text-green-700 space-y-1">
+                        <li>• Interactive elements show activity status</li>
+                        <li>• Mailbox indicates guestbook messages</li>
+                        <li>• Music notes appear when profile music plays</li>
+                        <li>• Atmospheric effects create immersive experience</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="border border-gray-300 p-4 bg-blue-50 rounded">
+                      <h4 className="font-bold text-blue-800 mb-2">🏘️ Neighborhood Views</h4>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• Appears in community neighborhood pages</li>
+                        <li>• Part of the broader Threadstead community</li>
+                        <li>• Showcases your unique design choices</li>
+                        <li>• Inspires others with creative decorations</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="bg-pink-50 border-l-4 border-pink-400 p-4">
+                    <h3 className="font-bold text-pink-800 mb-2">💡 Pro Tips</h3>
+                    <ul className="text-sm text-pink-700 space-y-1">
+                      <li>• <strong>Seasonal Updates:</strong> Change decorations to match holidays and seasons</li>
+                      <li>• <strong>Personal Themes:</strong> Match your home style to your profile theme</li>
+                      <li>• <strong>Experiment:</strong> Try different combinations - you can always change things!</li>
+                      <li>• <strong>Less Can Be More:</strong> Sometimes a few well-placed decorations work better than crowding</li>
+                    </ul>
+                  </div>
                 </div>
               </RetroCard>
             </div>
