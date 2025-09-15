@@ -10,7 +10,7 @@ import { db } from '../../../lib/config/database/connection'
 import Link from 'next/link'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
-import { transformRingDescriptorToThreadRing } from '@/lib/api/ringhub/ringhub-transformers'
+import { transformRingDescriptorToThreadRing, transformRingMemberWithUserResolution } from '@/lib/api/ringhub/ringhub-transformers'
 
 // Neighborhood member data structure
 interface NeighborhoodMember {
@@ -579,71 +579,40 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         description = ring.description || `Explore the homes of ${ring.name} ring members`
         metadata = { ringName: ring.name, ringSlug: ring.slug }
         
-        // For Ring Hub members, resolve local user accounts first
+        // For Ring Hub members, use the proper transformer to resolve local user accounts
         let resolvedMembers: any[] = []
 
         if (featureFlags.ringhub() && ringMembers.length > 0) {
-          // Extract handles from Ring Hub members
-          const memberHandles = ringMembers
-            .map(member => {
-              if (member.user?.handles) {
-                return member.user.handles
-                  .filter((h: any) => h.host === 'threadstead.com')
-                  .map((h: any) => h.handle)
-              }
-              return []
-            })
-            .flat()
-            .filter(Boolean)
+          // Use the same transformer that the API uses for proper member resolution
+          resolvedMembers = await Promise.all(
+            ringMembers.map(async (member) => {
+              try {
+                const resolvedMember = await transformRingMemberWithUserResolution(
+                  member,
+                  param as string,
+                  db
+                )
 
-          // Find local users by handles
-          const localUsers = await db.user.findMany({
-            where: {
-              handles: {
-                some: {
-                  handle: { in: memberHandles },
-                  host: 'threadstead.com'
-                }
-              }
-            },
-            include: {
-              handles: true,
-              profile: true
-            }
-          })
-
-          // Create a map of handle -> user for quick lookup
-          const handleToUserMap = new Map()
-          localUsers.forEach(user => {
-            user.handles.forEach(handle => {
-              if (handle.host === 'threadstead.com') {
-                handleToUserMap.set(handle.handle, user)
-              }
-            })
-          })
-
-          // Resolve Ring Hub members to local users
-          resolvedMembers = ringMembers
-            .map(ringMember => {
-              if (ringMember.user?.handles) {
-                const threadsteadHandle = ringMember.user.handles
-                  .find((h: any) => h.host === 'threadstead.com')
-
-                if (threadsteadHandle) {
-                  const localUser = handleToUserMap.get(threadsteadHandle.handle)
-                  if (localUser) {
-                    return {
-                      userId: localUser.id,
-                      user: localUser,
-                      role: ringMember.role || 'member',
-                      joinedAt: ringMember.joinedAt || new Date().toISOString()
+                return {
+                  userId: resolvedMember.userId,
+                  user: {
+                    id: resolvedMember.user.id,
+                    handles: resolvedMember.user.handles,
+                    profile: {
+                      displayName: resolvedMember.user.displayName,
+                      avatarUrl: resolvedMember.user.avatarUrl
                     }
-                  }
+                  },
+                  role: resolvedMember.role,
+                  joinedAt: resolvedMember.joinedAt
                 }
+              } catch (error) {
+                console.error('Error resolving Ring Hub member:', error)
+                return null
               }
-              return null
             })
-            .filter(Boolean)
+          )
+          resolvedMembers = resolvedMembers.filter(Boolean)
         } else {
           // Use local members directly
           resolvedMembers = ringMembers
