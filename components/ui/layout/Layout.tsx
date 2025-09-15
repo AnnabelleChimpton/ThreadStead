@@ -79,6 +79,9 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
           {children}
         </main>
 
+        {/* Spacing before footer */}
+        <div className="py-4"></div>
+
         {/* Footer with minimal styling */}
         <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto relative z-[9998]">
           <div className="footer-content mx-auto max-w-5xl text-center">
@@ -149,6 +152,9 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       >
         {children}
       </main>
+
+      {/* Spacing before footer */}
+      <div className="py-4"></div>
 
       <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
         <div className="footer-content mx-auto max-w-5xl text-center">
