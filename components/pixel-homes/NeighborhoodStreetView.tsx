@@ -115,15 +115,6 @@ const StreetLayer: React.FC<{ scrollOffset: number }> = ({ scrollOffset }) => {
           ))}
         </div>
       </div>
-      
-      {/* Trees and decorations behind houses - positioned with the grass */}
-      <div className="absolute left-0 right-0 flex justify-around px-16 pointer-events-none" style={{ bottom: '220px' }}>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="text-3xl md:text-4xl transform -translate-y-2">
-            {i % 4 === 0 ? '🌳' : i % 4 === 1 ? '🌲' : i % 4 === 2 ? '🌴' : '🌿'}
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
@@ -283,18 +274,6 @@ export default function NeighborhoodStreetView({
                           </div>
                         )}
                       </div>
-                      
-                      {/* Simple username label
-                      <div className="text-center mt-4">
-                        <div className="font-medium text-thread-pine text-base">
-                          @{member.username}
-                        </div>
-                        {member.displayName && (
-                          <div className="text-sm text-thread-sage mt-1 opacity-75">
-                            {member.displayName}
-                          </div>
-                        )}
-                      </div> */}
                     </div>
                   )
                 })}

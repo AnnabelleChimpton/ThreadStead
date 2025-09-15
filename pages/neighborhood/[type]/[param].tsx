@@ -8,6 +8,9 @@ import NeighborhoodMapView from '../../../components/pixel-homes/NeighborhoodMap
 import { HouseTemplate, ColorPalette } from '../../../components/pixel-homes/HouseSVG'
 import { db } from '../../../lib/config/database/connection'
 import Link from 'next/link'
+import { featureFlags } from '@/lib/utils/features/feature-flags'
+import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { transformRingDescriptorToThreadRing } from '@/lib/api/ringhub/ringhub-transformers'
 
 // Neighborhood member data structure
 interface NeighborhoodMember {
@@ -517,31 +520,137 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     // Route to appropriate data fetching based on type
     switch (type) {
       case 'ring': {
-        // Fetch ring neighborhood
-        const ring = await db.threadRing.findUnique({
-          where: { slug: param },
-          include: {
-            members: {
-              include: {
-                user: {
-                  include: {
-                    handles: true,
-                    profile: true
+        let ring = null
+        let ringMembers: any[] = []
+
+        // Use Ring Hub if enabled
+        if (featureFlags.ringhub()) {
+          const client = getRingHubClient()
+          if (client) {
+            try {
+              // Fetch ring from Ring Hub
+              const ringDescriptor = await client.getRing(param)
+              if (ringDescriptor) {
+                ring = transformRingDescriptorToThreadRing(ringDescriptor)
+
+                // Fetch members from Ring Hub
+                try {
+                  const ringHubMembersResponse = await client.getRingMembers(param)
+                  if (ringHubMembersResponse && ringHubMembersResponse.members) {
+                    ringMembers = ringHubMembersResponse.members
+                  }
+                } catch (error) {
+                  console.error('Error fetching Ring Hub members:', error)
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching ring from Ring Hub:', error)
+            }
+          }
+        }
+
+        // Fallback to local database if Ring Hub fails or is disabled
+        if (!ring) {
+          const localRing = await db.threadRing.findUnique({
+            where: { slug: param },
+            include: {
+              members: {
+                include: {
+                  user: {
+                    include: {
+                      handles: true,
+                      profile: true
+                    }
                   }
                 }
               }
             }
-          }
-        })
-        
+          })
+
+          if (!localRing) return { notFound: true }
+
+          ring = localRing
+          ringMembers = localRing.members
+        }
+
         if (!ring) return { notFound: true }
         
         title = `🏘️ ${ring.name} Neighborhood`
         description = ring.description || `Explore the homes of ${ring.name} ring members`
         metadata = { ringName: ring.name, ringSlug: ring.slug }
         
-        // Get home configs for ring members
-        const memberUserIds = ring.members.map(m => m.userId)
+        // For Ring Hub members, resolve local user accounts first
+        let resolvedMembers: any[] = []
+
+        if (featureFlags.ringhub() && ringMembers.length > 0) {
+          // Extract handles from Ring Hub members
+          const memberHandles = ringMembers
+            .map(member => {
+              if (member.user?.handles) {
+                return member.user.handles
+                  .filter((h: any) => h.host === 'threadstead.com')
+                  .map((h: any) => h.handle)
+              }
+              return []
+            })
+            .flat()
+            .filter(Boolean)
+
+          // Find local users by handles
+          const localUsers = await db.user.findMany({
+            where: {
+              handles: {
+                some: {
+                  handle: { in: memberHandles },
+                  host: 'threadstead.com'
+                }
+              }
+            },
+            include: {
+              handles: true,
+              profile: true
+            }
+          })
+
+          // Create a map of handle -> user for quick lookup
+          const handleToUserMap = new Map()
+          localUsers.forEach(user => {
+            user.handles.forEach(handle => {
+              if (handle.host === 'threadstead.com') {
+                handleToUserMap.set(handle.handle, user)
+              }
+            })
+          })
+
+          // Resolve Ring Hub members to local users
+          resolvedMembers = ringMembers
+            .map(ringMember => {
+              if (ringMember.user?.handles) {
+                const threadsteadHandle = ringMember.user.handles
+                  .find((h: any) => h.host === 'threadstead.com')
+
+                if (threadsteadHandle) {
+                  const localUser = handleToUserMap.get(threadsteadHandle.handle)
+                  if (localUser) {
+                    return {
+                      userId: localUser.id,
+                      user: localUser,
+                      role: ringMember.role || 'member',
+                      joinedAt: ringMember.joinedAt || new Date().toISOString()
+                    }
+                  }
+                }
+              }
+              return null
+            })
+            .filter(Boolean)
+        } else {
+          // Use local members directly
+          resolvedMembers = ringMembers
+        }
+
+        // Get home configs for resolved members
+        const memberUserIds = resolvedMembers.map(m => m.userId || m.user?.id).filter(Boolean)
         const homeConfigs = await db.userHomeConfig.findMany({
           where: { userId: { in: memberUserIds } },
           include: {
@@ -559,14 +668,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             }
           }
         })
-        
+
         const homeConfigMap = new Map(homeConfigs.map(c => [c.userId, c]))
-        
-        const filteredMembers = ring.members
-          .filter(m => m.user.handles.length > 0)
+
+        const filteredMembers = resolvedMembers
+          .filter(m => {
+            const user = m.user || m
+            return user.handles && user.handles.length > 0
+          })
           .map(member => {
-            const user = member.user
-            const handle = user.handles.find(h => h.host === 'threadstead.com') || user.handles[0]
+            const user = member.user || member
+            const handle = user.handles.find((h: any) => h.host === 'threadstead.com') || user.handles[0]
             const config = homeConfigMap.get(user.id)
             
             if (!handle || !config) return null
@@ -624,7 +736,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                 isFollowing: false,
                 isFollower: false
               },
-              joinedAt: member.joinedAt.toISOString(),
+              joinedAt: typeof member.joinedAt === 'string' ? member.joinedAt : member.joinedAt?.toISOString() || new Date().toISOString(),
               role: member.role
             }
           })
