@@ -69,15 +69,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     take: 20,
     include: {
       author: {
-        select: {
-          id: true,
-          primaryHandle: true,
+        include: {
+          handles: {
+            where: { host: SITE_NAME },
+            take: 1,
+            orderBy: { handle: "asc" }
+          },
           profile: {
             select: {
               displayName: true,
+              avatarUrl: true,
             },
           },
         },
+      },
+      comments: {
+        select: {
+          id: true
+        }
       },
       threadRings: {
         include: {
@@ -93,5 +102,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
   });
 
-  res.json({ posts });
+  // Transform posts to include flat author fields for widget compatibility
+  const transformedPosts = posts.map(post => ({
+    id: post.id,
+    authorId: post.authorId,
+    authorUsername: post.author.handles[0]?.handle || null,
+    authorDisplayName: post.author.profile?.displayName || null,
+    authorAvatarUrl: post.author.profile?.avatarUrl || null,
+    title: post.title,
+    intent: post.intent,
+    createdAt: post.createdAt,
+    updatedAt: post.updatedAt,
+    bodyHtml: post.bodyHtml,
+    bodyText: post.bodyText,
+    bodyMarkdown: post.bodyMarkdown,
+    media: post.media,
+    tags: post.tags,
+    commentCount: post.comments.length,
+    threadRings: post.threadRings,
+    isSpoiler: post.isSpoiler,
+    contentWarning: post.contentWarning,
+    visibility: post.visibility
+  }));
+
+  res.json({ posts: transformedPosts });
 }
