@@ -18,7 +18,7 @@ interface WelcomeWidgetProps extends WidgetProps {
 }
 
 function WelcomeWidget({ user, data }: WelcomeWidgetProps) {
-  const message = data?.message || `Welcome${user?.primaryHandle ? `, ${user.primaryHandle}` : ''}!`;
+  const message = data?.message || `Welcome${user?.primaryHandle ? `, ${user.primaryHandle.split('@')[0]}` : ''}!`;
 
   return (
     <div className="text-center py-4">

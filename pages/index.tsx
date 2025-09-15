@@ -320,7 +320,7 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
       <div className="w-full max-w-7xl mx-auto px-4 py-6">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-[#2E4B3F] mb-2">
-            Welcome home{user?.primaryHandle ? `, ${user.primaryHandle}` : ''}!
+            Welcome home{user?.primaryHandle ? `, ${user.primaryHandle.split('@')[0]}` : ''}!
           </h1>
           <p className="text-gray-600">
             Your personalized portal to the community • News • Neighbors • Activity

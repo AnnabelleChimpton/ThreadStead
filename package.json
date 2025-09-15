@@ -17,6 +17,7 @@
     "beta:list": "tsx scripts/manage-beta-keys.ts list",
     "migrate-users": "tsx scripts/migrate-legacy-users.ts",
     "promote-admin": "tsx scripts/promote-to-admin.ts",
+    "delete-user": "tsx scripts/delete-user.ts",
     "email:generate-key": "tsx scripts/generate-email-encryption-key.ts",
     "email:test-encryption": "tsx scripts/test-email-encryption.ts",
     "threadrings:reconcile": "tsx scripts/reconcile-threadring-counters.ts",
