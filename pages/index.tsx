@@ -1,15 +1,27 @@
 import Layout from "../components/ui/layout/Layout";
 import CustomPageLayout from "../components/ui/layout/CustomPageLayout";
-import RetroCard from "../components/ui/layout/RetroCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import { PrismaClient } from "@prisma/client";
+import { getSessionUser } from "@/lib/auth/server";
 import Link from "next/link";
+import { WidgetContainer } from "@/components/widgets";
+import { useDefaultWidgets } from "@/hooks/useWidgets";
+import { useState, useEffect } from "react";
+import EnhancedHouseCanvas from "../components/pixel-homes/EnhancedHouseCanvas";
+import { HouseTemplate, ColorPalette, HouseCustomizations } from "../components/pixel-homes/HouseSVG";
 
 const db = new PrismaClient();
 
 interface HomeProps {
   siteConfig: SiteConfig;
+  pageType: 'custom' | 'landing' | 'homepage' | 'unified';
+  user?: {
+    id: string;
+    did: string;
+    role: string;
+    primaryHandle: string | null;
+  };
   customPage?: {
     id: string;
     slug: string;
@@ -21,97 +33,444 @@ interface HomeProps {
   };
 }
 
-export default function Home({ siteConfig, customPage }: HomeProps) {
-  // If there's a custom homepage, render it exactly like a regular custom page
-  if (customPage) {
+interface UserHomeConfig {
+  houseTemplate: string;
+  palette: string;
+  bookSkin?: string;
+  seasonalOptIn: boolean;
+  preferPixelHome: boolean;
+  atmosphere?: {
+    sky: string;
+    weather: string;
+    timeOfDay: string;
+  };
+  houseCustomizations?: any;
+}
+
+// Simple card component for homepage (avoids thread-module min-width issues)
+function SimpleCard({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 mb-4 w-full max-w-full overflow-hidden">
+      {title && <h3 className="text-lg font-bold mb-3 text-[#2E4B3F]">{title}</h3>}
+      {children}
+    </div>
+  );
+}
+
+interface DecorationItem {
+  id: string;
+  type: 'plant' | 'path' | 'feature' | 'seasonal';
+  zone: 'front_yard' | 'house_facade' | 'background';
+  position: { x: number; y: number; layer?: number };
+  variant?: string;
+  size?: 'small' | 'medium' | 'large';
+}
+
+interface AtmosphereSettings {
+  sky: 'sunny' | 'cloudy' | 'sunset' | 'night';
+  weather: 'clear' | 'light_rain' | 'light_snow';
+  timeOfDay: 'morning' | 'midday' | 'evening' | 'night';
+}
+
+// Helper function to safely convert API customizations to HouseCustomizations
+const sanitizeCustomizations = (customizations: any): HouseCustomizations | undefined => {
+  if (!customizations) return undefined;
+
+  const validWindowStyles = ['default', 'round', 'arched', 'bay'] as const;
+  const validDoorStyles = ['default', 'arched', 'double', 'cottage'] as const;
+  const validRoofTrims = ['default', 'ornate', 'scalloped', 'gabled'] as const;
+
+  return {
+    windowStyle: validWindowStyles.includes(customizations.windowStyle)
+      ? customizations.windowStyle
+      : 'default',
+    doorStyle: validDoorStyles.includes(customizations.doorStyle)
+      ? customizations.doorStyle
+      : 'default',
+    roofTrim: validRoofTrims.includes(customizations.roofTrim)
+      ? customizations.roofTrim
+      : 'default',
+    wallColor: typeof customizations.wallColor === 'string' ? customizations.wallColor : undefined,
+    roofColor: typeof customizations.roofColor === 'string' ? customizations.roofColor : undefined,
+    trimColor: typeof customizations.trimColor === 'string' ? customizations.trimColor : undefined,
+    windowColor: typeof customizations.windowColor === 'string' ? customizations.windowColor : undefined,
+    detailColor: typeof customizations.detailColor === 'string' ? customizations.detailColor : undefined,
+    houseTitle: typeof customizations.houseTitle === 'string' ? customizations.houseTitle : undefined,
+    houseDescription: typeof customizations.houseDescription === 'string' ? customizations.houseDescription : undefined,
+    houseBoardText: typeof customizations.houseBoardText === 'string' ? customizations.houseBoardText : undefined,
+  };
+};
+
+// Component to display user's pixel home
+function UserPixelHome({ user }: { user: any }) {
+  const [homeConfig, setHomeConfig] = useState<UserHomeConfig | null>(null);
+  const [decorations, setDecorations] = useState<DecorationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.primaryHandle) return;
+
+    const fetchHomeData = async () => {
+      try {
+        const username = user.primaryHandle.split('@')[0];
+
+        // Fetch both home config and decorations in parallel
+        const [homeResponse, decorationsResponse] = await Promise.all([
+          fetch(`/api/home/${username}`),
+          fetch(`/api/home/decorations/load?username=${username}`)
+        ]);
+
+        if (homeResponse.ok) {
+          const data = await homeResponse.json();
+          setHomeConfig(data.homeConfig);
+        }
+
+        // Try to get decorations, but don't fail if it doesn't work
+        if (decorationsResponse.ok) {
+          try {
+            const decorationsData = await decorationsResponse.json();
+            setDecorations(decorationsData.decorations || []);
+          } catch (error) {
+            console.warn('Failed to parse decorations data:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch home data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHomeData();
+  }, [user?.primaryHandle]);
+
+  if (loading) {
     return (
-      <CustomPageLayout siteConfig={siteConfig} hideNavbar={customPage.hideNavbar}>
-        <div 
-          className="custom-page-content flex-1"
-          dangerouslySetInnerHTML={{ __html: customPage.content }}
-        />
-      </CustomPageLayout>
+      <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-8 text-center min-h-[300px] flex items-center justify-center">
+        <div className="animate-pulse text-gray-600">Loading your home...</div>
+      </div>
     );
   }
 
-  // Fallback content if no custom homepage exists
+  if (!homeConfig) {
+    return (
+      <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-8 text-center min-h-[300px] flex items-center justify-center">
+        <div className="space-y-4">
+          <div className="text-6xl">🏠</div>
+          <p className="text-gray-600">Unable to load your home</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Sanitize atmosphere data
+  const atmosphere: AtmosphereSettings = {
+    sky: (homeConfig.atmosphere && ['sunny', 'cloudy', 'sunset', 'night'].includes(homeConfig.atmosphere.sky as any))
+      ? (homeConfig.atmosphere.sky as AtmosphereSettings['sky'])
+      : 'sunny',
+    weather: (homeConfig.atmosphere && ['clear', 'light_rain', 'light_snow'].includes(homeConfig.atmosphere.weather as any))
+      ? (homeConfig.atmosphere.weather as AtmosphereSettings['weather'])
+      : 'clear',
+    timeOfDay: (homeConfig.atmosphere && ['morning', 'midday', 'evening', 'night'].includes(homeConfig.atmosphere.timeOfDay as any))
+      ? (homeConfig.atmosphere.timeOfDay as AtmosphereSettings['timeOfDay'])
+      : 'midday'
+  };
+
+  return (
+    <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-4 min-h-[300px] flex items-center justify-center">
+      <div className="w-full max-w-md flex justify-center">
+        <div
+          className="transform scale-75 origin-center cursor-pointer"
+          onClick={() => window.open(`/home/${user.primaryHandle?.split('@')[0]}`, '_blank')}
+        >
+          <EnhancedHouseCanvas
+            template={homeConfig.houseTemplate as HouseTemplate}
+            palette={homeConfig.palette as ColorPalette}
+            houseCustomizations={sanitizeCustomizations(homeConfig.houseCustomizations)}
+            atmosphere={atmosphere}
+            decorations={decorations}
+            hasUnreadGuestbook={false}
+            isPlayingMusic={false}
+            isUserOnline={true}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
   return (
     <Layout siteConfig={siteConfig}>
-      <div className="space-y-6">
-        <RetroCard title="Welcome to Threadstead">
-          <div className="text-center py-8">
-            <h1 className="text-2xl font-bold mb-4">{siteConfig.welcome_message}</h1>
-            <p className="text-lg text-gray-700 mb-4">
+      <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
+        <SimpleCard title="Welcome to Threadstead">
+          <div className="text-center py-4">
+            <h1 className="text-xl sm:text-2xl font-bold mb-4">{siteConfig.welcome_message}</h1>
+            <p className="text-base sm:text-lg text-gray-700 mb-4">
               <strong>ThreadRings are themed communities you can join — like modern WebRings or clubhouses — where posts live in your profile but also appear in shared Ring feeds.</strong>
             </p>
-            <p className="text-gray-600 mb-8">{siteConfig.site_description}</p>
+            <p className="text-gray-600 mb-6">{siteConfig.site_description}</p>
             <div className="flex flex-col sm:flex-row justify-center gap-3">
-              <Link 
-                href="/getting-started" 
+              <Link
+                href="/signup"
                 className="border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] inline-block text-lg font-medium"
               >
-                Learn More
+                Join Community
               </Link>
-              <Link 
-                href="/feed" 
-                className="border border-black px-6 py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] inline-block text-lg font-medium"
+              <Link
+                href="/login"
+                className="border border-black px-6 py-3 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block text-lg font-medium"
               >
-                Enter Community
+                Login
               </Link>
             </div>
           </div>
-        </RetroCard>
-        
-        <RetroCard title="What are ThreadRings?">
+        </SimpleCard>
+
+        <SimpleCard title="What are ThreadRings?">
           <div className="space-y-4">
             <p className="text-gray-700">
-              ThreadRings bring back the spirit of the early web&apos;s WebRings — interconnected communities organized around shared interests. 
+              ThreadRings bring back the spirit of the early web&apos;s WebRings — interconnected communities organized around shared interests.
               Each Ring is a themed community where members can share posts, have discussions, and build connections.
             </p>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="border border-gray-300 p-3 bg-blue-50">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="border border-gray-300 p-3 bg-blue-50 rounded">
                 <h3 className="font-bold mb-1">🏠 Your Content Lives with You</h3>
                 <p className="text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
               </div>
-              <div className="border border-gray-300 p-3 bg-green-50">
+              <div className="border border-gray-300 p-3 bg-green-50 rounded">
                 <h3 className="font-bold mb-1">🌳 Rich Family Trees</h3>
                 <p className="text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
               </div>
-              <div className="border border-gray-300 p-3 bg-purple-50">
+              <div className="border border-gray-300 p-3 bg-purple-50 rounded">
                 <h3 className="font-bold mb-1">✨ Community-Focused</h3>
                 <p className="text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
               </div>
             </div>
             <div className="text-center pt-4">
-              <Link 
-                href="/threadrings" 
+              <Link
+                href="/threadrings"
                 className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block font-medium"
               >
                 Browse ThreadRings
               </Link>
             </div>
           </div>
-        </RetroCard>
+        </SimpleCard>
+
+        <SimpleCard title="Community Highlights">
+          <div className="text-center py-4">
+            <p className="text-gray-600 mb-4">Join our growing community of creative individuals</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div className="bg-green-50 p-3 border border-gray-200 rounded">
+                <div className="font-bold text-green-800">Active Members</div>
+                <div className="text-gray-600">Building connections daily</div>
+              </div>
+              <div className="bg-purple-50 p-3 border border-gray-200 rounded">
+                <div className="font-bold text-purple-800">ThreadRings</div>
+                <div className="text-gray-600">Communities to explore</div>
+              </div>
+            </div>
+          </div>
+        </SimpleCard>
       </div>
     </Layout>
   );
 }
 
-export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
-  const siteConfig = await getSiteConfig();
-  
-  // Check if default homepage is disabled - redirect to feed if so
-  if (siteConfig.disable_default_home === "true") {
-    return {
-      redirect: {
-        destination: "/feed",
-        permanent: false,
-      },
-    };
+function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; user: any }) {
+  const { widgets } = useDefaultWidgets(user);
+
+  return (
+    <Layout siteConfig={siteConfig}>
+      <div className="w-full max-w-7xl mx-auto px-4 py-6">
+        {/* Welcome Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-[#2E4B3F] mb-2">
+            Welcome home{user?.primaryHandle ? `, ${user.primaryHandle}` : ''}!
+          </h1>
+          <p className="text-gray-600">
+            Here&apos;s what&apos;s happening in your community
+          </p>
+        </div>
+
+        {/* Pixel Home Centered Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Sidebar Widgets */}
+          <div className="lg:col-span-3 space-y-4">
+            <div className="lg:sticky lg:top-6">
+              <WidgetContainer
+                widgets={widgets.slice(0, Math.ceil(widgets.length / 2))}
+                user={user}
+                layout="stack"
+                maxColumns={1}
+              />
+            </div>
+          </div>
+
+          {/* Center - Pixel Home */}
+          <div className="lg:col-span-6">
+            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-6">
+              <div className="text-center mb-4">
+                <h2 className="text-xl font-bold text-[#2E4B3F] mb-2">Your Home</h2>
+                <p className="text-sm text-gray-600">
+                  Click to visit your pixel home or explore your space
+                </p>
+              </div>
+
+              {/* Pixel Home Preview */}
+              <UserPixelHome user={user} />
+
+              {/* Home Action Buttons */}
+              <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href={`/home/${user?.primaryHandle?.split('@')[0]}`}
+                  className="text-center border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] inline-block font-medium"
+                >
+                  Visit Your Pixel Home
+                </Link>
+                <Link
+                  href={`/home/${user?.primaryHandle?.split('@')[0]}/decorate`}
+                  className="text-center border border-black px-6 py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] inline-block font-medium"
+                >
+                  Decorate Your Home
+                </Link>
+              </div>
+            </div>
+
+            {/* Quick Actions Below Home */}
+            <SimpleCard title="Quick Actions">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Link
+                  href="/post/new"
+                  className="text-center border border-black px-4 py-3 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] block font-medium"
+                >
+                  Create Post
+                </Link>
+                <Link
+                  href="/threadrings"
+                  className="text-center border border-black px-4 py-3 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] block font-medium"
+                >
+                  Join ThreadRings
+                </Link>
+                <Link
+                  href="/explore/homes"
+                  className="text-center border border-black px-4 py-3 bg-orange-200 hover:bg-orange-100 shadow-[2px_2px_0_#000] block font-medium"
+                >
+                  Explore Homes
+                </Link>
+              </div>
+            </SimpleCard>
+          </div>
+
+          {/* Right Sidebar Widgets */}
+          <div className="lg:col-span-3 space-y-4">
+            <div className="lg:sticky lg:top-6">
+              <WidgetContainer
+                widgets={widgets.slice(Math.ceil(widgets.length / 2))}
+                user={user}
+                layout="stack"
+                maxColumns={1}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
+  return (
+    <Layout siteConfig={siteConfig}>
+      <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
+        <SimpleCard title="Welcome to Threadstead">
+          <div className="text-center py-6">
+            <h1 className="text-xl sm:text-2xl font-bold mb-4">{siteConfig.welcome_message}</h1>
+            <p className="text-base sm:text-lg text-gray-700 mb-4">
+              <strong>ThreadRings are themed communities you can join — like modern WebRings or clubhouses — where posts live in your profile but also appear in shared Ring feeds.</strong>
+            </p>
+            <p className="text-gray-600 mb-6">{siteConfig.site_description}</p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
+              <Link
+                href="/getting-started"
+                className="border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] inline-block text-lg font-medium"
+              >
+                Learn More
+              </Link>
+              <Link
+                href="/feed"
+                className="border border-black px-6 py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] inline-block text-lg font-medium"
+              >
+                Enter Community
+              </Link>
+            </div>
+          </div>
+        </SimpleCard>
+
+        <SimpleCard title="What are ThreadRings?">
+          <div className="space-y-4">
+            <p className="text-gray-700">
+              ThreadRings bring back the spirit of the early web&apos;s WebRings — interconnected communities organized around shared interests.
+              Each Ring is a themed community where members can share posts, have discussions, and build connections.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="border border-gray-300 p-3 bg-blue-50 rounded">
+                <h3 className="font-bold mb-1">🏠 Your Content Lives with You</h3>
+                <p className="text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
+              </div>
+              <div className="border border-gray-300 p-3 bg-green-50 rounded">
+                <h3 className="font-bold mb-1">🌳 Rich Family Trees</h3>
+                <p className="text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
+              </div>
+              <div className="border border-gray-300 p-3 bg-purple-50 rounded">
+                <h3 className="font-bold mb-1">✨ Community-Focused</h3>
+                <p className="text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
+              </div>
+            </div>
+            <div className="text-center pt-4">
+              <Link
+                href="/threadrings"
+                className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block font-medium"
+              >
+                Browse ThreadRings
+              </Link>
+            </div>
+          </div>
+        </SimpleCard>
+      </div>
+    </Layout>
+  );
+}
+
+export default function Home({ siteConfig, pageType, user, customPage }: HomeProps) {
+  // Route to appropriate component based on pageType
+  switch (pageType) {
+    case 'custom':
+      return (
+        <CustomPageLayout siteConfig={siteConfig} hideNavbar={customPage!.hideNavbar}>
+          <div
+            className="custom-page-content flex-1"
+            dangerouslySetInnerHTML={{ __html: customPage!.content }}
+          />
+        </CustomPageLayout>
+      );
+    case 'landing':
+      return <LandingPage siteConfig={siteConfig} />;
+    case 'homepage':
+      return <PersonalizedHomepage siteConfig={siteConfig} user={user} />;
+    case 'unified':
+    default:
+      return <UnifiedHomepage siteConfig={siteConfig} />;
   }
-  
+}
+
+export const getServerSideProps: GetServerSideProps<HomeProps> = async (context) => {
+  const siteConfig = await getSiteConfig();
+  const user = await getSessionUser(context.req as any);
+
   try {
-    // Look for a custom page that is explicitly set as homepage
+    // 1. Custom Homepage Override (highest priority)
     const customPage = await db.customPage.findFirst({
       where: {
         published: true,
@@ -132,6 +491,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
       return {
         props: {
           siteConfig,
+          pageType: 'custom' as const,
           customPage: {
             ...customPage,
             createdAt: customPage.createdAt.toISOString(),
@@ -141,17 +501,48 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
       };
     }
 
-    // No custom homepage found
-    return {
-      props: {
-        siteConfig,
-      },
-    };
+    // 2. Check if default homepage is disabled - redirect to feed if so (backward compatibility)
+    if (siteConfig.disable_default_home === "true") {
+      return {
+        redirect: {
+          destination: "/feed",
+          permanent: false,
+        },
+      };
+    }
+
+    // 3. For now, implement basic auth-aware logic (we'll add config options later)
+    // This demonstrates the different experiences
+    if (user) {
+      // Logged in user gets personalized homepage
+      return {
+        props: {
+          siteConfig,
+          pageType: 'homepage' as const,
+          user: {
+            id: user.id,
+            did: user.did,
+            role: user.role,
+            primaryHandle: user.primaryHandle,
+          }
+        },
+      };
+    } else {
+      // Visitors get landing page
+      return {
+        props: {
+          siteConfig,
+          pageType: 'landing' as const,
+        },
+      };
+    }
   } catch (error) {
     console.error("Error fetching homepage:", error);
+    // Fallback to unified homepage
     return {
       props: {
         siteConfig,
+        pageType: 'unified' as const,
       },
     };
   }

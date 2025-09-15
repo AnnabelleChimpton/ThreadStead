@@ -164,10 +164,6 @@ export default function PixelHomePage({
     router.push(`/resident/${username}?tab=rings`)
   }
 
-  const handleSettingsClick = () => {
-    router.push('/settings?tab=pixel-home')
-  }
-
   const handleDecorationMode = () => {
     router.push(`/home/${username}/decorate`)
   }
@@ -229,8 +225,7 @@ export default function PixelHomePage({
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-3xl font-headline font-bold text-thread-pine mb-3 flex items-center justify-center gap-3">
-            <span className="text-4xl">🏠</span>
-            @{username}&apos;s Pixel Home
+            {username}&apos;s Pixel Home
           </h1>
           <div className="text-thread-sage text-lg mb-6 max-w-2xl mx-auto">
             Welcome to the neighborhood! This is {username}&apos;s interactive pixel home.
@@ -250,7 +245,7 @@ export default function PixelHomePage({
                 {badges.length > 0 && (
                   <div className="flex justify-center">
                     <div className="bg-thread-sky bg-opacity-20 px-3 py-1 rounded-full text-sm text-thread-pine font-medium">
-                      ✨ {badges.length} ThreadRing Badge{badges.length !== 1 ? 's' : ''}
+                      {badges.length} ThreadRing Badge{badges.length !== 1 ? 's' : ''}
                     </div>
                   </div>
                 )}
@@ -277,14 +272,13 @@ export default function PixelHomePage({
             {/* Interactive Actions */}
             <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-6 shadow-cozy">
               <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 text-center">
-                🎯 Explore & Connect
+                Explore & Connect
               </h3>
               <div className="space-y-3">
                 <button
                   onClick={handleDoorClick}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-thread-sage to-thread-pine text-thread-paper hover:from-thread-pine hover:to-thread-sage transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5"
                 >
-                  <span className="text-xl">🚪</span>
                   <span>Enter & Explore Full Profile</span>
                 </button>
                 
@@ -292,7 +286,6 @@ export default function PixelHomePage({
                   onClick={handleMailboxClick}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
-                  <span className="text-xl">📬</span>
                   <span>Check Mailbox {hasUnreadGuestbook && '(New!)'}</span>
                   {hasUnreadGuestbook && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
                 </button>
@@ -301,7 +294,6 @@ export default function PixelHomePage({
                   onClick={handleThreadbookClick}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
-                  <span className="text-xl">📖</span>
                   <span>View ThreadRing Lineage</span>
                 </button>
                 
@@ -309,7 +301,6 @@ export default function PixelHomePage({
                   onClick={handleFlagClick}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
-                  <span className="text-xl">🏳️</span>
                   <span>View Ring Memberships</span>
                 </button>
               </div>
@@ -319,23 +310,14 @@ export default function PixelHomePage({
             {isOwner && (
               <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-6 shadow-cozy">
                 <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 text-center">
-                  🎨 Customize Your Home
+                  Customize Your Home
                 </h3>
                 <div className="space-y-3">
                   <button
                     onClick={handleDecorationMode}
                     className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5"
                   >
-                    <span className="text-xl">🎨</span>
                     <span>Decorate Home</span>
-                  </button>
-                  
-                  <button
-                    onClick={handleSettingsClick}
-                    className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
-                  >
-                    <span className="text-xl">⚙️</span>
-                    <span>Home Settings</span>
                   </button>
                 </div>
               </div>
@@ -344,14 +326,13 @@ export default function PixelHomePage({
             {/* Navigation */}
             <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-6 shadow-cozy">
               <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 text-center">
-                🏘️ Neighborhood
+                Neighborhood
               </h3>
               <div className="space-y-3">
                 <button
                   onClick={() => router.push('/neighborhood/explore/all')}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
-                  <span className="text-xl">🏘️</span>
                   <span>Explore More Homes</span>
                 </button>
                 
@@ -359,7 +340,6 @@ export default function PixelHomePage({
                   onClick={() => router.push('/')}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
-                  <span className="text-xl">🌟</span>
                   <span>Back to ThreadStead</span>
                 </button>
               </div>
@@ -437,16 +417,6 @@ export default function PixelHomePage({
                    `This is @${username}'s pixel home - a personalized space for connection and discovery. Use the interactive menu on the left to explore their profile, leave messages, and learn more about their ThreadRing community.`}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-16 py-8 border-t border-thread-sage border-opacity-20">
-          <div className="text-thread-sage text-sm">
-            <div className="font-medium mb-2">✨ Powered by ThreadStead Pixel Homes ✨</div>
-            <div className="text-xs opacity-75">
-              Every home tells a story. Every story builds community.
             </div>
           </div>
         </div>

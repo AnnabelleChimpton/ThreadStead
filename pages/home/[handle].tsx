@@ -48,7 +48,7 @@ export default function PixelHome({
   userDisplayName,
   userBio
 }: PixelHomeProps) {
-  const pageTitle = `🏠 ${userDisplayName || `@${username}`}'s Pixel Home`
+  const pageTitle = `${userDisplayName || `@${username}`}'s Pixel Home`
   const pageDescription = userBio 
     ? `${userBio.slice(0, 150)}...`
     : `Visit @${username}'s interactive Pixel Home on ThreadStead - explore their ThreadRing connections and discover their content.`

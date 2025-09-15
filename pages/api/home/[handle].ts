@@ -1,9 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { PrismaClient } from '@prisma/client'
 import { getSessionUser } from '../../../lib/auth/server'
+import { getNewUserHomeConfig } from '../../../lib/pixel-homes/randomization'
+import { db } from '../../../lib/config/database/connection'
 import { z } from 'zod'
-
-const prisma = new PrismaClient()
 
 const updateConfigSchema = z.object({
   houseTemplate: z.enum(['cottage_v1', 'townhouse_v1', 'loft_v1', 'cabin_v1']).optional(),
@@ -22,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Find user by handle
-    const userHandle = await prisma.handle.findFirst({
+    const userHandle = await db.handle.findFirst({
       where: { handle: handle.toLowerCase() },
       include: { user: true }
     })
@@ -35,20 +34,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'GET') {
       // Get user home configuration
-      let homeConfig = await prisma.userHomeConfig.findUnique({
+      let homeConfig = await db.userHomeConfig.findUnique({
         where: { userId: user.id }
       })
 
-      // Create default config if none exists
+      // Create randomized config if none exists
       if (!homeConfig) {
-        homeConfig = await prisma.userHomeConfig.create({
+        const randomConfig = getNewUserHomeConfig();
+        homeConfig = await db.userHomeConfig.create({
           data: {
             userId: user.id,
-            houseTemplate: 'cottage_v1',
-            palette: 'thread_sage',
-            bookSkin: 'linen_v1',
-            seasonalOptIn: false,
-            preferPixelHome: false
+            ...randomConfig
           }
         })
       }
@@ -60,6 +56,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           bookSkin: homeConfig.bookSkin,
           seasonalOptIn: homeConfig.seasonalOptIn,
           preferPixelHome: homeConfig.preferPixelHome,
+          atmosphere: {
+            sky: homeConfig.atmosphereSky,
+            weather: homeConfig.atmosphereWeather,
+            timeOfDay: homeConfig.atmosphereTimeOfDay
+          },
+          houseCustomizations: {
+            windowStyle: homeConfig.windowStyle,
+            doorStyle: homeConfig.doorStyle,
+            roofTrim: homeConfig.roofTrim,
+            wallColor: homeConfig.wallColor,
+            roofColor: homeConfig.roofColor,
+            trimColor: homeConfig.trimColor,
+            windowColor: homeConfig.windowColor,
+            detailColor: homeConfig.detailColor,
+            houseTitle: homeConfig.houseTitle,
+            houseDescription: homeConfig.houseDescription,
+            houseBoardText: homeConfig.houseBoardText
+          },
           updatedAt: homeConfig.updatedAt
         }
       })
@@ -78,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const validatedData = updateConfigSchema.parse(req.body)
 
-      const updatedConfig = await prisma.userHomeConfig.upsert({
+      const updatedConfig = await db.userHomeConfig.upsert({
         where: { userId: user.id },
         create: {
           userId: user.id,
@@ -117,6 +131,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(500).json({ error: 'Internal server error' })
   } finally {
-    await prisma.$disconnect()
+    // Note: We don't disconnect the singleton db instance
   }
 }

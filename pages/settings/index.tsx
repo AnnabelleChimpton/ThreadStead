@@ -655,37 +655,22 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors mr-2"
                   >
-                    🏠 View My Pixel Home
+                    View My Pixel Home
                     <span className="text-xs">↗</span>
                   </a>
                   <a 
                     href={`/home/${username}/decorate`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-thread-pine text-thread-paper rounded-md hover:bg-thread-charcoal transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors mr-2"
                   >
-                    🎨 Decorate Home
+                    Decorate Home
                     <span className="text-xs">↗</span>
                   </a>
                 </div>
                 <div className="text-xs text-thread-sage">
                   Use the decorator to place decorations, change themes, and customize your home&apos;s atmosphere
                 </div>
-              </div>
-            </div>
-          )}
-          
-          <ThemePicker 
-            onSelection={handlePixelHomeUpdate}
-            showExplanation={false}
-            className={pixelHomeLoading ? 'opacity-50 pointer-events-none' : ''}
-          />
-          
-          {pixelHomeLoading && (
-            <div className="text-center text-thread-sage">
-              <div className="inline-flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-thread-sage"></div>
-                Updating your Pixel Home...
               </div>
             </div>
           )}

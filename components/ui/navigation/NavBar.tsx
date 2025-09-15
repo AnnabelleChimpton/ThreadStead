@@ -227,12 +227,12 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 activeDropdown={activeDropdown}
                 setActiveDropdown={setActiveDropdown}
                 items={[
-                  { href: "/neighborhood/explore/all", label: "🏘️ All Homes" },
-                  { href: "/neighborhood/explore/recent", label: "🌍 Recent Activity" },
-                  { href: "/directory", label: "📋 Directory" },
+                  { href: "/neighborhood/explore/all", label: " All Homes" },
+                  { href: "/neighborhood/explore/recent", label: " Recent Activity" },
+                  { href: "/directory", label: " Directory" },
                   ...(me?.loggedIn && me?.user?.primaryHandle ? [
-                    { href: `/home/${me.user.primaryHandle.split('@')[0]}`, label: "🏠 My Pixel Home" },
-                    { href: `/resident/${me.user.primaryHandle.split('@')[0]}`, label: "👤 My Profile" }
+                    { href: `/home/${me.user.primaryHandle.split('@')[0]}`, label: " My Pixel Home" },
+                    { href: `/resident/${me.user.primaryHandle.split('@')[0]}`, label: " My Profile" }
                   ] : []),
                   ...discoveryPages.map(page => ({
                     href: `/page/${page.slug}`,
