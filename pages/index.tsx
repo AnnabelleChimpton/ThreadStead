@@ -10,6 +10,7 @@ import { useDefaultWidgets, useWidgets } from "@/hooks/useWidgets";
 import { useState, useEffect } from "react";
 import EnhancedHouseCanvas from "../components/pixel-homes/EnhancedHouseCanvas";
 import { HouseTemplate, ColorPalette, HouseCustomizations } from "../components/pixel-homes/HouseSVG";
+import HomePageSearch from "../components/features/search/HomePageSearch";
 
 const db = new PrismaClient();
 
@@ -285,8 +286,6 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
 }
 
 function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; user: any }) {
-  const [searchQuery, setSearchQuery] = useState('');
-
   // Load ALL available widgets for that classic early internet portal feel
   const { widgets } = useWidgets({
     user
@@ -306,15 +305,6 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
   const centerWidgets = widgets.slice(leftCount, leftCount + centerCount);
   const rightWidgets = widgets.slice(leftCount + centerCount);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    // Navigate to discover page with search query
-    const searchParams = new URLSearchParams({ q: searchQuery });
-    window.location.href = `/discover?${searchParams}`;
-  };
-
   return (
     <Layout siteConfig={siteConfig}>
       <div className="w-full max-w-7xl mx-auto px-4 py-6">
@@ -327,30 +317,8 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
           </p>
         </div>
 
-        {/* Global Search Bar */}
-        <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 mb-8">
-          <form onSubmit={handleSearch} className="flex gap-3">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="🔍 Search ThreadRings, users, posts..."
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={!searchQuery.trim()}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors shadow-[2px_2px_0_#2563eb]"
-            >
-              Search
-            </button>
-          </form>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Find anything in your community • Discover new ThreadRings • Connect with neighbors
-          </p>
-        </div>
+        {/* Enhanced Global Search Bar */}
+        <HomePageSearch className="mb-8" />
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
