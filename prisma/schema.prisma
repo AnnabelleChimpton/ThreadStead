@@ -395,6 +395,25 @@ model CustomPage {
   @@index([navDropdown])
 }
 
+model CuratedSite {
+  id          String   @id @default(cuid())
+  url         String   @unique
+  title       String
+  description String
+  tags        String[] // Array of tags like ['indie', 'blog', 'creative']
+  active      Boolean  @default(true)
+  weight      Int      @default(1) // For weighted random selection (higher = more likely)
+  addedBy     String?  // Track who added it
+  lastChecked DateTime? // For future health checking
+  clickCount  Int      @default(0) // Track popularity
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active])
+  @@index([tags])
+  @@index([weight])
+}
+
 model Media {
   id            String         @id @default(cuid())
   userId        String

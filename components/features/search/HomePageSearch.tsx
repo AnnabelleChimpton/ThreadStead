@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useExtSearchStatus } from '@/hooks/useExtSearch';
+import { SurpriseMeButtonCompact } from './SurpriseMeButton';
 
 interface HomePageSearchProps {
   className?: string;
@@ -67,59 +68,63 @@ export default function HomePageSearch({ className }: HomePageSearchProps) {
           >
             Search
           </button>
+          <SurpriseMeButtonCompact
+            mode={searchMode === 'web' ? 'curated' : 'threadstead'}
+          />
         </div>
 
         {/* Search Mode Toggle */}
         {hasExternalEngines && (
-          <div className="flex items-center justify-center gap-2">
+          <div className="bg-gray-100 p-1 rounded-lg flex items-center gap-1">
             <button
               type="button"
               onClick={() => setSearchMode('local')}
-              className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${
+              className={`flex-1 px-4 py-2 rounded-md font-medium transition-all duration-200 ${
                 searchMode === 'local'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-blue-500 text-white shadow-md transform scale-105'
+                  : 'bg-transparent text-gray-600 hover:bg-gray-200'
               }`}
             >
-              🏠 ThreadStead
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-lg">🏠</span>
+                <span>ThreadStead</span>
+              </div>
             </button>
-            <span className="text-gray-400 text-sm">or</span>
             <button
               type="button"
               onClick={() => setSearchMode('web')}
-              className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${
+              className={`flex-1 px-4 py-2 rounded-md font-medium transition-all duration-200 ${
                 searchMode === 'web'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md transform scale-105'
+                  : 'bg-transparent text-gray-600 hover:bg-gray-200'
               }`}
             >
-              🌍 WorldWideWeb
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-lg">🌍</span>
+                <span>WorldWideWeb</span>
+              </div>
             </button>
           </div>
         )}
       </form>
 
-      {/* Search Description */}
-      <div className="text-xs text-gray-500 mt-2 text-center">
+      {/* Search Description - Compact */}
+      <div className="text-xs mt-2 text-center">
         {searchMode === 'web' && hasExternalEngines ? (
-          <>
-            <strong>Search content on ThreadStead or the WorldWideWeb itself!</strong>
-            <br />
-            Discover indie blogs, personal sites, and privacy-focused content across the small web
-          </>
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded px-3 py-1">
+            <span className="text-purple-700 font-medium">🌍 Searching the WorldWideWeb</span>
+            <span className="text-gray-500 mx-2">•</span>
+            <span className="text-gray-600">Discover indie sites & small web content</span>
+          </div>
         ) : (
-          <>
-            Find anything in your community • Discover new ThreadRings • Connect with neighbors
-          </>
+          <div className="bg-blue-50 border border-blue-200 rounded px-3 py-1">
+            <span className="text-blue-700 font-medium">🏠 Searching ThreadStead</span>
+            <span className="text-gray-500 mx-2">•</span>
+            <span className="text-gray-600">Find community content & ThreadRings</span>
+          </div>
         )}
       </div>
 
-      {/* Engine Status Indicator */}
-      {hasExternalEngines && searchMode === 'web' && (
-        <div className="text-xs text-gray-400 mt-1 text-center">
-          Powered by {engines.filter(e => e.available).length} indie search engines
-        </div>
-      )}
     </div>
   );
 }

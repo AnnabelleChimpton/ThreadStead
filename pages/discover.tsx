@@ -6,6 +6,8 @@ import { getSessionUser } from '@/lib/auth/server';
 import Link from 'next/link';
 import { useExtSearch } from '@/hooks/useExtSearch';
 import { ExtSearchResults } from '@/components/features/search/ExtSearchResults';
+import SurpriseMeButton from '@/components/features/search/SurpriseMeButton';
+import DiscoverPageSearch from '@/components/features/search/DiscoverPageSearch';
 
 interface DiscoverProps {
   siteConfig: SiteConfig;
@@ -175,117 +177,31 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
           <h1 className="text-3xl font-bold text-[#2E4B3F] mb-2">
             🔍 Discover
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-4">
             Explore ThreadRings, find interesting people, and discover great content
           </p>
+          <SurpriseMeButton className="mt-4" />
         </div>
 
-        {/* Search Interface */}
-        <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
-          {/* Search Tabs */}
-          {extSearchEnabled && (
-            <div className="flex space-x-1 mb-4">
-              <button
-                onClick={() => {
-                  console.log('Switching to local tab');
-                  setSearchTab('local');
-                }}
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                  searchTab === 'local'
-                    ? 'bg-white border-t border-l border-r border-gray-300'
-                    : 'bg-gray-100 hover:bg-gray-200'
-                }`}
-              >
-                🏠 Local
-              </button>
-              <button
-                onClick={() => {
-                  console.log('Switching to smallweb tab');
-                  setSearchTab('smallweb');
-                }}
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                  searchTab === 'smallweb'
-                    ? 'bg-white border-t border-l border-r border-gray-300'
-                    : 'bg-gray-100 hover:bg-gray-200'
-                }`}
-              >
-                🌍 Small Web
-              </button>
-            </div>
-          )}
-
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  console.log('Input changed to:', e.target.value);
-                  setSearchQuery(e.target.value);
-                }}
-                placeholder={
-                  searchTab === 'smallweb'
-                    ? "Search the indie web..."
-                    : "Search for threadrings, users, or posts..."
-                }
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                autoComplete="off"
-              />
-              {searchTab === 'local' && (
-                <select
-                  value={searchType}
-                  onChange={(e) => setSearchType(e.target.value as any)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All</option>
-                  <option value="threadrings">ThreadRings</option>
-                  <option value="users">Users</option>
-                  <option value="posts">Posts</option>
-                </select>
-              )}
-              <button
-                type="submit"
-                disabled={(searchTab === 'local' ? loading : extSearch.loading) || !searchQuery.trim()}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                {(searchTab === 'local' ? loading : extSearch.loading) ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-
-            {/* Small Web Filters */}
-            {searchTab === 'smallweb' && (
-              <div className="flex flex-wrap gap-3 text-sm">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={indieOnly}
-                    onChange={(e) => setIndieOnly(e.target.checked)}
-                    className="rounded"
-                  />
-                  <span>🌱 Indie Web Only</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={privacyOnly}
-                    onChange={(e) => setPrivacyOnly(e.target.checked)}
-                    className="rounded"
-                  />
-                  <span>🔒 Privacy-First</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={noTrackers}
-                    onChange={(e) => setNoTrackers(e.target.checked)}
-                    className="rounded"
-                  />
-                  <span>🛡️ No Trackers</span>
-                </label>
-              </div>
-            )}
-          </form>
-        </div>
+        {/* Enhanced Search Interface */}
+        <DiscoverPageSearch
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          searchTab={searchTab}
+          setSearchTab={setSearchTab}
+          searchType={searchType}
+          setSearchType={setSearchType}
+          indieOnly={indieOnly}
+          setIndieOnly={setIndieOnly}
+          privacyOnly={privacyOnly}
+          setPrivacyOnly={setPrivacyOnly}
+          noTrackers={noTrackers}
+          setNoTrackers={setNoTrackers}
+          onSearch={handleSearch}
+          loading={searchTab === 'local' ? loading : extSearch.loading}
+          extSearchEnabled={extSearchEnabled}
+          className="mb-8"
+        />
 
         {/* Search Results */}
         {searchTab === 'local' && results.length > 0 && (

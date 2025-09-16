@@ -15,6 +15,7 @@ import type {
 
 import { dedupe, fuseRank, balanceResults, filterResults } from './merge';
 import { applyAllBoosts } from './boost';
+import { optimizeQuery } from './query-optimizer';
 import { createSearchMySiteEngine } from './engines/searchmysite';
 import { createSearXNGEngine } from './engines/searxng';
 import { createBraveSearchEngine } from './engines/brave';
@@ -247,13 +248,40 @@ export async function runExtSearch(
     };
   }
 
+  // Optimize the query for better results
+  const optimizedQuery: ExtSearchQuery = {
+    ...query,
+    q: optimizeQuery(query.q, {
+      enableSpellCorrection: true,
+      enableSynonyms: false, // Keep focused results
+      enableStopWordRemoval: false, // Preserve user intent
+      targetEngine: 'general'
+    })
+  };
+
+  // Log optimization if query was changed
+  if (optimizedQuery.q !== query.q && process.env.NODE_ENV === 'development') {
+    console.log(`Query optimized: "${query.q}" → "${optimizedQuery.q}"`);
+  }
+
   // Run searches in parallel
   const searchPromises = availableEngines.map(async (engine) => {
     const engineStartTime = Date.now();
     const config = registry.configs.get(engine.id);
 
     try {
-      const result = await engine.search(query, controller.signal);
+      // Use engine-specific optimization
+      const engineQuery = {
+        ...optimizedQuery,
+        q: optimizeQuery(query.q, {
+          enableSpellCorrection: true,
+          enableSynonyms: false,
+          enableStopWordRemoval: false,
+          targetEngine: engine.id as 'brave' | 'searchmysite' | 'general'
+        })
+      };
+
+      const result = await engine.search(engineQuery, controller.signal);
       return {
         engineId: engine.id,
         engineName: engine.name,
