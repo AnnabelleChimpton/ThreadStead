@@ -28,16 +28,11 @@ function generateTextPreview(bodyText?: string | null, bodyHtml?: string | null,
       .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1'); // Convert images to alt text
   }
   
-  // Clean up whitespace and decode URL-encoded characters for Ring Hub compatibility
+  // Clean up whitespace and remove URLs for Ring Hub compatibility
   content = content.replace(/\s+/g, ' ').trim();
 
-  // Decode URL-encoded characters to prevent Ring Hub validation errors
-  try {
-    content = decodeURIComponent(content);
-  } catch (error) {
-    // If decoding fails, sanitize problematic characters instead
-    content = content.replace(/%[0-9A-Fa-f]{2}/g, '');
-  }
+  // Remove URLs from metadata (they don't add value for discovery and cause validation issues)
+  content = content.replace(/https?:\/\/[^\s]+/g, '[link]');
   
   if (content.length <= 300) {
     return content;
@@ -69,13 +64,8 @@ function generateExcerpt(bodyText?: string | null, bodyHtml?: string | null, bod
   
   content = content.replace(/\s+/g, ' ').trim();
 
-  // Decode URL-encoded characters to prevent Ring Hub validation errors
-  try {
-    content = decodeURIComponent(content);
-  } catch (error) {
-    // If decoding fails, sanitize problematic characters instead
-    content = content.replace(/%[0-9A-Fa-f]{2}/g, '');
-  }
+  // Remove URLs from metadata (they don't add value for discovery and cause validation issues)
+  content = content.replace(/https?:\/\/[^\s]+/g, '[link]');
 
   if (content.length <= 500) {
     return content;
