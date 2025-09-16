@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { validatePostTitle } from "@/lib/domain/validation";
 import EmojiPicker from "@/components/ui/feedback/EmojiPicker";
+import SmartUrlShortener from "@/components/ui/forms/SmartUrlShortener";
 
 interface PostEditorPageProps {
   siteConfig: SiteConfig;
@@ -795,6 +796,15 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
                       className="hidden"
                     />
                   </div>
+                </div>
+
+                {/* Smart URL Shortener */}
+                <div className="mb-4">
+                  <SmartUrlShortener
+                    content={content}
+                    onContentChange={setContent}
+                    className="mb-3"
+                  />
                 </div>
 
                 {/* Markdown Editor */}
