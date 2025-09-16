@@ -849,6 +849,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     currentUser={currentUser}
                     userRole={currentUserRole as any}
                     isUserMember={isMember}
+                    viewContext="ring"
                   />
                 ))}
                 

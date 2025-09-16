@@ -65,13 +65,14 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
           </div>
         ) : (
           posts.map((p) => (
-            <PostItem 
-              key={p.id} 
-              post={p} 
-              isOwner={isOwner} 
-              isAdmin={isAdmin} 
+            <PostItem
+              key={p.id}
+              post={p}
+              isOwner={isOwner}
+              isAdmin={isAdmin}
               onChanged={refresh}
-              currentUser={currentUser} 
+              currentUser={currentUser}
+              viewContext="profile"
             />
           ))
         )}

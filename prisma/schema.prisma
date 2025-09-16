@@ -34,6 +34,7 @@ model User {
   photoComments             PhotoComment[]     @relation("PhotoCommentAuthor")
   installs                  PluginInstall[]
   posts                     Post[]
+  postViews                 PostView[]         @relation("PostViews")
   postThreadRingAdditions   PostThreadRing[]   @relation("PostThreadRingAdditions")
   profile                   Profile?
   homeConfig                UserHomeConfig?
@@ -197,6 +198,47 @@ model Post {
   comments          Comment[]        @relation("PostComments")
   author            User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
   threadRings       PostThreadRing[] @relation("PostThreadRings")
+  metrics           PostMetrics?     @relation("PostMetrics")
+  views             PostView[]       @relation("PostViews")
+}
+
+model PostMetrics {
+  id              String   @id @default(cuid())
+  postId          String   @unique
+  viewCount       Int      @default(0)
+  uniqueViewCount Int      @default(0)
+  commentCount    Int      @default(0)
+  lastViewedAt    DateTime @default(now())
+  lastCommentAt   DateTime?
+  trendingScore   Float    @default(0)
+  scoreUpdatedAt  DateTime @default(now())
+
+  // Velocity tracking (last 6 hours)
+  recentViews     Int      @default(0)
+  recentComments  Int      @default(0)
+  velocityWindow  DateTime @default(now())
+
+  post Post @relation("PostMetrics", fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([trendingScore, scoreUpdatedAt])
+  @@index([postId])
+}
+
+model PostView {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String?
+  ipHash    String?
+  viewType  String   @default("feed")
+  createdAt DateTime @default(now())
+
+  post Post  @relation("PostViews", fields: [postId], references: [id], onDelete: Cascade)
+  user User? @relation("PostViews", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId, createdAt])
+  @@unique([postId, ipHash, createdAt])
+  @@index([postId, createdAt])
+  @@index([createdAt])
 }
 
 model Comment {

@@ -13,6 +13,7 @@ import { PostModerationAction, PostModerationStatus, ThreadRingRole } from "@/ty
 import ReportButton from "../../ui/feedback/ReportButton";
 import PostActionsDropdown from "./PostActionsDropdown";
 import { useWelcomeRingTracking } from "@/hooks/useWelcomeRingTracking";
+import { useViewportTracking, trackEngagement } from "@/hooks/usePostView";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type Mode = "text" | "markdown" | "html";
@@ -101,6 +102,7 @@ export default function PostItem({
   currentUser,
   userRole,
   isUserMember = false,
+  viewContext = 'feed',
 }: {
   post: Post;
   isOwner: boolean;
@@ -113,6 +115,7 @@ export default function PostItem({
   canModerateRing?: boolean;
   userRole?: ThreadRingRole;
   isUserMember?: boolean;
+  viewContext?: 'feed' | 'profile' | 'ring' | 'widget';
 }) {
   const initialMode: Mode = post.bodyHtml ? "html" : "text";
 
@@ -148,6 +151,21 @@ export default function PostItem({
   
   // Welcome ring tracking
   const { trackCommentCreated } = useWelcomeRingTracking(threadRingContext?.slug);
+
+  // Viewport tracking for feed views
+  const getViewType = () => {
+    if (threadRingContext) return 'ring_view';
+    if (viewContext === 'profile') return 'profile_view';
+    if (viewContext === 'widget') return 'widget_click';
+    return 'feed_view';
+  };
+
+  const viewportRef = useViewportTracking(
+    post.id,
+    getViewType(),
+    0.5, // 50% visible
+    2000 // 2 seconds
+  );
 
 
   useEffect(() => {
@@ -397,7 +415,12 @@ const countLabel = hasServerCount
   };
 
   return (
-    <article id={`post-${post.id.slice(-6)}`} className={`post-item blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`} data-post-id={post.id.slice(-6)}>
+    <article
+      ref={viewportRef}
+      id={`post-${post.id.slice(-6)}`}
+      className={`post-item blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
+      data-post-id={post.id.slice(-6)}
+    >
       <div className="blog-post-header flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-2">
           <div className="blog-post-date text-xs opacity-70">
@@ -690,9 +713,14 @@ const countLabel = hasServerCount
         <section className="mt-4 border-t border-black pt-3">
         <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
+                const wasOpen = commentsOpen;
                 setCommentsOpen((o) => !o);
-                if (!commentsOpen && commentCount === null) setCommentsVersion((v) => v + 1);
+                if (!wasOpen) {
+                  // Track comment expansion as engagement
+                  await trackEngagement(post.id, 'comment_expand');
+                  if (commentCount === null) setCommentsVersion((v) => v + 1);
+                }
             }}
             className="flex w-full items-center justify-between rounded px-2 py-1 border border-black bg-white shadow-[2px_2px_0_#000] hover:bg-yellow-100 text-sm"
             aria-expanded={commentsOpen}

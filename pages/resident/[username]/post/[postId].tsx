@@ -4,6 +4,7 @@ import RetroCard from "@/components/ui/layout/RetroCard";
 import PostItem, { Post as PostType } from "@/components/core/content/PostItem";
 import ProfileLayout from "@/components/ui/layout/ProfileLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePostView } from "@/hooks/usePostView";
 
 type PostPageProps = {
   username: string;
@@ -20,6 +21,13 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const { user: currentUser } = useCurrentUser();
+
+  // Track full page view for this post
+  usePostView({
+    postId: post.id,
+    viewType: 'full_page',
+    enabled: true,
+  });
 
   useEffect(() => {
     let alive = true;

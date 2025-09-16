@@ -102,13 +102,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
   });
 
-  // Transform posts to include flat author fields for widget compatibility
+  // Transform posts to include proper author structure for PostItem component
   const transformedPosts = posts.map(post => ({
     id: post.id,
-    authorId: post.authorId,
-    authorUsername: post.author.handles[0]?.handle || null,
-    authorDisplayName: post.author.profile?.displayName || null,
-    authorAvatarUrl: post.author.profile?.avatarUrl || null,
     title: post.title,
     intent: post.intent,
     createdAt: post.createdAt,
@@ -118,11 +114,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     bodyMarkdown: post.bodyMarkdown,
     media: post.media,
     tags: post.tags,
-    commentCount: post.comments.length,
-    threadRings: post.threadRings,
+    visibility: post.visibility,
     isSpoiler: post.isSpoiler,
     contentWarning: post.contentWarning,
-    visibility: post.visibility
+    threadRings: post.threadRings,
+    // Provide author data in the structure expected by PostItem component
+    author: {
+      id: post.authorId,
+      primaryHandle: post.author.handles[0]?.handle ? `${post.author.handles[0].handle}@${SITE_NAME}` : undefined,
+      profile: post.author.profile ? {
+        displayName: post.author.profile.displayName || undefined,
+        avatarUrl: post.author.profile.avatarUrl || undefined,
+      } : undefined,
+    },
+    // Keep flat fields for backward compatibility with widgets
+    authorId: post.authorId,
+    authorUsername: post.author.handles[0]?.handle || null,
+    authorDisplayName: post.author.profile?.displayName || null,
+    authorAvatarUrl: post.author.profile?.avatarUrl || null,
+    commentCount: post.comments.length,
   }));
 
   res.json({ posts: transformedPosts });

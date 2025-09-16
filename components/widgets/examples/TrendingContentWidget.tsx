@@ -32,7 +32,7 @@ interface TrendingPost {
 interface TrendingContentData {
   posts: TrendingPost[];
   hasMore: boolean;
-  source: 'trending' | 'recent'; // Indicates if we got trending data or fell back to recent
+  source: 'local_trending' | 'ringhub_trending' | 'trending' | 'recent'; // Indicates the data source
 }
 
 function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?: TrendingContentData }) {
@@ -107,10 +107,16 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
   };
 
   const getTrendingIcon = () => {
-    if (data.source === 'trending') {
-      return '🔥'; // Fire emoji for actual trending content
+    switch (data.source) {
+      case 'local_trending':
+        return '🔥'; // Fire emoji for local trending with real metrics
+      case 'ringhub_trending':
+        return '🌐'; // Globe emoji for Ring Hub trending
+      case 'trending':
+        return '🔥'; // Fire emoji for legacy trending
+      default:
+        return '📈'; // Chart emoji for recent/fallback content
     }
-    return '📈'; // Chart emoji for popular recent content
   };
 
   return (
@@ -120,7 +126,9 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
         <div className="flex items-center space-x-2">
           <span className="text-lg">{getTrendingIcon()}</span>
           <span className="text-sm font-medium text-gray-600">
-            {data.source === 'trending' ? 'Trending Now' : 'Popular Recent'}
+            {data.source === 'local_trending' ? 'Trending Now' :
+             data.source === 'ringhub_trending' ? 'Ring Hub Trending' :
+             data.source === 'trending' ? 'Trending Now' : 'Popular Recent'}
           </span>
         </div>
       </div>
@@ -232,21 +240,36 @@ export const trendingContentWidget = {
   component: TrendingContentWidget as React.ComponentType<WidgetProps & { data?: any }>,
   fetchData: async () => {
     try {
-      // First try to get trending content from Ring Hub
-      let response = await fetch('/api/feed/trending?limit=6&timeWindow=day');
+      // First try local trending with real metrics
+      let response = await fetch('/api/feed/local-trending?limit=6&timeWindow=day&minViews=3');
 
       if (response.ok) {
         const trendingData = await response.json();
-        // If Ring Hub trending worked, return that data
-        return {
-          posts: trendingData.posts || [],
-          hasMore: trendingData.hasMore || false,
-          source: 'trending'
-        };
+        if (trendingData.posts && trendingData.posts.length > 0) {
+          return {
+            posts: trendingData.posts,
+            hasMore: trendingData.hasMore || false,
+            source: 'local_trending'
+          };
+        }
       }
 
-      // If trending fails (Ring Hub not available), fall back to recent posts
-      console.log('Trending API not available, falling back to recent posts');
+      // If local trending has no results, try Ring Hub trending
+      response = await fetch('/api/feed/trending?limit=6&timeWindow=day');
+
+      if (response.ok) {
+        const ringHubData = await response.json();
+        if (ringHubData.posts && ringHubData.posts.length > 0) {
+          return {
+            posts: ringHubData.posts,
+            hasMore: ringHubData.hasMore || false,
+            source: 'ringhub_trending'
+          };
+        }
+      }
+
+      // Final fallback to recent posts
+      console.log('No trending data available, falling back to recent posts');
 
       response = await fetch('/api/feed/recent?limit=10');
       if (!response.ok) {
@@ -255,16 +278,13 @@ export const trendingContentWidget = {
 
       const recentData = await response.json();
 
-      // Sort recent posts by comment count and recency to simulate "trending"
+      // Sort recent posts by comment count for basic trending
       const posts = (recentData.posts || []).sort((a: any, b: any) => {
-        // Simple trending algorithm: more comments + more recent = higher score
-        const scoreA = (a.commentCount || 0) * 2 + (Date.now() - new Date(a.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-        const scoreB = (b.commentCount || 0) * 2 + (Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-        return scoreB - scoreA;
+        return (b.commentCount || 0) - (a.commentCount || 0);
       });
 
       return {
-        posts: posts,
+        posts: posts.slice(0, 6),
         hasMore: recentData.hasMore || false,
         source: 'recent'
       };
