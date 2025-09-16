@@ -8,6 +8,7 @@ import "../styles/pixel-homes-animations.css"; // Visual polish and animations f
 import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Import Layout to ensure CSS dependencies are always available
 import Layout from "@/components/ui/layout/Layout";
@@ -15,12 +16,16 @@ import Layout from "@/components/ui/layout/Layout";
 // Import Global Audio Provider
 import { GlobalAudioProvider } from "@/contexts/GlobalAudioContext";
 
+// Import Cookie Consent Banner
+import CookieConsentBanner from "@/components/ui/feedback/CookieConsentBanner";
+
 // Initialize ThreadRing reconciliation scheduler (server-side only)
 import "@/lib/domain/threadrings/reconciliation-bootstrap";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   const { css, loading } = useSiteCSS();
   const router = useRouter();
+  const { user } = useCurrentUser();
 
   // Ensure Layout component is bundled to include its CSS dependencies
   // This fixes CSS loading issues for dynamically imported components
@@ -207,6 +212,15 @@ ${pageProps.customCSS}`
           : 'thread-surface text-thread-charcoal' // Normal styling for everything else
       }`}>
         <Component {...pageProps} />
+
+        {/* Cookie Consent Banner */}
+        <CookieConsentBanner
+          userId={user?.id}
+          onConsentChange={(consents) => {
+            // Optional: Handle global consent changes
+            console.log('Global consent updated:', consents);
+          }}
+        />
       </div>
     </GlobalAudioProvider>
   );

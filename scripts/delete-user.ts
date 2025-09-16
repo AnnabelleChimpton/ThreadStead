@@ -219,6 +219,12 @@ async function deleteUser(userId: string) {
     
     console.log('   🔄 Deleting user blocks...');
     await tx.userBlock.deleteMany({ where: { OR: [{ blockerId: userId }, { blockedUserId: userId }] } });
+
+    console.log('   🔄 Deleting user consents...');
+    await tx.userConsent.deleteMany({ where: { userId } });
+
+    console.log('   🔄 Deleting consent logs...');
+    await tx.consentLog.deleteMany({ where: { userId } });
     
     console.log('   🔄 Deleting user reports...');
     await tx.userReport.deleteMany({ where: { OR: [{ reporterId: userId }, { reportedUserId: userId }] } });

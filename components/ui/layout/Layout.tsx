@@ -86,6 +86,19 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
         <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto relative z-[9998]">
           <div className="footer-content mx-auto max-w-5xl text-center">
             <span className="footer-tagline thread-label">{config.site_description}</span>
+            <div className="footer-links mt-2 mb-2">
+              <Link href="/privacy" className="text-xs text-thread-sage hover:text-thread-pine underline">
+                Privacy Policy
+              </Link>
+              <span className="mx-2 text-xs text-thread-sage">•</span>
+              <Link href="/terms" className="text-xs text-thread-sage hover:text-thread-pine underline">
+                Terms of Service
+              </Link>
+              <span className="mx-2 text-xs text-thread-sage">•</span>
+              <Link href="/settings?tab=privacy" className="text-xs text-thread-sage hover:text-thread-pine underline">
+                Privacy Settings
+              </Link>
+            </div>
             <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
           </div>
         </footer>
@@ -159,6 +172,19 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
         <div className="footer-content mx-auto max-w-5xl text-center">
           <span className="footer-tagline thread-label">{config.site_description}</span>
+          <div className="footer-links mt-2 mb-2">
+            <Link href="/privacy" className="text-xs text-thread-sage hover:text-thread-pine underline">
+              Privacy Policy
+            </Link>
+            <span className="mx-2 text-xs text-thread-sage">•</span>
+            <Link href="/terms" className="text-xs text-thread-sage hover:text-thread-pine underline">
+              Terms of Service
+            </Link>
+            <span className="mx-2 text-xs text-thread-sage">•</span>
+            <Link href="/settings?tab=privacy" className="text-xs text-thread-sage hover:text-thread-pine underline">
+              Privacy Settings
+            </Link>
+          </div>
           <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
         </div>
       </footer>

@@ -63,6 +63,8 @@ model User {
   betaLandingSignups        BetaLandingSignup[]  @relation("BetaLandingSignups")
   ipBlocksCreated           IpSignupTracking[]   @relation("IpBlocksCreated")
   signupAttempts            SignupAttempt[]      @relation("SignupAttempts")
+  consents                  UserConsent[]        @relation("UserConsents")
+  consentLogs               ConsentLog[]         @relation("ConsentLogs")
 }
 
 model Handle {
@@ -900,4 +902,53 @@ model BetaInviteShare {
   @@index([codeId, sharedAt])
   @@index([sharedBy, sharedAt])
   @@index([shareMethod])
+}
+
+model UserConsent {
+  id          String      @id @default(cuid())
+  userId      String
+  type        ConsentType
+  granted     Boolean
+  timestamp   DateTime    @default(now())
+  ipAddress   String?
+  userAgent   String?
+  withdrawnAt DateTime?
+  version     String      @default("1.0") // Track consent policy version
+
+  user User @relation("UserConsents", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type]) // One consent record per type per user (latest)
+  @@index([userId, type])
+  @@index([granted, timestamp])
+}
+
+model ConsentLog {
+  id        String      @id @default(cuid())
+  userId    String
+  type      ConsentType
+  action    ConsentAction
+  granted   Boolean?    // null for withdrawal actions
+  timestamp DateTime    @default(now())
+  ipAddress String?
+  userAgent String?
+  version   String      @default("1.0")
+
+  user User @relation("ConsentLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([type, action])
+}
+
+enum ConsentType {
+  ESSENTIAL     // Essential cookies/functionality
+  ANALYTICS     // Analytics and performance tracking
+  MARKETING     // Marketing and advertising
+  PREFERENCES   // User preferences and settings
+}
+
+enum ConsentAction {
+  GRANTED       // User explicitly granted consent
+  WITHDRAWN     // User explicitly withdrew consent
+  UPDATED       // User updated existing consent
+  EXPIRED       // Consent expired due to time limit
 }

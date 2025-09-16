@@ -16,6 +16,7 @@ import ProfileBadgeSelector from "@/components/core/profile/ProfileBadgeSelector
 import BetaInviteCodesManager from "@/components/features/admin/BetaInviteCodesManager";
 import MidiManager from "@/components/ui/media/MidiManager";
 import ThemePicker from "@/components/pixel-homes/ThemePicker";
+import ConsentManager from "@/components/features/auth/ConsentManager";
 // Full identity management imports
 import { 
   getExistingDid, 
@@ -1189,18 +1190,23 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
     },
     {
       id: "privacy",
-      label: "🚫 Privacy & Blocking",
+      label: "🚫 Privacy & Consent",
       content: (
         <div className="space-y-6">
           <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2">Privacy & Blocking</h2>
+            <h2 className="text-xl font-bold mb-2">Privacy & Consent</h2>
             <p className="text-gray-600 mb-6">
-              Manage blocked users and communities for a better experience.
+              Manage your privacy settings, data consent preferences, and blocked users.
             </p>
           </div>
 
+          {/* Consent Management */}
+          <ConsentManager userId={initialUser.id} />
+
+          {/* Blocking Management */}
           <div className="bg-blue-50 border border-black rounded-none p-4 shadow-[2px_2px_0_#000]">
-            <p className="text-sm text-gray-700 mb-2">
+            <h3 className="text-lg font-bold mb-2">User & Community Blocking</h3>
+            <p className="text-sm text-gray-700 mb-3">
               <strong>Blocked users and communities are managed separately.</strong>
             </p>
             <Link
