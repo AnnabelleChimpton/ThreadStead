@@ -188,7 +188,7 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">🎲 Curated Sites Manager</h1>
           <p className="text-gray-600">
-            Manage the curated sites for the "Surprise Me" discovery feature
+            Manage the curated sites for the &quot;Surprise Me&quot; discovery feature
           </p>
         </div>
 

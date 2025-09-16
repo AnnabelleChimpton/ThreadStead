@@ -183,7 +183,7 @@ export function optimizeQuery(
     return '';
   }
 
-  let query = rawQuery.trim();
+  const query = rawQuery.trim();
 
   // Extract quoted phrases to preserve them
   const { phrases, remainder } = extractQuotedPhrases(query);
