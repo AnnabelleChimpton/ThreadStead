@@ -325,14 +325,13 @@ async function deleteUser(userId: string) {
     console.log('   🔄 Deleting user home config...');
     await tx.userHomeConfig.deleteMany({ where: { userId } });
 
-    // Handle ThreadRings curated by this user - reassign or delete
+    // Handle ThreadRings curated by this user - these need to be deleted since curatorId is required
     const curatedRings = await tx.threadRing.findMany({ where: { curatorId: userId } });
     if (curatedRings.length > 0) {
-      console.log(`   🔄 Updating ${curatedRings.length} curated ThreadRings...`);
-      // Set curator to null rather than deleting the rings
-      await tx.threadRing.updateMany({
-        where: { curatorId: userId },
-        data: { curatorId: null }
+      console.log(`   🔄 Deleting ${curatedRings.length} curated ThreadRings...`);
+      // Delete the rings since curatorId is a required field
+      await tx.threadRing.deleteMany({
+        where: { curatorId: userId }
       });
     }
     
