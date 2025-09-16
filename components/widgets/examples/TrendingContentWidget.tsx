@@ -27,6 +27,8 @@ interface TrendingPost {
   threadRings: any[];
   isSpoiler?: boolean;
   contentWarning?: string | null;
+  isRingHubPost?: boolean;
+  ringHubId?: string;
 }
 
 interface TrendingContentData {
@@ -161,12 +163,19 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
               {/* Post Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
-                  <Link
-                    href={`/resident/${post.authorUsername}`}
-                    className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors truncate"
-                  >
-                    {post.authorDisplayName || post.authorUsername || 'Anonymous'}
-                  </Link>
+                  {post.authorUsername ? (
+                    <Link
+                      href={`/resident/${post.authorUsername}`}
+                      className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors truncate"
+                    >
+                      {post.authorDisplayName || post.authorUsername}
+                    </Link>
+                  ) : (
+                    <span className="text-sm font-medium text-gray-700 truncate">
+                      {post.authorDisplayName || 'External User'}
+                      {post.isRingHubPost && <span className="text-xs text-gray-500 ml-1">(Ring Hub)</span>}
+                    </span>
+                  )}
                   <span className="text-xs text-gray-500">
                     {formatTimeAgo(post.createdAt)}
                   </span>
@@ -182,7 +191,11 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
                 )}
 
                 <Link
-                  href={`/resident/${post.authorUsername}/post/${post.id}`}
+                  href={post.isRingHubPost && post.threadRings?.[0]
+                    ? `/tr/${post.threadRings[0].threadRing.slug}`
+                    : post.authorUsername
+                      ? `/resident/${post.authorUsername}/post/${post.id}`
+                      : '#'}
                   className="block hover:text-blue-600 transition-colors"
                 >
                   {post.title && (
@@ -241,7 +254,7 @@ export const trendingContentWidget = {
   fetchData: async () => {
     try {
       // First try local trending with real metrics
-      let response = await fetch('/api/feed/local-trending?limit=6&timeWindow=day&minViews=3');
+      let response = await fetch('/api/feed/local-trending?limit=6&timeWindow=day&minViews=0');
 
       if (response.ok) {
         const trendingData = await response.json();
@@ -260,8 +273,49 @@ export const trendingContentWidget = {
       if (response.ok) {
         const ringHubData = await response.json();
         if (ringHubData.posts && ringHubData.posts.length > 0) {
+          // Transform RingHub posts to widget format
+          const transformedPosts = ringHubData.posts.map((post: any) => {
+            // Handle RingHub post structure
+            const hasPostContent = !!(post.postContent && !post.isNotification);
+
+            // Extract readable username from actorDid
+            const getDisplayName = (actorDid: string, actorName?: string) => {
+              if (actorName) return actorName;
+              if (actorDid.startsWith('did:web:')) {
+                return actorDid.replace('did:web:', '').split('.')[0] || 'User';
+              }
+              const parts = actorDid.split(':');
+              return parts[parts.length - 1] || 'User';
+            };
+
+            const getUsername = (actorDid: string) => {
+              if (actorDid.startsWith('did:web:')) {
+                return actorDid.replace('did:web:', '').split('.')[0] || null;
+              }
+              return null; // For non-local users, no username link
+            };
+
+            return {
+              id: hasPostContent ? post.postContent.id : `ringhub-${post.id}`,
+              authorId: post.actorDid,
+              authorUsername: getUsername(post.actorDid),
+              authorDisplayName: getDisplayName(post.actorDid, post.actorName),
+              authorAvatarUrl: null, // RingHub doesn't provide avatars
+              title: hasPostContent ? post.postContent.title : 'Ring Hub Activity',
+              intent: hasPostContent ? post.postContent.intent : null,
+              createdAt: hasPostContent ? post.postContent.createdAt : post.submittedAt,
+              bodyText: hasPostContent ? post.postContent.bodyText : null,
+              commentCount: post.commentCount || 0,
+              threadRings: post.ringSlug ? [{ threadRing: { slug: post.ringSlug, name: post.ringName } }] : [],
+              isSpoiler: hasPostContent ? post.postContent.isSpoiler : false,
+              contentWarning: hasPostContent ? post.postContent.contentWarning : null,
+              isRingHubPost: true, // Flag to identify RingHub posts
+              ringHubId: post.id
+            };
+          });
+
           return {
-            posts: ringHubData.posts,
+            posts: transformedPosts,
             hasMore: ringHubData.hasMore || false,
             source: 'ringhub_trending'
           };
