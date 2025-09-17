@@ -449,16 +449,28 @@ export class SeedingFilter {
    * Calculate confidence in evaluation based on available data
    */
   private calculateConfidence(site: ExtSearchResultItem, reasons: string[]): number {
-    let confidence = 0.5; // Base confidence
+    let confidence = 0.6; // Increased base confidence
 
     // More confidence if we have rich metadata
-    if (site.isIndieWeb !== undefined) confidence += 0.2;
+    if (site.isIndieWeb !== undefined) confidence += 0.15;
     if (site.privacyScore !== undefined) confidence += 0.1;
-    if (site.hasTrackers !== undefined) confidence += 0.1;
-    if (site.snippet && site.snippet.length > 100) confidence += 0.1;
+    if (site.hasTrackers !== undefined) confidence += 0.05;
+    if (site.snippet && site.snippet.length > 100) confidence += 0.05;
 
-    // More confidence with more evaluation reasons
-    confidence += Math.min(0.2, reasons.length * 0.02);
+    // More confidence with more evaluation reasons (stronger weight)
+    confidence += Math.min(0.3, reasons.length * 0.03);
+
+    // Extra confidence for strong indie web indicators
+    const strongIndieIndicators = [
+      'indie_web_detected',
+      'personal_domain',
+      'no_trackers',
+      'privacy_friendly'
+    ];
+    const hasStrongIndicators = strongIndieIndicators.some(indicator =>
+      reasons.includes(indicator)
+    );
+    if (hasStrongIndicators) confidence += 0.1;
 
     return Math.min(1.0, confidence);
   }
