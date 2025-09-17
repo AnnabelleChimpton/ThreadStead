@@ -66,6 +66,12 @@ model User {
   signupAttempts            SignupAttempt[]      @relation("SignupAttempts")
   consents                  UserConsent[]        @relation("UserConsents")
   consentLogs               ConsentLog[]         @relation("ConsentLogs")
+  indexedSiteSubmissions    IndexedSite[]        @relation("IndexedSiteSubmissions")
+  indexedSiteVerifications  IndexedSite[]        @relation("IndexedSiteVerifications")
+  siteVotes                 SiteVote[]           @relation("SiteVotes")
+  siteTagSuggestions        SiteTag[]            @relation("SiteTagSuggestions")
+  discoveryPaths            DiscoveryPath[]      @relation("DiscoveryPaths")
+  siteReviews               SiteReview[]         @relation("SiteReviews")
 }
 
 model Handle {
@@ -981,6 +987,175 @@ model UserConsent {
   @@unique([userId, type]) // One consent record per type per user (latest)
   @@index([userId, type])
   @@index([granted, timestamp])
+}
+
+// Community Index Models
+model IndexedSite {
+  id          String   @id @default(cuid())
+  url         String   @unique
+  title       String
+  description String?
+
+  // Discovery metadata
+  submittedBy      String?   // User ID who submitted
+  discoveredAt     DateTime  @default(now())
+  discoveryMethod  String    @default("manual") // search, webring, link, manual, api_seeding
+  discoveryContext String?   // source URL or context
+
+  // Content analysis
+  contentSample     String?   // First ~500 chars of content
+  extractedKeywords String[]  @default([])
+  detectedLanguage  String?   // ISO 2-letter code
+  siteType         String?   // blog, portfolio, project, etc.
+
+  // Technical metadata
+  lastCrawled    DateTime?
+  crawlStatus    String    @default("pending") // success, failed, pending, blocked
+  contentHash    String?   // Detect content changes
+  sslEnabled     Boolean?
+  responseTimeMs Int?
+  lastModified   DateTime?
+
+  // Community curation
+  communityScore Int     @default(0)
+  totalVotes     Int     @default(0)
+  verifiedBy     String? // Moderator verification user ID
+  featured       Boolean @default(false)
+
+  // Seeding specific fields
+  seedingScore        Int?      // Auto-evaluation score 0-100
+  seedingReasons      String[]  @default([]) // Why this was seeded
+  communityValidated  Boolean   @default(false)
+  validationVotes     Int       @default(0)
+
+  // Connectivity
+  outboundLinks String[] @default([]) // Sites this links to
+  inboundLinks  String[] @default([]) // Sites linking to this
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  submitter User?        @relation("IndexedSiteSubmissions", fields: [submittedBy], references: [id], onDelete: SetNull)
+  verifier  User?        @relation("IndexedSiteVerifications", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  votes     SiteVote[]
+  tags      SiteTag[]
+  reviews   SiteReview[]
+
+  @@index([url])
+  @@index([discoveryMethod])
+  @@index([crawlStatus])
+  @@index([communityScore])
+  @@index([communityValidated])
+  @@index([seedingScore])
+  @@index([featured])
+  @@index([siteType])
+  @@index([submittedBy])
+  @@index([verifiedBy])
+}
+
+model SiteVote {
+  id      String @id @default(cuid())
+  siteId  String
+  userId  String
+  voteType String // upvote, quality, interesting, helpful, creative, broken, spam
+  comment String?
+  createdAt DateTime @default(now())
+
+  site IndexedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User        @relation("SiteVotes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, userId, voteType])
+  @@index([siteId])
+  @@index([userId])
+  @@index([voteType])
+}
+
+model SiteTag {
+  id          String @id @default(cuid())
+  siteId      String
+  tag         String
+  suggestedBy String
+  votes       Int    @default(1)
+  createdAt   DateTime @default(now())
+
+  site      IndexedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  suggester User        @relation("SiteTagSuggestions", fields: [suggestedBy], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, tag])
+  @@index([siteId])
+  @@index([tag])
+  @@index([suggestedBy])
+}
+
+model DiscoveryPath {
+  id             String @id @default(cuid())
+  fromSite       String? // URL or "search" or "surprise"
+  toSite         String  // URL from IndexedSite
+  discoveredBy   String  // User ID
+  discoveryMethod String // link_click, search_result, webring, random
+  sessionId      String?
+  createdAt      DateTime @default(now())
+
+  discoverer User @relation("DiscoveryPaths", fields: [discoveredBy], references: [id], onDelete: Cascade)
+
+  @@index([toSite])
+  @@index([discoveredBy])
+  @@index([discoveryMethod])
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+model SiteRelationship {
+  id               String   @id @default(cuid())
+  siteA            String   // URL
+  siteB            String   // URL
+  relationshipType String   // links_to, same_author, webring_member, similar_content
+  strength         Int      @default(1) // How many people discovered this connection
+  discoveredBy     String[] @default([]) // User IDs who found this relationship
+  createdAt        DateTime @default(now())
+
+  @@unique([siteA, siteB, relationshipType])
+  @@index([siteA])
+  @@index([siteB])
+  @@index([relationshipType])
+}
+
+model CrawlQueue {
+  id           String    @id @default(cuid())
+  url          String
+  priority     Int       @default(1) // 1=low, 5=high
+  scheduledFor DateTime  @default(now())
+  attempts     Int       @default(0)
+  lastAttempt  DateTime?
+  status       String    @default("pending") // pending, processing, completed, failed
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+
+  @@index([status, scheduledFor])
+  @@index([priority, scheduledFor])
+  @@index([url])
+}
+
+model SiteReview {
+  id        String   @id @default(cuid())
+  siteId    String
+  userId    String
+  title     String?
+  content   String
+  rating    Int?     // 1-5 star rating (optional)
+  helpful   Int      @default(0) // How many found this review helpful
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site IndexedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User        @relation("SiteReviews", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, userId]) // One review per user per site
+  @@index([siteId])
+  @@index([userId])
+  @@index([helpful])
+  @@index([rating])
 }
 
 model ConsentLog {

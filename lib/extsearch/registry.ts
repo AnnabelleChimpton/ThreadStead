@@ -58,14 +58,14 @@ const DEFAULT_CONFIGS: Record<EngineId, EngineConfig> = {
     priority: 1,
     fallbackOnly: false,
     timeout: 3000,
-    maxResults: 20
+    maxResults: 50
   },
   searxng: {
-    enabled: false, // Disabled due to reliability issues
+    enabled: true, // Re-enable for more results
     priority: 3,
     fallbackOnly: false,
     timeout: 3500,
-    maxResults: 20
+    maxResults: 50
   },
   brave: {
     enabled: false, // Disabled by default (requires API key)
@@ -79,21 +79,21 @@ const DEFAULT_CONFIGS: Record<EngineId, EngineConfig> = {
     priority: 3,
     fallbackOnly: false,
     timeout: 3000,
-    maxResults: 20
+    maxResults: 50
   },
   duckduckgo: {
     enabled: false, // Disable - only provides link-outs to DDG
     priority: 4,
     fallbackOnly: true,
     timeout: 2000,
-    maxResults: 10
+    maxResults: 30
   },
   qwant: {
     enabled: false, // Not implemented yet
     priority: 6,
     fallbackOnly: true,
     timeout: 3000,
-    maxResults: 20
+    maxResults: 50
   }
 };
 
@@ -149,7 +149,7 @@ export function createRegistry(): SearchEngineRegistry {
 
   registry.register(searxng, {
     ...DEFAULT_CONFIGS.searxng,
-    enabled: false // Disable due to reliability issues
+    enabled: false // Disable due to consistent rate limit failures
   });
 
   registry.register(duckduckgo, {
@@ -160,7 +160,7 @@ export function createRegistry(): SearchEngineRegistry {
   if (brave.isAvailable()) {
     registry.register(brave, {
       ...DEFAULT_CONFIGS.brave,
-      enabled: true
+      enabled: true // This should work if API key is valid
     });
   }
 
@@ -287,7 +287,7 @@ export async function runExtSearch(
         engineName: engine.name,
         success: true,
         latencyMs: Date.now() - engineStartTime,
-        results: result.results.slice(0, config?.maxResults || 20),
+        results: result.results.slice(0, config?.maxResults || 50),
         totalResults: result.totalResults,
         error: undefined
       };
@@ -371,7 +371,7 @@ export async function runExtSearch(
   }
 
   // Limit final results
-  const maxResults = query.perPage || 20;
+  const maxResults = query.perPage || 50;
   const finalResults = mergedResults.slice(0, maxResults);
 
   return {

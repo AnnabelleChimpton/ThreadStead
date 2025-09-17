@@ -1,0 +1,23 @@
+-- Add new relations to User model for community indexing
+-- This is a schema-only migration to track the new relationships
+
+-- Note: The actual columns and foreign keys were created in the previous migration
+-- This migration documents the new relations added to the User model:
+--
+-- indexedSiteSubmissions    IndexedSite[]        @relation("IndexedSiteSubmissions")
+-- indexedSiteVerifications  IndexedSite[]        @relation("IndexedSiteVerifications")
+-- siteVotes                 SiteVote[]           @relation("SiteVotes")
+-- siteTagSuggestions        SiteTag[]            @relation("SiteTagSuggestions")
+-- discoveryPaths            DiscoveryPath[]      @relation("DiscoveryPaths")
+-- siteReviews               SiteReview[]         @relation("SiteReviews")
+--
+-- And new relations added to IndexedSite model:
+--
+-- submitter User?        @relation("IndexedSiteSubmissions", fields: [submittedBy], references: [id], onDelete: SetNull)
+-- verifier  User?        @relation("IndexedSiteVerifications", fields: [verifiedBy], references: [id], onDelete: SetNull)
+-- votes     SiteVote[]
+-- tags      SiteTag[]
+-- reviews   SiteReview[]
+
+-- This migration serves as documentation for the schema changes
+-- All actual table and constraint creation was handled in the previous migration

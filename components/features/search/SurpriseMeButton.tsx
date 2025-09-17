@@ -51,31 +51,13 @@ export default function SurpriseMeButton({
     }
   };
 
-  // Rotating button text for fun
-  const buttonTexts = [
-    '🎲 Surprise Me!',
-    '🎯 I\'m Feeling Lucky',
-    '🌟 Take Me Somewhere',
-    '🚀 Random Adventure',
-    '🎪 Show Me Something Cool',
-    '🗺️ Explore the Web',
-    '✨ Discover Something',
-    '🎰 Roll the Dice'
-  ];
-
-  const [buttonText, setButtonText] = useState(buttonTexts[0]);
-
-  // Change button text on hover for playfulness
-  const handleMouseEnter = () => {
-    const newText = buttonTexts[Math.floor(Math.random() * buttonTexts.length)];
-    setButtonText(newText);
-  };
+  // Fixed button text
+  const buttonText = '🎲 Surprise Me!';
 
   return (
     <div className={`inline-block ${className}`}>
       <button
         onClick={handleSurprise}
-        onMouseEnter={handleMouseEnter}
         disabled={isLoading}
         className={`
           relative px-5 py-2

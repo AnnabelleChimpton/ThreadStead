@@ -140,50 +140,37 @@ export default withThreadRingSupport(async function handler(
     if (type === 'all' || type === 'users') {
       const users = await db.user.findMany({
         where: {
-          AND: [
+          OR: [
             {
               handles: {
                 some: {
-                  host: SITE_NAME
+                  handle: {
+                    contains: query,
+                    mode: "insensitive"
+                  }
                 }
               }
             },
             {
-              OR: [
-                {
-                  handles: {
-                    some: {
-                      handle: {
-                        contains: query,
-                        mode: "insensitive"
-                      },
-                      host: SITE_NAME
-                    }
-                  }
-                },
-                {
-                  profile: {
-                    displayName: {
-                      contains: query,
-                      mode: "insensitive"
-                    }
-                  }
-                },
-                {
-                  profile: {
-                    bio: {
-                      contains: query,
-                      mode: "insensitive"
-                    }
-                  }
+              profile: {
+                displayName: {
+                  contains: query,
+                  mode: "insensitive"
                 }
-              ]
+              }
+            },
+            {
+              profile: {
+                bio: {
+                  contains: query,
+                  mode: "insensitive"
+                }
+              }
             }
           ]
         },
         include: {
           handles: {
-            where: { host: SITE_NAME },
             take: 1,
             orderBy: { handle: "asc" }
           },
@@ -260,8 +247,8 @@ export default withThreadRingSupport(async function handler(
           author: {
             include: {
               handles: {
-                where: { host: SITE_NAME },
-                take: 1
+                take: 1,
+                orderBy: { handle: "asc" }
               },
               profile: {
                 select: {

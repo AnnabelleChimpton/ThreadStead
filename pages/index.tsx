@@ -10,7 +10,8 @@ import { useDefaultWidgets, useWidgets } from "@/hooks/useWidgets";
 import { useState, useEffect } from "react";
 import EnhancedHouseCanvas from "../components/pixel-homes/EnhancedHouseCanvas";
 import { HouseTemplate, ColorPalette, HouseCustomizations } from "../components/pixel-homes/HouseSVG";
-import HomePageSearch from "../components/features/search/HomePageSearch";
+import DiscoverPageSearch from "../components/features/search/DiscoverPageSearch";
+import { useRouter } from "next/router";
 
 const db = new PrismaClient();
 
@@ -286,6 +287,37 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
 }
 
 function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; user: any }) {
+  const router = useRouter();
+
+  // Search state for enhanced search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTab, setSearchTab] = useState<'all' | 'indie' | 'site' | 'web'>('all');
+  const [searchType, setSearchType] = useState<'all' | 'threadrings' | 'users' | 'posts'>('all');
+  const [indieOnly, setIndieOnly] = useState(false);
+  const [privacyOnly, setPrivacyOnly] = useState(false);
+  const [noTrackers, setNoTrackers] = useState(false);
+  const [includeUnvalidated, setIncludeUnvalidated] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    // Navigate to discover-enhanced with search params
+    const params = new URLSearchParams({
+      q: searchQuery,
+      tab: searchTab,
+      type: searchType,
+      ...(indieOnly && { indie: 'true' }),
+      ...(privacyOnly && { privacy: 'true' }),
+      ...(noTrackers && { noTrackers: 'true' }),
+      ...(includeUnvalidated && { includeUnvalidated: 'true' })
+    });
+
+    router.push(`/discover?${params.toString()}`);
+  };
+
   // Load ALL available widgets for that classic early internet portal feel
   const { widgets } = useWidgets({
     user
@@ -318,7 +350,27 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
         </div>
 
         {/* Enhanced Global Search Bar */}
-        <HomePageSearch className="mb-8" />
+        <DiscoverPageSearch
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          searchTab={searchTab}
+          setSearchTab={setSearchTab}
+          searchType={searchType}
+          setSearchType={setSearchType}
+          indieOnly={indieOnly}
+          setIndieOnly={setIndieOnly}
+          privacyOnly={privacyOnly}
+          setPrivacyOnly={setPrivacyOnly}
+          noTrackers={noTrackers}
+          setNoTrackers={setNoTrackers}
+          includeUnvalidated={includeUnvalidated}
+          setIncludeUnvalidated={setIncludeUnvalidated}
+          onSearch={handleSearch}
+          loading={searchLoading}
+          extSearchEnabled={true}
+          showCommunityHelper={false}
+          className="mb-8"
+        />
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

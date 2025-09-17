@@ -102,10 +102,26 @@ export class BraveSearchEngine implements ExtSearchEngine {
     }
 
     try {
+      // Brave API has very strict limits - try up to their documented default
+      const safeCount = Math.min(query.perPage || 20, 20); // Test with up to 20 results (their default)
+
+      // Brave API rejects any offset > 0, so only allow page 0
+      const currentPage = query.page || 0;
+      if (currentPage > 0) {
+        return {
+          results: [],
+          totalResults: 0,
+          searchTime: 0
+        };
+      }
+
+      // Always use offset 0 (pagination disabled for Brave)
+      const safeOffset = 0;
+
       const params = new URLSearchParams({
         q: query.q,
-        offset: String((query.page || 0) * (query.perPage || 20)),
-        count: String(query.perPage || 20),
+        offset: String(safeOffset),
+        count: String(safeCount),
         safesearch: query.safeSearch ? 'strict' : 'off',
         freshness: '', // all time
         text_decorations: 'false',
@@ -130,7 +146,15 @@ export class BraveSearchEngine implements ExtSearchEngine {
       });
 
       if (!response.ok) {
-        throw new Error(`Brave Search API error: ${response.status} ${response.statusText}`);
+        // Get error details for debugging
+        let errorDetails = '';
+        try {
+          const errorBody = await response.text();
+          errorDetails = ` - ${errorBody.substring(0, 200)}`;
+        } catch (e) {
+          // Ignore error body parsing issues
+        }
+        throw new Error(`Brave Search API error: ${response.status} ${response.statusText}${errorDetails}`);
       }
 
       const data: BraveSearchResponse = await response.json();

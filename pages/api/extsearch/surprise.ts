@@ -141,13 +141,29 @@ export default async function handler(
   }
 
   try {
-    const mode = req.query.mode as string || 'mixed'; // 'search', 'curated', or 'mixed'
+    const mode = req.query.mode as string || 'mixed'; // 'search', 'curated', 'community', or 'mixed'
     const category = req.query.category as string; // Optional category filter
 
     let surpriseResult = null;
 
-    if (mode === 'curated' || (mode === 'mixed' && Math.random() > 0.5)) {
-      // Get curated sites from database
+    // Priority order: curated sites (70%) > community validated (20%) > search discovery (10%)
+    const sourceRandom = Math.random();
+    let preferredSource = 'curated';
+
+    if (mode === 'mixed') {
+      if (sourceRandom < 0.7) {
+        preferredSource = 'curated';
+      } else if (sourceRandom < 0.9) {
+        preferredSource = 'community';
+      } else {
+        preferredSource = 'search';
+      }
+    } else {
+      preferredSource = mode;
+    }
+
+    // Try curated sites first (or if explicitly requested)
+    if (preferredSource === 'curated' || !surpriseResult) {
       const where: any = { active: true };
 
       // Filter by tag if category is provided
@@ -195,22 +211,81 @@ export default async function handler(
           source: 'curated',
           tags: selectedSite.tags
         };
-      } else if (FALLBACK_GEMS.length > 0) {
-        // Use fallback if database is empty
-        const filtered = category
-          ? FALLBACK_GEMS.filter(gem => gem.tags.includes(category))
-          : FALLBACK_GEMS;
+      }
+    }
 
-        if (filtered.length > 0) {
-          const randomGem = filtered[Math.floor(Math.random() * filtered.length)];
-          surpriseResult = {
-            url: randomGem.url,
-            title: randomGem.title,
-            description: randomGem.description,
-            source: 'curated',
-            tags: randomGem.tags
-          };
+    // Try community-validated sites if no curated result or explicitly requested
+    if ((preferredSource === 'community' || !surpriseResult) && preferredSource !== 'search') {
+      const communityWhere: any = {
+        communityValidated: true,
+        communityScore: { gte: 1 } // Only sites with positive community score
+      };
+
+      // Filter by category if provided
+      if (category) {
+        communityWhere.siteType = category;
+      }
+
+      const communitySites = await db.indexedSite.findMany({
+        where: communityWhere,
+        select: {
+          id: true,
+          url: true,
+          title: true,
+          description: true,
+          siteType: true,
+          communityScore: true,
+          seedingScore: true,
+          extractedKeywords: true
+        },
+        orderBy: [
+          { communityScore: 'desc' },
+          { seedingScore: 'desc' }
+        ],
+        take: 50 // Get top 50 to randomly select from
+      });
+
+      if (communitySites.length > 0) {
+        // Weighted selection based on community score
+        const weights = communitySites.map(site => Math.max(1, site.communityScore + (site.seedingScore || 0) / 10));
+        const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+        let random = Math.random() * totalWeight;
+
+        let selectedSite = communitySites[0];
+        for (let i = 0; i < communitySites.length; i++) {
+          random -= weights[i];
+          if (random <= 0) {
+            selectedSite = communitySites[i];
+            break;
+          }
         }
+
+        surpriseResult = {
+          url: selectedSite.url,
+          title: selectedSite.title,
+          description: selectedSite.description || `A ${selectedSite.siteType || 'interesting'} site discovered by the community`,
+          source: 'community',
+          tags: selectedSite.extractedKeywords || [],
+          communityScore: selectedSite.communityScore
+        };
+      }
+    }
+
+    // Fallback to hardcoded gems if still no result
+    if (!surpriseResult) {
+      const filtered = category
+        ? FALLBACK_GEMS.filter(gem => gem.tags.includes(category))
+        : FALLBACK_GEMS;
+
+      if (filtered.length > 0) {
+        const randomGem = filtered[Math.floor(Math.random() * filtered.length)];
+        surpriseResult = {
+          url: randomGem.url,
+          title: randomGem.title,
+          description: randomGem.description,
+          source: 'curated',
+          tags: randomGem.tags
+        };
       }
     }
 
