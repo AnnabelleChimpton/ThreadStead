@@ -212,7 +212,10 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
           <div className="site-nav-container hidden lg:flex items-center gap-8">
             <div className="site-nav-links flex items-center gap-6">
               <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/">Home</Link>
-              
+
+              {/* Discover promoted to top-level */}
+              <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/discover">Discover</Link>
+
               {/* Feed promoted to top-level */}
               <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/feed">Feed</Link>
               
@@ -331,15 +334,25 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             {...swipeHandlers}
           >
           <div className="px-4 py-4 space-y-3">
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               className="block px-4 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
               onClick={() => setMobileMenuOpen(false)}
               role="menuitem"
             >
               Home
             </Link>
-            
+
+            {/* Discover as top-level link */}
+            <Link
+              href="/discover"
+              className="block px-4 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
+              onClick={() => setMobileMenuOpen(false)}
+              role="menuitem"
+            >
+              Discover
+            </Link>
+
             {/* Top level pages */}
             {topLevelPages.map(page => (
               <Link 
