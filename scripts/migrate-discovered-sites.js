@@ -16,7 +16,7 @@ async function migrateDiscoveredSites() {
       where: {
         OR: [
           { reviewStatus: 'approved' }, // Sites that were marked approved
-          { qualityScore: { gte: 75 } }  // Sites with high quality scores
+          { qualityScore: { gte: 70 } }  // Sites with high quality scores (lowered threshold)
         ],
         promotedToIndex: false // Not already promoted
       },

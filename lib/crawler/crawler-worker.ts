@@ -72,12 +72,7 @@ export class CrawlerWorker {
       qualityScores: []
     };
 
-    // Collect potential discoveries during this crawl run
-    const potentialDiscoveries: Array<{
-      url: string;
-      content: ExtractedContent;
-      qualityScore: any;
-    }> = [];
+    // NOTE: Removed potentialDiscoveries array - now using immediate processing like seeding
 
 
     try {
@@ -123,7 +118,7 @@ export class CrawlerWorker {
 
         try {
           if (result.success && result.content) {
-            const crawlStats = await this.handleSuccessfulCrawl(queueItem, result, potentialDiscoveries);
+            const crawlStats = await this.handleSuccessfulCrawl(queueItem, result);
             stats.successful++;
             if (crawlStats.autoSubmitted) stats.autoSubmitted++;
             if (crawlStats.qualityScore) stats.qualityScores.push(crawlStats.qualityScore);
@@ -146,20 +141,7 @@ export class CrawlerWorker {
         }
       }
 
-      // Process potential discoveries - add only the highest scoring ones to review queue
-      if (potentialDiscoveries.length > 0) {
-        const topDiscoveries = potentialDiscoveries
-          .filter(d => d.qualityScore.shouldAutoSubmit && d.qualityScore.totalScore < 70) // Not auto-approved
-          .sort((a, b) => b.qualityScore.totalScore - a.qualityScore.totalScore)
-          .slice(0, this.options.maxReviewQueueAdditions);
-
-        for (const discovery of topDiscoveries) {
-          const submitted = await this.addToDiscoveryQueue(discovery.url, discovery.content, discovery.qualityScore);
-          if (submitted) stats.autoSubmitted++;
-        }
-
-        this.log(`📊 Discovery summary: ${potentialDiscoveries.length} potential, ${topDiscoveries.length} added to review queue`);
-      }
+      // NOTE: Removed broken potentialDiscoveries logic - now using immediate processing like seeding
 
       stats.duration = Date.now() - startTime;
       this.log(`Crawl batch completed: ${stats.successful} successful, ${stats.failed} failed, ${stats.skipped} skipped`);
@@ -179,12 +161,7 @@ export class CrawlerWorker {
    */
   private async handleSuccessfulCrawl(
     queueItem: any,
-    result: CrawlResult,
-    potentialDiscoveries: Array<{
-      url: string;
-      content: ExtractedContent;
-      qualityScore: any;
-    }>
+    result: CrawlResult
   ): Promise<{
     autoSubmitted: boolean;
     qualityScore?: {
@@ -228,25 +205,19 @@ export class CrawlerWorker {
 
       this.log(`✅ Updated site: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
     } else {
-      // Site not in index - assess for potential discovery
-      if (qualityScore.shouldAutoSubmit) {
-        if (qualityScore.totalScore >= 70) {
-          // High quality - auto-approve directly to main index (seeding phase threshold)
-          autoSubmitted = await this.addToMainIndex(result.url, content, qualityScore);
-          if (autoSubmitted) {
-            this.log(`⚡ Auto-validated to main index: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
-          }
-        } else {
-          // Good quality - add to potential discoveries for later review queue selection
-          potentialDiscoveries.push({
-            url: result.url,
-            content,
-            qualityScore
-          });
-          this.log(`📋 Potential discovery: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
+      // Site not in index - MATCH SEEDING LOGIC EXACTLY: immediate processing
+      if (qualityScore.shouldAutoSubmit && qualityScore.totalScore >= 40) {
+        // Use same logic as seeding: immediate addition to IndexedSite, no deferred processing
+        try {
+          await this.addToIndexDirectly(result.url, content, qualityScore);
+          autoSubmitted = true;
+          this.log(`✅ Added to index: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
+        } catch (error) {
+          this.log(`❌ Failed to add to index: ${content.title} (${result.url}) - ${error instanceof Error ? error.message : 'Unknown error'}`);
+          autoSubmitted = false;
         }
       } else {
-        this.log(`⚠️ Site not in index, quality too low for discovery: ${result.url} [Score: ${qualityScore.totalScore}/100]`);
+        this.log(`⏭️ Rejected: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100] - below threshold`);
       }
     }
 
@@ -388,43 +359,72 @@ export class CrawlerWorker {
   }
 
   /**
-   * Add a site directly to the main index (for high-quality auto-validated sites)
+   * Add a site directly to the index (MATCHES SEEDING LOGIC EXACTLY)
    */
-  private async addToMainIndex(
+  private async addToIndexDirectly(
     url: string,
     content: ExtractedContent,
     qualityScore: any
-  ): Promise<boolean> {
-    try {
-      // Create IndexedSite record directly (like seeding does)
-      await db.indexedSite.create({
-        data: {
-          url,
-          title: content.title,
-          description: content.description || content.snippet || 'Auto-discovered during crawling',
-          discoveryMethod: 'crawler_auto_submit',
-          discoveryContext: 'Auto-discovered and validated by crawler',
-          siteType: qualityScore.category,
-          communityValidated: true, // Auto-validated based on quality score
-          communityScore: Math.floor(qualityScore.totalScore / 10), // Convert 0-100 to 0-10 scale
-          validationVotes: 1, // Initial vote from crawler validation
-          extractedKeywords: content.keywords || [],
-          detectedLanguage: content.language,
-          contentSample: content.snippet,
-          lastCrawled: new Date(),
-          crawlStatus: 'success',
-          sslEnabled: url.startsWith('https://'),
-          responseTimeMs: 0, // We don't track this in crawler yet
-          outboundLinks: content.links || [],
-        }
-      });
+  ): Promise<void> {
+    // Determine auto-validation based on quality score (same logic as seeding)
+    const shouldAutoValidate = qualityScore.totalScore >= 70; // Seeding phase threshold
+    const initialCommunityScore = shouldAutoValidate ? Math.floor(qualityScore.totalScore / 10) : 0;
 
-      this.log(`📊 Added to main index: ${content.title} (${url}) [Score: ${qualityScore.totalScore}/100]`);
-      return true;
-    } catch (error) {
-      this.log(`❌ Failed to add to main index ${url}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      return false;
-    }
+    // Create IndexedSite record - EXACT SAME FIELDS AS SEEDING
+    const indexedSite = await db.indexedSite.create({
+      data: {
+        url,
+        title: content.title || 'Untitled',
+        description: content.description || content.snippet || 'Auto-discovered during crawling',
+        discoveryMethod: 'crawler_auto_submit',
+        discoveryContext: 'Auto-discovered and validated by crawler',
+        siteType: qualityScore.suggestedCategory || 'personal_blog',
+
+        // Quality scoring fields (match seeding)
+        seedingScore: qualityScore.totalScore,
+        seedingReasons: qualityScore.reasons || [],
+
+        // Community validation
+        communityValidated: shouldAutoValidate,
+        communityScore: initialCommunityScore,
+        validationVotes: shouldAutoValidate ? 1 : 0,
+
+        // Content fields
+        extractedKeywords: content.keywords || [],
+        detectedLanguage: content.language || 'en',
+        contentSample: content.snippet,
+
+        // Crawl status
+        lastCrawled: new Date(),
+        crawlStatus: 'success',
+        sslEnabled: url.startsWith('https://'),
+        responseTimeMs: 0,
+        outboundLinks: content.links || [],
+
+        // Discovery timestamp (CRITICAL MISSING FIELD)
+        discoveredAt: new Date(),
+      }
+    });
+
+    // Add to crawl queue for future re-crawling (match seeding behavior)
+    await db.crawlQueue.upsert({
+      where: { url },
+      update: {
+        status: 'completed',
+        lastAttempt: new Date(),
+        attempts: 1
+      },
+      create: {
+        url,
+        priority: 3,
+        scheduledFor: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        attempts: 1,
+        status: 'completed',
+        lastAttempt: new Date()
+      }
+    });
+
+    this.log(`📊 Added to index: ${content.title} (${url}) [Score: ${qualityScore.totalScore}/100, Auto-validated: ${shouldAutoValidate}]`);
   }
 
   /**
