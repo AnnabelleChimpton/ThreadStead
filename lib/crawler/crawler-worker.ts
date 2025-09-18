@@ -81,19 +81,21 @@ export class CrawlerWorker {
 
 
     try {
-      // Get pending items ordered by priority and schedule
-      const pendingItems = await db.crawlQueue.findMany({
-        where: {
-          status: 'pending',
-          scheduledFor: { lte: new Date() },
-          attempts: { lt: this.options.maxRetries }
-        },
-        orderBy: [
-          { priority: 'desc' },
-          { scheduledFor: 'asc' }
-        ],
-        take: this.options.batchSize
-      });
+      // Get pending items, prioritizing NEW sites (not in IndexedSite) for auto-validation
+      const pendingItems = await db.$queryRaw`
+        SELECT cq.*
+        FROM "CrawlQueue" cq
+        LEFT JOIN "IndexedSite" idx ON cq.url = idx.url
+        WHERE cq.status = 'pending'
+          AND cq."scheduledFor" <= NOW()
+          AND cq.attempts < ${this.options.maxRetries}
+        ORDER BY
+          -- Prioritize NEW sites (not in IndexedSite) for auto-validation
+          CASE WHEN idx.url IS NULL THEN 1 ELSE 2 END,
+          cq.priority DESC,
+          cq."scheduledFor" ASC
+        LIMIT ${this.options.batchSize}
+      `;
 
       if (pendingItems.length === 0) {
         this.log('No pending items in crawl queue');
@@ -147,7 +149,7 @@ export class CrawlerWorker {
       // Process potential discoveries - add only the highest scoring ones to review queue
       if (potentialDiscoveries.length > 0) {
         const topDiscoveries = potentialDiscoveries
-          .filter(d => d.qualityScore.shouldAutoSubmit && d.qualityScore.totalScore < 75) // Not auto-approved
+          .filter(d => d.qualityScore.shouldAutoSubmit && d.qualityScore.totalScore < 70) // Not auto-approved
           .sort((a, b) => b.qualityScore.totalScore - a.qualityScore.totalScore)
           .slice(0, this.options.maxReviewQueueAdditions);
 
@@ -228,8 +230,8 @@ export class CrawlerWorker {
     } else {
       // Site not in index - assess for potential discovery
       if (qualityScore.shouldAutoSubmit) {
-        if (qualityScore.totalScore >= 75) {
-          // High quality - auto-approve directly to main index (like seeding does)
+        if (qualityScore.totalScore >= 70) {
+          // High quality - auto-approve directly to main index (seeding phase threshold)
           autoSubmitted = await this.addToMainIndex(result.url, content, qualityScore);
           if (autoSubmitted) {
             this.log(`⚡ Auto-validated to main index: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
