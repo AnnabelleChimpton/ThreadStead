@@ -6,12 +6,14 @@
 import { db } from '@/lib/config/database/connection';
 import { SiteCrawler, type CrawlResult } from './site-crawler';
 import type { ExtractedContent } from './content-extractor';
+import { QualityAssessor } from './quality-assessor';
 
 export interface CrawlerWorkerOptions {
   batchSize?: number;
   concurrency?: number;
   maxRetries?: number;
   enableLogging?: boolean;
+  maxReviewQueueAdditions?: number; // Max number of sites to add to review queue per crawl run
 }
 
 export interface CrawlerStats {
@@ -21,10 +23,18 @@ export interface CrawlerStats {
   skipped: number;
   duration: number;
   errors: string[];
+  autoSubmitted: number;
+  qualityScores: Array<{
+    url: string;
+    score: number;
+    shouldAutoSubmit: boolean;
+    category: string;
+  }>;
 }
 
 export class CrawlerWorker {
   private crawler: SiteCrawler;
+  private qualityAssessor: QualityAssessor;
   private options: Required<CrawlerWorkerOptions>;
 
   constructor(options: CrawlerWorkerOptions = {}) {
@@ -32,7 +42,8 @@ export class CrawlerWorker {
       batchSize: options.batchSize || 10,
       concurrency: options.concurrency || 3,
       maxRetries: options.maxRetries || 3,
-      enableLogging: options.enableLogging ?? true
+      enableLogging: options.enableLogging ?? true,
+      maxReviewQueueAdditions: options.maxReviewQueueAdditions || 5  // Add only top 5 discoveries per run to review queue
     };
 
     this.crawler = new SiteCrawler({
@@ -41,6 +52,8 @@ export class CrawlerWorker {
       maxRetries: 2,
       respectRobots: true
     });
+
+    this.qualityAssessor = new QualityAssessor();
   }
 
   /**
@@ -54,8 +67,18 @@ export class CrawlerWorker {
       failed: 0,
       skipped: 0,
       duration: 0,
-      errors: []
+      errors: [],
+      autoSubmitted: 0,
+      qualityScores: []
     };
+
+    // Collect potential discoveries during this crawl run
+    const potentialDiscoveries: Array<{
+      url: string;
+      content: ExtractedContent;
+      qualityScore: any;
+    }> = [];
+
 
     try {
       // Get pending items ordered by priority and schedule
@@ -98,8 +121,10 @@ export class CrawlerWorker {
 
         try {
           if (result.success && result.content) {
-            await this.handleSuccessfulCrawl(queueItem, result);
+            const crawlStats = await this.handleSuccessfulCrawl(queueItem, result, potentialDiscoveries);
             stats.successful++;
+            if (crawlStats.autoSubmitted) stats.autoSubmitted++;
+            if (crawlStats.qualityScore) stats.qualityScores.push(crawlStats.qualityScore);
           } else {
             await this.handleFailedCrawl(queueItem, result);
             if (queueItem.attempts + 1 >= this.options.maxRetries) {
@@ -119,6 +144,21 @@ export class CrawlerWorker {
         }
       }
 
+      // Process potential discoveries - add only the highest scoring ones to review queue
+      if (potentialDiscoveries.length > 0) {
+        const topDiscoveries = potentialDiscoveries
+          .filter(d => d.qualityScore.shouldAutoSubmit && d.qualityScore.totalScore < 75) // Not auto-approved
+          .sort((a, b) => b.qualityScore.totalScore - a.qualityScore.totalScore)
+          .slice(0, this.options.maxReviewQueueAdditions);
+
+        for (const discovery of topDiscoveries) {
+          const submitted = await this.addToDiscoveryQueue(discovery.url, discovery.content, discovery.qualityScore);
+          if (submitted) stats.autoSubmitted++;
+        }
+
+        this.log(`📊 Discovery summary: ${potentialDiscoveries.length} potential, ${topDiscoveries.length} added to review queue`);
+      }
+
       stats.duration = Date.now() - startTime;
       this.log(`Crawl batch completed: ${stats.successful} successful, ${stats.failed} failed, ${stats.skipped} skipped`);
 
@@ -135,8 +175,28 @@ export class CrawlerWorker {
   /**
    * Handle successful crawl result
    */
-  private async handleSuccessfulCrawl(queueItem: any, result: CrawlResult): Promise<void> {
+  private async handleSuccessfulCrawl(
+    queueItem: any,
+    result: CrawlResult,
+    potentialDiscoveries: Array<{
+      url: string;
+      content: ExtractedContent;
+      qualityScore: any;
+    }>
+  ): Promise<{
+    autoSubmitted: boolean;
+    qualityScore?: {
+      url: string;
+      score: number;
+      shouldAutoSubmit: boolean;
+      category: string;
+    };
+  }> {
     const content = result.content!;
+
+    // Assess quality for potential auto-submission
+    const qualityScore = this.qualityAssessor.assessQuality(content, result.url);
+    let autoSubmitted = false;
 
     // Update the indexed site with crawled content
     const existingSite = await db.indexedSite.findUnique({
@@ -164,9 +224,28 @@ export class CrawlerWorker {
       // Queue discovered links for crawling if they're not already indexed
       await this.queueDiscoveredLinks(content.links);
 
-      this.log(`✅ Updated site: ${content.title} (${result.url})`);
+      this.log(`✅ Updated site: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
     } else {
-      this.log(`⚠️ Site not found in index: ${result.url}`);
+      // Site not in index - assess for potential discovery
+      if (qualityScore.shouldAutoSubmit) {
+        if (qualityScore.totalScore >= 75) {
+          // High quality - auto-approve (embrace good sites!)
+          autoSubmitted = await this.addToDiscoveryQueue(result.url, content, qualityScore, 'approved');
+          if (autoSubmitted) {
+            this.log(`⚡ Auto-approved: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
+          }
+        } else {
+          // Good quality - add to potential discoveries for later review queue selection
+          potentialDiscoveries.push({
+            url: result.url,
+            content,
+            qualityScore
+          });
+          this.log(`📋 Potential discovery: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
+        }
+      } else {
+        this.log(`⚠️ Site not in index, quality too low for discovery: ${result.url} [Score: ${qualityScore.totalScore}/100]`);
+      }
     }
 
     // Mark crawl queue item as completed
@@ -178,6 +257,16 @@ export class CrawlerWorker {
         errorMessage: null
       }
     });
+
+    return {
+      autoSubmitted,
+      qualityScore: {
+        url: result.url,
+        score: qualityScore.totalScore,
+        shouldAutoSubmit: qualityScore.shouldAutoSubmit,
+        category: qualityScore.category
+      }
+    };
   }
 
   /**
@@ -294,6 +383,47 @@ export class CrawlerWorker {
       oldestPending: oldestPending?.scheduledFor,
       newestCompleted: newestCompleted?.lastAttempt || undefined
     };
+  }
+
+  /**
+   * Add a site to the discovery queue
+   */
+  private async addToDiscoveryQueue(
+    url: string,
+    content: ExtractedContent,
+    qualityScore: any,
+    reviewStatus: 'pending' | 'approved' = 'pending'
+  ): Promise<boolean> {
+    try {
+      // Create DiscoveredSite record for review
+      await db.discoveredSite.create({
+        data: {
+          url,
+          title: content.title,
+          description: content.description || content.snippet,
+          discoveredAt: new Date(),
+          discoveryMethod: 'crawler_auto_submit',
+          discoveryContext: `Auto-discovered during crawling`,
+          qualityScore: qualityScore.totalScore,
+          qualityReasons: qualityScore.reasons,
+          suggestedCategory: qualityScore.category,
+          contentSample: content.snippet,
+          extractedKeywords: content.keywords,
+          detectedLanguage: content.language,
+          lastCrawled: new Date(),
+          crawlStatus: 'success',
+          sslEnabled: url.startsWith('https://'),
+          outboundLinks: content.links,
+          reviewStatus,
+        }
+      });
+
+      this.log(`🔍 Added to discovery queue: ${content.title} (${url}) [Score: ${qualityScore.totalScore}/100, Status: ${reviewStatus}]`);
+      return true;
+    } catch (error) {
+      this.log(`❌ Failed to add to discovery queue ${url}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return false;
+    }
   }
 
   /**

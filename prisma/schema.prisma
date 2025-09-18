@@ -1137,6 +1137,50 @@ model CrawlQueue {
   @@index([url])
 }
 
+model DiscoveredSite {
+  id          String   @id @default(cuid())
+  url         String   @unique
+  title       String
+  description String?
+
+  // Discovery metadata
+  discoveredAt     DateTime @default(now())
+  discoveryMethod  String   @default("crawler_auto_submit")
+  discoveryContext String?
+  discoveredFrom   String? // URL that linked to this site
+
+  // Quality assessment
+  qualityScore   Int
+  qualityReasons String[]
+  suggestedCategory String?
+
+  // Content analysis
+  contentSample     String?
+  extractedKeywords String[] @default([])
+  detectedLanguage  String?
+  lastCrawled       DateTime?
+  crawlStatus       String   @default("success")
+  contentHash       String?
+  sslEnabled        Boolean?
+  responseTimeMs    Int?
+  outboundLinks     String[] @default([])
+
+  // Review status
+  reviewStatus   String    @default("pending") // pending, approved, rejected, needs_review
+  reviewedBy     String?   // User ID who reviewed
+  reviewedAt     DateTime?
+  reviewNotes    String?
+
+  // Promotion to main index
+  promotedToIndex Boolean   @default(false)
+  promotedAt      DateTime?
+  indexedSiteId   String?   // Reference to IndexedSite if promoted
+
+  @@index([reviewStatus, qualityScore])
+  @@index([discoveredAt])
+  @@index([qualityScore(sort: Desc)])
+}
+
 model SiteReview {
   id        String   @id @default(cuid())
   siteId    String

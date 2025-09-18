@@ -327,32 +327,30 @@ export class DiscoveryFeedsManager {
 
     const categoryPreferences = this.getTopCategories(likedCategories.filter(Boolean) as string[]);
 
-    // Get sites user hasn't interacted with in preferred categories
-    const where: any = {
+    // Get URLs that user has already discovered
+    const discoveredUrls = userDiscoveries.map(d => d.toSite);
+
+    // Get all sites first, then filter out user interactions manually to avoid schema conflicts
+    const baseWhere: any = {
       communityValidated: true,
-      votes: {
-        none: { userId }
+      // Exclude sites the user has already discovered
+      url: {
+        notIn: discoveredUrls
       }
-      // Note: Can't filter by discoveryPaths directly on IndexedSite
-      // Would need to join through DiscoveryPath table
     };
 
     // Only filter by category preferences if we have some
     if (categoryPreferences.length > 0) {
-      where.siteType = { in: categoryPreferences };
+      baseWhere.siteType = { in: categoryPreferences };
     }
 
     if (category && category !== 'all') {
-      where.siteType = category;
+      baseWhere.siteType = category;
     }
 
-    const sites = await db.indexedSite.findMany({
-      where,
-      orderBy: [
-        { communityScore: 'desc' },
-        { discoveredAt: 'desc' }
-      ],
-      take: limit,
+    // Get sites without user vote filtering first
+    const allCandidateSites = await db.indexedSite.findMany({
+      where: baseWhere,
       include: {
         tags: true,
         submitter: {
@@ -360,9 +358,26 @@ export class DiscoveryFeedsManager {
         },
         _count: {
           select: { votes: true }
+        },
+        votes: {
+          where: { userId },
+          select: { id: true }
         }
       }
     });
+
+    // Filter out sites the user has already voted on
+    const sitesUserHasntVotedOn = allCandidateSites.filter(site => site.votes.length === 0);
+
+    // Apply ordering and limit
+    const sites = sitesUserHasntVotedOn
+      .sort((a, b) => {
+        if (b.communityScore !== a.communityScore) {
+          return b.communityScore - a.communityScore;
+        }
+        return new Date(b.discoveredAt).getTime() - new Date(a.discoveredAt).getTime();
+      })
+      .slice(0, limit);
 
     const feedSites = await this.enrichSitesWithActivity(sites);
 
@@ -372,7 +387,7 @@ export class DiscoveryFeedsManager {
       description: 'Sites tailored to your interests and discovery patterns',
       sites: feedSites,
       metadata: {
-        totalCount: await db.indexedSite.count({ where }),
+        totalCount: sitesUserHasntVotedOn.length,
         lastUpdated: new Date(),
         criteria: `Based on ${userVotes.length} votes and ${userDiscoveries.length} discoveries`
       }
