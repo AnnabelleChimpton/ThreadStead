@@ -16,9 +16,24 @@ export default async function handler(
   }
 
   try {
-    // Check admin authentication
-    const user = await getSessionUser(req as any);
-    if (!user || user.role !== 'admin') {
+    // Check authentication - either session or API key
+    let isAuthorized = false;
+
+    // Option 1: Check for API key authentication
+    const apiKey = req.headers.authorization?.replace('Bearer ', '');
+    const validApiKey = process.env.CRAWLER_API_KEY;
+
+    if (apiKey && validApiKey && apiKey === validApiKey) {
+      isAuthorized = true;
+    } else {
+      // Option 2: Check session-based admin authentication
+      const user = await getSessionUser(req as any);
+      if (user && user.role === 'admin') {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
