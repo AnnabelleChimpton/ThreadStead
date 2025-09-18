@@ -229,10 +229,10 @@ export class CrawlerWorker {
       // Site not in index - assess for potential discovery
       if (qualityScore.shouldAutoSubmit) {
         if (qualityScore.totalScore >= 75) {
-          // High quality - auto-approve (embrace good sites!)
-          autoSubmitted = await this.addToDiscoveryQueue(result.url, content, qualityScore, 'approved');
+          // High quality - auto-approve directly to main index (like seeding does)
+          autoSubmitted = await this.addToMainIndex(result.url, content, qualityScore);
           if (autoSubmitted) {
-            this.log(`⚡ Auto-approved: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
+            this.log(`⚡ Auto-validated to main index: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
           }
         } else {
           // Good quality - add to potential discoveries for later review queue selection
@@ -383,6 +383,46 @@ export class CrawlerWorker {
       oldestPending: oldestPending?.scheduledFor,
       newestCompleted: newestCompleted?.lastAttempt || undefined
     };
+  }
+
+  /**
+   * Add a site directly to the main index (for high-quality auto-validated sites)
+   */
+  private async addToMainIndex(
+    url: string,
+    content: ExtractedContent,
+    qualityScore: any
+  ): Promise<boolean> {
+    try {
+      // Create IndexedSite record directly (like seeding does)
+      await db.indexedSite.create({
+        data: {
+          url,
+          title: content.title,
+          description: content.description || content.snippet || 'Auto-discovered during crawling',
+          discoveryMethod: 'crawler_auto_submit',
+          discoveryContext: 'Auto-discovered and validated by crawler',
+          siteType: qualityScore.category,
+          communityValidated: true, // Auto-validated based on quality score
+          communityScore: Math.floor(qualityScore.totalScore / 10), // Convert 0-100 to 0-10 scale
+          validationVotes: 1, // Initial vote from crawler validation
+          extractedKeywords: content.keywords || [],
+          detectedLanguage: content.language,
+          contentSample: content.snippet,
+          lastCrawled: new Date(),
+          crawlStatus: 'success',
+          sslEnabled: url.startsWith('https://'),
+          responseTimeMs: 0, // We don't track this in crawler yet
+          outboundLinks: content.links || [],
+        }
+      });
+
+      this.log(`📊 Added to main index: ${content.title} (${url}) [Score: ${qualityScore.totalScore}/100]`);
+      return true;
+    } catch (error) {
+      this.log(`❌ Failed to add to main index ${url}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return false;
+    }
   }
 
   /**

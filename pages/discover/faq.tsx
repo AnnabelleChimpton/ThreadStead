@@ -104,15 +104,34 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
               <div>
                 <h3 className="font-semibold text-lg mb-2 text-green-700">
-                  3. Web Ring Crawling 🕸️
+                  3. Automated Web Crawler 🤖
                 </h3>
                 <p className="text-gray-700 mb-2">
-                  We follow links between indie sites to discover new content. When a validated site
-                  links to another site, we queue it for review. This organic discovery mirrors how
-                  people naturally explore the web.
+                  Our ethical web crawler automatically discovers and indexes indie sites while respecting
+                  website owners&apos; preferences. Here&apos;s how it works:
                 </p>
+                <ul className="list-disc list-inside text-gray-700 mb-3 ml-2">
+                  <li><strong>Respects robots.txt:</strong> We always honor robots.txt files and crawl directives</li>
+                  <li><strong>Polite crawling:</strong> Rate-limited to avoid overwhelming servers (max 5 concurrent, 15-second timeouts)</li>
+                  <li><strong>Link discovery:</strong> Follows links from validated sites to find new indie web content</li>
+                  <li><strong>Quality filtering:</strong> Uses inclusive scoring (35+ points) that celebrates simple HTML sites</li>
+                  <li><strong>Auto-validation:</strong> High-quality sites (75+ points) are automatically approved</li>
+                  <li><strong>Transparent process:</strong> Sites scoring 35-74 go to community review queue</li>
+                </ul>
                 <div className="bg-green-50 border border-green-200 rounded p-3 text-sm">
-                  <strong>Coming soon:</strong> Daily crawls of validated sites to find new indie web gems automatically.
+                  <p className="mb-2">
+                    <strong>🔍 Currently Active:</strong> Our crawler runs every 15-30 minutes, processing ~40 sites per run.
+                    It has discovered 1,500+ potential indie sites and growing!
+                  </p>
+                  <p className="text-sm mb-2">
+                    <strong>Auto-validation results:</strong> Sites scoring 75+ points are immediately added to the main index
+                    and appear in search results. Sites scoring 35-74 points go to the community review queue.
+                  </p>
+                  <p className="text-xs text-green-800">
+                    <strong>User-Agent:</strong> ThreadsteadBot/1.0 (+https://threadstead.com/crawler)<br/>
+                    <strong>Crawl frequency:</strong> Each site maximum once per 48 hours<br/>
+                    <strong>To opt-out:</strong> Add &quot;User-agent: ThreadsteadBot&quot; to your robots.txt with Disallow rules
+                  </p>
                 </div>
               </div>
 
