@@ -90,7 +90,7 @@ export class CrawlerWorker {
           cq.priority DESC,
           cq."scheduledFor" ASC
         LIMIT ${this.options.batchSize}
-      `;
+      ` as any[];
 
       if (pendingItems.length === 0) {
         this.log('No pending items in crawl queue');
@@ -406,21 +406,16 @@ export class CrawlerWorker {
       }
     });
 
-    // Add to crawl queue for future re-crawling (match seeding behavior)
-    await db.crawlQueue.upsert({
-      where: { url },
-      update: {
+    // Update crawl queue item status (since it was already processed from queue)
+    await db.crawlQueue.updateMany({
+      where: {
+        url,
+        status: 'pending'
+      },
+      data: {
         status: 'completed',
         lastAttempt: new Date(),
         attempts: 1
-      },
-      create: {
-        url,
-        priority: 3,
-        scheduledFor: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        attempts: 1,
-        status: 'completed',
-        lastAttempt: new Date()
       }
     });
 
