@@ -432,14 +432,18 @@ export class CrawlerWorker {
   private async queueDiscoveredLinks(links: string[]): Promise<void> {
     if (links.length === 0) return;
 
+    // Limit discovered links to prevent exponential growth
+    const MAX_LINKS_PER_SITE = 10; // Only queue top 10 links per site
+    const linksToCheck = links.slice(0, MAX_LINKS_PER_SITE);
+
     // Filter out links that are already indexed or in the crawl queue
     const existingUrls = await db.indexedSite.findMany({
-      where: { url: { in: links } },
+      where: { url: { in: linksToCheck } },
       select: { url: true }
     });
 
     const queuedUrls = await db.crawlQueue.findMany({
-      where: { url: { in: links } },
+      where: { url: { in: linksToCheck } },
       select: { url: true }
     });
 
@@ -448,18 +452,31 @@ export class CrawlerWorker {
       ...queuedUrls.map(item => item.url)
     ]);
 
-    const newLinks = links.filter(link => !existingUrlSet.has(link));
+    const newLinks = linksToCheck.filter(link => !existingUrlSet.has(link));
 
     if (newLinks.length === 0) {
-      this.log(`No new links to queue (${links.length} links already known)`);
+      this.log(`No new links to queue (${linksToCheck.length} links already known)`);
       return;
     }
 
+    // Check current queue size to prevent unbounded growth
+    const currentQueueSize = await db.crawlQueue.count({ where: { status: 'pending' } });
+    const MAX_QUEUE_SIZE = 5000; // Cap queue at 5000 pending items
+
+    if (currentQueueSize >= MAX_QUEUE_SIZE) {
+      this.log(`⚠️ Queue at capacity (${currentQueueSize}/${MAX_QUEUE_SIZE}), skipping link discovery`);
+      return;
+    }
+
+    // Calculate how many we can add without exceeding limit
+    const slotsAvailable = Math.min(newLinks.length, MAX_QUEUE_SIZE - currentQueueSize);
+    const linksToAdd = newLinks.slice(0, slotsAvailable);
+
     // Add new links to crawl queue with low priority
-    const queueItems = newLinks.map(url => ({
+    const queueItems = linksToAdd.map(url => ({
       url,
-      priority: 2, // Lower priority than manually submitted sites
-      scheduledFor: new Date(Date.now() + Math.random() * 24 * 60 * 60 * 1000), // Random delay within 24 hours
+      priority: 1, // Even lower priority for discovered links
+      scheduledFor: new Date(Date.now() + (48 + Math.random() * 72) * 60 * 60 * 1000), // 2-5 days delay
     }));
 
     await db.crawlQueue.createMany({
@@ -467,7 +484,7 @@ export class CrawlerWorker {
       skipDuplicates: true
     });
 
-    this.log(`🔗 Queued ${newLinks.length} discovered links for crawling (${links.length - newLinks.length} already known)`);
+    this.log(`🔗 Queued ${linksToAdd.length}/${links.length} discovered links (queue: ${currentQueueSize + linksToAdd.length}/${MAX_QUEUE_SIZE})`);
   }
 
   /**
