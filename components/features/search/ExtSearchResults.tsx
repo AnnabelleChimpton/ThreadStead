@@ -14,6 +14,8 @@ interface ExtSearchResultsProps {
   showEngineInfo?: boolean;
   showScores?: boolean;
   className?: string;
+  searchQuery?: string;
+  searchTab?: string;
 }
 
 /**
@@ -26,7 +28,9 @@ export function ExtSearchResults({
   onRetry,
   showEngineInfo = true,
   showScores = false,
-  className = ''
+  className = '',
+  searchQuery,
+  searchTab
 }: ExtSearchResultsProps) {
   // Loading state
   if (loading) {
@@ -111,6 +115,8 @@ export function ExtSearchResults({
             key={`${result.engine}-${index}`}
             result={result}
             showScore={showScores}
+            searchQuery={searchQuery}
+            searchTab={searchTab}
           />
         ))}
       </div>
@@ -149,10 +155,14 @@ export function ExtSearchResults({
  */
 function ResultCard({
   result,
-  showScore
+  showScore,
+  searchQuery,
+  searchTab
 }: {
   result: ExtSearchResultItem;
   showScore: boolean;
+  searchQuery?: string;
+  searchTab?: string;
 }) {
   const getEngineColor = (engine: string): string => {
     const colors: Record<string, string> = {
@@ -184,12 +194,38 @@ function ResultCard({
     }
   };
 
+  const handleClick = async (e: React.MouseEvent) => {
+    // Allow Ctrl+click, Cmd+click, middle click, etc. to work normally
+    if (e.ctrlKey || e.metaKey || e.button === 1) {
+      return;
+    }
+
+    e.preventDefault();
+
+    // Track the click and potentially submit to community index
+    try {
+      const response = await fetch('/api/community-index/track-click-and-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          result,
+          searchQuery,
+          searchTab,
+          sessionId: Date.now().toString() // Simple session ID
+        })
+      });
+    } catch (error) {
+      console.error('Failed to track click:', error);
+    }
+
+    // Open the link
+    window.open(result.url, '_blank', 'noopener,noreferrer');
+  };
+
   return (
-    <a
-      href={result.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+    <div
+      onClick={handleClick}
+      className="block bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer"
     >
       <div className="flex items-start space-x-3">
         {/* Icon and badges */}
@@ -263,7 +299,7 @@ function ResultCard({
           </div>
         </div>
       </div>
-    </a>
+    </div>
   );
 }
 

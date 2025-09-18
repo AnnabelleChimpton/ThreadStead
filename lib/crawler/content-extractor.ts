@@ -1,0 +1,303 @@
+/**
+ * Content extraction from HTML pages
+ * Extracts metadata and clean text content
+ */
+
+import { JSDOM } from 'jsdom';
+
+export interface ExtractedContent {
+  title: string;
+  description?: string;
+  snippet: string;
+  language?: string;
+  publishedDate?: string;
+  author?: string;
+  keywords: string[];
+  links: string[];
+  contentLength: number;
+  hasIndieWebMarkers: boolean;
+  techStack?: string[];
+  isPersonalSite?: boolean;
+}
+
+export class ContentExtractor {
+  private readonly MAX_SNIPPET_LENGTH = 300;
+  private readonly MAX_LINKS = 20;
+
+  async extractFromHtml(html: string, url: string): Promise<ExtractedContent> {
+    const dom = new JSDOM(html);
+    const document = dom.window.document;
+
+    return {
+      title: this.extractTitle(document),
+      description: this.extractDescription(document),
+      snippet: this.extractSnippet(document),
+      language: this.extractLanguage(document),
+      publishedDate: this.extractPublishedDate(document),
+      author: this.extractAuthor(document),
+      keywords: this.extractKeywords(document),
+      links: this.extractLinks(document, url),
+      contentLength: this.getContentLength(document),
+      hasIndieWebMarkers: this.detectIndieWebMarkers(document),
+      techStack: this.detectTechStack(document, html),
+      isPersonalSite: this.detectPersonalSite(document, url)
+    };
+  }
+
+  private extractTitle(document: Document): string {
+    // Try multiple sources for title
+    const sources = [
+      () => document.querySelector('meta[property="og:title"]')?.getAttribute('content'),
+      () => document.querySelector('meta[name="twitter:title"]')?.getAttribute('content'),
+      () => document.querySelector('title')?.textContent,
+      () => document.querySelector('h1')?.textContent
+    ];
+
+    for (const source of sources) {
+      const title = source()?.trim();
+      if (title && title.length > 0) {
+        return title.substring(0, 200); // Reasonable title length
+      }
+    }
+
+    return 'Untitled';
+  }
+
+  private extractDescription(document: Document): string | undefined {
+    const sources = [
+      () => document.querySelector('meta[name="description"]')?.getAttribute('content'),
+      () => document.querySelector('meta[property="og:description"]')?.getAttribute('content'),
+      () => document.querySelector('meta[name="twitter:description"]')?.getAttribute('content')
+    ];
+
+    for (const source of sources) {
+      const description = source()?.trim();
+      if (description && description.length > 0) {
+        return description.substring(0, 500);
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractSnippet(document: Document): string {
+    // Remove script, style, and other non-content elements
+    const elementsToRemove = document.querySelectorAll('script, style, nav, header, footer, aside, .nav, .menu, .sidebar');
+    elementsToRemove.forEach(el => el.remove());
+
+    // Try to find main content
+    const contentSelectors = [
+      'main',
+      'article',
+      '.content',
+      '.post',
+      '.entry',
+      '#content',
+      '#main',
+      'body'
+    ];
+
+    let contentElement = null;
+    for (const selector of contentSelectors) {
+      contentElement = document.querySelector(selector);
+      if (contentElement) break;
+    }
+
+    if (!contentElement) {
+      contentElement = document.body;
+    }
+
+    const textContent = contentElement.textContent || '';
+    const cleanText = textContent
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+
+    return cleanText.substring(0, this.MAX_SNIPPET_LENGTH);
+  }
+
+  private extractLanguage(document: Document): string | undefined {
+    return document.documentElement.getAttribute('lang') ||
+           document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content') ||
+           undefined;
+  }
+
+  private extractPublishedDate(document: Document): string | undefined {
+    const sources = [
+      () => document.querySelector('meta[property="article:published_time"]')?.getAttribute('content'),
+      () => document.querySelector('meta[name="date"]')?.getAttribute('content'),
+      () => document.querySelector('time[datetime]')?.getAttribute('datetime'),
+      () => document.querySelector('.published, .date, .post-date')?.textContent
+    ];
+
+    for (const source of sources) {
+      const date = source()?.trim();
+      if (date) {
+        // Try to parse and validate the date
+        const parsedDate = new Date(date);
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractAuthor(document: Document): string | undefined {
+    const sources = [
+      () => document.querySelector('meta[name="author"]')?.getAttribute('content'),
+      () => document.querySelector('meta[property="article:author"]')?.getAttribute('content'),
+      () => document.querySelector('.author, .byline, .by-author')?.textContent,
+      () => document.querySelector('a[rel="author"]')?.textContent
+    ];
+
+    for (const source of sources) {
+      const author = source()?.trim();
+      if (author && author.length > 0 && author.length < 100) {
+        return author;
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractKeywords(document: Document): string[] {
+    const keywords = new Set<string>();
+
+    // Meta keywords
+    const metaKeywords = document.querySelector('meta[name="keywords"]')?.getAttribute('content');
+    if (metaKeywords) {
+      metaKeywords.split(',').forEach(k => {
+        const keyword = k.trim().toLowerCase();
+        if (keyword.length > 2 && keyword.length < 30) {
+          keywords.add(keyword);
+        }
+      });
+    }
+
+    // Extract from headings
+    const headings = document.querySelectorAll('h1, h2, h3');
+    headings.forEach(heading => {
+      const text = heading.textContent?.toLowerCase() || '';
+      const words = text.split(/\s+/).filter(w => w.length > 3 && w.length < 20);
+      words.slice(0, 3).forEach(word => keywords.add(word)); // Limit per heading
+    });
+
+    return Array.from(keywords).slice(0, 10); // Limit total keywords
+  }
+
+  private extractLinks(document: Document, baseUrl: string): string[] {
+    const links = new Set<string>();
+    const linkElements = document.querySelectorAll('a[href]');
+
+    for (const link of linkElements) {
+      try {
+        const href = link.getAttribute('href');
+        if (!href) continue;
+
+        let absoluteUrl;
+        if (href.startsWith('http')) {
+          absoluteUrl = href;
+        } else if (href.startsWith('/')) {
+          const base = new URL(baseUrl);
+          absoluteUrl = `${base.protocol}//${base.host}${href}`;
+        } else {
+          absoluteUrl = new URL(href, baseUrl).toString();
+        }
+
+        // Only include external links to other domains
+        const currentDomain = new URL(baseUrl).hostname;
+        const linkDomain = new URL(absoluteUrl).hostname;
+
+        if (linkDomain !== currentDomain) {
+          links.add(absoluteUrl);
+          if (links.size >= this.MAX_LINKS) break;
+        }
+      } catch {
+        // Skip invalid URLs
+      }
+    }
+
+    return Array.from(links);
+  }
+
+  private getContentLength(document: Document): number {
+    return (document.body?.textContent || '').length;
+  }
+
+  private detectIndieWebMarkers(document: Document): boolean {
+    // Look for common IndieWeb markers
+    const markers = [
+      'rel="me"',
+      'class="h-card"',
+      'class="h-entry"',
+      'class="p-name"',
+      'class="dt-published"',
+      'microformats',
+      'webmention',
+      'indieauth'
+    ];
+
+    const htmlContent = document.documentElement.outerHTML.toLowerCase();
+    return markers.some(marker => htmlContent.includes(marker));
+  }
+
+  private detectTechStack(document: Document, html: string): string[] {
+    const techStack = new Set<string>();
+
+    // Generator meta tag
+    const generator = document.querySelector('meta[name="generator"]')?.getAttribute('content');
+    if (generator) {
+      const tech = generator.toLowerCase();
+      if (tech.includes('hugo')) techStack.add('Hugo');
+      if (tech.includes('jekyll')) techStack.add('Jekyll');
+      if (tech.includes('gatsby')) techStack.add('Gatsby');
+      if (tech.includes('next')) techStack.add('Next.js');
+      if (tech.includes('wordpress')) techStack.add('WordPress');
+      if (tech.includes('ghost')) techStack.add('Ghost');
+    }
+
+    // Framework detection from HTML patterns
+    const htmlLower = html.toLowerCase();
+    if (htmlLower.includes('_next/')) techStack.add('Next.js');
+    if (htmlLower.includes('gatsby')) techStack.add('Gatsby');
+    if (htmlLower.includes('nuxt')) techStack.add('Nuxt.js');
+    if (htmlLower.includes('wp-content')) techStack.add('WordPress');
+
+    return Array.from(techStack);
+  }
+
+  private detectPersonalSite(document: Document, url: string): boolean {
+    const title = this.extractTitle(document).toLowerCase();
+    const description = this.extractDescription(document)?.toLowerCase() || '';
+    const snippet = this.extractSnippet(document).toLowerCase();
+
+    const personalIndicators = [
+      'personal', 'blog', 'portfolio', 'about me', 'my name is',
+      'i am', "i'm", 'my work', 'my projects', 'my thoughts',
+      'resume', 'cv', 'hire me', 'contact me'
+    ];
+
+    const text = `${title} ${description} ${snippet}`;
+
+    return personalIndicators.some(indicator => text.includes(indicator)) ||
+           this.hasPersonalDomainPattern(url);
+  }
+
+  private hasPersonalDomainPattern(url: string): boolean {
+    try {
+      const hostname = new URL(url).hostname.toLowerCase();
+
+      // Common personal domain patterns
+      const personalPatterns = [
+        /^[a-z]+\.(me|dev|blog|site)$/,
+        /^[a-z]+[a-z-]*\.(com|net|org)$/,
+        /^\w+\.name$/
+      ];
+
+      return personalPatterns.some(pattern => pattern.test(hostname));
+    } catch {
+      return false;
+    }
+  }
+}

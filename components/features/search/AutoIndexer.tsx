@@ -5,7 +5,7 @@
 
 import { useCallback } from 'react';
 
-export function useAutoIndexer() {
+export function useAutoIndexer(searchQuery?: string) {
   const autoIndexSite = useCallback(async (
     url: string,
     title: string,
@@ -20,12 +20,11 @@ export function useAutoIndexer() {
       const checkData = await checkResponse.json();
 
       if (checkData.indexed) {
-        console.log('Site already in community index:', url);
         return;
       }
 
       // Auto-submit for indexing (won't be validated until reviewed)
-      const submitResponse = await fetch('/api/community-index/submit', {
+      await fetch('/api/community-index/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -36,12 +35,6 @@ export function useAutoIndexer() {
           autoSubmit: true // Flag for auto-submission
         })
       });
-
-      const submitData = await submitResponse.json();
-
-      if (submitData.success) {
-        console.log('Site queued for community index:', url);
-      }
     } catch (error) {
       console.error('Failed to auto-index site:', error);
     }
@@ -53,24 +46,39 @@ export function useAutoIndexer() {
     snippet?: string,
     source: string = 'external_search'
   ) => {
-    // Track the discovery
-    fetch('/api/community-index/track-discovery', {
+    // Use the new smart click tracking endpoint that includes quality evaluation and auto-validation
+    fetch('/api/community-index/track-click-and-submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        fromSite: window.location.origin,
-        toSite: url,
-        discoveryMethod: 'search_result',
-        metadata: { source }
+        result: {
+          url,
+          title,
+          snippet,
+          engine: source === 'external_search' ? 'web' : source,
+          // Default metadata for unified results
+          isIndieWeb: false,
+          privacyScore: undefined,
+          hasTrackers: undefined
+        },
+        searchQuery: searchQuery || 'unified search',
+        searchTab: 'all',
+        sessionId: Date.now().toString()
       })
+    }).then(response => {
+      if (response.ok) {
+        return response.json().then(data => {
+          if (data.submission?.action === 'submitted') {
+            if (data.submission.autoValidated) {
+            }
+          }
+        });
+      }
     }).catch(console.error);
-
-    // Auto-index if enabled
-    autoIndexSite(url, title, snippet, source);
 
     // Open the site
     window.open(url, '_blank');
-  }, [autoIndexSite]);
+  }, [searchQuery]);
 
   return {
     autoIndexSite,

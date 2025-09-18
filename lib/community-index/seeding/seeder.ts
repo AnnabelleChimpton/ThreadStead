@@ -362,66 +362,82 @@ export class CommunityIndexSeeder {
 
   /**
    * Determine if a seeded site should be auto-validated
-   * High-quality sites with strong indicators can bypass community validation
+   * Uses permissive thresholds to let good sites through automatically
+   * Other failsafes in the system will catch any mistakes
    */
   private shouldAutoValidateSeededSite(seedingScore: any, result: ExtSearchResultItem): boolean {
-    // Conservative thresholds for auto-validation
-    const HIGH_SCORE_THRESHOLD = 70; // Very high quality threshold
-    const MIN_CONFIDENCE = 0.8; // High confidence in evaluation
+    // Less restrictive thresholds for auto-validation - let other failsafes catch mistakes
+    const HIGH_SCORE_THRESHOLD = 55; // Lowered to 55 to catch more good sites
+    const MIN_CONFIDENCE = 0.6; // Lowered to 0.6 to allow more sites through
+
+    // Debug logging
+    console.log(`🔍 Auto-validation check for ${result.url}:`);
+    console.log(`   Score: ${seedingScore.score} (threshold: ${HIGH_SCORE_THRESHOLD})`);
+    console.log(`   Confidence: ${seedingScore.confidence} (threshold: ${MIN_CONFIDENCE})`);
 
     // Must meet high score threshold
     if (seedingScore.score < HIGH_SCORE_THRESHOLD) {
+      console.log(`   ❌ Failed score threshold`);
       return false;
     }
 
     // Must have high confidence in the evaluation
     if (seedingScore.confidence < MIN_CONFIDENCE) {
+      console.log(`   ❌ Failed confidence threshold`);
       return false;
     }
 
-    // Must have strong positive indicators
+    // Check for strong positive indicators (more permissive)
     const strongIndicators = [
       'indie_web_detected',
       'indie_web_domain',
       'personal_domain',
       'privacy_friendly',
-      'no_trackers'
+      'no_trackers',
+      'personal_content',
+      'creative_content',
+      'technical_content'
     ];
 
     const hasStrongIndicators = strongIndicators.some(indicator =>
       seedingScore.reasons.includes(indicator)
     );
 
-    if (!hasStrongIndicators) {
-      return false;
-    }
-
-    // Must not have any negative indicators
-    const negativeIndicators = [
-      'commercial_domain',
+    // Check for seriously negative indicators (only block the worst ones)
+    const blockingIndicators = [
       'big_tech_domain',
-      'commercial_content',
       'spam_indicators',
-      'low_quality_content'
+      'parked_domain'
     ];
 
-    const hasNegativeIndicators = negativeIndicators.some(indicator =>
+    const hasBlockingIndicators = blockingIndicators.some(indicator =>
       seedingScore.reasons.includes(indicator)
     );
 
-    if (hasNegativeIndicators) {
+    if (hasBlockingIndicators) {
+      console.log(`   ❌ Failed blocking indicators check`);
       return false;
     }
 
-    // Additional safety check: must have privacy indicators if available
-    if (result.privacyScore !== undefined && result.privacyScore < 0.7) {
+    // If no strong indicators but score is high enough, still consider auto-validation
+    if (!hasStrongIndicators && seedingScore.score < 75) {
+      console.log(`   ❌ No strong indicators and score not high enough (${seedingScore.score} < 75)`);
       return false;
     }
 
-    if (result.hasTrackers === true) {
+    // Less strict privacy requirements (only block very bad privacy)
+    if (result.privacyScore !== undefined && result.privacyScore < 0.4) {
+      console.log(`   ❌ Failed privacy score check (too low: ${result.privacyScore})`);
       return false;
     }
 
+    // Allow sites with trackers if they have other strong indicators
+    if (result.hasTrackers === true && !hasStrongIndicators) {
+      console.log(`   ❌ Has trackers and no strong indicators`);
+      return false;
+    }
+
+    console.log(`   ✅ All checks passed - AUTO-VALIDATING!`);
     return true; // All checks passed - auto-validate
   }
 

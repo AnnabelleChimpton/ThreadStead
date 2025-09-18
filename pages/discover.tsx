@@ -56,7 +56,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
   const [includeUnvalidated, setIncludeUnvalidated] = useState(false);
 
   // Use auto-indexer hook
-  const { trackAndIndex } = useAutoIndexer();
+  const { trackAndIndex } = useAutoIndexer(searchQuery);
 
   // Use external search hook (manual mode)
   const extSearch = useExtSearch(searchQuery, {
@@ -749,6 +749,8 @@ Want to help? Submit sites, review submissions, or check our stats!
                 onRetry={extSearch.refetch}
                 showEngineInfo={true}
                 showScores={false}
+                searchQuery={searchQuery}
+                searchTab={searchTab}
               />
             </div>
           </div>
