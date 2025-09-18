@@ -32,7 +32,7 @@ export default async function handler(
       const user = await getSessionUser(req as any);
       if (user && user.role === 'admin') {
         isAuthorized = true;
-        userIdentifier = user.primaryHandle;
+        userIdentifier = user.primaryHandle || user.id || 'admin-user';
       }
     }
 
