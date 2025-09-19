@@ -4,6 +4,7 @@
  */
 
 import type { ExtractedContent } from './content-extractor';
+import { domainClassifier } from '../community-index/seeding/domain-classifier';
 
 export interface QualityScore {
   totalScore: number;
@@ -19,6 +20,8 @@ export interface QualityScore {
   shouldAutoSubmit: boolean;
   reasons: string[];
   category: 'personal_blog' | 'portfolio' | 'community' | 'resource' | 'other';
+  indexingPurpose?: 'full_index' | 'link_extraction' | 'pending_review' | 'rejected';
+  platformType?: 'independent' | 'indie_platform' | 'corporate_profile' | 'corporate_generic' | 'unknown';
 }
 
 export class QualityAssessor {
@@ -29,6 +32,30 @@ export class QualityAssessor {
    * Assess the quality of extracted content
    */
   assessQuality(content: ExtractedContent, url: string): QualityScore {
+    // First check domain classification
+    const classification = domainClassifier.classify(url);
+
+    // If it's a corporate profile, return early with link extraction directive
+    if (classification.platformType === 'corporate_profile') {
+      return {
+        totalScore: 0,
+        maxScore: this.MAX_SCORE,
+        breakdown: {
+          indieWeb: 0,
+          personalSite: 0,
+          contentQuality: 0,
+          techStack: 0,
+          language: 0,
+          freshness: 0
+        },
+        shouldAutoSubmit: false,
+        reasons: ['Corporate profile - link extraction only'],
+        category: 'other',
+        indexingPurpose: 'link_extraction',
+        platformType: 'corporate_profile'
+      };
+    }
+
     const breakdown = {
       indieWeb: this.scoreIndieWeb(content),
       personalSite: this.scorePersonalSite(content, url),
@@ -38,9 +65,13 @@ export class QualityAssessor {
       freshness: this.scoreFreshness(content)
     };
 
-    const totalScore = Object.values(breakdown).reduce((sum, score) => sum + score, 0);
-    const shouldAutoSubmit = totalScore >= this.AUTO_SUBMIT_THRESHOLD;
-    const reasons = this.generateReasons(breakdown, shouldAutoSubmit);
+    // Apply score modifier based on platform type
+    let totalScore = Object.values(breakdown).reduce((sum, score) => sum + score, 0);
+    totalScore = Math.floor(totalScore * classification.scoreModifier);
+
+    const shouldAutoSubmit = totalScore >= this.AUTO_SUBMIT_THRESHOLD &&
+                             classification.indexingPurpose === 'full_index';
+    const reasons = [...this.generateReasons(breakdown, shouldAutoSubmit), ...classification.reasons];
     const category = this.determineCategory(content, breakdown);
 
     return {
@@ -49,7 +80,9 @@ export class QualityAssessor {
       breakdown,
       shouldAutoSubmit,
       reasons,
-      category
+      category,
+      indexingPurpose: classification.indexingPurpose,
+      platformType: classification.platformType
     };
   }
 

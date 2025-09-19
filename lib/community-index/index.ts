@@ -15,6 +15,12 @@ export {
   getHighPriorityQueries
 } from './seeding/discovery-queries';
 
+// Corporate filtering exports
+export { domainClassifier } from './seeding/domain-classifier';
+export { corporatePlatforms, CORPORATE_PLATFORMS } from './seeding/corporate-platforms';
+export type { PlatformPattern } from './seeding/corporate-platforms';
+export type { ClassificationResult, PlatformType, IndexingPurpose } from './seeding/domain-classifier';
+
 // Types
 export type { SeedingQuery } from './seeding/discovery-queries';
 export type { SeedingScore, SiteEvaluation } from './seeding/quality-filter';

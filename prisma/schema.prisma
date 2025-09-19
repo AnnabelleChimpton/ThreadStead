@@ -1036,6 +1036,13 @@ model IndexedSite {
   autoValidatedAt     DateTime? // When was it auto-validated?
   autoValidationScore Int?      // Final score used for auto-validation
 
+  // Corporate profile filtering fields
+  indexingPurpose     String?   @default("full_index") // full_index, link_extraction, pending_review, rejected
+  platformType        String?   @default("unknown") // independent, indie_platform, corporate_profile, unknown
+  extractedLinks      String[]  @default([]) // Links extracted from corporate profiles
+  extractionCompleted Boolean   @default(false) // Has link extraction been completed?
+  parentProfileUrl    String?   // URL of corporate profile this was discovered from
+
   // Connectivity
   outboundLinks String[] @default([]) // Sites this links to
   inboundLinks  String[] @default([]) // Sites linking to this
@@ -1144,6 +1151,22 @@ model CrawlQueue {
   @@index([status, scheduledFor])
   @@index([priority, scheduledFor])
   @@index([url])
+}
+
+model DiscoveryLink {
+  id             String    @id @default(cuid())
+  sourceUrl      String    // Corporate profile URL
+  sourcePlatform String    // youtube, twitter, etc.
+  targetUrl      String    // Discovered indie site
+  linkLocation   String    // Where link was found (bio, description, etc.)
+  discoveredAt   DateTime  @default(now())
+  confidence     Float     @default(0.5) // How confident we are this is their site
+  processed      Boolean   @default(false) // Has this been added to crawl queue?
+
+  @@index([sourceUrl])
+  @@index([targetUrl])
+  @@index([sourcePlatform])
+  @@index([processed])
 }
 
 model DiscoveredSite {

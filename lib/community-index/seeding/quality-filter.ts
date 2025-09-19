@@ -5,6 +5,7 @@
 
 import type { ExtSearchResultItem } from '@/lib/extsearch/types';
 import { SiteType } from './discovery-queries';
+import { domainClassifier } from './domain-classifier';
 
 export interface SeedingScore {
   score: number; // 0-100
@@ -13,6 +14,8 @@ export interface SeedingScore {
   priority: number; // 1-5 for crawl queue
   suggestedCategory: SiteType;
   confidence: number; // 0-1, how confident we are in this evaluation
+  indexingPurpose: 'full_index' | 'link_extraction' | 'pending_review' | 'rejected';
+  platformType: 'independent' | 'indie_platform' | 'corporate_profile' | 'corporate_generic' | 'unknown';
 }
 
 export interface SiteEvaluation {
@@ -38,6 +41,37 @@ export class SeedingFilter {
     const title = site.title?.toLowerCase() || '';
     const snippet = site.snippet?.toLowerCase() || '';
 
+    // First, classify the domain using the new classifier
+    const classification = domainClassifier.classify(site.url);
+
+    // If it's a corporate profile, return early with link extraction directive
+    if (classification.platformType === 'corporate_profile') {
+      return {
+        score: 0,
+        reasons: ['corporate_profile', `platform:${classification.platformName}`],
+        shouldSeed: false,
+        priority: 3, // Medium priority for link extraction
+        suggestedCategory: SiteType.OTHER,
+        confidence: classification.confidence,
+        indexingPurpose: 'link_extraction',
+        platformType: 'corporate_profile'
+      };
+    }
+
+    // If it's rejected corporate content, return early
+    if (classification.indexingPurpose === 'rejected') {
+      return {
+        score: 0,
+        reasons: classification.reasons,
+        shouldSeed: false,
+        priority: 0,
+        suggestedCategory: SiteType.OTHER,
+        confidence: classification.confidence,
+        indexingPurpose: 'rejected',
+        platformType: classification.platformType
+      };
+    }
+
     // === POSITIVE INDICATORS ===
 
     // Indie Web indicators (highest value)
@@ -48,18 +82,19 @@ export class SeedingFilter {
 
     // Domain quality indicators
     if (this.isIndieWebDomain(domain)) {
-      score += 20;
+      score += 25; // Increased from 20 - we love indie platforms!
       reasons.push("indie_web_domain");
+    }
+
+    // Extra bonus for community platforms
+    if (this.isCommunityPlatform(domain)) {
+      score += 10; // Additional bonus for Neocities, Tilde, etc.
+      reasons.push("community_platform");
     }
 
     if (this.isPersonalDomain(domain)) {
       score += 15;
       reasons.push("personal_domain");
-    }
-
-    if (this.isTildeDomain(domain)) {
-      score += 20;
-      reasons.push("tilde_community");
     }
 
     // Privacy and ethics indicators
@@ -147,11 +182,18 @@ export class SeedingFilter {
 
     // === FINAL SCORING ===
 
+    // Apply score modifier from domain classification
+    score = Math.floor(score * classification.scoreModifier);
+
     // Clamp score to 0-100 range
     score = Math.max(0, Math.min(100, score));
 
     // Determine if we should seed this site
-    const shouldSeed = score >= 40 && !this.hasBlockingIssues(site);
+    // For indie platforms and independent sites, use score threshold
+    // For corporate profiles, never seed (handled above)
+    const shouldSeed = score >= 40 &&
+                      !this.hasBlockingIssues(site) &&
+                      classification.indexingPurpose === 'full_index';
 
     // Calculate priority for crawl queue
     const priority = this.calculatePriority(score);
@@ -160,15 +202,17 @@ export class SeedingFilter {
     const suggestedCategory = this.suggestCategory(url, title, snippet);
 
     // Calculate confidence in our evaluation
-    const confidence = this.calculateConfidence(site, reasons);
+    const confidence = this.calculateConfidence(site, reasons) * classification.confidence;
 
     return {
       score,
-      reasons,
+      reasons: [...reasons, ...classification.reasons],
       shouldSeed,
       priority,
       suggestedCategory,
-      confidence
+      confidence: Math.min(1.0, confidence),
+      indexingPurpose: classification.indexingPurpose,
+      platformType: classification.platformType
     };
   }
 
@@ -207,10 +251,27 @@ export class SeedingFilter {
     const indieWebDomains = [
       'neocities.org', 'github.io', 'gitlab.io', 'netlify.app',
       'vercel.app', 'surge.sh', 'forestry.io', 'ghost.io',
-      'bearblog.dev', 'micro.blog', 'write.as', 'hey.world'
+      'bearblog.dev', 'micro.blog', 'write.as', 'hey.world',
+      'omg.lol', 'mataroa.blog', 'smol.pub', 'midnight.pub'
     ];
 
     return indieWebDomains.some(d => domain.includes(d));
+  }
+
+  /**
+   * Check if domain is a community platform (extra special!)
+   */
+  private isCommunityPlatform(domain: string): boolean {
+    // These platforms are the heart of indie web culture
+    const communityPlatforms = [
+      'neocities.org',
+      'tilde.club', 'tilde.town', 'tilde.team', 'tilde.pink',
+      'ctrl-c.club', 'sdf.org', 'envs.net',
+      'cosmic.voyage', 'town.com',
+      'omg.lol', 'bearblog.dev'
+    ];
+
+    return communityPlatforms.some(d => domain.includes(d));
   }
 
   /**
@@ -227,12 +288,6 @@ export class SeedingFilter {
     return personalPatterns.some(pattern => pattern.test(domain));
   }
 
-  /**
-   * Check if it's a tilde community domain
-   */
-  private isTildeDomain(domain: string): boolean {
-    return domain.includes('tilde.') || domain.includes('tildeverse');
-  }
 
   /**
    * Check if domain is commercial/corporate

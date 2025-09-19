@@ -22,12 +22,12 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
           </Link>
 
           <h1 className="text-3xl font-bold text-[#2E4B3F] mb-4">
-            🔍 Building Our Own Search Engine: FAQ
+            🔍 Building Our Inclusive Search Engine: FAQ
           </h1>
 
           <p className="text-lg text-gray-700">
-            We&apos;re creating a community-driven search engine that puts people first, not profits.
-            Here&apos;s how we&apos;re doing it and why it matters.
+            We&apos;re creating a community-driven search engine that celebrates indie content while
+            inclusively discovering it wherever creators share their work. Here&apos;s how we&apos;re doing it and why it matters.
           </p>
         </div>
 
@@ -114,9 +114,9 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                   <li><strong>Respects robots.txt:</strong> We always honor robots.txt files and crawl directives</li>
                   <li><strong>Polite crawling:</strong> Rate-limited to avoid overwhelming servers (max 5 concurrent, 15-second timeouts)</li>
                   <li><strong>Link discovery:</strong> Follows links from validated sites to find new indie web content</li>
-                  <li><strong>Quality filtering:</strong> Uses inclusive scoring (35+ points) that celebrates simple HTML sites</li>
+                  <li><strong>Quality filtering:</strong> Uses inclusive scoring (40+ points) that celebrates simple HTML sites</li>
                   <li><strong>Auto-validation:</strong> High-quality sites (75+ points) are automatically approved</li>
-                  <li><strong>Transparent process:</strong> Sites scoring 35-74 go to community review queue</li>
+                  <li><strong>Transparent process:</strong> Sites scoring 40-74 go to community review queue</li>
                 </ul>
                 <div className="bg-green-50 border border-green-200 rounded p-3 text-sm">
                   <p className="mb-2">
@@ -125,7 +125,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                   </p>
                   <p className="text-sm mb-2">
                     <strong>Auto-validation results:</strong> Sites scoring 75+ points are immediately added to the main index
-                    and appear in search results. Sites scoring 35-74 points go to the community review queue.
+                    and appear in search results. Sites scoring 40-74 points go to the community review queue.
                   </p>
                   <p className="text-xs text-green-800">
                     <strong>User-Agent:</strong> ThreadsteadBot/1.0 (+https://threadstead.com/crawler)<br/>
@@ -136,8 +136,41 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
               </div>
 
               <div>
+                <h3 className="font-semibold text-lg mb-2 text-indigo-700">
+                  4. Corporate Profile Discovery 🔗
+                </h3>
+                <p className="text-gray-700 mb-2">
+                  We use corporate social profiles as <strong>discovery sources</strong> to find indie websites,
+                  without cluttering our search results with corporate content:
+                </p>
+                <ul className="list-disc list-inside text-gray-700 mb-3 ml-2">
+                  <li><strong>Link extraction:</strong> We scan bios and descriptions on platforms like YouTube, Twitter, GitHub, and Mastodon</li>
+                  <li><strong>Indie site discovery:</strong> Extract personal website links that creators share in their profiles</li>
+                  <li><strong>Clean search results:</strong> Corporate profiles never appear in search—only the indie sites they lead us to</li>
+                  <li><strong>Platform bonuses:</strong> Sites hosted on indie-friendly platforms (Neocities, Tilde, GitHub Pages) get score boosts</li>
+                  <li><strong>Discovery tracking:</strong> We maintain a record of how indie sites were discovered for transparency</li>
+                </ul>
+                <div className="bg-indigo-50 border border-indigo-200 rounded p-3 text-sm">
+                  <p className="mb-2">
+                    <strong>🌟 Platform Bonuses:</strong> We celebrate community-driven platforms!
+                  </p>
+                  <ul className="text-xs space-y-1 ml-4">
+                    <li>• <strong>Neocities sites:</strong> +15% score bonus (the heart of indie web!)</li>
+                    <li>• <strong>Tilde communities:</strong> +10% bonus (celebrating pubnix culture)</li>
+                    <li>• <strong>Bear Blog, omg.lol:</strong> +10% bonus (indie blogging platforms)</li>
+                    <li>• <strong>GitHub Pages:</strong> +5% bonus (great for projects and portfolios)</li>
+                    <li>• <strong>Independent domains:</strong> +20% bonus (the gold standard!)</li>
+                  </ul>
+                  <p className="text-xs text-indigo-800 mt-2">
+                    <strong>Example:</strong> A creator&apos;s YouTube channel won&apos;t appear in search, but their personal
+                    Neocities site linked in the bio will be discovered, indexed, and get bonus points for being on Neocities!
+                  </p>
+                </div>
+              </div>
+
+              <div>
                 <h3 className="font-semibold text-lg mb-2 text-orange-700">
-                  4. Community Validation ✅
+                  5. Community Validation ✅
                 </h3>
                 <p className="text-gray-700 mb-2">
                   Every site goes through community review where members can:
@@ -215,6 +248,114 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
               <p className="text-green-700 font-medium">
                 Every search result shows its score, so you know exactly why it ranks where it does.
               </p>
+            </div>
+          </section>
+
+          {/* Corporate Profile Handling */}
+          <section className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg shadow-[2px_2px_0_#6366F1] p-6">
+            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4">
+              🔗 How We Handle Corporate Profiles (Inclusively!)
+            </h2>
+            <div className="prose prose-gray max-w-none">
+              <p className="mb-4">
+                <strong>We believe creators shouldn&apos;t be penalized for having a presence on corporate platforms.</strong>
+                Instead, we use these platforms as stepping stones to discover amazing indie content:
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-white border border-indigo-200 rounded-lg p-4">
+                  <h3 className="font-semibold mb-3 text-indigo-700 flex items-center gap-2">
+                    🎯 What We Do
+                  </h3>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-500 mt-1">✓</span>
+                      <span>Scan social media bios for personal website links</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-500 mt-1">✓</span>
+                      <span>Extract portfolio links from GitHub, YouTube, etc.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-500 mt-1">✓</span>
+                      <span>Follow &quot;link in bio&quot; references to indie sites</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-500 mt-1">✓</span>
+                      <span>Give bonus points to sites on indie platforms</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-500 mt-1">✓</span>
+                      <span>Track discovery paths for transparency</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-white border border-red-200 rounded-lg p-4">
+                  <h3 className="font-semibold mb-3 text-red-700 flex items-center gap-2">
+                    🚫 What We Don&apos;t Do
+                  </h3>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-500 mt-1">✗</span>
+                      <span>Include corporate profiles in search results</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-500 mt-1">✗</span>
+                      <span>Penalize creators for using social media</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-500 mt-1">✗</span>
+                      <span>Index social media posts or content</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-500 mt-1">✗</span>
+                      <span>Favor or discriminate based on follower count</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-red-500 mt-1">✗</span>
+                      <span>Store or track personal social media data</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-purple-100 to-blue-100 border border-purple-300 rounded-lg p-4 mb-4">
+                <h3 className="font-semibold mb-2 text-purple-800">Real Example: How Discovery Works</h3>
+                <div className="text-sm text-gray-700 space-y-2">
+                  <p>
+                    <strong>1.</strong> Our crawler finds a YouTube channel about web development
+                  </p>
+                  <p>
+                    <strong>2.</strong> Instead of indexing the channel, we extract the personal website link from their bio
+                  </p>
+                  <p>
+                    <strong>3.</strong> We discover their personal site is hosted on Neocities
+                  </p>
+                  <p>
+                    <strong>4.</strong> The site gets a +15% score bonus for being on Neocities (indie platform!)
+                  </p>
+                  <p>
+                    <strong>5.</strong> Their personal site appears in search results, not their YouTube channel
+                  </p>
+                  <p className="text-purple-700 font-medium">
+                    <strong>Result:</strong> Clean search results that lead to genuine indie content! 🎉
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded p-4">
+                <p className="text-sm font-medium text-green-800 mb-2">
+                  🌟 Why This Approach Works:
+                </p>
+                <ul className="text-sm text-green-700 space-y-1">
+                  <li>• Creators benefit from having their indie sites discovered</li>
+                  <li>• Search results stay focused on independent content</li>
+                  <li>• We don&apos;t force creators to abandon existing audiences</li>
+                  <li>• Indie platforms get the recognition they deserve</li>
+                  <li>• Corporate noise is filtered out automatically</li>
+                </ul>
+              </div>
             </div>
           </section>
 
@@ -377,6 +518,31 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                     <span className="text-sm">Discover the unexpected and delightful</span>
                   </div>
                 </div>
+
+                <div className="flex items-start gap-2">
+                  <span className="text-2xl">🔗</span>
+                  <div>
+                    <strong>Inclusive Discovery</strong><br/>
+                    <span className="text-sm">Use all available pathways to find indie content</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <span className="text-2xl">🏆</span>
+                  <div>
+                    <strong>Platform Celebrating</strong><br/>
+                    <span className="text-sm">Extra recognition for indie-friendly hosts</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <p className="text-sm text-indigo-800">
+                  <strong>🤝 Creator-Friendly Approach:</strong> We understand that many indie creators
+                  maintain a presence on corporate platforms to reach audiences. Rather than ignoring
+                  this reality, we use it as an opportunity—extracting links to their personal sites
+                  while keeping search results focused purely on independent content.
+                </p>
               </div>
             </div>
           </section>

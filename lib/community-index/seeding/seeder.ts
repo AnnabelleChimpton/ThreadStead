@@ -162,16 +162,23 @@ export class CommunityIndexSeeder {
         // Add to top finds for reporting
         report.topFinds.push(evaluation);
 
-        // Check if site meets seeding criteria
-        if (seedingScore.shouldSeed && seedingScore.score >= minScore) {
+        // Check classification and handle accordingly
+        if (seedingScore.indexingPurpose === 'link_extraction') {
+          // Corporate profile - add for link extraction
+          if (!dryRun) {
+            await this.addForLinkExtraction(result, seedingScore);
+          }
+          console.log(`🔗 Queued for link extraction: ${result.title} (${seedingScore.platformType})`);
+        } else if (seedingScore.shouldSeed && seedingScore.score >= minScore) {
+          // Regular indie site - add to index
           if (!dryRun) {
             await this.addToIndex(result, query, seedingScore);
           }
           report.sitesAdded++;
-          console.log(`✓ Added: ${result.title} (score: ${seedingScore.score})`);
+          console.log(`✓ Added: ${result.title} (score: ${seedingScore.score}, type: ${seedingScore.platformType})`);
         } else {
           report.sitesRejected++;
-          console.log(`✗ Rejected: ${result.title} (score: ${seedingScore.score})`);
+          console.log(`✗ Rejected: ${result.title} (score: ${seedingScore.score}, reason: ${seedingScore.indexingPurpose})`);
         }
       } catch (error) {
         report.errors.push(`Failed to evaluate ${result.url}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -200,6 +207,10 @@ export class CommunityIndexSeeder {
           seedingScore: seedingScore.score,
           seedingReasons: seedingScore.reasons,
 
+          // New classification fields
+          indexingPurpose: seedingScore.indexingPurpose,
+          platformType: seedingScore.platformType,
+
           // Let Phase 2 auto-validation determine these
           communityValidated: false,
           communityScore: 0,
@@ -223,6 +234,51 @@ export class CommunityIndexSeeder {
       console.log(`Added ${result.url} to index with ID: ${indexedSite.id}`);
     } catch (error) {
       console.error(`Failed to add ${result.url} to index:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a corporate profile for link extraction
+   */
+  private async addForLinkExtraction(
+    result: ExtSearchResultItem,
+    seedingScore: any
+  ): Promise<void> {
+    try {
+      // Create indexed site record marked for link extraction
+      const indexedSite = await db.indexedSite.create({
+        data: {
+          url: result.url,
+          title: result.title,
+          description: result.snippet || `Corporate profile for link extraction`,
+          discoveryMethod: 'api_seeding',
+          siteType: 'corporate_profile',
+
+          // Mark for link extraction
+          indexingPurpose: 'link_extraction',
+          platformType: seedingScore.platformType,
+          extractionCompleted: false,
+
+          // Don't index in search
+          communityValidated: false,
+          communityScore: -999, // Negative score to ensure it's never shown
+          crawlStatus: 'pending_extraction'
+        }
+      });
+
+      // Add to crawl queue with special priority for extraction
+      await db.crawlQueue.create({
+        data: {
+          url: result.url,
+          priority: 3, // Medium priority for extraction
+          scheduledFor: new Date()
+        }
+      });
+
+      console.log(`Added ${result.url} for link extraction with ID: ${indexedSite.id}`);
+    } catch (error) {
+      console.error(`Failed to add ${result.url} for link extraction:`, error);
       throw error;
     }
   }
