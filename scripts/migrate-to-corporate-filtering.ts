@@ -1,6 +1,12 @@
 /**
  * Migration script to safely apply corporate filtering schema and logic
- * Run with: npx tsx scripts/migrate-to-corporate-filtering.ts
+ *
+ * USAGE:
+ * npx tsx scripts/migrate-to-corporate-filtering.ts        # Dry run
+ * npx tsx scripts/migrate-to-corporate-filtering.ts --apply # Apply changes
+ *
+ * PURPOSE: One-time migration to apply corporate filtering to all existing sites
+ * NOTE: Run this after applying the database schema migration
  */
 
 import { db } from '../lib/config/database/connection';

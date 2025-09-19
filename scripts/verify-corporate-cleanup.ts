@@ -1,6 +1,14 @@
 /**
  * Verification script to check the health of corporate profile cleanup
- * Run with: npx tsx scripts/verify-corporate-cleanup.ts
+ *
+ * USAGE:
+ * npx tsx scripts/verify-corporate-cleanup.ts
+ *
+ * PURPOSE: Ongoing monitoring of corporate filtering system health
+ * - Shows overall statistics
+ * - Identifies any corporate content in search results (should be 0!)
+ * - Lists top indie platforms
+ * - Provides health score and recommendations
  */
 
 import { db } from '../lib/config/database/connection';

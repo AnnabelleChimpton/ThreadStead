@@ -73,6 +73,12 @@ export const CORPORATE_PLATFORMS: PlatformPattern[] = [
     category: 'social_media'
   },
   {
+    domain: 'bsky.app',
+    profilePatterns: ['/profile/*'],
+    linkLocations: ['bio', 'description'],
+    category: 'social_media'
+  },
+  {
     domain: 'pinterest.com',
     profilePatterns: ['/*'],
     excludePatterns: ['/pin/*', '/search', '/ideas'],

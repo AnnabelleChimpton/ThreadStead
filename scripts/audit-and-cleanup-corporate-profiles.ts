@@ -1,7 +1,12 @@
 /**
  * Audit and cleanup script for existing production database
  * Identifies corporate profiles that may have been incorrectly indexed
- * Run with: npx tsx scripts/audit-and-cleanup-corporate-profiles.ts
+ *
+ * USAGE:
+ * npx tsx scripts/audit-and-cleanup-corporate-profiles.ts        # Dry run
+ * npx tsx scripts/audit-and-cleanup-corporate-profiles.ts --apply # Apply changes
+ *
+ * PURPOSE: One-time cleanup for transitioning to corporate filtering system
  */
 
 import { db } from '../lib/config/database/connection';
