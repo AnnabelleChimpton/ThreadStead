@@ -104,32 +104,44 @@ async function runHealthCheck(): Promise<HealthCheck> {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  // Look for suspicious entries
+  // Look for suspicious entries - ONLY things that shouldn't be searchable
   const suspiciousEntries = await db.indexedSite.findMany({
     where: {
       OR: [
-        // Corporate profiles that are still searchable
+        // Corporate profiles that are still searchable (BAD!)
         {
           platformType: 'corporate_profile',
           indexingPurpose: 'full_index'
         },
-        // High scoring sites on corporate domains
+        // Corporate content with positive scores that's still searchable (BAD!)
         {
           AND: [
             { communityScore: { gt: 0 } },
-            { url: { contains: 'youtube.com' } }
+            { indexingPurpose: 'full_index' }, // Only flag if it's actually searchable
+            {
+              OR: [
+                { url: { contains: 'youtube.com' } },
+                { url: { contains: 'twitter.com' } },
+                { url: { contains: 'instagram.com' } },
+                { url: { contains: 'facebook.com' } },
+                { url: { contains: 'linkedin.com' } },
+                { url: { contains: 'tiktok.com' } }
+              ]
+            }
           ]
         },
+        // Entries that should have been classified but weren't
         {
           AND: [
+            { platformType: null },
             { communityScore: { gt: 0 } },
-            { url: { contains: 'twitter.com' } }
-          ]
-        },
-        {
-          AND: [
-            { communityScore: { gt: 0 } },
-            { url: { contains: 'instagram.com' } }
+            {
+              OR: [
+                { url: { contains: 'youtube.com' } },
+                { url: { contains: 'twitter.com' } },
+                { url: { contains: 'instagram.com' } }
+              ]
+            }
           ]
         }
       ]
