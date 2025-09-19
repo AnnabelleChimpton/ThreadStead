@@ -209,6 +209,9 @@ model Post {
   threadRings       PostThreadRing[] @relation("PostThreadRings")
   metrics           PostMetrics?     @relation("PostMetrics")
   views             PostView[]       @relation("PostViews")
+
+  // Search performance indexes
+  @@index([visibility, createdAt])
 }
 
 model PostMetrics {

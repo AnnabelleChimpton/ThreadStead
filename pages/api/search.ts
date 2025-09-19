@@ -235,6 +235,18 @@ export default withThreadRingSupport(async function handler(
                   }
                 },
                 {
+                  bodyMarkdown: {
+                    contains: query,
+                    mode: "insensitive"
+                  }
+                },
+                {
+                  bodyHtml: {
+                    contains: query,
+                    mode: "insensitive"
+                  }
+                },
+                {
                   tags: {
                     has: query.toLowerCase()
                   }
@@ -276,10 +288,63 @@ export default withThreadRingSupport(async function handler(
           const authorHandle = post.author.handles[0]?.handle;
           const authorName = post.author.profile?.displayName || authorHandle;
 
-          // Truncate body text for search results
-          const truncatedBody = post.bodyText && post.bodyText.length > 150
-            ? post.bodyText.substring(0, 150) + '...'
-            : post.bodyText;
+          // Enhanced excerpt generation with context
+          const generateExcerpt = (post: any, query: string): string | undefined => {
+            // Combine all content fields, prioritizing bodyText
+            const contents = [
+              post.bodyText,
+              post.bodyMarkdown,
+              post.bodyHtml
+            ].filter(Boolean);
+
+            if (contents.length === 0) return undefined;
+
+            let bestContent = contents[0];
+
+            // Find the best content field that contains the query
+            for (const content of contents) {
+              if (content.toLowerCase().includes(query.toLowerCase())) {
+                bestContent = content;
+                break;
+              }
+            }
+
+            // Strip HTML tags if content is HTML
+            let cleanContent = bestContent;
+            if (post.bodyHtml && bestContent === post.bodyHtml) {
+              cleanContent = bestContent.replace(/<[^>]*>/g, '');
+            }
+
+            // Strip markdown formatting if content is markdown
+            if (post.bodyMarkdown && bestContent === post.bodyMarkdown) {
+              cleanContent = bestContent
+                .replace(/#{1,6}\s+/g, '') // Remove headers
+                .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+                .replace(/\*(.*?)\*/g, '$1') // Remove italic
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
+                .replace(/`([^`]+)`/g, '$1'); // Remove inline code
+            }
+
+            // Try to find context around the search term
+            const queryIndex = cleanContent.toLowerCase().indexOf(query.toLowerCase());
+            if (queryIndex !== -1 && cleanContent.length > 150) {
+              // Extract context around the match
+              const start = Math.max(0, queryIndex - 75);
+              const end = Math.min(cleanContent.length, queryIndex + query.length + 75);
+              let excerpt = cleanContent.substring(start, end);
+
+              // Add ellipsis if we truncated
+              if (start > 0) excerpt = '...' + excerpt;
+              if (end < cleanContent.length) excerpt = excerpt + '...';
+
+              return excerpt;
+            }
+
+            // Fallback to simple truncation
+            return cleanContent.length > 150
+              ? cleanContent.substring(0, 150) + '...'
+              : cleanContent;
+          };
 
           const timeAgo = new Date(post.createdAt).toLocaleDateString();
 
@@ -287,8 +352,8 @@ export default withThreadRingSupport(async function handler(
             type: 'post' as const,
             id: post.id,
             title: post.title || 'Untitled Post',
-            description: truncatedBody || undefined,
-            url: `/resident/${authorHandle}/posts/${post.id}`,
+            description: generateExcerpt(post, query) || undefined,
+            url: `/resident/${authorHandle}/post/${post.id}`,
             meta: `by ${authorName} • ${timeAgo} • ${post._count.comments} comments`
           };
         });

@@ -145,7 +145,7 @@ export function SurpriseMeButtonCompact({
             const data = await response.json();
             if (data.posts && data.posts.length > 0) {
               const randomPost = data.posts[Math.floor(Math.random() * data.posts.length)];
-              window.open(`/resident/${randomPost.author.handle}/posts/${randomPost.id}`, '_blank');
+              window.open(`/resident/${randomPost.author.handle}/post/${randomPost.id}`, '_blank');
             }
           }
         }
