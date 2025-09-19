@@ -152,32 +152,40 @@ export default function CommunityIndexIntegration({
             key={site.id}
             className="p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
           >
-            <div className="flex items-start justify-between gap-3">
-              {/* Main clickable content */}
-              <div className="flex-1 cursor-pointer" onClick={() => handleSiteClick(site.url)}>
-                <h4 className="font-medium text-blue-900 hover:text-blue-700">
-                  {site.title}
-                </h4>
-                {site.description && (
-                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                    {site.description}
-                  </p>
+            {/* Main clickable content */}
+            <div className="cursor-pointer" onClick={() => handleSiteClick(site.url)}>
+              <h4 className="font-medium text-blue-900 hover:text-blue-700 line-clamp-2">
+                {site.title}
+              </h4>
+              {site.description && (
+                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                  {site.description}
+                </p>
+              )}
+            </div>
+
+            {/* Bottom section with metadata and actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-blue-200/50 mt-2">
+              <div className="flex items-center gap-2 text-xs text-gray-500 flex-1">
+                {site.communityScore > 0 && (
+                  <span>Score: {site.communityScore}</span>
                 )}
-                <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                  {site.communityScore > 0 && (
-                    <span>Score: {site.communityScore}</span>
-                  )}
-                  {site.siteType && (
+                {site.siteType && (
+                  <>
+                    {site.communityScore > 0 && <span>•</span>}
                     <span>{site.siteType.replace('_', ' ')}</span>
-                  )}
-                  {site.tags && site.tags.length > 0 && (
-                    <span>{site.tags.slice(0, 3).join(', ')}</span>
-                  )}
-                </div>
+                  </>
+                )}
+                {site.tags && site.tags.length > 0 && (
+                  <>
+                    <span>•</span>
+                    <span>{site.tags.slice(0, 2).join(', ')}</span>
+                  </>
+                )}
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Compact action buttons at bottom */}
+              <div className="flex gap-1.5 ml-2">
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
                   Community
                 </span>
