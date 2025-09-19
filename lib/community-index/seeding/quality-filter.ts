@@ -189,9 +189,9 @@ export class SeedingFilter {
     score = Math.max(0, Math.min(100, score));
 
     // Determine if we should seed this site
-    // For indie platforms and independent sites, use score threshold
-    // For corporate profiles, never seed (handled above)
-    const shouldSeed = score >= 40 &&
+    // For indie platforms and independent sites, use very inclusive threshold
+    // The indie web embraces minimal sites and experiments
+    const shouldSeed = score >= 20 &&
                       !this.hasBlockingIssues(site) &&
                       classification.indexingPurpose === 'full_index';
 
@@ -222,12 +222,39 @@ export class SeedingFilter {
   private hasBlockingIssues(site: ExtSearchResultItem): boolean {
     const url = site.url.toLowerCase();
 
-    // Block known problematic domains
+    // Block known problematic domains - corporate, mainstream media, and non-indie platforms
     const blockedDomains = [
-      'facebook.com', 'twitter.com', 'instagram.com', 'tiktok.com',
-      'youtube.com', 'reddit.com', 'pinterest.com', 'linkedin.com',
-      'amazon.com', 'ebay.com', 'walmart.com', 'target.com',
-      'google.com', 'microsoft.com', 'apple.com', 'adobe.com'
+      // Social Media Giants
+      'facebook.com', 'twitter.com', 'x.com', 'instagram.com', 'tiktok.com',
+      'reddit.com', 'pinterest.com', 'linkedin.com', 'snapchat.com',
+
+      // Google/Alphabet Properties
+      'google.com', 'youtube.com', 'gmail.com', 'googleblog.com',
+      'googleadservices.com', 'googlesyndication.com', 'doubleclick.net',
+      'googleusercontent.com', 'gstatic.com', 'googleapis.com',
+
+      // Other Big Tech
+      'microsoft.com', 'apple.com', 'adobe.com', 'amazon.com',
+
+      // E-commerce Giants
+      'ebay.com', 'walmart.com', 'target.com', 'alibaba.com',
+
+      // Wikipedia/Wikimedia (institutional knowledge bases, not indie)
+      'wikipedia.org', 'wikimedia.org', 'wikidata.org', 'wikiquote.org',
+      'wiktionary.org', 'wikinews.org', 'commons.wikimedia.org', 'meta.wikimedia.org',
+
+      // Major News/Media Corporations
+      'cnn.com', 'bbc.com', 'nytimes.com', 'washingtonpost.com', 'theguardian.com',
+      'reuters.com', 'ap.org', 'wsj.com', 'npr.org', 'cbs.com', 'nbc.com',
+      'abc.com', 'fox.com', 'foxnews.com', 'msnbc.com', 'bloomberg.com',
+
+      // Stack Exchange Network (corporate Q&A platforms)
+      'stackoverflow.com', 'stackexchange.com', 'serverfault.com',
+      'superuser.com', 'askubuntu.com', 'mathoverflow.net',
+
+      // Major Streaming/Entertainment Platforms
+      'netflix.com', 'hulu.com', 'disneyplus.com', 'hbomax.com',
+      'paramount.com', 'peacocktv.com', 'crunchyroll.com', 'twitch.tv'
     ];
 
     return blockedDomains.some(domain => url.includes(domain));
@@ -437,19 +464,27 @@ export class SeedingFilter {
 
   /**
    * Check for low quality content indicators
+   * Be very conservative - simple/minimal is beautiful in the indie web
    */
   private hasLowQualityIndicators(title: string, snippet: string): boolean {
-    // Very short or generic titles
-    if (title.length < 10 || title === 'untitled' || title === 'home') {
+    // Only flag truly problematic content, not simple/minimal sites
+
+    // Truly generic or missing titles
+    if (title === 'untitled' || title === '' || title === 'null' || title === 'undefined') {
       return true;
     }
 
-    // Excessive punctuation or caps
-    if (title.includes('!!!') || title === title.toUpperCase()) {
+    // Excessive spam indicators
+    if (title.includes('!!!') || (title === title.toUpperCase() && title.length > 20)) {
       return true;
     }
 
-    return false;
+    // Snippet spam indicators
+    if (snippet && snippet.includes('click here') && snippet.includes('buy now')) {
+      return true;
+    }
+
+    return false; // Be generous - minimal is good!
   }
 
   /**

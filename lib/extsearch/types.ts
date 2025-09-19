@@ -38,7 +38,7 @@ export interface ExtSearchResultItem {
   isIndieWeb?: boolean;         // Flag for indie/personal sites
   hasCookies?: boolean;          // Warning flag
   hasTrackers?: boolean;         // Warning flag
-  contentType?: 'blog' | 'forum' | 'personal' | 'commercial' | 'wiki' | 'unknown';
+  contentType?: 'blog' | 'forum' | 'personal' | 'commercial' | 'wiki' | 'excluded' | 'unknown';
 
   // Engine-specific metadata
   engineMetadata?: Record<string, any>;

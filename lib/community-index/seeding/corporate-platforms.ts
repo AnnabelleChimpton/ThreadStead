@@ -8,7 +8,7 @@ export interface PlatformPattern {
   profilePatterns: string[];
   excludePatterns?: string[];
   linkLocations: string[];
-  category: 'social_media' | 'development' | 'federated' | 'content' | 'creative' | 'streaming' | 'marketplace' | 'community' | 'link_service';
+  category: 'social_media' | 'development' | 'federated' | 'content' | 'creative' | 'streaming' | 'marketplace' | 'community' | 'link_service' | 'knowledge_base' | 'corporate_media' | 'entertainment';
 }
 
 export interface PlatformRegistry {
@@ -436,6 +436,79 @@ export const CORPORATE_PLATFORMS: PlatformPattern[] = [
     profilePatterns: ['/*'],
     linkLocations: ['links'],
     category: 'link_service'
+  },
+
+  // Knowledge Base Platforms (institutional, not indie)
+  {
+    domain: 'wikipedia.org',
+    profilePatterns: ['/*'], // All Wikipedia pages should be treated as institutional
+    excludePatterns: [], // No exclusions - all Wikipedia is institutional
+    linkLocations: ['external_links', 'references'],
+    category: 'knowledge_base'
+  },
+  {
+    domain: 'wikimedia.org',
+    profilePatterns: ['/*'],
+    linkLocations: ['external_links'],
+    category: 'knowledge_base'
+  },
+  {
+    domain: 'wikidata.org',
+    profilePatterns: ['/wiki/*'],
+    linkLocations: ['external_links'],
+    category: 'knowledge_base'
+  },
+  {
+    domain: 'stackoverflow.com',
+    profilePatterns: ['/users/*'],
+    linkLocations: ['profile', 'about'],
+    category: 'knowledge_base'
+  },
+  {
+    domain: 'stackexchange.com',
+    profilePatterns: ['/users/*'],
+    linkLocations: ['profile', 'about'],
+    category: 'knowledge_base'
+  },
+
+  // Corporate Media Platforms
+  {
+    domain: 'cnn.com',
+    profilePatterns: ['/profiles/*', '/author/*'],
+    linkLocations: ['bio', 'author_page'],
+    category: 'corporate_media'
+  },
+  {
+    domain: 'bbc.com',
+    profilePatterns: ['/news/correspondents/*', '/programmes/profiles/*'],
+    linkLocations: ['correspondent_page'],
+    category: 'corporate_media'
+  },
+  {
+    domain: 'nytimes.com',
+    profilePatterns: ['/by/*', '/column/*'],
+    linkLocations: ['author_bio'],
+    category: 'corporate_media'
+  },
+  {
+    domain: 'theguardian.com',
+    profilePatterns: ['/profile/*'],
+    linkLocations: ['author_page'],
+    category: 'corporate_media'
+  },
+
+  // Entertainment Platforms
+  {
+    domain: 'netflix.com',
+    profilePatterns: ['/title/*'],
+    linkLocations: ['cast_info', 'creator_info'],
+    category: 'entertainment'
+  },
+  {
+    domain: 'imdb.com',
+    profilePatterns: ['/name/*', '/title/*'],
+    linkLocations: ['bio', 'external_sites'],
+    category: 'entertainment'
   }
 ];
 
@@ -564,6 +637,13 @@ export class CorporatePlatformRegistry implements PlatformRegistry {
     const directMatch = this.platforms.find(p => p.domain === normalizedDomain);
     if (directMatch) {
       return directMatch;
+    }
+
+    // Check if domain ends with any platform domain (handles subdomains like en.wikipedia.org)
+    for (const platform of this.platforms) {
+      if (normalizedDomain.endsWith('.' + platform.domain) || normalizedDomain === platform.domain) {
+        return platform;
+      }
     }
 
     // Check subdomain patterns

@@ -120,7 +120,20 @@ export class DomainClassifier {
       // Check if it's a corporate platform
       const corporateCheck = corporatePlatforms.isProfileUrl(url);
       if (corporateCheck.platform) {
-        // It's a corporate platform profile
+        // Special handling for knowledge bases (Wikipedia, etc.) - these should be rejected, not link extraction
+        if (corporateCheck.platform.category === 'knowledge_base') {
+          return {
+            platformType: 'corporate_generic',
+            indexingPurpose: 'rejected',
+            confidence: 0.95,
+            reasons: ['knowledge_base_platform', `platform:${corporateCheck.platform.domain}`],
+            scoreModifier: 0,
+            platformName: corporateCheck.platform.domain,
+            shouldExtractLinks: false
+          };
+        }
+
+        // It's a corporate platform profile (for link extraction)
         return {
           platformType: 'corporate_profile',
           indexingPurpose: corporateCheck.platform.category === 'link_service' ? 'link_extraction' : 'link_extraction',

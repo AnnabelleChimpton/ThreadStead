@@ -305,7 +305,6 @@ export function estimatePrivacyScore(domain: string): number {
     'searx.be',
     'qwant.com',
     'mojeek.com',
-    'wikipedia.org',
     'archive.org',
     'eff.org',
     'privacytools.io',

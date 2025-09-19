@@ -243,10 +243,22 @@ export class BraveSearchEngine implements ExtSearchEngine {
     url: string,
     title: string,
     description?: string
-  ): 'blog' | 'forum' | 'personal' | 'wiki' | 'commercial' | 'unknown' {
+  ): 'blog' | 'forum' | 'personal' | 'wiki' | 'commercial' | 'excluded' | 'unknown' {
     const combined = `${url} ${title} ${description || ''}`.toLowerCase();
+    const urlLower = url.toLowerCase();
 
-    if (combined.includes('wiki') || url.includes('wikipedia.org')) {
+    // Check for excluded domains first
+    const excludedDomains = [
+      'wikipedia.org', 'wikimedia.org', 'wikidata.org', 'wikiquote.org',
+      'google.com', 'youtube.com', 'facebook.com', 'twitter.com', 'x.com',
+      'cnn.com', 'bbc.com', 'nytimes.com', 'reddit.com', 'stackoverflow.com'
+    ];
+
+    if (excludedDomains.some(domain => urlLower.includes(domain))) {
+      return 'excluded';
+    }
+
+    if (combined.includes('wiki')) {
       return 'wiki';
     }
 

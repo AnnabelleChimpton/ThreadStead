@@ -208,12 +208,23 @@ export class SearXNGEngine implements ExtSearchEngine {
     url: string,
     title: string,
     engines?: string[]
-  ): 'blog' | 'forum' | 'personal' | 'wiki' | 'commercial' | 'unknown' {
+  ): 'blog' | 'forum' | 'personal' | 'wiki' | 'commercial' | 'excluded' | 'unknown' {
     const urlLower = url.toLowerCase();
     const titleLower = title.toLowerCase();
 
-    // Check if it came from Wikipedia
-    if (engines?.includes('wikipedia') || urlLower.includes('wikipedia.org')) {
+    // Check for excluded domains first
+    const excludedDomains = [
+      'wikipedia.org', 'wikimedia.org', 'wikidata.org', 'wikiquote.org',
+      'google.com', 'youtube.com', 'facebook.com', 'twitter.com', 'x.com',
+      'cnn.com', 'bbc.com', 'nytimes.com', 'reddit.com', 'stackoverflow.com'
+    ];
+
+    if (excludedDomains.some(domain => urlLower.includes(domain))) {
+      return 'excluded';
+    }
+
+    // Check if it came from Wikipedia or other wikis
+    if (engines?.includes('wikipedia') || urlLower.includes('wiki')) {
       return 'wiki';
     }
 
