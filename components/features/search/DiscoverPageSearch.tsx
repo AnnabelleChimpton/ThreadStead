@@ -109,18 +109,18 @@ export default function DiscoverPageSearch({
     <div className={`bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] ${className}`}>
       {/* Integrated Tab Bar */}
       <div className="border-b border-[#A18463]/20">
-        <div className="flex">
+        <div className="flex overflow-x-auto scrollbar-thin">
           <button
             type="button"
             onClick={() => setSearchTab('all')}
-            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors relative ${
+            className={`flex-1 min-w-[80px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
               searchTab === 'all'
                 ? 'text-blue-600 bg-blue-50'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            <span className="flex items-center justify-center gap-1.5">
-              <span>🔍</span>
+            <span className="flex items-center justify-center gap-1">
+              <span className="hidden sm:inline">🔍</span>
               <span>All</span>
             </span>
             {searchTab === 'all' && (
@@ -130,15 +130,16 @@ export default function DiscoverPageSearch({
           <button
             type="button"
             onClick={() => setSearchTab('indie')}
-            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors relative ${
+            className={`flex-1 min-w-[80px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
               searchTab === 'indie'
                 ? 'text-purple-600 bg-purple-50'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            <span className="flex items-center justify-center gap-1.5">
-              <span>🌐</span>
-              <span>Indie Index</span>
+            <span className="flex items-center justify-center gap-1">
+              <span className="hidden sm:inline">🌐</span>
+              <span className="hidden sm:inline">Indie Index</span>
+              <span className="sm:hidden">Indie</span>
             </span>
             {searchTab === 'indie' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
@@ -147,14 +148,14 @@ export default function DiscoverPageSearch({
           <button
             type="button"
             onClick={() => setSearchTab('site')}
-            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors relative ${
+            className={`flex-1 min-w-[80px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
               searchTab === 'site'
                 ? 'text-green-600 bg-green-50'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            <span className="flex items-center justify-center gap-1.5">
-              <span>🏠</span>
+            <span className="flex items-center justify-center gap-1">
+              <span className="hidden sm:inline">🏠</span>
               <span>Site</span>
             </span>
             {searchTab === 'site' && (
@@ -165,14 +166,14 @@ export default function DiscoverPageSearch({
             <button
               type="button"
               onClick={() => setSearchTab('web')}
-              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors relative ${
+              className={`flex-1 min-w-[80px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
                 searchTab === 'web'
                   ? 'text-pink-600 bg-pink-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              <span className="flex items-center justify-center gap-1.5">
-                <span>🌍</span>
+              <span className="flex items-center justify-center gap-1">
+                <span className="hidden sm:inline">🌍</span>
                 <span>Web</span>
               </span>
               {searchTab === 'web' && (
@@ -185,37 +186,34 @@ export default function DiscoverPageSearch({
 
       {/* Indie Index Helper - Shows on Indie Index and All tabs */}
       {showCommunityHelper && (searchTab === 'indie' || searchTab === 'all') && (
-        <div className={`border-b px-3 py-2 ${
+        <div className={`border-b px-2 sm:px-3 py-2 ${
           searchTab === 'indie'
             ? 'bg-purple-50 border-purple-200/50'
             : 'bg-blue-50/50 border-blue-200/30'
         }`}>
-          <div className="flex items-center justify-between text-xs">
-            <div className={`flex items-center gap-2 ${
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
+            <div className={`flex items-center gap-1 sm:gap-2 ${
               searchTab === 'indie' ? 'text-purple-700' : 'text-blue-700'
             }`}>
-              <span className="text-base">💫</span>
-              <span className="font-medium">
+              <span className="text-sm sm:text-base">💫</span>
+              <span className="font-medium text-[10px] sm:text-xs">
                 {searchTab === 'indie'
                   ? 'Help build our indie index!'
-                  : 'This is a community project - help us grow!'
+                  : 'Community project - help us grow!'
                 }
               </span>
               <button
                 type="button"
                 onClick={() => {
-                  const info = searchTab === 'indie'
-                    ? 'The Indie Index is a curated collection of indie websites, reviewed and validated by our community members. Sites are scored based on community votes, content quality, and alignment with indie web values. Anyone can submit sites for review!'
-                    : 'We blend results from three sources with transparent, equitable scoring: Indie Index sites (score 50+), Local content (score 40+), and Web results (score 30+). This ensures diverse, community-driven discovery while giving priority to validated indie picks.';
-                  alert(info);
+                  window.open('/discover/faq#' + (searchTab === 'indie' ? 'indie-index' : 'unified-search'), '_blank');
                 }}
-                className="text-gray-500 hover:text-gray-700 ml-1"
+                className="text-gray-500 hover:text-gray-700 ml-1 touch-manipulation"
                 title="Learn more about how this works"
               >
                 <span className="text-xs">ⓘ</span>
               </button>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/community-index/submit"
                 className={`hover:underline flex items-center gap-1 ${
@@ -257,44 +255,45 @@ export default function DiscoverPageSearch({
         </div>
       )}
 
-      <form onSubmit={onSearch} className="p-3">
+      <form onSubmit={onSearch} className="p-2 sm:p-3">
         {/* Search Input Row */}
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex-1 relative">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={getSearchPlaceholder()}
-              className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               autoComplete="off"
             />
           </div>
 
-          {/* Site Search Type Filter */}
-          {searchTab === 'site' && (
-            <select
-              value={searchType}
-              onChange={(e) => setSearchType(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          <div className="flex gap-2">
+            {/* Site Search Type Filter */}
+            {searchTab === 'site' && (
+              <select
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value as any)}
+                className="px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+              >
+                <option value="all">All</option>
+                <option value="threadrings">Rings</option>
+                <option value="users">Users</option>
+                <option value="posts">Posts</option>
+              </select>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || !searchQuery.trim()}
+              className="px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base transition-colors shadow-[2px_2px_0_#2563eb] flex-1 sm:flex-none"
             >
-              <option value="all">All Content</option>
-              <option value="threadrings">ThreadRings</option>
-              <option value="users">Users</option>
-              <option value="posts">Posts</option>
-            </select>
-          )}
+              {loading ? '...' : 'Search'}
+            </button>
 
-          <button
-            type="submit"
-            disabled={loading || !searchQuery.trim()}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors shadow-[2px_2px_0_#2563eb]"
-          >
-            {loading ? 'Searching...' : 'Search'}
-          </button>
-
-          {/* Integrated Surprise Me button */}
-          <button
+            {/* Integrated Surprise Me button */}
+            <button
             type="button"
             onClick={async (e) => {
               e.preventDefault();
@@ -318,7 +317,7 @@ export default function DiscoverPageSearch({
                 console.error('Surprise failed:', error);
               }
             }}
-            className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 font-medium transition-colors shadow-[2px_2px_0_#8b5cf6] hover:shadow-[1px_1px_0_#8b5cf6] hover:translate-x-[1px] hover:translate-y-[1px]"
+            className="px-2 sm:px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 font-medium text-sm sm:text-base transition-colors shadow-[2px_2px_0_#8b5cf6] hover:shadow-[1px_1px_0_#8b5cf6] hover:translate-x-[1px] hover:translate-y-[1px]"
             title="Surprise me with something interesting!"
           >
             <span className="flex items-center gap-1">
@@ -326,6 +325,7 @@ export default function DiscoverPageSearch({
               <span className="hidden sm:inline">Surprise</span>
             </span>
           </button>
+          </div>
         </div>
 
         {/* Web Search Filters - Compact inline */}

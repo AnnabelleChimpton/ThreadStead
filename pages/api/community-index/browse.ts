@@ -1,4 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { DiscoveryFeedsManager } from '@/lib/community-index/feeds/discovery-feeds';
+import { getSessionUser } from '@/lib/auth/server';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -8,32 +10,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { category, sortBy, page = '1', limit = '15', validationStatus = 'validated' } = req.query;
 
-    // For now, redirect to the existing feeds API with the recent feed
-    // This provides a working fallback until a proper browse API is implemented
-    const feedType = sortBy === 'recent' ? 'recent' : 'recent'; // Can be extended later
+    // Get user for personalized feeds
+    const user = await getSessionUser(req as any);
+    const userId = user?.id;
 
-    const feedResponse = await fetch(
-      `${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/api/community-index/feeds?type=${feedType}&limit=${limit}&category=${category}`
-    );
+    const feedsManager = new DiscoveryFeedsManager();
+    const limitNum = parseInt(limit as string) || 15;
+    const categoryFilter = category === 'all' ? undefined : category as string;
+    const pageNum = parseInt(page as string) || 1;
 
-    if (feedResponse.ok) {
-      const feedData = await feedResponse.json();
-      return res.json({
-        success: true,
-        sites: feedData.sites || [],
-        total: feedData.totalCount || 0,
-        page: parseInt(page as string),
-        totalPages: Math.ceil((feedData.totalCount || 0) / parseInt(limit as string))
-      });
+    // Determine which feed to fetch based on sortBy
+    let feedData;
+    switch (sortBy) {
+      case 'recent':
+        feedData = await feedsManager.getRecentlyFoundFeed(limitNum, categoryFilter, userId);
+        break;
+      case 'score':
+        // Try favorites feed first, fall back to recent if empty
+        feedData = await feedsManager.getFavoritesFeed(limitNum, categoryFilter, userId);
+        if (!feedData?.sites || feedData.sites.length === 0) {
+          // Fall back to recent feed sorted by score
+          feedData = await feedsManager.getRecentlyFoundFeed(limitNum, categoryFilter, userId);
+          if (feedData?.sites) {
+            feedData.sites.sort((a: any, b: any) => (b.communityScore || 0) - (a.communityScore || 0));
+          }
+        }
+        break;
+      case 'alphabetical':
+        // For alphabetical, we'll use the recent feed and sort it
+        feedData = await feedsManager.getRecentlyFoundFeed(100, categoryFilter, userId);
+        if (feedData.sites) {
+          feedData.sites.sort((a: any, b: any) =>
+            (a.title || '').toLowerCase().localeCompare((b.title || '').toLowerCase())
+          );
+          // Paginate the sorted results
+          const startIdx = (pageNum - 1) * limitNum;
+          feedData.sites = feedData.sites.slice(startIdx, startIdx + limitNum);
+        }
+        break;
+      default:
+        feedData = await feedsManager.getRecentlyFoundFeed(limitNum, categoryFilter, userId);
     }
 
-    // Fallback empty response
+    // Extract sites from feed data
+    const sites = feedData?.sites || [];
+    const totalCount = (feedData as any)?.totalCount || sites.length;
+
     return res.json({
       success: true,
-      sites: [],
-      total: 0,
-      page: 1,
-      totalPages: 0
+      sites: sites,
+      total: totalCount,
+      page: pageNum,
+      totalPages: Math.ceil(totalCount / limitNum)
     });
 
   } catch (error) {

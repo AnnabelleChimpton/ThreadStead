@@ -26,8 +26,11 @@ export default async function handler(
       const showInteracted = req.query.showInteracted === 'true';
       const sortMethod = req.query.sort as string || 'balanced';
 
+      // PHASE 2: Only show human submissions for community validation
       const where: any = {
-        discoveryMethod: 'api_seeding',
+        discoveryMethod: {
+          in: ['user_bookmark', 'manual_submit', 'manual'] // Include all manual submission methods
+        },
         communityValidated: false
       };
 
@@ -76,8 +79,8 @@ export default async function handler(
           break;
         case 'balanced':
         default:
-          // Balanced approach: Mix of factors to reduce bias
-          // Priority: sites with fewer votes, then mixed score/age
+          // Get sites separately to prioritize human submissions
+          // We'll handle the sorting in JavaScript since Prisma doesn't support custom enum ordering
           orderBy = [
             { totalVotes: 'asc' },        // Prioritize unvoted sites
             { seedingScore: 'desc' },     // Then quality
@@ -86,12 +89,14 @@ export default async function handler(
           break;
       }
 
-      const [sites, total] = await Promise.all([
-        db.indexedSite.findMany({
+      let sites;
+      let total;
+
+      if (sortMethod === 'balanced' || !sortMethod) {
+        // For balanced sorting, we need to implement human-priority sorting manually
+        // Get all sites and sort them by priority, then paginate
+        const allSites = await db.indexedSite.findMany({
           where,
-          orderBy,
-          skip: page * limit,
-          take: limit,
           include: {
             votes: {
               include: {
@@ -103,15 +108,60 @@ export default async function handler(
                 }
               }
             },
-            _count: {
-              select: {
-                votes: true
-              }
-            }
           }
-        }),
-        db.indexedSite.count({ where })
-      ]);
+        });
+
+        // Sort by priority: human submissions first, then by votes/quality/recency
+        const sortedSites = allSites.sort((a, b) => {
+          // Priority 1: Human submissions (user_bookmark, manual_submit) before crawler (api_seeding)
+          const aPriority = ['user_bookmark', 'manual_submit'].includes(a.discoveryMethod) ? 0 : 1;
+          const bPriority = ['user_bookmark', 'manual_submit'].includes(b.discoveryMethod) ? 0 : 1;
+
+          if (aPriority !== bPriority) {
+            return aPriority - bPriority;
+          }
+
+          // Priority 2: Fewer votes first (unvoted sites get priority)
+          if (a.totalVotes !== b.totalVotes) {
+            return a.totalVotes - b.totalVotes;
+          }
+
+          // Priority 3: Higher seeding score
+          if ((a.seedingScore || 0) !== (b.seedingScore || 0)) {
+            return (b.seedingScore || 0) - (a.seedingScore || 0);
+          }
+
+          // Priority 4: More recent discovery
+          return new Date(b.discoveredAt).getTime() - new Date(a.discoveredAt).getTime();
+        });
+
+        // Apply pagination
+        total = sortedSites.length;
+        sites = sortedSites.slice(page * limit, (page + 1) * limit);
+      } else {
+        // For other sort methods, use database sorting
+        [sites, total] = await Promise.all([
+          db.indexedSite.findMany({
+            where,
+            orderBy,
+            skip: page * limit,
+            take: limit,
+            include: {
+              votes: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      primaryHandle: true
+                    }
+                  }
+                }
+              }
+            },
+          }),
+          db.indexedSite.count({ where })
+        ]);
+      }
 
       // Calculate user's existing votes
       const sitesWithUserVotes = await Promise.all(

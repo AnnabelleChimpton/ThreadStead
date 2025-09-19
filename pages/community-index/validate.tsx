@@ -226,9 +226,18 @@ export default function CommunityValidation({ siteConfig, user }: Props) {
     <Layout siteConfig={siteConfig}>
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">🔍 Community Site Validation</h1>
+          <h1 className="text-3xl font-bold mb-2">👥 Human Submissions Validation</h1>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p className="text-blue-900 font-medium mb-1">
+              🎯 Phase 2: Community-Curated Queue
+            </p>
+            <p className="text-blue-700 text-sm">
+              This validation queue only shows sites submitted by community members.
+              Crawler-discovered sites are now auto-validated separately to keep this queue focused on human curation.
+            </p>
+          </div>
           <p className="text-gray-600">
-            Help improve the community index by validating automatically discovered sites
+            Help validate sites discovered and submitted by your fellow community members
           </p>
         </div>
 

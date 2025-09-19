@@ -22,7 +22,7 @@ export interface QualityScore {
 }
 
 export class QualityAssessor {
-  private readonly AUTO_SUBMIT_THRESHOLD = 35; // Much more inclusive - favor breadth over perfection
+  private readonly AUTO_SUBMIT_THRESHOLD = 40; // Aligned with seeding threshold
   private readonly MAX_SCORE = 100;
 
   /**

@@ -216,6 +216,11 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               {/* Discover promoted to top-level */}
               <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/discover">Discover</Link>
 
+              {/* Bookmarks for authenticated users */}
+              {me && (
+                <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/bookmarks">Bookmarks</Link>
+              )}
+
               {/* Feed promoted to top-level */}
               <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/feed">Feed</Link>
               
@@ -352,6 +357,18 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             >
               Discover
             </Link>
+
+            {/* Bookmarks for authenticated users */}
+            {me && (
+              <Link
+                href="/bookmarks"
+                className="block px-4 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
+                onClick={() => setMobileMenuOpen(false)}
+                role="menuitem"
+              >
+                Bookmarks
+              </Link>
+            )}
 
             {/* Top level pages */}
             {topLevelPages.map(page => (

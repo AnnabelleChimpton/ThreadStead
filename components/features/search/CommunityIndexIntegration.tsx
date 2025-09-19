@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useBookmarks } from '@/hooks/useBookmarks';
 
 interface CommunityIndexSite {
   id: string;
@@ -20,16 +21,21 @@ interface CommunityIndexIntegrationProps {
   query?: string;
   limit?: number;
   onSiteClick?: (url: string, source: 'community' | 'external') => void;
+  user?: { id: string } | null;
 }
 
 export default function CommunityIndexIntegration({
   query = '',
   limit = 5,
-  onSiteClick
+  onSiteClick,
+  user
 }: CommunityIndexIntegrationProps) {
   const [communitySites, setCommunitySites] = useState<CommunityIndexSite[]>([]);
   const [loading, setLoading] = useState(false);
   const [feedType, setFeedType] = useState<'recent' | 'favorites'>('recent');
+
+  // Use bookmarks hook
+  const { saving, saveFromCommunityIndex } = useBookmarks();
 
   useEffect(() => {
     loadCommunitySites();
@@ -77,6 +83,22 @@ export default function CommunityIndexIntegration({
 
     if (onSiteClick) {
       onSiteClick(url, 'community');
+    }
+  };
+
+  const handleSave = async (e: React.MouseEvent, site: CommunityIndexSite) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (!user) {
+      alert('Please log in to save bookmarks');
+      return;
+    }
+
+    try {
+      await saveFromCommunityIndex(site);
+    } catch (error) {
+      console.error('Failed to save bookmark:', error);
     }
   };
 
@@ -128,11 +150,11 @@ export default function CommunityIndexIntegration({
         {communitySites.map((site) => (
           <div
             key={site.id}
-            className="p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
-            onClick={() => handleSiteClick(site.url)}
+            className="p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
           >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
+            <div className="flex items-start justify-between gap-3">
+              {/* Main clickable content */}
+              <div className="flex-1 cursor-pointer" onClick={() => handleSiteClick(site.url)}>
                 <h4 className="font-medium text-blue-900 hover:text-blue-700">
                   {site.title}
                 </h4>
@@ -153,9 +175,29 @@ export default function CommunityIndexIntegration({
                   )}
                 </div>
               </div>
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                Community
-              </span>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                  Community
+                </span>
+                {user && (
+                  <button
+                    onClick={(e) => handleSave(e, site)}
+                    disabled={saving}
+                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50 touch-manipulation"
+                    title="Save to bookmarks"
+                  >
+                    {saving ? (
+                      <div className="w-4 h-4 animate-spin border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}

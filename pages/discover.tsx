@@ -10,6 +10,7 @@ import DiscoverPageSearch from '@/components/features/search/DiscoverPageSearch'
 import CommunityIndexIntegration from '@/components/features/search/CommunityIndexIntegration';
 import EnhancedCommunityBrowser from '@/components/features/search/EnhancedCommunityBrowser';
 import { useAutoIndexer, IndexingNotification } from '@/components/features/search/AutoIndexer';
+import { useBookmarks } from '@/hooks/useBookmarks';
 
 interface DiscoverProps {
   siteConfig: SiteConfig;
@@ -57,6 +58,9 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
   // Use auto-indexer hook
   const { trackAndIndex } = useAutoIndexer(searchQuery);
+
+  // Use bookmarks hook
+  const { saving, error: saveError, saveFromCommunityIndex, saveFromSiteContent, saveFromExternalSearch } = useBookmarks();
 
   // Use external search hook (manual mode)
   const extSearch = useExtSearch(searchQuery, {
@@ -450,12 +454,12 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
   return (
     <Layout siteConfig={siteConfig}>
-      <div className="w-full max-w-6xl mx-auto px-4 py-6">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#2E4B3F] mb-2">
+      <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="text-center mb-4 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#2E4B3F] mb-2">
             🔍 Discover
           </h1>
-          <p className="text-gray-600 mb-2">
+          <p className="text-sm sm:text-base text-gray-600 mb-2 px-2">
             Search across our community index, local content, and the broader indie web all in one place
           </p>
           <Link href="/discover/faq" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
@@ -505,12 +509,12 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
               return (
                 <>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                       🔍 Best Results from All Sources
                     </h3>
                     <div className="text-xs text-gray-500">
-                      Page {currentPage} of {unifiedData.totalPages} • {unifiedData.totalResults} total results
+                      Page {currentPage} of {unifiedData.totalPages} • {unifiedData.totalResults} total
                     </div>
                   </div>
 
@@ -520,27 +524,26 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                       return (
                         <div
                           key={`${result.source}-${result.id || result.url || index}`}
-                          className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer"
-                          onClick={result.clickHandler}
+                          className="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
                         >
                           <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-medium text-gray-900 line-clamp-1">
+                            <div className="flex-1 cursor-pointer" onClick={result.clickHandler}>
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                                <h4 className="font-medium text-gray-900 break-words">
                                   {result.title}
                                 </h4>
-                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded flex items-center gap-1">
+                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded inline-flex items-center gap-1 self-start sm:self-auto flex-shrink-0">
                                   {result.sourceIcon} {result.sourceLabel}
                                 </span>
                               </div>
 
                               {(result.description || result.snippet) && (
-                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2 sm:line-clamp-3 break-words">
                                   {result.description || result.snippet}
                                 </p>
                               )}
 
-                              <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-gray-500">
                                 <span>#{globalIndex}</span>
                                 {result.source === 'community' && (
                                   <>
@@ -563,8 +566,36 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                               </div>
                             </div>
 
-                            <div className="text-xs text-gray-400 ml-4">
-                              {Math.round(result.unifiedScore)}
+                            <div className="flex flex-col items-center gap-2 ml-2 sm:ml-4">
+                              {user && (
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    let saveResult;
+
+                                    if (result.source === 'community') {
+                                      saveResult = await saveFromCommunityIndex(result);
+                                    } else if (result.source === 'site') {
+                                      saveResult = await saveFromSiteContent(result);
+                                    } else if (result.source === 'external') {
+                                      saveResult = await saveFromExternalSearch(result, searchQuery);
+                                    }
+
+                                    if (saveResult) {
+                                      // Could show a toast notification here
+                                      console.log('Saved:', saveResult);
+                                    }
+                                  }}
+                                  disabled={saving}
+                                  className="px-2 py-1 text-[10px] sm:text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                                  title="Save to your bookmarks"
+                                >
+                                  {saving ? '...' : 'Save'}
+                                </button>
+                              )}
+                              <div className="text-xs text-gray-400 hidden sm:block">
+                                {Math.round(result.unifiedScore)}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -622,7 +653,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
                   {/* Source breakdown */}
                   <div className="mt-6 p-3 bg-gray-50 rounded-lg">
-                    <div className="text-xs text-gray-600 flex items-center gap-4">
+                    <div className="text-xs text-gray-600 flex flex-wrap items-center gap-2 sm:gap-4">
                       <span>Sources:</span>
                       {communityResults.length > 0 && (
                         <span>🌟 {communityResults.length} community</span>
@@ -636,40 +667,10 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                       <button
                         type="button"
                         onClick={() => {
-                          const info = `
-🔍 How Our Search Works - Transparency Report
-
-📊 RANKING ALGORITHM:
-• Community Index: Base score 50 + community validation bonus (+20)
-• Site Content: Base score 40 + content type bonus (ThreadRings +15, Users +10, Posts +5)
-• Web Results: Base score 30 + indie/privacy bonuses (+15/+10)
-
-This ensures equitable representation across all sources!
-
-🤖 AUTO-INDEXING:
-• When you click external search results, they're automatically submitted for community review
-• Sites are scored based on: domain reputation, privacy features, indie web signals
-• Community members validate and rate submissions
-
-✅ REVIEW PROCESS:
-• New submissions start unvalidated
-• Community reviews add validation scores
-• Higher-scored sites appear more prominently
-• Everyone can participate in curation!
-
-💫 OUR ETHOS:
-This is a community-driven project. We believe in:
-• Transparency over black-box algorithms
-• Community curation over corporate control
-• Equitable access to discovery
-• Supporting the indie web
-
-Want to help? Submit sites, review submissions, or check our stats!
-                          `.trim();
-                          alert(info);
+                          window.open('/discover/faq#how-search-works', '_blank');
                         }}
-                        className="text-xs text-blue-600 hover:text-blue-800 hover:underline ml-auto flex items-center gap-1"
-                        title="Click to learn how our search and ranking works"
+                        className="text-xs text-blue-600 hover:text-blue-800 hover:underline sm:ml-auto flex items-center gap-1 touch-manipulation"
+                        title="Learn how our search and ranking works"
                       >
                         <span>🔍</span>
                         <span>How this works</span>
@@ -751,6 +752,7 @@ Want to help? Submit sites, review submissions, or check our stats!
                 showScores={false}
                 searchQuery={searchQuery}
                 searchTab={searchTab}
+                user={user}
               />
             </div>
           </div>
@@ -758,9 +760,9 @@ Want to help? Submit sites, review submissions, or check our stats!
 
         {/* Browse Categories - Only show when no active search */}
         {!searchQuery && searchTab === 'all' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Community Index Highlights */}
-            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6">
+            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-[#2E4B3F]">🌟 Community Picks</h2>
                 <Link
@@ -770,11 +772,11 @@ Want to help? Submit sites, review submissions, or check our stats!
                   Explore →
                 </Link>
               </div>
-              <CommunityIndexIntegration limit={3} />
+              <CommunityIndexIntegration limit={3} user={user} />
             </div>
 
             {/* Recent ThreadRings */}
-            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6">
+            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-[#2E4B3F]">🔗 ThreadRings</h2>
                 <Link
@@ -798,7 +800,7 @@ Want to help? Submit sites, review submissions, or check our stats!
             </div>
 
             {/* Active Users */}
-            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6">
+            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-[#2E4B3F]">👤 Active Users</h2>
                 <Link

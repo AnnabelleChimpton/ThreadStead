@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useBookmarks } from '@/hooks/useBookmarks';
 
 interface Communitysite {
   id: string;
@@ -16,6 +17,7 @@ interface Communitysite {
   tags: string[];
   discoveredAt: string;
   communityValidated: boolean;
+  discoveryMethod?: string;
   matchScore?: number;
   discoveredBy?: { handle: string };
   recentActivity: { discoveries: number };
@@ -42,9 +44,12 @@ export default function EnhancedCommunityBrowser({
 
   // Browse mode states
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'score' | 'recent' | 'alphabetical'>('score');
+  const [sortBy, setSortBy] = useState<'score' | 'recent' | 'alphabetical'>('recent');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Use bookmarks hook
+  const { saving, saveFromCommunityIndex } = useBookmarks();
 
   // Search mode states
   const [searchResults, setSearchResults] = useState<any>(null);
@@ -74,14 +79,14 @@ export default function EnhancedCommunityBrowser({
     }
   }, [query, includeUnvalidated, mode]);
 
-  // Browse when in browse mode
+  // Browse when in browse mode - trigger on mount and when parameters change
   useEffect(() => {
     if (mode === 'browse') {
       loadBrowseData();
     }
   }, [selectedCategory, sortBy, currentPage, includeUnvalidated, mode]);
 
-  const performSearch = useCallback(async () => {
+  const performSearch = async () => {
     if (!query) return;
 
     setLoading(true);
@@ -105,9 +110,9 @@ export default function EnhancedCommunityBrowser({
     } finally {
       setLoading(false);
     }
-  }, [query, includeUnvalidated]);
+  };
 
-  const loadBrowseData = useCallback(async () => {
+  const loadBrowseData = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -132,7 +137,8 @@ export default function EnhancedCommunityBrowser({
         const response = await fetch(`/api/community-index/feeds?type=recent&limit=15`);
         const fallbackData = await response.json();
         if (fallbackData.success) {
-          setSites(fallbackData.sites || []);
+          // The feeds API returns data in feed property, not sites
+          setSites(fallbackData.feed?.sites || []);
           setTotalPages(1);
         }
       } catch (fallbackError) {
@@ -142,7 +148,7 @@ export default function EnhancedCommunityBrowser({
     } finally {
       setLoading(false);
     }
-  }, [selectedCategory, sortBy, currentPage, includeUnvalidated]);
+  };
 
   const handleSiteClick = async (site: Communitysite) => {
     try {
@@ -167,81 +173,62 @@ export default function EnhancedCommunityBrowser({
     window.open(site.url, '_blank');
   };
 
-  const handleVote = async (siteId: string, voteType: 'up' | 'down') => {
-    if (!user) {
-      alert('Please log in to vote on sites');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/community-index/vote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId, voteType })
-      });
-
-      if (response.ok) {
-        // Refresh the data to show updated scores
-        if (mode === 'search') {
-          performSearch();
-        } else {
-          loadBrowseData();
-        }
-      }
-    } catch (error) {
-      console.error('Vote failed:', error);
-    }
-  };
+  // Remove voting function - replaced with more intentional actions
 
   const SiteCard = ({ site }: { site: Communitysite }) => (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 cursor-pointer" onClick={() => handleSiteClick(site)}>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-blue-600 hover:text-blue-700 line-clamp-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+            <h3 className="font-semibold text-blue-600 hover:text-blue-700 line-clamp-2 sm:line-clamp-1 break-words">
               {site.title}
             </h3>
             {site.communityValidated && (
               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                ✓ Validated
+                ✓ Verified
               </span>
             )}
-            {site.communityScore > 0 && (
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                Score: {site.communityScore}
+            {site.discoveryMethod === 'manual_submit' && (
+              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                👤 Human Pick
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-600 mb-2">{new URL(site.url).hostname}</p>
+          <p className="text-xs sm:text-sm text-gray-600 mb-2 break-all">{new URL(site.url).hostname}</p>
           {site.description && (
-            <p className="text-gray-700 mb-3 line-clamp-2 text-sm">{site.description}</p>
+            <p className="text-gray-700 mb-3 line-clamp-3 sm:line-clamp-2 text-xs sm:text-sm break-words">{site.description}</p>
           )}
         </div>
 
-        {/* Voting buttons */}
-        {user && (
-          <div className="flex flex-col items-center gap-1 ml-3">
+        {/* Action buttons */}
+        <div className="flex flex-col gap-2 ml-2 sm:ml-3">
+          <button
+            onClick={() => handleSiteClick(site)}
+            className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            title="Visit this site"
+          >
+            Visit
+          </button>
+          {user && (
             <button
-              onClick={() => handleVote(site.id, 'up')}
-              className="p-1 text-gray-400 hover:text-green-600 transition-colors"
-              title="Upvote this site"
+              onClick={async () => {
+                const saveResult = await saveFromCommunityIndex(site);
+                if (saveResult) {
+                  console.log('Saved to bookmarks:', saveResult);
+                }
+              }}
+              disabled={saving}
+              className="px-3 py-1 text-xs border border-gray-300 text-gray-600 rounded hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              title="Save to your bookmarks"
             >
-              ▲
+              {saving ? '...' : 'Save'}
             </button>
-            <span className="text-xs font-medium text-gray-600">{site.communityScore}</span>
-            <button
-              onClick={() => handleVote(site.id, 'down')}
-              className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-              title="Downvote this site"
-            >
-              ▼
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 mb-2 gap-1">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {site.siteType && (
             <span className="bg-gray-100 px-2 py-1 rounded">
               {site.siteType.replace('_', ' ')}
@@ -280,16 +267,16 @@ export default function EnhancedCommunityBrowser({
   );
 
   return (
-    <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-[#2E4B3F]">🌟 Community Index</h2>
+    <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-3 sm:p-6 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
+        <h2 className="text-lg sm:text-xl font-bold text-[#2E4B3F]">🌟 Community Index</h2>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           {/* View Mode Toggle */}
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setViewMode('cards')}
-              className={`px-2 py-1 text-sm rounded transition-colors ${
+              className={`px-2 py-1 text-xs sm:text-sm rounded transition-colors ${
                 viewMode === 'cards'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -299,7 +286,7 @@ export default function EnhancedCommunityBrowser({
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-2 py-1 text-sm rounded transition-colors ${
+              className={`px-2 py-1 text-xs sm:text-sm rounded transition-colors ${
                 viewMode === 'list'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -313,23 +300,23 @@ export default function EnhancedCommunityBrowser({
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setMode('search')}
-              className={`px-3 py-1 text-sm rounded transition-colors ${
+              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors ${
                 mode === 'search'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              🔍 Search
+              <span className="hidden sm:inline">🔍 </span>Search
             </button>
             <button
               onClick={() => setMode('browse')}
-              className={`px-3 py-1 text-sm rounded transition-colors ${
+              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors ${
                 mode === 'browse'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              📂 Browse
+              <span className="hidden sm:inline">📂 </span>Browse
             </button>
           </div>
         </div>
@@ -337,10 +324,10 @@ export default function EnhancedCommunityBrowser({
 
       {/* Browse Mode Controls */}
       {mode === 'browse' && (
-        <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-white rounded-lg border border-gray-200">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 sm:items-center">
+            <div className="flex-1 sm:flex-none">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Category
               </label>
               <select
@@ -349,7 +336,7 @@ export default function EnhancedCommunityBrowser({
                   setSelectedCategory(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="border border-gray-300 rounded px-3 py-2 text-sm"
+                className="w-full sm:w-auto border border-gray-300 rounded px-2 sm:px-3 py-2 text-xs sm:text-sm"
               >
                 {categories.map(cat => (
                   <option key={cat.value} value={cat.value}>
@@ -359,14 +346,14 @@ export default function EnhancedCommunityBrowser({
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="flex-1 sm:flex-none">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Sort By
               </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="border border-gray-300 rounded px-3 py-2 text-sm"
+                className="w-full sm:w-auto border border-gray-300 rounded px-2 sm:px-3 py-2 text-xs sm:text-sm"
               >
                 <option value="score">Community Score</option>
                 <option value="recent">Recently Discovered</option>
@@ -374,8 +361,8 @@ export default function EnhancedCommunityBrowser({
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+              <span>
                 {sites.length} sites • Page {currentPage} of {totalPages}
               </span>
             </div>
@@ -409,7 +396,7 @@ export default function EnhancedCommunityBrowser({
             <>
               <div className={
                 viewMode === 'cards'
-                  ? 'grid gap-4 md:grid-cols-2 lg:grid-cols-3'
+                  ? 'grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
                   : 'space-y-3'
               }>
                 {sites.map((site) => (
@@ -423,7 +410,7 @@ export default function EnhancedCommunityBrowser({
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                   >
                     Previous
                   </button>
@@ -445,7 +432,7 @@ export default function EnhancedCommunityBrowser({
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 ${
+                          className={`px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 ${
                             currentPage === pageNum ? 'bg-blue-500 text-white border-blue-500' : ''
                           }`}
                         >
@@ -458,7 +445,7 @@ export default function EnhancedCommunityBrowser({
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                   >
                     Next
                   </button>
@@ -492,17 +479,20 @@ export default function EnhancedCommunityBrowser({
       {/* Help Text */}
       <div className="mt-6 p-3 bg-gray-50 rounded-lg">
         <div className="text-xs text-gray-600 flex flex-wrap items-center gap-4">
-          <span>💡 Tip: Click ▲/▼ to rate sites and help improve community rankings</span>
-          {!user && (
-            <span className="text-blue-600">
-              <Link href="/auth/signin" className="hover:underline">
-                Sign in to vote and rate sites
-              </Link>
-            </span>
-          )}
+          <span>💡 Discover great sites from our community</span>
           <Link href="/community-index/submit" className="text-blue-600 hover:underline">
             ➕ Submit a site
           </Link>
+          <Link href="/community-index/validate" className="text-blue-600 hover:underline">
+            ✅ Help validate submissions
+          </Link>
+          {!user && (
+            <span className="text-blue-600">
+              <Link href="/auth/signin" className="hover:underline">
+                Sign in to save sites
+              </Link>
+            </span>
+          )}
         </div>
       </div>
     </div>

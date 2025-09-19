@@ -5,6 +5,7 @@
 
 import React from 'react';
 import type { ExtSearchResponse, ExtSearchResultItem } from '@/lib/extsearch/types';
+import { useBookmarks } from '@/hooks/useBookmarks';
 
 interface ExtSearchResultsProps {
   response: ExtSearchResponse | null;
@@ -16,6 +17,7 @@ interface ExtSearchResultsProps {
   className?: string;
   searchQuery?: string;
   searchTab?: string;
+  user?: { id: string } | null;
 }
 
 /**
@@ -30,8 +32,10 @@ export function ExtSearchResults({
   showScores = false,
   className = '',
   searchQuery,
-  searchTab
+  searchTab,
+  user
 }: ExtSearchResultsProps) {
+  const { saving, saveFromExternalSearch } = useBookmarks();
   // Loading state
   if (loading) {
     return (
@@ -92,12 +96,12 @@ export function ExtSearchResults({
       {/* Engine status summary */}
       {showEngineInfo && meta.engines.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm gap-1">
             <span className="text-blue-900">
               Searched {meta.engines.filter(e => e.success).length} of {meta.engines.length} engines
             </span>
             <span className="text-blue-700">
-              {meta.totalMs}ms • {meta.totalResults} total results
+              {meta.totalMs}ms • {meta.totalResults} total
             </span>
           </div>
           {meta.partial && (
@@ -117,6 +121,9 @@ export function ExtSearchResults({
             showScore={showScores}
             searchQuery={searchQuery}
             searchTab={searchTab}
+            user={user}
+            saving={saving}
+            saveFromExternalSearch={saveFromExternalSearch}
           />
         ))}
       </div>
@@ -124,8 +131,8 @@ export function ExtSearchResults({
       {/* Engine breakdown */}
       {showEngineInfo && (
         <div className="mt-6 pt-6 border-t border-gray-200">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Engine Performance</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-3">Engine Performance</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
             {meta.engines.map(engine => (
               <div
                 key={engine.id}
@@ -157,12 +164,18 @@ function ResultCard({
   result,
   showScore,
   searchQuery,
-  searchTab
+  searchTab,
+  user,
+  saving,
+  saveFromExternalSearch
 }: {
   result: ExtSearchResultItem;
   showScore: boolean;
   searchQuery?: string;
   searchTab?: string;
+  user?: { id: string } | null;
+  saving: boolean;
+  saveFromExternalSearch: (result: any, searchQuery?: string) => Promise<any>;
 }) {
   const getEngineColor = (engine: string): string => {
     const colors: Record<string, string> = {
@@ -222,82 +235,121 @@ function ResultCard({
     window.open(result.url, '_blank', 'noopener,noreferrer');
   };
 
+  const handleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (!user) {
+      // Could show login modal here
+      alert('Please log in to save bookmarks');
+      return;
+    }
+
+    try {
+      await saveFromExternalSearch(result, searchQuery);
+    } catch (error) {
+      console.error('Failed to save bookmark:', error);
+    }
+  };
+
   return (
-    <div
-      onClick={handleClick}
-      className="block bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer"
-    >
-      <div className="flex items-start space-x-3">
-        {/* Icon and badges */}
-        <div className="flex-shrink-0 pt-1">
-          <span className="text-xl">{getContentTypeIcon(result.contentType)}</span>
+    <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 hover:border-gray-300 transition-colors">
+      <div className="flex items-start justify-between gap-3">
+        {/* Main clickable content */}
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={handleClick}>
+          <div className="flex items-start space-x-2 sm:space-x-3">
+            {/* Icon and badges */}
+            <div className="flex-shrink-0 pt-1 hidden sm:block">
+              <span className="text-xl">{getContentTypeIcon(result.contentType)}</span>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              {/* Title and URL */}
+              <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 sm:line-clamp-1 break-words">
+                {result.title}
+              </h3>
+              <div className="text-xs text-green-600 mb-2 break-all sm:truncate">
+                {getDomain(result.url)}
+              </div>
+
+              {/* Snippet */}
+              {result.snippet && (
+                <p className="text-xs sm:text-sm text-gray-600 line-clamp-3 sm:line-clamp-2 mb-2 break-words">
+                  {result.snippet}
+                </p>
+              )}
+
+              {/* Metadata badges */}
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-[10px] sm:text-xs">
+                {/* Engine badge */}
+                <span className={`px-1.5 sm:px-2 py-0.5 rounded ${getEngineColor(result.engine)}`}>
+                  {result.engine}
+                </span>
+
+                {/* Privacy indicators */}
+                {result.isIndieWeb && (
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded bg-green-100 text-green-700">
+                    <span className="hidden sm:inline">🌱 </span>Indie
+                  </span>
+                )}
+
+                {result.privacyScore && result.privacyScore > 0.7 && (
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+                    <span className="hidden sm:inline">🔒 </span>Privacy
+                  </span>
+                )}
+
+                {result.hasTrackers === false && (
+                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                    No trackers
+                  </span>
+                )}
+
+                {/* Ring member indicator */}
+                {result.engineMetadata?.isRingMember && (
+                  <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-700">
+                    🔗 Ring Member
+                  </span>
+                )}
+
+                {/* Score (if enabled) */}
+                {showScore && result.score !== undefined && (
+                  <span className="text-gray-500">
+                    Score: {(result.score * 100).toFixed(0)}%
+                  </span>
+                )}
+
+                {/* Published date */}
+                {result.publishedDate && (
+                  <span className="text-gray-500">
+                    {new Date(result.publishedDate).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Title and URL */}
-          <h3 className="font-medium text-gray-900 mb-1 line-clamp-1">
-            {result.title}
-          </h3>
-          <div className="text-xs text-green-600 mb-2 truncate">
-            {getDomain(result.url)}
+        {/* Save button */}
+        {user && (
+          <div className="flex-shrink-0">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 touch-manipulation"
+              title="Save to bookmarks"
+            >
+              {saving ? (
+                <div className="w-5 h-5 animate-spin border-2 border-gray-400 border-t-transparent rounded-full"></div>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              )}
+            </button>
           </div>
-
-          {/* Snippet */}
-          {result.snippet && (
-            <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-              {result.snippet}
-            </p>
-          )}
-
-          {/* Metadata badges */}
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {/* Engine badge */}
-            <span className={`px-2 py-0.5 rounded ${getEngineColor(result.engine)}`}>
-              {result.engine}
-            </span>
-
-            {/* Privacy indicators */}
-            {result.isIndieWeb && (
-              <span className="px-2 py-0.5 rounded bg-green-100 text-green-700">
-                🌱 Indie Web
-              </span>
-            )}
-
-            {result.privacyScore && result.privacyScore > 0.7 && (
-              <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700">
-                🔒 Privacy
-              </span>
-            )}
-
-            {result.hasTrackers === false && (
-              <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                No trackers
-              </span>
-            )}
-
-            {/* Ring member indicator */}
-            {result.engineMetadata?.isRingMember && (
-              <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-700">
-                🔗 Ring Member
-              </span>
-            )}
-
-            {/* Score (if enabled) */}
-            {showScore && result.score !== undefined && (
-              <span className="text-gray-500">
-                Score: {(result.score * 100).toFixed(0)}%
-              </span>
-            )}
-
-            {/* Published date */}
-            {result.publishedDate && (
-              <span className="text-gray-500">
-                {new Date(result.publishedDate).toLocaleDateString()}
-              </span>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

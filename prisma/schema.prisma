@@ -72,6 +72,9 @@ model User {
   siteTagSuggestions        SiteTag[]            @relation("SiteTagSuggestions")
   discoveryPaths            DiscoveryPath[]      @relation("DiscoveryPaths")
   siteReviews               SiteReview[]         @relation("SiteReviews")
+  userCollections           UserCollection[]     @relation("UserCollections")
+  userBookmarks             UserBookmark[]       @relation("UserBookmarks")
+  bookmarkValidations       BookmarkCommunitySubmission[] @relation("BookmarkValidations")
 }
 
 model Handle {
@@ -1028,6 +1031,11 @@ model IndexedSite {
   communityValidated  Boolean   @default(false)
   validationVotes     Int       @default(0)
 
+  // Auto-validation fields (Phase 2)
+  autoValidated       Boolean?  // Was this auto-validated by system?
+  autoValidatedAt     DateTime? // When was it auto-validated?
+  autoValidationScore Int?      // Final score used for auto-validation
+
   // Connectivity
   outboundLinks String[] @default([]) // Sites this links to
   inboundLinks  String[] @default([]) // Sites linking to this
@@ -1041,6 +1049,7 @@ model IndexedSite {
   votes     SiteVote[]
   tags      SiteTag[]
   reviews   SiteReview[]
+  bookmarkSubmissions BookmarkCommunitySubmission[] @relation("BookmarkIndexedSites")
 
   @@index([url])
   @@index([discoveryMethod])
@@ -1231,4 +1240,104 @@ enum ConsentAction {
   WITHDRAWN     // User explicitly withdrew consent
   UPDATED       // User updated existing consent
   EXPIRED       // Consent expired due to time limit
+}
+// Universal Save System Models
+
+enum BookmarkSourceType {
+  community_index
+  site_content
+  external_search
+  manual
+}
+
+enum CollectionVisibility {
+  private
+  public
+  shared
+}
+
+enum BookmarkSubmissionReason {
+  user_bookmark
+  multiple_bookmarks
+  high_engagement
+}
+
+enum BookmarkSubmissionStatus {
+  pending
+  validated
+  rejected
+  duplicate
+}
+
+model UserCollection {
+  id          String              @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  visibility  CollectionVisibility @default(private)
+  isDefault   Boolean             @default(false)
+
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  // Relations
+  user        User                @relation("UserCollections", fields: [userId], references: [id], onDelete: Cascade)
+  bookmarks   UserBookmark[]      @relation("CollectionBookmarks")
+
+  @@unique([userId, name])
+}
+
+model UserBookmark {
+  id           String            @id @default(cuid())
+  userId       String
+  collectionId String?           // NULL = default collection
+
+  // Universal fields for any saved item
+  url          String
+  title        String
+  description  String?
+  faviconUrl   String?
+
+  // Source tracking
+  sourceType     BookmarkSourceType
+  sourceMetadata Json?           // Engine info, search query, content type, etc.
+
+  // Organization
+  tags         String[]          @default([])
+  notes        String?           // User's personal notes
+
+  // Engagement tracking
+  visitsCount    Int             @default(0)
+  lastVisitedAt  DateTime?
+
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  // Relations
+  user         User              @relation("UserBookmarks", fields: [userId], references: [id], onDelete: Cascade)
+  collection   UserCollection?   @relation("CollectionBookmarks", fields: [collectionId], references: [id], onDelete: SetNull)
+  communitySubmission BookmarkCommunitySubmission? @relation("BookmarkSubmissions")
+
+  @@unique([userId, url])
+}
+
+model BookmarkCommunitySubmission {
+  id              String                    @id @default(cuid())
+  bookmarkId      String                    @unique
+  indexedSiteId   String?                   // NULL until validated and indexed
+
+  // Auto-submission details
+  submissionReason   BookmarkSubmissionReason
+  submissionScore    Int                   @default(0)  // Based on user reputation, engagement, etc.
+
+  status          BookmarkSubmissionStatus  @default(pending)
+  validatedAt     DateTime?
+  validatedBy     String?
+
+  createdAt       DateTime                  @default(now())
+
+  // Relations
+  bookmark        UserBookmark              @relation("BookmarkSubmissions", fields: [bookmarkId], references: [id], onDelete: Cascade)
+  indexedSite     IndexedSite?              @relation("BookmarkIndexedSites", fields: [indexedSiteId], references: [id], onDelete: SetNull)
+  validator       User?                     @relation("BookmarkValidations", fields: [validatedBy], references: [id], onDelete: SetNull)
 }

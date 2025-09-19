@@ -141,7 +141,15 @@ export class CrawlerWorker {
         }
       }
 
-      // NOTE: Removed broken potentialDiscoveries logic - now using immediate processing like seeding
+      // Trigger Phase 2 auto-validation for any newly added sites
+      if (stats.autoSubmitted > 0) {
+        this.log(`🤖 Triggering auto-validation for ${stats.autoSubmitted} newly discovered sites...`);
+        try {
+          await this.triggerAutoValidation();
+        } catch (error) {
+          this.log(`⚠️ Auto-validation trigger failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
 
       stats.duration = Date.now() - startTime;
       this.log(`Crawl batch completed: ${stats.successful} successful, ${stats.failed} failed, ${stats.skipped} skipped`);
@@ -205,15 +213,14 @@ export class CrawlerWorker {
 
       this.log(`✅ Updated site: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
     } else {
-      // Site not in index - MATCH SEEDING LOGIC EXACTLY: immediate processing
+      // Site not in index - USE PHASE 2 AUTO-VALIDATION SYSTEM
       if (qualityScore.shouldAutoSubmit && qualityScore.totalScore >= 40) {
-        // Use same logic as seeding: immediate addition to IndexedSite, no deferred processing
         try {
-          await this.addToIndexDirectly(result.url, content, qualityScore);
+          await this.addToIndexForAutoValidation(result.url, content, qualityScore);
           autoSubmitted = true;
-          this.log(`✅ Added to index: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
+          this.log(`✅ Added for auto-validation: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
         } catch (error) {
-          this.log(`❌ Failed to add to index: ${content.title} (${result.url}) - ${error instanceof Error ? error.message : 'Unknown error'}`);
+          this.log(`❌ Failed to add for auto-validation: ${content.title} (${result.url}) - ${error instanceof Error ? error.message : 'Unknown error'}`);
           autoSubmitted = false;
         }
       } else {
@@ -359,35 +366,31 @@ export class CrawlerWorker {
   }
 
   /**
-   * Add a site directly to the index (MATCHES SEEDING LOGIC EXACTLY)
+   * Add a site to index for Phase 2 auto-validation processing
    */
-  private async addToIndexDirectly(
+  private async addToIndexForAutoValidation(
     url: string,
     content: ExtractedContent,
     qualityScore: any
   ): Promise<void> {
-    // Determine auto-validation based on quality score (same logic as seeding)
-    const shouldAutoValidate = qualityScore.totalScore >= 70; // Seeding phase threshold
-    const initialCommunityScore = shouldAutoValidate ? Math.floor(qualityScore.totalScore / 10) : 0;
-
-    // Create IndexedSite record - EXACT SAME FIELDS AS SEEDING
+    // Create IndexedSite record with api_seeding method for Phase 2 auto-validation
     const indexedSite = await db.indexedSite.create({
       data: {
         url,
         title: content.title || 'Untitled',
         description: content.description || content.snippet || 'Auto-discovered during crawling',
-        discoveryMethod: 'crawler_auto_submit',
-        discoveryContext: 'Auto-discovered and validated by crawler',
-        siteType: qualityScore.suggestedCategory || 'personal_blog',
+        discoveryMethod: 'api_seeding', // Use api_seeding for Phase 2 consistency
+        discoveryContext: 'Auto-discovered by crawler',
+        siteType: qualityScore.category || 'personal_blog',
 
-        // Quality scoring fields (match seeding)
+        // Quality scoring fields for Phase 2 auto-validation
         seedingScore: qualityScore.totalScore,
         seedingReasons: qualityScore.reasons || [],
 
-        // Community validation
-        communityValidated: shouldAutoValidate,
-        communityScore: initialCommunityScore,
-        validationVotes: shouldAutoValidate ? 1 : 0,
+        // Let Phase 2 auto-validation determine these
+        communityValidated: false,
+        communityScore: 0,
+        validationVotes: 0,
 
         // Content fields
         extractedKeywords: content.keywords || [],
@@ -401,25 +404,12 @@ export class CrawlerWorker {
         responseTimeMs: 0,
         outboundLinks: content.links || [],
 
-        // Discovery timestamp (CRITICAL MISSING FIELD)
+        // Discovery timestamp
         discoveredAt: new Date(),
       }
     });
 
-    // Update crawl queue item status (since it was already processed from queue)
-    await db.crawlQueue.updateMany({
-      where: {
-        url,
-        status: 'pending'
-      },
-      data: {
-        status: 'completed',
-        lastAttempt: new Date(),
-        attempts: 1
-      }
-    });
-
-    this.log(`📊 Added to index: ${content.title} (${url}) [Score: ${qualityScore.totalScore}/100, Auto-validated: ${shouldAutoValidate}]`);
+    this.log(`📊 Added to index for auto-validation: ${content.title} (${url}) [Score: ${qualityScore.totalScore}/100]`);
   }
 
   /**
@@ -439,7 +429,7 @@ export class CrawlerWorker {
           title: content.title,
           description: content.description || content.snippet,
           discoveredAt: new Date(),
-          discoveryMethod: 'crawler_auto_submit',
+          discoveryMethod: 'api_seeding',
           discoveryContext: `Auto-discovered during crawling`,
           qualityScore: qualityScore.totalScore,
           qualityReasons: qualityScore.reasons,
@@ -539,6 +529,30 @@ export class CrawlerWorker {
 
     this.log(`Cleaned up ${result.count} old completed crawl items`);
     return result.count;
+  }
+
+  /**
+   * Trigger Phase 2 auto-validation for pending sites
+   */
+  private async triggerAutoValidation(): Promise<void> {
+    try {
+      const response = await fetch('http://localhost:3000/api/community-index/auto-validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ force: false }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        this.log(`✅ Auto-validation completed: ${result.results.approved} approved, ${result.results.rejected} rejected, ${result.results.skipped} skipped`);
+      } else {
+        this.log(`❌ Auto-validation API failed: ${response.status}`);
+      }
+    } catch (error) {
+      this.log(`❌ Auto-validation request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   private log(message: string): void {

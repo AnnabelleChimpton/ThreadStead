@@ -87,6 +87,18 @@ export class CommunityIndexSeeder {
 
       console.log(`Seeding completed: ${report.sitesAdded} sites added, ${report.sitesRejected} rejected`);
 
+      // Trigger Phase 2 auto-validation for newly seeded sites
+      if (report.sitesAdded > 0 && !dryRun) {
+        console.log(`🤖 Triggering auto-validation for ${report.sitesAdded} newly seeded sites...`);
+        try {
+          await this.triggerAutoValidation();
+        } catch (error) {
+          const errorMessage = `Auto-validation trigger failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          report.errors.push(errorMessage);
+          console.error(errorMessage);
+        }
+      }
+
       return report;
     } catch (error) {
       report.errors.push(`Seeding failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -168,7 +180,7 @@ export class CommunityIndexSeeder {
   }
 
   /**
-   * Add a site to the community index
+   * Add a site to the community index (Phase 2: Use auto-validation)
    */
   private async addToIndex(
     result: ExtSearchResultItem,
@@ -176,11 +188,7 @@ export class CommunityIndexSeeder {
     seedingScore: any
   ): Promise<void> {
     try {
-      // Determine auto-validation based on seeding score and quality indicators
-      const shouldAutoValidate = this.shouldAutoValidateSeededSite(seedingScore, result);
-      const initialCommunityScore = shouldAutoValidate ? Math.floor(seedingScore.score / 10) : 0;
-
-      // Create the indexed site record
+      // Create indexed site record for Phase 2 auto-validation processing
       const indexedSite = await db.indexedSite.create({
         data: {
           url: result.url,
@@ -191,8 +199,12 @@ export class CommunityIndexSeeder {
           siteType: query.category,
           seedingScore: seedingScore.score,
           seedingReasons: seedingScore.reasons,
-          communityValidated: shouldAutoValidate,
-          communityScore: initialCommunityScore, // Give initial boost if auto-validated
+
+          // Let Phase 2 auto-validation determine these
+          communityValidated: false,
+          communityScore: 0,
+          validationVotes: 0,
+
           extractedKeywords: this.extractKeywords(result),
           sslEnabled: result.url.startsWith('https://'),
           crawlStatus: 'pending'
@@ -471,5 +483,29 @@ export class CommunityIndexSeeder {
     // This would require storing rejected candidates, which we could add later
     // For now, just return 0
     return 0;
+  }
+
+  /**
+   * Trigger Phase 2 auto-validation for pending sites
+   */
+  private async triggerAutoValidation(): Promise<void> {
+    try {
+      const response = await fetch('http://localhost:3000/api/community-index/auto-validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ force: false }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✅ Auto-validation completed: ${result.results.approved} approved, ${result.results.rejected} rejected, ${result.results.skipped} skipped`);
+      } else {
+        console.log(`❌ Auto-validation API failed: ${response.status}`);
+      }
+    } catch (error) {
+      console.log(`❌ Auto-validation request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }
