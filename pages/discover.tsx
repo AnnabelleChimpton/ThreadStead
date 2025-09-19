@@ -457,14 +457,14 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
       <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="text-center mb-4 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#2E4B3F] mb-2">
-            🔍 Discover
+            Explore the Neighborhood
           </h1>
           <p className="text-sm sm:text-base text-gray-600 mb-2 px-2">
-            Search across our community index, local content, and the broader indie web all in one place
+            Wander through our cozy corner of the internet - from community gems to hidden treasures of the world wide web
           </p>
           <Link href="/discover/faq" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
             <span>💡</span>
-            <span>Learn how we&apos;re building a community-driven search engine</span>
+            <span>Discover how our community is mapping the indie web together</span>
             <span>→</span>
           </Link>
         </div>
@@ -502,7 +502,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
               if (unifiedData.totalResults === 0 && !loading) {
                 return (
                   <div className="text-center py-8 text-gray-500">
-                    No results found. Try different search terms.
+                    Hmm, nothing turned up. Maybe try different keywords or explore our community picks below?
                   </div>
                 );
               }
@@ -511,10 +511,10 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                 <>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                      🔍 Best Results from All Sources
+                      ✨ Your Search Results
                     </h3>
                     <div className="text-xs text-gray-500">
-                      Page {currentPage} of {unifiedData.totalPages} • {unifiedData.totalResults} total
+                      Page {currentPage} of {unifiedData.totalPages} • {unifiedData.totalResults} gems found
                     </div>
                   </div>
 
@@ -533,7 +533,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                   {result.title}
                                 </h4>
                                 <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded inline-flex items-center gap-1 self-start sm:self-auto flex-shrink-0">
-                                  {result.sourceIcon} {result.sourceLabel}
+                                  {result.sourceIcon} {result.source === 'community' ? 'Neighborhood' : result.source === 'site' ? 'Our Site' : result.source === 'external' ? 'Wild Web' : result.sourceLabel}
                                 </span>
                               </div>
 
@@ -549,7 +549,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                   <>
                                     <span>Score: {result.communityScore}</span>
                                     <span>{result.siteType?.replace('_', ' ')}</span>
-                                    {result.communityValidated && <span className="text-green-600">✓ Validated</span>}
+                                    {result.communityValidated && <span className="text-green-600">✓ Community approved</span>}
                                   </>
                                 )}
                                 {result.source === 'site' && (
@@ -560,7 +560,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                 {result.source === 'external' && (
                                   <>
                                     <span>via {result.engine}</span>
-                                    {result.isIndieWeb && <span className="text-purple-600">🌱 IndieWeb</span>}
+                                    {result.isIndieWeb && <span className="text-purple-600">🌱 Indie spirit</span>}
                                   </>
                                 )}
                               </div>
@@ -590,7 +590,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                   className="px-2 py-1 text-[10px] sm:text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 transition-colors"
                                   title="Save to your bookmarks"
                                 >
-                                  {saving ? '...' : 'Save'}
+                                  {saving ? '...' : '💾'}
                                 </button>
                               )}
                               <div className="text-xs text-gray-400 hidden sm:block">
@@ -611,7 +611,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                         disabled={currentPage === 1}
                         className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                       >
-                        Previous
+                        ← Back
                       </button>
 
                       <div className="flex items-center gap-1">
@@ -646,7 +646,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                         disabled={currentPage === unifiedData.totalPages}
                         className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                       >
-                        Next
+                        More →
                       </button>
                     </div>
                   )}
@@ -654,15 +654,15 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                   {/* Source breakdown */}
                   <div className="mt-6 p-3 bg-gray-50 rounded-lg">
                     <div className="text-xs text-gray-600 flex flex-wrap items-center gap-2 sm:gap-4">
-                      <span>Sources:</span>
+                      <span>Found in:</span>
                       {communityResults.length > 0 && (
-                        <span>🌟 {communityResults.length} community</span>
+                        <span>🌟 {communityResults.length} neighborhood</span>
                       )}
                       {localResults.length > 0 && (
-                        <span>🏠 {localResults.length} site</span>
+                        <span>🏠 {localResults.length} our site</span>
                       )}
                       {externalResults?.results?.length > 0 && (
-                        <span>🌐 {externalResults.results.length} external</span>
+                        <span>🌐 {externalResults.results.length} wild web</span>
                       )}
                       <button
                         type="button"
@@ -670,10 +670,10 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                           window.open('/discover/faq#how-search-works', '_blank');
                         }}
                         className="text-xs text-blue-600 hover:text-blue-800 hover:underline sm:ml-auto flex items-center gap-1 touch-manipulation"
-                        title="Learn how our search and ranking works"
+                        title="Curious how we find and rank all this stuff?"
                       >
-                        <span>🔍</span>
-                        <span>How this works</span>
+                        <span>🤔</span>
+                        <span>How we find stuff</span>
                       </button>
                     </div>
                   </div>
@@ -695,7 +695,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
         {/* Site Search Results */}
         {searchTab === 'site' && results.length > 0 && (
           <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">Site Results</h2>
+            <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">From Our Site</h2>
             <div className="space-y-3">
               {results.map((result) => (
                 <Link
@@ -726,10 +726,10 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
         {/* External Search Results with Auto-indexing */}
         {searchTab === 'web' && searchQuery && (
           <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">Web Results</h2>
+            <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">From the Wild Web</h2>
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-xs text-blue-700">
-                💡 Clicking results will automatically add them to our community review queue
+                🌱 Found something interesting? Clicking will help us grow our community index together
               </p>
             </div>
             <div onClick={(e) => {
@@ -764,12 +764,12 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
             {/* Community Index Highlights */}
             <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-[#2E4B3F]">🌟 Community Picks</h2>
+                <h2 className="text-lg font-bold text-[#2E4B3F]">Neighborhood Favorites</h2>
                 <Link
                   href="/community-index/discover"
                   className="text-sm text-blue-600 hover:text-blue-800"
                 >
-                  Explore →
+                  Browse →
                 </Link>
               </div>
               <CommunityIndexIntegration limit={3} user={user} />
@@ -778,12 +778,12 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
             {/* Recent ThreadRings */}
             <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-[#2E4B3F]">🔗 ThreadRings</h2>
+                <h2 className="text-lg font-bold text-[#2E4B3F]">Connection Webs</h2>
                 <Link
                   href="/threadrings"
                   className="text-sm text-blue-600 hover:text-blue-800"
                 >
-                  View all →
+                  See more →
                 </Link>
               </div>
               <div className="space-y-3">
@@ -802,12 +802,12 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
             {/* Active Users */}
             <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-[#2E4B3F]">👤 Active Users</h2>
+                <h2 className="text-lg font-bold text-[#2E4B3F]">Community Members</h2>
                 <Link
                   href="/directory"
                   className="text-sm text-blue-600 hover:text-blue-800"
                 >
-                  View all →
+                  Meet everyone →
                 </Link>
               </div>
               <div className="space-y-3">

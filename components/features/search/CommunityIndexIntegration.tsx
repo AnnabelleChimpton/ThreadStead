@@ -117,9 +117,6 @@ export default function CommunityIndexIntegration({
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-700">
-          🌟 From Community Index
-        </h3>
         {!query && (
           <div className="flex gap-2">
             <button
@@ -209,37 +206,6 @@ export default function CommunityIndexIntegration({
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Subtle contribution prompt */}
-      <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-600">
-            Help grow the indie web index
-          </p>
-          <div className="flex gap-2">
-            <Link
-              href="/community-index/submit"
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Submit a site
-            </Link>
-            <span className="text-xs text-gray-400">•</span>
-            <Link
-              href="/community-index/validate"
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Review sites
-            </Link>
-            <span className="text-xs text-gray-400">•</span>
-            <Link
-              href="/community-index/discover"
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Explore more
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );
