@@ -1,5 +1,6 @@
 import Layout from "../components/ui/layout/Layout";
 import CustomPageLayout from "../components/ui/layout/CustomPageLayout";
+import Head from "next/head";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import { PrismaClient } from "@prisma/client";
@@ -12,6 +13,7 @@ import EnhancedHouseCanvas from "../components/pixel-homes/EnhancedHouseCanvas";
 import { HouseTemplate, ColorPalette, HouseCustomizations } from "../components/pixel-homes/HouseSVG";
 import DiscoverPageSearch from "../components/features/search/DiscoverPageSearch";
 import { useRouter } from "next/router";
+import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 
 const db = new PrismaClient();
 
@@ -208,8 +210,43 @@ function UserPixelHome({ user }: { user: any }) {
 }
 
 function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
+  // Generate metadata for landing page
+  const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
+
   return (
-    <Layout siteConfig={siteConfig}>
+    <>
+      <Head>
+        <title>{homepageMetadata.title}</title>
+        <meta name="description" content={homepageMetadata.description} />
+        {homepageMetadata.keywords && (
+          <meta name="keywords" content={homepageMetadata.keywords.join(', ')} />
+        )}
+        <link rel="canonical" href={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <meta name="robots" content="index, follow" />
+
+        {/* OpenGraph meta tags */}
+        <meta property="og:title" content={homepageMetadata.title} />
+        <meta property="og:description" content={homepageMetadata.description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <meta property="og:site_name" content="ThreadStead" />
+        <meta property="og:locale" content="en_US" />
+
+        {/* Social media card meta tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={homepageMetadata.title} />
+        <meta name="twitter:description" content={homepageMetadata.description} />
+
+        {/* Structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(homepageMetadata.structuredData, null, 0)
+          }}
+        />
+      </Head>
+
+      <Layout siteConfig={siteConfig}>
       <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SimpleCard title="Welcome to Threadstead">
           <div className="text-center py-4 sm:py-6">
@@ -283,11 +320,15 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
         </SimpleCard>
       </div>
     </Layout>
+    </>
   );
 }
 
 function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; user: any }) {
   const router = useRouter();
+
+  // Generate metadata for personalized homepage
+  const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
 
   // Search state for enhanced search
   const [searchQuery, setSearchQuery] = useState('');
@@ -338,7 +379,39 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
   const rightWidgets = widgets.slice(leftCount + centerCount);
 
   return (
-    <Layout siteConfig={siteConfig}>
+    <>
+      <Head>
+        <title>{homepageMetadata.title}</title>
+        <meta name="description" content={homepageMetadata.description} />
+        {homepageMetadata.keywords && (
+          <meta name="keywords" content={homepageMetadata.keywords.join(', ')} />
+        )}
+        <link rel="canonical" href={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <meta name="robots" content="index, follow" />
+
+        {/* OpenGraph meta tags */}
+        <meta property="og:title" content={homepageMetadata.title} />
+        <meta property="og:description" content={homepageMetadata.description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <meta property="og:site_name" content="ThreadStead" />
+        <meta property="og:locale" content="en_US" />
+
+        {/* Social media card meta tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={homepageMetadata.title} />
+        <meta name="twitter:description" content={homepageMetadata.description} />
+
+        {/* Structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(homepageMetadata.structuredData, null, 0)
+          }}
+        />
+      </Head>
+
+      <Layout siteConfig={siteConfig}>
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#2E4B3F] mb-2 leading-tight">
@@ -414,12 +487,48 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
         </div>
       </div>
     </Layout>
+    </>
   );
 }
 
 function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
+  // Generate metadata for unified homepage
+  const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
+
   return (
-    <Layout siteConfig={siteConfig}>
+    <>
+      <Head>
+        <title>{homepageMetadata.title}</title>
+        <meta name="description" content={homepageMetadata.description} />
+        {homepageMetadata.keywords && (
+          <meta name="keywords" content={homepageMetadata.keywords.join(', ')} />
+        )}
+        <link rel="canonical" href={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <meta name="robots" content="index, follow" />
+
+        {/* OpenGraph meta tags */}
+        <meta property="og:title" content={homepageMetadata.title} />
+        <meta property="og:description" content={homepageMetadata.description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <meta property="og:site_name" content="ThreadStead" />
+        <meta property="og:locale" content="en_US" />
+
+        {/* Social media card meta tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={homepageMetadata.title} />
+        <meta name="twitter:description" content={homepageMetadata.description} />
+
+        {/* Structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(homepageMetadata.structuredData, null, 0)
+          }}
+        />
+      </Head>
+
+      <Layout siteConfig={siteConfig}>
       <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SimpleCard title="Welcome to Threadstead">
           <div className="text-center py-4 sm:py-6">
@@ -477,6 +586,7 @@ function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
         </SimpleCard>
       </div>
     </Layout>
+    </>
   );
 }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Head from "next/head";
 import Layout from "../../components/ui/layout/Layout";
 import ThreadRingCard from "../../components/core/threadring/ThreadRingCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
@@ -7,6 +8,7 @@ import Link from "next/link";
 import NoRingsEmptyState from "../../components/features/onboarding/NoRingsEmptyState";
 import FeatureGate, { NewUserTooltip } from "../../components/features/onboarding/FeatureGate";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { MetadataGenerator } from "@/lib/utils/metadata/metadata-generator";
 
 interface ThreadRingsPageProps {
   siteConfig: SiteConfig;
@@ -46,6 +48,16 @@ interface ThreadRing {
 }
 
 export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
+  // Generate metadata for ThreadRings page
+  const metadataGenerator = new MetadataGenerator(process.env.NEXT_PUBLIC_BASE_URL, siteConfig);
+  const threadRingsMetadata = {
+    title: 'ThreadRings',
+    description: 'Discover and join ThreadRing communities on ThreadStead. Find themed communities organized around shared interests, like modern WebRings or digital clubhouses.',
+    keywords: ['threadrings', 'communities', 'webring', 'threadstead', 'social', 'groups'],
+    url: '/threadrings',
+    type: 'website' as const
+  };
+
   const [threadRings, setThreadRings] = useState<ThreadRing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +179,48 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
   ];
 
   return (
-    <Layout siteConfig={siteConfig}>
+    <>
+      <Head>
+        <title>{threadRingsMetadata.title} | ThreadStead</title>
+        <meta name="description" content={threadRingsMetadata.description} />
+        <meta name="keywords" content={threadRingsMetadata.keywords.join(', ')} />
+        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${threadRingsMetadata.url}`} />
+        <meta name="robots" content="index, follow" />
+
+        {/* OpenGraph meta tags */}
+        <meta property="og:title" content={`${threadRingsMetadata.title} | ThreadStead`} />
+        <meta property="og:description" content={threadRingsMetadata.description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${threadRingsMetadata.url}`} />
+        <meta property="og:site_name" content="ThreadStead" />
+        <meta property="og:locale" content="en_US" />
+
+        {/* Social media card meta tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${threadRingsMetadata.title} | ThreadStead`} />
+        <meta name="twitter:description" content={threadRingsMetadata.description} />
+
+        {/* Structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'CollectionPage',
+              name: threadRingsMetadata.title,
+              description: threadRingsMetadata.description,
+              url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${threadRingsMetadata.url}`,
+              mainEntity: {
+                '@type': 'ItemList',
+                name: 'ThreadRings',
+                description: 'Community-driven ThreadRings on ThreadStead'
+              }
+            }, null, 0)
+          }}
+        />
+      </Head>
+
+      <Layout siteConfig={siteConfig}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -334,6 +387,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
         )}
       </div>
     </Layout>
+    </>
   );
 }
 

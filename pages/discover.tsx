@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { GetServerSideProps } from 'next';
+import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
@@ -11,6 +12,7 @@ import CommunityIndexIntegration from '@/components/features/search/CommunityInd
 import EnhancedCommunityBrowser from '@/components/features/search/EnhancedCommunityBrowser';
 import { useAutoIndexer, IndexingNotification } from '@/components/features/search/AutoIndexer';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { contentMetadataGenerator } from '@/lib/utils/metadata/content-metadata';
 
 interface DiscoverProps {
   siteConfig: SiteConfig;
@@ -34,6 +36,9 @@ interface SearchResult {
 
 export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: DiscoverProps) {
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Generate metadata for discover page
+  const discoverMetadata = contentMetadataGenerator.generateDiscoverMetadata(searchQuery || undefined);
   const [searchType, setSearchType] = useState<'all' | 'threadrings' | 'users' | 'posts'>('all');
   const [searchTab, setSearchTab] = useState<'all' | 'indie' | 'site' | 'web'>('all');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -453,7 +458,39 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
   };
 
   return (
-    <Layout siteConfig={siteConfig}>
+    <>
+      <Head>
+        <title>{discoverMetadata.title}</title>
+        <meta name="description" content={discoverMetadata.description} />
+        {discoverMetadata.keywords && (
+          <meta name="keywords" content={discoverMetadata.keywords.join(', ')} />
+        )}
+        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${discoverMetadata.url}`} />
+        <meta name="robots" content="index, follow" />
+
+        {/* OpenGraph meta tags */}
+        <meta property="og:title" content={discoverMetadata.title} />
+        <meta property="og:description" content={discoverMetadata.description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${discoverMetadata.url}`} />
+        <meta property="og:site_name" content="ThreadStead" />
+        <meta property="og:locale" content="en_US" />
+
+        {/* Social media card meta tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={discoverMetadata.title} />
+        <meta name="twitter:description" content={discoverMetadata.description} />
+
+        {/* Structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(discoverMetadata.structuredData, null, 0)
+          }}
+        />
+      </Head>
+
+      <Layout siteConfig={siteConfig}>
       <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="text-center mb-4 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#2E4B3F] mb-2">
@@ -844,6 +881,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
         <IndexingNotification />
       </div>
     </Layout>
+    </>
   );
 }
 

@@ -1,6 +1,7 @@
 // pages/resident/[username]/index.tsx
 import React from "react";
 import type { GetServerSideProps } from "next";
+import Head from "next/head";
 
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
@@ -22,6 +23,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useRouter } from "next/router";
 import dynamic from 'next/dynamic';
 import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
+import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 
 
 // Dynamically import components to avoid SSR issues
@@ -63,6 +65,9 @@ type ProfileProps = {
     autoplay?: boolean;
     loop?: boolean;
   };
+  // Metadata props
+  displayName?: string;
+  userJoinedAt?: string;
 };
 
 /* ---------------- page ---------------- */
@@ -85,7 +90,17 @@ export default function ProfilePage({
   templateIslands,
   templateCompiledAt,
   profileMidi,
+  displayName,
+  userJoinedAt,
 }: ProfileProps) {
+  // Generate metadata for this profile
+  const profileMetadata = contentMetadataGenerator.generateUserProfileMetadata({
+    handle: username,
+    displayName,
+    bio,
+    avatarUrl: photoUrl,
+    joinedAt: userJoinedAt,
+  });
   const router = useRouter();
   const [relStatus, setRelStatus] = React.useState<string>("loading");
   const [showWelcomeHome, setShowWelcomeHome] = React.useState(false);
@@ -286,7 +301,43 @@ export default function ProfilePage({
   const tabs: TabSpec[] = baseTabs;
 
   return (
-    <ProfileLayout 
+    <>
+      <Head>
+        <title>{profileMetadata.title}</title>
+        <meta name="description" content={profileMetadata.description} />
+        {profileMetadata.keywords && (
+          <meta name="keywords" content={profileMetadata.keywords.join(', ')} />
+        )}
+        <meta name="author" content={displayName || username} />
+        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${profileMetadata.url}`} />
+        <meta name="robots" content="index, follow" />
+
+        {/* OpenGraph meta tags */}
+        <meta property="og:title" content={profileMetadata.title} />
+        <meta property="og:description" content={profileMetadata.description} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:image" content={photoUrl} />
+        <meta property="og:image:alt" content={profileMetadata.imageAlt} />
+        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${profileMetadata.url}`} />
+        <meta property="og:site_name" content="ThreadStead" />
+        <meta property="og:locale" content="en_US" />
+
+        {/* Social media card meta tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={profileMetadata.title} />
+        <meta name="twitter:description" content={profileMetadata.description} />
+        <meta name="twitter:image" content={photoUrl} />
+
+        {/* Structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(profileMetadata.structuredData, null, 0)
+          }}
+        />
+      </Head>
+
+      <ProfileLayout 
       customCSS={customCSS}
       hideNavigation={hideNavigation}
       includeSiteCSS={includeSiteCSS}
@@ -360,6 +411,7 @@ export default function ProfilePage({
         />
       )}
     </ProfileLayout>
+    </>
   );
 }
 
@@ -684,6 +736,11 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (websites.length > 0) props.websites = websites;
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
   if (data.profileMidi) props.profileMidi = data.profileMidi;
+
+  // Add metadata props
+  if (data.profile?.displayName) props.displayName = data.profile.displayName;
+  // Note: We don't have user creation date in the current API response,
+  // but we can add it if needed in the future
 
   return { props };
 };

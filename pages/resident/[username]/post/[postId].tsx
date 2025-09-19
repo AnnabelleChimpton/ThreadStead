@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import type { GetServerSideProps } from "next";
+import Head from "next/head";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import PostItem, { Post as PostType } from "@/components/core/content/PostItem";
 import ProfileLayout from "@/components/ui/layout/ProfileLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePostView } from "@/hooks/usePostView";
+import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 
 type PostPageProps = {
   username: string;
@@ -18,6 +20,21 @@ type PostPageProps = {
 };
 
 export default function PostPage({ username, post, authorDisplayName, initialCommentsOpen = false, highlightCommentId, customCSS, hideNavigation = false, includeSiteCSS = true }: PostPageProps) {
+  // Generate metadata for this post
+  const adaptedPost = {
+    ...post,
+    author: {
+      handle: post.author?.primaryHandle || username,
+      displayName: post.author?.profile?.displayName || authorDisplayName,
+      avatarUrl: (post.author?.profile as any)?.avatarUrl || null
+    },
+    threadRings: post.threadRings?.map(tr => ({
+      name: tr.threadRing.name,
+      slug: tr.threadRing.slug
+    }))
+  };
+  const postMetadata = contentMetadataGenerator.generateBlogPostMetadata(adaptedPost, username);
+
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const { user: currentUser } = useCurrentUser();
@@ -51,26 +68,68 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
   );
 
   return (
-    <ProfileLayout 
-      customCSS={customCSS} 
-      hideNavigation={hideNavigation}
-      includeSiteCSS={includeSiteCSS}
-      sidebarContent={sidebarContent}
-    >
-      <RetroCard>
-        <div className="ts-post-content-wrapper profile-tab-content" data-component="post-content">
-          <PostItem 
-            post={post} 
-            isOwner={isOwner}
-            isAdmin={isAdmin}
-            onChanged={() => window.location.reload()}
-            initialCommentsOpen={initialCommentsOpen}
-            highlightCommentId={highlightCommentId}
-            currentUser={currentUser}
-          />
-        </div>
-      </RetroCard>
-    </ProfileLayout>
+    <>
+      <Head>
+        <title>{postMetadata.title}</title>
+        <meta name="description" content={postMetadata.description} />
+        {postMetadata.keywords && (
+          <meta name="keywords" content={postMetadata.keywords.join(', ')} />
+        )}
+        <meta name="author" content={postMetadata.author} />
+        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${postMetadata.url}`} />
+        <meta name="robots" content="index, follow" />
+
+        {/* OpenGraph meta tags */}
+        <meta property="og:title" content={postMetadata.title} />
+        <meta property="og:description" content={postMetadata.description} />
+        <meta property="og:type" content="article" />
+        <meta property="og:image" content={adaptedPost.author.avatarUrl || '/assets/default-avatar.gif'} />
+        <meta property="og:image:alt" content={postMetadata.imageAlt} />
+        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${postMetadata.url}`} />
+        <meta property="og:site_name" content="ThreadStead" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="article:author" content={postMetadata.author} />
+        <meta property="article:published_time" content={postMetadata.publishedTime} />
+        {postMetadata.modifiedTime && (
+          <meta property="article:modified_time" content={postMetadata.modifiedTime} />
+        )}
+
+        {/* Social media card meta tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={postMetadata.title} />
+        <meta name="twitter:description" content={postMetadata.description} />
+        <meta name="twitter:image" content={adaptedPost.author.avatarUrl || '/assets/default-avatar.gif'} />
+
+        {/* Structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(postMetadata.structuredData, null, 0)
+          }}
+        />
+      </Head>
+
+      <ProfileLayout
+        customCSS={customCSS}
+        hideNavigation={hideNavigation}
+        includeSiteCSS={includeSiteCSS}
+        sidebarContent={sidebarContent}
+      >
+        <RetroCard>
+          <div className="ts-post-content-wrapper profile-tab-content" data-component="post-content">
+            <PostItem
+              post={post}
+              isOwner={isOwner}
+              isAdmin={isAdmin}
+              onChanged={() => window.location.reload()}
+              initialCommentsOpen={initialCommentsOpen}
+              highlightCommentId={highlightCommentId}
+              currentUser={currentUser}
+            />
+          </div>
+        </RetroCard>
+      </ProfileLayout>
+    </>
   );
 }
 

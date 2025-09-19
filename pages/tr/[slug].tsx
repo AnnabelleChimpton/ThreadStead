@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Head from "next/head";
 import Layout from "../../components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
@@ -21,6 +22,7 @@ import { useCurrentUser } from "../../hooks/useCurrentUser";
 import WelcomeRingGuide from "../../components/features/onboarding/WelcomeRingGuide";
 import { useWelcomeTracking } from "../../hooks/useWelcomeTracking";
 import { useWelcomeRingTracking } from "../../hooks/useWelcomeRingTracking";
+import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 
 // Helper function to count total descendants recursively
 function countTotalDescendants(descendants: any[]): number {
@@ -389,6 +391,23 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
 }
 
 export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPageProps) {
+  // Generate metadata for ThreadRing page
+  const adaptedRing = ring ? {
+    slug: ring.slug,
+    name: ring.name,
+    description: ring.description,
+    curatorNote: ring.curatorNote,
+    memberCount: ring.memberCount,
+    postCount: ring.postCount,
+    visibility: ring.visibility,
+    curator: ring.curator ? {
+      handle: ring.curator.handles.find(h => h.host === "local")?.handle || ring.curator.handles[0]?.handle || "unknown",
+      displayName: ring.curator.profile?.displayName
+    } : undefined,
+    createdAt: ring.createdAt
+  } : null;
+  const ringMetadata = adaptedRing ? contentMetadataGenerator.generateThreadRingMetadata(adaptedRing) : null;
+
   const router = useRouter();
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -717,11 +736,18 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
   if (error || !ring) {
     return (
-      <Layout siteConfig={siteConfig}>
-        <div className="text-center py-8 text-red-600">
-          {error || "ThreadRing not found"}
-        </div>
-      </Layout>
+      <>
+        <Head>
+          <title>ThreadRing Not Found | ThreadStead</title>
+          <meta name="description" content="The requested ThreadRing could not be found." />
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <Layout siteConfig={siteConfig}>
+          <div className="text-center py-8 text-red-600">
+            {error || "ThreadRing not found"}
+          </div>
+        </Layout>
+      </>
     );
   }
 
@@ -730,12 +756,48 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     return <SpoolLandingPage ring={ring} siteConfig={siteConfig} />;
   }
 
-  const curatorHandle = ring.curator?.handles.find(h => h.host === "local")?.handle || 
-                       ring.curator?.handles[0]?.handle || 
+  const curatorHandle = ring.curator?.handles.find(h => h.host === "local")?.handle ||
+                       ring.curator?.handles[0]?.handle ||
                        "unknown";
 
   return (
-    <Layout siteConfig={siteConfig}>
+    <>
+      <Head>
+        {ringMetadata && (
+          <>
+            <title>{ringMetadata.title}</title>
+            <meta name="description" content={ringMetadata.description} />
+            {ringMetadata.keywords && (
+              <meta name="keywords" content={ringMetadata.keywords.join(', ')} />
+            )}
+            <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ringMetadata.url}`} />
+            <meta name="robots" content="index, follow" />
+
+            {/* OpenGraph meta tags */}
+            <meta property="og:title" content={ringMetadata.title} />
+            <meta property="og:description" content={ringMetadata.description} />
+            <meta property="og:type" content="website" />
+            <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ringMetadata.url}`} />
+            <meta property="og:site_name" content="ThreadStead" />
+            <meta property="og:locale" content="en_US" />
+
+            {/* Social media card meta tags */}
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content={ringMetadata.title} />
+            <meta name="twitter:description" content={ringMetadata.description} />
+
+            {/* Structured data */}
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify(ringMetadata.structuredData, null, 0)
+              }}
+            />
+          </>
+        )}
+      </Head>
+
+      <Layout siteConfig={siteConfig}>
       {/* Welcome Ring Guide - shows only on welcome ring */}
       {ring.slug === 'welcome' && (
         <WelcomeRingGuide ringSlug={ring.slug} viewer={currentUser} ring={ring} />
@@ -1212,6 +1274,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         />
       ))}
     </Layout>
+    </>
   );
 }
 
