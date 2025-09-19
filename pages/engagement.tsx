@@ -16,7 +16,6 @@ interface EngagementPageProps {
     role: string;
     primaryHandle: string | null;
     createdAt: string | null;
-    updatedAt: string | null;
   };
 }
 
@@ -43,7 +42,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         user: user ? {
           ...user,
           createdAt: user.createdAt?.toISOString() || null,
-          updatedAt: user.updatedAt?.toISOString() || null,
         } : null,
       },
     };
