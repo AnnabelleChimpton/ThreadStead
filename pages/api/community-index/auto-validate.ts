@@ -69,11 +69,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 async function autoValidateSite(site: any, force: boolean) {
   const score = site.seedingScore || 0;
 
-  // Phase 2 aligned thresholds - consistent across all systems
-  const AUTO_APPROVE_THRESHOLD = 75; // High confidence sites (Phase 2 standard)
+  // Phase 2 aligned thresholds - simplified binary decision
   const AUTO_REJECT_THRESHOLD = 30;  // Clear low-quality sites (Phase 2 standard)
+  // Everything above 30 gets auto-approved (no limbo state)
 
-  // Note: Sites need 40+ to be added by crawler/seeding, then 75+ to auto-approve
+  // Note: Sites need 40+ to be added by crawler/seeding, then 31+ to auto-approve
 
   // Quality indicators for scoring
   let qualityBonus = 0;
@@ -95,24 +95,7 @@ async function autoValidateSite(site: any, force: boolean) {
 
   const finalScore = score + qualityBonus;
 
-  if (finalScore >= AUTO_APPROVE_THRESHOLD || force) {
-    // Auto-approve high quality sites
-    await db.indexedSite.update({
-      where: { id: site.id },
-      data: {
-        communityValidated: true,
-        communityScore: Math.max(finalScore, 10), // Minimum score for approved sites
-        validationVotes: 0, // No human votes needed
-        autoValidated: true,
-        autoValidatedAt: new Date(),
-        autoValidationScore: finalScore
-      }
-    });
-
-    console.log(`Auto-approved: ${site.title} (score: ${finalScore})`);
-    return { action: 'approve', score: finalScore };
-
-  } else if (finalScore <= AUTO_REJECT_THRESHOLD) {
+  if (finalScore <= AUTO_REJECT_THRESHOLD) {
     // Auto-reject clearly low quality sites
     await db.indexedSite.delete({
       where: { id: site.id }
@@ -122,9 +105,21 @@ async function autoValidateSite(site: any, force: boolean) {
     return { action: 'reject', score: finalScore };
 
   } else {
-    // Keep in limbo for manual review later if needed
-    console.log(`Skipped: ${site.title} (score: ${finalScore}) - needs manual review`);
-    return { action: 'skip', score: finalScore };
+    // Auto-approve everything else (no limbo state)
+    await db.indexedSite.update({
+      where: { id: site.id },
+      data: {
+        communityValidated: true,
+        communityScore: Math.max(finalScore, 35), // Minimum reasonable score for approved sites
+        validationVotes: 0, // No human votes needed
+        autoValidated: true,
+        autoValidatedAt: new Date(),
+        autoValidationScore: finalScore
+      }
+    });
+
+    console.log(`Auto-approved: ${site.title} (score: ${finalScore})`);
+    return { action: 'approve', score: finalScore };
   }
 }
 
@@ -165,13 +160,21 @@ function isPersonalDomain(url: string): boolean {
 
     // Looks like a personal domain (name-based)
     const personalPatterns = [
-      /^[a-z]+\.[a-z]+\.(dev|me|io|com|net|org)$/,  // firstname.lastname.tld
-      /^[a-z]+\.dev$/,                               // name.dev
-      /^[a-z]+\.me$/,                                // name.me
-      /^[a-z]+[0-9]*\.(io|xyz|club|site)$/          // name123.io
+      /^[a-z]+\.[a-z]+\.(dev|me|io|com|net|org|ca|co\.uk)$/,  // firstname.lastname.tld (added .ca, .co.uk)
+      /^[a-z]+\.dev$/,                                        // name.dev
+      /^[a-z]+\.me$/,                                         // name.me
+      /^[a-z]+\.ca$/,                                         // name.ca (for Canadian personal sites)
+      /^[a-z]+[0-9]*\.(io|xyz|club|site)$/                   // name123.io
     ];
 
-    return personalPatterns.some(pattern => pattern.test(domain));
+    // Additional quality patterns
+    const qualityPatterns = [
+      /^[a-z]{2,8}\.(com|net|org|ca|co\.uk)$/,  // Short domains (likely personal)
+      /blog\.|www\./                             // Blog subdomains
+    ];
+
+    return personalPatterns.some(pattern => pattern.test(domain)) ||
+           qualityPatterns.some(pattern => pattern.test(domain));
 
   } catch {
     return false;

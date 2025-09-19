@@ -811,15 +811,30 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                 </Link>
               </div>
               <div className="space-y-3">
-                {activeUsers.slice(0, 3).map((user) => (
-                  <Link
-                    key={user.id}
-                    href={`/${user.primaryHandle}`}
-                    className="block p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
-                  >
-                    <h3 className="font-medium text-gray-900 truncate">@{user.primaryHandle}</h3>
-                  </Link>
-                ))}
+                {activeUsers.slice(0, 3).map((user) => {
+                  const username = user.username || user.primaryHandle?.split('@')[0];
+                  const displayName = user.displayName || username;
+
+                  if (!username) return null;
+
+                  return (
+                    <Link
+                      key={user.id}
+                      href={`/${username}`}
+                      className="block p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                    >
+                      <h3 className="font-medium text-gray-900 truncate">
+                        {displayName}
+                        {displayName !== username && (
+                          <span className="text-sm text-gray-500 ml-1">(@{username})</span>
+                        )}
+                      </h3>
+                      {user.bio && (
+                        <p className="text-xs text-gray-600 mt-1 truncate">{user.bio}</p>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>
