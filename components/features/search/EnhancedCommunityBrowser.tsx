@@ -177,48 +177,62 @@ export default function EnhancedCommunityBrowser({
 
   const SiteCard = ({ site }: { site: Communitysite }) => (
     <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1 cursor-pointer" onClick={() => handleSiteClick(site)}>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-            <h3 className="font-semibold text-blue-600 hover:text-blue-700 line-clamp-2 sm:line-clamp-1 break-words">
-              {site.title}
-            </h3>
+      {/* Main content area - full width for title */}
+      <div className="cursor-pointer" onClick={() => handleSiteClick(site)}>
+        <div className="mb-2">
+          <h3 className="font-semibold text-blue-600 hover:text-blue-700 line-clamp-2 break-words mb-2">
+            {site.title}
+          </h3>
+          <div className="flex flex-wrap gap-1 mb-2">
             {site.communityValidated && (
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">
                 ✓ Verified
               </span>
             )}
             {site.discoveryMethod === 'manual_submit' && (
-              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full whitespace-nowrap">
                 👤 Human Pick
               </span>
             )}
           </div>
-          <p className="text-xs sm:text-sm text-gray-600 mb-2 break-all">{new URL(site.url).hostname}</p>
-          {site.description && (
-            <p className="text-gray-700 mb-3 line-clamp-3 sm:line-clamp-2 text-xs sm:text-sm break-words">{site.description}</p>
-          )}
+        </div>
+        <p className="text-xs sm:text-sm text-gray-600 mb-2 truncate">{new URL(site.url).hostname}</p>
+        {site.description && (
+          <p className="text-gray-700 mb-3 line-clamp-3 sm:line-clamp-2 text-xs sm:text-sm">{site.description}</p>
+        )}
+      </div>
+
+      {/* Bottom section with metadata and actions */}
+      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+        <div className="flex items-center gap-2 text-xs text-gray-500 flex-1">
+          <span>Score: {site.communityScore}</span>
+          <span>•</span>
+          <span>{new Date(site.discoveredAt).toLocaleDateString()}</span>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex flex-col gap-2 ml-2 sm:ml-3">
+        {/* Compact action buttons at bottom */}
+        <div className="flex gap-1.5 ml-2">
           <button
-            onClick={() => handleSiteClick(site)}
-            className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSiteClick(site);
+            }}
+            className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             title="Visit this site"
           >
             Visit
           </button>
           {user && (
             <button
-              onClick={async () => {
+              onClick={async (e) => {
+                e.stopPropagation();
                 const saveResult = await saveFromCommunityIndex(site);
                 if (saveResult) {
                   console.log('Saved to bookmarks:', saveResult);
                 }
               }}
               disabled={saving}
-              className="px-3 py-1 text-xs border border-gray-300 text-gray-600 rounded hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="px-2 py-1 text-xs border border-gray-300 text-gray-600 rounded hover:bg-gray-50 disabled:opacity-50 transition-colors"
               title="Save to your bookmarks"
             >
               {saving ? '...' : 'Save'}
@@ -226,43 +240,6 @@ export default function EnhancedCommunityBrowser({
           )}
         </div>
       </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 mb-2 gap-1">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {site.siteType && (
-            <span className="bg-gray-100 px-2 py-1 rounded">
-              {site.siteType.replace('_', ' ')}
-            </span>
-          )}
-          <span>Found {new Date(site.discoveredAt).toLocaleDateString()}</span>
-          {site.discoveredBy && (
-            <span>by @{site.discoveredBy.handle}</span>
-          )}
-        </div>
-        {site.recentActivity?.discoveries > 0 && (
-          <span className="text-blue-600">
-            {site.recentActivity.discoveries} recent discoveries
-          </span>
-        )}
-      </div>
-
-      {site.tags && site.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {site.tags.slice(0, 5).map((tag) => (
-            <span
-              key={tag}
-              className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs"
-            >
-              #{tag}
-            </span>
-          ))}
-          {site.tags.length > 5 && (
-            <span className="text-gray-500 text-xs">
-              +{site.tags.length - 5} more
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 
