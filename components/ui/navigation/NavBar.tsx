@@ -1,10 +1,28 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import LoginStatus from "../../features/auth/LoginStatus";
+import UserDropdown from "../../features/auth/UserDropdown";
+import AuthenticationDropdown from "../../features/auth/AuthenticationDropdown";
 import NotificationDropdown from "../feedback/NotificationDropdown";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useMe } from "@/hooks/useMe";
+
+// Mobile-specific login status component
+function MobileLoginStatus({ onItemClick }: { onItemClick: () => void }) {
+  const { me } = useMe();
+
+  if (!me?.loggedIn) {
+    return (
+      <div className="space-y-2">
+        <div className="text-xs text-gray-500 px-3">visitor mode</div>
+        <AuthenticationDropdown />
+      </div>
+    );
+  }
+
+  return <UserDropdown isMobile={true} onItemClick={onItemClick} />;
+}
 
 // Swipe gesture hook for mobile menu
 const useSwipeGesture = (onSwipe: (direction: 'left' | 'right') => void) => {
@@ -577,7 +595,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 </Link>
               )}
               <div className="px-3 py-2">
-                <LoginStatus />
+                <MobileLoginStatus onItemClick={() => setMobileMenuOpen(false)} />
               </div>
             </div>
           </div>

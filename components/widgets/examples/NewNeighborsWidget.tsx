@@ -105,15 +105,12 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user.displayName || user.username || 'Anonymous'}
-              </p>
               {user.username && (
                 <Link
                   href={`/resident/${user.username}`}
                   className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
                 >
-                  @{user.username}
+                  {user.username}
                 </Link>
               )}
             </div>

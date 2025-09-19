@@ -52,8 +52,8 @@ interface UserHomeConfig {
 // Simple card component for homepage (avoids thread-module min-width issues)
 function SimpleCard({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 mb-4 w-full max-w-full overflow-hidden">
-      {title && <h3 className="text-lg font-bold mb-3 text-[#2E4B3F]">{title}</h3>}
+    <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-3 sm:p-4 mb-3 sm:mb-4 w-full max-w-full overflow-hidden">
+      {title && <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-[#2E4B3F] px-1">{title}</h3>}
       {children}
     </div>
   );
@@ -154,18 +154,18 @@ function UserPixelHome({ user }: { user: any }) {
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-8 text-center min-h-[300px] flex items-center justify-center">
-        <div className="animate-pulse text-gray-600">Loading your home...</div>
+      <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-4 sm:p-8 text-center min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
+        <div className="animate-pulse text-gray-600 text-sm sm:text-base">Loading your home...</div>
       </div>
     );
   }
 
   if (!homeConfig) {
     return (
-      <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-8 text-center min-h-[300px] flex items-center justify-center">
-        <div className="space-y-4">
-          <div className="text-6xl">🏠</div>
-          <p className="text-gray-600">Unable to load your home</p>
+      <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-4 sm:p-8 text-center min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
+        <div className="space-y-3 sm:space-y-4">
+          <div className="text-4xl sm:text-6xl">🏠</div>
+          <p className="text-gray-600 text-sm sm:text-base">Unable to load your home</p>
         </div>
       </div>
     );
@@ -185,11 +185,11 @@ function UserPixelHome({ user }: { user: any }) {
   };
 
   return (
-    <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-4 min-h-[300px] flex items-center justify-center">
+    <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-2 sm:p-4 min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
       <div className="w-full max-w-md flex justify-center">
         <div
-          className="transform scale-75 origin-center cursor-pointer"
-          onClick={() => window.open(`/home/${user.primaryHandle?.split('@')[0]}`, '_blank')}
+          className="transform scale-90 sm:scale-75 origin-center cursor-pointer hover:scale-95 sm:hover:scale-80 transition-transform duration-200"
+          onClick={() => window.location.href = `/resident/${user.primaryHandle?.split('@')[0]}`}
         >
           <EnhancedHouseCanvas
             template={homeConfig.houseTemplate as HouseTemplate}
@@ -210,24 +210,24 @@ function UserPixelHome({ user }: { user: any }) {
 function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
   return (
     <Layout siteConfig={siteConfig}>
-      <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SimpleCard title="Welcome to Threadstead">
-          <div className="text-center py-4">
-            <h1 className="text-xl sm:text-2xl font-bold mb-4">{siteConfig.welcome_message}</h1>
-            <p className="text-base sm:text-lg text-gray-700 mb-4">
+          <div className="text-center py-4 sm:py-6">
+            <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>
+            <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-4 px-2">
               <strong>ThreadRings are themed communities you can join — like modern WebRings or clubhouses — where posts live in your profile but also appear in shared Ring feeds.</strong>
             </p>
-            <p className="text-gray-600 mb-6">{siteConfig.site_description}</p>
-            <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <p className="text-sm sm:text-base text-gray-600 mb-6 px-2">{siteConfig.site_description}</p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3 px-2">
               <Link
                 href="/signup"
-                className="border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] inline-block text-lg font-medium"
+                className="border border-black px-4 sm:px-6 py-2 sm:py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] inline-block text-base sm:text-lg font-medium transition-colors"
               >
                 Join Community
               </Link>
               <Link
                 href="/login"
-                className="border border-black px-6 py-3 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block text-lg font-medium"
+                className="border border-black px-4 sm:px-6 py-2 sm:py-3 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block text-base sm:text-lg font-medium transition-colors"
               >
                 Login
               </Link>
@@ -237,28 +237,28 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
 
         <SimpleCard title="What are ThreadRings?">
           <div className="space-y-4">
-            <p className="text-gray-700">
+            <p className="text-sm sm:text-base text-gray-700 px-1">
               ThreadRings bring back the spirit of the early web&apos;s WebRings — interconnected communities organized around shared interests.
               Each Ring is a themed community where members can share posts, have discussions, and build connections.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               <div className="border border-gray-300 p-3 bg-blue-50 rounded">
-                <h3 className="font-bold mb-1">🏠 Your Content Lives with You</h3>
-                <p className="text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
+                <h3 className="font-bold mb-1 text-sm sm:text-base">🏠 Your Content Lives with You</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
               </div>
               <div className="border border-gray-300 p-3 bg-green-50 rounded">
-                <h3 className="font-bold mb-1">🌳 Rich Family Trees</h3>
-                <p className="text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
+                <h3 className="font-bold mb-1 text-sm sm:text-base">🌳 Rich Family Trees</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
               </div>
-              <div className="border border-gray-300 p-3 bg-purple-50 rounded">
-                <h3 className="font-bold mb-1">✨ Community-Focused</h3>
-                <p className="text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
+              <div className="border border-gray-300 p-3 bg-purple-50 rounded sm:col-span-2 md:col-span-1">
+                <h3 className="font-bold mb-1 text-sm sm:text-base">✨ Community-Focused</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
               </div>
             </div>
             <div className="text-center pt-4">
               <Link
                 href="/threadrings"
-                className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block font-medium"
+                className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block font-medium text-sm sm:text-base transition-colors"
               >
                 Browse ThreadRings
               </Link>
@@ -268,14 +268,14 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
 
         <SimpleCard title="Community Highlights">
           <div className="text-center py-4">
-            <p className="text-gray-600 mb-4">Join our growing community of creative individuals</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <p className="text-sm sm:text-base text-gray-600 mb-4 px-1">Join our growing community of creative individuals</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
               <div className="bg-green-50 p-3 border border-gray-200 rounded">
-                <div className="font-bold text-green-800">Active Members</div>
+                <div className="font-bold text-green-800 text-sm sm:text-base">Active Members</div>
                 <div className="text-gray-600">Building connections daily</div>
               </div>
               <div className="bg-purple-50 p-3 border border-gray-200 rounded">
-                <div className="font-bold text-purple-800">ThreadRings</div>
+                <div className="font-bold text-purple-800 text-sm sm:text-base">ThreadRings</div>
                 <div className="text-gray-600">Communities to explore</div>
               </div>
             </div>
@@ -339,12 +339,12 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
 
   return (
     <Layout siteConfig={siteConfig}>
-      <div className="w-full max-w-7xl mx-auto px-4 py-6">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#2E4B3F] mb-2">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#2E4B3F] mb-2 leading-tight">
             Welcome home{user?.primaryHandle ? `, ${user.primaryHandle.split('@')[0]}` : ''}!
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600 px-2">
             Your personalized portal to the community • News • Neighbors • Activity
           </p>
         </div>
@@ -369,24 +369,14 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
           loading={searchLoading}
           extSearchEnabled={true}
           showCommunityHelper={false}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         />
 
-        {/* Main Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Main Grid Layout - Mobile-First Responsive */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
 
-          {/* Left Sidebar - Widgets */}
-          <div className="lg:col-span-3 space-y-4">
-            <WidgetContainer
-              widgets={leftWidgets}
-              user={user}
-              layout="stack"
-              maxColumns={1}
-            />
-          </div>
-
-          {/* Center - Pixel Home */}
-          <div className="lg:col-span-6">
+          {/* Center - Pixel Home (First on mobile for prominence) */}
+          <div className="lg:col-span-6 lg:order-2">
             <SimpleCard title="Your Pixel Home">
               <UserPixelHome user={user} />
             </SimpleCard>
@@ -402,8 +392,18 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
             )}
           </div>
 
-          {/* Right Sidebar - Widgets */}
-          <div className="lg:col-span-3 space-y-4">
+          {/* Left Sidebar - Widgets (Second on mobile) */}
+          <div className="lg:col-span-3 lg:order-1 space-y-4">
+            <WidgetContainer
+              widgets={leftWidgets}
+              user={user}
+              layout="stack"
+              maxColumns={1}
+            />
+          </div>
+
+          {/* Right Sidebar - Widgets (Third on mobile) */}
+          <div className="lg:col-span-3 lg:order-3 space-y-4">
             <WidgetContainer
               widgets={rightWidgets}
               user={user}
@@ -420,24 +420,24 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
 function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
   return (
     <Layout siteConfig={siteConfig}>
-      <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SimpleCard title="Welcome to Threadstead">
-          <div className="text-center py-6">
-            <h1 className="text-xl sm:text-2xl font-bold mb-4">{siteConfig.welcome_message}</h1>
-            <p className="text-base sm:text-lg text-gray-700 mb-4">
+          <div className="text-center py-4 sm:py-6">
+            <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>
+            <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-4 px-2">
               <strong>ThreadRings are themed communities you can join — like modern WebRings or clubhouses — where posts live in your profile but also appear in shared Ring feeds.</strong>
             </p>
-            <p className="text-gray-600 mb-6">{siteConfig.site_description}</p>
-            <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <p className="text-sm sm:text-base text-gray-600 mb-6 px-2">{siteConfig.site_description}</p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3 px-2">
               <Link
                 href="/getting-started"
-                className="border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] inline-block text-lg font-medium"
+                className="border border-black px-4 sm:px-6 py-2 sm:py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] inline-block text-base sm:text-lg font-medium transition-colors"
               >
                 Learn More
               </Link>
               <Link
                 href="/feed"
-                className="border border-black px-6 py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] inline-block text-lg font-medium"
+                className="border border-black px-4 sm:px-6 py-2 sm:py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] inline-block text-base sm:text-lg font-medium transition-colors"
               >
                 Enter Community
               </Link>
@@ -447,28 +447,28 @@ function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
 
         <SimpleCard title="What are ThreadRings?">
           <div className="space-y-4">
-            <p className="text-gray-700">
+            <p className="text-sm sm:text-base text-gray-700 px-1">
               ThreadRings bring back the spirit of the early web&apos;s WebRings — interconnected communities organized around shared interests.
               Each Ring is a themed community where members can share posts, have discussions, and build connections.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               <div className="border border-gray-300 p-3 bg-blue-50 rounded">
-                <h3 className="font-bold mb-1">🏠 Your Content Lives with You</h3>
-                <p className="text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
+                <h3 className="font-bold mb-1 text-sm sm:text-base">🏠 Your Content Lives with You</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
               </div>
               <div className="border border-gray-300 p-3 bg-green-50 rounded">
-                <h3 className="font-bold mb-1">🌳 Rich Family Trees</h3>
-                <p className="text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
+                <h3 className="font-bold mb-1 text-sm sm:text-base">🌳 Rich Family Trees</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
               </div>
-              <div className="border border-gray-300 p-3 bg-purple-50 rounded">
-                <h3 className="font-bold mb-1">✨ Community-Focused</h3>
-                <p className="text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
+              <div className="border border-gray-300 p-3 bg-purple-50 rounded sm:col-span-2 md:col-span-1">
+                <h3 className="font-bold mb-1 text-sm sm:text-base">✨ Community-Focused</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
               </div>
             </div>
             <div className="text-center pt-4">
               <Link
                 href="/threadrings"
-                className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block font-medium"
+                className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block font-medium text-sm sm:text-base transition-colors"
               >
                 Browse ThreadRings
               </Link>

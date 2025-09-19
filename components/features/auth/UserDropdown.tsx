@@ -2,7 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useMe } from "@/hooks/useMe";
 
-export default function UserDropdown() {
+interface UserDropdownProps {
+  isMobile?: boolean;
+  onItemClick?: () => void;
+}
+
+export default function UserDropdown({ isMobile = false, onItemClick }: UserDropdownProps) {
   const { me } = useMe();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -20,21 +25,20 @@ export default function UserDropdown() {
       const rect = buttonRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       
-      if (viewportWidth < 640) {
-        // Mobile: Center the dropdown
-        const dropdownWidth = Math.min(320, viewportWidth - 32); // Max 320px or viewport - 32px padding
-        const centerPosition = (viewportWidth - dropdownWidth) / 2;
-        const topPosition = rect.bottom + 4;
-        
+      // Desktop: Align with button's right edge, but ensure it doesn't go off-screen
+      const dropdownWidth = 192; // w-48 = 192px
+      const rightPosition = viewportWidth - rect.right;
+      const topPosition = rect.bottom + 4;
+
+      // Check if dropdown would go off the left edge
+      if (rightPosition > viewportWidth - dropdownWidth) {
+        // Position from left edge instead
         setDropdownPosition({
           top: topPosition,
-          left: centerPosition
+          left: Math.max(8, rect.left - dropdownWidth + rect.width)
         });
       } else {
-        // Desktop: Align with button's right edge
-        const rightPosition = viewportWidth - rect.right;
-        const topPosition = rect.bottom + 4;
-        
+        // Standard right-aligned positioning
         setDropdownPosition({
           top: topPosition,
           right: rightPosition
@@ -62,6 +66,63 @@ export default function UserDropdown() {
   const username = me.user?.primaryHandle?.split("@")[0] || "User";
   const isAdmin = me.user?.role === "admin";
 
+  // Mobile inline view - renders as menu items instead of dropdown
+  if (isMobile) {
+    return (
+      <div className="space-y-1">
+        {/* User info header */}
+        <div className="px-3 py-2 bg-thread-cream/50 rounded">
+          <div className="text-xs text-gray-500">signed in as</div>
+          <div className="font-medium text-thread-pine text-sm">{username}</div>
+        </div>
+
+        {/* User menu items */}
+        <Link
+          href="/me"
+          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          onClick={onItemClick}
+        >
+          <span>👤</span>
+          My Page
+        </Link>
+
+        <Link
+          href="/settings"
+          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          onClick={onItemClick}
+        >
+          <span>⚙️</span>
+          Settings
+        </Link>
+
+        {isAdmin && (
+          <Link
+            href="/settings/admin"
+            className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+            onClick={onItemClick}
+          >
+            <span>⚙️</span>
+            Admin Panel
+          </Link>
+        )}
+
+        <div className="border-t border-gray-200 my-1"></div>
+
+        <button
+          onClick={() => {
+            onItemClick?.();
+            logout();
+          }}
+          className="block w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+        >
+          <span>🚪</span>
+          Log Out
+        </button>
+      </div>
+    );
+  }
+
+  // Desktop dropdown view
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -76,11 +137,11 @@ export default function UserDropdown() {
       </button>
 
       {isOpen && (
-        <div 
-          className="user-dropdown-menu fixed w-80 max-w-[calc(100vw-2rem)] sm:w-48 border border-thread-sage bg-thread-paper shadow-cozy rounded z-[10000]"
+        <div
+          className="user-dropdown-menu fixed w-48 max-w-[calc(100vw-1rem)] border border-thread-sage bg-thread-paper shadow-cozy rounded z-[10000]"
           style={{
             top: `${dropdownPosition.top}px`,
-            ...(dropdownPosition.left !== undefined 
+            ...(dropdownPosition.left !== undefined
               ? { left: `${dropdownPosition.left}px` }
               : { right: `${dropdownPosition.right}px` }
             )
