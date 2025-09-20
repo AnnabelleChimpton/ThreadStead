@@ -11,6 +11,8 @@ import { SITE_NAME } from '@/lib/config/site/constants';
 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('🎯 [TEMPLATE_SAVE_API] Handler called with method:', req.method, 'for username:', req.query.username);
+
   try {
     const { username } = req.query;
     
@@ -76,22 +78,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Invalid template data' });
       }
 
+      // Debug: Check positioning data in template being saved
+      const hasPositioningInTemplate = template.includes('data-positioning-mode') || template.includes('data-pixel-position');
+      console.log('🎯 [TEMPLATE_SAVE_API] Saving template with positioning data:', hasPositioningInTemplate);
+
+      if (hasPositioningInTemplate) {
+        console.log('🎯 [TEMPLATE_SAVE_API] Template content:', template.substring(0, 800) + '...');
+        const positioningMatches = template.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
+        console.log('🎯 [TEMPLATE_SAVE_API] Found positioning attributes:', positioningMatches);
+      }
+
       // Compile the template using our fixed compilation pipeline
       let compiledResult;
       try {
         // Parse the template AST
+        console.log('🎯 [TEMPLATE_SAVE_API] Starting template compilation...');
         const parseResult = compileTemplate(template);
-        
+
         if (!parseResult.success) {
           console.error('Template compilation failed:', parseResult.errors);
           return res.status(400).json({ error: 'Template compilation failed' });
         }
-        
+
+        console.log('🎯 [TEMPLATE_SAVE_API] Template parsed successfully, detecting islands...');
+
         // Detect islands (components) in the template using the AST
         const islandResult = identifyIslandsWithTransform(parseResult.ast!);
-        
+
+        console.log('🎯 [TEMPLATE_SAVE_API] Islands detected, generating static HTML...');
+
         // Generate static HTML with component placeholders
         const staticHTML = generateStaticHTML(islandResult.transformedAst, islandResult.islands);
+
+        // Debug: Check positioning data in final static HTML
+        const hasPositioningInStaticHTML = staticHTML.includes('data-positioning-mode') ||
+                                          staticHTML.includes('data-pixel-position') ||
+                                          staticHTML.includes('data-position');
+        console.log('🎯 [TEMPLATE_SAVE_API] Final static HTML has positioning data:', hasPositioningInStaticHTML);
+
+        if (hasPositioningInTemplate && !hasPositioningInStaticHTML) {
+          console.error('🚨 [TEMPLATE_SAVE_API] POSITIONING DATA LOST during compilation!');
+          console.log('🎯 [TEMPLATE_SAVE_API] Original template preview:', template.substring(0, 500) + '...');
+          console.log('🎯 [TEMPLATE_SAVE_API] Final static HTML preview:', staticHTML.substring(0, 500) + '...');
+        }
         
         // Create compiled result structure that matches what the renderer expects
         compiledResult = {

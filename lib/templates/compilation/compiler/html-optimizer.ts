@@ -7,10 +7,38 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
   const islandMap = new Map(islands.map(i => [i.id, i]));
   let nodeCount = 0;
   let islandReplacements = 0;
-  
+
+  // Debug: Check if AST contains positioning data
+  const astString = JSON.stringify(ast);
+  const hasPositioningInAST = astString.includes('data-positioning-mode') ||
+                              astString.includes('data-pixel-position') ||
+                              astString.includes('dataPositioningMode') ||
+                              astString.includes('dataPixelPosition') ||
+                              astString.includes('dataPosition');
+  console.log('🎯 [STATIC_HTML_GEN] Starting with positioning data in AST:', hasPositioningInAST);
+
+  if (hasPositioningInAST) {
+    const positioningMatches = astString.match(/data-(?:positioning-mode|pixel-position|position)/g);
+    console.log('🎯 [STATIC_HTML_GEN] Found positioning properties in AST:', positioningMatches);
+  }
+
   function renderNode(node: TemplateNode): string {
     nodeCount++;
-    
+
+    // Debug: Check for positioning data in each node
+    if (node.properties) {
+      const hasPositioningProps = Object.keys(node.properties).some(key =>
+        key.includes('data-positioning-mode') || key.includes('data-pixel-position') || key.includes('data-position')
+      );
+      if (hasPositioningProps) {
+        console.log('🎯 [STATIC_HTML_GEN] Found node with positioning properties:', {
+          tagName: node.tagName,
+          properties: node.properties,
+          nodeCount
+        });
+      }
+    }
+
     if (nodeCount <= 5) {
       console.log(`🎨 Rendering node ${nodeCount}:`, { type: node.type, tagName: node.tagName });
     }
@@ -77,17 +105,34 @@ function renderAttributes(properties: Record<string, any>): string {
       if (key === 'className') {
         htmlKey = 'class';
       }
-      
+
+      // Convert camelCase positioning attributes back to kebab-case for HTML
+      if (key === 'dataPositioningMode') {
+        htmlKey = 'data-positioning-mode';
+      } else if (key === 'dataPixelPosition') {
+        htmlKey = 'data-pixel-position';
+      } else if (key === 'dataPosition') {
+        htmlKey = 'data-position';
+      } else if (key === 'dataGridPosition') {
+        htmlKey = 'data-grid-position';
+      } else if (key === 'dataGridColumn') {
+        htmlKey = 'data-grid-column';
+      } else if (key === 'dataGridRow') {
+        htmlKey = 'data-grid-row';
+      } else if (key === 'dataGridSpan') {
+        htmlKey = 'data-grid-span';
+      }
+
       // Handle boolean attributes
       if (typeof value === 'boolean') {
         return value ? htmlKey : '';
       }
-      
+
       // Handle array values (like classList)
       if (Array.isArray(value)) {
         return `${htmlKey}="${escapeHtml(value.join(' '))}"`;
       }
-      
+
       return `${htmlKey}="${escapeHtml(String(value))}"`;
     })
     .filter(attr => attr)

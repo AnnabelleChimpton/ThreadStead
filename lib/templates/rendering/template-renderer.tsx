@@ -2,15 +2,33 @@ import React from 'react';
 import { componentRegistry, validateAndCoerceProps } from '../core/template-registry';
 import type { TemplateNode } from '../compilation/template-parser';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
+import GridCompatibleWrapper from '@/components/features/templates/GridCompatibleWrapper';
+import { isGridCompatible, getComponentGridBehavior } from '../visual-builder/grid-compatibility';
 
 // Transform AST to React elements
 export function transformNodeToReact(node: TemplateNode, key?: string | number): React.ReactNode {
+  // Debug every node transformation
+  if (node.type === 'element' && node.properties) {
+    const hasPositioningProps = Object.keys(node.properties).some(key =>
+      key.includes('data-positioning-mode') || key.includes('data-pixel-position') || key.includes('data-position')
+    );
+    if (hasPositioningProps) {
+      console.log('🎯 [TEMPLATE_RENDERER] FOUND NODE WITH POSITIONING PROPS:', {
+        type: node.type,
+        tagName: node.tagName,
+        properties: node.properties,
+        fullNode: node
+      });
+    }
+  }
+
   if (node.type === 'text') {
     return node.value;
   }
 
   if (node.type === 'root') {
-    const children = node.children?.map((child, index) => 
+    console.log('🎯 [TEMPLATE_RENDERER] Processing root node with children:', node.children?.length || 0);
+    const children = node.children?.map((child, index) =>
       transformNodeToReact(child, index)
     );
     return children;
@@ -18,6 +36,7 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
 
   if (node.type === 'element' && node.tagName) {
     const tagName = node.tagName;
+    console.log('🎯 [TEMPLATE_RENDERER] Processing element:', tagName, 'with properties:', node.properties);
     
     // Check if this is a registered component (try both original and capitalized)
     let componentRegistration = componentRegistry.get(tagName);
@@ -56,11 +75,101 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
         const props = { ...validatedProps };
         if (key !== undefined) props.key = key;
         
-        return React.createElement(
-          Component,
-          props,
-          ...(children || [])
-        );
+        // Check positioning mode and handle accordingly (support both kebab-case and camelCase)
+        const positioningMode = rawProps['data-positioning-mode'] || rawProps['dataPositioningMode'];
+
+        if (positioningMode === 'absolute') {
+          // Handle absolute pixel positioning from visual builder
+          console.log('🎯 [TEMPLATE_RENDERER] Found absolute positioning component:', tagName, rawProps);
+
+          let pixelPosition;
+          const pixelPositionData = rawProps['data-pixel-position'] || rawProps['dataPixelPosition'];
+          const positionData = rawProps['data-position'] || rawProps['dataPosition'];
+
+          if (pixelPositionData) {
+            try {
+              pixelPosition = JSON.parse(String(pixelPositionData));
+              console.log('🎯 [TEMPLATE_RENDERER] Parsed pixel position:', pixelPosition);
+            } catch (e) {
+              console.warn('🎯 [TEMPLATE_RENDERER] Failed to parse pixel position data:', pixelPositionData);
+              // Fallback to simple position format
+              if (positionData) {
+                const [x, y] = String(positionData).split(',').map(Number);
+                if (!isNaN(x) && !isNaN(y)) {
+                  pixelPosition = { x, y, positioning: 'absolute' };
+                  console.log('🎯 [TEMPLATE_RENDERER] Using fallback position:', pixelPosition);
+                }
+              }
+            }
+          }
+
+          // Create component with absolute positioning
+          const component = React.createElement(Component, props, ...(children || []));
+
+          if (pixelPosition && typeof pixelPosition.x === 'number' && typeof pixelPosition.y === 'number') {
+            console.log('🎯 [TEMPLATE_RENDERER] Rendering component with absolute position:', {
+              component: tagName,
+              x: pixelPosition.x,
+              y: pixelPosition.y
+            });
+
+            return React.createElement(
+              'div',
+              {
+                key,
+                style: {
+                  position: 'absolute',
+                  left: `${pixelPosition.x}px`,
+                  top: `${pixelPosition.y}px`,
+                  zIndex: 1,
+                },
+                className: props.className as string,
+              },
+              component
+            );
+          } else {
+            console.warn('🎯 [TEMPLATE_RENDERER] No valid position data, rendering normally:', tagName);
+            // No valid position data, render normally
+            return React.createElement(Component, { ...props, key }, ...(children || []));
+          }
+        } else if (isGridCompatible(tagName)) {
+          // Handle grid positioning (existing logic)
+          const gridBehavior = getComponentGridBehavior(tagName);
+
+          // Extract grid position from data attributes if present
+          let gridPosition;
+          if (rawProps['data-grid-position']) {
+            try {
+              gridPosition = JSON.parse(String(rawProps['data-grid-position']));
+            } catch (e) {
+              // Ignore invalid grid position data
+            }
+          }
+
+          // Create the component wrapped in grid compatibility
+          const component = React.createElement(Component, props, ...(children || []));
+
+          return React.createElement(
+            GridCompatibleWrapper,
+            {
+              key,
+              componentType: tagName,
+              className: props.className as string,
+              style: props.style as React.CSSProperties,
+              gridPosition,
+              // Check if we're in a grid container context
+              forceGridMode: rawProps['data-positioning-mode'] === 'grid'
+            },
+            component
+          );
+        } else {
+          // Default rendering without special positioning
+          return React.createElement(
+            Component,
+            props,
+            ...(children || [])
+          );
+        }
       } catch (error) {
         console.error(`Error creating React element for ${tagName}:`, error);
         return React.createElement('div', { key }, `Error: Failed to render ${tagName}`);
@@ -98,8 +207,74 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
           }
           
           const validatedProps = validateAndCoerceProps(rawProps, propSchemas);
-          
-          return React.createElement(Component, { ...validatedProps, key });
+
+          // Check positioning mode for data-component syntax
+          const positioningMode = node.properties['data-positioning-mode'];
+
+          if (positioningMode === 'absolute') {
+            // Handle absolute pixel positioning
+            let pixelPosition;
+            if (node.properties['data-pixel-position']) {
+              try {
+                pixelPosition = JSON.parse(String(node.properties['data-pixel-position']));
+              } catch (e) {
+                // Fallback to simple data-position format
+                if (node.properties['data-position']) {
+                  const [x, y] = String(node.properties['data-position']).split(',').map(Number);
+                  if (!isNaN(x) && !isNaN(y)) {
+                    pixelPosition = { x, y, positioning: 'absolute' };
+                  }
+                }
+              }
+            }
+
+            const component = React.createElement(Component, { ...validatedProps, key });
+
+            if (pixelPosition && typeof pixelPosition.x === 'number' && typeof pixelPosition.y === 'number') {
+              return React.createElement(
+                'div',
+                {
+                  style: {
+                    position: 'absolute',
+                    left: `${pixelPosition.x}px`,
+                    top: `${pixelPosition.y}px`,
+                    zIndex: 1,
+                  },
+                  className: validatedProps.className as string,
+                },
+                component
+              );
+            } else {
+              return component;
+            }
+          } else if (isGridCompatible(componentName)) {
+            // Extract grid position from data attributes if present
+            let gridPosition;
+            if (node.properties['data-grid-position']) {
+              try {
+                gridPosition = JSON.parse(String(node.properties['data-grid-position']));
+              } catch (e) {
+                // Ignore invalid grid position data
+              }
+            }
+
+            // Create the component wrapped in grid compatibility
+            const component = React.createElement(Component, { ...validatedProps, key });
+
+            return React.createElement(
+              GridCompatibleWrapper,
+              {
+                componentType: componentName,
+                className: validatedProps.className as string,
+                style: validatedProps.style as React.CSSProperties,
+                gridPosition,
+                forceGridMode: node.properties['data-positioning-mode'] === 'grid'
+              },
+              component
+            );
+          } else {
+            return React.createElement(Component, { ...validatedProps, key });
+          }
         }
       }
       
@@ -148,8 +323,21 @@ export interface RenderOptions {
 }
 
 export function renderTemplate({ ast, residentData }: RenderOptions): React.ReactElement {
+  console.log('🎯 [RENDER_TEMPLATE] Starting template render with AST:', ast);
+
+  // Check if AST contains positioning data
+  const astString = JSON.stringify(ast);
+  const hasPositioningInAST = astString.includes('data-positioning-mode') || astString.includes('data-pixel-position');
+  console.log('🎯 [RENDER_TEMPLATE] AST contains positioning data:', hasPositioningInAST);
+
+  if (hasPositioningInAST) {
+    console.log('🎯 [RENDER_TEMPLATE] AST with positioning data:', JSON.stringify(ast, null, 2).substring(0, 1000) + '...');
+  }
+
   const transformedContent = transformNodeToReact(ast);
-  
+
+  console.log('🎯 [RENDER_TEMPLATE] Transformed content:', transformedContent);
+
   return (
     <ResidentDataProvider data={residentData}>
       <div className="template-content">

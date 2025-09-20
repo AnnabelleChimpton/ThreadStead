@@ -87,9 +87,30 @@ export default function TemplateEditorPage({
   const cleanedCssContent = extractedCssContent.replace(/\/\* CSS_MODE:\w+ \*\/\n?/, '');
 
   const handleSave = async (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', showNavigation?: boolean) => {
+    // Debug: Check what's being passed to save
+    const hasPositioningInTemplate = template.includes('data-positioning-mode') || template.includes('data-pixel-position');
+    console.log('🎯 [TEMPLATE_EDITOR_SAVE] Received template with positioning data:', hasPositioningInTemplate);
+
+    if (hasPositioningInTemplate) {
+      console.log('🎯 [TEMPLATE_EDITOR_SAVE] Template content:', template.substring(0, 800) + '...');
+      const positioningMatches = template.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
+      console.log('🎯 [TEMPLATE_EDITOR_SAVE] Found positioning attributes:', positioningMatches);
+    }
+
     // Combine HTML and CSS for API
     const fullTemplate = `${template}${css.trim() ? `\n<style>\n${css}\n</style>` : ''}`;
 
+    // Debug: Check what we're sending to API
+    const requestBody = {
+      template: template, // Send HTML template only
+      customCSS: css, // Send CSS separately
+      // For legacy compatibility, we might need the AST
+      ...(compiledTemplate && { ast: compiledTemplate }),
+      ...(cssMode && { cssMode: cssMode })
+    };
+
+    console.log('🎯 [TEMPLATE_EDITOR_SAVE] Making API request to save template...');
+    console.log('🎯 [TEMPLATE_EDITOR_SAVE] Request body template field has positioning:', requestBody.template.includes('data-positioning-mode'));
 
     try {
       // Save the template
@@ -98,14 +119,19 @@ export default function TemplateEditorPage({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          template: template, // Send HTML template only
-          customCSS: css, // Send CSS separately
-          // For legacy compatibility, we might need the AST
-          ...(compiledTemplate && { ast: compiledTemplate }),
-          ...(cssMode && { cssMode: cssMode })
-        }),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log('🎯 [TEMPLATE_EDITOR_SAVE] API response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('🎯 [TEMPLATE_EDITOR_SAVE] API error:', errorData);
+        throw new Error(errorData.error || "Failed to save template");
+      }
+
+      const responseData = await response.json();
+      console.log('🎯 [TEMPLATE_EDITOR_SAVE] API response:', responseData);
 
       if (!response.ok) {
         const errorData = await response.json();

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 
 interface ContactCardProps {
   expanded?: boolean;
@@ -61,6 +62,7 @@ export default function ContactCard({
 }: ContactCardProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const { isInGrid } = useGridCompatibilityContext();
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName) 
@@ -255,12 +257,16 @@ export default function ContactCard({
     );
   }
 
+  // Grid-adaptive container styling
+  const gridAdaptiveClasses = isInGrid ? 'w-full h-full' : '';
+
   const containerClassName = [
     'ts-contact-card',
     currentTheme.container,
     'rounded-lg',
     'overflow-hidden',
     'relative',
+    gridAdaptiveClasses,
     normalizedCustomClassName
   ].filter(Boolean).join(' ');
 
@@ -293,7 +299,7 @@ export default function ContactCard({
       )}
 
       {/* Contact Methods */}
-      <div className={`ts-contact-list p-4 ${layout !== 'grid' ? layoutClasses[layout] : ''}`}>
+      <div className={`ts-contact-list ${isInGrid ? 'p-2' : 'p-4'} ${layout !== 'grid' ? layoutClasses[layout] : ''}`}>
         <div className={layout === 'grid' ? layoutClasses[layout] : 'space-y-0'}>
           {displayedMethods.map((method, index) => {
             const { href, action } = getContactAction(method.type, method.value);

@@ -5,6 +5,7 @@ import "../styles/globals.css"; // Restore global CSS
 import "../styles/neighborhood.css"; // Neighborhood street view styles
 import "../styles/pixel-homes-interactive.css"; // Interactive elements for pixel homes
 import "../styles/pixel-homes-animations.css"; // Visual polish and animations for pixel homes
+import "../styles/visual-builder.module.css"; // Visual template builder styles
 import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
 import { useEffect } from "react";

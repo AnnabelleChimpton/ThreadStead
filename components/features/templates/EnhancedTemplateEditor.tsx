@@ -13,6 +13,8 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
+import VisualTemplateBuilder from './visual-builder/VisualTemplateBuilder';
+import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
 
 // Warning dialog for data loss prevention
 interface DataLossWarningProps {
@@ -270,7 +272,35 @@ export default function EnhancedTemplateEditor({
   };
   const [isLoading, setIsLoading] = useState(true);
   const [compiledTemplate, setCompiledTemplate] = useState<CompiledTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState<'template' | 'css'>('template');
+  const [activeTab, setActiveTab] = useState<'template' | 'css' | 'visual'>('template');
+  const [editorMode, setEditorMode] = useState<'code' | 'visual'>('code');
+
+  // Handle template changes from visual builder
+  const handleVisualTemplateChange = useCallback((html: string) => {
+    // Debug: Check positioning data from visual builder
+    const hasPositioningData = html.includes('data-positioning-mode') || html.includes('data-pixel-position');
+    console.log('🎯 [VISUAL_BUILDER_CHANGE] Received HTML from visual builder with positioning data:', hasPositioningData);
+
+    if (hasPositioningData) {
+      console.log('🎯 [VISUAL_BUILDER_CHANGE] Visual builder HTML:', html.substring(0, 800) + '...');
+      const positioningMatches = html.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
+      console.log('🎯 [VISUAL_BUILDER_CHANGE] Found positioning attributes:', positioningMatches);
+    } else if (html.trim()) {
+      console.log('🎯 [VISUAL_BUILDER_CHANGE] Visual builder HTML without positioning:', html.substring(0, 200) + '...');
+    }
+
+    setTemplate(html);
+  }, []);
+
+  // Handle mode switching between code and visual
+  const handleModeSwitch = useCallback((newMode: 'code' | 'visual') => {
+    setEditorMode(newMode);
+    if (newMode === 'visual') {
+      setActiveTab('visual');
+    } else {
+      setActiveTab('template');
+    }
+  }, []);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loadingDefault, setLoadingDefault] = useState(false);
@@ -620,28 +650,54 @@ export default function EnhancedTemplateEditor({
         // User has custom HTML - save as advanced template
         // Match the gallery behavior: set to advanced mode with appropriate CSS mode
         setUseStandardLayout(false);
-        
+
+        // Debug: Check positioning data before CSS extraction
+        const hasPositioningData = template.includes('data-positioning-mode') || template.includes('data-pixel-position');
+        console.log('🎯 [ENHANCED_EDITOR] Template has positioning data before CSS extraction:', hasPositioningData);
+
+        if (hasPositioningData) {
+          console.log('🎯 [ENHANCED_EDITOR] Template with positioning data:', template.substring(0, 500) + '...');
+          const positioningMatches = template.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
+          console.log('🎯 [ENHANCED_EDITOR] Found positioning attributes:', positioningMatches);
+        }
+
         // MATCH GALLERY TEMPLATE WORKFLOW: Extract CSS from HTML and set disable mode
         // This is what gallery templates do (lines 1207-1214)
         const styleMatch = template.match(/<style[^>]*>([\s\S]*?)<\/style>/);
         let finalTemplate = template;
         let finalCSS = customCSS;
-        
+
         if (styleMatch) {
           // Extract CSS from style tags (like gallery templates)
           const extractedCSS = styleMatch[1];
           finalTemplate = template.replace(/<style[^>]*>[\s\S]*?<\/style>/, '').trim();
-          
+
+          // Debug: Check positioning data after CSS extraction
+          const stillHasPositioningData = finalTemplate.includes('data-positioning-mode') || finalTemplate.includes('data-pixel-position');
+          console.log('🎯 [ENHANCED_EDITOR] Template still has positioning data after CSS extraction:', stillHasPositioningData);
+
+          if (hasPositioningData && !stillHasPositioningData) {
+            console.error('🚨 [ENHANCED_EDITOR] POSITIONING DATA LOST during CSS extraction!');
+            console.log('🎯 [ENHANCED_EDITOR] Original template:', template);
+            console.log('🎯 [ENHANCED_EDITOR] Final template after CSS extraction:', finalTemplate);
+          }
+
           // Combine with existing CSS
           if (customCSS && customCSS.trim()) {
             finalCSS = customCSS + '\n\n/* Extracted from template */\n' + extractedCSS;
           } else {
             finalCSS = extractedCSS;
           }
-          
+
           // Update state to match what we're saving
           setTemplate(finalTemplate);
           setCustomCSS(finalCSS);
+        } else {
+          // No style tags, but still check positioning data preservation
+          if (hasPositioningData) {
+            console.log('🎯 [ENHANCED_EDITOR] No style tags found, positioning data should be preserved');
+            console.log('🎯 [ENHANCED_EDITOR] Final template for save:', finalTemplate.substring(0, 500) + '...');
+          }
         }
         
         // For custom templates, use 'disable' CSS mode like gallery templates do (line 1214)
@@ -655,7 +711,11 @@ export default function EnhancedTemplateEditor({
           setSaveMessage('⚠️ Failed to compile template. Please check your template syntax.');
           return;
         }
-        
+
+        // Debug: Log what we're about to save
+        console.log('🎯 [ENHANCED_EDITOR] About to save template with positioning data:', finalTemplate.includes('data-positioning-mode'));
+        console.log('🎯 [ENHANCED_EDITOR] Final template being saved:', finalTemplate.substring(0, 500) + '...');
+
         // Now save using the final processed template and CSS (matching gallery workflow)
         await onSave(finalTemplate, finalCSS, compiled, advancedCSSMode, showNavigation);
         setSaveMessage('✓ Advanced template saved and compiled!');
@@ -947,31 +1007,68 @@ export default function EnhancedTemplateEditor({
 
   return (
     <div className="enhanced-template-editor w-full">
+      {/* Mode Selector */}
+      <div className="flex justify-between items-center px-4 py-2 bg-thread-cream border-b border-thread-sage">
+        <div className="flex gap-1">
+          <button
+            onClick={() => handleModeSwitch('code')}
+            className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+              editorMode === 'code'
+                ? 'bg-thread-sage text-white'
+                : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-paper'
+            }`}
+          >
+            Code Editor
+          </button>
+          <button
+            onClick={() => handleModeSwitch('visual')}
+            className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+              editorMode === 'visual'
+                ? 'bg-thread-sage text-white'
+                : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-paper'
+            }`}
+          >
+            Visual Builder
+          </button>
+        </div>
+        <div className="text-xs text-thread-sage">
+          {editorMode === 'visual' ? 'Drag & drop visual editing' : 'Direct HTML/CSS editing'}
+        </div>
+      </div>
+
       {/* Tab Navigation - exactly matching original style */}
       <div className="flex gap-1 px-4">
-        <button
-          onClick={() => setActiveTab('template')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-            activeTab === 'template'
-              ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
-              : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
-          }`}
-        >
-          HTML
-        </button>
-        <button
-          onClick={() => setActiveTab('css')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-            activeTab === 'css'
-              ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
-              : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
-          }`}
-        >
-          CSS
-        </button>
+        {editorMode === 'code' ? (
+          <>
+            <button
+              onClick={() => setActiveTab('template')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === 'template'
+                  ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
+                  : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
+              }`}
+            >
+              HTML
+            </button>
+            <button
+              onClick={() => setActiveTab('css')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === 'css'
+                  ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
+                  : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
+              }`}
+            >
+              CSS
+            </button>
+          </>
+        ) : (
+          <div className="px-4 py-2 text-sm font-medium text-thread-charcoal bg-thread-paper border-t-2 border-l-2 border-r-2 border-thread-sage rounded-t-lg">
+            Visual Builder
+          </div>
+        )}
         <button
           onClick={openPopupPreview}
-          className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2"
+          className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2 ml-auto"
         >
           <span>🔍</span>
           Open Preview
@@ -1509,6 +1606,46 @@ body {
                   rows={25}
                 />
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Visual Builder Tab */}
+        {activeTab === 'visual' && editorMode === 'visual' && (
+          <div className="fixed inset-0 bg-white flex flex-col" style={{ zIndex: 10002 }}>
+            {/* Visual Builder Header */}
+            <div className="flex justify-between items-center px-4 py-2 bg-thread-cream border-b border-thread-sage">
+              <div className="flex items-center gap-4">
+                <h2 className="text-lg font-semibold text-thread-charcoal">Visual Template Builder</h2>
+                <div className="text-sm text-thread-charcoal/70 bg-white px-3 py-1 rounded border">
+                  💡 Drag components from the left palette to the canvas to build your template
+                </div>
+                <button
+                  onClick={() => handleModeSwitch('code')}
+                  className="px-3 py-1 text-sm bg-thread-sage text-white rounded hover:bg-thread-charcoal transition-colors"
+                >
+                  ← Back to Code Editor
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onSave ? () => onSave(template, customCSS, compiledTemplate || undefined, cssMode, showNavigation) : undefined}
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors text-sm"
+                >
+                  {isSaving ? 'Saving...' : 'Save Template'}
+                </button>
+              </div>
+            </div>
+
+            {/* Visual Builder Content */}
+            <div className="flex-1 overflow-hidden">
+              <VisualTemplateBuilder
+                initialTemplate={template}
+                onTemplateChange={handleVisualTemplateChange}
+                residentData={residentData || undefined}
+                className="h-full"
+              />
             </div>
           </div>
         )}

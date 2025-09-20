@@ -1,4 +1,5 @@
 import React from "react";
+import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 
 interface FloatingBadgeProps {
   color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple' | 'pink';
@@ -30,7 +31,16 @@ export default function FloatingBadge({
     'lg': 'text-base px-4 py-2'
   }[size];
 
-  const positionClasses = {
+  const { isInGrid } = useGridCompatibilityContext();
+
+  // In grid: use absolute positioning within the grid cell
+  // Outside grid: use fixed positioning
+  const positionClasses = isInGrid ? {
+    'top-left': 'top-1 left-1',
+    'top-right': 'top-1 right-1',
+    'bottom-left': 'bottom-1 left-1',
+    'bottom-right': 'bottom-1 right-1'
+  }[position] : {
     'top-left': 'top-2 left-2',
     'top-right': 'top-2 right-2',
     'bottom-left': 'bottom-2 left-2',
@@ -52,7 +62,7 @@ export default function FloatingBadge({
           50% { transform: translateY(-6px); }
         }
       `}</style>
-      <div className={`fixed ${positionClasses} z-50`}>
+      <div className={`${isInGrid ? 'absolute' : 'fixed'} ${positionClasses} ${isInGrid ? 'z-10' : 'z-50'}`}>
         <div className={`${colorClasses} ${sizeClasses} ${animationClasses} rounded-full font-semibold shadow-lg border-2 border-white`}>
           {children}
         </div>

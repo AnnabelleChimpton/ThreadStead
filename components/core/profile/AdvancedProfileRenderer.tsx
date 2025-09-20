@@ -7,6 +7,12 @@ import type { CompiledTemplate, Island } from '@/lib/templates/compilation/compi
 import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { generateOptimizedCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
+import {
+  getCurrentBreakpoint,
+  getOptimalSpan,
+  COMPONENT_SIZE_METADATA,
+  type GridBreakpoint
+} from '@/lib/templates/visual-builder/grid-utils';
 
 // Extended Island type with htmlStructure for runtime rendering
 interface ExtendedIsland extends Island {
@@ -247,16 +253,22 @@ interface StaticHTMLWithIslandsProps {
   onIslandError: (error: Error, islandId: string) => void;
 }
 
-function StaticHTMLWithIslands({ 
-  staticHTML, 
-  islands, 
-  residentData, 
-  onIslandRender, 
-  onIslandError 
+function StaticHTMLWithIslands({
+  staticHTML,
+  islands,
+  residentData,
+  onIslandRender,
+  onIslandError
 }: StaticHTMLWithIslandsProps) {
+  // Debug: Check for positioning data in staticHTML
+  const hasPositioningInHTML = staticHTML.includes('data-positioning-mode') || staticHTML.includes('data-pixel-position');
+
+  if (hasPositioningInHTML) {
+  }
+
   // Create a map of island ID to island data for quick lookup
   const islandMap = new Map(islands.map(island => [island.id, island]));
-  
+
   // Parse static HTML and replace placeholders with React components
   const renderHTMLWithIslands = () => {
     
@@ -289,31 +301,189 @@ function StaticHTMLWithIslands({
         if (islandId && componentName) {
           const island = islands.find(i => i.id === islandId);
           if (island) {
-            
+
             try {
               const Component = getComponent(island.component);
               if (Component) {
                 // Recursively process children inside this island placeholder
-                const childElements = Array.from(element.childNodes).map((child, index) => 
+                const childElements = Array.from(element.childNodes).map((child, index) =>
                   domToReact(child, islands, residentData, onIslandRender, onIslandError)
                 ).filter(child => child !== null && child !== '');
-                
+
                 // Parse children for component props
-                
+
                 const processedChildren = childElements.length > 0 ? childElements : undefined;
-                
-                const renderedElement = (
-                  <ResidentDataProvider key={island.id} data={residentData}>
-                    <Component 
-                      {...island.props}
-                    >
-                      {processedChildren}
-                    </Component>
-                  </ResidentDataProvider>
-                );
-                
-                onIslandRender(island.id);
-                return renderedElement;
+
+                // Check for absolute positioning data on the island placeholder element
+                const positioningMode = element.getAttribute('data-positioning-mode');
+                const pixelPositionData = element.getAttribute('data-pixel-position');
+                const positionData = element.getAttribute('data-position');
+
+                if (positioningMode === 'absolute') {
+
+                  let pixelPosition;
+
+                  if (pixelPositionData) {
+                    try {
+                      pixelPosition = JSON.parse(pixelPositionData);
+                    } catch (e) {
+                      // Fallback to simple position format
+                      if (positionData) {
+                        const [x, y] = positionData.split(',').map(Number);
+                        if (!isNaN(x) && !isNaN(y)) {
+                          pixelPosition = { x, y, positioning: 'absolute' };
+                        }
+                      }
+                    }
+                  }
+
+                  const renderedElement = (
+                    <ResidentDataProvider key={island.id} data={residentData}>
+                      <Component
+                        {...island.props}
+                      >
+                        {processedChildren}
+                      </Component>
+                    </ResidentDataProvider>
+                  );
+
+                  if (pixelPosition && typeof pixelPosition.x === 'number' && typeof pixelPosition.y === 'number') {
+
+                    const positionedElement = React.createElement(
+                      'div',
+                      {
+                        key: island.id,
+                        style: {
+                          position: 'absolute',
+                          left: `${pixelPosition.x}px`,
+                          top: `${pixelPosition.y}px`,
+                          zIndex: 1,
+                        }
+                      },
+                      renderedElement
+                    );
+
+                    onIslandRender(island.id);
+                    return positionedElement;
+                  } else {
+                    onIslandRender(island.id);
+                    return renderedElement;
+                  }
+                } else if (positioningMode === 'grid') {
+
+                  const renderedElement = (
+                    <ResidentDataProvider key={island.id} data={residentData}>
+                      <Component
+                        {...island.props}
+                      >
+                        {processedChildren}
+                      </Component>
+                    </ResidentDataProvider>
+                  );
+
+                  // Get current breakpoint for responsive rendering
+                  const currentBreakpoint = getCurrentBreakpoint();
+
+                  // Check for grid position data
+                  const gridPositionAttr = element.getAttribute('data-grid-position');
+                  const columnAttr = element.getAttribute('data-grid-column');
+                  const rowAttr = element.getAttribute('data-grid-row');
+                  const spanAttr = element.getAttribute('data-grid-span');
+
+                  if (gridPositionAttr || (columnAttr && rowAttr)) {
+
+                    // Parse grid position - prefer individual attributes over JSON
+                    let column = 1, row = 1, span = 1;
+                    let breakpointInfo = null;
+
+                    if (columnAttr && rowAttr) {
+                      column = parseInt(columnAttr, 10) || 1;
+                      row = parseInt(rowAttr, 10) || 1;
+                      span = spanAttr ? parseInt(spanAttr, 10) || 1 : 1;
+                    } else if (gridPositionAttr) {
+                      try {
+                        const gridData = JSON.parse(gridPositionAttr);
+                        column = gridData.column || 1;
+                        row = gridData.row || 1;
+                        span = gridData.span || 1;
+                        breakpointInfo = gridData.breakpoint;
+                      } catch (error) {
+                      }
+                    }
+
+                    // Enhanced responsive span calculation
+                    const componentMetadata = COMPONENT_SIZE_METADATA[island.component];
+                    if (componentMetadata) {
+                      // Calculate optimal span for current breakpoint if auto-span was used
+                      const optimalSpan = getOptimalSpan(island.component, currentBreakpoint.name, currentBreakpoint.columns);
+
+                      // Use responsive span if this was auto-generated or if breakpoint changed
+                      if (!spanAttr || span === 1 || (breakpointInfo && breakpointInfo !== currentBreakpoint.name)) {
+                        span = optimalSpan;
+                      }
+                    }
+
+                    // Enhanced grid positioning with fixed row spanning for consistent height
+                    // Calculate row span based on component metadata or default to 1
+                    const rowSpan = componentMetadata?.minRows || 1;
+
+                    const gridStyle: React.CSSProperties = {
+                      gridColumn: `${column} / span ${span}`,
+                      gridRow: `${row} / span ${rowSpan}`,
+                      zIndex: 1,
+                    };
+
+                    // Add component-specific styling based on metadata
+                    if (componentMetadata) {
+                      if (componentMetadata.aspectRatio === 'square') {
+                        gridStyle.aspectRatio = '1';
+                      } else if (componentMetadata.aspectRatio === 'wide') {
+                        gridStyle.aspectRatio = '2/1';
+                      } else if (componentMetadata.aspectRatio === 'tall') {
+                        gridStyle.aspectRatio = '1/2';
+                      }
+
+                      // Set minimum height based on row requirements
+                      if (componentMetadata.minRows) {
+                        gridStyle.minHeight = `${componentMetadata.minRows * 60}px`;
+                      }
+                    }
+
+                    // Create enhanced grid-positioned element
+                    const gridElement = React.createElement(
+                      'div',
+                      {
+                        key: island.id,
+                        style: gridStyle,
+                        'data-component-category': componentMetadata?.category,
+                        'data-component-span': span,
+                        'data-breakpoint': currentBreakpoint.name
+                      },
+                      renderedElement
+                    );
+
+
+                    onIslandRender(island.id);
+                    return gridElement;
+                  } else {
+                    onIslandRender(island.id);
+                    return renderedElement;
+                  }
+                } else {
+                  // No positioning, render normally
+                  const renderedElement = (
+                    <ResidentDataProvider key={island.id} data={residentData}>
+                      <Component
+                        {...island.props}
+                      >
+                        {processedChildren}
+                      </Component>
+                    </ResidentDataProvider>
+                  );
+
+                  onIslandRender(island.id);
+                  return renderedElement;
+                }
               }
             } catch (error) {
               console.error(`❌ Error rendering island ${island.id}:`, error);
@@ -326,39 +496,110 @@ function StaticHTMLWithIslands({
         const tagName = element.tagName.toLowerCase();
         const elementComponentName = element.tagName; // Keep original case for component lookup
         const registration = componentRegistry.get(elementComponentName);
-        
+
+        // Debug: Check if this element has positioning data
+        const hasPositioningData = element.hasAttribute('data-positioning-mode') ||
+                                   element.hasAttribute('data-pixel-position') ||
+                                   element.hasAttribute('data-position');
+        if (hasPositioningData) {
+        }
+
         if (registration) {
           // This is a registered component but not an island - render as component
           const Component = getComponent(elementComponentName);
           if (Component) {
             const props: any = {};
-            
+
             // Copy attributes as props
             for (let i = 0; i < element.attributes.length; i++) {
               const attr = element.attributes[i];
               let propName = attr.name;
-              
+
               // Convert HTML attributes to React props
               if (propName === 'class') {
                 propName = 'className';
               } else if (propName.includes('-')) {
-                // Convert kebab-case to camelCase for data attributes and others
-                propName = propName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+                // PRESERVE positioning data attributes in original form for template renderer
+                if (propName === 'data-positioning-mode' ||
+                    propName === 'data-pixel-position' ||
+                    propName === 'data-position' ||
+                    propName === 'data-grid-position') {
+                  // Keep these attributes as-is for positioning logic
+                  props[propName] = attr.value;
+                } else {
+                  // Convert other kebab-case to camelCase
+                  propName = propName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+                  props[propName] = attr.value;
+                }
+              } else {
+                props[propName] = attr.value;
               }
-              
-              props[propName] = attr.value;
             }
             
             // Add a key for React reconciliation
             props.key = `${elementComponentName}-${Math.random().toString(36).substr(2, 9)}`;
-            
+
             // Recursively process children
-            const children = Array.from(element.childNodes).map((child, index) => 
+            const children = Array.from(element.childNodes).map((child, index) =>
               domToReact(child, islands, residentData, onIslandRender, onIslandError)
             ).filter(child => child !== null && child !== '');
-            
+
             const processedChildren = children.length > 0 ? children : undefined;
-            
+
+            // Check for absolute positioning data (same logic as template renderer)
+            const positioningMode = props['data-positioning-mode'] || props['dataPositioningMode'];
+
+            if (positioningMode === 'absolute') {
+
+              let pixelPosition;
+              const pixelPositionData = props['data-pixel-position'] || props['dataPixelPosition'];
+              const positionData = props['data-position'] || props['dataPosition'];
+
+              if (pixelPositionData) {
+                try {
+                  pixelPosition = JSON.parse(String(pixelPositionData));
+                } catch (e) {
+                  // Fallback to simple position format
+                  if (positionData) {
+                    const [x, y] = String(positionData).split(',').map(Number);
+                    if (!isNaN(x) && !isNaN(y)) {
+                      pixelPosition = { x, y, positioning: 'absolute' };
+                    }
+                  }
+                }
+              }
+
+              // Create component with absolute positioning wrapper
+              const component = (
+                <ResidentDataProvider data={residentData}>
+                  <Component {...props}>
+                    {processedChildren}
+                  </Component>
+                </ResidentDataProvider>
+              );
+
+              if (pixelPosition && typeof pixelPosition.x === 'number' && typeof pixelPosition.y === 'number') {
+
+                return React.createElement(
+                  'div',
+                  {
+                    key: props.key,
+                    style: {
+                      position: 'absolute',
+                      left: `${pixelPosition.x}px`,
+                      top: `${pixelPosition.y}px`,
+                      zIndex: 1,
+                    },
+                    className: props.className as string,
+                  },
+                  component
+                );
+              } else {
+                return component;
+              }
+            }
+
+            // Default rendering without positioning
             return (
               <ResidentDataProvider key={props.key} data={residentData}>
                 <Component {...props}>
@@ -371,21 +612,31 @@ function StaticHTMLWithIslands({
         
         // Regular HTML element - convert to React element
         const props: any = {};
-        
+
         // Copy attributes
         for (let i = 0; i < element.attributes.length; i++) {
           const attr = element.attributes[i];
           let propName = attr.name;
-          
+
           // Convert HTML attributes to React props
           if (propName === 'class') {
             propName = 'className';
           } else if (propName.includes('-')) {
-            // Convert kebab-case to camelCase for data attributes and others
-            propName = propName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+            // PRESERVE positioning data attributes in original form for template renderer
+            if (propName === 'data-positioning-mode' ||
+                propName === 'data-pixel-position' ||
+                propName === 'data-position' ||
+                propName === 'data-grid-position') {
+              // Keep these attributes as-is for positioning logic
+              props[propName] = attr.value;
+            } else {
+              // Convert other kebab-case to camelCase
+              propName = propName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+              props[propName] = attr.value;
+            }
+          } else {
+            props[propName] = attr.value;
           }
-          
-          props[propName] = attr.value;
         }
         
         // Add a key for React reconciliation
@@ -579,16 +830,65 @@ function domToReact(
       props[propName] = attr.value;
     }
     
+    // Check if this is a grid container and enhance with CSS Grid styles
+    const isGridContainer = props.className &&
+                           (props.className.includes('template-container') &&
+                            props.className.includes('grid-container'));
+
+    if (isGridContainer) {
+
+      // Parse existing style or create new one
+      const existingStyle = props.style || '';
+      const existingStyleObj = typeof existingStyle === 'string' ?
+        parseStyleString(existingStyle) : existingStyle;
+
+      // Extract grid configuration from style
+      const gridColumns = existingStyleObj.gridTemplateColumns || 'repeat(12, 1fr)';
+      const gridGap = existingStyleObj.gap || '16px';
+
+      // Enhance with CSS Grid styles
+      props.style = {
+        ...existingStyleObj,
+        display: 'grid',
+        gridTemplateColumns: gridColumns,
+        gap: gridGap,
+        width: existingStyleObj.width || '800px',
+        minHeight: existingStyleObj.minHeight || existingStyleObj.height || '600px',
+      };
+
+    }
+
     // Convert children recursively
     const children = Array.from(node.childNodes)
       .map(child => domToReact(child, allIslands, residentData, onIslandRender, onIslandError))
       .filter(child => child !== null && child !== '');
-    
+
     // Create React element
     return React.createElement(tagName, props, ...children);
   }
   
   return null;
+}
+
+// Helper function to parse CSS style string into object
+function parseStyleString(styleString: string): Record<string, string> {
+  const styles: Record<string, string> = {};
+  if (!styleString) return styles;
+
+  styleString.split(';').forEach(declaration => {
+    const colonIndex = declaration.indexOf(':');
+    if (colonIndex > 0) {
+      const property = declaration.slice(0, colonIndex).trim();
+      const value = declaration.slice(colonIndex + 1).trim();
+      if (property && value) {
+        // Convert kebab-case to camelCase for React style objects
+        const camelProperty = property.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+        styles[camelProperty] = value;
+      }
+    }
+  });
+
+  return styles;
 }
 
 // Enhanced island renderer that combines island children with HTML children

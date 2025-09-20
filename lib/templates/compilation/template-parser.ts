@@ -44,7 +44,13 @@ function createCustomSchema() {
         'interval', 'showThumbnails', 'showthumbnails', 'showDots', 'showArrows', 'height',
         'transition', 'loop', 'controls', 'direction', 'align', 'justify', 'wrap', 'gradient',
         'padding', 'rounded', 'colors', 'opacity', 'limit', 'maxWidth', 'animation', 'position',
-        'yearsExperience', 'className', 'class'
+        'yearsExperience', 'className', 'class',
+        // Add positioning data attributes for visual builder (both kebab-case and camelCase)
+        'data-position', 'data-pixel-position', 'data-positioning-mode', 'data-grid-position',
+        'dataPosition', 'dataPixelPosition', 'dataPositioningMode', 'dataGridPosition',
+        // Add grid-specific attributes
+        'data-grid-column', 'data-grid-row', 'data-grid-span',
+        'dataGridColumn', 'dataGridRow', 'dataGridSpan'
       ];
       
       schema.attributes[tagName] = allAttributes;
@@ -57,6 +63,18 @@ function createCustomSchema() {
 
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
 export function parseTemplate(htmlString: string): Root {
+  console.log('🔍 [TEMPLATE_PARSER] Starting parseTemplate with HTML:', htmlString.substring(0, 500) + '...');
+
+  // Check for positioning data in original HTML
+  const hasPositioningData = htmlString.includes('data-positioning-mode') || htmlString.includes('data-pixel-position');
+  console.log('🔍 [TEMPLATE_PARSER] Original HTML contains positioning data:', hasPositioningData);
+
+  if (hasPositioningData) {
+    console.log('🔍 [TEMPLATE_PARSER] Found positioning attributes in original HTML:');
+    const positioningMatches = htmlString.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
+    console.log('🔍 [TEMPLATE_PARSER] Positioning attributes found:', positioningMatches);
+  }
+
   // Handle full HTML documents vs fragments
   let processedHtml = htmlString.trim();
   
@@ -127,9 +145,23 @@ export function parseTemplate(htmlString: string): Root {
     .use(rehypeParse, { fragment: true })
     .use(rehypeSanitize, createCustomSchema());
 
+  console.log('🔍 [TEMPLATE_PARSER] Processing with sanitization schema, input HTML:', processedHtml.substring(0, 300) + '...');
+
   const tree = processor.parse(processedHtml);
+  console.log('🔍 [TEMPLATE_PARSER] Parsed tree before sanitization:', JSON.stringify(tree, null, 2).substring(0, 1000) + '...');
+
   const processed = processor.runSync(tree);
-  
+  console.log('🔍 [TEMPLATE_PARSER] Processed tree after sanitization:', JSON.stringify(processed, null, 2).substring(0, 1000) + '...');
+
+  // Check if positioning data survived sanitization (check both kebab-case and camelCase)
+  const processedString = JSON.stringify(processed);
+  const hasPositioningAfterSanitization = processedString.includes('data-positioning-mode') ||
+                                          processedString.includes('data-pixel-position') ||
+                                          processedString.includes('dataPositioningMode') ||
+                                          processedString.includes('dataPixelPosition') ||
+                                          processedString.includes('dataPosition');
+  console.log('🔍 [TEMPLATE_PARSER] Positioning data survived sanitization:', hasPositioningAfterSanitization);
+
   return processed as Root;
 }
 
@@ -144,6 +176,20 @@ export interface TemplateNode {
 
 export function astToJson(node: unknown): TemplateNode {
   const typedNode = node as { type: string; value?: string; tagName?: string; properties?: Record<string, unknown>; children?: unknown[] };
+
+  // Debug positioning data preservation through AST transformation
+  if (typedNode.type === 'element' && typedNode.properties) {
+    const hasPositioningProps = Object.keys(typedNode.properties).some(key =>
+      key.includes('data-positioning-mode') || key.includes('data-pixel-position') || key.includes('data-position')
+    );
+    if (hasPositioningProps) {
+      console.log('🔍 [AST_TRANSFORM] Element with positioning props:', {
+        tagName: typedNode.tagName,
+        properties: typedNode.properties
+      });
+    }
+  }
+
   if (typedNode.type === 'text') {
     return {
       type: 'text',
@@ -152,12 +198,32 @@ export function astToJson(node: unknown): TemplateNode {
   }
 
   if (typedNode.type === 'element') {
-    return {
-      type: 'element',
+    // Debug: Log positioning data preservation during astToJson conversion
+    const hasPositioningProps = typedNode.properties && Object.keys(typedNode.properties).some(key =>
+      key.includes('dataPositioningMode') || key.includes('dataPixelPosition') || key.includes('dataPosition')
+    );
+    if (hasPositioningProps) {
+      console.log('🔍 [AST_TO_JSON] Converting element with positioning props:', {
+        tagName: typedNode.tagName,
+        beforeProperties: typedNode.properties
+      });
+    }
+
+    const result: TemplateNode = {
+      type: 'element' as const,
       tagName: typedNode.tagName,
       properties: typedNode.properties || {},
       children: typedNode.children?.map(astToJson) || []
     };
+
+    if (hasPositioningProps) {
+      console.log('🔍 [AST_TO_JSON] After conversion:', {
+        tagName: result.tagName,
+        afterProperties: result.properties
+      });
+    }
+
+    return result;
   }
 
   if (typedNode.type === 'root') {
@@ -286,6 +352,8 @@ export interface CompilationResult {
 }
 
 export function compileTemplate(htmlString: string): CompilationResult {
+  console.log('🔍 [COMPILE_TEMPLATE] Starting compilation for HTML:', htmlString.substring(0, 200) + '...');
+
   try {
     // Check size limit
     const sizeKB = new Blob([htmlString]).size / 1024;
@@ -297,12 +365,28 @@ export function compileTemplate(htmlString: string): CompilationResult {
     }
 
     // Parse and sanitize
+    console.log('🔍 [COMPILE_TEMPLATE] Calling parseTemplate...');
     const hast = parseTemplate(htmlString);
-    
+
     // Convert to JSON AST
+    console.log('🔍 [COMPILE_TEMPLATE] Converting HAST to JSON AST...');
     const ast = astToJson(hast);
-    
+
+    // Check final AST for positioning data
+    const astString = JSON.stringify(ast);
+    const hasPositioningInFinalAST = astString.includes('data-positioning-mode') ||
+                                     astString.includes('data-pixel-position') ||
+                                     astString.includes('dataPositioningMode') ||
+                                     astString.includes('dataPixelPosition') ||
+                                     astString.includes('dataPosition');
+    console.log('🔍 [COMPILE_TEMPLATE] Final AST contains positioning data:', hasPositioningInFinalAST);
+
+    if (hasPositioningInFinalAST) {
+      console.log('🔍 [COMPILE_TEMPLATE] Final AST preview:', JSON.stringify(ast, null, 2).substring(0, 800) + '...');
+    }
+
     // Validate
+    console.log('🔍 [COMPILE_TEMPLATE] Validating template...');
     const validation = validateTemplate(ast);
     
     return {

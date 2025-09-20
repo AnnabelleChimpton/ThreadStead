@@ -7,6 +7,7 @@ import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
 import { featureFlags } from '@/lib/utils/features/feature-flags';
+import { getCurrentBreakpoint } from '@/lib/templates/visual-builder/grid-utils';
 import dynamic from 'next/dynamic';
 
 // Dynamically import AdvancedProfileRenderer to avoid SSR issues
@@ -224,6 +225,37 @@ export default function ProfileModeRenderer({
                 .advanced-template-container .profile-tab-list {
                   border-bottom: 1px solid rgba(161, 132, 99, 0.3);
                 }
+
+                /* Enhanced Responsive Grid System with Fixed Square Grid Cells */
+                .advanced-template-container.grid-enabled {
+                  display: grid;
+                  grid-template-columns: repeat(4, 1fr);
+                  grid-auto-rows: 60px;
+                  gap: 12px;
+                  padding: 16px;
+                  width: 100%;
+                  max-width: 100vw;
+                  min-height: 100vh;
+                  box-sizing: border-box;
+                }
+
+                @media (min-width: 768px) {
+                  .advanced-template-container.grid-enabled {
+                    grid-template-columns: repeat(8, 1fr);
+                    grid-auto-rows: 60px;
+                    gap: 12px;
+                    padding: 24px;
+                  }
+                }
+
+                @media (min-width: 1024px) {
+                  .advanced-template-container.grid-enabled {
+                    grid-template-columns: repeat(16, 1fr);
+                    grid-auto-rows: 60px;
+                    gap: 12px;
+                    padding: 32px;
+                  }
+                }
               ` }} />
               
               {/* User CSS - can override everything above */}
@@ -231,9 +263,47 @@ export default function ProfileModeRenderer({
               
               {/* Show MinimalNavBar when navigation toggle is ON */}
               {!hideNavigation && <MinimalNavBar />}
-              
+
               {/* Wrap in container for CSS isolation */}
-              <div className="advanced-template-container">
+              <div
+                className={(() => {
+                  // Check if the template contains grid positioning
+                  const compiledTemplate = user.profile?.compiledTemplate as any;
+                  const templateHtml = compiledTemplate?.staticHTML || '';
+                  const hasGridPositioning = templateHtml.includes('data-positioning-mode="grid"') ||
+                                           templateHtml.includes('template-container grid-container');
+
+                  return hasGridPositioning
+                    ? 'advanced-template-container grid-enabled'
+                    : 'advanced-template-container';
+                })()}
+                style={(() => {
+                  // Check if the template contains grid positioning
+                  const compiledTemplate = user.profile?.compiledTemplate as any;
+                  const templateHtml = compiledTemplate?.staticHTML || '';
+                  const hasGridPositioning = templateHtml.includes('data-positioning-mode="grid"') ||
+                                           templateHtml.includes('template-container grid-container');
+
+                  if (hasGridPositioning) {
+
+                    // Use the same grid system as Visual Builder
+                    const currentBreakpoint = getCurrentBreakpoint();
+
+                    return {
+                      display: 'grid',
+                      gridTemplateColumns: `repeat(${currentBreakpoint.columns}, 1fr)`,
+                      gridAutoRows: `${currentBreakpoint.rowHeight}px`,
+                      gap: `${currentBreakpoint.gap}px`,
+                      width: '100%',
+                      maxWidth: '100vw',
+                      minHeight: '100vh',
+                      padding: `${currentBreakpoint.containerPadding}px`,
+                      boxSizing: 'border-box'
+                    };
+                  }
+                  return {};
+                })()}
+              >
                 <AdvancedProfileRenderer user={user} residentData={residentData} />
               </div>
             </>

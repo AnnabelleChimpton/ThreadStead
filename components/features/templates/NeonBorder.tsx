@@ -1,4 +1,5 @@
 import React from "react";
+import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 
 interface NeonBorderProps {
   color?: 'blue' | 'pink' | 'green' | 'purple' | 'cyan' | 'yellow';
@@ -15,6 +16,8 @@ export default function NeonBorder({
   rounded = true,
   children 
 }: NeonBorderProps) {
+  const { isInGrid } = useGridCompatibilityContext();
+
   const colorMap = {
     'blue': '#00f',
     'pink': '#f0f',
@@ -30,7 +33,14 @@ export default function NeonBorder({
     'bright': '0 0 15px'
   }[intensity];
 
-  const paddingClass = {
+  // Adaptive padding: smaller in grid, normal otherwise
+  const paddingClass = isInGrid ? {
+    'xs': 'p-1',
+    'sm': 'p-2',
+    'md': 'p-3',
+    'lg': 'p-4',
+    'xl': 'p-6'
+  }[padding] : {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
@@ -59,8 +69,8 @@ export default function NeonBorder({
           }
         }
       `}</style>
-      <div 
-        className={`${paddingClass} ${roundedClass}`}
+      <div
+        className={`${paddingClass} ${roundedClass} ${isInGrid ? 'w-full h-full' : ''}`}
         style={neonStyle}
       >
         {children}

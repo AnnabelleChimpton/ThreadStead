@@ -80,13 +80,29 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         
         // Return a placeholder node to replace the component
         // Include processed children so content isn't lost in static HTML
+        // PRESERVE positioning attributes from the original node
+        const preservedProperties: Record<string, any> = {
+          'data-island': islandId,
+          'data-component': node.tagName
+        };
+
+        // Copy positioning attributes from the original node
+        if (node.properties) {
+          const positioningProps = [
+            'dataPosition', 'dataPixelPosition', 'dataPositioningMode', 'dataGridPosition',
+            'dataGridColumn', 'dataGridRow', 'dataGridSpan'
+          ];
+          for (const prop of positioningProps) {
+            if (node.properties[prop]) {
+              preservedProperties[prop] = node.properties[prop];
+            }
+          }
+        }
+
         const placeholder: TemplateNode = {
           type: 'element',
           tagName: 'div',
-          properties: {
-            'data-island': islandId,
-            'data-component': node.tagName
-          },
+          properties: preservedProperties,
           children: processedChildren
         };
         

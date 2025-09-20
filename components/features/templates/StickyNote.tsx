@@ -1,4 +1,5 @@
 import React from "react";
+import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 
 interface StickyNoteProps {
   color?: 'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple';
@@ -22,16 +23,24 @@ export default function StickyNote({
     'purple': 'bg-purple-200 border-purple-300'
   }[color];
 
+  const { isInGrid } = useGridCompatibilityContext();
+
+  // Adaptive sizing: use responsive sizing in grid, fixed sizes otherwise
   const sizeClasses = {
-    'sm': 'w-32 h-32 p-3 text-xs',
-    'md': 'w-48 h-48 p-4 text-sm',
-    'lg': 'w-64 h-64 p-6 text-base'
+    'sm': isInGrid ? 'w-full h-full min-w-32 min-h-32 p-3 text-xs' : 'w-32 h-32 p-3 text-xs',
+    'md': isInGrid ? 'w-full h-full min-w-48 min-h-48 p-4 text-sm' : 'w-48 h-48 p-4 text-sm',
+    'lg': isInGrid ? 'w-full h-full min-w-64 min-h-64 p-6 text-base' : 'w-64 h-64 p-6 text-base'
   }[size];
 
+  // Grid-adaptive container styling
+  const baseContainerClasses = isInGrid
+    ? `sticky-note-wrapper ${colorClasses} ${sizeClasses} border border-dashed shadow-md font-handwriting relative overflow-hidden aspect-square`
+    : `inline-block ${colorClasses} ${sizeClasses} border border-dashed shadow-md font-handwriting relative overflow-hidden`;
+
   return (
-    <div 
-      className={`inline-block ${colorClasses} ${sizeClasses} border border-dashed shadow-md font-handwriting relative overflow-hidden`}
-      style={{ 
+    <div
+      className={baseContainerClasses}
+      style={{
         transform: `rotate(${rotation}deg)`,
         transformOrigin: 'center'
       }}
