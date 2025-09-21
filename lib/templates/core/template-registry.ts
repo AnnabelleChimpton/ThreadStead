@@ -59,12 +59,27 @@ export interface PropSchema {
   max?: number; // for number type
 }
 
+// Component relationship metadata for parent-child relationships
+export interface ComponentRelationship {
+  type: 'container' | 'parent' | 'child' | 'leaf';
+  acceptsChildren?: string[] | true; // Array of allowed child types, or true for any
+  requiresParent?: string;           // Required parent type
+  defaultChildren?: Array<{          // Auto-created children when component is added
+    type: string;
+    props: Record<string, unknown>;
+  }>;
+  minChildren?: number;              // Minimum required children
+  maxChildren?: number;              // Maximum allowed children
+  childrenLabel?: string;            // UI label for children section in PropertyPanel
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ComponentRegistration {
   name: string;
   component: React.ComponentType<any>; // Components have varying prop types
   props: Record<string, PropSchema>;
   fromAttrs?: (attrs: Record<string, string>) => Record<string, unknown>;
+  relationship?: ComponentRelationship; // Parent-child relationship metadata
 }
 
 // Prop validation and coercion utilities
@@ -119,8 +134,9 @@ export function validateAndCoerceProps(
   for (const [key, value] of Object.entries(attrs)) {
     const schema = propSchemas[key];
     if (!schema) {
-      // Allow className to pass through for all components without warning
-      if (key === 'className') {
+      // Allow special props to pass through for all components without warning
+      if (key === 'className' || key.startsWith('_')) {
+        // Allow className and internal props (like _size, _positioningMode, etc.)
         result[key] = value;
         continue;
       }
@@ -187,6 +203,63 @@ export class ComponentRegistry {
     const registration = this.components.get(tagName);
     if (!registration) return [];
     return Object.keys(registration.props);
+  }
+
+  getAllRegistrations(): Map<string, ComponentRegistration> {
+    return new Map(this.components);
+  }
+
+  // Relationship utility methods
+  getRelationship(componentType: string): ComponentRelationship | undefined {
+    const registration = this.get(componentType);
+    return registration?.relationship;
+  }
+
+  canAcceptChild(parentType: string, childType: string): boolean {
+    const parentRegistration = this.get(parentType);
+    if (!parentRegistration?.relationship) return false;
+
+    const { acceptsChildren } = parentRegistration.relationship;
+    if (acceptsChildren === true) return true;
+    if (Array.isArray(acceptsChildren)) {
+      return acceptsChildren.includes(childType);
+    }
+    return false;
+  }
+
+  getValidChildTypes(parentType: string): string[] {
+    const parentRegistration = this.get(parentType);
+    if (!parentRegistration?.relationship) return [];
+
+    const { acceptsChildren } = parentRegistration.relationship;
+    if (acceptsChildren === true) {
+      // Return all registered component types
+      return this.getAllowedTags();
+    }
+    if (Array.isArray(acceptsChildren)) {
+      return acceptsChildren;
+    }
+    return [];
+  }
+
+  getRequiredParent(childType: string): string | undefined {
+    const childRegistration = this.get(childType);
+    return childRegistration?.relationship?.requiresParent;
+  }
+
+  getDefaultChildren(parentType: string): Array<{ type: string; props: Record<string, unknown> }> {
+    const parentRegistration = this.get(parentType);
+    return parentRegistration?.relationship?.defaultChildren || [];
+  }
+
+  isParentComponent(componentType: string): boolean {
+    const relationship = this.getRelationship(componentType);
+    return relationship?.type === 'parent' || relationship?.type === 'container';
+  }
+
+  isChildComponent(componentType: string): boolean {
+    const relationship = this.getRelationship(componentType);
+    return relationship?.type === 'child';
   }
 }
 
@@ -302,6 +375,11 @@ componentRegistry.register({
     wrap: { type: 'boolean', default: false },
     gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
     responsive: { type: 'boolean', default: true }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Can accept any children
+    childrenLabel: 'Container Content'
   }
 });
 
@@ -312,6 +390,11 @@ componentRegistry.register({
     columns: { type: 'enum', values: ['1', '2', '3', '4', '5', '6'], default: '2' },
     gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
     responsive: { type: 'boolean', default: true }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Can accept any children
+    childrenLabel: 'Grid Items'
   }
 });
 
@@ -323,6 +406,11 @@ componentRegistry.register({
     vertical: { type: 'boolean', default: false },
     gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
     responsive: { type: 'boolean', default: true }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Can accept any children
+    childrenLabel: 'Split Content'
   }
 });
 
@@ -332,6 +420,11 @@ componentRegistry.register({
   props: {
     maxWidth: { type: 'enum', values: ['sm', 'md', 'lg', 'xl', '2xl', 'full'], default: 'lg' },
     padding: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Can accept any children
+    childrenLabel: 'Centered Content'
   }
 });
 
@@ -347,6 +440,11 @@ componentRegistry.register({
     // New flexible props
     colors: { type: 'string' },
     opacity: { type: 'string' }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Can accept any children
+    childrenLabel: 'Content'
   }
 });
 
@@ -358,6 +456,11 @@ componentRegistry.register({
     intensity: { type: 'enum', values: ['soft', 'medium', 'bright'], default: 'medium' },
     padding: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
     rounded: { type: 'boolean', default: true }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Can accept any children
+    childrenLabel: 'Content'
   }
 });
 
@@ -368,6 +471,11 @@ componentRegistry.register({
     variant: { type: 'enum', values: ['green', 'amber', 'blue', 'white'], default: 'green' },
     showHeader: { type: 'boolean', default: true },
     padding: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Can accept any children
+    childrenLabel: 'Terminal Content'
   }
 });
 
@@ -378,6 +486,11 @@ componentRegistry.register({
     caption: { type: 'string', default: '' },
     rotation: { type: 'number', min: -15, max: 15, default: 0 },
     shadow: { type: 'boolean', default: true }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Can accept any children
+    childrenLabel: 'Frame Content'
   }
 });
 
@@ -388,6 +501,11 @@ componentRegistry.register({
     color: { type: 'enum', values: ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'], default: 'yellow' },
     size: { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md' },
     rotation: { type: 'number', min: -15, max: 15, default: 0 }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Can accept any children
+    childrenLabel: 'Note Content'
   }
 });
 
@@ -399,6 +517,11 @@ componentRegistry.register({
     revealText: { type: 'string', default: 'Hide' },
     variant: { type: 'enum', values: ['slide', 'fade', 'grow'], default: 'fade' },
     buttonStyle: { type: 'enum', values: ['button', 'link', 'minimal'], default: 'button' }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Can accept any children
+    childrenLabel: 'Hidden Content'
   }
 });
 
@@ -439,7 +562,17 @@ componentRegistry.register({
 componentRegistry.register({
   name: 'Tabs',
   component: Tabs,
-  props: {}
+  props: {},
+  relationship: {
+    type: 'parent',
+    acceptsChildren: ['Tab'],
+    defaultChildren: [
+      { type: 'Tab', props: { title: 'Tab 1' } },
+      { type: 'Tab', props: { title: 'Tab 2' } }
+    ],
+    minChildren: 1,
+    childrenLabel: 'Tab Pages'
+  }
 });
 
 componentRegistry.register({
@@ -447,6 +580,11 @@ componentRegistry.register({
   component: Tab,
   props: {
     title: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'child',
+    requiresParent: 'Tabs',
+    acceptsChildren: true // Tab can contain any content
   }
 });
 
@@ -569,6 +707,17 @@ componentRegistry.register({
     showValues: { type: 'boolean', default: true },
     layout: { type: 'enum', values: ['vertical', 'horizontal'], default: 'vertical' },
     size: { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md' }
+  },
+  relationship: {
+    type: 'parent',
+    acceptsChildren: ['ProgressItem'],
+    defaultChildren: [
+      { type: 'ProgressItem', props: { label: 'JavaScript', value: 85, max: 100 } },
+      { type: 'ProgressItem', props: { label: 'React', value: 90, max: 100 } },
+      { type: 'ProgressItem', props: { label: 'TypeScript', value: 75, max: 100 } }
+    ],
+    minChildren: 1,
+    childrenLabel: 'Skills'
   }
 });
 
@@ -581,6 +730,10 @@ componentRegistry.register({
     max: { type: 'number', min: 1 },
     color: { type: 'enum', values: ['blue', 'green', 'red', 'purple', 'pink', 'yellow'], default: 'blue' },
     description: { type: 'string' }
+  },
+  relationship: {
+    type: 'child',
+    requiresParent: 'ProgressTracker'
   }
 });
 
@@ -597,6 +750,16 @@ componentRegistry.register({
     transition: { type: 'enum', values: ['slide', 'fade', 'zoom'], default: 'slide' },
     loop: { type: 'boolean', default: true },
     controls: { type: 'enum', values: ['arrows', 'dots', 'thumbnails', 'all'], default: 'all' }
+  },
+  relationship: {
+    type: 'parent',
+    acceptsChildren: ['CarouselImage'],
+    defaultChildren: [
+      { type: 'CarouselImage', props: { src: '/placeholder1.jpg', alt: 'Image 1', caption: 'Sample image 1' } },
+      { type: 'CarouselImage', props: { src: '/placeholder2.jpg', alt: 'Image 2', caption: 'Sample image 2' } }
+    ],
+    minChildren: 1,
+    childrenLabel: 'Images'
   }
 });
 
@@ -608,6 +771,10 @@ componentRegistry.register({
     alt: { type: 'string' },
     caption: { type: 'string' },
     link: { type: 'string' }
+  },
+  relationship: {
+    type: 'child',
+    requiresParent: 'ImageCarousel'
   }
 });
 
@@ -622,6 +789,16 @@ componentRegistry.register({
     collapsible: { type: 'boolean', default: true },
     maxMethods: { type: 'number', min: 1, max: 10, default: 3 },
     title: { type: 'string', default: 'Contact Me' }
+  },
+  relationship: {
+    type: 'parent',
+    acceptsChildren: ['ContactMethod'],
+    defaultChildren: [
+      { type: 'ContactMethod', props: { type: 'email', value: 'user@example.com', label: 'Email' } }
+    ],
+    minChildren: 1,
+    maxChildren: 10,
+    childrenLabel: 'Contact Methods'
   }
 });
 
@@ -635,6 +812,10 @@ componentRegistry.register({
     icon: { type: 'string' },
     copyable: { type: 'boolean', default: true },
     priority: { type: 'number', min: 1, max: 10, default: 5 }
+  },
+  relationship: {
+    type: 'child',
+    requiresParent: 'ContactCard'
   }
 });
 

@@ -62,11 +62,22 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           }
         }
         
-        
+
         // Validate and coerce props from node properties
-        const props = node.properties ? 
-          validateAndCoerceProps(node.properties, registration.props) : {};
-        
+        const rawProps = node.properties || {};
+
+        // Convert dataComponentSize attribute back to _size prop if present
+        if (rawProps['dataComponentSize']) {
+          try {
+            const sizeData = JSON.parse(String(rawProps['dataComponentSize']));
+            rawProps._size = sizeData;
+          } catch (e) {
+            console.warn('Failed to parse dataComponentSize in island detector:', rawProps['dataComponentSize']);
+          }
+        }
+
+        const props = validateAndCoerceProps(rawProps, registration.props);
+
         // Create island configuration with children
         const island: Island = {
           id: islandId,
@@ -90,7 +101,7 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         if (node.properties) {
           const positioningProps = [
             'dataPosition', 'dataPixelPosition', 'dataPositioningMode', 'dataGridPosition',
-            'dataGridColumn', 'dataGridRow', 'dataGridSpan'
+            'dataGridColumn', 'dataGridRow', 'dataGridSpan', 'dataComponentSize'
           ];
           for (const prop of positioningProps) {
             if (node.properties[prop]) {

@@ -5,9 +5,9 @@
 
 import type {
   GridSystem,
-  GridPosition,
   ComponentPosition,
   ComponentSize,
+  GridPosition as FullGridPosition,
 } from './types';
 import { GRID_CONSTANTS } from './constants';
 
@@ -327,7 +327,7 @@ export function mouseToGridPosition(
   mouseY: number,
   gridSystem: GridSystem,
   containerOffset: { x: number; y: number } = { x: 0, y: 0 }
-): GridPosition {
+): FullGridPosition {
   // Adjust for container offset (e.g., canvas padding)
   const adjustedX = mouseX - containerOffset.x;
   const adjustedY = mouseY - containerOffset.y;
@@ -383,7 +383,7 @@ export function gridToAbsolutePosition(
  * Calculate the size a component should have based on its grid span
  */
 export function gridToAbsoluteSize(
-  gridPosition: GridPosition,
+  gridPosition: FullGridPosition,
   gridSystem: GridSystem
 ): ComponentSize {
   // Calculate total width including gaps
@@ -478,8 +478,7 @@ export function findNearestGridPosition(
   return {
     column: snapColumn,
     row: snapRow,
-    columnSpan: 1,
-    rowSpan: 1,
+    span: 1,
   };
 }
 
@@ -487,7 +486,7 @@ export function findNearestGridPosition(
  * Check if a grid position is valid
  */
 export function isValidGridPosition(
-  gridPosition: GridPosition,
+  gridPosition: FullGridPosition,
   gridSystem: GridSystem
 ): boolean {
   // Check bounds
@@ -526,8 +525,8 @@ export function isValidGridPosition(
  * Check if two grid positions overlap
  */
 export function gridPositionsOverlap(
-  pos1: GridPosition,
-  pos2: GridPosition
+  pos1: FullGridPosition,
+  pos2: FullGridPosition
 ): boolean {
   // Calculate bounds for position 1
   const pos1Left = pos1.column;
@@ -552,10 +551,10 @@ export function gridPositionsOverlap(
  * Find an available grid position near the desired position
  */
 export function findAvailableGridPosition(
-  desiredPosition: GridPosition,
-  occupiedPositions: GridPosition[],
+  desiredPosition: FullGridPosition,
+  occupiedPositions: FullGridPosition[],
   gridSystem: GridSystem
-): GridPosition | null {
+): FullGridPosition | null {
   // Check if desired position is available
   if (isValidGridPosition(desiredPosition, gridSystem)) {
     const hasCollision = occupiedPositions.some(pos =>
@@ -579,7 +578,7 @@ export function findAvailableGridPosition(
           continue;
         }
 
-        const candidatePosition: GridPosition = {
+        const candidatePosition: FullGridPosition = {
           column: desiredPosition.column + deltaCol,
           row: desiredPosition.row + deltaRow,
           columnSpan: desiredPosition.columnSpan,
@@ -605,7 +604,7 @@ export function findAvailableGridPosition(
 /**
  * Sort grid positions by visual order (top-to-bottom, left-to-right)
  */
-export function sortGridPositionsByVisualOrder(positions: GridPosition[]): GridPosition[] {
+export function sortGridPositionsByVisualOrder(positions: FullGridPosition[]): FullGridPosition[] {
   return [...positions].sort((a, b) => {
     // First sort by row (top to bottom)
     if (a.row !== b.row) {
@@ -620,7 +619,7 @@ export function sortGridPositionsByVisualOrder(positions: GridPosition[]): GridP
 /**
  * Calculate the total grid area needed for a set of components
  */
-export function calculateRequiredGridArea(positions: GridPosition[]): {
+export function calculateRequiredGridArea(positions: FullGridPosition[]): {
   minColumns: number;
   minRows: number;
 } {
@@ -781,4 +780,257 @@ export function generateResponsiveGridCSS(): string {
   }).join('\n');
 
   return css;
+}
+
+/**
+ * Grid Span Manipulation Utilities for Dynamic Resizing
+ */
+
+export interface GridSpanConstraints {
+  minSpan: number;
+  maxSpan: number;
+  availableSpan: number;
+  currentSpan: number;
+}
+
+export interface GridPosition {
+  column: number;
+  row: number;
+  span: number;
+}
+
+/**
+ * Calculate maximum span a component can expand to without colliding
+ */
+export function getMaxExpandableSpan(
+  componentPosition: FullGridPosition,
+  occupiedPositions: FullGridPosition[],
+  breakpoint: GridBreakpoint
+): number {
+  const { column, row } = componentPosition;
+
+  // Find components in the same row
+  const sameRowComponents = occupiedPositions.filter(pos =>
+    pos.row === row && pos.column !== column
+  );
+
+  // Find the nearest component to the right
+  let nearestRightColumn = breakpoint.columns + 1; // Grid boundary
+
+  for (const comp of sameRowComponents) {
+    if (comp.column > column) {
+      nearestRightColumn = Math.min(nearestRightColumn, comp.column);
+    }
+  }
+
+  // Maximum span is distance to the next component or grid edge
+  return nearestRightColumn - column;
+}
+
+/**
+ * Check if expanding a component's span would cause collisions
+ */
+export function canExpandSpan(
+  componentPosition: GridPosition,
+  newSpan: number,
+  occupiedPositions: GridPosition[],
+  excludeComponentIndex?: number
+): boolean {
+  const { column, row } = componentPosition;
+
+  // Check if new span would exceed grid bounds
+  if (column + newSpan - 1 > getCurrentBreakpoint().columns) {
+    return false;
+  }
+
+  // Filter out the component being resized
+  const otherComponents = occupiedPositions.filter((_, index) =>
+    index !== excludeComponentIndex
+  );
+
+  // Check for collisions with other components
+  for (const otherComp of otherComponents) {
+    if (otherComp.row === row) {
+      // Components are in the same row
+      const newEndColumn = column + newSpan - 1;
+      const otherStartColumn = otherComp.column;
+      const otherEndColumn = otherComp.column + otherComp.span - 1;
+
+      // Check for overlap
+      const overlap = !(newEndColumn < otherStartColumn || column > otherEndColumn);
+      if (overlap) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Optimize grid layout after a component resize
+ */
+export function optimizeGridLayout(
+  positions: GridPosition[],
+  breakpoint: GridBreakpoint
+): GridPosition[] {
+  // Sort by row, then by column
+  const sortedPositions = [...positions].sort((a, b) => {
+    if (a.row !== b.row) return a.row - b.row;
+    return a.column - b.column;
+  });
+
+  const optimized: GridPosition[] = [];
+
+  for (const position of sortedPositions) {
+    // Find the best position for this component
+    let bestPosition = { ...position };
+    let currentRow = position.row;
+
+    // Try to place in earlier rows if possible
+    while (currentRow > 1) {
+      const testPosition = { ...position, row: currentRow - 1 };
+      if (canExpandSpan(testPosition, position.span, optimized)) {
+        bestPosition = testPosition;
+        currentRow--;
+      } else {
+        break;
+      }
+    }
+
+    optimized.push(bestPosition);
+  }
+
+  return optimized;
+}
+
+/**
+ * Calculate grid constraints for a component
+ */
+export function calculateGridConstraints(
+  componentPosition: GridPosition,
+  componentType: string,
+  occupiedPositions: GridPosition[],
+  breakpoint: GridBreakpoint
+): GridSpanConstraints {
+  const metadata = COMPONENT_SIZE_METADATA[componentType];
+
+  // Get minimum span from metadata (use 1 if flexible, otherwise use the breakpoint-specific span)
+  let defaultSpan = 1;
+  if (metadata) {
+    // Get appropriate span based on breakpoint columns
+    if (breakpoint.columns >= 24) {
+      defaultSpan = metadata.desktop;
+    } else if (breakpoint.columns >= 12) {
+      defaultSpan = metadata.tablet;
+    } else {
+      defaultSpan = metadata.mobile;
+    }
+  }
+  const minSpan = metadata?.flexible ? 1 : defaultSpan;
+
+  // Calculate maximum span from metadata and available space
+  const metadataMaxSpan = breakpoint.columns;
+
+  // Convert local GridPosition to FullGridPosition for getMaxExpandableSpan
+  const fullComponentPosition: FullGridPosition = {
+    column: componentPosition.column,
+    row: componentPosition.row,
+    columnSpan: componentPosition.span,
+    rowSpan: 1
+  };
+
+  const fullOccupiedPositions: FullGridPosition[] = occupiedPositions.map(pos => ({
+    column: pos.column,
+    row: pos.row,
+    columnSpan: pos.span,
+    rowSpan: 1
+  }));
+
+  const availableSpan = getMaxExpandableSpan(fullComponentPosition, fullOccupiedPositions, breakpoint);
+  const maxSpan = Math.min(metadataMaxSpan, availableSpan);
+
+  return {
+    minSpan,
+    maxSpan,
+    availableSpan,
+    currentSpan: componentPosition.span
+  };
+}
+
+/**
+ * Snap span value to grid increments
+ */
+export function snapSpanToGrid(span: number, constraints: GridSpanConstraints): number {
+  // Ensure span is within constraints
+  const constrainedSpan = Math.max(constraints.minSpan, Math.min(span, constraints.maxSpan));
+
+  // Round to nearest integer (spans must be whole numbers)
+  return Math.round(constrainedSpan);
+}
+
+/**
+ * Convert pixel width change to span change for grid components
+ */
+export function pixelWidthToSpanDelta(
+  pixelDelta: number,
+  breakpoint: GridBreakpoint,
+  canvasWidth: number = 800
+): number {
+  const columnWidth = (canvasWidth - (breakpoint.columns + 1) * breakpoint.gap) / breakpoint.columns;
+  const totalColumnWidth = columnWidth + breakpoint.gap;
+
+  return Math.round(pixelDelta / totalColumnWidth);
+}
+
+/**
+ * Convert span change to pixel width change for grid components
+ */
+export function spanDeltaToPixelWidth(
+  spanDelta: number,
+  breakpoint: GridBreakpoint,
+  canvasWidth: number = 800
+): number {
+  const columnWidth = (canvasWidth - (breakpoint.columns + 1) * breakpoint.gap) / breakpoint.columns;
+  const totalColumnWidth = columnWidth + breakpoint.gap;
+
+  return spanDelta * totalColumnWidth;
+}
+
+/**
+ * Update component grid position with collision detection
+ */
+export function updateGridPositionSafe(
+  componentIndex: number,
+  newPosition: GridPosition,
+  allPositions: GridPosition[],
+  breakpoint: GridBreakpoint
+): { success: boolean; position: GridPosition; reason?: string } {
+  // Validate new position is within grid bounds
+  if (newPosition.column < 1 || newPosition.row < 1) {
+    return {
+      success: false,
+      position: allPositions[componentIndex],
+      reason: 'Position must be within grid bounds'
+    };
+  }
+
+  if (newPosition.column + newPosition.span - 1 > breakpoint.columns) {
+    return {
+      success: false,
+      position: allPositions[componentIndex],
+      reason: 'Span exceeds grid width'
+    };
+  }
+
+  // Check for collisions
+  if (!canExpandSpan(newPosition, newPosition.span, allPositions, componentIndex)) {
+    return {
+      success: false,
+      position: allPositions[componentIndex],
+      reason: 'Would collide with other components'
+    };
+  }
+
+  return { success: true, position: newPosition };
 }

@@ -63,34 +63,12 @@ export function useDragDrop(options: UseDragDropOptions = {}): UseDragDropResult
 
   // Initialize drag drop manager
   const initializeDragDropManager = useCallback(() => {
-    console.log('🔍 initializeDragDropManager called:', {
-      hasExistingManager: !!dragDropManagerRef.current,
-      onDragStateChange: !!onDragStateChange,
-      onDrop: !!onDrop,
-      DragDropManagerType: typeof DragDropManager,
-      DragDropManagerConstructor: DragDropManager?.constructor?.name,
-      isDragDropManagerFunction: typeof DragDropManager === 'function'
-    });
-
     if (!dragDropManagerRef.current) {
       try {
-        console.log('🔍 Creating new DragDropManager...');
-        console.log('🔍 DragDropManager check:', {
-          isFunction: typeof DragDropManager === 'function',
-          hasPrototype: !!DragDropManager.prototype,
-          prototype: DragDropManager.prototype
-        });
 
         const manager = new DragDropManager(onDragStateChange, onDrop);
-        console.log('🔍 Manager instance created:', {
-          manager: !!manager,
-          managerType: typeof manager,
-          isInstance: manager instanceof DragDropManager,
-          hasGetDragState: typeof manager.getDragState === 'function'
-        });
 
         dragDropManagerRef.current = manager;
-        console.log('🔍 DragDropManager assigned to ref:', !!dragDropManagerRef.current);
       } catch (error) {
         console.error('🔍 Failed to create DragDropManager:', error);
         if (error instanceof Error) {
@@ -101,8 +79,6 @@ export function useDragDrop(options: UseDragDropOptions = {}): UseDragDropResult
           });
         }
       }
-    } else {
-      console.log('🔍 Skipping manager creation - already exists');
     }
   }, [onDragStateChange, onDrop]);
 
@@ -133,14 +109,8 @@ export function useDragDrop(options: UseDragDropOptions = {}): UseDragDropResult
 
   // Start dragging from component palette
   const startPaletteDrag = useCallback((componentType: string, event: React.MouseEvent) => {
-    console.log('🔍 startPaletteDrag called:', {
-      componentType,
-      hasManager: !!dragDropManagerRef.current,
-      position: { x: event.clientX, y: event.clientY }
-    });
 
     if (!dragDropManagerRef.current) {
-      console.log('🔍 Initializing drag drop manager...');
       initializeDragDropManager();
     }
 
@@ -148,12 +118,6 @@ export function useDragDrop(options: UseDragDropOptions = {}): UseDragDropResult
       x: event.clientX,
       y: event.clientY,
     };
-
-    console.log('🔍 Calling manager.startPaletteDrag:', {
-      manager: !!dragDropManagerRef.current,
-      componentType,
-      startPosition
-    });
 
     dragDropManagerRef.current?.startPaletteDrag(componentType, startPosition);
     onDragStart?.({
@@ -352,15 +316,6 @@ export function usePaletteDraggable(
   dragDropResult: UseDragDropResult
 ) {
   const handleMouseDown = useCallback((event: React.MouseEvent) => {
-    console.log('🔍 Palette Drag Started for component:', {
-      componentType,
-      event: event.type,
-      button: event.button,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      targetElement: event.target,
-      currentTargetElement: event.currentTarget
-    });
     event.preventDefault();
     event.stopPropagation(); // Prevent event bubbling to parent components
     dragDropResult.startPaletteDrag(componentType, event);
@@ -420,17 +375,6 @@ export function useDropZone(
 
   const isActive = dragDropResult.isDropZoneActive(component.id);
   const isValidTarget = dragDropResult.isValidDropTarget(component.id);
-
-  // Debug drop zone state changes
-  if (dragDropResult.dragState?.isDragging) {
-    console.log('🔍 DropZone State:', {
-      componentId: component.id,
-      isActive,
-      isValidTarget,
-      dragState: !!dragDropResult.dragState?.isDragging,
-      draggedComponent: dragDropResult.dragState?.draggedComponent?.componentType
-    });
-  }
 
   return {
     ref: elementRef,

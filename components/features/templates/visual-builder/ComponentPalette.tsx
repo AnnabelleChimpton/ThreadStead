@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { ComponentItem, UseCanvasStateResult } from '@/hooks/useCanvasState';
-import { componentRegistry } from '@/lib/templates/core/template-registry';
+import { componentRegistry, type ComponentRegistration } from '@/lib/templates/core/template-registry';
 
 interface ComponentPaletteProps {
   canvasState: UseCanvasStateResult;
@@ -20,18 +20,172 @@ interface PaletteComponent {
   category: string;
 }
 
-// Available components for the palette
-const AVAILABLE_COMPONENTS: PaletteComponent[] = [
-  { type: 'DisplayName', name: 'Display Name', description: 'User display name', icon: '👤', category: 'Basic' },
-  { type: 'Bio', name: 'Bio', description: 'User biography', icon: '📝', category: 'Basic' },
-  { type: 'ProfilePhoto', name: 'Profile Photo', description: 'User profile picture', icon: '🖼️', category: 'Basic' },
-  { type: 'ContactCard', name: 'Contact Card', description: 'Contact information', icon: '📇', category: 'Basic' },
-  { type: 'StickyNote', name: 'Sticky Note', description: 'Decorative note', icon: '📝', category: 'Decorative' },
-  { type: 'NeonBorder', name: 'Neon Border', description: 'Glowing border effect', icon: '✨', category: 'Effects' },
-  { type: 'PolaroidFrame', name: 'Polaroid Frame', description: 'Photo frame style', icon: '📸', category: 'Effects' },
-  { type: 'FloatingBadge', name: 'Floating Badge', description: 'Status badge', icon: '🏷️', category: 'Interactive' },
-  { type: 'NotificationBell', name: 'Notification Bell', description: 'Bell notification', icon: '🔔', category: 'Interactive' },
-];
+// Component icons mapping for visual palette
+const COMPONENT_ICONS: Record<string, string> = {
+  // Basic components
+  'DisplayName': '👤',
+  'Bio': '📝',
+  'ProfilePhoto': '🖼️',
+  'ProfileHero': '🎭',
+  'ProfileHeader': '📋',
+  'UserImage': '🖼️',
+  'UserAccount': '👤',
+
+  // Contact & Social
+  'ContactCard': '📇',
+  'ContactMethod': '📞',
+  'MutualFriends': '👥',
+  'FriendBadge': '🏷️',
+  'FriendDisplay': '👥',
+  'FollowButton': '➕',
+  'WebsiteDisplay': '🌐',
+
+  // Layout containers
+  'FlexContainer': '📦',
+  'GridLayout': '⬜',
+  'SplitLayout': '📱',
+  'CenteredBox': '🎯',
+  'Tabs': '📂',
+  'Tab': '📄',
+
+  // Media & Content
+  'MediaGrid': '🖼️',
+  'ImageCarousel': '🎠',
+  'CarouselImage': '🖼️',
+  'BlogPosts': '📰',
+  'Guestbook': '📖',
+
+  // Interactive
+  'NotificationBell': '🔔',
+  'NotificationCenter': '📬',
+  'FloatingBadge': '🏷️',
+  'RevealBox': '🎁',
+
+  // Decorative & Effects
+  'StickyNote': '📝',
+  'NeonBorder': '✨',
+  'RetroTerminal': '💻',
+  'PolaroidFrame': '📸',
+  'GradientBox': '🌈',
+  'RetroCard': '🎴',
+
+  // Text Effects
+  'WaveText': '🌊',
+  'GlitchText': '⚡',
+
+  // Data Visualization
+  'ProgressTracker': '📊',
+  'ProgressItem': '📈',
+  'SkillChart': '🎯',
+  'Skill': '⭐',
+  'ProfileBadges': '🏆',
+
+  // Navigation
+  'Breadcrumb': '🍞',
+  'SiteBranding': '🏷️',
+
+  // Conditional
+  'Show': '👁️',
+  'Choose': '🤔',
+  'When': '❓',
+  'Otherwise': '🔄',
+  'IfOwner': '🔒',
+  'IfVisitor': '👀',
+};
+
+// Component category mapping based on functionality
+const COMPONENT_CATEGORIES: Record<string, string> = {
+  // Basic Profile Components
+  'DisplayName': 'Profile',
+  'Bio': 'Profile',
+  'ProfilePhoto': 'Profile',
+  'ProfileHero': 'Profile',
+  'ProfileHeader': 'Profile',
+  'UserImage': 'Profile',
+  'UserAccount': 'Profile',
+  'ProfileBadges': 'Profile',
+
+  // Contact & Social
+  'ContactCard': 'Contact',
+  'ContactMethod': 'Contact',
+  'MutualFriends': 'Social',
+  'FriendBadge': 'Social',
+  'FriendDisplay': 'Social',
+  'FollowButton': 'Social',
+  'WebsiteDisplay': 'Contact',
+
+  // Layout & Structure
+  'FlexContainer': 'Layout',
+  'GridLayout': 'Layout',
+  'SplitLayout': 'Layout',
+  'CenteredBox': 'Layout',
+  'Tabs': 'Layout',
+  'Tab': 'Layout',
+
+  // Media & Content
+  'MediaGrid': 'Media',
+  'ImageCarousel': 'Media',
+  'CarouselImage': 'Media',
+  'BlogPosts': 'Content',
+  'Guestbook': 'Content',
+
+  // Interactive Elements
+  'NotificationBell': 'Interactive',
+  'NotificationCenter': 'Interactive',
+  'FloatingBadge': 'Interactive',
+  'RevealBox': 'Interactive',
+
+  // Visual Effects
+  'StickyNote': 'Effects',
+  'NeonBorder': 'Effects',
+  'RetroTerminal': 'Effects',
+  'PolaroidFrame': 'Effects',
+  'GradientBox': 'Effects',
+  'RetroCard': 'Effects',
+  'WaveText': 'Effects',
+  'GlitchText': 'Effects',
+
+  // Data & Analytics
+  'ProgressTracker': 'Data',
+  'ProgressItem': 'Data',
+  'SkillChart': 'Data',
+  'Skill': 'Data',
+
+  // Navigation
+  'Breadcrumb': 'Navigation',
+  'SiteBranding': 'Navigation',
+
+  // Conditional Rendering
+  'Show': 'Conditional',
+  'Choose': 'Conditional',
+  'When': 'Conditional',
+  'Otherwise': 'Conditional',
+  'IfOwner': 'Conditional',
+  'IfVisitor': 'Conditional',
+};
+
+// Generate component list from registry
+function getAvailableComponents(): PaletteComponent[] {
+  const registrations = componentRegistry.getAllRegistrations();
+  const components: PaletteComponent[] = [];
+
+  for (const [name, registration] of registrations) {
+    // Skip child components that should only be added through parent components
+    if (registration.relationship?.type === 'child') {
+      continue;
+    }
+
+    components.push({
+      type: name,
+      name: name.replace(/([A-Z])/g, ' $1').trim(), // Convert CamelCase to readable name
+      description: `${name} component`,
+      icon: COMPONENT_ICONS[name] || '🔧',
+      category: COMPONENT_CATEGORIES[name] || 'Other'
+    });
+  }
+
+  return components.sort((a, b) => a.name.localeCompare(b.name));
+}
 
 /**
  * Component palette with native HTML5 drag and drop like pixel homes
@@ -43,20 +197,23 @@ export default function ComponentPalette({
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const { startDrag, endDrag } = canvasState;
 
+  // Get components from registry
+  const availableComponents = useMemo(() => getAvailableComponents(), []);
+
   // Group components by category
   const categories = useMemo(() => {
     const cats = new Set(['All']);
-    AVAILABLE_COMPONENTS.forEach(comp => cats.add(comp.category));
-    return Array.from(cats);
-  }, []);
+    availableComponents.forEach(comp => cats.add(comp.category));
+    return Array.from(cats).sort();
+  }, [availableComponents]);
 
   // Filter components by category
   const filteredComponents = useMemo(() => {
     if (selectedCategory === 'All') {
-      return AVAILABLE_COMPONENTS;
+      return availableComponents;
     }
-    return AVAILABLE_COMPONENTS.filter(comp => comp.category === selectedCategory);
-  }, [selectedCategory]);
+    return availableComponents.filter(comp => comp.category === selectedCategory);
+  }, [selectedCategory, availableComponents]);
 
   // Handle drag start like pixel homes
   const handleDragStart = (component: PaletteComponent, event: React.DragEvent) => {

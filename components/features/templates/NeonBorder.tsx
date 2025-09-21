@@ -7,16 +7,25 @@ interface NeonBorderProps {
   padding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   rounded?: boolean;
   children: React.ReactNode;
+
+  // Internal prop from visual builder
+  _positioningMode?: 'grid' | 'absolute';
 }
 
-export default function NeonBorder({ 
+export default function NeonBorder({
   color = 'blue',
   intensity = 'medium',
   padding = 'md',
   rounded = true,
-  children 
+  children,
+
+  // Internal props
+  _positioningMode
 }: NeonBorderProps) {
   const { isInGrid } = useGridCompatibilityContext();
+
+  // Override grid detection if component is in absolute positioning mode
+  const shouldUseGridClasses = _positioningMode === 'absolute' ? false : isInGrid;
 
   const colorMap = {
     'blue': '#00f',
@@ -34,7 +43,7 @@ export default function NeonBorder({
   }[intensity];
 
   // Adaptive padding: smaller in grid, normal otherwise
-  const paddingClass = isInGrid ? {
+  const paddingClass = shouldUseGridClasses ? {
     'xs': 'p-1',
     'sm': 'p-2',
     'md': 'p-3',
@@ -70,7 +79,11 @@ export default function NeonBorder({
         }
       `}</style>
       <div
-        className={`${paddingClass} ${roundedClass} ${isInGrid ? 'w-full h-full' : ''}`}
+        className={`${paddingClass} ${roundedClass} ${
+          shouldUseGridClasses ? 'w-full h-full' : ''
+        } ${
+          _positioningMode === 'absolute' ? 'h-full' : ''
+        }`}
         style={neonStyle}
       >
         {children}

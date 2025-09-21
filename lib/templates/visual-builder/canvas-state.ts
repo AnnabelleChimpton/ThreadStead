@@ -117,13 +117,6 @@ function addComponent(
   component: CanvasComponent,
   parentId?: string
 ): CanvasState {
-  console.log('🔧 [REDUCER] addComponent called:', {
-    componentType: component.type,
-    componentId: component.id,
-    parentId,
-    currentComponentCount: state.components.length,
-    totalComponents: countComponents(state.components)
-  });
 
   // Check max components limit
   const totalComponents = countComponents(state.components);
@@ -135,23 +128,17 @@ function addComponent(
   // Ensure component has an ID
   if (!component.id) {
     component = { ...component, id: generateComponentId() };
-    console.log('🔧 [REDUCER] Generated ID for component:', component.id);
   }
 
   let newComponents: CanvasComponent[];
 
   if (parentId) {
-    console.log('🔧 [REDUCER] Adding component as child to parent:', parentId);
     // Add as child to parent component
     newComponents = addComponentToParent(state.components, component, parentId);
   } else {
-    console.log('🔧 [REDUCER] Adding component to root level');
     // Add to root level
     newComponents = [...state.components, component];
   }
-
-  console.log('🔧 [REDUCER] Component added successfully. New count:', newComponents.length);
-  console.log('🔧 [REDUCER] All components:', newComponents.map(c => ({ type: c.type, id: c.id })));
 
   return {
     ...state,

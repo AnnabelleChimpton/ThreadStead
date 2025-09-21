@@ -101,14 +101,7 @@ export default function ProfileModeRenderer({
                   --tw-gradient-position: initial;
                 }
                 
-                /* Reset ALL Tailwind gradient classes within advanced templates */
-                .advanced-template-container [class*="bg-gradient"] {
-                  background-image: none !important;
-                  --tw-gradient-from: initial !important;
-                  --tw-gradient-to: initial !important;
-                  --tw-gradient-stops: initial !important;
-                  --tw-gradient-position: initial !important;
-                }
+                /* Allow template components to use gradients normally */
                 
                 /* Reset system CSS for ThreadStead components */
                 .advanced-template-container .thread-module {

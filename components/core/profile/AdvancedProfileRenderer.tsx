@@ -337,10 +337,16 @@ function StaticHTMLWithIslands({
                     }
                   }
 
+                  // Apply _size properties to component props if they exist
+                  const componentProps = { ...island.props };
+                  if (island.props._size) {
+                    componentProps._positioningMode = 'absolute';
+                  }
+
                   const renderedElement = (
                     <ResidentDataProvider key={island.id} data={residentData}>
                       <Component
-                        {...island.props}
+                        {...componentProps}
                       >
                         {processedChildren}
                       </Component>
@@ -348,17 +354,30 @@ function StaticHTMLWithIslands({
                   );
 
                   if (pixelPosition && typeof pixelPosition.x === 'number' && typeof pixelPosition.y === 'number') {
+                    // Apply component size from _size prop if available
+                    const componentSize = componentProps._size;
+                    const containerStyle: React.CSSProperties = {
+                      position: 'absolute',
+                      left: `${pixelPosition.x}px`,
+                      top: `${pixelPosition.y}px`,
+                      zIndex: 1,
+                    };
+
+                    // Apply size properties if they exist
+                    if (componentSize) {
+                      if (componentSize.width && componentSize.width !== 'auto') {
+                        containerStyle.width = componentSize.width;
+                      }
+                      if (componentSize.height && componentSize.height !== 'auto') {
+                        containerStyle.height = componentSize.height;
+                      }
+                    }
 
                     const positionedElement = React.createElement(
                       'div',
                       {
                         key: island.id,
-                        style: {
-                          position: 'absolute',
-                          left: `${pixelPosition.x}px`,
-                          top: `${pixelPosition.y}px`,
-                          zIndex: 1,
-                        }
+                        style: containerStyle
                       },
                       renderedElement
                     );
@@ -371,10 +390,27 @@ function StaticHTMLWithIslands({
                   }
                 } else if (positioningMode === 'grid') {
 
+                  // Apply _size properties to component props if they exist
+                  const componentProps = { ...island.props };
+
+                  // Check for size data in HTML attributes (from template compilation)
+                  const componentSizeAttr = element.getAttribute('data-component-size');
+                  if (componentSizeAttr) {
+                    try {
+                      const sizeData = JSON.parse(componentSizeAttr);
+                      componentProps._size = sizeData;
+                      componentProps._positioningMode = 'grid';
+                    } catch (e) {
+                      console.warn('Failed to parse component size data:', componentSizeAttr);
+                    }
+                  } else if (island.props._size) {
+                    componentProps._positioningMode = 'grid';
+                  }
+
                   const renderedElement = (
                     <ResidentDataProvider key={island.id} data={residentData}>
                       <Component
-                        {...island.props}
+                        {...componentProps}
                       >
                         {processedChildren}
                       </Component>
@@ -433,8 +469,19 @@ function StaticHTMLWithIslands({
                       zIndex: 1,
                     };
 
-                    // Add component-specific styling based on metadata
-                    if (componentMetadata) {
+                    // Apply component size from _size prop if available (takes precedence over metadata)
+                    const componentSize = componentProps._size;
+                    if (componentSize) {
+                      if (componentSize.width && componentSize.width !== 'auto') {
+                        gridStyle.width = componentSize.width;
+                      }
+                      if (componentSize.height && componentSize.height !== 'auto') {
+                        gridStyle.height = componentSize.height;
+                      }
+                    }
+
+                    // Add component-specific styling based on metadata (if no _size override)
+                    if (componentMetadata && !componentSize) {
                       if (componentMetadata.aspectRatio === 'square') {
                         gridStyle.aspectRatio = '1';
                       } else if (componentMetadata.aspectRatio === 'wide') {
@@ -471,15 +518,42 @@ function StaticHTMLWithIslands({
                   }
                 } else {
                   // No positioning, render normally
+                  // Apply _size properties to component props if they exist
+                  const componentProps = { ...island.props };
+                  if (island.props._size) {
+                    componentProps._positioningMode = 'absolute';
+                  }
+
                   const renderedElement = (
                     <ResidentDataProvider key={island.id} data={residentData}>
                       <Component
-                        {...island.props}
+                        {...componentProps}
                       >
                         {processedChildren}
                       </Component>
                     </ResidentDataProvider>
                   );
+
+                  // Apply size styling if _size exists
+                  const componentSize = componentProps._size;
+                  if (componentSize) {
+                    const containerStyle: React.CSSProperties = {};
+
+                    if (componentSize.width && componentSize.width !== 'auto') {
+                      containerStyle.width = componentSize.width;
+                    }
+                    if (componentSize.height && componentSize.height !== 'auto') {
+                      containerStyle.height = componentSize.height;
+                    }
+
+                    if (Object.keys(containerStyle).length > 0) {
+                      onIslandRender(island.id);
+                      return React.createElement('div', {
+                        key: island.id,
+                        style: containerStyle
+                      }, renderedElement);
+                    }
+                  }
 
                   onIslandRender(island.id);
                   return renderedElement;
@@ -569,27 +643,46 @@ function StaticHTMLWithIslands({
                 }
               }
 
+              // Apply _size properties to component props if they exist
+              const componentProps = { ...props };
+              if (props._size) {
+                componentProps._positioningMode = 'absolute';
+              }
+
               // Create component with absolute positioning wrapper
               const component = (
                 <ResidentDataProvider data={residentData}>
-                  <Component {...props}>
+                  <Component {...componentProps}>
                     {processedChildren}
                   </Component>
                 </ResidentDataProvider>
               );
 
               if (pixelPosition && typeof pixelPosition.x === 'number' && typeof pixelPosition.y === 'number') {
+                // Apply component size from _size prop if available
+                const componentSize = componentProps._size;
+                const containerStyle: React.CSSProperties = {
+                  position: 'absolute',
+                  left: `${pixelPosition.x}px`,
+                  top: `${pixelPosition.y}px`,
+                  zIndex: 1,
+                };
+
+                // Apply size properties if they exist
+                if (componentSize) {
+                  if (componentSize.width && componentSize.width !== 'auto') {
+                    containerStyle.width = componentSize.width;
+                  }
+                  if (componentSize.height && componentSize.height !== 'auto') {
+                    containerStyle.height = componentSize.height;
+                  }
+                }
 
                 return React.createElement(
                   'div',
                   {
                     key: props.key,
-                    style: {
-                      position: 'absolute',
-                      left: `${pixelPosition.x}px`,
-                      top: `${pixelPosition.y}px`,
-                      zIndex: 1,
-                    },
+                    style: containerStyle,
                     className: props.className as string,
                   },
                   component
@@ -600,13 +693,41 @@ function StaticHTMLWithIslands({
             }
 
             // Default rendering without positioning
-            return (
+            // Apply _size properties to component props if they exist
+            const componentProps = { ...props };
+            if (props._size) {
+              componentProps._positioningMode = 'absolute';
+            }
+
+            const component = (
               <ResidentDataProvider key={props.key} data={residentData}>
-                <Component {...props}>
+                <Component {...componentProps}>
                   {processedChildren}
                 </Component>
               </ResidentDataProvider>
             );
+
+            // Apply size styling if _size exists
+            const componentSize = componentProps._size;
+            if (componentSize) {
+              const containerStyle: React.CSSProperties = {};
+
+              if (componentSize.width && componentSize.width !== 'auto') {
+                containerStyle.width = componentSize.width;
+              }
+              if (componentSize.height && componentSize.height !== 'auto') {
+                containerStyle.height = componentSize.height;
+              }
+
+              if (Object.keys(containerStyle).length > 0) {
+                return React.createElement('div', {
+                  key: props.key,
+                  style: containerStyle
+                }, component);
+              }
+            }
+
+            return component;
           }
         }
         
@@ -1071,16 +1192,43 @@ function ProductionIslandRendererWithHTMLChildren({
       combinedChildren = htmlChildren;
     }
 
-    
+    // Apply _size properties to component props if they exist
+    const componentProps = { ...island.props };
+    if (island.props._size) {
+      componentProps._positioningMode = 'absolute';
+    }
+
     onIslandRender(island.id);
-    
-    return (
+
+    const component = (
       <ResidentDataProvider data={residentData}>
-        <Component {...island.props}>
+        <Component {...componentProps}>
           {combinedChildren}
         </Component>
       </ResidentDataProvider>
     );
+
+    // Apply size styling if _size exists
+    const componentSize = island.props._size;
+    if (componentSize) {
+      const containerStyle: React.CSSProperties = {};
+
+      if (componentSize.width && componentSize.width !== 'auto') {
+        containerStyle.width = componentSize.width;
+      }
+      if (componentSize.height && componentSize.height !== 'auto') {
+        containerStyle.height = componentSize.height;
+      }
+
+      if (Object.keys(containerStyle).length > 0) {
+        return React.createElement('div', {
+          key: island.id,
+          style: containerStyle
+        }, component);
+      }
+    }
+
+    return component;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error(`ProductionIslandRendererWithHTMLChildren: Error in ${island.component}:`, err);
@@ -1300,16 +1448,43 @@ function ProductionIslandRenderer({
     } else {
     }
 
-    
+    // Apply _size properties to component props if they exist
+    const componentProps = { ...island.props };
+    if (island.props._size) {
+      componentProps._positioningMode = 'absolute';
+    }
+
     onIslandRender(island.id);
-    
-    return (
+
+    const component = (
       <ResidentDataProvider data={residentData}>
-        <Component {...island.props}>
+        <Component {...componentProps}>
           {children}
         </Component>
       </ResidentDataProvider>
     );
+
+    // Apply size styling if _size exists
+    const componentSize = island.props._size;
+    if (componentSize) {
+      const containerStyle: React.CSSProperties = {};
+
+      if (componentSize.width && componentSize.width !== 'auto') {
+        containerStyle.width = componentSize.width;
+      }
+      if (componentSize.height && componentSize.height !== 'auto') {
+        containerStyle.height = componentSize.height;
+      }
+
+      if (Object.keys(containerStyle).length > 0) {
+        return React.createElement('div', {
+          key: island.id,
+          style: containerStyle
+        }, component);
+      }
+    }
+
+    return component;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error(`ProductionIslandRenderer: Error in ${island.component}:`, err);
@@ -1488,13 +1663,41 @@ function DirectIslandRenderer({ island, residentData }: { island: ExtendedIsland
     );
   };
 
-  return (
+  // Apply _size properties to component props if they exist
+  const componentProps = { ...island.props };
+  if (island.props._size) {
+    componentProps._positioningMode = 'absolute';
+  }
+
+  const component = (
     <ResidentDataProvider data={residentData}>
-      <Component {...island.props}>
+      <Component {...componentProps}>
         {renderStructuredContent()}
       </Component>
     </ResidentDataProvider>
   );
+
+  // Apply size styling if _size exists
+  const componentSize = island.props._size;
+  if (componentSize) {
+    const containerStyle: React.CSSProperties = {};
+
+    if (componentSize.width && componentSize.width !== 'auto') {
+      containerStyle.width = componentSize.width;
+    }
+    if (componentSize.height && componentSize.height !== 'auto') {
+      containerStyle.height = componentSize.height;
+    }
+
+    if (Object.keys(containerStyle).length > 0) {
+      return React.createElement('div', {
+        key: island.id,
+        style: containerStyle
+      }, component);
+    }
+  }
+
+  return component;
 }
 
 // Error boundary for islands rendering

@@ -226,10 +226,6 @@ export default function EnhancedCommunityBrowser({
             <button
               onClick={async (e) => {
                 e.stopPropagation();
-                const saveResult = await saveFromCommunityIndex(site);
-                if (saveResult) {
-                  console.log('Saved to bookmarks:', saveResult);
-                }
               }}
               disabled={saving}
               className="px-2 py-1 text-xs border border-gray-300 text-gray-600 rounded hover:bg-gray-50 disabled:opacity-50 transition-colors"

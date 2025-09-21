@@ -277,18 +277,6 @@ export default function EnhancedTemplateEditor({
 
   // Handle template changes from visual builder
   const handleVisualTemplateChange = useCallback((html: string) => {
-    // Debug: Check positioning data from visual builder
-    const hasPositioningData = html.includes('data-positioning-mode') || html.includes('data-pixel-position');
-    console.log('🎯 [VISUAL_BUILDER_CHANGE] Received HTML from visual builder with positioning data:', hasPositioningData);
-
-    if (hasPositioningData) {
-      console.log('🎯 [VISUAL_BUILDER_CHANGE] Visual builder HTML:', html.substring(0, 800) + '...');
-      const positioningMatches = html.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
-      console.log('🎯 [VISUAL_BUILDER_CHANGE] Found positioning attributes:', positioningMatches);
-    } else if (html.trim()) {
-      console.log('🎯 [VISUAL_BUILDER_CHANGE] Visual builder HTML without positioning:', html.substring(0, 200) + '...');
-    }
-
     setTemplate(html);
   }, []);
 
@@ -653,13 +641,6 @@ export default function EnhancedTemplateEditor({
 
         // Debug: Check positioning data before CSS extraction
         const hasPositioningData = template.includes('data-positioning-mode') || template.includes('data-pixel-position');
-        console.log('🎯 [ENHANCED_EDITOR] Template has positioning data before CSS extraction:', hasPositioningData);
-
-        if (hasPositioningData) {
-          console.log('🎯 [ENHANCED_EDITOR] Template with positioning data:', template.substring(0, 500) + '...');
-          const positioningMatches = template.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
-          console.log('🎯 [ENHANCED_EDITOR] Found positioning attributes:', positioningMatches);
-        }
 
         // MATCH GALLERY TEMPLATE WORKFLOW: Extract CSS from HTML and set disable mode
         // This is what gallery templates do (lines 1207-1214)
@@ -674,12 +655,9 @@ export default function EnhancedTemplateEditor({
 
           // Debug: Check positioning data after CSS extraction
           const stillHasPositioningData = finalTemplate.includes('data-positioning-mode') || finalTemplate.includes('data-pixel-position');
-          console.log('🎯 [ENHANCED_EDITOR] Template still has positioning data after CSS extraction:', stillHasPositioningData);
 
           if (hasPositioningData && !stillHasPositioningData) {
             console.error('🚨 [ENHANCED_EDITOR] POSITIONING DATA LOST during CSS extraction!');
-            console.log('🎯 [ENHANCED_EDITOR] Original template:', template);
-            console.log('🎯 [ENHANCED_EDITOR] Final template after CSS extraction:', finalTemplate);
           }
 
           // Combine with existing CSS
@@ -694,10 +672,6 @@ export default function EnhancedTemplateEditor({
           setCustomCSS(finalCSS);
         } else {
           // No style tags, but still check positioning data preservation
-          if (hasPositioningData) {
-            console.log('🎯 [ENHANCED_EDITOR] No style tags found, positioning data should be preserved');
-            console.log('🎯 [ENHANCED_EDITOR] Final template for save:', finalTemplate.substring(0, 500) + '...');
-          }
         }
         
         // For custom templates, use 'disable' CSS mode like gallery templates do (line 1214)
@@ -711,10 +685,6 @@ export default function EnhancedTemplateEditor({
           setSaveMessage('⚠️ Failed to compile template. Please check your template syntax.');
           return;
         }
-
-        // Debug: Log what we're about to save
-        console.log('🎯 [ENHANCED_EDITOR] About to save template with positioning data:', finalTemplate.includes('data-positioning-mode'));
-        console.log('🎯 [ENHANCED_EDITOR] Final template being saved:', finalTemplate.substring(0, 500) + '...');
 
         // Now save using the final processed template and CSS (matching gallery workflow)
         await onSave(finalTemplate, finalCSS, compiled, advancedCSSMode, showNavigation);

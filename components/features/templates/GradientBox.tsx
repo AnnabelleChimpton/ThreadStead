@@ -1,4 +1,5 @@
 import React from "react";
+import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 
 interface GradientBoxProps {
   // Legacy props (kept for backward compatibility)
@@ -6,32 +7,43 @@ interface GradientBoxProps {
   direction?: 'r' | 'l' | 'b' | 't' | 'br' | 'bl' | 'tr' | 'tl';
   padding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   rounded?: boolean;
-  
+
   // New flexible props
-  colors?: string; // e.g., 'white', 'blue-purple', 'sunset' 
+  colors?: string; // e.g., 'white', 'blue-purple', 'sunset'
   opacity?: string; // e.g., '10', '90'
   className?: string; // Additional CSS classes
   children: React.ReactNode;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+
+  // Internal prop from visual builder
+  _positioningMode?: 'grid' | 'absolute';
 }
 
-export default function GradientBox({ 
+export default function GradientBox({
   // Legacy props
   gradient = 'sunset',
   direction = 'br',
   padding = 'md',
   rounded = true,
-  
+
   // New props
   colors,
   opacity,
   className,
   children,
-  onClick
+  onClick,
+
+  // Internal props
+  _positioningMode
 }: GradientBoxProps) {
+  const { isInGrid } = useGridCompatibilityContext();
+
+  // Override grid detection if component is in absolute positioning mode
+  const shouldUseGridClasses = _positioningMode === 'absolute' ? false : isInGrid;
+
   let backgroundClass = '';
   let opacityClass = '';
-  
+
   // Handle colors prop (takes precedence over gradient)
   if (colors) {
     if (colors === 'white') {
@@ -100,14 +112,20 @@ export default function GradientBox({
     opacityClass = `bg-opacity-${opacity}`;
   }
 
-  // Handle legacy padding (only if no custom className)
-  const paddingClass = !className ? {
+  // Handle legacy padding (only if no custom className) - adaptive padding: smaller in grid, normal otherwise
+  const paddingClass = !className ? (shouldUseGridClasses ? {
+    'xs': 'p-1',
+    'sm': 'p-2',
+    'md': 'p-3',
+    'lg': 'p-4',
+    'xl': 'p-6'
+  }[padding] : {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
     'lg': 'p-8',
     'xl': 'p-12'
-  }[padding] : '';
+  }[padding]) : '';
 
   // Handle legacy rounded (only if no custom className)
   const roundedClass = !className && rounded ? 'rounded-lg' : '';
@@ -118,7 +136,10 @@ export default function GradientBox({
     opacityClass,
     paddingClass,
     roundedClass,
-    className
+    className,
+    // Height behavior: fill container when in absolute mode, use grid sizing in grid mode
+    shouldUseGridClasses ? 'w-full h-full' : '',
+    _positioningMode === 'absolute' ? 'h-full' : '' // Fill full height when resized
   ].filter(Boolean).join(' ');
 
   return (

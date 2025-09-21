@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { useCanvasState } from '@/hooks/useCanvasState';
+import { useCanvasState, type ComponentItem } from '@/hooks/useCanvasState';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import {
   getOptimalSpan,
@@ -12,10 +12,12 @@ import {
   GRID_BREAKPOINTS,
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
+import type { CanvasComponent } from '@/lib/templates/visual-builder/types';
 
 // Component imports
 import ComponentPalette from './ComponentPalette';
 import CanvasRenderer from './CanvasRenderer';
+import PropertyPanel from './PropertyPanel';
 
 interface VisualTemplateBuilderProps {
   initialTemplate?: string;
@@ -61,7 +63,173 @@ export default function VisualTemplateBuilder({
     canRedo,
     resetCanvas,
     removeSelected,
+    updateComponent,
   } = canvasState;
+
+  // Helper function to find a component by ID (including children)
+  const findComponentById = (components: ComponentItem[], targetId: string): ComponentItem | null => {
+    for (const comp of components) {
+      if (comp.id === targetId) return comp;
+
+      // Search in children recursively
+      if (comp.children) {
+        const found = findComponentById(comp.children, targetId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  // Get the first selected component for property editing and map to CanvasComponent format
+  const selectedComponent: CanvasComponent | null = selectedComponentIds.size === 1
+    ? (() => {
+        const selectedId = Array.from(selectedComponentIds)[0];
+        const comp = findComponentById(placedComponents, selectedId);
+        if (!comp) return null;
+        return {
+          id: comp.id,
+          type: comp.type,
+          props: comp.props || {},  // All properties including _size, _locked, _hidden
+          position: comp.position,
+          gridPosition: comp.gridPosition ? {
+            column: comp.gridPosition.column,
+            row: comp.gridPosition.row,
+            columnSpan: comp.gridPosition.span,
+            rowSpan: 1
+          } : undefined,
+          positioningMode: comp.positioningMode,
+          children: comp.children as CanvasComponent[] | undefined  // Include children for parent-child relationships
+        };
+      })()
+    : null;
+
+  // Handle component property updates
+  const handleComponentUpdate = useCallback((componentId: string, updates: Partial<CanvasComponent>) => {
+    // Map CanvasComponent updates to ComponentItem format
+    // Only include fields that are actually being updated (not undefined)
+    const mappedUpdates: Partial<ComponentItem> = {};
+
+    if (updates.id !== undefined) mappedUpdates.id = updates.id;
+    if (updates.type !== undefined) mappedUpdates.type = updates.type;
+    if (updates.props !== undefined) mappedUpdates.props = updates.props;
+    if (updates.position !== undefined) mappedUpdates.position = updates.position;
+    if (updates.positioningMode !== undefined) {
+      mappedUpdates.positioningMode = updates.positioningMode === 'flow' ? 'absolute' : updates.positioningMode;
+    }
+    if (updates.gridPosition !== undefined) {
+      mappedUpdates.gridPosition = {
+        column: updates.gridPosition.column,
+        row: updates.gridPosition.row,
+        span: updates.gridPosition.columnSpan || 1
+      };
+    }
+    updateComponent(componentId, mappedUpdates);
+  }, [updateComponent]);
+
+  // Helper function to generate HTML for a single component and its children
+  const generateComponentHTML = useCallback((component: ComponentItem, indent: string = '  ', isChild: boolean = false): string => {
+    const props = component.props || {};
+
+    // Enhanced prop handling with special treatment for sizing
+    const propsString = Object.entries(props)
+      .filter(([key, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => {
+        // Handle _size prop specially for better formatting
+        if (key === '_size' && typeof value === 'object') {
+          const sizeData = JSON.stringify(value);
+          return `data-component-size='${sizeData.replace(/'/g, '&#39;')}'`;
+        }
+
+        // Handle different prop types
+        if (typeof value === 'boolean') {
+          // Boolean props: if true, include attribute name only; if false, omit
+          return value ? key : null;
+        } else if (typeof value === 'string') {
+          // String props: escape quotes and include value
+          return `${key}="${value.replace(/"/g, '&quot;')}"`;
+        } else if (typeof value === 'number') {
+          // Number props: include as-is
+          return `${key}="${value}"`;
+        } else {
+          // Complex props: JSON stringify (for arrays/objects)
+          return `${key}='${JSON.stringify(value).replace(/'/g, '&#39;')}'`;
+        }
+      })
+      .filter(Boolean)
+      .join(' ');
+
+    // Add positioning data based on component's positioning mode (skip for child components)
+    let positioningAttributes = '';
+    if (!isChild && component.positioningMode === 'absolute') {
+      const positionData = JSON.stringify({
+        x: component.position.x,
+        y: component.position.y,
+        positioning: 'absolute'
+      });
+      positioningAttributes = ` data-position="${component.position.x},${component.position.y}" data-pixel-position='${positionData}' data-positioning-mode="absolute"`;
+    } else if (!isChild && component.positioningMode === 'grid' && component.gridPosition) {
+      // Use auto-spanning if component doesn't have manual span set
+      let finalSpan = component.gridPosition.span;
+      if (!finalSpan || finalSpan === 1) {
+        const currentBreakpoint = getCurrentBreakpoint();
+        finalSpan = getOptimalSpan(component.type, currentBreakpoint.name, currentBreakpoint.columns);
+      }
+
+      // Calculate the actual size this grid component will have
+      const currentBreakpoint = getCurrentBreakpoint();
+      const canvasWidth = 800; // TODO: Make this dynamic based on actual canvas
+      const columnWidth = (canvasWidth - (currentBreakpoint.columns + 1) * currentBreakpoint.gap) / currentBreakpoint.columns;
+      const componentWidth = (finalSpan * columnWidth) + ((finalSpan - 1) * currentBreakpoint.gap);
+
+      const gridData = JSON.stringify({
+        column: component.gridPosition.column,
+        row: component.gridPosition.row,
+        span: finalSpan,
+        positioning: 'grid',
+        breakpoint: currentBreakpoint.name,
+        autoSpan: !component.gridPosition.span || component.gridPosition.span === 1,
+        calculatedSize: {
+          width: Math.round(componentWidth),
+          height: currentBreakpoint.rowHeight
+        }
+      });
+
+      positioningAttributes = ` data-grid-column="${component.gridPosition.column}" data-grid-row="${component.gridPosition.row}" data-grid-span="${finalSpan}" data-grid-position='${gridData}' data-positioning-mode="grid"`;
+    }
+
+    // Check if component has children
+    const hasChildren = component.children && component.children.length > 0;
+
+    if (hasChildren) {
+      // Generate opening tag
+      let html = `${indent}<${component.type}${propsString ? ' ' + propsString : ''}${positioningAttributes}>\n`;
+
+      // Generate children HTML based on component type
+      const childIndent = indent + '  ';
+
+      // Handle different child rendering patterns
+      if (component.type === 'ContactCard') {
+        // ContactCard expects ContactMethod children as React components
+        component.children!.forEach(child => {
+          if (child.type === 'ContactMethod') {
+            html += generateComponentHTML(child, childIndent, true) + '\n';
+          }
+        });
+      } else {
+        // Container components (GradientBox, PolaroidFrame, etc.) expect children as nested components
+        component.children!.forEach(child => {
+          html += generateComponentHTML(child, childIndent, true) + '\n';
+        });
+      }
+
+      // Generate closing tag
+      html += `${indent}</${component.type}>`;
+      return html;
+    } else {
+      // Self-closing tag for components without children
+      return `${indent}<${component.type}${propsString ? ' ' + propsString : ''}${positioningAttributes} />`;
+    }
+  }, []);
 
   // Generate HTML for template output with enhanced responsive grid and auto-spanning
   const generateHTML = useCallback(() => {
@@ -76,73 +244,33 @@ export default function VisualTemplateBuilder({
     const absoluteComponents = placedComponents.filter(c => c.positioningMode === 'absolute');
     const gridComponents = placedComponents.filter(c => c.positioningMode === 'grid');
 
-    // Generate absolute positioned components (unchanged)
-    const absoluteHTML = absoluteComponents.map(component => {
+    // Generate absolute positioned components using recursive helper
+    const absoluteHTML = absoluteComponents
+      .map(component => generateComponentHTML(component))
+      .join('\n');
 
-      const props = component.props || {};
-      const propsString = Object.entries(props)
-        .map(([key, value]) => `${key}="${String(value)}"`)
-        .join(' ');
-
-      const positionData = JSON.stringify({
-        x: component.position.x,
-        y: component.position.y,
-        positioning: 'absolute'
-      });
-
-      return `<${component.type} ${propsString} data-position="${component.position.x},${component.position.y}" data-pixel-position='${positionData}' data-positioning-mode="absolute" />`;
-    }).join('\n  ');
-
-    // Generate grid positioned components with smart spanning
-    const gridHTML = gridComponents.map(component => {
-
-      const props = component.props || {};
-      const propsString = Object.entries(props)
-        .map(([key, value]) => `${key}="${String(value)}"`)
-        .join(' ');
-
-      // Use auto-spanning if component doesn't have manual span set
-      let finalSpan = component.gridPosition?.span;
-      if (!finalSpan || finalSpan === 1) {
-        finalSpan = getOptimalSpan(component.type, currentBreakpoint.name, currentBreakpoint.columns);
-      }
-
-      const gridPos = {
-        column: component.gridPosition?.column || 1,
-        row: component.gridPosition?.row || 1,
-        span: finalSpan
-      };
-
-      // Enhanced grid data with responsive information
-      const gridData = JSON.stringify({
-        column: gridPos.column,
-        row: gridPos.row,
-        span: gridPos.span,
-        positioning: 'grid',
-        breakpoint: currentBreakpoint.name,
-        autoSpan: !component.gridPosition?.span || component.gridPosition.span === 1
-      });
-
-      return `<${component.type} ${propsString} data-grid-column="${gridPos.column}" data-grid-row="${gridPos.row}" data-grid-span="${gridPos.span}" data-grid-position='${gridData}' data-positioning-mode="grid" />`;
-    }).join('\n  ');
+    // Generate grid positioned components using recursive helper
+    const gridHTML = gridComponents
+      .map(component => generateComponentHTML(component))
+      .join('\n');
 
     // Combine all components
-    const allComponents = [absoluteHTML, gridHTML].filter(html => html.length > 0).join('\n  ');
+    const allComponents = [absoluteHTML, gridHTML].filter(html => html.length > 0).join('\n');
 
     // Generate responsive container styling
     if (gridComponents.length > 0) {
       // Use responsive grid system
       const containerStyle = `width: 100%; max-width: 100vw; min-height: 100vh; display: grid; grid-template-columns: repeat(${currentBreakpoint.columns}, 1fr); gap: ${currentBreakpoint.gap}px; padding: ${currentBreakpoint.containerPadding}px; box-sizing: border-box;`;
 
-      const finalHTML = `<div class="template-container grid-container responsive-grid" style="${containerStyle}">\n  ${allComponents}\n</div>`;
+      const finalHTML = `<div class="template-container grid-container responsive-grid" style="${containerStyle}">\n${allComponents}\n</div>`;
       return finalHTML;
     } else {
       // Absolute positioning container
       const containerStyle = `width: 100%; max-width: 100vw; min-height: 100vh; position: relative;`;
-      const finalHTML = `<div class="template-container relative" style="${containerStyle}">\n  ${allComponents}\n</div>`;
+      const finalHTML = `<div class="template-container relative" style="${containerStyle}">\n${allComponents}\n</div>`;
       return finalHTML;
     }
-  }, [placedComponents, gridConfig]);
+  }, [placedComponents, gridConfig, generateComponentHTML]);
 
 
   // Call template change callback when components change
@@ -369,42 +497,15 @@ export default function VisualTemplateBuilder({
           </div>
         </div>
 
-        {/* Properties panel (optional) */}
+        {/* Properties panel */}
         {showProperties && (
-          <div className="w-80 bg-white border-l border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">Properties</h3>
-            {selectedComponentIds.size === 0 ? (
-              <p className="text-gray-500 text-sm">Select a component to edit its properties</p>
-            ) : selectedComponentIds.size === 1 ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Component Type
-                  </label>
-                  <div className="text-sm text-gray-600">
-                    {Array.from(selectedComponentIds).map(id => {
-                      const component = placedComponents.find(c => c.id === id);
-                      return component?.type || 'Unknown';
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Position
-                  </label>
-                  <div className="text-sm text-gray-600">
-                    {Array.from(selectedComponentIds).map(id => {
-                      const component = placedComponents.find(c => c.id === id);
-                      return component ? `x: ${component.position.x}, y: ${component.position.y}` : 'Unknown';
-                    })}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">
-                Multiple components selected ({selectedComponentIds.size})
-              </p>
-            )}
+          <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
+            <PropertyPanel
+              selectedComponent={selectedComponent}
+              canvasState={canvasState}
+              onComponentUpdate={handleComponentUpdate}
+              className="h-full"
+            />
           </div>
         )}
       </div>

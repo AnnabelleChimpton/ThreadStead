@@ -111,7 +111,6 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
       console.error('Failed to load decorations:', error)
       // Use fallback decorations from member data if API fails
       if (member.homeConfig.decorations) {
-        console.log('Using fallback decorations from member data:', member.homeConfig.decorations)
         setDecorations(member.homeConfig.decorations)
       }
       if (member.homeConfig.atmosphere) {
@@ -143,14 +142,6 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
   const displayName = member.displayName || member.username
   const houseTitle = member.homeConfig.houseCustomizations?.houseTitle
   const houseDescription = member.homeConfig.houseCustomizations?.houseDescription
-  
-  // Debug log to check if data is being passed correctly
-  console.log(`House Details for ${member.username}:`, {
-    houseTitle,
-    houseDescription,
-    decorationCount: decorations.length,
-    hasDecorations: member.homeConfig.hasDecorations
-  })
 
   // Connection indicators
   const connectionLabels = []

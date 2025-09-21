@@ -106,6 +106,42 @@ export const COMPONENT_GRID_BEHAVIORS: Record<string, ComponentGridBehavior> = {
     removeClasses: ['w-32', 'h-32', 'w-48', 'h-48', 'w-64', 'h-64']
   },
 
+  RetroTerminal: {
+    mode: 'grid-adapted',
+    sizing: 'responsive',
+    positioning: 'grid-item',
+    preferredSpan: { columns: 3, rows: 2 },
+    constraints: {
+      minSpan: { columns: 2, rows: 1 },
+      maxSpan: { columns: 4, rows: 3 }
+    },
+    gridClasses: ['w-full', 'h-full']
+  },
+
+  RevealBox: {
+    mode: 'grid-adapted',
+    sizing: 'responsive',
+    positioning: 'grid-item',
+    preferredSpan: { columns: 2, rows: 2 },
+    constraints: {
+      minSpan: { columns: 1, rows: 1 },
+      maxSpan: { columns: 3, rows: 3 }
+    },
+    gridClasses: ['w-full', 'h-full']
+  },
+
+  CenteredBox: {
+    mode: 'grid-adapted',
+    sizing: 'responsive',
+    positioning: 'grid-item',
+    preferredSpan: { columns: 3, rows: 2 },
+    constraints: {
+      minSpan: { columns: 1, rows: 1 },
+      maxSpan: { columns: 6, rows: 4 }
+    },
+    gridClasses: ['w-full', 'h-full']
+  },
+
   // Layout containers that create subgrids
   GridLayout: {
     mode: 'grid-native',
@@ -160,6 +196,19 @@ export const COMPONENT_GRID_BEHAVIORS: Record<string, ComponentGridBehavior> = {
     sizing: 'responsive',
     positioning: 'grid-item',
     preferredSpan: { columns: 2, rows: 2 }
+  },
+
+  GradientBox: {
+    mode: 'grid-adapted',
+    sizing: 'responsive',
+    positioning: 'grid-item',
+    preferredSpan: { columns: 2, rows: 2 },
+    constraints: {
+      minSpan: { columns: 1, rows: 1 },
+      maxSpan: { columns: 4, rows: 4 }
+    },
+    gridClasses: ['w-full', 'h-full'],
+    removeClasses: ['w-32', 'h-32', 'w-48', 'h-48', 'w-64', 'h-64']
   },
 
   PolaroidFrame: {

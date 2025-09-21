@@ -88,7 +88,14 @@ export default function GridOverlay({
     if (!isVisible || occupiedPositions.length === 0) return null;
 
     return occupiedPositions.map((position, index) => {
-      const absolutePos = gridToAbsolutePosition(position, gridSystem);
+      // gridToAbsolutePosition uses local GridPosition (column, row, span)
+      const gridUtilsPosition = {
+        column: position.column,
+        row: position.row,
+        span: position.columnSpan
+      };
+      // gridToAbsoluteSize uses FullGridPosition (column, row, columnSpan, rowSpan)
+      const absolutePos = gridToAbsolutePosition(gridUtilsPosition, gridSystem);
       const absoluteSize = gridToAbsoluteSize(position, gridSystem);
 
       return (
@@ -111,7 +118,14 @@ export default function GridOverlay({
   const activeCell = useMemo(() => {
     if (!isVisible || !activeGridPosition) return null;
 
-    const absolutePos = gridToAbsolutePosition(activeGridPosition, gridSystem);
+    // gridToAbsolutePosition uses local GridPosition (column, row, span)
+    const gridUtilsPosition = {
+      column: activeGridPosition.column,
+      row: activeGridPosition.row,
+      span: activeGridPosition.columnSpan
+    };
+    // gridToAbsoluteSize uses FullGridPosition (column, row, columnSpan, rowSpan)
+    const absolutePos = gridToAbsolutePosition(gridUtilsPosition, gridSystem);
     const absoluteSize = gridToAbsoluteSize(activeGridPosition, gridSystem);
 
     return (
@@ -136,7 +150,14 @@ export default function GridOverlay({
   const snapZone = useMemo(() => {
     if (!isVisible || !snapZonePosition) return null;
 
-    const absolutePos = gridToAbsolutePosition(snapZonePosition, gridSystem);
+    // gridToAbsolutePosition uses local GridPosition (column, row, span)
+    const gridUtilsPosition = {
+      column: snapZonePosition.column,
+      row: snapZonePosition.row,
+      span: snapZonePosition.columnSpan
+    };
+    // gridToAbsoluteSize uses FullGridPosition (column, row, columnSpan, rowSpan)
+    const absolutePos = gridToAbsolutePosition(gridUtilsPosition, gridSystem);
     const absoluteSize = gridToAbsoluteSize(snapZonePosition, gridSystem);
 
     return (
@@ -277,7 +298,14 @@ export function GridCellIndicator({
   type,
   className = '',
 }: GridCellIndicatorProps) {
-  const absolutePos = gridToAbsolutePosition(gridPosition, gridSystem);
+  // gridToAbsolutePosition uses local GridPosition (column, row, span)
+  const gridUtilsPosition = {
+    column: gridPosition.column,
+    row: gridPosition.row,
+    span: gridPosition.columnSpan
+  };
+  // gridToAbsoluteSize uses FullGridPosition (column, row, columnSpan, rowSpan)
+  const absolutePos = gridToAbsolutePosition(gridUtilsPosition, gridSystem);
   const absoluteSize = gridToAbsoluteSize(gridPosition, gridSystem);
 
   const getStyles = () => {

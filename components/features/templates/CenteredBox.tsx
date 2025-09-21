@@ -1,16 +1,28 @@
 import React from "react";
+import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 
 interface CenteredBoxProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full' | string;
   padding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   children: React.ReactNode;
+
+  // Internal prop from visual builder
+  _positioningMode?: 'grid' | 'absolute';
 }
 
-export default function CenteredBox({ 
+export default function CenteredBox({
   maxWidth = 'lg',
   padding = 'md',
-  children 
+  children,
+
+  // Internal props
+  _positioningMode
 }: CenteredBoxProps) {
+  const { isInGrid } = useGridCompatibilityContext();
+
+  // Override grid detection if component is in absolute positioning mode
+  const shouldUseGridClasses = _positioningMode === 'absolute' ? false : isInGrid;
+
   const maxWidthClass = {
     'sm': 'max-w-sm',
     'md': 'max-w-md',
@@ -20,7 +32,14 @@ export default function CenteredBox({
     'full': 'max-w-full'
   }[maxWidth as string];
 
-  const paddingClass = {
+  // Grid-aware padding
+  const paddingClass = shouldUseGridClasses ? {
+    'xs': 'p-1',
+    'sm': 'p-2',
+    'md': 'p-3',
+    'lg': 'p-4',
+    'xl': 'p-6'
+  }[padding] : {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
@@ -40,9 +59,18 @@ export default function CenteredBox({
     }
   }
 
+  const containerClasses = [
+    'mx-auto',
+    maxWidthClass || '',
+    paddingClass,
+    // Height behavior: fill container when in absolute mode, use grid sizing in grid mode
+    shouldUseGridClasses ? 'w-full h-full' : '',
+    _positioningMode === 'absolute' ? 'h-full' : '' // Fill full height when resized
+  ].filter(Boolean).join(' ');
+
   return (
-    <div 
-      className={`mx-auto ${maxWidthClass || ''} ${paddingClass}`}
+    <div
+      className={containerClasses}
       style={Object.keys(customStyle).length > 0 ? customStyle : undefined}
     >
       {children}

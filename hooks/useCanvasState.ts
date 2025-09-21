@@ -22,7 +22,8 @@ export interface ComponentItem {
     row: number;        // Row position (1-based)
   };
   positioningMode: 'absolute' | 'grid';
-  props?: Record<string, any>;
+  props?: Record<string, any>;  // ALL component properties go here, including size, locked, hidden, etc.
+  children?: ComponentItem[];   // Child components for parent-child relationships
 }
 
 // Enhanced grid configuration for responsive canvas
@@ -56,8 +57,21 @@ export interface UseCanvasStateResult {
   // Simple operations following pixel homes pattern
   addComponent: (component: ComponentItem) => void;
   removeComponent: (id: string) => void;
+  updateComponent: (id: string, updates: Partial<ComponentItem>) => void;
   updateComponentPosition: (id: string, position: { x: number; y: number }) => void;
   updateComponentGridPosition: (id: string, gridPosition: { column: number; span: number; row: number }) => void;
+
+  // Resize operations
+  updateComponentSize: (id: string, size: { width: number; height: number }) => void;
+  updateComponentGridSpan: (id: string, span: number) => void;
+  resizeComponent: (id: string, size: { width: number; height: number }, position?: { x: number; y: number }) => void;
+
+  // Child component management
+  addChildComponent: (parentId: string, child: ComponentItem) => void;
+  removeChildComponent: (parentId: string, childId: string) => void;
+  updateChildComponent: (parentId: string, childId: string, updates: Partial<ComponentItem>) => void;
+  reorderChildren: (parentId: string, fromIndex: number, toIndex: number) => void;
+  moveChildToCanvas: (parentId: string, childId: string, position: { x: number; y: number }) => void;
 
   // Selection (simplified)
   selectComponent: (id: string, multi?: boolean) => void;
@@ -216,6 +230,44 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
     });
   }, []); // No dependencies to avoid stale closures
 
+  // Helper function to update component by ID (including children)
+  const updateComponentRecursively = (components: ComponentItem[], targetId: string, updates: Partial<ComponentItem>): ComponentItem[] => {
+    return components.map(component => {
+      if (component.id === targetId) {
+        // Found the target component - update it
+        let updatedComponent;
+        if (updates.props && component.props) {
+          updatedComponent = {
+            ...component,
+            ...updates,
+            props: { ...component.props, ...updates.props }
+          };
+        } else {
+          updatedComponent = { ...component, ...updates };
+        }
+        return updatedComponent;
+      }
+
+      // If this component has children, recursively search and update them
+      if (component.children && component.children.length > 0) {
+        const updatedChildren = updateComponentRecursively(component.children, targetId, updates);
+        return {
+          ...component,
+          children: updatedChildren
+        };
+      }
+
+      return component;
+    });
+  };
+
+  // Update component with any properties (handles both parents and children)
+  const updateComponent = useCallback((id: string, updates: Partial<ComponentItem>) => {
+    setPlacedComponents(prev => {
+      return updateComponentRecursively(prev, id, updates);
+    });
+  }, []);
+
   const updateComponentPosition = useCallback((id: string, position: { x: number; y: number }) => {
     // Use functional update to avoid dependency conflicts
     setPlacedComponents(prevComponents => {
@@ -333,6 +385,165 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
     setSelectedComponentIds(new Set());
   }, []);
 
+  // Child component management methods
+  const addChildComponent = useCallback((parentId: string, child: ComponentItem) => {
+    setPlacedComponents(prev => {
+      return prev.map(component => {
+        if (component.id === parentId) {
+          const currentChildren = component.children || [];
+          return {
+            ...component,
+            children: [...currentChildren, child]
+          };
+        }
+        return component;
+      });
+    });
+  }, []);
+
+  const removeChildComponent = useCallback((parentId: string, childId: string) => {
+    setPlacedComponents(prev => {
+      return prev.map(component => {
+        if (component.id === parentId && component.children) {
+          return {
+            ...component,
+            children: component.children.filter(child => child.id !== childId)
+          };
+        }
+        return component;
+      });
+    });
+  }, []);
+
+  const updateChildComponent = useCallback((parentId: string, childId: string, updates: Partial<ComponentItem>) => {
+    setPlacedComponents(prev => {
+      return prev.map(component => {
+        if (component.id === parentId && component.children) {
+          return {
+            ...component,
+            children: component.children.map(child => {
+              if (child.id === childId) {
+                // Handle props merging for child components too
+                if (updates.props && child.props) {
+                  return {
+                    ...child,
+                    ...updates,
+                    props: { ...child.props, ...updates.props }
+                  };
+                } else {
+                  return { ...child, ...updates };
+                }
+              }
+              return child;
+            })
+          };
+        }
+        return component;
+      });
+    });
+  }, []);
+
+  const reorderChildren = useCallback((parentId: string, fromIndex: number, toIndex: number) => {
+    setPlacedComponents(prev => {
+      return prev.map(component => {
+        if (component.id === parentId && component.children) {
+          const newChildren = [...component.children];
+          const [removed] = newChildren.splice(fromIndex, 1);
+          newChildren.splice(toIndex, 0, removed);
+          return {
+            ...component,
+            children: newChildren
+          };
+        }
+        return component;
+      });
+    });
+  }, []);
+
+  // Move child component out of container to become standalone component
+  const moveChildToCanvas = useCallback((parentId: string, childId: string, position: { x: number; y: number }) => {
+    setPlacedComponents(prev => {
+      let childToMove: ComponentItem | null = null;
+
+      // First, remove child from parent and get the child component
+      const updatedComponents = prev.map(component => {
+        if (component.id === parentId && component.children) {
+          const childIndex = component.children.findIndex(child => child.id === childId);
+          if (childIndex !== -1) {
+            childToMove = { ...component.children[childIndex] };
+            return {
+              ...component,
+              children: component.children.filter(child => child.id !== childId)
+            };
+          }
+        }
+        return component;
+      });
+
+      // Then add the child as a standalone component with new position
+      if (childToMove) {
+        const standaloneComponent: ComponentItem = {
+          ...(childToMove as ComponentItem),
+          position,
+          positioningMode: 'absolute', // Convert to absolute positioning when moved to canvas
+        };
+
+        return [...updatedComponents, standaloneComponent];
+      }
+
+      return updatedComponents;
+    });
+  }, []);
+
+  // Resize operations
+  const updateComponentSize = useCallback((id: string, size: { width: number; height: number }) => {
+    setPlacedComponents(prev => {
+      return updateComponentRecursively(prev, id, {
+        props: {
+          _size: {
+            width: size.width,
+            height: size.height
+          }
+        }
+      });
+    });
+  }, []);
+
+  const updateComponentGridSpan = useCallback((id: string, span: number) => {
+    setPlacedComponents(prev => {
+      return prev.map(component => {
+        if (component.id === id && component.gridPosition) {
+          return {
+            ...component,
+            gridPosition: {
+              ...component.gridPosition,
+              span
+            }
+          };
+        }
+        return component;
+      });
+    });
+  }, []);
+
+  const resizeComponent = useCallback((
+    id: string,
+    size: { width: number; height: number },
+    position?: { x: number; y: number }
+  ) => {
+    setPlacedComponents(prev => {
+      return updateComponentRecursively(prev, id, {
+        props: {
+          _size: {
+            width: size.width,
+            height: size.height
+          }
+        },
+        ...(position && { position })
+      });
+    });
+  }, []);
+
   return {
     // State
     placedComponents,
@@ -350,8 +561,21 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
     // Operations
     addComponent,
     removeComponent,
+    updateComponent,
     updateComponentPosition,
     updateComponentGridPosition,
+
+    // Resize operations
+    updateComponentSize,
+    updateComponentGridSpan,
+    resizeComponent,
+
+    // Child management
+    addChildComponent,
+    removeChildComponent,
+    updateChildComponent,
+    reorderChildren,
+    moveChildToCanvas,
 
     // Selection
     selectComponent,

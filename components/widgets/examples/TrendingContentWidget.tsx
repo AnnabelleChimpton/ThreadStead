@@ -322,9 +322,6 @@ export const trendingContentWidget = {
         }
       }
 
-      // Final fallback to recent posts
-      console.log('No trending data available, falling back to recent posts');
-
       response = await fetch('/api/feed/recent?limit=10');
       if (!response.ok) {
         throw new Error('Failed to fetch content');

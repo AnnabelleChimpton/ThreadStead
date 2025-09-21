@@ -3,7 +3,7 @@
  * Phase 1: Visual Builder Foundation - UI Components
  */
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type {
   CanvasComponent,
   PropertyField,
@@ -49,6 +49,19 @@ export default function PropertyPanel({
     if (!selectedComponent) return null;
     return componentRegistry.get(selectedComponent.type) || null;
   }, [selectedComponent]);
+
+  // Check if this component can have children
+  const relationship = useMemo(() => {
+    return componentRegistration?.relationship;
+  }, [componentRegistration]);
+
+  const isParentComponent = useMemo(() => {
+    return relationship?.type === 'parent' || relationship?.type === 'container';
+  }, [relationship]);
+
+  const canAcceptChildren = useMemo(() => {
+    return relationship?.acceptsChildren !== undefined;
+  }, [relationship]);
 
   // Generate property fields from component schema
   const propertyFields = useMemo((): PropertyField[] => {
@@ -206,6 +219,20 @@ export default function PropertyPanel({
                 />
               ))}
             </PropertySection>
+
+            {/* Children Management */}
+            {isParentComponent && (
+              <PropertySection title={relationship?.childrenLabel || "Children"} defaultExpanded={true}>
+                <ChildrenManager
+                  component={selectedComponent}
+                  relationship={relationship}
+                  onAddChild={(child) => canvasState.addChildComponent(selectedComponent.id, child)}
+                  onRemoveChild={(childId) => canvasState.removeChildComponent(selectedComponent.id, childId)}
+                  onUpdateChild={(childId, updates) => canvasState.updateChildComponent(selectedComponent.id, childId, updates)}
+                  onReorderChildren={(fromIndex, toIndex) => canvasState.reorderChildren(selectedComponent.id, fromIndex, toIndex)}
+                />
+              </PropertySection>
+            )}
 
             {/* Advanced Properties */}
             <PropertySection title="Layout & Position" defaultExpanded={false}>
@@ -406,6 +433,315 @@ function PropertyField({ field, value, error, onChange }: PropertyFieldComponent
 }
 
 /**
+ * Children management component
+ */
+interface ChildrenManagerProps {
+  component: CanvasComponent;
+  relationship: any; // ComponentRelationship from registry
+  onAddChild: (child: any) => void; // ComponentItem
+  onRemoveChild: (childId: string) => void;
+  onUpdateChild: (childId: string, updates: any) => void; // Partial<ComponentItem>
+  onReorderChildren: (fromIndex: number, toIndex: number) => void;
+}
+
+function ChildrenManager({
+  component,
+  relationship,
+  onAddChild,
+  onRemoveChild,
+  onUpdateChild,
+  onReorderChildren
+}: ChildrenManagerProps) {
+  const [selectedChildType, setSelectedChildType] = useState<string>('');
+
+  // Get available child types
+  const availableChildTypes = useMemo(() => {
+    if (!relationship?.acceptsChildren) return [];
+
+    if (relationship.acceptsChildren === true) {
+      // Accept any children - get all registered components
+      return Array.from(componentRegistry.getAllRegistrations().keys())
+        .filter(type => {
+          const childReg = componentRegistry.get(type);
+          return childReg?.relationship?.type === 'child' || childReg?.relationship?.type === 'leaf';
+        });
+    }
+
+    // Only accept specific child types
+    return relationship.acceptsChildren;
+  }, [relationship]);
+
+  const currentChildren = component.children || [];
+  const canAddMore = !relationship?.maxChildren || currentChildren.length < relationship.maxChildren;
+  const needsMore = relationship?.minChildren && currentChildren.length < relationship.minChildren;
+
+
+  const handleAddChild = useCallback(() => {
+    if (!selectedChildType) return;
+
+    const childRegistration = componentRegistry.get(selectedChildType);
+    if (!childRegistration) return;
+
+    // Create default child with minimal required props
+    const newChild = {
+      id: `child_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: selectedChildType,
+      position: { x: 0, y: 0 }, // Children don't need canvas positioning
+      positioningMode: 'absolute' as const,
+      props: {}
+    };
+
+    onAddChild(newChild);
+    setSelectedChildType(''); // Reset selection
+  }, [selectedChildType, onAddChild]);
+
+  const handleRemoveChild = useCallback((childId: string) => {
+    onRemoveChild(childId);
+  }, [onRemoveChild]);
+
+  return (
+    <div className="children-manager">
+      {/* Current Children List */}
+      <div className="children-list">
+        {currentChildren.length === 0 ? (
+          <div className="no-children">
+            <p>No children added yet.</p>
+            {needsMore && (
+              <p className="requirement-notice">
+                This component requires at least {relationship.minChildren} children.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="children-items space-y-2">
+            {currentChildren.map((child, index) => (
+              <ChildEditor
+                key={child.id}
+                child={child}
+                index={index}
+                onUpdate={(updates) => onUpdateChild(child.id, updates)}
+                onRemove={() => handleRemoveChild(child.id)}
+                canRemove={!relationship?.minChildren || currentChildren.length > relationship.minChildren}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Add Child Controls */}
+      {canAddMore && availableChildTypes.length > 0 && (
+        <div className="add-child-controls">
+          <div className="child-type-selector">
+            <select
+              value={selectedChildType}
+              onChange={(e) => setSelectedChildType(e.target.value)}
+              className="child-type-select"
+            >
+              <option value="">Select child type...</option>
+              {availableChildTypes.map((childType: string) => (
+                <option key={childType} value={childType}>
+                  {childType}
+                </option>
+              ))}
+            </select>
+            <button
+              className="add-child-button"
+              onClick={handleAddChild}
+              disabled={!selectedChildType}
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Constraints Info */}
+      {(relationship?.minChildren || relationship?.maxChildren) && (
+        <div className="children-constraints">
+          <small className="constraints-text">
+            {relationship.minChildren && relationship.maxChildren ? (
+              `Requires ${relationship.minChildren}-${relationship.maxChildren} children`
+            ) : relationship.minChildren ? (
+              `Requires at least ${relationship.minChildren} children`
+            ) : relationship.maxChildren ? (
+              `Maximum ${relationship.maxChildren} children`
+            ) : null}
+          </small>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Inline child editor component
+ */
+interface ChildEditorProps {
+  child: any; // ComponentItem from useCanvasState
+  index: number;
+  onUpdate: (updates: any) => void; // Partial<ComponentItem>
+  onRemove: () => void;
+  canRemove: boolean;
+}
+
+function ChildEditor({ child, index, onUpdate, onRemove, canRemove }: ChildEditorProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [localProps, setLocalProps] = useState(child.props || {});
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Update local props when child changes from external source
+  useEffect(() => {
+    setLocalProps(child.props || {});
+  }, [child.props]);
+
+  const handlePropChange = useCallback((key: string, value: any) => {
+    // Update local state immediately for responsive UI
+    setLocalProps((prevProps: Record<string, any>) => {
+      const newProps = { ...prevProps, [key]: value };
+
+      // Clear previous timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // Debounce the actual state update
+      timeoutRef.current = setTimeout(() => {
+        onUpdate({ props: newProps });
+      }, 500); // Increased debounce time for better typing experience
+
+      return newProps;
+    });
+  }, [onUpdate]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const getChildDisplayName = () => {
+    if (child.type === 'ContactMethod') {
+      return `${localProps.label || localProps.type || 'Contact'}: ${localProps.value || 'No value'}`;
+    }
+    return `${child.type} #${index + 1}`;
+  };
+
+  return (
+    <div className="child-editor border border-gray-200 rounded-lg p-3 bg-gray-50">
+      {/* Header */}
+      <div className="child-header flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="child-expand-button text-sm"
+          >
+            {isExpanded ? '▼' : '▶'}
+          </button>
+          <span className="child-display-name font-medium text-sm">
+            {getChildDisplayName()}
+          </span>
+          <span className="child-type-badge text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">
+            {child.type}
+          </span>
+        </div>
+        <div className="child-actions flex items-center space-x-1">
+          <button
+            onClick={onRemove}
+            disabled={!canRemove}
+            className="remove-child-button text-red-500 hover:text-red-700 disabled:text-gray-300 text-sm"
+            title={canRemove ? "Remove child" : "Cannot remove - minimum required"}
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded Properties */}
+      {isExpanded && (
+        <div className="child-properties mt-3 space-y-2">
+          {child.type === 'ContactMethod' && (
+            <>
+              <div className="prop-row">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
+                <select
+                  value={localProps.type || 'email'}
+                  onChange={(e) => handlePropChange('type', e.target.value)}
+                  className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                >
+                  <option value="email">Email</option>
+                  <option value="phone">Phone</option>
+                  <option value="linkedin">LinkedIn</option>
+                  <option value="github">GitHub</option>
+                  <option value="twitter">Twitter</option>
+                  <option value="website">Website</option>
+                  <option value="discord">Discord</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              <div className="prop-row">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Value</label>
+                <input
+                  type="text"
+                  value={localProps.value || ''}
+                  onChange={(e) => handlePropChange('value', e.target.value)}
+                  placeholder="Enter contact value"
+                  className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                />
+              </div>
+              <div className="prop-row">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Label</label>
+                <input
+                  type="text"
+                  value={localProps.label || ''}
+                  onChange={(e) => handlePropChange('label', e.target.value)}
+                  placeholder="Display label"
+                  className="w-full text-sm border border-gray-300 rounded px-2 py-1"
+                />
+              </div>
+              <div className="prop-row">
+                <label className="flex items-center text-xs text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={localProps.copyable !== false}
+                    onChange={(e) => handlePropChange('copyable', e.target.checked)}
+                    className="mr-2"
+                  />
+                  Copyable
+                </label>
+              </div>
+            </>
+          )}
+
+          {/* Generic properties for other child types */}
+          {child.type !== 'ContactMethod' && (
+            <div className="prop-row">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Properties</label>
+              <textarea
+                value={JSON.stringify(localProps, null, 2)}
+                onChange={(e) => {
+                  try {
+                    const parsed = JSON.parse(e.target.value);
+                    setLocalProps(parsed);
+                    onUpdate({ props: parsed });
+                  } catch (error) {
+                    // Invalid JSON, don't update
+                  }
+                }}
+                className="w-full text-xs font-mono border border-gray-300 rounded px-2 py-1 h-20"
+                placeholder="Enter JSON properties"
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * Position and layout controls
  */
 interface PositionControlsProps {
@@ -425,14 +761,19 @@ function PositionControls({ component, onUpdate }: PositionControlsProps) {
   }, [component.position, onUpdate]);
 
   const handleSizeChange = useCallback((dimension: 'width' | 'height', value: number | 'auto') => {
+    const currentSize = (component.props as any)?._size || { width: 'auto', height: 'auto' };
     const newSize = {
-      width: 'auto' as const,
-      height: 'auto' as const,
-      ...component.size,
+      ...currentSize,
       [dimension]: value,
     };
-    onUpdate({ size: newSize });
-  }, [component.size, onUpdate]);
+    // Store size in props with a special key
+    onUpdate({
+      props: {
+        ...component.props,
+        _size: newSize
+      }
+    });
+  }, [component.props, onUpdate]);
 
   return (
     <div className="position-controls">
@@ -467,7 +808,7 @@ function PositionControls({ component, onUpdate }: PositionControlsProps) {
             <span className="input-label">Width:</span>
             <input
               type="number"
-              value={component.size?.width === 'auto' ? '' : (component.size?.width || '')}
+              value={(component.props as any)?._size?.width === 'auto' ? '' : ((component.props as any)?._size?.width || '')}
               onChange={(e) => handleSizeChange('width', e.target.value ? Number(e.target.value) : 'auto')}
               placeholder="auto"
               className="number-input small"
@@ -477,7 +818,7 @@ function PositionControls({ component, onUpdate }: PositionControlsProps) {
             <span className="input-label">Height:</span>
             <input
               type="number"
-              value={component.size?.height === 'auto' ? '' : (component.size?.height || '')}
+              value={(component.props as any)?._size?.height === 'auto' ? '' : ((component.props as any)?._size?.height || '')}
               onChange={(e) => handleSizeChange('height', e.target.value ? Number(e.target.value) : 'auto')}
               placeholder="auto"
               className="number-input small"
@@ -490,8 +831,10 @@ function PositionControls({ component, onUpdate }: PositionControlsProps) {
         <label className="checkbox-field">
           <input
             type="checkbox"
-            checked={component.locked || false}
-            onChange={(e) => onUpdate({ locked: e.target.checked })}
+            checked={(component.props as any)?._locked || false}
+            onChange={(e) => onUpdate({
+              props: { ...component.props, _locked: e.target.checked }
+            })}
             className="checkbox-input"
           />
           <span className="checkbox-label">Lock position</span>
@@ -502,8 +845,10 @@ function PositionControls({ component, onUpdate }: PositionControlsProps) {
         <label className="checkbox-field">
           <input
             type="checkbox"
-            checked={component.hidden || false}
-            onChange={(e) => onUpdate({ hidden: e.target.checked })}
+            checked={(component.props as any)?._hidden || false}
+            onChange={(e) => onUpdate({
+              props: { ...component.props, _hidden: e.target.checked }
+            })}
             className="checkbox-input"
           />
           <span className="checkbox-label">Hide component</span>

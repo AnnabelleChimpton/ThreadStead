@@ -37,11 +37,6 @@ export default function SurpriseMeButton({
 
           // Open in new tab (classic web surfing style)
           window.open(data.surprise.url, '_blank');
-
-          // Optional: Show a toast or modal with info about the site
-          if (data.message) {
-            console.log(data.message, data.surprise.title);
-          }
         }
       }
     } catch (error) {

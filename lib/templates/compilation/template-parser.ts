@@ -50,7 +50,9 @@ function createCustomSchema() {
         'dataPosition', 'dataPixelPosition', 'dataPositioningMode', 'dataGridPosition',
         // Add grid-specific attributes
         'data-grid-column', 'data-grid-row', 'data-grid-span',
-        'dataGridColumn', 'dataGridRow', 'dataGridSpan'
+        'dataGridColumn', 'dataGridRow', 'dataGridSpan',
+        // Add size attributes for visual builder
+        'data-component-size', 'dataComponentSize'
       ];
       
       schema.attributes[tagName] = allAttributes;
