@@ -1133,8 +1133,12 @@ export default function CanvasRenderer({
         // For grid components, calculate absolute position from grid position using fixed dimensions
         const { column, row, span } = component.gridPosition;
 
+        console.log(`[CanvasRenderer] Positioning ${component.type} at grid(${column}, ${row}) span=${span}`);
+
         // Calculate position using grid utilities with fixed row heights
         const gridPosition = gridToPixel(column, row);
+
+        console.log(`[CanvasRenderer] Grid position converted to pixel position:`, gridPosition);
 
         // Calculate width based on span and fixed column widths
         const canvasWidth = gridConfig.responsiveMode ? canvasSize.width - (gridConfig.currentBreakpoint.containerPadding * 2) : canvasSize.width;
@@ -1153,6 +1157,8 @@ export default function CanvasRenderer({
           minWidth: componentWidth,
           minHeight: gridConfig.rowHeight, // Keep minimum at grid row height
         };
+
+        console.log(`[CanvasRenderer] Applied component style:`, componentStyle);
       } else {
         // Absolute positioning - with safety check for position
         // Read size from props._size (which now always includes units like '100px')

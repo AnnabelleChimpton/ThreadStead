@@ -3,7 +3,7 @@
  * Phase 1: Visual Builder Foundation - Direct State Management
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useCanvasState, type ComponentItem } from '@/hooks/useCanvasState';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import {
@@ -13,6 +13,7 @@ import {
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
 import type { CanvasComponent } from '@/lib/templates/visual-builder/types';
+import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
 
 // Component imports
 import ComponentPalette from './ComponentPalette';
@@ -40,8 +41,112 @@ export default function VisualTemplateBuilder({
   },
   className = '',
 }: VisualTemplateBuilderProps) {
-  // Simplified canvas state management
-  const canvasState = useCanvasState();
+  // State for template loading
+  const [templateLoadingState, setTemplateLoadingState] = useState<{
+    loading: boolean;
+    error: string | null;
+    warnings: string[];
+    componentCount: number;
+  }>({
+    loading: false,
+    error: null,
+    warnings: [],
+    componentCount: 0,
+  });
+
+  // Parse initial template into components
+  const initialComponents = useMemo(() => {
+    if (!initialTemplate || initialTemplate.trim() === '') {
+      setTemplateLoadingState({
+        loading: false,
+        error: null,
+        warnings: [],
+        componentCount: 0,
+      });
+      return [];
+    }
+
+    setTemplateLoadingState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      console.log('Parsing initial template:', initialTemplate.substring(0, 200) + '...');
+
+      // Parse the HTML template using existing parser
+      const parseResult = parseExistingTemplate(initialTemplate);
+
+      // Convert CanvasComponent format to ComponentItem format
+      const convertedComponents: ComponentItem[] = parseResult.canvasState.components.map(canvasComp => {
+        const componentItem: ComponentItem = {
+          id: canvasComp.id,
+          type: canvasComp.type,
+          position: canvasComp.position || { x: 0, y: 0 },
+          positioningMode: (canvasComp.positioningMode === 'flow' ? 'grid' : canvasComp.positioningMode) || 'grid',
+          props: canvasComp.props || {},
+        };
+
+        // Add grid position if available
+        if (canvasComp.gridPosition) {
+          componentItem.gridPosition = {
+            column: canvasComp.gridPosition.column,
+            row: canvasComp.gridPosition.row,
+            span: canvasComp.gridPosition.columnSpan || 1,
+          };
+        }
+
+        // Add children if available
+        if (canvasComp.children && canvasComp.children.length > 0) {
+          componentItem.children = canvasComp.children.map(child => ({
+            id: child.id,
+            type: child.type,
+            position: child.position || { x: 0, y: 0 },
+            positioningMode: (child.positioningMode === 'flow' ? 'grid' : child.positioningMode) || 'grid',
+            props: child.props || {},
+            gridPosition: child.gridPosition ? {
+              column: child.gridPosition.column,
+              row: child.gridPosition.row,
+              span: child.gridPosition.columnSpan || 1,
+            } : undefined,
+          }));
+        }
+
+        return componentItem;
+      });
+
+      console.log(`Successfully parsed ${convertedComponents.length} components from initial template:`);
+      convertedComponents.forEach((comp, index) => {
+        console.log(`  ${index + 1}. ${comp.type} at grid(${comp.gridPosition?.column || '?'}, ${comp.gridPosition?.row || '?'}, span=${comp.gridPosition?.span || '?'}) pixel(${comp.position.x}, ${comp.position.y}) mode=${comp.positioningMode}`);
+        console.log(`    Full gridPosition:`, comp.gridPosition);
+        console.log(`    Props:`, comp.props);
+      });
+
+      console.log('📋 Full component details for debugging:', JSON.stringify(convertedComponents, null, 2));
+
+      setTemplateLoadingState({
+        loading: false,
+        error: null,
+        warnings: parseResult.warnings,
+        componentCount: convertedComponents.length,
+      });
+
+      return convertedComponents;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown parsing error';
+      console.error('Failed to parse initial template:', error);
+
+      setTemplateLoadingState({
+        loading: false,
+        error: `Failed to load existing template: ${errorMessage}. Starting with empty canvas.`,
+        warnings: [],
+        componentCount: 0,
+      });
+
+      // Return empty array if parsing fails - user can start fresh
+      return [];
+    }
+  }, [initialTemplate]);
+
+  // Simplified canvas state management with initial components
+  const originalCanvasState = useCanvasState(initialComponents);
   const [showProperties, setShowProperties] = useState(false);
   const [showComponentPalette, setShowComponentPalette] = useState(true);
 
@@ -50,7 +155,126 @@ export default function VisualTemplateBuilder({
   const currentBreakpoint = getCurrentBreakpoint();
   const effectiveBreakpoint = previewBreakpoint || currentBreakpoint.name;
 
+  // Track if user has made changes to prevent overwriting original template
+  const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
+
+  // Store initial components for deep comparison to detect user changes
+  const initialComponentsRef = React.useRef(initialComponents);
+  const initialComponentCount = React.useRef(initialComponents.length);
+
   const {
+    placedComponents,
+    selectedComponentIds,
+    gridConfig,
+    positioningMode,
+    setPositioningMode,
+    setGridConfig,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    resetCanvas: originalResetCanvas,
+    removeSelected: originalRemoveSelected,
+    updateComponent: originalUpdateComponent,
+    addComponent: originalAddComponent,
+    removeComponent: originalRemoveComponent,
+    addChildComponent: originalAddChildComponent,
+    removeChildComponent: originalRemoveChildComponent,
+    ...restCanvasState
+  } = originalCanvasState;
+
+  // Helper function to compare if components have actually changed
+  const componentsAreEqual = useCallback((components1: ComponentItem[], components2: ComponentItem[]): boolean => {
+    if (components1.length !== components2.length) {
+      console.log('[VisualTemplateBuilder] Component count changed:', components1.length, '→', components2.length);
+      return false;
+    }
+
+    for (let i = 0; i < components1.length; i++) {
+      const comp1 = components1[i];
+      const comp2 = components2[i];
+
+      // Focus on user-meaningful changes, be more lenient with parser changes
+      const typeChanged = comp1.type !== comp2.type;
+      const positioningModeChanged = comp1.positioningMode !== comp2.positioningMode;
+
+      // Compare positions more carefully
+      const gridPos1 = comp1.gridPosition;
+      const gridPos2 = comp2.gridPosition;
+      const gridPositionChanged = (gridPos1?.column !== gridPos2?.column) ||
+                                  (gridPos1?.row !== gridPos2?.row) ||
+                                  (gridPos1?.span !== gridPos2?.span);
+
+      const pixelPos1 = comp1.position;
+      const pixelPos2 = comp2.position;
+      const pixelPositionChanged = (pixelPos1?.x !== pixelPos2?.x) || (pixelPos1?.y !== pixelPos2?.y);
+
+      // Compare meaningful props (exclude internal parser props)
+      const props1 = { ...comp1.props };
+      const props2 = { ...comp2.props };
+      delete props1._size;
+      delete props2._size;
+      const propsChanged = JSON.stringify(props1) !== JSON.stringify(props2);
+
+      const childrenChanged = (comp1.children?.length || 0) !== (comp2.children?.length || 0);
+
+      if (typeChanged || positioningModeChanged || gridPositionChanged || pixelPositionChanged || propsChanged || childrenChanged) {
+        console.log(`[VisualTemplateBuilder] Component ${i} (${comp1.type}) changed:`, {
+          typeChanged, positioningModeChanged, gridPositionChanged, pixelPositionChanged, propsChanged, childrenChanged
+        });
+        return false;
+      }
+    }
+
+    return true;
+  }, []);
+
+  // Track when user makes ANY changes (add, remove, update, move)
+  const markUserChange = useCallback(() => {
+    if (!hasUserMadeChanges) {
+      setHasUserMadeChanges(true);
+    }
+  }, [hasUserMadeChanges]);
+
+  // Wrap operations to mark user changes
+  const resetCanvas = useCallback(() => {
+    markUserChange();
+    originalResetCanvas();
+  }, [markUserChange, originalResetCanvas]);
+
+  const removeSelected = useCallback(() => {
+    markUserChange();
+    originalRemoveSelected();
+  }, [markUserChange, originalRemoveSelected]);
+
+  const updateComponent = useCallback((id: string, updates: any) => {
+    markUserChange();
+    originalUpdateComponent(id, updates);
+  }, [markUserChange, originalUpdateComponent]);
+
+  const addComponent = useCallback((component: any) => {
+    markUserChange();
+    originalAddComponent(component);
+  }, [markUserChange, originalAddComponent]);
+
+  const removeComponent = useCallback((id: string) => {
+    markUserChange();
+    originalRemoveComponent(id);
+  }, [markUserChange, originalRemoveComponent]);
+
+  const addChildComponent = useCallback((parentId: string, child: any) => {
+    markUserChange();
+    originalAddChildComponent(parentId, child);
+  }, [markUserChange, originalAddChildComponent]);
+
+  const removeChildComponent = useCallback((parentId: string, childId: string) => {
+    markUserChange();
+    originalRemoveChildComponent(parentId, childId);
+  }, [markUserChange, originalRemoveChildComponent]);
+
+  // Create modified canvas state with wrapped functions
+  const canvasState = {
+    ...restCanvasState,
     placedComponents,
     selectedComponentIds,
     gridConfig,
@@ -64,7 +288,11 @@ export default function VisualTemplateBuilder({
     resetCanvas,
     removeSelected,
     updateComponent,
-  } = canvasState;
+    addComponent,
+    removeComponent,
+    addChildComponent,
+    removeChildComponent,
+  };
 
   // Helper function to find a component by ID (including children)
   const findComponentById = (components: ComponentItem[], targetId: string): ComponentItem | null => {
@@ -105,6 +333,8 @@ export default function VisualTemplateBuilder({
 
   // Handle component property updates
   const handleComponentUpdate = useCallback((componentId: string, updates: Partial<CanvasComponent>) => {
+    markUserChange(); // Mark that user made a change
+
     // Map CanvasComponent updates to ComponentItem format
     // Only include fields that are actually being updated (not undefined)
     const mappedUpdates: Partial<ComponentItem> = {};
@@ -124,7 +354,7 @@ export default function VisualTemplateBuilder({
       };
     }
     updateComponent(componentId, mappedUpdates);
-  }, [updateComponent]);
+  }, [updateComponent, markUserChange]);
 
   // Helper function to generate HTML for a single component and its children
   const generateComponentHTML = useCallback((component: ComponentItem, indent: string = '  ', isChild: boolean = false): string => {
@@ -157,6 +387,9 @@ export default function VisualTemplateBuilder({
       })
       .filter(Boolean)
       .join(' ');
+
+    // Generate component ID attribute to preserve component identity across parsing
+    const componentIdAttr = ` data-component-id="${component.id}"`;
 
     // Add positioning data based on component's positioning mode (skip for child components)
     let positioningAttributes = '';
@@ -202,7 +435,7 @@ export default function VisualTemplateBuilder({
 
     if (hasChildren) {
       // Generate opening tag
-      let html = `${indent}<${component.type}${propsString ? ' ' + propsString : ''}${positioningAttributes}>\n`;
+      let html = `${indent}<${component.type}${propsString ? ' ' + propsString : ''}${componentIdAttr}${positioningAttributes}>\n`;
 
       // Generate children HTML based on component type
       const childIndent = indent + '  ';
@@ -227,7 +460,7 @@ export default function VisualTemplateBuilder({
       return html;
     } else {
       // Self-closing tag for components without children
-      return `${indent}<${component.type}${propsString ? ' ' + propsString : ''}${positioningAttributes} />`;
+      return `${indent}<${component.type}${propsString ? ' ' + propsString : ''}${componentIdAttr}${positioningAttributes} />`;
     }
   }, []);
 
@@ -273,13 +506,30 @@ export default function VisualTemplateBuilder({
   }, [placedComponents, gridConfig, generateComponentHTML]);
 
 
-  // Call template change callback when components change
+  // Call template change callback only when user makes actual changes
   React.useEffect(() => {
-    if (onTemplateChange) {
+    // Check if components have actually changed from the initial state
+    const componentsChanged = !componentsAreEqual(placedComponents, initialComponentsRef.current);
+
+    // Don't generate HTML on initial load if components haven't changed
+    if (!hasUserMadeChanges && !componentsChanged) {
+      console.log('[VisualTemplateBuilder] No component changes detected, preserving original template');
+      return;
+    }
+
+    // Mark that user has made changes once components differ from initial
+    if (!hasUserMadeChanges && componentsChanged) {
+      console.log('[VisualTemplateBuilder] Component changes detected, marking as user change');
+      setHasUserMadeChanges(true);
+    }
+
+    // Only call template change after user has made changes
+    if (onTemplateChange && hasUserMadeChanges) {
+      console.log('[VisualTemplateBuilder] Generating new HTML template due to user changes');
       const html = generateHTML();
       onTemplateChange(html);
     }
-  }, [placedComponents, onTemplateChange, generateHTML]);
+  }, [placedComponents, onTemplateChange, generateHTML, hasUserMadeChanges, componentsAreEqual]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -482,6 +732,39 @@ export default function VisualTemplateBuilder({
           </button>
         </div>
       </div>
+
+      {/* Template Loading Status */}
+      {templateLoadingState.loading && (
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-2">
+          <div className="flex items-center gap-2 text-sm text-blue-700">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
+            <span>Loading existing template...</span>
+          </div>
+        </div>
+      )}
+
+      {templateLoadingState.error && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2">
+          <div className="flex items-center gap-2 text-sm text-yellow-800">
+            <span>⚠️</span>
+            <span>{templateLoadingState.error}</span>
+          </div>
+        </div>
+      )}
+
+      {templateLoadingState.componentCount > 0 && !templateLoadingState.loading && (
+        <div className="bg-green-50 border-b border-green-200 px-4 py-2">
+          <div className="flex items-center gap-2 text-sm text-green-700">
+            <span>✅</span>
+            <span>Loaded {templateLoadingState.componentCount} component{templateLoadingState.componentCount !== 1 ? 's' : ''} from existing template</span>
+            {templateLoadingState.warnings.length > 0 && (
+              <span className="text-green-600 ml-2">
+                ({templateLoadingState.warnings.length} warning{templateLoadingState.warnings.length !== 1 ? 's' : ''})
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main content area - maximize vertical space */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
