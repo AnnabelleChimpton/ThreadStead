@@ -1338,7 +1338,6 @@ export default function CanvasRenderer({
             width: 'fit-content',
             height: 'fit-content',
           };
-          console.log('🎯 [WYSIWYG] Content-driven sizing for', component.type, `min: ${userWidth}x${userHeight}, max: ${Math.min(Math.max(userWidth * 1.5, 400), 600)}px`);
         } else {
           // Other components use fixed sizing
           componentStyle = {

@@ -1,7 +1,21 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ConsentType, ConsentAction } from '@prisma/client'
+
+// Define enum types to match Prisma schema
+enum ConsentType {
+  ESSENTIAL = 'ESSENTIAL',
+  ANALYTICS = 'ANALYTICS',
+  MARKETING = 'MARKETING',
+  PREFERENCES = 'PREFERENCES'
+}
+
+enum ConsentAction {
+  GRANTED = 'GRANTED',
+  WITHDRAWN = 'WITHDRAWN',
+  UPDATED = 'UPDATED',
+  EXPIRED = 'EXPIRED'
+}
 
 interface ConsentRecord {
   type: ConsentType

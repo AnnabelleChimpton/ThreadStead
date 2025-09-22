@@ -115,30 +115,6 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
           </Link>
         ))}
       </div>
-
-      {/* Additional quick links */}
-      <div className="pt-2 border-t border-gray-100">
-        <div className="flex justify-between text-xs">
-          <Link
-            href="/help"
-            className="text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            📖 Help
-          </Link>
-          <Link
-            href="/about"
-            className="text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            ℹ️ About
-          </Link>
-          <Link
-            href="/contact"
-            className="text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            📞 Contact
-          </Link>
-        </div>
-      </div>
     </div>
   );
 }

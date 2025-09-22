@@ -1,20 +1,80 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactStrictMode: true,
-  
-  // Custom redirects for better routing
-  async redirects() {
+
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+
+  // Configure external image domains
+  images: {
+    domains: ['cdn.homepageagain.com'],
+  },
+
+  // Rewrite DID document paths to API routes
+  async rewrites() {
     return [
-      // DID Web specification requires DID document at /.well-known/did.json
-      // Redirect to our API route that serves the DID document
+      // Server DID document
       {
         source: '/.well-known/did.json',
         destination: '/api/.well-known/did.json',
-        permanent: false,
       },
-      // Redirect any unmatched routes to home
+      // User DID documents
+      {
+        source: '/users/:hash/did.json',
+        destination: '/api/did/:hash/document',
+      },
+      {
+        source: '/.well-known/did/users/:hash/did.json',
+        destination: '/api/did/:hash/document',
+      },
+    ];
+  },
+
+  // Redirects from old URLs to new patterns
+  async redirects() {
+    return [
+      // Deprecated identity page redirects to settings
+      {
+        source: '/identity',
+        destination: '/settings',
+        permanent: true,
+      },
+
+      // Threadrings redirects
+      {
+        source: '/threadrings/create',
+        destination: '/tr/spool/fork',
+        permanent: true,
+      },
+      {
+        source: '/threadrings/:slug',
+        destination: '/tr/:slug',
+        permanent: true,
+      },
+      {
+        source: '/threadrings/:slug/members',
+        destination: '/tr/:slug/members',
+        permanent: true,
+      },
+      {
+        source: '/threadrings/:slug/settings',
+        destination: '/tr/:slug/settings',
+        permanent: true,
+      },
+      {
+        source: '/threadrings/:slug/fork',
+        destination: '/tr/:slug/fork',
+        permanent: true,
+      },
+      {
+        source: '/threadrings/:slug/prompts/:promptId/responses',
+        destination: '/tr/:slug/prompts/:promptId/responses',
+        permanent: true,
+      },
+
+      // Redirect 404 to home (from original next.config.ts)
       {
         source: '/404',
         destination: '/',

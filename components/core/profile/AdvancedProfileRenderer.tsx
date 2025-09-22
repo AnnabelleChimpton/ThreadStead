@@ -71,12 +71,6 @@ export default function AdvancedProfileRenderer({
   // Get islands from compiled template or fallback to stored islands (memoized to avoid re-renders)
   const islands = useMemo(() => {
     const islandsData = compiledTemplate?.islands || templateIslands || [];
-    console.log('🎯 [ADVANCED_RENDERER] Islands data loaded:', islandsData.map(i => ({
-      id: i.id,
-      component: i.component,
-      props: i.props,
-      hasPositioning: !!i.props?._positioning
-    })));
     return islandsData;
   }, [compiledTemplate?.islands, templateIslands]);
 
@@ -140,13 +134,6 @@ export default function AdvancedProfileRenderer({
     onFallback?.('No compiled template available');
     return <AdvancedProfileFallback reason="No compiled template" />;
   }
-
-  // Debug: Check if static HTML contains positioning attributes
-  console.log('🎯 [ADVANCED_RENDERER] Static HTML preview:', compiledTemplate.staticHTML.substring(0, 500));
-  const hasPositioningInHTML = compiledTemplate.staticHTML.includes('data-pure-positioning') ||
-                               compiledTemplate.staticHTML.includes('data-positioning-mode') ||
-                               compiledTemplate.staticHTML.includes('data-pixel-position');
-  console.log('🎯 [ADVANCED_RENDERER] Static HTML contains positioning attributes:', hasPositioningInHTML);
 
 
   // If hydration failed, show fallback
@@ -338,7 +325,6 @@ function StaticHTMLWithIslands({
 
                 // PROPS-BASED POSITIONING: Get positioning data directly from island props
                 const positioningData = island.props._positioning;
-                console.log('🎯 [ADVANCED_RENDERER] Island positioning data for', island.component, ':', positioningData);
 
                 // Create base component with props and set positioning mode
                 const componentProps = { ...island.props };
@@ -346,7 +332,6 @@ function StaticHTMLWithIslands({
                 // Set positioning mode for components that have positioning data
                 if (positioningData) {
                   componentProps._positioningMode = 'absolute';
-                  console.log('🎯 [ADVANCED_RENDERER] Setting _positioningMode=absolute for', island.component);
                 }
                 const renderedElement = (
                   <ResidentDataProvider key={island.id} data={residentData}>
@@ -396,7 +381,6 @@ function StaticHTMLWithIslands({
                       height: `${parsePositionValue(positioningData.height)}px`,
                       zIndex: positioningData.zIndex || 1
                     };
-                    console.log('🎯 [WYSIWYG] Container-filler at', `${parsePositionValue(positioningData.x)}, ${parsePositionValue(positioningData.y)}`, 'size:', `${parsePositionValue(positioningData.width)}x${parsePositionValue(positioningData.height)}`, 'padding:', getCurrentBreakpoint().containerPadding + 'px');
                   } else if (contentDriven.includes(componentType)) {
                     // Content-driven: Check if explicit sizing exists for WYSIWYG consistency
                     const userWidth = parsePositionValue(positioningData.width);
@@ -418,7 +402,6 @@ function StaticHTMLWithIslands({
                         height: `${userHeight}px`, // Exact height for consistent layout
                         zIndex: positioningData.zIndex || 1
                       };
-                      console.log('🎯 [WYSIWYG] Content-driven with explicit sizing for', componentType, `exact: ${userWidth}x${userHeight}`);
                     } else {
                       // Legacy behavior: Use minimum dimensions, expand as needed
                       containerStyle = {
@@ -432,7 +415,6 @@ function StaticHTMLWithIslands({
                         height: 'fit-content',
                         zIndex: positioningData.zIndex || 1
                       };
-                      console.log('🎯 [SIZING] Content-driven legacy sizing for', componentType, `min: ${userWidth}x${userHeight}, max: ${Math.max(userWidth * 1.5, 400)}px`);
                     }
                   } else {
                     // Auto-size: Respect user dimensions as preferred size with intelligent constraints
@@ -463,7 +445,6 @@ function StaticHTMLWithIslands({
                           zIndex: positioningData.zIndex || 1
                           // No width/height - let component use its natural size
                         };
-                        console.log('🎯 [WYSIWYG] Natural size container for', componentType, 'at', `${parsePositionValue(positioningData.x)}, ${parsePositionValue(positioningData.y)}`, 'with padding:', getCurrentBreakpoint().containerPadding + 'px');
                       } else {
                         // Other auto-size components: Prefer user dimensions with slight flexibility
                         containerStyle = {
@@ -489,18 +470,7 @@ function StaticHTMLWithIslands({
                         zIndex: positioningData.zIndex || 1
                       };
                     }
-                    console.log('🎯 [SIZING] Auto-size sizing for', componentType, `user: ${userWidth}x${userHeight}`);
                   }
-
-                  console.log('🎯 [ADVANCED_RENDERER] Applying positioning styles for', island.component, ':', containerStyle);
-                  console.log('🎯 [ADVANCED_RENDERER] Raw positioning data for', island.component, ':', {
-                    x: positioningData.x,
-                    y: positioningData.y,
-                    width: positioningData.width,
-                    height: positioningData.height,
-                    widthType: typeof positioningData.width,
-                    heightType: typeof positioningData.height
-                  });
 
                   const positionedElement = React.createElement(
                     'div',
@@ -536,7 +506,6 @@ function StaticHTMLWithIslands({
                   return gridElement;
                 } else {
                   // No positioning - render component normally
-                  console.log('🎯 [ADVANCED_RENDERER] No positioning applied for', island.component, '- rendering normally');
                   onIslandRender(island.id);
                   return renderedElement;
                 }

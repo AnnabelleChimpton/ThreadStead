@@ -198,15 +198,6 @@ export default function TextElement({
     return 0;
   };
 
-  console.log('🎯 [WYSIWYG] TextElement render:', {
-    tag,
-    isInVisualBuilder: _isInVisualBuilder,
-    positioningMode: _positioningMode,
-    size: _size,
-    contentLength: getContentLength(),
-    finalStyle: finalStyle
-  });
-
   // Create the element dynamically based on tag prop
   const ElementTag = tag;
 

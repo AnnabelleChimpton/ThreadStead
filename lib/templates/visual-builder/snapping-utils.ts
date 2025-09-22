@@ -155,57 +155,57 @@ export class SmartSnapping {
   generateSnapPoints(bounds: ComponentBounds): SnapPoint[] {
     const snapPoints: SnapPoint[] = [];
 
-    // Edge snap points with high priority for precise alignment
-    snapPoints.push(
-      {
-        x: bounds.left,
-        type: 'edge',
-        componentId: bounds.id,
-        edge: 'left',
-        priority: 10,
-        magneticPull: 0.8
-      },
-      {
-        x: bounds.right,
-        type: 'edge',
-        componentId: bounds.id,
-        edge: 'right',
-        priority: 10,
-        magneticPull: 0.8
-      },
-      {
-        y: bounds.top,
-        type: 'edge',
-        componentId: bounds.id,
-        edge: 'top',
-        priority: 10,
-        magneticPull: 0.8
-      },
-      {
-        y: bounds.bottom,
-        type: 'edge',
-        componentId: bounds.id,
-        edge: 'bottom',
-        priority: 10,
-        magneticPull: 0.8
-      }
-    );
-
-    // Center snap points with medium priority for general alignment
+    // Center snap points with high priority for intuitive alignment
     snapPoints.push(
       {
         x: bounds.centerX,
         type: 'center',
         componentId: bounds.id,
         edge: 'center-x',
-        priority: 7,
-        magneticPull: 0.6
+        priority: 10,
+        magneticPull: 0.8
       },
       {
         y: bounds.centerY,
         type: 'center',
         componentId: bounds.id,
         edge: 'center-y',
+        priority: 10,
+        magneticPull: 0.8
+      }
+    );
+
+    // Edge snap points with medium priority for precise alignment when needed
+    snapPoints.push(
+      {
+        x: bounds.left,
+        type: 'edge',
+        componentId: bounds.id,
+        edge: 'left',
+        priority: 7,
+        magneticPull: 0.6
+      },
+      {
+        x: bounds.right,
+        type: 'edge',
+        componentId: bounds.id,
+        edge: 'right',
+        priority: 7,
+        magneticPull: 0.6
+      },
+      {
+        y: bounds.top,
+        type: 'edge',
+        componentId: bounds.id,
+        edge: 'top',
+        priority: 7,
+        magneticPull: 0.6
+      },
+      {
+        y: bounds.bottom,
+        type: 'edge',
+        componentId: bounds.id,
+        edge: 'bottom',
         priority: 7,
         magneticPull: 0.6
       }
@@ -276,7 +276,7 @@ export class SmartSnapping {
   }
 
   /**
-   * Calculate magnetic pull strength based on distance and configuration
+   * Calculate enhanced magnetic pull strength with adaptive sensitivity
    */
   private calculateMagneticPull(distance: number, snapPoint: SnapPoint): number {
     if (!this.config.magneticZoneEnabled || distance > this.config.magneticZoneRadius) {
@@ -286,10 +286,45 @@ export class SmartSnapping {
     const basePull = snapPoint.magneticPull || 0.5;
     const normalizedDistance = distance / this.config.magneticZoneRadius;
 
-    // Stronger pull as we get closer (inverse square for more natural feel)
-    const distanceFactor = 1 - Math.pow(normalizedDistance, 2);
+    // Enhanced magnetic pull calculation with adaptive sensitivity
+    let distanceFactor: number;
 
-    return basePull * distanceFactor * this.config.magneticStrength;
+    if (normalizedDistance < 0.3) {
+      // Very close: Strong exponential pull for precise positioning
+      distanceFactor = 1 - Math.pow(normalizedDistance / 0.3, 0.5);
+    } else if (normalizedDistance < 0.7) {
+      // Medium distance: Smooth quadratic transition
+      const adjustedDistance = (normalizedDistance - 0.3) / 0.4;
+      distanceFactor = 0.8 * (1 - Math.pow(adjustedDistance, 2));
+    } else {
+      // Far distance: Gentle linear pull to start attraction
+      const adjustedDistance = (normalizedDistance - 0.7) / 0.3;
+      distanceFactor = 0.3 * (1 - adjustedDistance);
+    }
+
+    // Priority-based magnetic strength adjustment
+    let priorityMultiplier = 1.0;
+    if (snapPoint.priority && snapPoint.priority >= 9) {
+      priorityMultiplier = 1.3; // Stronger pull for high-priority snap points
+    } else if (snapPoint.priority && snapPoint.priority <= 5) {
+      priorityMultiplier = 0.7; // Weaker pull for low-priority snap points
+    }
+
+    // Type-specific sensitivity adjustments
+    let typeMultiplier = 1.0;
+    if (snapPoint.type === 'center') {
+      typeMultiplier = 1.2; // Centers are more magnetic
+    } else if (snapPoint.type === 'spacing' && snapPoint.spacing) {
+      // Spacing points are more magnetic for common spacings
+      const spacing = snapPoint.spacing.value;
+      if (spacing === 16 || spacing === 24) {
+        typeMultiplier = 1.15;
+      } else if (spacing === 8 || spacing === 12 || spacing === 20 || spacing === 32) {
+        typeMultiplier = 1.05;
+      }
+    }
+
+    return basePull * distanceFactor * this.config.magneticStrength * priorityMultiplier * typeMultiplier;
   }
 
   /**
@@ -307,7 +342,7 @@ export class SmartSnapping {
   }
 
   /**
-   * Generate spacing-based snap points for consistent layout
+   * Generate spacing-based snap points with enhanced priority logic
    */
   generateSpacingSnapPoints(
     movingComponent: { x: number; y: number; width: number; height: number },
@@ -318,20 +353,39 @@ export class SmartSnapping {
     const spacingPoints: SnapPoint[] = [];
     const movingBounds = this.getComponentBounds({ id: 'moving', ...movingComponent });
 
+    // Detect existing spacing patterns for priority boost
+    const existingSpacings = this.detectSpacingPatterns(otherComponents);
+    const commonHorizontalSpacings = new Set(existingSpacings.horizontal);
+    const commonVerticalSpacings = new Set(existingSpacings.vertical);
+
     otherComponents.forEach(comp => {
       const compBounds = this.getComponentBounds(comp);
 
+      // Calculate distance for proximity-based priority
+      const proximityDistance = Math.min(
+        Math.abs(compBounds.right - movingBounds.left),
+        Math.abs(compBounds.left - movingBounds.right),
+        Math.abs(compBounds.bottom - movingBounds.top),
+        Math.abs(compBounds.top - movingBounds.bottom)
+      );
+
       // Generate spacing suggestions for each common spacing value
       this.config.commonSpacings.forEach(spacing => {
+        // Calculate enhanced priority based on multiple factors
+        const basePriority = this.calculateSpacingPriority(spacing, proximityDistance, commonHorizontalSpacings, commonVerticalSpacings);
+
         // Horizontal spacing (component to the right)
         if (compBounds.right < movingBounds.left) {
           const suggestedX = compBounds.right + spacing;
+          const distance = Math.abs(suggestedX - movingBounds.left);
+          const priority = basePriority + (distance < 50 ? 1 : 0); // Proximity bonus
+
           spacingPoints.push({
             x: suggestedX,
             type: 'spacing',
             componentId: comp.id,
-            priority: 6,
-            magneticPull: 0.5,
+            priority,
+            magneticPull: this.calculateSpacingMagneticPull(spacing, commonHorizontalSpacings),
             spacing: {
               value: spacing,
               direction: 'horizontal',
@@ -343,12 +397,15 @@ export class SmartSnapping {
         // Horizontal spacing (component to the left)
         if (compBounds.left > movingBounds.right) {
           const suggestedX = compBounds.left - spacing - movingComponent.width;
+          const distance = Math.abs(movingBounds.right - suggestedX);
+          const priority = basePriority + (distance < 50 ? 1 : 0); // Proximity bonus
+
           spacingPoints.push({
             x: suggestedX,
             type: 'spacing',
             componentId: comp.id,
-            priority: 6,
-            magneticPull: 0.5,
+            priority,
+            magneticPull: this.calculateSpacingMagneticPull(spacing, commonHorizontalSpacings),
             spacing: {
               value: spacing,
               direction: 'horizontal',
@@ -360,12 +417,15 @@ export class SmartSnapping {
         // Vertical spacing (component below)
         if (compBounds.top > movingBounds.bottom) {
           const suggestedY = compBounds.top - spacing - movingComponent.height;
+          const distance = Math.abs(movingBounds.bottom - suggestedY);
+          const priority = basePriority + (distance < 50 ? 1 : 0); // Proximity bonus
+
           spacingPoints.push({
             y: suggestedY,
             type: 'spacing',
             componentId: comp.id,
-            priority: 6,
-            magneticPull: 0.5,
+            priority,
+            magneticPull: this.calculateSpacingMagneticPull(spacing, commonVerticalSpacings),
             spacing: {
               value: spacing,
               direction: 'vertical',
@@ -377,12 +437,15 @@ export class SmartSnapping {
         // Vertical spacing (component above)
         if (compBounds.bottom < movingBounds.top) {
           const suggestedY = compBounds.bottom + spacing;
+          const distance = Math.abs(suggestedY - movingBounds.top);
+          const priority = basePriority + (distance < 50 ? 1 : 0); // Proximity bonus
+
           spacingPoints.push({
             y: suggestedY,
             type: 'spacing',
             componentId: comp.id,
-            priority: 6,
-            magneticPull: 0.5,
+            priority,
+            magneticPull: this.calculateSpacingMagneticPull(spacing, commonVerticalSpacings),
             spacing: {
               value: spacing,
               direction: 'vertical',
@@ -394,6 +457,61 @@ export class SmartSnapping {
     });
 
     return spacingPoints;
+  }
+
+  /**
+   * Calculate spacing priority based on multiple factors
+   */
+  private calculateSpacingPriority(
+    spacing: number,
+    proximityDistance: number,
+    commonHorizontalSpacings: Set<number>,
+    commonVerticalSpacings: Set<number>
+  ): number {
+    let priority = 5; // Base priority for spacing snap points
+
+    // Boost priority for very common spacings (16px, 24px are design system favorites)
+    if (spacing === 16 || spacing === 24) {
+      priority += 2; // Priority 7
+    } else if (spacing === 8 || spacing === 12 || spacing === 20 || spacing === 32) {
+      priority += 1; // Priority 6
+    }
+
+    // Boost priority if this spacing already exists in the layout
+    if (commonHorizontalSpacings.has(spacing) || commonVerticalSpacings.has(spacing)) {
+      priority += 2; // Consistency bonus
+    }
+
+    // Boost priority for closer components (stronger spacing suggestions)
+    if (proximityDistance < 100) {
+      priority += 1; // Close components get priority boost
+    }
+
+    return Math.min(priority, 9); // Cap at 9 to stay below center/edge priorities
+  }
+
+  /**
+   * Calculate magnetic pull strength for spacing based on consistency
+   */
+  private calculateSpacingMagneticPull(
+    spacing: number,
+    existingSpacings: Set<number>
+  ): number {
+    let magneticPull = 0.4; // Base magnetic pull for spacing
+
+    // Stronger pull for common design system spacings
+    if (spacing === 16 || spacing === 24) {
+      magneticPull = 0.6;
+    } else if (spacing === 8 || spacing === 12 || spacing === 20 || spacing === 32) {
+      magneticPull = 0.5;
+    }
+
+    // Much stronger pull if this spacing already exists in the layout
+    if (existingSpacings.has(spacing)) {
+      magneticPull += 0.3; // Consistency boost
+    }
+
+    return Math.min(magneticPull, 0.8); // Cap magnetic pull
   }
 
   /**
@@ -451,10 +569,11 @@ export class SmartSnapping {
     canvasHeight: number = 800,
     currentBreakpoint?: any
   ): SnapResult {
-    if (!this.config.enabled) {
+    // Input validation
+    if (!this.config.enabled || !movingComponent || !otherComponents) {
       return {
-        x: movingComponent.x,
-        y: movingComponent.y,
+        x: movingComponent?.x || 0,
+        y: movingComponent?.y || 0,
         snappedX: false,
         snappedY: false,
         snapPoints: [],
@@ -462,6 +581,17 @@ export class SmartSnapping {
         magneticPull: { x: 0, y: 0 },
       };
     }
+
+    // Ensure otherComponents is an array and filter out invalid components
+    const validComponents = Array.isArray(otherComponents)
+      ? otherComponents.filter(comp =>
+          comp &&
+          typeof comp.x === 'number' &&
+          typeof comp.y === 'number' &&
+          typeof comp.width === 'number' &&
+          typeof comp.height === 'number'
+        )
+      : [];
 
     const movingBounds = this.getComponentBounds({
       id: 'moving',
@@ -472,8 +602,8 @@ export class SmartSnapping {
     const allSnapPoints: SnapPoint[] = [];
 
     // Component snap points
-    if (this.config.componentSnapping) {
-      otherComponents.forEach(comp => {
+    if (this.config.componentSnapping && validComponents.length > 0) {
+      validComponents.forEach(comp => {
         const bounds = this.getComponentBounds(comp);
         allSnapPoints.push(...this.generateSnapPoints(bounds));
       });
@@ -485,8 +615,8 @@ export class SmartSnapping {
     }
 
     // Spacing snap points
-    if (this.config.spacingDetection) {
-      allSnapPoints.push(...this.generateSpacingSnapPoints(movingComponent, otherComponents));
+    if (this.config.spacingDetection && validComponents.length > 0) {
+      allSnapPoints.push(...this.generateSpacingSnapPoints(movingComponent, validComponents));
     }
 
     // Enhanced snap candidate processing with magnetic zones and priority
@@ -566,12 +696,26 @@ export class SmartSnapping {
         const centerDistance = Math.abs(bestXSnap.x - movingBounds.centerX);
 
         let targetX: number;
-        if (leftDistance <= rightDistance && leftDistance <= centerDistance) {
-          targetX = bestXSnap.x; // Snap left edge
-        } else if (rightDistance <= centerDistance) {
-          targetX = bestXSnap.x - movingComponent.width; // Snap right edge
+
+        // Enhanced logic: Use snap point type to determine alignment intention
+        if (bestXSnap.edge === 'center-x' || bestXSnap.type === 'center') {
+          // Explicitly center-align when snap point is a center point
+          targetX = bestXSnap.x - movingComponent.width / 2;
+        } else if (bestXSnap.edge === 'left') {
+          // Align left edges
+          targetX = bestXSnap.x;
+        } else if (bestXSnap.edge === 'right') {
+          // Align right edges (right edge of moving component to snap point)
+          targetX = bestXSnap.x - movingComponent.width;
         } else {
-          targetX = bestXSnap.x - movingComponent.width / 2; // Snap center
+          // Fallback to distance-based logic for edge/spacing points
+          if (leftDistance <= rightDistance && leftDistance <= centerDistance) {
+            targetX = bestXSnap.x; // Snap left edge
+          } else if (rightDistance <= centerDistance) {
+            targetX = bestXSnap.x - movingComponent.width; // Snap right edge
+          } else {
+            targetX = bestXSnap.x - movingComponent.width / 2; // Snap center
+          }
         }
 
         // Apply magnetic pull or direct snap
@@ -594,12 +738,26 @@ export class SmartSnapping {
         const centerDistance = Math.abs(bestYSnap.y - movingBounds.centerY);
 
         let targetY: number;
-        if (topDistance <= bottomDistance && topDistance <= centerDistance) {
-          targetY = bestYSnap.y; // Snap top edge
-        } else if (bottomDistance <= centerDistance) {
-          targetY = bestYSnap.y - movingComponent.height; // Snap bottom edge
+
+        // Enhanced logic: Use snap point type to determine alignment intention
+        if (bestYSnap.edge === 'center-y' || bestYSnap.type === 'center') {
+          // Explicitly center-align when snap point is a center point
+          targetY = bestYSnap.y - movingComponent.height / 2;
+        } else if (bestYSnap.edge === 'top') {
+          // Align top edges
+          targetY = bestYSnap.y;
+        } else if (bestYSnap.edge === 'bottom') {
+          // Align bottom edges (bottom edge of moving component to snap point)
+          targetY = bestYSnap.y - movingComponent.height;
         } else {
-          targetY = bestYSnap.y - movingComponent.height / 2; // Snap center
+          // Fallback to distance-based logic for edge/spacing points
+          if (topDistance <= bottomDistance && topDistance <= centerDistance) {
+            targetY = bestYSnap.y; // Snap top edge
+          } else if (bottomDistance <= centerDistance) {
+            targetY = bestYSnap.y - movingComponent.height; // Snap bottom edge
+          } else {
+            targetY = bestYSnap.y - movingComponent.height / 2; // Snap center
+          }
         }
 
         // Apply magnetic pull or direct snap
@@ -616,12 +774,12 @@ export class SmartSnapping {
     // Generate alignment guides
     const alignmentGuides = this.generateAlignmentGuides(
       { ...movingComponent, x: snappedX, y: snappedY },
-      otherComponents,
+      validComponents,
       appliedSnapPoints
     );
 
     // Detect spacing patterns for suggestions
-    const suggestedSpacing = this.detectSpacingPatterns(otherComponents);
+    const suggestedSpacing = this.detectSpacingPatterns(validComponents);
 
     return {
       x: snappedX,

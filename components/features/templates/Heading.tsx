@@ -199,23 +199,6 @@ export default function Heading({
     overflowX: 'hidden',
   };
 
-  // Debug logging for WYSIWYG validation
-  const getContentLength = () => {
-    if (content && typeof content === 'string') return content.length;
-    if (children && typeof children === 'string') return children.length;
-    if (typeof children === 'number') return children.toString().length;
-    return 0;
-  };
-
-  console.log('🎯 [WYSIWYG] Heading render:', {
-    level,
-    isInVisualBuilder: _isInVisualBuilder,
-    positioningMode: _positioningMode,
-    size: _size,
-    contentLength: getContentLength(),
-    finalStyle: finalStyle
-  });
-
   // Create the heading element dynamically based on level
   const HeadingTag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 

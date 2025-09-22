@@ -15,12 +15,7 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
                               astString.includes('dataPositioningMode') ||
                               astString.includes('dataPixelPosition') ||
                               astString.includes('dataPosition');
-  console.log('🎯 [STATIC_HTML_GEN] Starting with positioning data in AST:', hasPositioningInAST);
 
-  if (hasPositioningInAST) {
-    const positioningMatches = astString.match(/data-(?:positioning-mode|pixel-position|position)/g);
-    console.log('🎯 [STATIC_HTML_GEN] Found positioning properties in AST:', positioningMatches);
-  }
 
   function renderNode(node: TemplateNode): string {
     nodeCount++;
@@ -30,18 +25,8 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
       const hasPositioningProps = Object.keys(node.properties).some(key =>
         key.includes('data-positioning-mode') || key.includes('data-pixel-position') || key.includes('data-position')
       );
-      if (hasPositioningProps) {
-        console.log('🎯 [STATIC_HTML_GEN] Found node with positioning properties:', {
-          tagName: node.tagName,
-          properties: node.properties,
-          nodeCount
-        });
-      }
     }
 
-    if (nodeCount <= 5) {
-      console.log(`🎨 Rendering node ${nodeCount}:`, { type: node.type, tagName: node.tagName });
-    }
     if (node.type === 'text') {
       return escapeHtml(node.value || '');
     }
@@ -52,10 +37,6 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
       if (islandId && islandMap.has(islandId)) {
         const island = islandMap.get(islandId)!;
         islandReplacements++;
-        
-        if (islandReplacements <= 3) {
-          console.log(`🏝️ Rendering island ${islandReplacements}:`, { islandId, component: island.component, hasChildren: !!node.children?.length });
-        }
         
         // Render as normal div with data-island attributes, but include children
         const attrs = renderAttributes(node.properties || {});
@@ -84,13 +65,6 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
   }
   
   const result = renderNode(ast);
-  
-  console.log(`🎯 Static HTML generation complete:`, {
-    totalNodesRendered: nodeCount,
-    totalIslandReplacements: islandReplacements,
-    expectedIslands: islands.length,
-    resultLength: result.length
-  });
   
   return result;
 }

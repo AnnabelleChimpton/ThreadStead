@@ -18,9 +18,6 @@ interface ProfilePhotoProps {
 export default function ProfilePhoto({ size = 'md', shape = 'circle', className: customClassName, _isInGrid = false, _positioningMode = 'normal', _isInVisualBuilder = false, imageFit = 'auto' }: ProfilePhotoProps) {
   const { owner } = useResidentData();
 
-  // Debug: Log positioning mode for troubleshooting
-  console.log('🖼️ [ProfilePhoto] Rendering with positioningMode:', _positioningMode, 'isInGrid:', _isInGrid, 'isInVisualBuilder:', _isInVisualBuilder);
-
   // Use prop-based grid detection instead of context hook to prevent infinite loops
   const isInGrid = _isInGrid;
 
@@ -87,10 +84,6 @@ export default function ProfilePhoto({ size = 'md', shape = 'circle', className:
   const wrapperClassName = normalizedCustomClassName
     ? `${baseWrapperClasses} ${normalizedCustomClassName}`
     : baseWrapperClasses;
-
-  // Debug: Log wrapper classes being applied
-  console.log('🖼️ [ProfilePhoto] shouldFillContainer:', shouldFillContainer, 'wrapperClasses:', baseWrapperClasses);
-  console.log('🖼️ [ProfilePhoto] imageFitClass:', imageFitClass, 'sizeClasses:', sizeClasses[size]);
 
   return (
     <div className={wrapperClassName}>

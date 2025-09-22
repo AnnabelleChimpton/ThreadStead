@@ -190,22 +190,6 @@ export default function Paragraph({
     overflowX: 'hidden',
   };
 
-  // Debug logging for WYSIWYG validation
-  const getContentLength = () => {
-    if (content && typeof content === 'string') return content.length;
-    if (children && typeof children === 'string') return children.length;
-    if (typeof children === 'number') return children.toString().length;
-    return 0;
-  };
-
-  console.log('🎯 [WYSIWYG] Paragraph render:', {
-    isInVisualBuilder: _isInVisualBuilder,
-    positioningMode: _positioningMode,
-    size: _size,
-    contentLength: getContentLength(),
-    finalStyle: finalStyle
-  });
-
   return (
     <>
       <p
