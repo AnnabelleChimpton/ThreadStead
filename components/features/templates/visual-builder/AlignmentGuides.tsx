@@ -53,30 +53,90 @@ export default function AlignmentGuides({
         />
       ))}
 
-      {/* Snap points indicators */}
+      {/* Enhanced snap points indicators with magnetic zones */}
       {snapPoints.map((point, index) => (
         <g key={`snap-${index}`}>
           {point.x !== undefined && (
-            <circle
-              cx={point.x}
-              cy={point.y || 0}
-              r={4}
-              fill={getSnapPointColor(point.type)}
-              stroke="white"
-              strokeWidth={1}
-              opacity={0.9}
-            />
+            <>
+              {/* Magnetic zone indicator (if magnetic pull exists) */}
+              {point.magneticPull && point.magneticPull > 0 && (
+                <circle
+                  cx={point.x}
+                  cy={point.y || canvasHeight / 2}
+                  r={12}
+                  fill={getSnapPointColor(point.type)}
+                  opacity={0.1 + (point.magneticPull * 0.2)}
+                  stroke={getSnapPointColor(point.type)}
+                  strokeWidth={1}
+                  strokeOpacity={0.3}
+                />
+              )}
+
+              {/* Main snap point */}
+              <circle
+                cx={point.x}
+                cy={point.y || canvasHeight / 2}
+                r={point.priority && point.priority > 7 ? 5 : 4}
+                fill={getSnapPointColor(point.type)}
+                stroke="white"
+                strokeWidth={1}
+                opacity={0.9}
+              />
+
+              {/* Spacing indicator */}
+              {point.spacing && (
+                <text
+                  x={point.x + 8}
+                  y={(point.y || canvasHeight / 2) - 8}
+                  fontSize="10"
+                  fill={getSnapPointColor(point.type)}
+                  opacity={0.8}
+                >
+                  {point.spacing.value}px
+                </text>
+              )}
+            </>
           )}
           {point.y !== undefined && point.x === undefined && (
-            <circle
-              cx={0}
-              cy={point.y}
-              r={4}
-              fill={getSnapPointColor(point.type)}
-              stroke="white"
-              strokeWidth={1}
-              opacity={0.9}
-            />
+            <>
+              {/* Magnetic zone indicator (if magnetic pull exists) */}
+              {point.magneticPull && point.magneticPull > 0 && (
+                <circle
+                  cx={canvasWidth / 2}
+                  cy={point.y}
+                  r={12}
+                  fill={getSnapPointColor(point.type)}
+                  opacity={0.1 + (point.magneticPull * 0.2)}
+                  stroke={getSnapPointColor(point.type)}
+                  strokeWidth={1}
+                  strokeOpacity={0.3}
+                />
+              )}
+
+              {/* Main snap point */}
+              <circle
+                cx={canvasWidth / 2}
+                cy={point.y}
+                r={point.priority && point.priority > 7 ? 5 : 4}
+                fill={getSnapPointColor(point.type)}
+                stroke="white"
+                strokeWidth={1}
+                opacity={0.9}
+              />
+
+              {/* Spacing indicator */}
+              {point.spacing && (
+                <text
+                  x={(canvasWidth / 2) + 8}
+                  y={point.y - 8}
+                  fontSize="10"
+                  fill={getSnapPointColor(point.type)}
+                  opacity={0.8}
+                >
+                  {point.spacing.value}px
+                </text>
+              )}
+            </>
           )}
         </g>
       ))}
@@ -151,7 +211,7 @@ function getGuideDashArray(strength: 'strong' | 'medium' | 'weak'): string {
 /**
  * Get snap point color based on type
  */
-function getSnapPointColor(type: 'edge' | 'center' | 'grid'): string {
+function getSnapPointColor(type: 'edge' | 'center' | 'grid' | 'spacing'): string {
   switch (type) {
     case 'edge':
       return '#3B82F6'; // Blue for edge snaps
@@ -159,6 +219,8 @@ function getSnapPointColor(type: 'edge' | 'center' | 'grid'): string {
       return '#10B981'; // Green for center snaps
     case 'grid':
       return '#8B5CF6'; // Purple for grid snaps
+    case 'spacing':
+      return '#F59E0B'; // Orange for spacing snaps
     default:
       return '#6B7280';
   }

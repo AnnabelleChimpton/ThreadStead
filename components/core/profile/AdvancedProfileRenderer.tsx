@@ -398,22 +398,42 @@ function StaticHTMLWithIslands({
                     };
                     console.log('🎯 [WYSIWYG] Container-filler at', `${parsePositionValue(positioningData.x)}, ${parsePositionValue(positioningData.y)}`, 'size:', `${parsePositionValue(positioningData.width)}x${parsePositionValue(positioningData.height)}`, 'padding:', getCurrentBreakpoint().containerPadding + 'px');
                   } else if (contentDriven.includes(componentType)) {
-                    // Content-driven: Use minimum dimensions, expand as needed but respect max constraints
+                    // Content-driven: Check if explicit sizing exists for WYSIWYG consistency
                     const userWidth = parsePositionValue(positioningData.width);
                     const userHeight = parsePositionValue(positioningData.height);
 
-                    containerStyle = {
-                      position: 'absolute',
-                      left: `${parsePositionValue(positioningData.x)}px`,
-                      top: `${parsePositionValue(positioningData.y)}px`,
-                      minWidth: `${userWidth}px`,
-                      minHeight: `${userHeight}px`,
-                      maxWidth: `${Math.min(Math.max(userWidth * 1.5, 400), 600)}px`, // Cap at 600px for consistent text wrapping
-                      width: 'fit-content',
-                      height: 'fit-content',
-                      zIndex: positioningData.zIndex || 1
-                    };
-                    console.log('🎯 [SIZING] Content-driven sizing for', componentType, `min: ${userWidth}x${userHeight}, max: ${Math.max(userWidth * 2, 400)}px`);
+                    // CRITICAL FIX: If component has explicit sizing from positioning data,
+                    // respect exact dimensions to maintain text wrapping consistency
+                    const hasExplicitSize = positioningData && positioningData.width && positioningData.height &&
+                      (typeof positioningData.width === 'string' && positioningData.width.includes('px')) &&
+                      (typeof positioningData.height === 'string' && positioningData.height.includes('px'));
+
+                    if (hasExplicitSize) {
+                      // Use exact dimensions like Visual Builder does - WYSIWYG consistency
+                      containerStyle = {
+                        position: 'absolute',
+                        left: `${parsePositionValue(positioningData.x)}px`,
+                        top: `${parsePositionValue(positioningData.y)}px`,
+                        width: `${userWidth}px`, // Exact width for consistent text wrapping
+                        height: `${userHeight}px`, // Exact height for consistent layout
+                        zIndex: positioningData.zIndex || 1
+                      };
+                      console.log('🎯 [WYSIWYG] Content-driven with explicit sizing for', componentType, `exact: ${userWidth}x${userHeight}`);
+                    } else {
+                      // Legacy behavior: Use minimum dimensions, expand as needed
+                      containerStyle = {
+                        position: 'absolute',
+                        left: `${parsePositionValue(positioningData.x)}px`,
+                        top: `${parsePositionValue(positioningData.y)}px`,
+                        minWidth: `${userWidth}px`,
+                        minHeight: `${userHeight}px`,
+                        maxWidth: `${Math.min(Math.max(userWidth * 1.5, 400), 600)}px`,
+                        width: 'fit-content',
+                        height: 'fit-content',
+                        zIndex: positioningData.zIndex || 1
+                      };
+                      console.log('🎯 [SIZING] Content-driven legacy sizing for', componentType, `min: ${userWidth}x${userHeight}, max: ${Math.max(userWidth * 1.5, 400)}px`);
+                    }
                   } else {
                     // Auto-size: Respect user dimensions as preferred size with intelligent constraints
                     const userWidth = parsePositionValue(positioningData.width);

@@ -6,9 +6,18 @@
 export interface SnapPoint {
   x?: number;
   y?: number;
-  type: 'edge' | 'center' | 'grid';
+  type: 'edge' | 'center' | 'grid' | 'spacing';
   componentId?: string;
   edge?: 'left' | 'right' | 'top' | 'bottom' | 'center-x' | 'center-y';
+
+  // Enhanced properties for magnetic snapping
+  priority?: number; // higher priority snaps first
+  magneticPull?: number; // 0-1, strength of magnetic attraction
+  spacing?: {
+    value: number; // spacing distance
+    direction: 'horizontal' | 'vertical';
+    referenceComponent?: string; // component this spacing relates to
+  };
 }
 
 export interface AlignmentGuide {
@@ -42,6 +51,25 @@ export interface SnapResult {
   snappedY: boolean;
   snapPoints: SnapPoint[];
   alignmentGuides: AlignmentGuide[];
+
+  // Enhanced properties for magnetic snapping
+  magneticPull: { x: number; y: number }; // actual magnetic adjustment applied
+  suggestedSpacing?: {
+    horizontal?: number[];
+    vertical?: number[];
+  };
+}
+
+export interface MultiComponentSnapResult {
+  components: Array<{
+    id: string;
+    x: number;
+    y: number;
+    snappedX: boolean;
+    snappedY: boolean;
+  }>;
+  alignmentGuides: AlignmentGuide[];
+  snapPoints: SnapPoint[];
 }
 
 export interface SnapConfig {
@@ -52,6 +80,16 @@ export interface SnapConfig {
   gridSize: number;
   showGuides: boolean;
   showSnapDistance: boolean;
+
+  // Enhanced magnetic snapping
+  magneticZoneEnabled: boolean;
+  magneticZoneRadius: number; // radius for magnetic attraction
+  magneticStrength: number; // 0-1, how strong the magnetic pull is
+
+  // Smart spacing
+  spacingDetection: boolean;
+  commonSpacings: number[]; // common spacing values to suggest
+  spacingTolerance: number; // tolerance for spacing detection
 }
 
 export const DEFAULT_SNAP_CONFIG: SnapConfig = {
@@ -62,6 +100,16 @@ export const DEFAULT_SNAP_CONFIG: SnapConfig = {
   gridSize: 20,
   showGuides: true,
   showSnapDistance: true,
+
+  // Enhanced magnetic snapping
+  magneticZoneEnabled: true,
+  magneticZoneRadius: 24, // 24px magnetic zone
+  magneticStrength: 0.6, // 60% magnetic pull strength
+
+  // Smart spacing
+  spacingDetection: true,
+  commonSpacings: [8, 12, 16, 20, 24, 32, 48], // standard spacing values
+  spacingTolerance: 4, // 4px tolerance for spacing detection
 };
 
 /**
@@ -102,58 +150,306 @@ export class SmartSnapping {
   }
 
   /**
-   * Generate snap points from component bounds
+   * Generate snap points from component bounds with enhanced priority and magnetic properties
    */
   generateSnapPoints(bounds: ComponentBounds): SnapPoint[] {
     const snapPoints: SnapPoint[] = [];
 
-    // Edge snap points
+    // Edge snap points with high priority for precise alignment
     snapPoints.push(
-      { x: bounds.left, type: 'edge', componentId: bounds.id, edge: 'left' },
-      { x: bounds.right, type: 'edge', componentId: bounds.id, edge: 'right' },
-      { y: bounds.top, type: 'edge', componentId: bounds.id, edge: 'top' },
-      { y: bounds.bottom, type: 'edge', componentId: bounds.id, edge: 'bottom' }
+      {
+        x: bounds.left,
+        type: 'edge',
+        componentId: bounds.id,
+        edge: 'left',
+        priority: 10,
+        magneticPull: 0.8
+      },
+      {
+        x: bounds.right,
+        type: 'edge',
+        componentId: bounds.id,
+        edge: 'right',
+        priority: 10,
+        magneticPull: 0.8
+      },
+      {
+        y: bounds.top,
+        type: 'edge',
+        componentId: bounds.id,
+        edge: 'top',
+        priority: 10,
+        magneticPull: 0.8
+      },
+      {
+        y: bounds.bottom,
+        type: 'edge',
+        componentId: bounds.id,
+        edge: 'bottom',
+        priority: 10,
+        magneticPull: 0.8
+      }
     );
 
-    // Center snap points
+    // Center snap points with medium priority for general alignment
     snapPoints.push(
-      { x: bounds.centerX, type: 'center', componentId: bounds.id, edge: 'center-x' },
-      { y: bounds.centerY, type: 'center', componentId: bounds.id, edge: 'center-y' }
+      {
+        x: bounds.centerX,
+        type: 'center',
+        componentId: bounds.id,
+        edge: 'center-x',
+        priority: 7,
+        magneticPull: 0.6
+      },
+      {
+        y: bounds.centerY,
+        type: 'center',
+        componentId: bounds.id,
+        edge: 'center-y',
+        priority: 7,
+        magneticPull: 0.6
+      }
     );
 
     return snapPoints;
   }
 
   /**
-   * Generate grid snap points
+   * Generate enhanced grid snap points with proper breakpoint support
    */
-  generateGridSnapPoints(canvasWidth: number, canvasHeight: number): SnapPoint[] {
+  generateGridSnapPoints(canvasWidth: number, canvasHeight: number, currentBreakpoint?: any): SnapPoint[] {
     if (!this.config.gridSnapping) return [];
 
     const snapPoints: SnapPoint[] = [];
-    const { gridSize } = this.config;
 
-    // Vertical grid lines
-    for (let x = 0; x <= canvasWidth; x += gridSize) {
-      snapPoints.push({ x, type: 'grid' });
-    }
+    // Enhanced grid snapping - use actual grid system if breakpoint provided
+    if (currentBreakpoint) {
+      // Use real grid column positions for precise snapping
+      const columnWidth = (canvasWidth - (currentBreakpoint.columns + 1) * currentBreakpoint.gap) / currentBreakpoint.columns;
 
-    // Horizontal grid lines
-    for (let y = 0; y <= canvasHeight; y += gridSize) {
-      snapPoints.push({ y, type: 'grid' });
+      // Vertical grid lines (column boundaries) with medium priority
+      for (let col = 0; col <= currentBreakpoint.columns; col++) {
+        const x = col * (columnWidth + currentBreakpoint.gap);
+        snapPoints.push({
+          x,
+          type: 'grid',
+          priority: 5, // Higher priority than before but lower than components
+          magneticPull: 0.5
+        });
+      }
+
+      // Horizontal grid lines (row boundaries) with medium priority
+      for (let y = 0; y <= canvasHeight; y += currentBreakpoint.rowHeight) {
+        snapPoints.push({
+          y,
+          type: 'grid',
+          priority: 5,
+          magneticPull: 0.5
+        });
+      }
+    } else {
+      // Fallback to simple grid size for basic grid snapping
+      const { gridSize } = this.config;
+
+      // Vertical grid lines with lower priority than components
+      for (let x = 0; x <= canvasWidth; x += gridSize) {
+        snapPoints.push({
+          x,
+          type: 'grid',
+          priority: 3,
+          magneticPull: 0.3
+        });
+      }
+
+      // Horizontal grid lines with lower priority than components
+      for (let y = 0; y <= canvasHeight; y += gridSize) {
+        snapPoints.push({
+          y,
+          type: 'grid',
+          priority: 3,
+          magneticPull: 0.3
+        });
+      }
     }
 
     return snapPoints;
   }
 
   /**
-   * Calculate snapping for a moving component
+   * Calculate magnetic pull strength based on distance and configuration
+   */
+  private calculateMagneticPull(distance: number, snapPoint: SnapPoint): number {
+    if (!this.config.magneticZoneEnabled || distance > this.config.magneticZoneRadius) {
+      return 0;
+    }
+
+    const basePull = snapPoint.magneticPull || 0.5;
+    const normalizedDistance = distance / this.config.magneticZoneRadius;
+
+    // Stronger pull as we get closer (inverse square for more natural feel)
+    const distanceFactor = 1 - Math.pow(normalizedDistance, 2);
+
+    return basePull * distanceFactor * this.config.magneticStrength;
+  }
+
+  /**
+   * Apply magnetic pull to position
+   */
+  private applyMagneticPull(
+    currentPosition: number,
+    targetPosition: number,
+    pullStrength: number
+  ): number {
+    if (pullStrength === 0) return currentPosition;
+
+    const delta = targetPosition - currentPosition;
+    return currentPosition + (delta * pullStrength);
+  }
+
+  /**
+   * Generate spacing-based snap points for consistent layout
+   */
+  generateSpacingSnapPoints(
+    movingComponent: { x: number; y: number; width: number; height: number },
+    otherComponents: Array<{ id: string; x: number; y: number; width: number; height: number }>
+  ): SnapPoint[] {
+    if (!this.config.spacingDetection) return [];
+
+    const spacingPoints: SnapPoint[] = [];
+    const movingBounds = this.getComponentBounds({ id: 'moving', ...movingComponent });
+
+    otherComponents.forEach(comp => {
+      const compBounds = this.getComponentBounds(comp);
+
+      // Generate spacing suggestions for each common spacing value
+      this.config.commonSpacings.forEach(spacing => {
+        // Horizontal spacing (component to the right)
+        if (compBounds.right < movingBounds.left) {
+          const suggestedX = compBounds.right + spacing;
+          spacingPoints.push({
+            x: suggestedX,
+            type: 'spacing',
+            componentId: comp.id,
+            priority: 6,
+            magneticPull: 0.5,
+            spacing: {
+              value: spacing,
+              direction: 'horizontal',
+              referenceComponent: comp.id
+            }
+          });
+        }
+
+        // Horizontal spacing (component to the left)
+        if (compBounds.left > movingBounds.right) {
+          const suggestedX = compBounds.left - spacing - movingComponent.width;
+          spacingPoints.push({
+            x: suggestedX,
+            type: 'spacing',
+            componentId: comp.id,
+            priority: 6,
+            magneticPull: 0.5,
+            spacing: {
+              value: spacing,
+              direction: 'horizontal',
+              referenceComponent: comp.id
+            }
+          });
+        }
+
+        // Vertical spacing (component below)
+        if (compBounds.top > movingBounds.bottom) {
+          const suggestedY = compBounds.top - spacing - movingComponent.height;
+          spacingPoints.push({
+            y: suggestedY,
+            type: 'spacing',
+            componentId: comp.id,
+            priority: 6,
+            magneticPull: 0.5,
+            spacing: {
+              value: spacing,
+              direction: 'vertical',
+              referenceComponent: comp.id
+            }
+          });
+        }
+
+        // Vertical spacing (component above)
+        if (compBounds.bottom < movingBounds.top) {
+          const suggestedY = compBounds.bottom + spacing;
+          spacingPoints.push({
+            y: suggestedY,
+            type: 'spacing',
+            componentId: comp.id,
+            priority: 6,
+            magneticPull: 0.5,
+            spacing: {
+              value: spacing,
+              direction: 'vertical',
+              referenceComponent: comp.id
+            }
+          });
+        }
+      });
+    });
+
+    return spacingPoints;
+  }
+
+  /**
+   * Detect current spacing patterns and suggest improvements
+   */
+  private detectSpacingPatterns(
+    otherComponents: Array<{ id: string; x: number; y: number; width: number; height: number }>
+  ): { horizontal: number[]; vertical: number[] } {
+    const horizontalSpacings: number[] = [];
+    const verticalSpacings: number[] = [];
+
+    // Analyze spacing between existing components
+    for (let i = 0; i < otherComponents.length; i++) {
+      for (let j = i + 1; j < otherComponents.length; j++) {
+        const comp1 = this.getComponentBounds(otherComponents[i]);
+        const comp2 = this.getComponentBounds(otherComponents[j]);
+
+        // Check horizontal spacing
+        if (Math.abs(comp1.top - comp2.top) < this.config.spacingTolerance) {
+          if (comp1.right < comp2.left) {
+            horizontalSpacings.push(comp2.left - comp1.right);
+          } else if (comp2.right < comp1.left) {
+            horizontalSpacings.push(comp1.left - comp2.right);
+          }
+        }
+
+        // Check vertical spacing
+        if (Math.abs(comp1.left - comp2.left) < this.config.spacingTolerance) {
+          if (comp1.bottom < comp2.top) {
+            verticalSpacings.push(comp2.top - comp1.bottom);
+          } else if (comp2.bottom < comp1.top) {
+            verticalSpacings.push(comp1.top - comp2.bottom);
+          }
+        }
+      }
+    }
+
+    // Filter to most common spacings
+    const uniqueHorizontal = [...new Set(horizontalSpacings.filter(s => s > 0))];
+    const uniqueVertical = [...new Set(verticalSpacings.filter(s => s > 0))];
+
+    return {
+      horizontal: uniqueHorizontal.slice(0, 3), // Top 3 horizontal spacings
+      vertical: uniqueVertical.slice(0, 3) // Top 3 vertical spacings
+    };
+  }
+
+  /**
+   * Enhanced calculate snapping with magnetic zones and spacing detection
    */
   calculateSnap(
     movingComponent: { x: number; y: number; width: number; height: number },
     otherComponents: Array<{ id: string; x: number; y: number; width: number; height: number }>,
     canvasWidth: number = 1200,
-    canvasHeight: number = 800
+    canvasHeight: number = 800,
+    currentBreakpoint?: any
   ): SnapResult {
     if (!this.config.enabled) {
       return {
@@ -163,6 +459,7 @@ export class SmartSnapping {
         snappedY: false,
         snapPoints: [],
         alignmentGuides: [],
+        magneticPull: { x: 0, y: 0 },
       };
     }
 
@@ -171,7 +468,7 @@ export class SmartSnapping {
       ...movingComponent
     });
 
-    // Generate all available snap points
+    // Generate all available snap points with priorities
     const allSnapPoints: SnapPoint[] = [];
 
     // Component snap points
@@ -182,88 +479,137 @@ export class SmartSnapping {
       });
     }
 
-    // Grid snap points
+    // Grid snap points (enhanced with breakpoint support)
     if (this.config.gridSnapping) {
-      allSnapPoints.push(...this.generateGridSnapPoints(canvasWidth, canvasHeight));
+      allSnapPoints.push(...this.generateGridSnapPoints(canvasWidth, canvasHeight, currentBreakpoint));
     }
 
-    // Find best snap candidates
+    // Spacing snap points
+    if (this.config.spacingDetection) {
+      allSnapPoints.push(...this.generateSpacingSnapPoints(movingComponent, otherComponents));
+    }
+
+    // Enhanced snap candidate processing with magnetic zones and priority
     const xSnapCandidates = allSnapPoints
       .filter(point => point.x !== undefined)
-      .map(point => ({
-        ...point,
-        distance: Math.min(
+      .map(point => {
+        const distances = [
           Math.abs(point.x! - movingBounds.left),
           Math.abs(point.x! - movingBounds.right),
           Math.abs(point.x! - movingBounds.centerX)
-        )
-      }))
-      .filter(candidate => candidate.distance <= this.config.snapDistance)
-      .sort((a, b) => a.distance - b.distance);
+        ];
+        const minDistance = Math.min(...distances);
+        const magneticPull = this.calculateMagneticPull(minDistance, point);
+
+        return {
+          ...point,
+          distance: minDistance,
+          magneticPull: magneticPull,
+          priority: point.priority || 5
+        };
+      })
+      .filter(candidate =>
+        candidate.distance <= this.config.snapDistance ||
+        candidate.distance <= this.config.magneticZoneRadius
+      )
+      .sort((a, b) => {
+        // Sort by priority first, then by distance
+        if (a.priority !== b.priority) {
+          return b.priority - a.priority; // Higher priority first
+        }
+        return a.distance - b.distance;
+      });
 
     const ySnapCandidates = allSnapPoints
       .filter(point => point.y !== undefined)
-      .map(point => ({
-        ...point,
-        distance: Math.min(
+      .map(point => {
+        const distances = [
           Math.abs(point.y! - movingBounds.top),
           Math.abs(point.y! - movingBounds.bottom),
           Math.abs(point.y! - movingBounds.centerY)
-        )
-      }))
-      .filter(candidate => candidate.distance <= this.config.snapDistance)
-      .sort((a, b) => a.distance - b.distance);
+        ];
+        const minDistance = Math.min(...distances);
+        const magneticPull = this.calculateMagneticPull(minDistance, point);
 
-    // Apply snapping
+        return {
+          ...point,
+          distance: minDistance,
+          magneticPull: magneticPull,
+          priority: point.priority || 5
+        };
+      })
+      .filter(candidate =>
+        candidate.distance <= this.config.snapDistance ||
+        candidate.distance <= this.config.magneticZoneRadius
+      )
+      .sort((a, b) => {
+        // Sort by priority first, then by distance
+        if (a.priority !== b.priority) {
+          return b.priority - a.priority; // Higher priority first
+        }
+        return a.distance - b.distance;
+      });
+
+    // Apply enhanced snapping with magnetic pull
     let snappedX = movingComponent.x;
     let snappedY = movingComponent.y;
+    let magneticPullX = 0;
+    let magneticPullY = 0;
     const appliedSnapPoints: SnapPoint[] = [];
 
-    // Snap X position
+    // Enhanced X position snapping
     if (xSnapCandidates.length > 0) {
       const bestXSnap = xSnapCandidates[0];
       if (bestXSnap.x !== undefined) {
-        // Determine which edge of the moving component should snap
         const leftDistance = Math.abs(bestXSnap.x - movingBounds.left);
         const rightDistance = Math.abs(bestXSnap.x - movingBounds.right);
         const centerDistance = Math.abs(bestXSnap.x - movingBounds.centerX);
 
+        let targetX: number;
         if (leftDistance <= rightDistance && leftDistance <= centerDistance) {
-          // Snap left edge
-          snappedX = bestXSnap.x;
+          targetX = bestXSnap.x; // Snap left edge
         } else if (rightDistance <= centerDistance) {
-          // Snap right edge
-          snappedX = bestXSnap.x - movingComponent.width;
+          targetX = bestXSnap.x - movingComponent.width; // Snap right edge
         } else {
-          // Snap center
-          snappedX = bestXSnap.x - movingComponent.width / 2;
+          targetX = bestXSnap.x - movingComponent.width / 2; // Snap center
         }
 
-        appliedSnapPoints.push(bestXSnap);
+        // Apply magnetic pull or direct snap
+        if (bestXSnap.distance <= this.config.snapDistance) {
+          snappedX = targetX; // Direct snap
+          appliedSnapPoints.push(bestXSnap);
+        } else if (bestXSnap.magneticPull > 0) {
+          snappedX = this.applyMagneticPull(movingComponent.x, targetX, bestXSnap.magneticPull);
+          magneticPullX = snappedX - movingComponent.x;
+        }
       }
     }
 
-    // Snap Y position
+    // Enhanced Y position snapping
     if (ySnapCandidates.length > 0) {
       const bestYSnap = ySnapCandidates[0];
       if (bestYSnap.y !== undefined) {
-        // Determine which edge of the moving component should snap
         const topDistance = Math.abs(bestYSnap.y - movingBounds.top);
         const bottomDistance = Math.abs(bestYSnap.y - movingBounds.bottom);
         const centerDistance = Math.abs(bestYSnap.y - movingBounds.centerY);
 
+        let targetY: number;
         if (topDistance <= bottomDistance && topDistance <= centerDistance) {
-          // Snap top edge
-          snappedY = bestYSnap.y;
+          targetY = bestYSnap.y; // Snap top edge
         } else if (bottomDistance <= centerDistance) {
-          // Snap bottom edge
-          snappedY = bestYSnap.y - movingComponent.height;
+          targetY = bestYSnap.y - movingComponent.height; // Snap bottom edge
         } else {
-          // Snap center
-          snappedY = bestYSnap.y - movingComponent.height / 2;
+          targetY = bestYSnap.y - movingComponent.height / 2; // Snap center
         }
 
-        appliedSnapPoints.push(bestYSnap);
+        // Apply magnetic pull or direct snap
+        if (bestYSnap.distance <= this.config.snapDistance) {
+          snappedY = targetY; // Direct snap
+          appliedSnapPoints.push(bestYSnap);
+        } else if (bestYSnap.magneticPull > 0) {
+          snappedY = this.applyMagneticPull(movingComponent.y, targetY, bestYSnap.magneticPull);
+          magneticPullY = snappedY - movingComponent.y;
+        }
       }
     }
 
@@ -274,6 +620,9 @@ export class SmartSnapping {
       appliedSnapPoints
     );
 
+    // Detect spacing patterns for suggestions
+    const suggestedSpacing = this.detectSpacingPatterns(otherComponents);
+
     return {
       x: snappedX,
       y: snappedY,
@@ -281,6 +630,8 @@ export class SmartSnapping {
       snappedY: snappedY !== movingComponent.y,
       snapPoints: appliedSnapPoints,
       alignmentGuides,
+      magneticPull: { x: magneticPullX, y: magneticPullY },
+      suggestedSpacing,
     };
   }
 
@@ -421,6 +772,238 @@ export class SmartSnapping {
     ].filter(pos => pos.x >= 0 && pos.y >= 0); // Must be within canvas
 
     return candidates.length > 0 ? candidates[0] : null;
+  }
+
+  /**
+   * Calculate snapping for multiple selected components moving together
+   */
+  calculateMultiComponentSnap(
+    movingComponents: Array<{ id: string; x: number; y: number; width: number; height: number }>,
+    otherComponents: Array<{ id: string; x: number; y: number; width: number; height: number }>,
+    canvasWidth: number = 1200,
+    canvasHeight: number = 800,
+    currentBreakpoint?: any
+  ): MultiComponentSnapResult {
+    if (!this.config.enabled || movingComponents.length === 0) {
+      return {
+        components: movingComponents.map(comp => ({
+          id: comp.id,
+          x: comp.x,
+          y: comp.y,
+          snappedX: false,
+          snappedY: false
+        })),
+        alignmentGuides: [],
+        snapPoints: []
+      };
+    }
+
+    // Calculate bounding box of all moving components
+    const groupBounds = this.calculateGroupBounds(movingComponents);
+
+    // Use the group as a single component for snapping calculations
+    const groupSnapResult = this.calculateSnap(
+      { x: groupBounds.left, y: groupBounds.top, width: groupBounds.width, height: groupBounds.height },
+      otherComponents,
+      canvasWidth,
+      canvasHeight,
+      currentBreakpoint
+    );
+
+    // Calculate offset from group snap
+    const deltaX = groupSnapResult.x - groupBounds.left;
+    const deltaY = groupSnapResult.y - groupBounds.top;
+
+    // Apply offset to all moving components
+    const snappedComponents = movingComponents.map(comp => ({
+      id: comp.id,
+      x: comp.x + deltaX,
+      y: comp.y + deltaY,
+      snappedX: groupSnapResult.snappedX,
+      snappedY: groupSnapResult.snappedY
+    }));
+
+    return {
+      components: snappedComponents,
+      alignmentGuides: groupSnapResult.alignmentGuides,
+      snapPoints: groupSnapResult.snapPoints
+    };
+  }
+
+  /**
+   * Calculate bounding box for a group of components
+   */
+  private calculateGroupBounds(components: Array<{ x: number; y: number; width: number; height: number }>): {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+    width: number;
+    height: number;
+  } {
+    if (components.length === 0) {
+      return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
+    }
+
+    let left = Infinity;
+    let top = Infinity;
+    let right = -Infinity;
+    let bottom = -Infinity;
+
+    components.forEach(comp => {
+      left = Math.min(left, comp.x);
+      top = Math.min(top, comp.y);
+      right = Math.max(right, comp.x + comp.width);
+      bottom = Math.max(bottom, comp.y + comp.height);
+    });
+
+    return {
+      left,
+      top,
+      right,
+      bottom,
+      width: right - left,
+      height: bottom - top
+    };
+  }
+
+  /**
+   * Align multiple components to each other
+   */
+  alignComponents(
+    selectedComponents: Array<{ id: string; x: number; y: number; width: number; height: number }>,
+    alignmentType: 'left' | 'right' | 'top' | 'bottom' | 'center-x' | 'center-y' | 'distribute-horizontal' | 'distribute-vertical'
+  ): Array<{ id: string; x: number; y: number }> {
+    if (selectedComponents.length < 2) {
+      return selectedComponents.map(comp => ({ id: comp.id, x: comp.x, y: comp.y }));
+    }
+
+    const components = selectedComponents.map(comp => this.getComponentBounds(comp));
+    const result: Array<{ id: string; x: number; y: number }> = [];
+
+    switch (alignmentType) {
+      case 'left': {
+        const leftMost = Math.min(...components.map(c => c.left));
+        components.forEach(comp => {
+          result.push({
+            id: comp.id,
+            x: leftMost,
+            y: selectedComponents.find(sc => sc.id === comp.id)!.y
+          });
+        });
+        break;
+      }
+
+      case 'right': {
+        const rightMost = Math.max(...components.map(c => c.right));
+        components.forEach(comp => {
+          const originalComp = selectedComponents.find(sc => sc.id === comp.id)!;
+          result.push({
+            id: comp.id,
+            x: rightMost - originalComp.width,
+            y: originalComp.y
+          });
+        });
+        break;
+      }
+
+      case 'top': {
+        const topMost = Math.min(...components.map(c => c.top));
+        components.forEach(comp => {
+          result.push({
+            id: comp.id,
+            x: selectedComponents.find(sc => sc.id === comp.id)!.x,
+            y: topMost
+          });
+        });
+        break;
+      }
+
+      case 'bottom': {
+        const bottomMost = Math.max(...components.map(c => c.bottom));
+        components.forEach(comp => {
+          const originalComp = selectedComponents.find(sc => sc.id === comp.id)!;
+          result.push({
+            id: comp.id,
+            x: originalComp.x,
+            y: bottomMost - originalComp.height
+          });
+        });
+        break;
+      }
+
+      case 'center-x': {
+        const centerX = (Math.min(...components.map(c => c.left)) + Math.max(...components.map(c => c.right))) / 2;
+        components.forEach(comp => {
+          const originalComp = selectedComponents.find(sc => sc.id === comp.id)!;
+          result.push({
+            id: comp.id,
+            x: centerX - originalComp.width / 2,
+            y: originalComp.y
+          });
+        });
+        break;
+      }
+
+      case 'center-y': {
+        const centerY = (Math.min(...components.map(c => c.top)) + Math.max(...components.map(c => c.bottom))) / 2;
+        components.forEach(comp => {
+          const originalComp = selectedComponents.find(sc => sc.id === comp.id)!;
+          result.push({
+            id: comp.id,
+            x: originalComp.x,
+            y: centerY - originalComp.height / 2
+          });
+        });
+        break;
+      }
+
+      case 'distribute-horizontal': {
+        const sorted = components.sort((a, b) => a.left - b.left);
+        const leftMost = sorted[0].left;
+        const rightMost = sorted[sorted.length - 1].right;
+        const totalWidth = rightMost - leftMost;
+        const componentWidth = sorted.reduce((sum, comp) => sum + comp.width, 0);
+        const totalGap = totalWidth - componentWidth;
+        const gapBetween = totalGap / (sorted.length - 1);
+
+        let currentX = leftMost;
+        sorted.forEach((comp, index) => {
+          const originalComp = selectedComponents.find(sc => sc.id === comp.id)!;
+          result.push({
+            id: comp.id,
+            x: currentX,
+            y: originalComp.y
+          });
+          currentX += comp.width + gapBetween;
+        });
+        break;
+      }
+
+      case 'distribute-vertical': {
+        const sorted = components.sort((a, b) => a.top - b.top);
+        const topMost = sorted[0].top;
+        const bottomMost = sorted[sorted.length - 1].bottom;
+        const totalHeight = bottomMost - topMost;
+        const componentHeight = sorted.reduce((sum, comp) => sum + comp.height, 0);
+        const totalGap = totalHeight - componentHeight;
+        const gapBetween = totalGap / (sorted.length - 1);
+
+        let currentY = topMost;
+        sorted.forEach((comp, index) => {
+          const originalComp = selectedComponents.find(sc => sc.id === comp.id)!;
+          result.push({
+            id: comp.id,
+            x: originalComp.x,
+            y: currentY
+          });
+          currentY += comp.height + gapBetween;
+        });
+        break;
+      }
+    }
+
+    return result;
   }
 }
 

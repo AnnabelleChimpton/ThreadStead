@@ -317,7 +317,6 @@ export default function CanvasRenderer({
     isDragging,
     previewPosition,
     gridConfig,
-    positioningMode,
     addComponent,
     addChildComponent,
     removeChildComponent,
@@ -327,15 +326,11 @@ export default function CanvasRenderer({
     selectComponent,
     updateComponent,
     updateComponentPosition,
-    updateComponentGridPosition,
     updateComponentSize,
-    updateComponentGridSpan,
     snapToGrid,
     startDrag,
     setPreviewPosition,
     endDrag,
-    gridToPixel,
-    pixelToGrid,
   } = canvasState;
 
   // Auto-expand canvas height based on component positions
@@ -344,26 +339,14 @@ export default function CanvasRenderer({
 
     // Calculate the furthest bottom position of any component
     let maxBottomPosition = 0;
-    let maxGridRow = 0;
 
     placedComponents
       .filter(component => component && component.id && component.type)
       .forEach(component => {
-        if (component.positioningMode === 'grid' && component.gridPosition) {
-          // For grid components, track the maximum row number
-          maxGridRow = Math.max(maxGridRow, component.gridPosition.row);
-        } else {
-          // For absolute positioned components, use their pixel position (with safety check)
-          const componentBottom = (component.position?.y || 0) + 100; // Add component height buffer
-          maxBottomPosition = Math.max(maxBottomPosition, componentBottom);
-        }
+        // All components now use pixel positioning - simplified unified approach
+        const componentBottom = (component.position?.y || 0) + 100; // Add component height buffer
+        maxBottomPosition = Math.max(maxBottomPosition, componentBottom);
       });
-
-    // Calculate grid content height if we have grid components using fixed row heights
-    if (maxGridRow > 0) {
-      const gridContentHeight = (maxGridRow * gridConfig.rowHeight) + ((maxGridRow + 1) * gridConfig.gap);
-      maxBottomPosition = Math.max(maxBottomPosition, gridContentHeight);
-    }
 
     // Add extra space at bottom for more components
     const contentHeight = maxBottomPosition + 300; // Increased buffer for new components
@@ -465,7 +448,7 @@ export default function CanvasRenderer({
             id: `${parentType}_${Date.now()}`,
             type: parentType,
             position: { x: finalX, y: finalY },
-            positioningMode: positioningMode,
+            positioningMode: 'absolute',
             props: {},
             children: [{
               id: `${componentToPlace.type}_${Date.now()}`,
@@ -480,12 +463,12 @@ export default function CanvasRenderer({
         }
       }
     } else {
-      // Normal component drop on canvas
+      // Normal component drop on canvas - unified absolute positioning
       const newComponent: ComponentItem = {
         id: `${componentToPlace.type}_${Date.now()}`,
         type: componentToPlace.type,
         position: { x: finalX, y: finalY },
-        positioningMode: positioningMode,
+        positioningMode: 'absolute',
         props: componentToPlace.props || {},
       };
 
@@ -493,7 +476,7 @@ export default function CanvasRenderer({
     }
 
     endDrag();
-  }, [draggedComponent, addComponent, addChildComponent, endDrag, snapToGrid, positioningMode, placedComponents]);
+  }, [draggedComponent, addComponent, addChildComponent, endDrag, snapToGrid, placedComponents]);
 
   // State for drop zone feedback
   const [dropZoneState, setDropZoneState] = useState<{
@@ -629,23 +612,32 @@ export default function CanvasRenderer({
     y: number;
   } | null>(null);
 
-  // Snapping configuration state
+  // Snapping configuration state - unified smart snapping only
   const [snapConfig, setSnapConfig] = useState({
     componentSnapping: true,
-    gridSnapping: false,
     showGuides: true
   });
 
-  // Smart snapping and alignment state
+  // Smart snapping and alignment state - unified pixel-based snapping
   const smartSnapping = useMemo(() => new SmartSnapping({
     enabled: true,
     snapDistance: 8,
     componentSnapping: snapConfig.componentSnapping,
-    gridSnapping: snapConfig.gridSnapping && gridConfig.enabled,
-    gridSize: gridConfig.gap || 20,
+    gridSnapping: false, // Always disabled - using smart snapping only
+    gridSize: gridConfig.gap || 20, // Keep for spacing reference
     showGuides: snapConfig.showGuides,
-    showSnapDistance: true
-  }), [snapConfig, gridConfig.enabled, gridConfig.gap]);
+    showSnapDistance: true,
+
+    // Enhanced magnetic snapping
+    magneticZoneEnabled: true,
+    magneticZoneRadius: 24,
+    magneticStrength: 0.6,
+
+    // Smart spacing detection
+    spacingDetection: true,
+    commonSpacings: [8, 12, 16, 20, 24, 32, 48],
+    spacingTolerance: 4
+  }), [snapConfig, gridConfig.gap]);
 
   const alignmentGuides = useAlignmentGuides();
   const positionIndicator = usePositionIndicator();
@@ -723,63 +715,133 @@ export default function CanvasRenderer({
     const draggedComponent = placedComponents.find(c => c.id === draggedComponentId);
     if (!draggedComponent) return;
 
+    // Check if we're dragging multiple components
+    const selectedIds = Array.from(selectedComponentIds);
+    const isMultiDrag = selectedIds.length > 1 && selectedIds.includes(draggedComponentId);
+
     let finalPosition: { x: number; y: number };
+    let multiComponentResult: any = null;
 
     // Apply smart snapping if enabled
     if (smartSnapping) {
       // Update snapping config based on current settings
       smartSnapping.updateConfig({
-        componentSnapping: snapConfig.componentSnapping && positioningMode === 'absolute',
-        gridSnapping: snapConfig.gridSnapping && gridConfig.enabled,
+        componentSnapping: snapConfig.componentSnapping,
+        gridSnapping: false, // Always disabled - using smart snapping only
         gridSize: gridConfig.gap || 20,
-        showGuides: snapConfig.showGuides
+        showGuides: snapConfig.showGuides,
+        magneticZoneEnabled: true,
+        magneticZoneRadius: 24,
+        magneticStrength: 0.6,
+        spacingDetection: true,
+        commonSpacings: [8, 12, 16, 20, 24, 32, 48],
+        spacingTolerance: 4
       });
-      // Get other components for snapping (exclude the one being dragged)
-      const otherComponents = placedComponents
-        .filter(c => c.id !== draggedComponentId && c.positioningMode === 'absolute')
-        .map(c => ({
-          id: c.id,
-          x: c.position?.x || 0,
-          y: c.position?.y || 0,
-          width: parseInt(c.props?._size?.width || '200', 10) || 200,
-          height: parseInt(c.props?._size?.height || '150', 10) || 150
-        }));
 
-      // Calculate component dimensions for snapping
-      const componentWidth = parseInt(draggedComponent.props?._size?.width || '200', 10) || 200;
-      const componentHeight = parseInt(draggedComponent.props?._size?.height || '150', 10) || 150;
+      if (isMultiDrag) {
+        // Multi-component dragging with unified smart snapping
+        const movingComponents = selectedIds
+          .map(id => placedComponents.find(c => c.id === id))
+          .filter((c): c is NonNullable<typeof c> => c !== undefined)
+          .map(c => {
+            // All components use pixel coordinates - no positioning mode distinction
+            const x = c.id === draggedComponentId ? adjustedX : c.position?.x || 0;
+            const y = c.id === draggedComponentId ? adjustedY : c.position?.y || 0;
+            const width = parseInt(c.props?._size?.width || '200', 10) || 200;
+            const height = parseInt(c.props?._size?.height || '150', 10) || 150;
 
-      const snapResult = smartSnapping.calculateSnap(
-        { x: adjustedX, y: adjustedY, width: componentWidth, height: componentHeight },
-        otherComponents,
-        canvasSize.width,
-        canvasSize.height
-      );
+            return { id: c.id, x, y, width, height };
+          });
 
-      finalPosition = { x: snapResult.x, y: snapResult.y };
-      setSnapResult(snapResult);
+        // Get other components for snapping (exclude all selected components) - unified approach
+        const otherComponents = placedComponents
+          .filter(c => !selectedIds.includes(c.id))
+          .map(c => ({
+            id: c.id,
+            x: c.position?.x || 0,
+            y: c.position?.y || 0,
+            width: parseInt(c.props?._size?.width || '200', 10) || 200,
+            height: parseInt(c.props?._size?.height || '150', 10) || 150
+          }));
 
-      // Show alignment guides
-      if (snapResult.alignmentGuides.length > 0 || snapResult.snapPoints.length > 0) {
-        alignmentGuides.showGuides(snapResult.alignmentGuides, snapResult.snapPoints);
+        multiComponentResult = smartSnapping.calculateMultiComponentSnap(
+          movingComponents,
+          otherComponents,
+          canvasSize.width,
+          canvasSize.height,
+          gridConfig.currentBreakpoint
+        );
+
+        // Find the primary dragged component in the result
+        const primaryResult = multiComponentResult.components.find((c: any) => c.id === draggedComponentId);
+        finalPosition = primaryResult ? { x: primaryResult.x, y: primaryResult.y } : { x: adjustedX, y: adjustedY };
+
       } else {
-        alignmentGuides.hideGuides();
+        // Single component dragging with unified smart snapping
+        // Get other components for snapping (exclude the one being dragged) - unified approach
+        const otherComponents = placedComponents
+          .filter(c => c.id !== draggedComponentId)
+          .map(c => ({
+            id: c.id,
+            x: c.position?.x || 0,
+            y: c.position?.y || 0,
+            width: parseInt(c.props?._size?.width || '200', 10) || 200,
+            height: parseInt(c.props?._size?.height || '150', 10) || 150
+          }));
+
+        // Calculate component dimensions for snapping
+        const componentWidth = parseInt(draggedComponent.props?._size?.width || '200', 10) || 200;
+        const componentHeight = parseInt(draggedComponent.props?._size?.height || '150', 10) || 150;
+
+        const snapResult = smartSnapping.calculateSnap(
+          { x: adjustedX, y: adjustedY, width: componentWidth, height: componentHeight },
+          otherComponents,
+          canvasSize.width,
+          canvasSize.height,
+          gridConfig.currentBreakpoint
+        );
+
+        finalPosition = { x: snapResult.x, y: snapResult.y };
+        setSnapResult(snapResult);
+
+        // Show alignment guides
+        if (snapResult.alignmentGuides.length > 0 || snapResult.snapPoints.length > 0) {
+          alignmentGuides.showGuides(snapResult.alignmentGuides, snapResult.snapPoints);
+        } else {
+          alignmentGuides.hideGuides();
+        }
+
+        // Show position indicator with enhanced feedback
+        const mousePosition = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        const magneticInfo = snapResult.magneticPull && (snapResult.magneticPull.x !== 0 || snapResult.magneticPull.y !== 0)
+          ? `Magnetic pull: ${Math.round(Math.abs(snapResult.magneticPull.x) + Math.abs(snapResult.magneticPull.y))}px`
+          : undefined;
+
+        positionIndicator.showPosition(
+          {
+            x: finalPosition.x,
+            y: finalPosition.y,
+            width: componentWidth,
+            height: componentHeight,
+            isSnapped: snapResult.snappedX || snapResult.snappedY,
+            snapInfo: snapResult.snappedX || snapResult.snappedY ? 'Snapped to component' : magneticInfo
+          },
+          'drag',
+          mousePosition
+        );
       }
 
-      // Show position indicator
-      const mousePosition = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      positionIndicator.showPosition(
-        {
-          x: finalPosition.x,
-          y: finalPosition.y,
-          width: componentWidth,
-          height: componentHeight,
-          isSnapped: snapResult.snappedX || snapResult.snappedY,
-          snapInfo: snapResult.snappedX || snapResult.snappedY ? 'Snapped to component' : undefined
-        },
-        'drag',
-        mousePosition
-      );
+      // Handle multi-component visual feedback
+      if (isMultiDrag && multiComponentResult) {
+        const allGuides = multiComponentResult.alignmentGuides || [];
+        const allSnapPoints = multiComponentResult.snapPoints || [];
+
+        if (allGuides.length > 0 || allSnapPoints.length > 0) {
+          alignmentGuides.showGuides(allGuides, allSnapPoints);
+        } else {
+          alignmentGuides.hideGuides();
+        }
+      }
     } else {
       // Fallback to grid snapping if smart snapping is disabled
       finalPosition = snapToGrid(adjustedX, adjustedY, canvasSize.width);
@@ -809,8 +871,16 @@ export default function CanvasRenderer({
       }
     }
 
-    // Update component position
-    updateComponentPosition(draggedComponentId, finalPosition);
+    // Update component position - ALL components now use smart snapping pixel coordinates
+    if (isMultiDrag && multiComponentResult) {
+      // Update all selected components during multi-drag with exact smart snapping coordinates
+      multiComponentResult.components.forEach((compResult: any) => {
+        updateComponentPosition(compResult.id, { x: compResult.x, y: compResult.y });
+      });
+    } else {
+      // Single component update with exact smart snapping coordinates
+      updateComponentPosition(draggedComponentId, finalPosition);
+    }
 
     // Check for container drops and update drop zone state
     const mouseX = event.clientX - rect.left;
@@ -835,20 +905,7 @@ export default function CanvasRenderer({
       setPreviewPosition(null);
     }
 
-    // For grid components, also update their grid position coordinates
-    if (positioningMode === 'grid' && gridConfig.enabled) {
-      const component = placedComponents.find(c => c.id === draggedComponentId);
-      if (component && component.positioningMode === 'grid') {
-        const gridPos = pixelToGrid(finalPosition.x, finalPosition.y, canvasSize.width);
-        const currentSpan = component.gridPosition?.span || 1;
-        updateComponentGridPosition(draggedComponentId, {
-          column: gridPos.column,
-          row: gridPos.row,
-          span: currentSpan
-        });
-      }
-    }
-  }, [draggedComponentId, dragOffset, updateComponentPosition, snapToGrid, positioningMode, gridConfig.enabled, placedComponents, pixelToGrid, updateComponentGridPosition, setDropZoneState, setPreviewPosition, smartSnapping, alignmentGuides, positionIndicator, canvasSize.width, canvasSize.height]);
+  }, [draggedComponentId, dragOffset, updateComponentPosition, placedComponents, setDropZoneState, setPreviewPosition, smartSnapping, alignmentGuides, positionIndicator, canvasSize.width, canvasSize.height]);
 
   const handleComponentMouseUp = useCallback((event: MouseEvent) => {
     if (draggedComponentId && canvasRef.current) {
@@ -905,26 +962,7 @@ export default function CanvasRenderer({
     const component = placedComponents.find(comp => comp.id === componentId);
     if (!component) return;
 
-    // ARCHITECTURAL CHANGE: Convert grid components to absolute positioning on resize start
-    if (component.positioningMode === 'grid' && component.gridPosition) {
-      // Calculate current absolute position and size from grid
-      const currentBreakpoint = getCurrentBreakpoint(canvasSize.width);
-      const currentSize = getComponentCurrentSize(component, currentBreakpoint);
-
-      // Convert to absolute positioning with current grid-calculated position and size
-      updateComponent(componentId, {
-        positioningMode: 'absolute',
-        position: component.position, // Keep current position
-        props: {
-          ...component.props,
-          _size: {
-            width: `${currentSize.width}px`,
-            height: `${currentSize.height}px`
-          }
-        },
-        gridPosition: undefined // Remove grid position since we're now absolute
-      });
-    }
+    // All components now use absolute positioning - no conversion needed
 
     // Use measured dimensions for initial preview
     const measuredDims = componentDimensions.get(componentId);
@@ -1034,7 +1072,7 @@ export default function CanvasRenderer({
 
     // The ResizableComponent will automatically re-measure through its ResizeObserver
     // when the actual component size changes, so no manual trigger needed here
-  }, [placedComponents, canvasSize.width, updateComponentGridPosition, updateComponent, positionIndicator]);
+  }, [placedComponents, canvasSize.width, updateComponent, positionIndicator]);
 
   // Add global mouse event listeners for component dragging
   React.useEffect(() => {
@@ -1059,10 +1097,6 @@ export default function CanvasRenderer({
         if (event.key === 'c' || event.key === 'C') {
           // Alt + C: Toggle component snapping
           setSnapConfig(prev => ({ ...prev, componentSnapping: !prev.componentSnapping }));
-          handled = true;
-        } else if (event.key === 'g' || event.key === 'G') {
-          // Alt + G: Toggle grid snapping
-          setSnapConfig(prev => ({ ...prev, gridSnapping: !prev.gridSnapping }));
           handled = true;
         } else if (event.key === 'h' || event.key === 'H') {
           // Alt + H: Toggle guides visibility
@@ -1092,54 +1126,31 @@ export default function CanvasRenderer({
       const currentBreakpoint = getCurrentBreakpoint(canvasSize.width);
       let handled = false;
 
-      // Resize with Ctrl/Cmd + Arrow keys
+      // Resize with Ctrl/Cmd + Arrow keys - unified pixel-based resizing
       if (event.ctrlKey || event.metaKey) {
         const step = event.shiftKey ? 10 : 1; // Larger steps with Shift
 
-        if (component.positioningMode === 'grid' && component.gridPosition) {
-          // Grid mode: adjust span
-          const currentSpan = component.gridPosition.span;
-          let newSpan = currentSpan;
+        // All components now use pixel-based resizing
+        const currentSize = getComponentCurrentSize(component, currentBreakpoint);
+        let newWidth = currentSize.width;
+        let newHeight = currentSize.height;
 
-          if (event.key === 'ArrowRight' && resizeCapability.canResizeWidth) {
-            newSpan = currentSpan + step;
-            handled = true;
-          } else if (event.key === 'ArrowLeft' && resizeCapability.canResizeWidth) {
-            newSpan = Math.max(1, currentSpan - step);
-            handled = true;
-          }
+        if (event.key === 'ArrowRight' && resizeCapability.canResizeWidth) {
+          newWidth += step;
+          handled = true;
+        } else if (event.key === 'ArrowLeft' && resizeCapability.canResizeWidth) {
+          newWidth = Math.max(50, newWidth - step);
+          handled = true;
+        } else if (event.key === 'ArrowDown' && resizeCapability.canResizeHeight) {
+          newHeight += step;
+          handled = true;
+        } else if (event.key === 'ArrowUp' && resizeCapability.canResizeHeight) {
+          newHeight = Math.max(30, newHeight - step);
+          handled = true;
+        }
 
-          if (handled && newSpan !== currentSpan) {
-            const gridInfo = getGridResizeInfo(component, currentBreakpoint, placedComponents);
-            const constrainedSpan = Math.max(gridInfo.minSpan, Math.min(newSpan, gridInfo.maxSpan));
-
-            if (constrainedSpan !== currentSpan) {
-              updateComponentGridSpan(selectedId, constrainedSpan);
-            }
-          }
-        } else {
-          // Absolute mode: adjust pixel size
-          const currentSize = getComponentCurrentSize(component, currentBreakpoint);
-          let newWidth = currentSize.width;
-          let newHeight = currentSize.height;
-
-          if (event.key === 'ArrowRight' && resizeCapability.canResizeWidth) {
-            newWidth += step;
-            handled = true;
-          } else if (event.key === 'ArrowLeft' && resizeCapability.canResizeWidth) {
-            newWidth = Math.max(50, newWidth - step);
-            handled = true;
-          } else if (event.key === 'ArrowDown' && resizeCapability.canResizeHeight) {
-            newHeight += step;
-            handled = true;
-          } else if (event.key === 'ArrowUp' && resizeCapability.canResizeHeight) {
-            newHeight = Math.max(30, newHeight - step);
-            handled = true;
-          }
-
-          if (handled) {
-            updateComponentSize(selectedId, { width: newWidth, height: newHeight });
-          }
+        if (handled) {
+          updateComponentSize(selectedId, { width: newWidth, height: newHeight });
         }
 
         if (handled) {
@@ -1151,7 +1162,7 @@ export default function CanvasRenderer({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedComponentIds, draggedComponentId, resizingComponentId, placedComponents, canvasSize.width, updateComponentGridSpan, updateComponentSize, setSnapConfig]);
+  }, [selectedComponentIds, draggedComponentId, resizingComponentId, placedComponents, canvasSize.width, updateComponentSize, setSnapConfig]);
 
   // Render nested component within containers (without absolute positioning)
   const renderNestedComponent = useCallback((child: ComponentItem) => {
@@ -1306,37 +1317,12 @@ export default function CanvasRenderer({
       // Calculate position based on grid or absolute mode
       let componentStyle: React.CSSProperties;
 
-      // Clean separation: use the component's positioning mode directly
-      if (component.positioningMode === 'grid' && component.gridPosition) {
-        // For grid components, calculate absolute position from grid position using fixed dimensions
-        const { column, row, span } = component.gridPosition;
+      // All components now use unified absolute positioning with component-specific sizing logic for WYSIWYG consistency
+      const componentSize = component.props?._size;
+      const componentCategory = getComponentSizingCategory(component.type);
 
-        // Calculate position using grid utilities with fixed row heights
-        const gridPosition = gridToPixel(column, row, canvasSize.width);
-
-        // Calculate width based on span using unified utility
-        const componentWidth = calculateSpanWidth(span, canvasSize.width, gridConfig.currentBreakpoint);
-
-        // Use custom height if component has been resized, otherwise use grid row height
-        const componentHeight = component.props?._size?.height || gridConfig.rowHeight;
-
-        componentStyle = {
-          position: 'absolute',
-          left: gridPosition.x,
-          top: gridPosition.y,
-          width: componentWidth,
-          height: componentHeight,
-          minWidth: componentWidth,
-          minHeight: gridConfig.rowHeight, // Keep minimum at grid row height
-        };
-
-      } else {
-        // Absolute positioning - with component-specific sizing logic for WYSIWYG consistency
-        const componentSize = component.props?._size;
-        const componentCategory = getComponentSizingCategory(component.type);
-
-        // Apply different sizing strategies based on component type
-        if (componentCategory === 'content-driven') {
+      // Apply different sizing strategies based on component type
+      if (componentCategory === 'content-driven') {
           // Content-driven components (like Paragraph) should have flexible width to match Profile page
           const userWidth = componentSize?.width ? parseInt(componentSize.width.replace(/px$/, ''), 10) : 200;
           const userHeight = componentSize?.height ? parseInt(componentSize.height.replace(/px$/, ''), 10) : 150;
@@ -1366,8 +1352,6 @@ export default function CanvasRenderer({
             minWidth: 50,
             minHeight: 30,
           };
-        }
-
       }
 
       return (
@@ -1442,9 +1426,7 @@ export default function CanvasRenderer({
 
               {/* Empty state for container components with no children */}
               {isContainerComponent(component.type) && (!component.children || component.children.length === 0) && (
-                <div className={`flex items-center justify-center text-gray-400 text-sm border-2 border-dashed border-gray-300 rounded-lg m-2 ${
-                  component.positioningMode === 'absolute' ? 'h-full min-h-20' : 'h-20'
-                }`}>
+                <div className="flex items-center justify-center text-gray-400 text-sm border-2 border-dashed border-gray-300 rounded-lg m-2 h-full min-h-20">
                   <div className="text-center">
                     <div className="text-2xl mb-1">📦</div>
                     <div>Drop components here</div>
@@ -1630,12 +1612,6 @@ export default function CanvasRenderer({
                     </div>
                   )}
 
-                  {/* Grid snap indicators for grid mode */}
-                  {component.positioningMode === 'grid' && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="w-full h-full border border-dashed border-blue-300 opacity-50"></div>
-                    </div>
-                  )}
                 </div>
               );
             })()}
@@ -1647,7 +1623,7 @@ export default function CanvasRenderer({
       // Fall back to test div if component fails to render
       return testDiv;
     }
-  }, [selectedComponentIds, handleComponentClick, draggedComponentId, handleComponentMouseDown, resizingComponentId, resizePreview, handleResizeStart, handleResize, handleResizeEnd, canvasSize.width, updateComponentGridSpan, updateComponentSize]);
+  }, [selectedComponentIds, handleComponentClick, draggedComponentId, handleComponentMouseDown, resizingComponentId, resizePreview, handleResizeStart, handleResize, handleResizeEnd, canvasSize.width, updateComponentSize]);
 
   // Preview component rendering
   const renderPreview = useCallback(() => {
@@ -1935,20 +1911,6 @@ export default function CanvasRenderer({
                 <span>Comp</span>
               </button>
 
-              {/* Grid snapping toggle */}
-              <button
-                onClick={() => setSnapConfig(prev => ({ ...prev, gridSnapping: !prev.gridSnapping }))}
-                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                  snapConfig.gridSnapping
-                    ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                    : 'bg-gray-100 text-gray-500 border border-gray-200'
-                }`}
-                title="Toggle grid snapping (Alt+G)"
-                disabled={!gridConfig.enabled}
-              >
-                <span>📐</span>
-                <span>Grid</span>
-              </button>
 
               {/* Guides visibility toggle */}
               <button
