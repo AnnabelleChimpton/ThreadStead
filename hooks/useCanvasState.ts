@@ -10,6 +10,7 @@ import {
   GRID_BREAKPOINTS,
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
+import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/template-registry';
 
 // Enhanced component item with grid and absolute positioning support
 export interface ComponentItem {
@@ -187,6 +188,19 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
     // Set positioning mode if not specified
     if (!component.positioningMode) {
       component = { ...component, positioningMode };
+    }
+
+    // Apply default props from registry if props are missing or empty
+    const registration = componentRegistry.get(component.type);
+    if (registration && (!component.props || Object.keys(component.props).length === 0)) {
+      const defaultProps = validateAndCoerceProps({}, registration.props, {
+        hasChildren: false,
+        componentType: component.type
+      });
+      component = {
+        ...component,
+        props: defaultProps
+      };
     }
 
     // Enhanced grid positioning with auto-spanning

@@ -53,9 +53,20 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
     if (componentRegistration) {
       // Transform custom component
       const { component: Component, props: propSchemas } = componentRegistration;
-      
+
       // Extract and validate props from properties
       const rawProps = { ...node.properties };
+
+      // Debug logging for text components specifically
+      if (['TextElement', 'Heading', 'Paragraph'].includes(tagName)) {
+        console.log(`🔤 [TEMPLATE_RENDERER] Rendering text component ${tagName}:`, {
+          rawProps,
+          hasContent: 'content' in rawProps,
+          contentValue: rawProps.content,
+          hasPositioning: 'data-positioning-mode' in rawProps,
+          positioningMode: rawProps['data-positioning-mode']
+        });
+      }
       
       // Handle className/class attributes specially
       if (rawProps.class && !rawProps.className) {
@@ -63,12 +74,16 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
         delete rawProps.class;
       }
       
-      const validatedProps = validateAndCoerceProps(rawProps, propSchemas);
-      
       // Handle children for components that support them (like Tabs)
-      const children = node.children?.map((child, index) => 
+      const children = node.children?.map((child, index) =>
         transformNodeToReact(child, index)
       );
+
+      // Validate props with context about children and component type
+      const validatedProps = validateAndCoerceProps(rawProps, propSchemas, {
+        hasChildren: children && children.length > 0,
+        componentType: tagName
+      });
       
       try {
         // Use a cleaner approach to create React elements
@@ -205,8 +220,16 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
           if (node.properties.className) {
             rawProps.className = node.properties.className;
           }
-          
-          const validatedProps = validateAndCoerceProps(rawProps, propSchemas);
+
+          // Check for children in data-component syntax too
+          const children = node.children?.map((child, index) =>
+            transformNodeToReact(child, index)
+          );
+
+          const validatedProps = validateAndCoerceProps(rawProps, propSchemas, {
+            hasChildren: children && children.length > 0,
+            componentType: componentName
+          });
 
           // Check positioning mode for data-component syntax
           const positioningMode = node.properties['data-positioning-mode'];
@@ -228,7 +251,7 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
               }
             }
 
-            const component = React.createElement(Component, { ...validatedProps, key });
+            const component = React.createElement(Component, { ...validatedProps, key }, ...(children || []));
 
             if (pixelPosition && typeof pixelPosition.x === 'number' && typeof pixelPosition.y === 'number') {
               return React.createElement(
@@ -259,7 +282,7 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
             }
 
             // Create the component wrapped in grid compatibility
-            const component = React.createElement(Component, { ...validatedProps, key });
+            const component = React.createElement(Component, { ...validatedProps, key }, ...(children || []));
 
             return React.createElement(
               GridCompatibleWrapper,
@@ -273,7 +296,7 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
               component
             );
           } else {
-            return React.createElement(Component, { ...validatedProps, key });
+            return React.createElement(Component, { ...validatedProps, key }, ...(children || []));
           }
         }
       }

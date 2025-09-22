@@ -48,7 +48,6 @@ export function usePostView({
 
         if (response.ok) {
           setTracked(true);
-          console.log(`View tracked for post ${postId}:`, data);
         } else {
           setError(data.error || 'Failed to track view');
         }
@@ -105,7 +104,6 @@ export function useViewportTracking(
 
                 if (response.ok) {
                   setTracked(true);
-                  console.log(`Viewport view tracked for post ${postId}`);
                 }
               } catch (err) {
                 console.error('Error tracking viewport view:', err);

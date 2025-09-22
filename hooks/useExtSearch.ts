@@ -96,11 +96,9 @@ export function useExtSearch(
 
   const performSearch = useCallback(async () => {
     const params = searchParamsRef.current;
-    console.log('performSearch called with:', { query: params.query.trim(), featureEnabled: process.env.NEXT_PUBLIC_ENABLE_EXTSEARCH });
 
     // Don't search if no query
     if (!params.query.trim()) {
-      console.log('Search skipped - empty query');
       setData(null);
       setLoading(false);
       setError(null);

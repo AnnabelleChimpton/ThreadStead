@@ -15,9 +15,13 @@ import {
 import type { CanvasComponent } from '@/lib/templates/visual-builder/types';
 import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
 
-// Component imports
-import ComponentPalette from './ComponentPalette';
+// New modern components
+import FloatingPanel, { useFloatingPanels } from './FloatingPanel';
+import SmartToolbar from './SmartToolbar';
 import CanvasRenderer from './CanvasRenderer';
+
+// Legacy components (to be updated)
+import ComponentPalette from './ComponentPalette';
 import PropertyPanel from './PropertyPanel';
 
 interface VisualTemplateBuilderProps {
@@ -69,8 +73,6 @@ export default function VisualTemplateBuilder({
     setTemplateLoadingState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      console.log('Parsing initial template:', initialTemplate.substring(0, 200) + '...');
-
       // Parse the HTML template using existing parser
       const parseResult = parseExistingTemplate(initialTemplate);
 
@@ -112,15 +114,6 @@ export default function VisualTemplateBuilder({
         return componentItem;
       });
 
-      console.log(`Successfully parsed ${convertedComponents.length} components from initial template:`);
-      convertedComponents.forEach((comp, index) => {
-        console.log(`  ${index + 1}. ${comp.type} at grid(${comp.gridPosition?.column || '?'}, ${comp.gridPosition?.row || '?'}, span=${comp.gridPosition?.span || '?'}) pixel(${comp.position.x}, ${comp.position.y}) mode=${comp.positioningMode}`);
-        console.log(`    Full gridPosition:`, comp.gridPosition);
-        console.log(`    Props:`, comp.props);
-      });
-
-      console.log('📋 Full component details for debugging:', JSON.stringify(convertedComponents, null, 2));
-
       setTemplateLoadingState({
         loading: false,
         error: null,
@@ -145,10 +138,21 @@ export default function VisualTemplateBuilder({
     }
   }, [initialTemplate]);
 
+  // Modern panel management
+  const { togglePanel, isPanelOpen } = useFloatingPanels();
+
+
+  // Panel toggle functions
+  const handleToggleProperties = () => {
+    togglePanel('properties');
+  };
+
+  const handleToggleComponents = () => {
+    togglePanel('components');
+  };
+
   // Simplified canvas state management with initial components
   const originalCanvasState = useCanvasState(initialComponents);
-  const [showProperties, setShowProperties] = useState(false);
-  const [showComponentPalette, setShowComponentPalette] = useState(true);
 
   // Breakpoint preview controls
   const [previewBreakpoint, setPreviewBreakpoint] = useState<string | null>(null);
@@ -186,7 +190,6 @@ export default function VisualTemplateBuilder({
   // Helper function to compare if components have actually changed
   const componentsAreEqual = useCallback((components1: ComponentItem[], components2: ComponentItem[]): boolean => {
     if (components1.length !== components2.length) {
-      console.log('[VisualTemplateBuilder] Component count changed:', components1.length, '→', components2.length);
       return false;
     }
 
@@ -219,9 +222,6 @@ export default function VisualTemplateBuilder({
       const childrenChanged = (comp1.children?.length || 0) !== (comp2.children?.length || 0);
 
       if (typeChanged || positioningModeChanged || gridPositionChanged || pixelPositionChanged || propsChanged || childrenChanged) {
-        console.log(`[VisualTemplateBuilder] Component ${i} (${comp1.type}) changed:`, {
-          typeChanged, positioningModeChanged, gridPositionChanged, pixelPositionChanged, propsChanged, childrenChanged
-        });
         return false;
       }
     }
@@ -360,9 +360,22 @@ export default function VisualTemplateBuilder({
   const generateComponentHTML = useCallback((component: ComponentItem, indent: string = '  ', isChild: boolean = false): string => {
     const props = component.props || {};
 
-    // Enhanced prop handling with special treatment for sizing
+    // Check if this is a text component
+    const isTextComponent = ['TextElement', 'Heading', 'Paragraph'].includes(component.type);
+
+    // Extract content for text components
+    let textContent = '';
+    if (isTextComponent && props.content) {
+      textContent = String(props.content);
+    }
+
+    // Enhanced prop handling with special treatment for sizing and text components
     const propsString = Object.entries(props)
-      .filter(([key, value]) => value !== undefined && value !== null)
+      .filter(([key, value]) => {
+        // Skip content prop for text components (it becomes the element's text content)
+        if (isTextComponent && key === 'content') return false;
+        return value !== undefined && value !== null;
+      })
       .map(([key, value]) => {
         // Handle _size prop specially for better formatting
         if (key === '_size' && typeof value === 'object') {
@@ -430,36 +443,47 @@ export default function VisualTemplateBuilder({
       positioningAttributes = ` data-grid-column="${component.gridPosition.column}" data-grid-row="${component.gridPosition.row}" data-grid-span="${finalSpan}" data-grid-position='${gridData}' data-positioning-mode="grid"`;
     }
 
-    // Check if component has children
+    // Check if component has children or is a text component with content
     const hasChildren = component.children && component.children.length > 0;
+    const hasTextContent = isTextComponent && textContent;
 
-    if (hasChildren) {
+    if (hasChildren || hasTextContent) {
       // Generate opening tag
-      let html = `${indent}<${component.type}${propsString ? ' ' + propsString : ''}${componentIdAttr}${positioningAttributes}>\n`;
+      let html = `${indent}<${component.type}${propsString ? ' ' + propsString : ''}${componentIdAttr}${positioningAttributes}>`;
 
-      // Generate children HTML based on component type
-      const childIndent = indent + '  ';
+      // Add text content for text components
+      if (hasTextContent) {
+        html += textContent;
+      }
 
-      // Handle different child rendering patterns
-      if (component.type === 'ContactCard') {
-        // ContactCard expects ContactMethod children as React components
-        component.children!.forEach(child => {
-          if (child.type === 'ContactMethod') {
+      // Add children content
+      if (hasChildren) {
+        html += '\n';
+        // Generate children HTML based on component type
+        const childIndent = indent + '  ';
+
+        // Handle different child rendering patterns
+        if (component.type === 'ContactCard') {
+          // ContactCard expects ContactMethod children as React components
+          component.children!.forEach(child => {
+            if (child.type === 'ContactMethod') {
+              html += generateComponentHTML(child, childIndent, true) + '\n';
+            }
+          });
+        } else {
+          // Container components (GradientBox, PolaroidFrame, etc.) expect children as nested components
+          component.children!.forEach(child => {
             html += generateComponentHTML(child, childIndent, true) + '\n';
-          }
-        });
-      } else {
-        // Container components (GradientBox, PolaroidFrame, etc.) expect children as nested components
-        component.children!.forEach(child => {
-          html += generateComponentHTML(child, childIndent, true) + '\n';
-        });
+          });
+        }
+        html += indent;
       }
 
       // Generate closing tag
-      html += `${indent}</${component.type}>`;
+      html += `</${component.type}>`;
       return html;
     } else {
-      // Self-closing tag for components without children
+      // Self-closing tag for components without children or content
       return `${indent}<${component.type}${propsString ? ' ' + propsString : ''}${componentIdAttr}${positioningAttributes} />`;
     }
   }, []);
@@ -513,19 +537,16 @@ export default function VisualTemplateBuilder({
 
     // Don't generate HTML on initial load if components haven't changed
     if (!hasUserMadeChanges && !componentsChanged) {
-      console.log('[VisualTemplateBuilder] No component changes detected, preserving original template');
       return;
     }
 
     // Mark that user has made changes once components differ from initial
     if (!hasUserMadeChanges && componentsChanged) {
-      console.log('[VisualTemplateBuilder] Component changes detected, marking as user change');
       setHasUserMadeChanges(true);
     }
 
     // Only call template change after user has made changes
     if (onTemplateChange && hasUserMadeChanges) {
-      console.log('[VisualTemplateBuilder] Generating new HTML template due to user changes');
       const html = generateHTML();
       onTemplateChange(html);
     }
@@ -572,166 +593,21 @@ export default function VisualTemplateBuilder({
 
   return (
     <div className={`flex flex-col bg-gray-50 ${className}`} style={{ height: '100vh', overflow: 'hidden' }}>
-      {/* Compact top toolbar */}
-      <div className="flex items-center justify-between bg-white border-b border-gray-200 px-4 py-2">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-gray-900">Visual Template Builder</h2>
-          <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-            Simplified Edition
-          </span>
-        </div>
+      {/* Modern Smart Toolbar */}
+      <SmartToolbar
+        canvasState={canvasState}
+        positioningMode={positioningMode}
+        onPositioningModeChange={setPositioningMode}
+        gridConfig={gridConfig}
+        onGridConfigChange={setGridConfig}
+        componentCount={placedComponents.length}
+        selectedCount={selectedComponentIds.size}
+        onToggleProperties={handleToggleProperties}
+        onToggleComponents={handleToggleComponents}
+        isPropertiesOpen={isPanelOpen('properties')}
+        isComponentsOpen={isPanelOpen('components')}
+      />
 
-        <div className="flex items-center gap-2">
-          {/* Statistics */}
-          <div className="text-sm text-gray-600 mr-4">
-            {placedComponents.length} component{placedComponents.length !== 1 ? 's' : ''}
-            {selectedComponentIds.size > 0 && (
-              <span className="text-blue-600 ml-2">
-                ({selectedComponentIds.size} selected)
-              </span>
-            )}
-          </div>
-
-          {/* Grid/Positioning controls */}
-          <div className="flex items-center gap-2 mr-4 border-r border-gray-200 pr-4">
-            <span className="text-sm text-gray-600">Mode:</span>
-            <button
-              onClick={() => setPositioningMode('absolute')}
-              className={`px-3 py-1 text-sm border rounded ${
-                positioningMode === 'absolute'
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'border-gray-300 hover:bg-gray-50'
-              }`}
-              title="Absolute positioning (pixel-perfect)"
-            >
-              🎯 Absolute
-            </button>
-            <button
-              onClick={() => {
-                setPositioningMode('grid');
-                setGridConfig({ enabled: true, showGrid: true });
-              }}
-              className={`px-3 py-1 text-sm border rounded ${
-                positioningMode === 'grid'
-                  ? 'bg-green-500 text-white border-green-500'
-                  : 'border-gray-300 hover:bg-gray-50'
-              }`}
-              title="Grid positioning (responsive)"
-            >
-              📐 Grid
-            </button>
-            {positioningMode === 'grid' && (
-              <>
-                <button
-                  onClick={() => setGridConfig({ showGrid: !gridConfig.showGrid })}
-                  className={`px-2 py-1 text-xs border rounded ${
-                    gridConfig.showGrid
-                      ? 'bg-gray-200 text-gray-700 border-gray-300'
-                      : 'border-gray-300 hover:bg-gray-50'
-                  }`}
-                  title="Toggle grid visibility"
-                >
-                  {gridConfig.showGrid ? '👁️' : '👁️‍🗨️'}
-                </button>
-                <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  {(() => {
-                    const breakpoint = getCurrentBreakpoint();
-                    return `${breakpoint.name}: ${breakpoint.columns}cols`;
-                  })()}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Breakpoint Preview Controls */}
-          <div className="flex items-center gap-2 mr-4 border-r border-gray-200 pr-4">
-            <span className="text-sm text-gray-600">Preview:</span>
-            {GRID_BREAKPOINTS.map(bp => (
-              <button
-                key={bp.name}
-                onClick={() => setPreviewBreakpoint(previewBreakpoint === bp.name ? null : bp.name)}
-                className={`px-2 py-1 text-xs border rounded transition-colors ${
-                  (previewBreakpoint === bp.name) || (!previewBreakpoint && bp.name === currentBreakpoint.name)
-                    ? 'bg-purple-500 text-white border-purple-500'
-                    : 'border-gray-300 hover:bg-gray-50'
-                }`}
-                title={`Preview ${bp.name} (${bp.columns} columns, ${bp.minWidth}px+)`}
-              >
-                {bp.name === 'mobile' ? '📱' : bp.name === 'tablet' ? '📱' : '💻'} {bp.name}
-              </button>
-            ))}
-            {previewBreakpoint && (
-              <button
-                onClick={() => setPreviewBreakpoint(null)}
-                className="px-2 py-1 text-xs bg-gray-200 text-gray-700 border border-gray-300 rounded hover:bg-gray-300"
-                title="Reset to current screen size"
-              >
-                ↻
-              </button>
-            )}
-          </div>
-
-          {/* History controls */}
-          <button
-            onClick={undo}
-            disabled={!canUndo}
-            className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Undo (Ctrl+Z)"
-          >
-            ↶ Undo
-          </button>
-
-          <button
-            onClick={redo}
-            disabled={!canRedo}
-            className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Redo (Ctrl+Y)"
-          >
-            ↷ Redo
-          </button>
-
-          {/* Actions */}
-          <button
-            onClick={removeSelected}
-            disabled={selectedComponentIds.size === 0}
-            className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Delete Selected (Del)"
-          >
-            🗑️ Delete
-          </button>
-
-          <button
-            onClick={resetCanvas}
-            className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
-            title="Clear Canvas"
-          >
-            🔄 Reset
-          </button>
-
-          <button
-            onClick={() => setShowProperties(!showProperties)}
-            className={`px-3 py-1 text-sm border rounded transition-colors ${
-              showProperties
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            ⚙️ Properties
-          </button>
-
-          <button
-            onClick={() => setShowComponentPalette(!showComponentPalette)}
-            className={`px-3 py-1 text-sm border rounded transition-colors ${
-              showComponentPalette
-                ? 'border-green-500 bg-green-50 text-green-700'
-                : 'border-gray-300 hover:bg-gray-50'
-            }`}
-            title="Toggle component palette"
-          >
-            🧩 {showComponentPalette ? 'Hide' : 'Show'} Components
-          </button>
-        </div>
-      </div>
 
       {/* Template Loading Status */}
       {templateLoadingState.loading && (
@@ -766,56 +642,188 @@ export default function VisualTemplateBuilder({
         </div>
       )}
 
-      {/* Main content area - maximize vertical space */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Canvas area with proper scrolling */}
-        <div className="flex-1 bg-gray-100 p-4" style={{ height: '100%', overflow: 'auto' }}>
-          <div className="flex justify-center">
-            <CanvasRenderer
-              canvasState={canvasState}
-              residentData={residentData}
-              className="shadow-lg rounded-lg"
-              previewBreakpoint={previewBreakpoint}
-            />
-          </div>
+      {/* Full-screen canvas experience with proper scrolling */}
+      <div
+        className="flex-1 bg-gray-50"
+        style={{
+          position: 'relative',
+          overflow: 'auto',
+          marginLeft: isPanelOpen('components') ? '350px' : '0', // Make space for fixed sidebar
+        }}
+      >
+        <div className="min-h-full flex justify-center items-start" style={{ padding: '24px' }}>
+          <CanvasRenderer
+            canvasState={canvasState}
+            residentData={residentData}
+            className="shadow-2xl rounded-xl border border-gray-200"
+            previewBreakpoint={previewBreakpoint}
+          />
         </div>
-
-        {/* Properties panel */}
-        {showProperties && (
-          <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
-            <PropertyPanel
-              selectedComponent={selectedComponent}
-              canvasState={canvasState}
-              onComponentUpdate={handleComponentUpdate}
-              className="h-full"
-            />
-          </div>
-        )}
       </div>
 
-      {/* Collapsible component palette */}
-      {showComponentPalette && (
-        <ComponentPalette
-          canvasState={canvasState}
-          className="h-48 flex-shrink-0"
-        />
+      {/* Temporary: Simple inline panels for debugging */}
+      {isPanelOpen('components') && (
+        <div style={{
+          position: 'fixed',
+          top: '64px',
+          left: '0',
+          width: '350px',
+          height: 'calc(100vh - 64px)',
+          background: 'white',
+          borderRight: '1px solid #e5e7eb',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <div style={{
+            padding: '16px',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>🧩 Components</h3>
+            <button
+              onClick={() => togglePanel('components')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            <ComponentPalette canvasState={canvasState} />
+          </div>
+        </div>
       )}
 
-      {/* Compact status bar */}
-      <div className="bg-white border-t border-gray-200 px-4 py-1">
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <div className="flex items-center gap-4">
-            <span>Ready for component placement</span>
-            {placedComponents.length > 0 && (
-              <span>• Drag components to reposition • Click to select</span>
-            )}
+      {isPanelOpen('properties') && (
+        <div style={{
+          position: 'fixed',
+          top: '64px',
+          right: '0',
+          width: '380px',
+          height: 'calc(100vh - 64px)',
+          background: 'white',
+          borderLeft: '1px solid #e5e7eb',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            padding: '16px',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexShrink: 0
+          }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>⚙️ Properties</h3>
+            <button
+              onClick={() => togglePanel('properties')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              ✕
+            </button>
           </div>
-          <div className="flex items-center gap-2">
-            <span>Simplified Builder v1.0</span>
-            <div className="w-2 h-2 bg-green-500 rounded-full" title="System Ready" />
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            <PropertyPanel
+              selectedComponent={selectedComponent ? {
+                id: selectedComponent.id,
+                type: selectedComponent.type,
+                position: selectedComponent.position || { x: 0, y: 0 },
+                positioningMode: (selectedComponent.positioningMode as 'absolute' | 'grid') || 'grid',
+                props: selectedComponent.props || {},
+                children: selectedComponent.children as ComponentItem[] | undefined,
+              } : null}
+              canvasState={canvasState}
+              onComponentUpdate={(componentId: string, updates: Partial<ComponentItem>) => {
+                // Convert ComponentItem updates to CanvasComponent updates
+                const canvasUpdates: Partial<CanvasComponent> = {
+                  id: updates.id,
+                  type: updates.type,
+                  props: updates.props || {},
+                  children: updates.children as CanvasComponent[] | undefined,
+                  position: updates.position,
+                  positioningMode: updates.positioningMode,
+                  // Convert gridPosition format if present
+                  ...(updates.gridPosition && {
+                    gridPosition: {
+                      column: updates.gridPosition.column,
+                      row: updates.gridPosition.row,
+                      columnSpan: updates.gridPosition.span,
+                      rowSpan: 1, // Default row span
+                    }
+                  }),
+                };
+                handleComponentUpdate(componentId, canvasUpdates);
+              }}
+            />
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Toggle buttons at screen edges */}
+      {!isPanelOpen('components') && (
+        <button
+          onClick={() => togglePanel('components')}
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '0',
+            transform: 'translateY(-50%)',
+            width: '32px',
+            height: '64px',
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '0 8px 8px 0',
+            cursor: 'pointer',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '16px'
+          }}
+        >
+          🧩
+        </button>
+      )}
+
+      {!isPanelOpen('properties') && (
+        <button
+          onClick={() => togglePanel('properties')}
+          style={{
+            position: 'fixed',
+            top: '50%',
+            right: '0',
+            transform: 'translateY(-50%)',
+            width: '32px',
+            height: '64px',
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px 0 0 8px',
+            cursor: 'pointer',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '16px'
+          }}
+        >
+          ⚙️
+        </button>
+      )}
+
     </div>
   );
 }

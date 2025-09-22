@@ -350,10 +350,16 @@ export class TemplateParserReverse {
       }
     });
 
-    // Handle text content
+    // Handle text content with special handling for text components
     const textContent = this.extractTextContent(element);
     if (textContent) {
-      props.children = textContent;
+      // For text components (TextElement, Heading, Paragraph), put text content in 'content' prop
+      const isTextComponent = ['TextElement', 'Heading', 'Paragraph'].includes(tagName);
+      if (isTextComponent) {
+        props.content = textContent;
+      } else {
+        props.children = textContent;
+      }
     }
 
     // Create component

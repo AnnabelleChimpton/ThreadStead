@@ -217,14 +217,6 @@ export function useResizable({
       resizeState.startPosition
     );
 
-    console.log('useResizable handleMouseMove:', {
-      mouseDelta,
-      direction: resizeState.direction,
-      startSize: resizeState.startSize,
-      calculatedSize: size,
-      calculatedPosition: position
-    });
-
     // Update state with debounced animation frame
     if (frameRef.current) {
       cancelAnimationFrame(frameRef.current);
@@ -280,15 +272,6 @@ export function useResizable({
     // This ensures continuity during multiple resize operations and prevents amplification
     const startSize = resizeState.currentSize || initialSize;
     const startPosition = resizeState.currentPosition || initialPosition;
-
-    console.log('useResizable startResize:', {
-      direction,
-      startSize,
-      initialSize,
-      resizeStateCurrentSize: resizeState.currentSize,
-      startPosition,
-      startMousePos
-    });
 
     setResizeState({
       isResizing: true,

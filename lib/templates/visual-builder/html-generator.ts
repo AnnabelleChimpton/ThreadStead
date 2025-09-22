@@ -190,8 +190,14 @@ export class HTMLGenerator {
     // Generate children HTML
     const childrenHTML: string[] = [];
 
-    // Add any text content from props
-    if (component.props.children && typeof component.props.children === 'string') {
+    // For text components, use content prop as text children
+    const isTextComponent = ['TextElement', 'Heading', 'Paragraph'].includes(component.type);
+    if (isTextComponent && component.props.content) {
+      const textIndent = this.options.prettyPrint ? this.getIndent(depth + 1) : '';
+      childrenHTML.push(`${textIndent}${this.escapeHTML(String(component.props.content))}`);
+    }
+    // Add any text content from props.children
+    else if (component.props.children && typeof component.props.children === 'string') {
       const textIndent = this.options.prettyPrint ? this.getIndent(depth + 1) : '';
       childrenHTML.push(`${textIndent}${this.escapeHTML(component.props.children as string)}`);
     }
@@ -229,10 +235,16 @@ export class HTMLGenerator {
   private generateAttributes(component: CanvasComponent): Record<string, string> {
     const attributes: Record<string, string> = {};
 
+    // Check if this is a text component
+    const isTextComponent = ['TextElement', 'Heading', 'Paragraph'].includes(component.type);
+
     // Add component props as attributes
     Object.entries(component.props).forEach(([key, value]) => {
       // Skip special props
       if (key === 'children') return;
+
+      // Skip content prop for text components (it becomes the element's text content)
+      if (isTextComponent && key === 'content') return;
 
       // Convert prop value to attribute
       if (value !== undefined && value !== null) {

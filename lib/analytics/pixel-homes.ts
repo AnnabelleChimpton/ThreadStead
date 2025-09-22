@@ -63,12 +63,6 @@ class PixelHomeAnalytics {
 
     this.events.push(event)
 
-    // In a real implementation, you might send this to a server
-    // For now, we'll just log it in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Pixel Home Analytics:', event)
-    }
-
     // Store in localStorage for potential batch sending
     this.persistEvent(event)
   }
@@ -165,7 +159,6 @@ class PixelHomeAnalytics {
       //   body: JSON.stringify({ events: this.events })
       // })
 
-      console.log('Would send', this.events.length, 'events to analytics API')
       this.events = []
     } catch (error) {
       console.warn('Failed to send analytics events:', error)

@@ -36,6 +36,14 @@ function isContainerComponent(componentType: string): boolean {
 }
 
 /**
+ * Helper function to check if a component is a text component
+ */
+function isTextComponent(componentType: string): boolean {
+  const registration = componentRegistry.get(componentType);
+  return registration?.relationship?.type === 'text';
+}
+
+/**
  * Helper function to find the parent component containing a specific child
  */
 function findParentOfChild(childId: string, placedComponents: ComponentItem[]): ComponentItem | null {
@@ -235,26 +243,26 @@ export default function CanvasRenderer({
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Responsive canvas sizing state with preview support
+  // Full-screen responsive canvas sizing
   const [canvasSize, setCanvasSize] = useState(() => {
     // Get initial size based on current breakpoint or preview
     const targetBreakpoint = previewBreakpoint
       ? GRID_BREAKPOINTS.find(bp => bp.name === previewBreakpoint) || getCurrentBreakpoint()
       : getCurrentBreakpoint();
 
-    // Calculate responsive canvas size based on breakpoint - give much more space!
+    // Full-screen approach - maximize available space
     const baseWidth = targetBreakpoint.minWidth || (typeof window !== 'undefined' ? window.innerWidth : 1024);
-    const targetWidth = Math.min(baseWidth + 200, 1400); // Increased from 1200 to 1400
+    const targetWidth = Math.min(baseWidth + 300, 1600); // Even wider for better experience
 
-    // Give MUCH more vertical space - make it feel like a real webpage canvas
-    const availableHeight = typeof window !== 'undefined' ? window.innerHeight - 120 : 1200;
-    const targetHeight = Math.max(availableHeight * 1.5, 1200); // Much larger initial height
+    // Start with a generous height that feels like a real webpage
+    const availableHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 1400;
+    const targetHeight = Math.max(availableHeight, 1400); // Larger minimum for professional feel
 
     return {
       width: targetWidth,
       height: targetHeight,
       breakpoint: targetBreakpoint,
-      minHeight: 1200 // Much larger minimum height
+      minHeight: 1400 // Professional minimum height
     };
   });
 
@@ -266,20 +274,20 @@ export default function CanvasRenderer({
         ? GRID_BREAKPOINTS.find(bp => bp.name === previewBreakpoint) || getCurrentBreakpoint()
         : getCurrentBreakpoint();
 
-      // Calculate size based on target breakpoint - maximize space
+      // Full-screen responsive sizing - maximize the experience
       const baseWidth = previewBreakpoint
-        ? targetBreakpoint.minWidth + 200 // Add more margin for preview
-        : Math.min(window.innerWidth - 100, 1400); // Larger responsive width
+        ? targetBreakpoint.minWidth + 300 // More generous preview margin
+        : Math.min(window.innerWidth - 200, 1600); // Account for floating panels
 
-      // Give much more vertical space for a real webpage feel
-      const availableHeight = window.innerHeight - 120;
-      const baseHeight = Math.max(availableHeight * 1.5, 1200); // Much larger minimum height
+      // Use more of the available height for immersive experience
+      const availableHeight = window.innerHeight - 200; // Account for toolbar
+      const baseHeight = Math.max(availableHeight, 1400); // Professional minimum
 
       const newSize = {
-        width: Math.min(baseWidth, 1400), // Increased max width
+        width: Math.min(baseWidth, 1600), // Increased max width for modern screens
         height: baseHeight,
         breakpoint: targetBreakpoint,
-        minHeight: 1200 // Consistent larger minimum
+        minHeight: 1400 // Consistent professional minimum
       };
 
       setCanvasSize(prev => {
@@ -307,6 +315,7 @@ export default function CanvasRenderer({
     addComponent,
     addChildComponent,
     removeChildComponent,
+    updateChildComponent,
     removeComponent,
     moveChildToCanvas,
     selectComponent,
@@ -1008,7 +1017,19 @@ export default function CanvasRenderer({
           handleComponentClick(child.id, e);
         }}
       >
-        <ChildComponent {...(child.props || {})} />
+        <ChildComponent
+          {...(child.props || {})}
+          _isInVisualBuilder={true}
+          _onContentChange={(content: string) => {
+            // Update the child component's content property
+            updateChildComponent(findParentOfChild(child.id, placedComponents)?.id || '', child.id, {
+              props: {
+                ...child.props,
+                content: content
+              }
+            });
+          }}
+        />
 
         {/* Nested child indicator */}
         <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
@@ -1097,8 +1118,6 @@ export default function CanvasRenderer({
     const componentRegistration = componentRegistry.get(component.type);
     if (!componentRegistration) {
       console.warn('Component type not found in registry:', component.type);
-      console.log('Available component types:', componentRegistry.getAllowedTags());
-      console.log('Full component data:', component);
 
       return (
         <div
@@ -1133,12 +1152,8 @@ export default function CanvasRenderer({
         // For grid components, calculate absolute position from grid position using fixed dimensions
         const { column, row, span } = component.gridPosition;
 
-        console.log(`[CanvasRenderer] Positioning ${component.type} at grid(${column}, ${row}) span=${span}`);
-
         // Calculate position using grid utilities with fixed row heights
         const gridPosition = gridToPixel(column, row);
-
-        console.log(`[CanvasRenderer] Grid position converted to pixel position:`, gridPosition);
 
         // Calculate width based on span and fixed column widths
         const canvasWidth = gridConfig.responsiveMode ? canvasSize.width - (gridConfig.currentBreakpoint.containerPadding * 2) : canvasSize.width;
@@ -1158,7 +1173,6 @@ export default function CanvasRenderer({
           minHeight: gridConfig.rowHeight, // Keep minimum at grid row height
         };
 
-        console.log(`[CanvasRenderer] Applied component style:`, componentStyle);
       } else {
         // Absolute positioning - with safety check for position
         // Read size from props._size (which now always includes units like '100px')
@@ -1180,7 +1194,7 @@ export default function CanvasRenderer({
       return (
         <div
           key={component.id}
-          className="absolute cursor-move"
+          className={`absolute cursor-move ${isTextComponent(component.type) ? 'hover:ring-2 hover:ring-green-300 hover:ring-opacity-50 transition-all' : ''}`}
           style={{
             ...componentStyle,
             zIndex: draggedComponentId === component.id ? 10 : (isSelected ? 5 : 1)
@@ -1203,6 +1217,17 @@ export default function CanvasRenderer({
             <Component
               {...(component.props || {})}
               _positioningMode={component.positioningMode}
+              _size={component.props?._size}
+              _isInVisualBuilder={true}
+              _onContentChange={(content: string) => {
+                // Update the component's content property
+                updateComponent(component.id, {
+                  props: {
+                    ...component.props,
+                    content: content
+                  }
+                });
+              }}
             >
               {/* Render children based on component type */}
               {component.children?.map((child) => {
@@ -1255,6 +1280,15 @@ export default function CanvasRenderer({
                 isDragging ? 'bg-blue-500 animate-pulse' : 'bg-blue-600'
               }`}>
                 📦
+              </div>
+            )}
+
+            {/* Text component indicator for editable text elements */}
+            {isTextComponent(component.type) && (
+              <div className={`absolute -top-2 -left-2 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold z-10 border-2 border-white shadow-sm transition-all ${
+                isDragging ? 'bg-green-500 animate-pulse' : isSelected ? 'bg-green-600' : 'bg-green-500 opacity-70'
+              }`}>
+                📝
               </div>
             )}
 
@@ -1515,6 +1549,7 @@ export default function CanvasRenderer({
 
   // Add state tracking for debugging
 
+
   return (
     <ResidentDataProvider data={residentData}>
       <div
@@ -1544,6 +1579,42 @@ export default function CanvasRenderer({
           }}
           onDragOver={handleDragOverWithPreview}
           onDrop={handleDrop}
+          onMouseMove={(e) => {
+            // Handle mouse movement for click-to-place preview
+            if (draggedComponent && !isDragging) {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+
+              const constrainedX = Math.max(0, Math.min(x - 12, canvasSize.width - 24));
+              const constrainedY = Math.max(0, y - 12);
+
+              const snappedPosition = snapToGrid(constrainedX, constrainedY);
+              setPreviewPosition(snappedPosition);
+            }
+          }}
+          onClick={(e) => {
+            // Handle click to place component
+            if (draggedComponent && !isDragging) {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+
+              const constrainedX = Math.max(0, Math.min(x - 12, canvasSize.width - 24));
+              const constrainedY = Math.max(0, y - 12);
+
+              // Place the component
+              const snappedPosition = snapToGrid(constrainedX, constrainedY);
+              const componentToPlace = {
+                ...draggedComponent,
+                position: snappedPosition,
+                id: `${draggedComponent.type}-${Date.now()}`
+              };
+
+              addComponent(componentToPlace);
+              endDrag();
+            }
+          }}
           onDragLeave={handleDragLeave}
         >
           {/* Responsive Grid overlay */}
@@ -1553,60 +1624,44 @@ export default function CanvasRenderer({
             canvasHeight={canvasSize.height}
           />
 
-          {/* Canvas info display */}
-          <div className={`absolute top-2 right-2 text-xs px-2 py-1 rounded z-10 ${
-            previewBreakpoint ? 'bg-purple-100 border border-purple-300' : 'bg-blue-100'
-          }`}>
-            <div className="font-semibold">
-              Canvas: {canvasSize.width}×{canvasSize.height}
-              {previewBreakpoint && (
-                <span className="ml-1 text-purple-600">📱 PREVIEW</span>
-              )}
-            </div>
-            <div className="text-gray-600">
-              {canvasSize.breakpoint.name} • {canvasSize.breakpoint.columns} cols • {canvasSize.breakpoint.gap}px gap
-            </div>
-            <div className="mt-1 text-blue-700">
-              Components: {placedComponents.length}
-            </div>
-            {previewBreakpoint && (
-              <div className="mt-1 text-purple-700 text-xs">
-                Previewing {previewBreakpoint} breakpoint
+          {/* Minimal canvas info - only show essentials */}
+          {previewBreakpoint && (
+            <div className="absolute top-4 right-4 bg-purple-500 text-white px-3 py-2 rounded-lg shadow-lg z-10">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <span>📱</span>
+                <span>Previewing {previewBreakpoint}</span>
+                <span className="text-purple-200">•</span>
+                <span>{canvasSize.breakpoint.columns} cols</span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Auto-expansion debug info */}
-          <div className="absolute top-20 left-4 bg-purple-200 border-2 border-purple-500 p-2 text-xs z-10">
-            <div>AUTO-EXPAND DEBUG</div>
-            <div>Canvas: {canvasSize.width}×{canvasSize.height}</div>
-            <div>Components: {placedComponents.length}</div>
-            <div>Max Y: {Math.max(0, ...placedComponents.filter(c => c.position && c.position.y !== undefined).map(c => c.position!.y))}</div>
-            <div>Max Grid Row: {Math.max(0, ...placedComponents.filter(c => c.gridPosition && c.gridPosition.row !== undefined).map(c => c.gridPosition!.row))}</div>
-          </div>
-
-          {/* Render all placed components with explicit logging */}
+          {/* Render all placed components */}
           {(() => {
             if (placedComponents.length === 0) {
               return (
-                <div className="absolute inset-0 flex items-center justify-center text-gray-500 pointer-events-none">
-                  <div className="text-center">
-                    <div className="text-4xl mb-2">📦</div>
-                    <p>Drag components here from the palette below</p>
+                <div className="absolute inset-0 flex items-center justify-center text-gray-400 pointer-events-none">
+                  <div className="text-center max-w-md">
+                    <div className="text-6xl mb-4 opacity-60">🎨</div>
+                    <h3 className="text-xl font-semibold mb-2 text-gray-600">Start Creating</h3>
+                    <p className="text-gray-500 mb-4">Open the component palette to add your first component, or switch to code mode to edit HTML directly.</p>
+                    <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
+                      <div className="flex items-center gap-2">
+                        <span>🧩</span>
+                        <span>Components panel</span>
+                      </div>
+                      <span>•</span>
+                      <div className="flex items-center gap-2">
+                        <span>💻</span>
+                        <span>Code mode</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
             }
 
-            console.log('📋 All placed components:', placedComponents);
-            placedComponents.forEach((comp, index) => {
-              console.log(`Component ${index}:`, {
-                hasComponent: !!comp,
-                id: comp?.id,
-                type: comp?.type,
-                isValid: comp && comp.id && comp.type
-              });
-            });
+            // Filter and render valid components
             const validComponents = placedComponents.filter(component => component && component.id && component.type);
 
             const renderedComponents = validComponents.map((component, index) => {
@@ -1622,18 +1677,22 @@ export default function CanvasRenderer({
           {/* Render drop zone feedback */}
           {renderDropZoneFeedback()}
 
-          {/* Status indicator */}
-          <div className="absolute top-4 left-4 bg-white bg-opacity-90 px-3 py-2 rounded shadow-sm text-sm">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${placedComponents.length > 0 ? 'bg-green-500' : 'bg-gray-300'}`} />
-              {placedComponents.length} component{placedComponents.length !== 1 ? 's' : ''} placed
-            </div>
-            {selectedComponentIds.size > 0 && (
-              <div className="text-blue-600 text-xs mt-1">
-                {selectedComponentIds.size} selected
+          {/* Minimal floating status */}
+          {placedComponents.length > 0 && (
+            <div className="absolute bottom-4 left-4 bg-white bg-opacity-95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg text-sm border">
+              <div className="flex items-center gap-2 text-gray-700">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="font-medium">{placedComponents.length}</span>
+                <span>component{placedComponents.length !== 1 ? 's' : ''}</span>
+                {selectedComponentIds.size > 0 && (
+                  <>
+                    <span className="text-gray-400">•</span>
+                    <span className="text-blue-600">{selectedComponentIds.size} selected</span>
+                  </>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </ResidentDataProvider>

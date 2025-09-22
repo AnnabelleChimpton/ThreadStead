@@ -42,6 +42,11 @@ import ImageCarousel, { CarouselImage } from '@/components/features/templates/Im
 import ContactCard, { ContactMethod } from '@/components/features/templates/ContactCard';
 import SkillChart, { Skill } from '@/components/features/templates/SkillChart';
 
+// Import HTML element components
+import TextElement from '@/components/features/templates/TextElement';
+import Heading from '@/components/features/templates/Heading';
+import Paragraph from '@/components/features/templates/Paragraph';
+
 // Import conditional rendering components
 import Show from '@/components/features/templates/conditional/Show';
 import Choose, { When, Otherwise } from '@/components/features/templates/conditional/Choose';
@@ -61,7 +66,7 @@ export interface PropSchema {
 
 // Component relationship metadata for parent-child relationships
 export interface ComponentRelationship {
-  type: 'container' | 'parent' | 'child' | 'leaf';
+  type: 'container' | 'parent' | 'child' | 'leaf' | 'text';
   acceptsChildren?: string[] | true; // Array of allowed child types, or true for any
   requiresParent?: string;           // Required parent type
   defaultChildren?: Array<{          // Auto-created children when component is added
@@ -124,8 +129,12 @@ export function validateAndCoerceProp(value: unknown, schema: PropSchema): unkno
 }
 
 export function validateAndCoerceProps(
-  attrs: Record<string, unknown>, 
-  propSchemas: Record<string, PropSchema>
+  attrs: Record<string, unknown>,
+  propSchemas: Record<string, PropSchema>,
+  options?: {
+    hasChildren?: boolean;
+    componentType?: string;
+  }
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   const warnings: string[] = [];
@@ -159,7 +168,14 @@ export function validateAndCoerceProps(
         warnings.push(`Missing required prop: ${key}`);
       }
       if (schema.default !== undefined) {
-        result[key] = schema.default;
+        // Skip content defaults for text components when children are present
+        const isTextComponent = options?.componentType && ['TextElement', 'Heading', 'Paragraph'].includes(options.componentType);
+        const isContentProp = key === 'content';
+        const shouldSkipDefault = isTextComponent && isContentProp && options?.hasChildren;
+
+        if (!shouldSkipDefault) {
+          result[key] = schema.default;
+        }
       }
     }
   }
@@ -266,7 +282,49 @@ export class ComponentRegistry {
 // Create the default registry instance
 export const componentRegistry = new ComponentRegistry();
 
-// Register all components
+// Register HTML Element Components (Basic Elements)
+componentRegistry.register({
+  name: 'TextElement',
+  component: TextElement,
+  props: {
+    content: { type: 'string', default: 'Edit this text' },
+    tag: { type: 'enum', values: ['div', 'span', 'p'], default: 'div' }
+  },
+  relationship: {
+    type: 'text',
+    acceptsChildren: true,
+    childrenLabel: 'Text Content'
+  }
+});
+
+componentRegistry.register({
+  name: 'Heading',
+  component: Heading,
+  props: {
+    content: { type: 'string', default: 'Heading Text' },
+    level: { type: 'enum', values: ['1', '2', '3', '4', '5', '6'], default: '2' }
+  },
+  relationship: {
+    type: 'text',
+    acceptsChildren: true,
+    childrenLabel: 'Heading Content'
+  }
+});
+
+componentRegistry.register({
+  name: 'Paragraph',
+  component: Paragraph,
+  props: {
+    content: { type: 'string', default: 'This is a paragraph. Click to edit this text and add your own content.' }
+  },
+  relationship: {
+    type: 'text',
+    acceptsChildren: true,
+    childrenLabel: 'Paragraph Content'
+  }
+});
+
+// Register all other components
 componentRegistry.register({
   name: 'ProfilePhoto',
   component: ProfilePhoto,

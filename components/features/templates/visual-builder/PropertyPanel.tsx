@@ -1,910 +1,1139 @@
 /**
- * VISUAL_BUILDER_PROGRESS: Property Panel
- * Phase 1: Visual Builder Foundation - UI Components
+ * Modern Property Panel - Visual, tabbed property editor
+ * Replaces technical forms with intuitive visual controls
  */
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import type {
-  CanvasComponent,
-  PropertyField,
-  PropertyFieldType,
-  ValidationRule,
-} from '@/lib/templates/visual-builder/types';
-import { UseCanvasStateResult } from '@/hooks/useCanvasState';
-
-// Import the component registry for prop schemas
-import { componentRegistry, validateAndCoerceProp } from '@/lib/templates/core/template-registry';
+import React, { useState, useMemo } from 'react';
+import type { ComponentItem, UseCanvasStateResult } from '@/hooks/useCanvasState';
+import { componentRegistry } from '@/lib/templates/core/template-registry';
+import {
+  getCurrentBreakpoint,
+  type GridBreakpoint
+} from '@/lib/templates/visual-builder/grid-utils';
+import {
+  ColorEditor,
+  SliderEditor,
+  ToggleEditor,
+  SelectEditor,
+  TextEditor,
+  TextAreaEditor,
+  SpacingEditor,
+} from './VisualPropertyControls';
 
 interface PropertyPanelProps {
-  selectedComponent: CanvasComponent | null;
+  selectedComponent: ComponentItem | null;
   canvasState: UseCanvasStateResult;
-  onComponentUpdate: (componentId: string, updates: Partial<CanvasComponent>) => void;
+  onComponentUpdate: (componentId: string, updates: Partial<ComponentItem>) => void;
   className?: string;
+  style?: React.CSSProperties;
+}
+
+// Tab definitions for property organization
+type PropertyTab = 'component' | 'style' | 'layout' | 'content' | 'advanced';
+
+interface TabDefinition {
+  id: PropertyTab;
+  label: string;
+  icon: string;
+  description: string;
 }
 
 /**
- * Property panel for editing component properties
+ * Modern Property Panel with visual controls and smart organization
  */
 export default function PropertyPanel({
   selectedComponent,
   canvasState,
   onComponentUpdate,
   className = '',
+  style = {},
 }: PropertyPanelProps) {
-  const [formData, setFormData] = useState<Record<string, unknown>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isDirty, setIsDirty] = useState(false);
-
-  // Update form data when selected component changes
-  useEffect(() => {
-    if (selectedComponent) {
-      setFormData(selectedComponent.props);
-      setErrors({});
-      setIsDirty(false);
-    }
-  }, [selectedComponent]);
-
-  // Get component registration from registry
-  const componentRegistration = useMemo(() => {
-    if (!selectedComponent) return null;
-    return componentRegistry.get(selectedComponent.type) || null;
-  }, [selectedComponent]);
-
-  // Check if this component can have children
-  const relationship = useMemo(() => {
-    return componentRegistration?.relationship;
-  }, [componentRegistration]);
-
-  const isParentComponent = useMemo(() => {
-    return relationship?.type === 'parent' || relationship?.type === 'container';
-  }, [relationship]);
-
-  const canAcceptChildren = useMemo(() => {
-    return relationship?.acceptsChildren !== undefined;
-  }, [relationship]);
-
-  // Generate property fields from component schema
-  const propertyFields = useMemo((): PropertyField[] => {
-    if (!componentRegistration?.props) return [];
-
-    return Object.entries(componentRegistration.props).map(([key, schema]) => {
-      const field: PropertyField = {
-        key,
-        type: mapSchemaTypeToFieldType(schema.type),
-        label: formatLabel(key),
-        description: getPropertyDescription(selectedComponent?.type || '', key),
-        required: schema.required || false,
-        defaultValue: schema.default,
-        validation: schema.required ? [{ type: 'required', message: 'This field is required' }] : [],
-      };
-
-      // Add type-specific configurations
-      if (schema.type === 'enum' && schema.values) {
-        field.options = schema.values.map(value => ({
-          value,
-          label: String(value),
-        }));
-      }
-
-      if (schema.type === 'number') {
-        field.min = schema.min;
-        field.max = schema.max;
-        field.step = 1;
-      }
-
-      return field;
-    });
-  }, [componentRegistration, selectedComponent]);
-
-  // Handle field value changes
-  const handleFieldChange = useCallback((fieldKey: string, value: unknown) => {
-    setFormData(prev => ({ ...prev, [fieldKey]: value }));
-    setIsDirty(true);
-
-    // Clear error for this field
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[fieldKey];
-      return newErrors;
-    });
-
-    // Validate the field
-    const field = propertyFields.find(f => f.key === fieldKey);
-    if (field && componentRegistration) {
-      try {
-        const schema = componentRegistration.props[fieldKey];
-        const validatedValue = validateAndCoerceProp(value, schema);
-
-        // Apply change immediately for better UX
-        if (selectedComponent) {
-          onComponentUpdate(selectedComponent.id, {
-            props: { ...selectedComponent.props, [fieldKey]: validatedValue },
-          });
+  // Add styles to document head for scrollbar and animations
+  React.useEffect(() => {
+    const styleId = 'property-panel-styles';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        .properties-panel-scroll::-webkit-scrollbar {
+          width: 8px;
         }
-      } catch (error) {
-        setErrors(prev => ({
-          ...prev,
-          [fieldKey]: error instanceof Error ? error.message : 'Invalid value',
-        }));
-      }
+        .properties-panel-scroll::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+        .properties-panel-scroll::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+          transition: background 0.2s ease;
+        }
+        .properties-panel-scroll::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `;
+      document.head.appendChild(style);
     }
-  }, [propertyFields, componentRegistration, selectedComponent, onComponentUpdate]);
 
-  // Handle form reset
-  const handleReset = useCallback(() => {
-    if (selectedComponent) {
-      setFormData(selectedComponent.props);
-      setErrors({});
-      setIsDirty(false);
-    }
-  }, [selectedComponent]);
-
-  // Handle applying default values
-  const handleApplyDefaults = useCallback(() => {
-    if (!componentRegistration || !selectedComponent) return;
-
-    const defaultProps: Record<string, unknown> = {};
-    Object.entries(componentRegistration.props).forEach(([key, schema]) => {
-      if (schema.default !== undefined) {
-        defaultProps[key] = schema.default;
+    return () => {
+      // Cleanup on unmount
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle) {
+        existingStyle.remove();
       }
-    });
+    };
+  }, []);
+  const [activeTab, setActiveTab] = useState<PropertyTab>('component');
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['component-props', 'appearance', 'typography']));
+  const { gridConfig } = canvasState;
 
-    setFormData(defaultProps);
-    onComponentUpdate(selectedComponent.id, {
-      props: defaultProps,
-    });
-    setIsDirty(false);
-  }, [componentRegistration, selectedComponent, onComponentUpdate]);
+  // Tab definitions
+  const tabs: TabDefinition[] = [
+    {
+      id: 'component',
+      label: 'Component',
+      icon: '🧩',
+      description: 'Component-specific properties and settings'
+    },
+    {
+      id: 'style',
+      label: 'Style',
+      icon: '🎨',
+      description: 'Colors, typography, and visual appearance'
+    },
+    {
+      id: 'layout',
+      label: 'Layout',
+      icon: '📐',
+      description: 'Position, size, spacing, and alignment'
+    },
+    {
+      id: 'content',
+      label: 'Content',
+      icon: '📝',
+      description: 'Text, images, and component data'
+    },
+    {
+      id: 'advanced',
+      label: 'Advanced',
+      icon: '⚙️',
+      description: 'Technical properties and overrides'
+    },
+  ];
 
-  if (!selectedComponent) {
+  // Toggle section expansion
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
+  };
+
+  // Render content based on active tab
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'component':
+        return renderComponentTab();
+      case 'style':
+        return renderStyleTab();
+      case 'layout':
+        return renderLayoutTab();
+      case 'content':
+        return renderContentTab();
+      case 'advanced':
+        return renderAdvancedTab();
+      default:
+        return null;
+    }
+  };
+
+  // Style tab with visual appearance controls
+  const renderStyleTab = () => {
+    const sections = [];
+
+    // Appearance section
+    sections.push(
+      <PropertySection
+        key="appearance"
+        title="Appearance"
+        icon="🎨"
+        isExpanded={expandedSections.has('appearance')}
+        onToggle={() => toggleSection('appearance')}
+      >
+        {renderAppearanceProperties()}
+      </PropertySection>
+    );
+
+    // Typography section
+    if (isTextComponent(selectedComponent!.type)) {
+      sections.push(
+        <PropertySection
+          key="typography"
+          title="Typography"
+          icon="📝"
+          isExpanded={expandedSections.has('typography')}
+          onToggle={() => toggleSection('typography')}
+        >
+          {renderTypographyProperties()}
+        </PropertySection>
+      );
+    }
+
     return (
-      <div className={`property-panel ${className}`}>
-        <div className="property-panel-empty">
-          <div className="empty-state">
-            <div className="empty-state-icon">⚙️</div>
-            <h3>No Component Selected</h3>
-            <p>Select a component on the canvas to edit its properties</p>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        minHeight: 'fit-content',
+        width: '100%'
+      }}>
+        {sections}
+      </div>
+    );
+  };
+
+  // Layout tab with positioning and spacing
+  const renderLayoutTab = () => {
+    const sections = [];
+
+    sections.push(
+      <PropertySection
+        key="size"
+        title="Size & Position"
+        icon="📐"
+        isExpanded={expandedSections.has('size')}
+        onToggle={() => toggleSection('size')}
+      >
+        {renderSizeProperties()}
+      </PropertySection>
+    );
+
+    sections.push(
+      <PropertySection
+        key="spacing"
+        title="Spacing"
+        icon="📏"
+        isExpanded={expandedSections.has('spacing')}
+        onToggle={() => toggleSection('spacing')}
+      >
+        {renderSpacingProperties()}
+      </PropertySection>
+    );
+
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        minHeight: 'fit-content',
+        width: '100%'
+      }}>
+        {sections}
+      </div>
+    );
+  };
+
+  // Content tab with text and data
+  const renderContentTab = () => {
+    const sections = [];
+
+    if (isTextComponent(selectedComponent!.type)) {
+      sections.push(
+        <PropertySection
+          key="text"
+          title="Text Content"
+          icon="📝"
+          isExpanded={expandedSections.has('text')}
+          onToggle={() => toggleSection('text')}
+        >
+          {renderTextContentProperties()}
+        </PropertySection>
+      );
+    }
+
+    sections.push(
+      <PropertySection
+        key="data"
+        title="Component Data"
+        icon="💾"
+        isExpanded={expandedSections.has('data')}
+        onToggle={() => toggleSection('data')}
+      >
+        {renderDataProperties()}
+      </PropertySection>
+    );
+
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        minHeight: 'fit-content',
+        width: '100%'
+      }}>
+        {sections}
+      </div>
+    );
+  };
+
+  // Component tab with component-specific properties
+  const renderComponentTab = () => {
+    if (!selectedComponent) return null;
+
+    const registration = componentRegistry.get(selectedComponent.type);
+    if (!registration) {
+      return (
+        <div style={{
+          textAlign: 'center',
+          padding: '24px',
+          color: '#6b7280',
+          fontSize: '14px',
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🤷</div>
+          <p>Component not registered</p>
+          <p style={{ fontSize: '12px', marginTop: '4px' }}>
+            {selectedComponent.type} is not found in the component registry
+          </p>
+        </div>
+      );
+    }
+
+    const componentProps = Object.entries(registration.props);
+
+    if (componentProps.length === 0) {
+      return (
+        <div style={{
+          textAlign: 'center',
+          padding: '24px',
+          color: '#6b7280',
+          fontSize: '14px',
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎯</div>
+          <p>No specific properties</p>
+          <p style={{ fontSize: '12px', marginTop: '4px' }}>
+            This component doesn&apos;t have specific configuration options
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* Component info header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+          border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          marginBottom: '8px',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '8px',
+          }}>
+            <span style={{ fontSize: '24px' }}>🧩</span>
+            <div>
+              <h3 style={{
+                margin: 0,
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#1f2937',
+              }}>
+                {selectedComponent.type.replace(/([A-Z])/g, ' $1').trim()}
+              </h3>
+              <p style={{
+                margin: 0,
+                fontSize: '13px',
+                color: '#6b7280',
+              }}>
+                {Object.keys(registration.props).length} configurable properties
+              </p>
+            </div>
+          </div>
+
+          {/* Component description if available */}
+          {registration.relationship?.childrenLabel && (
+            <p style={{
+              margin: 0,
+              fontSize: '12px',
+              color: '#6b7280',
+              fontStyle: 'italic',
+            }}>
+              {registration.relationship.childrenLabel}
+            </p>
+          )}
+        </div>
+
+        <PropertySection
+          title="Component Settings"
+          icon="⚙️"
+          isExpanded={expandedSections.has('component-props')}
+          onToggle={() => toggleSection('component-props')}
+        >
+          {renderComponentSpecificProperties(registration)}
+        </PropertySection>
+      </div>
+    );
+  };
+
+  // Advanced tab with technical properties
+  const renderAdvancedTab = () => {
+    const sections = [];
+
+    sections.push(
+      <PropertySection
+        key="technical"
+        title="Technical Properties"
+        icon="⚙️"
+        isExpanded={expandedSections.has('technical')}
+        onToggle={() => toggleSection('technical')}
+      >
+        {renderTechnicalProperties()}
+      </PropertySection>
+    );
+
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        minHeight: 'fit-content',
+        width: '100%'
+      }}>
+        {sections}
+      </div>
+    );
+  };
+
+  // Helper to check if component is text-based
+  const isTextComponent = (componentType: string) => {
+    const textComponents = ['TextElement', 'Heading', 'Paragraph', 'DisplayName', 'Bio'];
+    return textComponents.includes(componentType);
+  };
+
+  // Render appearance properties with visual controls
+  const renderAppearanceProperties = () => {
+    if (!selectedComponent) return null;
+
+    return (
+      <div>
+        <ColorEditor
+          label="Background Color"
+          value={selectedComponent.props?.backgroundColor || ''}
+          onChange={(value) => updateProperty('backgroundColor', value)}
+          description="Set the background color of the component"
+        />
+
+        <ColorEditor
+          label="Text Color"
+          value={selectedComponent.props?.color || ''}
+          onChange={(value) => updateProperty('color', value)}
+          description="Set the text color"
+        />
+
+        <ColorEditor
+          label="Border Color"
+          value={selectedComponent.props?.borderColor || ''}
+          onChange={(value) => updateProperty('borderColor', value)}
+          description="Set the border color"
+        />
+
+        <SliderEditor
+          label="Opacity"
+          value={parseFloat(selectedComponent.props?.opacity || '100')}
+          onChange={(value) => updateProperty('opacity', `${value}%`)}
+          min={0}
+          max={100}
+          step={5}
+          unit="%"
+          description="Adjust component transparency"
+        />
+
+        <SliderEditor
+          label="Border Radius"
+          value={parseFloat(selectedComponent.props?.borderRadius || '0')}
+          onChange={(value) => updateProperty('borderRadius', `${value}px`)}
+          min={0}
+          max={50}
+          step={1}
+          unit="px"
+          description="Round the corners"
+        />
+      </div>
+    );
+  };
+
+  // Render typography properties
+  const renderTypographyProperties = () => {
+    if (!selectedComponent) return null;
+
+    return (
+      <div>
+        <SelectEditor
+          label="Font Weight"
+          value={selectedComponent.props?.fontWeight || 'normal'}
+          onChange={(value) => updateProperty('fontWeight', value)}
+          options={[
+            { value: 'normal', label: 'Normal', icon: '📝' },
+            { value: 'bold', label: 'Bold', icon: '🔤' },
+            { value: '100', label: 'Thin', icon: '📄' },
+            { value: '300', label: 'Light', icon: '📃' },
+            { value: '500', label: 'Medium', icon: '📋' },
+            { value: '700', label: 'Bold', icon: '📰' },
+            { value: '900', label: 'Black', icon: '📓' },
+          ]}
+          description="Choose the font weight"
+        />
+
+        <SliderEditor
+          label="Font Size"
+          value={parseFloat(selectedComponent.props?.fontSize || '16')}
+          onChange={(value) => updateProperty('fontSize', `${value}px`)}
+          min={8}
+          max={72}
+          step={1}
+          unit="px"
+          description="Adjust text size"
+        />
+
+        <SelectEditor
+          label="Text Align"
+          value={selectedComponent.props?.textAlign || 'left'}
+          onChange={(value) => updateProperty('textAlign', value)}
+          options={[
+            { value: 'left', label: 'Left', icon: '⬅️' },
+            { value: 'center', label: 'Center', icon: '↔️' },
+            { value: 'right', label: 'Right', icon: '➡️' },
+            { value: 'justify', label: 'Justify', icon: '↕️' },
+          ]}
+          description="Text alignment"
+        />
+      </div>
+    );
+  };
+
+  // Render text content properties
+  const renderTextContentProperties = () => {
+    if (!selectedComponent) return null;
+
+    const content = [];
+
+    // Content editor for text components
+    if (selectedComponent.props?.content !== undefined) {
+      content.push(
+        <TextAreaEditor
+          key="content"
+          label="Text Content"
+          value={selectedComponent.props.content}
+          onChange={(value) => updateProperty('content', value)}
+          description="The text content of this component"
+        />
+      );
+    }
+
+    // Note: Component-specific properties have been moved to the Component tab
+    // for better organization and discoverability
+
+    return <div>{content}</div>;
+  };
+
+  // Render size and position properties
+  const renderSizeProperties = () => {
+    if (!selectedComponent) return null;
+
+    return (
+      <div>
+        <div style={{ marginBottom: '24px' }}>
+          <h4 style={{
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#374151',
+            marginBottom: '12px',
+          }}>
+            Dimensions
+          </h4>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <TextEditor
+              label="Width"
+              value={selectedComponent.props?._size?.width || 'auto'}
+              onChange={(value) => updateSizeProperty('width', value)}
+            />
+            <TextEditor
+              label="Height"
+              value={selectedComponent.props?._size?.height || 'auto'}
+              onChange={(value) => updateSizeProperty('height', value)}
+            />
           </div>
         </div>
+
+        <div style={{ marginBottom: '24px' }}>
+          <h4 style={{
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#374151',
+            marginBottom: '12px',
+          }}>
+            Position
+          </h4>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <SliderEditor
+              label="X Position"
+              value={selectedComponent.position?.x || 0}
+              onChange={(value) => updatePosition('x', value)}
+              min={0}
+              max={1000}
+              step={1}
+              unit="px"
+            />
+            <SliderEditor
+              label="Y Position"
+              value={selectedComponent.position?.y || 0}
+              onChange={(value) => updatePosition('y', value)}
+              min={0}
+              max={1000}
+              step={1}
+              unit="px"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render spacing properties
+  const renderSpacingProperties = () => {
+    if (!selectedComponent) return null;
+
+    return (
+      <div>
+        <SpacingEditor
+          label="Padding"
+          value={selectedComponent.props?.padding || '0px 0px 0px 0px'}
+          onChange={(value) => updateProperty('padding', value)}
+          type="padding"
+          description="Inner spacing around content"
+        />
+
+        <SpacingEditor
+          label="Margin"
+          value={selectedComponent.props?.margin || '0px 0px 0px 0px'}
+          onChange={(value) => updateProperty('margin', value)}
+          type="margin"
+          description="Outer spacing around component"
+        />
+      </div>
+    );
+  };
+
+  // Render component data properties (custom/advanced properties not in registry)
+  const renderDataProperties = () => {
+    if (!selectedComponent) return null;
+
+    // Get registered component properties to exclude them from data tab
+    const registration = componentRegistry.get(selectedComponent.type);
+    const registeredProps = registration ? Object.keys(registration.props) : [];
+
+    // Known style/layout properties to exclude
+    const knownProps = ['color', 'backgroundColor', 'fontSize', 'fontWeight', 'textAlign', 'borderRadius', 'opacity', 'content', 'padding', 'margin'];
+
+    // Filter to only show custom properties not handled elsewhere
+    const dataProps = Object.entries(selectedComponent.props || {})
+      .filter(([key]) => {
+        // Exclude internal props (starting with _)
+        if (key.startsWith('_')) return false;
+        // Exclude registered component properties (now in Component tab)
+        if (registeredProps.includes(key)) return false;
+        // Exclude known style/layout properties
+        if (knownProps.includes(key)) return false;
+        return true;
+      })
+      .map(([key, value]) => (
+        <TextEditor
+          key={key}
+          label={key.replace(/([A-Z])/g, ' $1').trim()}
+          value={String(value)}
+          onChange={(newValue) => updateProperty(key, newValue)}
+          description={`Custom ${key} property`}
+        />
+      ));
+
+    if (dataProps.length === 0) {
+      return (
+        <div style={{
+          textAlign: 'center',
+          padding: '24px',
+          color: '#6b7280',
+          fontSize: '14px',
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '8px' }}>💾</div>
+          <p>No custom properties</p>
+          <p style={{ fontSize: '12px', marginTop: '4px' }}>
+            Custom properties will appear here when added manually
+          </p>
+        </div>
+      );
+    }
+
+    return <div>{dataProps}</div>;
+  };
+
+  // Render technical properties (raw/advanced)
+  const renderTechnicalProperties = () => {
+    if (!selectedComponent) return null;
+
+    return (
+      <div>
+        <div style={{
+          background: '#fef3c7',
+          border: '1px solid #f59e0b',
+          borderRadius: '8px',
+          padding: '12px',
+          marginBottom: '16px',
+          fontSize: '13px',
+          color: '#92400e',
+        }}>
+          ⚠️ Advanced properties. Change with caution.
+        </div>
+
+        <TextEditor
+          label="Component ID"
+          value={selectedComponent.id}
+          onChange={() => {}} // Read-only
+          disabled
+          description="Unique identifier (read-only)"
+        />
+
+        <SelectEditor
+          label="Positioning Mode"
+          value={selectedComponent.positioningMode || 'absolute'}
+          onChange={(value) => updateProperty('positioningMode', value)}
+          options={[
+            { value: 'absolute', label: 'Absolute', description: 'Pixel-perfect positioning' },
+            { value: 'grid', label: 'Grid', description: 'Responsive grid positioning' },
+          ]}
+          description="How this component is positioned"
+        />
+
+        <TextAreaEditor
+          label="Raw Props (JSON)"
+          value={JSON.stringify(selectedComponent.props || {}, null, 2)}
+          onChange={(value) => {
+            try {
+              const parsed = JSON.parse(value);
+              onComponentUpdate(selectedComponent.id, { props: parsed });
+            } catch (e) {
+              // Invalid JSON - ignore
+            }
+          }}
+          description="Raw component properties as JSON"
+        />
+      </div>
+    );
+  };
+
+  // Update a specific property
+  const updateProperty = (key: string, value: any) => {
+    if (!selectedComponent) return;
+
+    const updatedProps = {
+      ...selectedComponent.props,
+      [key]: value,
+    };
+
+    onComponentUpdate(selectedComponent.id, {
+      props: updatedProps,
+    });
+  };
+
+  // Update size properties in the _size object
+  const updateSizeProperty = (dimension: 'width' | 'height', value: string) => {
+    if (!selectedComponent) return;
+
+    const currentSize = selectedComponent.props?._size || {};
+    const updatedSize = {
+      ...currentSize,
+      [dimension]: value,
+    };
+
+    updateProperty('_size', updatedSize);
+  };
+
+  // Update position
+  const updatePosition = (axis: 'x' | 'y', value: number) => {
+    if (!selectedComponent) return;
+
+    const currentPosition = selectedComponent.position || { x: 0, y: 0 };
+    const updatedPosition = {
+      ...currentPosition,
+      [axis]: value,
+    };
+
+    onComponentUpdate(selectedComponent.id, {
+      position: updatedPosition,
+    });
+  };
+
+  // Render component-specific properties based on registry
+  const renderComponentSpecificProperties = (registration: any) => {
+    if (!selectedComponent) return null;
+
+    const propElements: React.ReactNode[] = [];
+
+    Object.entries(registration.props).forEach(([propKey, propSchema]: [string, any]) => {
+      const currentValue = selectedComponent.props?.[propKey];
+      const isRequired = propSchema.required;
+      const hasDefault = propSchema.default !== undefined;
+
+      switch (propSchema.type) {
+        case 'string':
+          if (propSchema.values) {
+            // Enum string - use SelectEditor
+            propElements.push(
+              <div key={propKey} style={{ marginBottom: '16px' }}>
+                <SelectEditor
+                  label={`${propKey.replace(/([A-Z])/g, ' $1').trim()}${isRequired ? ' *' : ''}`}
+                  value={currentValue || propSchema.default || ''}
+                  onChange={(value) => updateProperty(propKey, value)}
+                  options={propSchema.values.map((val: string) => ({
+                    value: val,
+                    label: val.charAt(0).toUpperCase() + val.slice(1),
+                    description: `${propKey}: ${val}`
+                  }))}
+                  description={`Select ${propKey}${hasDefault ? ` (default: ${propSchema.default})` : ''}`}
+                />
+              </div>
+            );
+          } else {
+            // Regular string - use TextEditor
+            propElements.push(
+              <div key={propKey} style={{ marginBottom: '16px' }}>
+                <TextEditor
+                  label={`${propKey.replace(/([A-Z])/g, ' $1').trim()}${isRequired ? ' *' : ''}`}
+                  value={currentValue || propSchema.default || ''}
+                  onChange={(value) => updateProperty(propKey, value)}
+                  description={`Enter ${propKey}${hasDefault ? ` (default: ${propSchema.default})` : ''}`}
+                />
+              </div>
+            );
+          }
+          break;
+
+        case 'number':
+          propElements.push(
+            <div key={propKey} style={{ marginBottom: '16px' }}>
+              <SliderEditor
+                label={`${propKey.replace(/([A-Z])/g, ' $1').trim()}${isRequired ? ' *' : ''}`}
+                value={currentValue !== undefined ? Number(currentValue) : (propSchema.default || 0)}
+                onChange={(value) => updateProperty(propKey, value)}
+                min={propSchema.min || 0}
+                max={propSchema.max || 100}
+                step={1}
+                description={`Adjust ${propKey}${hasDefault ? ` (default: ${propSchema.default})` : ''}${propSchema.min !== undefined || propSchema.max !== undefined ? ` (range: ${propSchema.min || 0}-${propSchema.max || 100})` : ''}`}
+              />
+            </div>
+          );
+          break;
+
+        case 'boolean':
+          propElements.push(
+            <div key={propKey} style={{ marginBottom: '16px' }}>
+              <ToggleEditor
+                label={`${propKey.replace(/([A-Z])/g, ' $1').trim()}${isRequired ? ' *' : ''}`}
+                value={currentValue !== undefined ? Boolean(currentValue) : Boolean(propSchema.default)}
+                onChange={(value) => updateProperty(propKey, value)}
+                description={`Toggle ${propKey}${hasDefault ? ` (default: ${propSchema.default ? 'enabled' : 'disabled'})` : ''}`}
+              />
+            </div>
+          );
+          break;
+
+        case 'enum':
+          propElements.push(
+            <div key={propKey} style={{ marginBottom: '16px' }}>
+              <SelectEditor
+                label={`${propKey.replace(/([A-Z])/g, ' $1').trim()}${isRequired ? ' *' : ''}`}
+                value={currentValue || propSchema.default || propSchema.values?.[0] || ''}
+                onChange={(value) => updateProperty(propKey, value)}
+                options={propSchema.values?.map((val: string) => ({
+                  value: val,
+                  label: val.charAt(0).toUpperCase() + val.slice(1),
+                  description: `${propKey}: ${val}`
+                })) || []}
+                description={`Choose ${propKey}${hasDefault ? ` (default: ${propSchema.default})` : ''}`}
+              />
+            </div>
+          );
+          break;
+
+        default:
+          // Fallback to text editor
+          propElements.push(
+            <div key={propKey} style={{ marginBottom: '16px' }}>
+              <TextEditor
+                label={`${propKey.replace(/([A-Z])/g, ' $1').trim()}${isRequired ? ' *' : ''}`}
+                value={String(currentValue || propSchema.default || '')}
+                onChange={(value) => updateProperty(propKey, value)}
+                description={`Configure ${propKey}${hasDefault ? ` (default: ${propSchema.default})` : ''}`}
+              />
+            </div>
+          );
+      }
+    });
+
+    return <div>{propElements}</div>;
+  };
+
+  // Modern Property Section Component
+  function PropertySection({
+    title,
+    icon,
+    children,
+    isExpanded,
+    onToggle,
+  }: {
+    title: string;
+    icon: string;
+    children: React.ReactNode;
+    isExpanded: boolean;
+    onToggle: () => void;
+  }) {
+    const sectionRef = React.useRef<HTMLDivElement>(null);
+
+    // Scroll section into view when expanded
+    React.useEffect(() => {
+      if (isExpanded && sectionRef.current) {
+        // Delay to ensure DOM has updated and animations completed
+        setTimeout(() => {
+          const section = sectionRef.current;
+          if (!section) return;
+
+          // Find the scroll container by looking for overflow: auto
+          let scrollContainer = section.parentElement;
+          while (scrollContainer) {
+            const computedStyle = window.getComputedStyle(scrollContainer);
+            if (computedStyle.overflow === 'auto' || computedStyle.overflowY === 'auto') {
+              break;
+            }
+            scrollContainer = scrollContainer.parentElement;
+          }
+
+          if (!scrollContainer) {
+            // Fallback to native scrollIntoView
+            section.scrollIntoView({
+              behavior: 'smooth',
+              block: 'end'
+            });
+            return;
+          }
+
+          // Get the bounds
+          const sectionRect = section.getBoundingClientRect();
+          const containerRect = scrollContainer.getBoundingClientRect();
+
+          // Calculate if we need to scroll
+          const sectionBottom = sectionRect.bottom;
+          const containerBottom = containerRect.bottom;
+
+          // If section extends below the visible area
+          if (sectionBottom > containerBottom) {
+            // Calculate how much to scroll down
+            const scrollAmount = sectionBottom - containerBottom + 20; // 20px padding
+
+            scrollContainer.scrollTo({
+              top: scrollContainer.scrollTop + scrollAmount,
+              behavior: 'smooth'
+            });
+          }
+        }, 300);
+      }
+    }, [isExpanded]);
+
+    return (
+      <div
+        ref={sectionRef}
+        style={{
+          border: '1px solid #f3f4f6',
+          borderRadius: '12px',
+          overflow: 'visible',
+          background: 'white',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        }}
+      >
+        <button
+          onClick={onToggle}
+          style={{
+            width: '100%',
+            padding: '16px 20px',
+            background: isExpanded ? '#f8fafc' : '#ffffff',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '15px',
+            fontWeight: '600',
+            color: '#374151',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            if (!isExpanded) {
+              (e.target as HTMLButtonElement).style.background = '#f9fafb';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isExpanded) {
+              (e.target as HTMLButtonElement).style.background = '#ffffff';
+            }
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}>
+            <span style={{ fontSize: '18px' }}>{icon}</span>
+            <span>{title}</span>
+          </div>
+          <span style={{
+            fontSize: '14px',
+            color: '#9ca3af',
+            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease',
+          }}>
+            ▶
+          </span>
+        </button>
+        {isExpanded && (
+          <div style={{
+            padding: '20px',
+            background: 'white',
+            borderTop: '1px solid #f3f4f6',
+            animation: 'fadeIn 0.2s ease-in-out',
+          }}>
+            {children}
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className={`property-panel ${className}`}>
-      {/* Header */}
-      <div className="property-panel-header">
-        <div className="component-info">
-          <h3 className="component-title">{selectedComponent.type}</h3>
-          <span className="component-id">ID: {selectedComponent.id}</span>
-        </div>
-        <div className="panel-actions">
-          {isDirty && (
-            <button
-              className="panel-action-button"
-              onClick={handleReset}
-              title="Reset changes"
-            >
-              ↺
-            </button>
-          )}
-          <button
-            className="panel-action-button"
-            onClick={handleApplyDefaults}
-            title="Apply default values"
-          >
-            ⚡
-          </button>
-        </div>
-      </div>
-
-      {/* Properties */}
-      <div className="property-panel-content">
-        {propertyFields.length === 0 ? (
-          <div className="no-properties">
-            <p>This component has no configurable properties.</p>
+    <div className={`bg-white flex flex-col ${className}`} style={{ ...style, display: 'flex', flexDirection: 'column' }}>
+      {!selectedComponent ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center max-w-sm">
+            <div className="text-5xl mb-4 opacity-60">⚙️</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">No Selection</h3>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Click on any component in the canvas to edit its properties.
+              You&apos;ll see style, layout, and content options here.
+            </p>
           </div>
-        ) : (
-          <div className="property-sections">
-            {/* Basic Properties */}
-            <PropertySection title="Properties">
-              {propertyFields.map(field => (
-                <PropertyField
-                  key={field.key}
-                  field={field}
-                  value={formData[field.key]}
-                  error={errors[field.key]}
-                  onChange={(value) => handleFieldChange(field.key, value)}
-                />
-              ))}
-            </PropertySection>
-
-            {/* Children Management */}
-            {isParentComponent && (
-              <PropertySection title={relationship?.childrenLabel || "Children"} defaultExpanded={true}>
-                <ChildrenManager
-                  component={selectedComponent}
-                  relationship={relationship}
-                  onAddChild={(child) => canvasState.addChildComponent(selectedComponent.id, child)}
-                  onRemoveChild={(childId) => canvasState.removeChildComponent(selectedComponent.id, childId)}
-                  onUpdateChild={(childId, updates) => canvasState.updateChildComponent(selectedComponent.id, childId, updates)}
-                  onReorderChildren={(fromIndex, toIndex) => canvasState.reorderChildren(selectedComponent.id, fromIndex, toIndex)}
-                />
-              </PropertySection>
-            )}
-
-            {/* Advanced Properties */}
-            <PropertySection title="Layout & Position" defaultExpanded={false}>
-              <PositionControls
-                component={selectedComponent}
-                onUpdate={(updates) => onComponentUpdate(selectedComponent.id, updates)}
-              />
-            </PropertySection>
-
-            {/* Component Info */}
-            <PropertySection title="Component Info" defaultExpanded={false}>
-              <div className="component-stats">
-                <div className="stat-item">
-                  <span className="stat-label">Type:</span>
-                  <span className="stat-value">{selectedComponent.type}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Children:</span>
-                  <span className="stat-value">{selectedComponent.children?.length || 0}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Depth:</span>
-                  <span className="stat-value">0</span>
-                </div>
+        </div>
+      ) : (
+        <>
+          {/* Component header */}
+          <div className="p-6 border-b border-gray-100" style={{ flexShrink: 0 }}>
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                  {selectedComponent.type.replace(/([A-Z])/g, ' $1').trim()}
+                </h2>
+                <p className="text-sm text-gray-500 font-mono">
+                  #{selectedComponent.id.slice(-8)}
+                </p>
               </div>
-            </PropertySection>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Collapsible property section
- */
-interface PropertySectionProps {
-  title: string;
-  defaultExpanded?: boolean;
-  children: React.ReactNode;
-}
-
-function PropertySection({ title, defaultExpanded = true, children }: PropertySectionProps) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-
-  return (
-    <div className="property-section">
-      <button
-        className="property-section-header"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <span className="section-title">{title}</span>
-        <span className={`section-chevron ${isExpanded ? 'expanded' : ''}`}>
-          ▼
-        </span>
-      </button>
-      {isExpanded && (
-        <div className="property-section-content">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Individual property field
- */
-interface PropertyFieldComponentProps {
-  field: PropertyField;
-  value: unknown;
-  error?: string;
-  onChange: (value: unknown) => void;
-}
-
-function PropertyField({ field, value, error, onChange }: PropertyFieldComponentProps) {
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    let newValue: unknown = e.target.value;
-
-    // Type coercion based on field type
-    switch (field.type) {
-      case 'number':
-        newValue = e.target.value === '' ? undefined : Number(e.target.value);
-        break;
-      case 'boolean':
-        newValue = (e.target as HTMLInputElement).checked;
-        break;
-      default:
-        newValue = e.target.value;
-    }
-
-    onChange(newValue);
-  }, [field.type, onChange]);
-
-  const renderField = () => {
-    switch (field.type) {
-      case 'boolean':
-        return (
-          <label className="checkbox-field">
-            <input
-              type="checkbox"
-              checked={Boolean(value)}
-              onChange={handleChange}
-              className="checkbox-input"
-            />
-            <span className="checkbox-label">{field.label}</span>
-          </label>
-        );
-
-      case 'select':
-        return (
-          <select
-            value={String(value || '')}
-            onChange={handleChange}
-            className={`select-input ${error ? 'error' : ''}`}
-          >
-            <option value="">Select...</option>
-            {field.options?.map(option => (
-              <option key={String(option.value)} value={String(option.value)}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        );
-
-      case 'number':
-        return (
-          <input
-            type="number"
-            value={value as number || ''}
-            onChange={handleChange}
-            min={field.min}
-            max={field.max}
-            step={field.step}
-            placeholder={field.placeholder}
-            className={`number-input ${error ? 'error' : ''}`}
-          />
-        );
-
-      case 'color':
-        return (
-          <div className="color-input-wrapper">
-            <input
-              type="color"
-              value={String(value || '#000000')}
-              onChange={handleChange}
-              className="color-input"
-            />
-            <input
-              type="text"
-              value={String(value || '')}
-              onChange={handleChange}
-              placeholder="#000000"
-              className={`text-input color-text ${error ? 'error' : ''}`}
-            />
-          </div>
-        );
-
-      default:
-        return (
-          <input
-            type="text"
-            value={String(value || '')}
-            onChange={handleChange}
-            placeholder={field.placeholder}
-            className={`text-input ${error ? 'error' : ''}`}
-          />
-        );
-    }
-  };
-
-  return (
-    <div className="property-field">
-      {field.type !== 'boolean' && (
-        <label className="field-label">
-          {field.label}
-          {field.required && <span className="required-marker">*</span>}
-        </label>
-      )}
-
-      <div className="field-input">
-        {renderField()}
-      </div>
-
-      {field.description && (
-        <div className="field-description">
-          {field.description}
-        </div>
-      )}
-
-      {error && (
-        <div className="field-error">
-          {error}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Children management component
- */
-interface ChildrenManagerProps {
-  component: CanvasComponent;
-  relationship: any; // ComponentRelationship from registry
-  onAddChild: (child: any) => void; // ComponentItem
-  onRemoveChild: (childId: string) => void;
-  onUpdateChild: (childId: string, updates: any) => void; // Partial<ComponentItem>
-  onReorderChildren: (fromIndex: number, toIndex: number) => void;
-}
-
-function ChildrenManager({
-  component,
-  relationship,
-  onAddChild,
-  onRemoveChild,
-  onUpdateChild,
-  onReorderChildren
-}: ChildrenManagerProps) {
-  const [selectedChildType, setSelectedChildType] = useState<string>('');
-
-  // Get available child types
-  const availableChildTypes = useMemo(() => {
-    if (!relationship?.acceptsChildren) return [];
-
-    if (relationship.acceptsChildren === true) {
-      // Accept any children - get all registered components
-      return Array.from(componentRegistry.getAllRegistrations().keys())
-        .filter(type => {
-          const childReg = componentRegistry.get(type);
-          return childReg?.relationship?.type === 'child' || childReg?.relationship?.type === 'leaf';
-        });
-    }
-
-    // Only accept specific child types
-    return relationship.acceptsChildren;
-  }, [relationship]);
-
-  const currentChildren = component.children || [];
-  const canAddMore = !relationship?.maxChildren || currentChildren.length < relationship.maxChildren;
-  const needsMore = relationship?.minChildren && currentChildren.length < relationship.minChildren;
-
-
-  const handleAddChild = useCallback(() => {
-    if (!selectedChildType) return;
-
-    const childRegistration = componentRegistry.get(selectedChildType);
-    if (!childRegistration) return;
-
-    // Create default child with minimal required props
-    const newChild = {
-      id: `child_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type: selectedChildType,
-      position: { x: 0, y: 0 }, // Children don't need canvas positioning
-      positioningMode: 'absolute' as const,
-      props: {}
-    };
-
-    onAddChild(newChild);
-    setSelectedChildType(''); // Reset selection
-  }, [selectedChildType, onAddChild]);
-
-  const handleRemoveChild = useCallback((childId: string) => {
-    onRemoveChild(childId);
-  }, [onRemoveChild]);
-
-  return (
-    <div className="children-manager">
-      {/* Current Children List */}
-      <div className="children-list">
-        {currentChildren.length === 0 ? (
-          <div className="no-children">
-            <p>No children added yet.</p>
-            {needsMore && (
-              <p className="requirement-notice">
-                This component requires at least {relationship.minChildren} children.
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="children-items space-y-2">
-            {currentChildren.map((child, index) => (
-              <ChildEditor
-                key={child.id}
-                child={child}
-                index={index}
-                onUpdate={(updates) => onUpdateChild(child.id, updates)}
-                onRemove={() => handleRemoveChild(child.id)}
-                canRemove={!relationship?.minChildren || currentChildren.length > relationship.minChildren}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Add Child Controls */}
-      {canAddMore && availableChildTypes.length > 0 && (
-        <div className="add-child-controls">
-          <div className="child-type-selector">
-            <select
-              value={selectedChildType}
-              onChange={(e) => setSelectedChildType(e.target.value)}
-              className="child-type-select"
-            >
-              <option value="">Select child type...</option>
-              {availableChildTypes.map((childType: string) => (
-                <option key={childType} value={childType}>
-                  {childType}
-                </option>
-              ))}
-            </select>
-            <button
-              className="add-child-button"
-              onClick={handleAddChild}
-              disabled={!selectedChildType}
-            >
-              Add
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Constraints Info */}
-      {(relationship?.minChildren || relationship?.maxChildren) && (
-        <div className="children-constraints">
-          <small className="constraints-text">
-            {relationship.minChildren && relationship.maxChildren ? (
-              `Requires ${relationship.minChildren}-${relationship.maxChildren} children`
-            ) : relationship.minChildren ? (
-              `Requires at least ${relationship.minChildren} children`
-            ) : relationship.maxChildren ? (
-              `Maximum ${relationship.maxChildren} children`
-            ) : null}
-          </small>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Inline child editor component
- */
-interface ChildEditorProps {
-  child: any; // ComponentItem from useCanvasState
-  index: number;
-  onUpdate: (updates: any) => void; // Partial<ComponentItem>
-  onRemove: () => void;
-  canRemove: boolean;
-}
-
-function ChildEditor({ child, index, onUpdate, onRemove, canRemove }: ChildEditorProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [localProps, setLocalProps] = useState(child.props || {});
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Update local props when child changes from external source
-  useEffect(() => {
-    setLocalProps(child.props || {});
-  }, [child.props]);
-
-  const handlePropChange = useCallback((key: string, value: any) => {
-    // Update local state immediately for responsive UI
-    setLocalProps((prevProps: Record<string, any>) => {
-      const newProps = { ...prevProps, [key]: value };
-
-      // Clear previous timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      // Debounce the actual state update
-      timeoutRef.current = setTimeout(() => {
-        onUpdate({ props: newProps });
-      }, 500); // Increased debounce time for better typing experience
-
-      return newProps;
-    });
-  }, [onUpdate]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  const getChildDisplayName = () => {
-    if (child.type === 'ContactMethod') {
-      return `${localProps.label || localProps.type || 'Contact'}: ${localProps.value || 'No value'}`;
-    }
-    return `${child.type} #${index + 1}`;
-  };
-
-  return (
-    <div className="child-editor border border-gray-200 rounded-lg p-3 bg-gray-50">
-      {/* Header */}
-      <div className="child-header flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="child-expand-button text-sm"
-          >
-            {isExpanded ? '▼' : '▶'}
-          </button>
-          <span className="child-display-name font-medium text-sm">
-            {getChildDisplayName()}
-          </span>
-          <span className="child-type-badge text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">
-            {child.type}
-          </span>
-        </div>
-        <div className="child-actions flex items-center space-x-1">
-          <button
-            onClick={onRemove}
-            disabled={!canRemove}
-            className="remove-child-button text-red-500 hover:text-red-700 disabled:text-gray-300 text-sm"
-            title={canRemove ? "Remove child" : "Cannot remove - minimum required"}
-          >
-            ×
-          </button>
-        </div>
-      </div>
-
-      {/* Expanded Properties */}
-      {isExpanded && (
-        <div className="child-properties mt-3 space-y-2">
-          {child.type === 'ContactMethod' && (
-            <>
-              <div className="prop-row">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
-                <select
-                  value={localProps.type || 'email'}
-                  onChange={(e) => handlePropChange('type', e.target.value)}
-                  className="w-full text-sm border border-gray-300 rounded px-2 py-1"
-                >
-                  <option value="email">Email</option>
-                  <option value="phone">Phone</option>
-                  <option value="linkedin">LinkedIn</option>
-                  <option value="github">GitHub</option>
-                  <option value="twitter">Twitter</option>
-                  <option value="website">Website</option>
-                  <option value="discord">Discord</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </div>
-              <div className="prop-row">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Value</label>
-                <input
-                  type="text"
-                  value={localProps.value || ''}
-                  onChange={(e) => handlePropChange('value', e.target.value)}
-                  placeholder="Enter contact value"
-                  className="w-full text-sm border border-gray-300 rounded px-2 py-1"
-                />
-              </div>
-              <div className="prop-row">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Label</label>
-                <input
-                  type="text"
-                  value={localProps.label || ''}
-                  onChange={(e) => handlePropChange('label', e.target.value)}
-                  placeholder="Display label"
-                  className="w-full text-sm border border-gray-300 rounded px-2 py-1"
-                />
-              </div>
-              <div className="prop-row">
-                <label className="flex items-center text-xs text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={localProps.copyable !== false}
-                    onChange={(e) => handlePropChange('copyable', e.target.checked)}
-                    className="mr-2"
-                  />
-                  Copyable
-                </label>
-              </div>
-            </>
-          )}
-
-          {/* Generic properties for other child types */}
-          {child.type !== 'ContactMethod' && (
-            <div className="prop-row">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Properties</label>
-              <textarea
-                value={JSON.stringify(localProps, null, 2)}
-                onChange={(e) => {
-                  try {
-                    const parsed = JSON.parse(e.target.value);
-                    setLocalProps(parsed);
-                    onUpdate({ props: parsed });
-                  } catch (error) {
-                    // Invalid JSON, don't update
-                  }
+              <button
+                onClick={() => canvasState.removeComponent(selectedComponent.id)}
+                style={{
+                  padding: '8px 12px',
+                  background: '#fee2e2',
+                  color: '#dc2626',
+                  border: '1px solid #fecaca',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease',
                 }}
-                className="w-full text-xs font-mono border border-gray-300 rounded px-2 py-1 h-20"
-                placeholder="Enter JSON properties"
-              />
+                onMouseEnter={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.background = '#fecaca';
+                  target.style.borderColor = '#f87171';
+                }}
+                onMouseLeave={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.background = '#fee2e2';
+                  target.style.borderColor = '#fecaca';
+                }}
+                title="Delete Component"
+              >
+                🗑️ Delete
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+
+          {/* Tab Navigation */}
+          <div style={{
+            display: 'flex',
+            borderBottom: '1px solid #f3f4f6',
+            background: '#fafafa',
+            flexShrink: 0,
+          }}>
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  flex: 1,
+                  padding: '12px 8px',
+                  border: 'none',
+                  background: activeTab === tab.id ? 'white' : 'transparent',
+                  borderBottom: activeTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: activeTab === tab.id ? '#1f2937' : '#6b7280',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+                title={tab.description}
+              >
+                <span style={{ fontSize: '16px' }}>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          <div style={{
+            padding: '24px'
+          }}>
+            {renderTabContent()}
+          </div>
+        </>
       )}
     </div>
   );
-}
-
-/**
- * Position and layout controls
- */
-interface PositionControlsProps {
-  component: CanvasComponent;
-  onUpdate: (updates: Partial<CanvasComponent>) => void;
-}
-
-function PositionControls({ component, onUpdate }: PositionControlsProps) {
-  const handlePositionChange = useCallback((axis: 'x' | 'y', value: number) => {
-    const newPosition = {
-      x: component.position?.x || 0,
-      y: component.position?.y || 0,
-      ...component.position,
-      [axis]: value,
-    };
-    onUpdate({ position: newPosition });
-  }, [component.position, onUpdate]);
-
-  const handleSizeChange = useCallback((dimension: 'width' | 'height', value: number | 'auto') => {
-    const currentSize = (component.props as any)?._size || { width: 'auto', height: 'auto' };
-    const newSize = {
-      ...currentSize,
-      [dimension]: value,
-    };
-    // Store size in props with a special key
-    onUpdate({
-      props: {
-        ...component.props,
-        _size: newSize
-      }
-    });
-  }, [component.props, onUpdate]);
-
-  return (
-    <div className="position-controls">
-      <div className="control-group">
-        <label className="control-label">Position</label>
-        <div className="position-inputs">
-          <div className="input-group">
-            <span className="input-label">X:</span>
-            <input
-              type="number"
-              value={component.position?.x || 0}
-              onChange={(e) => handlePositionChange('x', Number(e.target.value))}
-              className="number-input small"
-            />
-          </div>
-          <div className="input-group">
-            <span className="input-label">Y:</span>
-            <input
-              type="number"
-              value={component.position?.y || 0}
-              onChange={(e) => handlePositionChange('y', Number(e.target.value))}
-              className="number-input small"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="control-group">
-        <label className="control-label">Size</label>
-        <div className="size-inputs">
-          <div className="input-group">
-            <span className="input-label">Width:</span>
-            <input
-              type="number"
-              value={(component.props as any)?._size?.width === 'auto' ? '' : ((component.props as any)?._size?.width || '')}
-              onChange={(e) => handleSizeChange('width', e.target.value ? Number(e.target.value) : 'auto')}
-              placeholder="auto"
-              className="number-input small"
-            />
-          </div>
-          <div className="input-group">
-            <span className="input-label">Height:</span>
-            <input
-              type="number"
-              value={(component.props as any)?._size?.height === 'auto' ? '' : ((component.props as any)?._size?.height || '')}
-              onChange={(e) => handleSizeChange('height', e.target.value ? Number(e.target.value) : 'auto')}
-              placeholder="auto"
-              className="number-input small"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="control-group">
-        <label className="checkbox-field">
-          <input
-            type="checkbox"
-            checked={(component.props as any)?._locked || false}
-            onChange={(e) => onUpdate({
-              props: { ...component.props, _locked: e.target.checked }
-            })}
-            className="checkbox-input"
-          />
-          <span className="checkbox-label">Lock position</span>
-        </label>
-      </div>
-
-      <div className="control-group">
-        <label className="checkbox-field">
-          <input
-            type="checkbox"
-            checked={(component.props as any)?._hidden || false}
-            onChange={(e) => onUpdate({
-              props: { ...component.props, _hidden: e.target.checked }
-            })}
-            className="checkbox-input"
-          />
-          <span className="checkbox-label">Hide component</span>
-        </label>
-      </div>
-    </div>
-  );
-}
-
-// Helper functions
-
-function mapSchemaTypeToFieldType(schemaType: string): PropertyFieldType {
-  switch (schemaType) {
-    case 'string': return 'text';
-    case 'number': return 'number';
-    case 'boolean': return 'boolean';
-    case 'enum': return 'select';
-    default: return 'text';
-  }
-}
-
-function formatLabel(key: string): string {
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, str => str.toUpperCase())
-    .trim();
-}
-
-function getPropertyDescription(componentType: string, propertyKey: string): string | undefined {
-  const descriptions: Record<string, Record<string, string>> = {
-    'ProfilePhoto': {
-      size: 'Size of the profile photo (xs, sm, md, lg)',
-      shape: 'Shape of the photo container',
-    },
-    'DisplayName': {
-      as: 'HTML element to use for the display name',
-      showLabel: 'Whether to show a label before the name',
-    },
-    'FlexContainer': {
-      direction: 'Direction of flex items',
-      align: 'Alignment of items on the cross axis',
-      justify: 'Alignment of items on the main axis',
-      gap: 'Space between flex items',
-    },
-    'GridLayout': {
-      columns: 'Number of columns in the grid',
-      gap: 'Space between grid items',
-      responsive: 'Whether to adapt to screen size',
-    },
-    'GradientBox': {
-      gradient: 'Predefined gradient to use',
-      direction: 'Direction of the gradient',
-      padding: 'Internal spacing',
-      rounded: 'Whether to have rounded corners',
-    },
-  };
-
-  return descriptions[componentType]?.[propertyKey];
 }
