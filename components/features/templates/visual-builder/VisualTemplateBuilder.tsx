@@ -12,6 +12,16 @@ import {
   GRID_BREAKPOINTS,
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
+
+// Import new pure positioning system
+import {
+  AbsolutePositioningUtils,
+  PositioningMigration,
+  type AbsoluteComponent,
+  type AbsoluteCanvasState,
+  DEFAULT_CANVAS_CONTAINER
+} from '@/lib/templates/visual-builder/pure-positioning';
+import { generatePureHTML } from '@/lib/templates/visual-builder/pure-html-generator';
 import type { CanvasComponent } from '@/lib/templates/visual-builder/types';
 import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
 
@@ -356,7 +366,38 @@ export default function VisualTemplateBuilder({
     updateComponent(componentId, mappedUpdates);
   }, [updateComponent, markUserChange]);
 
-  // Helper function to generate HTML for a single component and its children
+  // Convert current canvas state to pure absolute positioning format
+  const convertToPureCanvasState = useCallback((): AbsoluteCanvasState => {
+    const absoluteComponents: AbsoluteComponent[] = placedComponents.map(component => {
+      return PositioningMigration.convertLegacyComponent(component);
+    });
+
+    return {
+      container: DEFAULT_CANVAS_CONTAINER,
+      components: absoluteComponents,
+      version: '2.0',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }, [placedComponents]);
+
+  // Generate HTML using new pure positioning system
+  const generatePureHTMLOutput = useCallback((): string => {
+    const pureCanvasState = convertToPureCanvasState();
+    const result = generatePureHTML(pureCanvasState, {
+      containerClass: 'pure-absolute-container',
+      includeMetadata: true,
+      prettyPrint: true
+    });
+
+    if (result.warnings.length > 0) {
+      console.warn('Pure HTML generation warnings:', result.warnings);
+    }
+
+    return result.html;
+  }, [convertToPureCanvasState]);
+
+  // Helper function to generate HTML for a single component and its children (LEGACY - to be removed)
   const generateComponentHTML = useCallback((component: ComponentItem, indent: string = '  ', isChild: boolean = false): string => {
     const props = component.props || {};
 
@@ -405,14 +446,11 @@ export default function VisualTemplateBuilder({
     const componentIdAttr = ` data-component-id="${component.id}"`;
 
     // Add positioning data based on component's positioning mode (skip for child components)
+    // NOTE: HTML generator will also add positioning attributes, so we keep this minimal to avoid duplicates
     let positioningAttributes = '';
     if (!isChild && component.positioningMode === 'absolute') {
-      const positionData = JSON.stringify({
-        x: component.position.x,
-        y: component.position.y,
-        positioning: 'absolute'
-      });
-      positioningAttributes = ` data-position="${component.position.x},${component.position.y}" data-pixel-position='${positionData}' data-positioning-mode="absolute"`;
+      // Include essential positioning data for profile renderer to detect absolute positioning
+      positioningAttributes = ` data-position="${component.position.x},${component.position.y}" data-positioning-mode="absolute"`;
     } else if (!isChild && component.positioningMode === 'grid' && component.gridPosition) {
       // Use auto-spanning if component doesn't have manual span set
       let finalSpan = component.gridPosition.span;
@@ -488,8 +526,18 @@ export default function VisualTemplateBuilder({
     }
   }, []);
 
-  // Generate HTML for template output with enhanced responsive grid and auto-spanning
+  // Generate HTML for template output using pure absolute positioning
   const generateHTML = useCallback(() => {
+    if (placedComponents.length === 0) {
+      return '<div class="template-empty">No components placed</div>';
+    }
+
+    // Use new pure HTML generation system
+    return generatePureHTMLOutput();
+  }, [placedComponents, generatePureHTMLOutput]);
+
+  // LEGACY HTML generation (kept for reference, will be removed)
+  const generateLegacyHTML = useCallback(() => {
     if (placedComponents.length === 0) {
       return '<div class="template-empty">No components placed</div>';
     }

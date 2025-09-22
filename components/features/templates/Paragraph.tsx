@@ -152,9 +152,11 @@ export default function Paragraph({
     }
   }, [isEditing]);
 
-  // Build classes
+  // Build classes with consistent text wrapping
   const classes = [
     'leading-relaxed', // Default paragraph line height
+    'break-words', // Ensure text wrapping at word boundaries
+    'hyphens-auto', // Enable automatic hyphenation
     className,
     isAbsolutePositioned && _size ? 'h-full flex items-start justify-start' : '',
     // Add editing indicators
@@ -162,7 +164,7 @@ export default function Paragraph({
     _isInVisualBuilder && !isEditing ? 'hover:outline hover:outline-1 hover:outline-gray-300 cursor-pointer' : '',
   ].filter(Boolean).join(' ');
 
-  // Merge styles
+  // Merge styles with consistent text wrapping behavior
   const finalStyle: React.CSSProperties = {
     ...style,
     // Apply custom size if in absolute positioning mode
@@ -180,7 +182,29 @@ export default function Paragraph({
     ...(isEditing ? {
       minHeight: '1.5em', // Ensure minimum height when editing
     } : {}),
+    // CRITICAL: Ensure consistent text wrapping behavior across both contexts
+    wordWrap: 'break-word',
+    overflowWrap: 'break-word',
+    hyphens: 'auto',
+    // Prevent text from overflowing horizontally
+    overflowX: 'hidden',
   };
+
+  // Debug logging for WYSIWYG validation
+  const getContentLength = () => {
+    if (content && typeof content === 'string') return content.length;
+    if (children && typeof children === 'string') return children.length;
+    if (typeof children === 'number') return children.toString().length;
+    return 0;
+  };
+
+  console.log('🎯 [WYSIWYG] Paragraph render:', {
+    isInVisualBuilder: _isInVisualBuilder,
+    positioningMode: _positioningMode,
+    size: _size,
+    contentLength: getContentLength(),
+    finalStyle: finalStyle
+  });
 
   return (
     <>

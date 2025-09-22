@@ -434,11 +434,26 @@ export class TemplateParserReverse {
       return this.options.inferPositions ? this.inferPosition(element) : undefined;
     }
 
-    // First, try to extract from data-pixel-position attribute (JSON format)
+    // First, try to extract from data-pure-positioning attribute (NEW FORMAT)
+    const purePositioningAttr = element.getAttribute('data-pure-positioning');
+    if (purePositioningAttr) {
+      try {
+        const pureData = JSON.parse(purePositioningAttr);
+        console.log('[TemplateParser] Found data-pure-positioning:', pureData);
+        if (pureData.x !== undefined && pureData.y !== undefined) {
+          return { x: pureData.x, y: pureData.y };
+        }
+      } catch (error) {
+        this.warnings.push(`Invalid pure positioning data: ${purePositioningAttr}`);
+      }
+    }
+
+    // Second, try to extract from data-pixel-position attribute (OLD FORMAT)
     const pixelPositionAttr = element.getAttribute('data-pixel-position');
     if (pixelPositionAttr) {
       try {
         const pixelData = JSON.parse(pixelPositionAttr);
+        console.log('[TemplateParser] Found data-pixel-position:', pixelData);
         if (pixelData.x !== undefined && pixelData.y !== undefined) {
           return { x: pixelData.x, y: pixelData.y };
         }
@@ -590,9 +605,17 @@ export class TemplateParserReverse {
       return undefined;
     }
 
-    // Check for explicit positioning mode data attribute
+    // Check for pure positioning format (NEW FORMAT) - indicates absolute positioning
+    const purePositioningAttr = element.getAttribute('data-pure-positioning');
+    if (purePositioningAttr) {
+      console.log('[TemplateParser] Found data-pure-positioning, using absolute mode');
+      return 'absolute';
+    }
+
+    // Check for explicit positioning mode data attribute (OLD FORMAT)
     const positioningModeAttr = element.getAttribute('data-positioning-mode');
     if (positioningModeAttr) {
+      console.log('[TemplateParser] Found data-positioning-mode:', positioningModeAttr);
       return positioningModeAttr as PositioningMode;
     }
 
@@ -654,9 +677,29 @@ export class TemplateParserReverse {
       return undefined;
     }
 
+    // First, try to extract size from data-pure-positioning attribute (NEW FORMAT)
+    const purePositioningAttr = element.getAttribute('data-pure-positioning');
+    if (purePositioningAttr) {
+      try {
+        const pureData = JSON.parse(purePositioningAttr);
+        console.log('[TemplateParser] Extracting size from data-pure-positioning:', pureData);
+        if (pureData.width !== undefined && pureData.height !== undefined) {
+          return {
+            width: pureData.width,
+            height: pureData.height
+            // Note: Pure positioning always uses pixels (no unit property needed)
+          };
+        }
+      } catch (error) {
+        this.warnings.push(`Invalid pure positioning data: ${purePositioningAttr}`);
+      }
+    }
+
+    // Second, try to extract from data-size attribute (OLD FORMAT)
     const sizeAttr = element.getAttribute('data-size');
     if (sizeAttr) {
       try {
+        console.log('[TemplateParser] Found data-size:', sizeAttr);
         return JSON.parse(sizeAttr) as ComponentSize;
       } catch (error) {
         this.warnings.push(`Invalid size data: ${sizeAttr}`);

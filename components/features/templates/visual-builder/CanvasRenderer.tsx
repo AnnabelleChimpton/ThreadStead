@@ -11,6 +11,9 @@ import { ResidentDataProvider } from '@/components/features/templates/ResidentDa
 import {
   getCurrentBreakpoint,
   GRID_BREAKPOINTS,
+  calculateSpanWidth,
+  getComponentSizingCategory,
+  shouldUseFlexibleWidth,
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
 import { type ResizeDirection } from './ResizeHandle';
@@ -26,6 +29,9 @@ import {
   pixelToSpanChange,
   validateResize
 } from '@/lib/templates/visual-builder/resize-utils';
+import { SmartSnapping, type SnapResult } from '@/lib/templates/visual-builder/snapping-utils';
+import AlignmentGuides, { useAlignmentGuides } from './AlignmentGuides';
+import PositionIndicator, { usePositionIndicator } from './PositionIndicator';
 /**
  * Helper function to check if a component is a container that can accept children
  */
@@ -410,7 +416,7 @@ export default function CanvasRenderer({
     const constrainedY = Math.max(0, y - 12); // Remove top constraint to allow dropping anywhere vertically
 
     // Apply grid snapping if enabled
-    const snappedPosition = snapToGrid(constrainedX, constrainedY);
+    const snappedPosition = snapToGrid(constrainedX, constrainedY, canvasSize.width);
     const finalX = snappedPosition.x;
     const finalY = snappedPosition.y;
 
@@ -541,7 +547,7 @@ export default function CanvasRenderer({
     const constrainedY = Math.max(0, y - 12); // Allow preview anywhere vertically for auto-expansion
 
     // Apply grid snapping to preview position
-    const snappedPosition = snapToGrid(constrainedX, constrainedY);
+    const snappedPosition = snapToGrid(constrainedX, constrainedY, canvasSize.width);
     setPreviewPosition({ x: snappedPosition.x, y: snappedPosition.y });
 
     // Determine drop zone feedback based on component relationships
@@ -623,6 +629,28 @@ export default function CanvasRenderer({
     y: number;
   } | null>(null);
 
+  // Snapping configuration state
+  const [snapConfig, setSnapConfig] = useState({
+    componentSnapping: true,
+    gridSnapping: false,
+    showGuides: true
+  });
+
+  // Smart snapping and alignment state
+  const smartSnapping = useMemo(() => new SmartSnapping({
+    enabled: true,
+    snapDistance: 8,
+    componentSnapping: snapConfig.componentSnapping,
+    gridSnapping: snapConfig.gridSnapping && gridConfig.enabled,
+    gridSize: gridConfig.gap || 20,
+    showGuides: snapConfig.showGuides,
+    showSnapDistance: true
+  }), [snapConfig, gridConfig.enabled, gridConfig.gap]);
+
+  const alignmentGuides = useAlignmentGuides();
+  const positionIndicator = usePositionIndicator();
+  const [snapResult, setSnapResult] = useState<SnapResult | null>(null);
+
   // Measured dimensions for accurate selection indicators
   const [componentDimensions, setComponentDimensions] = useState<Map<string, MeasuredDimensions>>(new Map());
 
@@ -692,11 +720,97 @@ export default function CanvasRenderer({
     const adjustedX = Math.max(0, Math.min(x, canvasSize.width - 50));
     const adjustedY = Math.max(0, Math.min(y, canvasSize.height - 50));
 
-    // Apply grid snapping if in grid mode
-    const snappedPosition = snapToGrid(adjustedX, adjustedY);
+    const draggedComponent = placedComponents.find(c => c.id === draggedComponentId);
+    if (!draggedComponent) return;
+
+    let finalPosition: { x: number; y: number };
+
+    // Apply smart snapping if enabled
+    if (smartSnapping) {
+      // Update snapping config based on current settings
+      smartSnapping.updateConfig({
+        componentSnapping: snapConfig.componentSnapping && positioningMode === 'absolute',
+        gridSnapping: snapConfig.gridSnapping && gridConfig.enabled,
+        gridSize: gridConfig.gap || 20,
+        showGuides: snapConfig.showGuides
+      });
+      // Get other components for snapping (exclude the one being dragged)
+      const otherComponents = placedComponents
+        .filter(c => c.id !== draggedComponentId && c.positioningMode === 'absolute')
+        .map(c => ({
+          id: c.id,
+          x: c.position?.x || 0,
+          y: c.position?.y || 0,
+          width: parseInt(c.props?._size?.width || '200', 10) || 200,
+          height: parseInt(c.props?._size?.height || '150', 10) || 150
+        }));
+
+      // Calculate component dimensions for snapping
+      const componentWidth = parseInt(draggedComponent.props?._size?.width || '200', 10) || 200;
+      const componentHeight = parseInt(draggedComponent.props?._size?.height || '150', 10) || 150;
+
+      const snapResult = smartSnapping.calculateSnap(
+        { x: adjustedX, y: adjustedY, width: componentWidth, height: componentHeight },
+        otherComponents,
+        canvasSize.width,
+        canvasSize.height
+      );
+
+      finalPosition = { x: snapResult.x, y: snapResult.y };
+      setSnapResult(snapResult);
+
+      // Show alignment guides
+      if (snapResult.alignmentGuides.length > 0 || snapResult.snapPoints.length > 0) {
+        alignmentGuides.showGuides(snapResult.alignmentGuides, snapResult.snapPoints);
+      } else {
+        alignmentGuides.hideGuides();
+      }
+
+      // Show position indicator
+      const mousePosition = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      positionIndicator.showPosition(
+        {
+          x: finalPosition.x,
+          y: finalPosition.y,
+          width: componentWidth,
+          height: componentHeight,
+          isSnapped: snapResult.snappedX || snapResult.snappedY,
+          snapInfo: snapResult.snappedX || snapResult.snappedY ? 'Snapped to component' : undefined
+        },
+        'drag',
+        mousePosition
+      );
+    } else {
+      // Fallback to grid snapping if smart snapping is disabled
+      finalPosition = snapToGrid(adjustedX, adjustedY, canvasSize.width);
+      setSnapResult(null);
+      alignmentGuides.hideGuides();
+
+      // Still show position indicator for grid mode
+      if (draggedComponent) {
+        const componentWidth = parseInt(draggedComponent.props?._size?.width || '200', 10) || 200;
+        const componentHeight = parseInt(draggedComponent.props?._size?.height || '150', 10) || 150;
+        const mousePosition = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+
+        positionIndicator.showPosition(
+          {
+            x: finalPosition.x,
+            y: finalPosition.y,
+            width: componentWidth,
+            height: componentHeight,
+            isSnapped: true,
+            snapInfo: 'Grid aligned'
+          },
+          'drag',
+          mousePosition
+        );
+      } else {
+        positionIndicator.hidePosition();
+      }
+    }
 
     // Update component position
-    updateComponentPosition(draggedComponentId, snappedPosition);
+    updateComponentPosition(draggedComponentId, finalPosition);
 
     // Check for container drops and update drop zone state
     const mouseX = event.clientX - rect.left;
@@ -725,7 +839,7 @@ export default function CanvasRenderer({
     if (positioningMode === 'grid' && gridConfig.enabled) {
       const component = placedComponents.find(c => c.id === draggedComponentId);
       if (component && component.positioningMode === 'grid') {
-        const gridPos = pixelToGrid(snappedPosition.x, snappedPosition.y);
+        const gridPos = pixelToGrid(finalPosition.x, finalPosition.y, canvasSize.width);
         const currentSpan = component.gridPosition?.span || 1;
         updateComponentGridPosition(draggedComponentId, {
           column: gridPos.column,
@@ -734,7 +848,7 @@ export default function CanvasRenderer({
         });
       }
     }
-  }, [draggedComponentId, dragOffset, updateComponentPosition, snapToGrid, positioningMode, gridConfig.enabled, placedComponents, pixelToGrid, updateComponentGridPosition, setDropZoneState, setPreviewPosition]);
+  }, [draggedComponentId, dragOffset, updateComponentPosition, snapToGrid, positioningMode, gridConfig.enabled, placedComponents, pixelToGrid, updateComponentGridPosition, setDropZoneState, setPreviewPosition, smartSnapping, alignmentGuides, positionIndicator, canvasSize.width, canvasSize.height]);
 
   const handleComponentMouseUp = useCallback((event: MouseEvent) => {
     if (draggedComponentId && canvasRef.current) {
@@ -765,6 +879,11 @@ export default function CanvasRenderer({
         }
       }
 
+      // Clear snapping and alignment state
+      setSnapResult(null);
+      alignmentGuides.hideGuides();
+      positionIndicator.hidePosition();
+
       setDraggedComponentId(null);
       setDragOffset({ x: 0, y: 0 });
 
@@ -777,7 +896,7 @@ export default function CanvasRenderer({
       });
       setPreviewPosition(null);
     }
-  }, [draggedComponentId, placedComponents, addChildComponent, removeComponent, setDropZoneState, setPreviewPosition]);
+  }, [draggedComponentId, placedComponents, addChildComponent, removeComponent, setDropZoneState, setPreviewPosition, alignmentGuides, positionIndicator]);
 
   // Component resize handling
   const handleResizeStart = useCallback((componentId: string, direction: ResizeDirection) => {
@@ -849,6 +968,17 @@ export default function CanvasRenderer({
       });
     }
 
+    // Show position indicator during resize
+    positionIndicator.showPosition(
+      {
+        x: newPosition.x,
+        y: newPosition.y,
+        width: newSize.width,
+        height: newSize.height
+      },
+      'resize'
+    );
+
     // Set resize preview
     setResizePreview({
       width: newSize.width,
@@ -856,7 +986,7 @@ export default function CanvasRenderer({
       x: newPosition.x,
       y: newPosition.y
     });
-  }, [placedComponents, updateComponent]);
+  }, [placedComponents, updateComponent, positionIndicator]);
 
   const handleResizeEnd = useCallback((componentId: string, finalSize: { width: number; height: number }, finalPosition: { x: number; y: number }) => {
     const component = placedComponents.find(comp => comp.id === componentId);
@@ -877,6 +1007,7 @@ export default function CanvasRenderer({
       console.warn('Resize validation failed:', validation.reason);
       setResizingComponentId(null);
       setResizePreview(null);
+      positionIndicator.hidePosition();
       return;
     }
 
@@ -895,12 +1026,15 @@ export default function CanvasRenderer({
       position: finalPosition
     });
 
+    // Hide position indicator
+    positionIndicator.hidePosition();
+
     setResizingComponentId(null);
     setResizePreview(null);
 
     // The ResizableComponent will automatically re-measure through its ResizeObserver
     // when the actual component size changes, so no manual trigger needed here
-  }, [placedComponents, canvasSize.width, updateComponentGridPosition, updateComponent]);
+  }, [placedComponents, canvasSize.width, updateComponentGridPosition, updateComponent, positionIndicator]);
 
   // Add global mouse event listeners for component dragging
   React.useEffect(() => {
@@ -915,9 +1049,34 @@ export default function CanvasRenderer({
     }
   }, [draggedComponentId, handleComponentMouseMove, handleComponentMouseUp]);
 
-  // Keyboard shortcuts for resize operations
+  // Keyboard shortcuts for resize operations and snapping controls
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Snapping toggle shortcuts (Alt + key)
+      if (event.altKey && !event.ctrlKey && !event.metaKey) {
+        let handled = false;
+
+        if (event.key === 'c' || event.key === 'C') {
+          // Alt + C: Toggle component snapping
+          setSnapConfig(prev => ({ ...prev, componentSnapping: !prev.componentSnapping }));
+          handled = true;
+        } else if (event.key === 'g' || event.key === 'G') {
+          // Alt + G: Toggle grid snapping
+          setSnapConfig(prev => ({ ...prev, gridSnapping: !prev.gridSnapping }));
+          handled = true;
+        } else if (event.key === 'h' || event.key === 'H') {
+          // Alt + H: Toggle guides visibility
+          setSnapConfig(prev => ({ ...prev, showGuides: !prev.showGuides }));
+          handled = true;
+        }
+
+        if (handled) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+      }
+
       // Only handle resize shortcuts if a component is selected and not being dragged
       if (selectedComponentIds.size !== 1 || draggedComponentId || resizingComponentId) {
         return;
@@ -992,7 +1151,7 @@ export default function CanvasRenderer({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedComponentIds, draggedComponentId, resizingComponentId, placedComponents, canvasSize.width, updateComponentGridSpan, updateComponentSize]);
+  }, [selectedComponentIds, draggedComponentId, resizingComponentId, placedComponents, canvasSize.width, updateComponentGridSpan, updateComponentSize, setSnapConfig]);
 
   // Render nested component within containers (without absolute positioning)
   const renderNestedComponent = useCallback((child: ComponentItem) => {
@@ -1153,12 +1312,10 @@ export default function CanvasRenderer({
         const { column, row, span } = component.gridPosition;
 
         // Calculate position using grid utilities with fixed row heights
-        const gridPosition = gridToPixel(column, row);
+        const gridPosition = gridToPixel(column, row, canvasSize.width);
 
-        // Calculate width based on span and fixed column widths
-        const canvasWidth = gridConfig.responsiveMode ? canvasSize.width - (gridConfig.currentBreakpoint.containerPadding * 2) : canvasSize.width;
-        const columnWidth = (canvasWidth - (gridConfig.columns + 1) * gridConfig.gap) / gridConfig.columns;
-        const componentWidth = (span * columnWidth) + ((span - 1) * gridConfig.gap);
+        // Calculate width based on span using unified utility
+        const componentWidth = calculateSpanWidth(span, canvasSize.width, gridConfig.currentBreakpoint);
 
         // Use custom height if component has been resized, otherwise use grid row height
         const componentHeight = component.props?._size?.height || gridConfig.rowHeight;
@@ -1174,20 +1331,42 @@ export default function CanvasRenderer({
         };
 
       } else {
-        // Absolute positioning - with safety check for position
-        // Read size from props._size (which now always includes units like '100px')
+        // Absolute positioning - with component-specific sizing logic for WYSIWYG consistency
         const componentSize = component.props?._size;
-        componentStyle = {
-          position: 'absolute',
-          left: component.position?.x || 0,
-          top: component.position?.y || 0,
-          // Apply size if specified in props (now properly formatted with units)
-          // componentSize.width/height are now strings like '100px', not numbers
-          width: componentSize?.width !== 'auto' ? componentSize?.width : '200px',
-          height: componentSize?.height !== 'auto' ? componentSize?.height : '150px',
-          minWidth: 50,
-          minHeight: 30,
-        };
+        const componentCategory = getComponentSizingCategory(component.type);
+
+        // Apply different sizing strategies based on component type
+        if (componentCategory === 'content-driven') {
+          // Content-driven components (like Paragraph) should have flexible width to match Profile page
+          const userWidth = componentSize?.width ? parseInt(componentSize.width.replace(/px$/, ''), 10) : 200;
+          const userHeight = componentSize?.height ? parseInt(componentSize.height.replace(/px$/, ''), 10) : 150;
+
+          componentStyle = {
+            position: 'absolute',
+            left: component.position?.x || 0,
+            top: component.position?.y || 0,
+            // Use flexible width sizing to match AdvancedProfileRenderer behavior
+            minWidth: `${userWidth}px`,
+            minHeight: `${userHeight}px`,
+            maxWidth: `${Math.min(Math.max(userWidth * 1.5, 400), 600)}px`, // Cap at 600px for consistent text wrapping
+            width: 'fit-content',
+            height: 'fit-content',
+          };
+          console.log('🎯 [WYSIWYG] Content-driven sizing for', component.type, `min: ${userWidth}x${userHeight}, max: ${Math.min(Math.max(userWidth * 1.5, 400), 600)}px`);
+        } else {
+          // Other components use fixed sizing
+          componentStyle = {
+            position: 'absolute',
+            left: component.position?.x || 0,
+            top: component.position?.y || 0,
+            // Apply size if specified in props (now properly formatted with units)
+            // componentSize.width/height are now strings like '100px', not numbers
+            width: componentSize?.width !== 'auto' ? componentSize?.width : '200px',
+            height: componentSize?.height !== 'auto' ? componentSize?.height : '150px',
+            minWidth: 50,
+            minHeight: 30,
+          };
+        }
 
       }
 
@@ -1291,6 +1470,46 @@ export default function CanvasRenderer({
                 📝
               </div>
             )}
+
+            {/* Sizing behavior indicator */}
+            {(() => {
+              const componentType = component.type.toLowerCase();
+
+              // Match the categorization logic from AdvancedProfileRenderer
+              const containerFillers = [
+                'gradientbox', 'stickynote', 'retroterminal', 'polaroidframe',
+                'centeredbox', 'neonborder', 'revealbox', 'floatingbadge'
+              ];
+
+              const contentDriven = [
+                'textelement', 'paragraph', 'contactcard', 'progresstracker',
+                'bio', 'blogposts', 'guestbook', 'tabs'
+              ];
+
+              const autoSize = [
+                'profilephoto', 'displayname', 'followbutton', 'mutualfriends',
+                'friendbadge', 'userimage', 'mediagrid'
+              ];
+
+              let sizingInfo = null;
+
+              if (containerFillers.includes(componentType)) {
+                sizingInfo = { emoji: '📐', color: 'bg-orange-500', label: 'Fixed size' };
+              } else if (contentDriven.includes(componentType)) {
+                sizingInfo = { emoji: '📏', color: 'bg-purple-500', label: 'Expands with content' };
+              } else if (autoSize.includes(componentType)) {
+                sizingInfo = { emoji: '⚖️', color: 'bg-blue-500', label: 'Smart sizing' };
+              }
+
+              return sizingInfo && isSelected ? (
+                <div
+                  className={`absolute -bottom-2 -left-2 ${sizingInfo.color} text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold z-10 border-2 border-white shadow-sm`}
+                  title={sizingInfo.label}
+                >
+                  {sizingInfo.emoji}
+                </div>
+              ) : null;
+            })()}
 
             {/* Simple visual indicator for children count */}
             {component.children && component.children.length > 0 && (
@@ -1577,6 +1796,9 @@ export default function CanvasRenderer({
             padding: `${gridConfig.currentBreakpoint.containerPadding}px`,
             boxSizing: 'border-box'
           }}
+          data-wysiwyg-padding={gridConfig.currentBreakpoint.containerPadding}
+          data-wysiwyg-breakpoint={gridConfig.currentBreakpoint.name}
+          data-wysiwyg-canvas-width={canvasSize.width}
           onDragOver={handleDragOverWithPreview}
           onDrop={handleDrop}
           onMouseMove={(e) => {
@@ -1589,7 +1811,7 @@ export default function CanvasRenderer({
               const constrainedX = Math.max(0, Math.min(x - 12, canvasSize.width - 24));
               const constrainedY = Math.max(0, y - 12);
 
-              const snappedPosition = snapToGrid(constrainedX, constrainedY);
+              const snappedPosition = snapToGrid(constrainedX, constrainedY, canvasSize.width);
               setPreviewPosition(snappedPosition);
             }
           }}
@@ -1604,7 +1826,7 @@ export default function CanvasRenderer({
               const constrainedY = Math.max(0, y - 12);
 
               // Place the component
-              const snappedPosition = snapToGrid(constrainedX, constrainedY);
+              const snappedPosition = snapToGrid(constrainedX, constrainedY, canvasSize.width);
               const componentToPlace = {
                 ...draggedComponent,
                 position: snappedPosition,
@@ -1676,6 +1898,94 @@ export default function CanvasRenderer({
 
           {/* Render drop zone feedback */}
           {renderDropZoneFeedback()}
+
+          {/* Smart alignment guides */}
+          <AlignmentGuides
+            guides={alignmentGuides.guides}
+            snapPoints={alignmentGuides.snapPoints}
+            isVisible={alignmentGuides.isVisible}
+            canvasWidth={canvasSize.width}
+            canvasHeight={canvasSize.height}
+          />
+
+          {/* Live position indicator */}
+          <PositionIndicator
+            position={positionIndicator.position}
+            isVisible={positionIndicator.isVisible}
+            mode={positionIndicator.mode}
+            mousePosition={positionIndicator.mousePosition}
+          />
+
+          {/* Snapping controls panel */}
+          <div className="absolute top-4 left-4 bg-white bg-opacity-95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg text-sm border">
+            <div className="flex items-center gap-3">
+              <span className="text-gray-600 font-medium text-xs">SNAP:</span>
+
+              {/* Component snapping toggle */}
+              <button
+                onClick={() => setSnapConfig(prev => ({ ...prev, componentSnapping: !prev.componentSnapping }))}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                  snapConfig.componentSnapping
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    : 'bg-gray-100 text-gray-500 border border-gray-200'
+                }`}
+                title="Toggle component snapping (Alt+C)"
+              >
+                <span>🧲</span>
+                <span>Comp</span>
+              </button>
+
+              {/* Grid snapping toggle */}
+              <button
+                onClick={() => setSnapConfig(prev => ({ ...prev, gridSnapping: !prev.gridSnapping }))}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                  snapConfig.gridSnapping
+                    ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                    : 'bg-gray-100 text-gray-500 border border-gray-200'
+                }`}
+                title="Toggle grid snapping (Alt+G)"
+                disabled={!gridConfig.enabled}
+              >
+                <span>📐</span>
+                <span>Grid</span>
+              </button>
+
+              {/* Guides visibility toggle */}
+              <button
+                onClick={() => setSnapConfig(prev => ({ ...prev, showGuides: !prev.showGuides }))}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                  snapConfig.showGuides
+                    ? 'bg-green-100 text-green-700 border border-green-200'
+                    : 'bg-gray-100 text-gray-500 border border-gray-200'
+                }`}
+                title="Toggle alignment guides (Alt+H)"
+              >
+                <span>📏</span>
+                <span>Guides</span>
+              </button>
+            </div>
+
+            {/* Sizing behavior legend */}
+            {selectedComponentIds.size > 0 && (
+              <div className="mt-2 pt-2 border-t border-gray-200">
+                <div className="text-xs text-gray-500 mb-1">SIZING BEHAVIORS:</div>
+                <div className="flex gap-2 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">📐</div>
+                    <span className="text-gray-600">Fixed</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs">📏</div>
+                    <span className="text-gray-600">Expands</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">⚖️</div>
+                    <span className="text-gray-600">Smart</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Minimal floating status */}
           {placedComponents.length > 0 && (

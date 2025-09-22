@@ -8,6 +8,10 @@ import {
   getOptimalSpan,
   getCurrentBreakpoint,
   GRID_BREAKPOINTS,
+  gridToPixelCoordinates,
+  pixelToGridCoordinates,
+  getColumnWidth,
+  calculateSpanWidth,
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
 import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/template-registry';
@@ -85,9 +89,9 @@ export interface UseCanvasStateResult {
   endDrag: () => void;
 
   // Grid utilities
-  pixelToGrid: (x: number, y: number) => { column: number; row: number };
-  gridToPixel: (column: number, row: number) => { x: number; y: number };
-  snapToGrid: (x: number, y: number) => { x: number; y: number };
+  pixelToGrid: (x: number, y: number, canvasWidth?: number) => { column: number; row: number };
+  gridToPixel: (column: number, row: number, canvasWidth?: number) => { x: number; y: number };
+  snapToGrid: (x: number, y: number, canvasWidth?: number) => { x: number; y: number };
 
   // History (simple undo/redo)
   undo: () => void;
@@ -140,41 +144,29 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
   // Track state changes with useEffect
 
   // Enhanced grid utility functions with responsive support
-  const pixelToGrid = useCallback((x: number, y: number) => {
-    // Use responsive canvas width instead of fixed 800px
-    const canvasWidth = gridConfig.responsiveMode ? window.innerWidth - (gridConfig.currentBreakpoint.containerPadding * 2) : 800;
-    const columnWidth = (canvasWidth - (gridConfig.columns + 1) * gridConfig.gap) / gridConfig.columns;
-    const column = Math.floor((x + gridConfig.gap) / (columnWidth + gridConfig.gap)) + 1;
+  const pixelToGrid = useCallback((x: number, y: number, canvasWidth?: number) => {
+    // Use provided canvas width or fallback to default
+    const actualCanvasWidth = canvasWidth || 800;
+    const currentBreakpoint = getCurrentBreakpoint(actualCanvasWidth);
 
-    // Use consistent row height from breakpoint configuration
-    const row = Math.floor((y + gridConfig.gap) / (gridConfig.rowHeight + gridConfig.gap)) + 1;
+    return pixelToGridCoordinates(x, y, actualCanvasWidth, currentBreakpoint);
+  }, []);
 
-    return {
-      column: Math.max(1, Math.min(column, gridConfig.columns)),
-      row: Math.max(1, row)
-    };
-  }, [gridConfig]);
+  const gridToPixel = useCallback((column: number, row: number, canvasWidth?: number) => {
+    // Use provided canvas width or fallback to default
+    const actualCanvasWidth = canvasWidth || 800;
+    const currentBreakpoint = getCurrentBreakpoint(actualCanvasWidth);
 
-  const gridToPixel = useCallback((column: number, row: number) => {
-    // Use responsive canvas width - accounting for canvas padding
-    const canvasWidth = gridConfig.responsiveMode ? window.innerWidth - (gridConfig.currentBreakpoint.containerPadding * 2) : 800;
-    const columnWidth = (canvasWidth - (gridConfig.columns + 1) * gridConfig.gap) / gridConfig.columns;
-    // Position within the padded canvas area (no additional padding offset needed)
-    const x = (column - 1) * (columnWidth + gridConfig.gap) + gridConfig.gap;
+    return gridToPixelCoordinates(column, row, actualCanvasWidth, currentBreakpoint);
+  }, []);
 
-    // Use consistent row height from breakpoint configuration
-    const y = (row - 1) * (gridConfig.rowHeight + gridConfig.gap) + gridConfig.gap;
-
-    return { x, y };
-  }, [gridConfig]);
-
-  const snapToGrid = useCallback((x: number, y: number) => {
+  const snapToGrid = useCallback((x: number, y: number, canvasWidth?: number) => {
     if (!gridConfig.enabled || positioningMode === 'absolute') {
       return { x, y };
     }
 
-    const { column, row } = pixelToGrid(x, y);
-    return gridToPixel(column, row);
+    const { column, row } = pixelToGrid(x, y, canvasWidth);
+    return gridToPixel(column, row, canvasWidth);
   }, [gridConfig, positioningMode, pixelToGrid, gridToPixel]);
 
   // Enhanced component operations with auto-spanning support

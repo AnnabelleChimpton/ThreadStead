@@ -21,6 +21,93 @@ function hashString(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
+// Extract positioning data from node properties and standardize it
+// This function consolidates all positioning formats into a single standardized object
+function extractPositioningFromProperties(properties: Record<string, any>): any | null {
+  // Check for pure positioning data first (new format) - try both kebab-case and camelCase
+  const purePositioningValue = properties['data-pure-positioning'] || properties['dataPurePositioning'];
+
+  if (purePositioningValue) {
+    console.log('🎯 [ISLAND_DETECTOR] Found pure positioning data:', purePositioningValue);
+    try {
+      // Handle HTML-escaped quotes in the JSON string
+      const unescaped = String(purePositioningValue).replace(/&quot;/g, '"');
+      const parsed = JSON.parse(unescaped);
+      console.log('🎯 [ISLAND_DETECTOR] Successfully parsed pure positioning data:', parsed);
+      return parsed;
+    } catch (e) {
+      console.warn('Failed to parse data-pure-positioning:', purePositioningValue, 'Error:', e);
+    }
+  }
+
+  // Check for legacy absolute positioning
+  const positioningMode = properties['data-positioning-mode'] || properties['dataPositioningMode'];
+  if (positioningMode === 'absolute') {
+    const pixelPosition = properties['data-pixel-position'] || properties['dataPixelPosition'];
+    const position = properties['data-position'] || properties['dataPosition'];
+
+    if (pixelPosition) {
+      try {
+        const parsedPosition = JSON.parse(String(pixelPosition));
+        return {
+          mode: 'absolute',
+          x: parsedPosition.x || 0,
+          y: parsedPosition.y || 0,
+          width: parsedPosition.width || 200,
+          height: parsedPosition.height || 150,
+          zIndex: parsedPosition.zIndex || 1
+        };
+      } catch (e) {
+        console.warn('Failed to parse pixel position data:', pixelPosition);
+      }
+    } else if (position) {
+      const [x, y] = String(position).split(',').map(Number);
+      if (!isNaN(x) && !isNaN(y)) {
+        return {
+          mode: 'absolute',
+          x,
+          y,
+          width: 200,
+          height: 150,
+          zIndex: 1
+        };
+      }
+    }
+  }
+
+  // Check for legacy grid positioning
+  if (positioningMode === 'grid') {
+    const gridPosition = properties['data-grid-position'] || properties['dataGridPosition'];
+    const column = properties['data-grid-column'] || properties['dataGridColumn'];
+    const row = properties['data-grid-row'] || properties['dataGridRow'];
+    const span = properties['data-grid-span'] || properties['dataGridSpan'];
+
+    if (gridPosition) {
+      try {
+        const parsedGrid = JSON.parse(String(gridPosition));
+        return {
+          mode: 'grid',
+          column: parsedGrid.column || 1,
+          row: parsedGrid.row || 1,
+          span: parsedGrid.span || 1,
+          breakpoint: parsedGrid.breakpoint
+        };
+      } catch (e) {
+        console.warn('Failed to parse grid position data:', gridPosition);
+      }
+    } else if (column && row) {
+      return {
+        mode: 'grid',
+        column: parseInt(String(column), 10) || 1,
+        row: parseInt(String(row), 10) || 1,
+        span: parseInt(String(span), 10) || 1
+      };
+    }
+  }
+
+  return null;
+}
+
 // Identify interactive components and create islands (new version with transformed AST)
 export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Island[], transformedAst: TemplateNode } {
   const islands: Island[] = [];
@@ -67,16 +154,38 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         const rawProps = node.properties || {};
 
         // Convert dataComponentSize attribute back to _size prop if present
-        if (rawProps['dataComponentSize']) {
+        if (rawProps['dataComponentSize'] || rawProps['data-component-size']) {
           try {
-            const sizeData = JSON.parse(String(rawProps['dataComponentSize']));
+            const sizeAttr = rawProps['dataComponentSize'] || rawProps['data-component-size'];
+            const sizeData = JSON.parse(String(sizeAttr));
             rawProps._size = sizeData;
           } catch (e) {
-            console.warn('Failed to parse dataComponentSize in island detector:', rawProps['dataComponentSize']);
+            console.warn('Failed to parse dataComponentSize in island detector:', rawProps['dataComponentSize'] || rawProps['data-component-size']);
           }
         }
 
+        // Debug: Log all properties for this component
+        console.log('🎯 [ISLAND_DETECTOR] Processing component:', node.tagName);
+        console.log('🎯 [ISLAND_DETECTOR] Properties received:', node.properties);
+
+        // PROPS-BASED POSITIONING: Extract positioning data and put it directly in props
+        // This eliminates the need for HTML attribute parsing in the Profile Renderer
+        const positioningData = extractPositioningFromProperties(node.properties || {});
+        if (positioningData) {
+          console.log('🎯 [ISLAND_DETECTOR] Adding positioning data to props for component:', node.tagName, positioningData);
+          rawProps._positioning = positioningData;
+        } else {
+          console.log('🎯 [ISLAND_DETECTOR] No positioning data found for component:', node.tagName);
+        }
+
         const props = validateAndCoerceProps(rawProps, registration.props);
+
+        // Debug: Check if positioning data survived validation
+        if (rawProps._positioning && !props._positioning) {
+          console.error('🚨 [ISLAND_DETECTOR] Positioning data was filtered out during prop validation!');
+        } else if (props._positioning) {
+          console.log('🎯 [ISLAND_DETECTOR] Positioning data successfully added to validated props:', props._positioning);
+        }
 
         // Create island configuration with children
         const island: Island = {
@@ -89,24 +198,30 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         
         islands.push(island);
         
-        // Return a placeholder node to replace the component
-        // Include processed children so content isn't lost in static HTML
-        // PRESERVE positioning attributes from the original node
+        // Return a placeholder node with both island identifiers AND positioning attributes
+        // We preserve positioning attributes in the static HTML for CSS styling
         const preservedProperties: Record<string, any> = {
           'data-island': islandId,
           'data-component': node.tagName
         };
 
-        // Copy positioning attributes from the original node
+        // Preserve original positioning attributes in the placeholder
+        // This allows the static HTML to have positioning data for CSS
         if (node.properties) {
-          const positioningProps = [
-            'dataPosition', 'dataPixelPosition', 'dataPositioningMode', 'dataGridPosition',
-            'dataGridColumn', 'dataGridRow', 'dataGridSpan', 'dataComponentSize'
-          ];
-          for (const prop of positioningProps) {
-            if (node.properties[prop]) {
-              preservedProperties[prop] = node.properties[prop];
-            }
+          // Preserve pure positioning attribute
+          if (node.properties['data-pure-positioning'] || node.properties['dataPurePositioning']) {
+            preservedProperties['data-pure-positioning'] =
+              node.properties['data-pure-positioning'] || node.properties['dataPurePositioning'];
+          }
+
+          // Also preserve legacy positioning attributes for backward compatibility
+          if (node.properties['data-positioning-mode'] || node.properties['dataPositioningMode']) {
+            preservedProperties['data-positioning-mode'] =
+              node.properties['data-positioning-mode'] || node.properties['dataPositioningMode'];
+          }
+          if (node.properties['data-pixel-position'] || node.properties['dataPixelPosition']) {
+            preservedProperties['data-pixel-position'] =
+              node.properties['data-pixel-position'] || node.properties['dataPixelPosition'];
           }
         }
 

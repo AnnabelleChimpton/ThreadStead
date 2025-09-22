@@ -48,6 +48,8 @@ function createCustomSchema() {
         // Add positioning data attributes for visual builder (both kebab-case and camelCase)
         'data-position', 'data-pixel-position', 'data-positioning-mode', 'data-grid-position',
         'dataPosition', 'dataPixelPosition', 'dataPositioningMode', 'dataGridPosition',
+        // Add new pure positioning attributes
+        'data-pure-positioning', 'dataPurePositioning',
         // Add grid-specific attributes
         'data-grid-column', 'data-grid-row', 'data-grid-span',
         'dataGridColumn', 'dataGridRow', 'dataGridSpan',
@@ -67,18 +69,34 @@ function createCustomSchema() {
 export function parseTemplate(htmlString: string): Root {
   console.log('🔍 [TEMPLATE_PARSER] Starting parseTemplate with HTML:', htmlString.substring(0, 500) + '...');
 
-  // Check for positioning data in original HTML
-  const hasPositioningData = htmlString.includes('data-positioning-mode') || htmlString.includes('data-pixel-position');
+  // Check for positioning data in original HTML (both old and new formats)
+  const hasPositioningData = htmlString.includes('data-positioning-mode') ||
+                             htmlString.includes('data-pixel-position') ||
+                             htmlString.includes('data-pure-positioning');
   console.log('🔍 [TEMPLATE_PARSER] Original HTML contains positioning data:', hasPositioningData);
 
   if (hasPositioningData) {
     console.log('🔍 [TEMPLATE_PARSER] Found positioning attributes in original HTML:');
-    const positioningMatches = htmlString.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
+    // Updated regex to handle both normal quotes and HTML-escaped quotes
+    const positioningMatches = htmlString.match(/data-(?:positioning-mode|pixel-position|position|pure-positioning)=(?:"[^"]*"|'[^']*')/g);
     console.log('🔍 [TEMPLATE_PARSER] Positioning attributes found:', positioningMatches);
+
+    // Check if we have HTML-escaped quotes
+    if (htmlString.includes('&quot;')) {
+      console.log('🔍 [TEMPLATE_PARSER] WARNING: HTML contains escaped quotes (&quot;), this may affect parsing');
+    }
   }
 
-  // Handle full HTML documents vs fragments
-  let processedHtml = htmlString.trim();
+  // Unescape HTML entities in attributes before processing
+  // This handles &quot; &apos; &lt; &gt; &amp; etc.
+  let processedHtml = htmlString.trim()
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+
+  console.log('🔍 [TEMPLATE_PARSER] After unescaping HTML entities:', processedHtml.substring(0, 500) + '...');
   
   // Check if this is a full HTML document
   const isFullDocument = processedHtml.includes('<!DOCTYPE') || 
@@ -155,12 +173,14 @@ export function parseTemplate(htmlString: string): Root {
   const processed = processor.runSync(tree);
   console.log('🔍 [TEMPLATE_PARSER] Processed tree after sanitization:', JSON.stringify(processed, null, 2).substring(0, 1000) + '...');
 
-  // Check if positioning data survived sanitization (check both kebab-case and camelCase)
+  // Check if positioning data survived sanitization (check both old and new formats)
   const processedString = JSON.stringify(processed);
   const hasPositioningAfterSanitization = processedString.includes('data-positioning-mode') ||
                                           processedString.includes('data-pixel-position') ||
+                                          processedString.includes('data-pure-positioning') ||
                                           processedString.includes('dataPositioningMode') ||
                                           processedString.includes('dataPixelPosition') ||
+                                          processedString.includes('dataPurePositioning') ||
                                           processedString.includes('dataPosition');
   console.log('🔍 [TEMPLATE_PARSER] Positioning data survived sanitization:', hasPositioningAfterSanitization);
 
@@ -182,7 +202,8 @@ export function astToJson(node: unknown): TemplateNode {
   // Debug positioning data preservation through AST transformation
   if (typedNode.type === 'element' && typedNode.properties) {
     const hasPositioningProps = Object.keys(typedNode.properties).some(key =>
-      key.includes('data-positioning-mode') || key.includes('data-pixel-position') || key.includes('data-position')
+      key.includes('data-positioning-mode') || key.includes('data-pixel-position') ||
+      key.includes('data-pure-positioning') || key.includes('data-position')
     );
     if (hasPositioningProps) {
       console.log('🔍 [AST_TRANSFORM] Element with positioning props:', {
@@ -202,7 +223,8 @@ export function astToJson(node: unknown): TemplateNode {
   if (typedNode.type === 'element') {
     // Debug: Log positioning data preservation during astToJson conversion
     const hasPositioningProps = typedNode.properties && Object.keys(typedNode.properties).some(key =>
-      key.includes('dataPositioningMode') || key.includes('dataPixelPosition') || key.includes('dataPosition')
+      key.includes('dataPositioningMode') || key.includes('dataPixelPosition') ||
+      key.includes('dataPurePositioning') || key.includes('dataPosition')
     );
     if (hasPositioningProps) {
       console.log('🔍 [AST_TO_JSON] Converting element with positioning props:', {
@@ -374,12 +396,14 @@ export function compileTemplate(htmlString: string): CompilationResult {
     console.log('🔍 [COMPILE_TEMPLATE] Converting HAST to JSON AST...');
     const ast = astToJson(hast);
 
-    // Check final AST for positioning data
+    // Check final AST for positioning data (both old and new formats)
     const astString = JSON.stringify(ast);
     const hasPositioningInFinalAST = astString.includes('data-positioning-mode') ||
                                      astString.includes('data-pixel-position') ||
+                                     astString.includes('data-pure-positioning') ||
                                      astString.includes('dataPositioningMode') ||
                                      astString.includes('dataPixelPosition') ||
+                                     astString.includes('dataPurePositioning') ||
                                      astString.includes('dataPosition');
     console.log('🔍 [COMPILE_TEMPLATE] Final AST contains positioning data:', hasPositioningInFinalAST);
 

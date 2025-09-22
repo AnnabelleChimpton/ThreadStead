@@ -1,5 +1,32 @@
 // Profile mode renderer with fallback logic
 import React from 'react';
+
+// Simple error boundary for advanced profile renderer
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('AdvancedProfileRenderer Error Boundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+
+    return this.props.children;
+  }
+}
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { transformNodeToReact } from '@/lib/templates/rendering/template-renderer';
@@ -10,10 +37,10 @@ import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { getCurrentBreakpoint } from '@/lib/templates/visual-builder/grid-utils';
 import dynamic from 'next/dynamic';
 
-// Dynamically import AdvancedProfileRenderer to avoid SSR issues
+// Restore proper AdvancedProfileRenderer with fixed dependencies
 const AdvancedProfileRenderer = dynamic(
   () => import('./AdvancedProfileRenderer'),
-  { 
+  {
     ssr: false,
     loading: () => <div className="advanced-profile-loading">Loading advanced template...</div>
   }
@@ -219,7 +246,17 @@ export default function ProfileModeRenderer({
                   border-bottom: 1px solid rgba(161, 132, 99, 0.3);
                 }
 
-                /* Enhanced Responsive Grid System with Fixed Square Grid Cells */
+                /* Pure Absolute Positioning Container */
+                .pure-absolute-container {
+                  position: relative;
+                  width: 1200px;
+                  min-height: 800px;
+                  padding: 32px;
+                  box-sizing: border-box;
+                  background-color: #ffffff;
+                }
+
+                /* Legacy grid system support (will be deprecated) */
                 .advanced-template-container.grid-enabled {
                   display: grid;
                   grid-template-columns: repeat(4, 1fr);
@@ -248,6 +285,18 @@ export default function ProfileModeRenderer({
                     gap: 12px;
                     padding: 32px;
                   }
+                }
+
+                .template-container.grid-container {
+                  display: grid;
+                  grid-template-columns: repeat(16, 1fr);
+                  grid-auto-rows: 60px;
+                  gap: 12px;
+                  width: 100%;
+                  max-width: 100vw;
+                  min-height: 100vh;
+                  padding: 32px;
+                  box-sizing: border-box;
                 }
               ` }} />
               

@@ -137,9 +137,9 @@ export default function GradientBox({
     paddingClass,
     roundedClass,
     className,
-    // Height behavior: fill container when in absolute mode, use grid sizing in grid mode
+    // Size behavior: fill container when in absolute mode, use grid sizing in grid mode
     shouldUseGridClasses ? 'w-full h-full' : '',
-    _positioningMode === 'absolute' ? 'h-full' : '' // Fill full height when resized
+    _positioningMode === 'absolute' ? 'w-full h-full' : '' // Fill full width and height when positioned
   ].filter(Boolean).join(' ');
 
   return (

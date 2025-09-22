@@ -1034,3 +1034,173 @@ export function updateGridPositionSafe(
 
   return { success: true, position: newPosition };
 }
+
+/**
+ * UNIFIED GRID CALCULATION UTILITIES
+ * These functions ensure Visual Builder and Profile page use identical coordinate calculations
+ */
+
+/**
+ * Calculate effective canvas width accounting for container padding
+ */
+export function getEffectiveCanvasWidth(
+  totalCanvasWidth: number,
+  breakpoint: GridBreakpoint
+): number {
+  return totalCanvasWidth - (breakpoint.containerPadding * 2);
+}
+
+/**
+ * Calculate column width for the current breakpoint and canvas size
+ */
+export function getColumnWidth(
+  canvasWidth: number,
+  breakpoint: GridBreakpoint
+): number {
+  const effectiveWidth = getEffectiveCanvasWidth(canvasWidth, breakpoint);
+  return (effectiveWidth - (breakpoint.columns + 1) * breakpoint.gap) / breakpoint.columns;
+}
+
+/**
+ * Convert grid column/row to pixel coordinates
+ * CRITICAL: This function must be used by both Visual Builder and Profile page
+ */
+export function gridToPixelCoordinates(
+  column: number,
+  row: number,
+  canvasWidth: number,
+  breakpoint: GridBreakpoint
+): { x: number; y: number } {
+  const columnWidth = getColumnWidth(canvasWidth, breakpoint);
+
+  // Position within the grid (accounting for gaps)
+  const x = (column - 1) * (columnWidth + breakpoint.gap) + breakpoint.gap;
+  const y = (row - 1) * (breakpoint.rowHeight + breakpoint.gap) + breakpoint.gap;
+
+  return { x, y };
+}
+
+/**
+ * Convert pixel coordinates to grid column/row
+ * CRITICAL: This function must be used by both Visual Builder and Profile page
+ */
+export function pixelToGridCoordinates(
+  x: number,
+  y: number,
+  canvasWidth: number,
+  breakpoint: GridBreakpoint
+): { column: number; row: number } {
+  const columnWidth = getColumnWidth(canvasWidth, breakpoint);
+
+  // Calculate raw grid position
+  const rawColumn = (x - breakpoint.gap) / (columnWidth + breakpoint.gap);
+  const rawRow = (y - breakpoint.gap) / (breakpoint.rowHeight + breakpoint.gap);
+
+  // Convert to 1-based grid positions with bounds checking
+  const column = Math.max(1, Math.min(Math.round(rawColumn + 1), breakpoint.columns));
+  const row = Math.max(1, Math.round(rawRow + 1));
+
+  return { column, row };
+}
+
+/**
+ * Calculate component width based on grid span
+ * CRITICAL: This function must be used by both Visual Builder and Profile page
+ */
+export function calculateSpanWidth(
+  span: number,
+  canvasWidth: number,
+  breakpoint: GridBreakpoint
+): number {
+  const columnWidth = getColumnWidth(canvasWidth, breakpoint);
+  return (span * columnWidth) + ((span - 1) * breakpoint.gap);
+}
+
+/**
+ * COMPONENT CATEGORIZATION UTILITIES
+ * Shared logic for categorizing components by their sizing behavior
+ * CRITICAL: Must be used by both Visual Builder and Profile page for WYSIWYG consistency
+ */
+
+export type ComponentSizingCategory = 'container-filler' | 'content-driven' | 'auto-size' | 'square';
+
+/**
+ * Components that should fill their container exactly (user controls size precisely)
+ */
+export const CONTAINER_FILLER_COMPONENTS = [
+  'gradientbox', 'stickynote', 'retroterminal', 'polaroidframe',
+  'centeredbox', 'neonborder', 'revealbox', 'floatingbadge'
+];
+
+/**
+ * Components that should expand with content but respect user constraints
+ */
+export const CONTENT_DRIVEN_COMPONENTS = [
+  'textelement', 'paragraph', 'contactcard', 'progresstracker',
+  'bio', 'blogposts', 'guestbook', 'tabs'
+];
+
+/**
+ * Components that need square containers to prevent distortion
+ */
+export const SQUARE_COMPONENTS = [
+  'profilephoto', 'userimage', 'friendbadge'
+];
+
+/**
+ * Components with intrinsic sizing (balance user intent with natural size)
+ */
+export const AUTO_SIZE_COMPONENTS = [
+  'profilephoto', 'displayname', 'followbutton', 'mutualfriends',
+  'friendbadge', 'userimage', 'mediagrid'
+];
+
+/**
+ * Get the sizing category for a component type
+ */
+export function getComponentSizingCategory(componentType: string): ComponentSizingCategory {
+  const normalizedType = componentType.toLowerCase();
+
+  if (CONTAINER_FILLER_COMPONENTS.includes(normalizedType)) {
+    return 'container-filler';
+  }
+
+  if (CONTENT_DRIVEN_COMPONENTS.includes(normalizedType)) {
+    return 'content-driven';
+  }
+
+  if (SQUARE_COMPONENTS.includes(normalizedType)) {
+    return 'square';
+  }
+
+  if (AUTO_SIZE_COMPONENTS.includes(normalizedType)) {
+    return 'auto-size';
+  }
+
+  // Default fallback
+  return 'auto-size';
+}
+
+/**
+ * Check if a component should use flexible width (content-driven behavior)
+ */
+export function shouldUseFlexibleWidth(componentType: string): boolean {
+  const category = getComponentSizingCategory(componentType);
+  return category === 'content-driven';
+}
+
+/**
+ * Check if a component should maintain square aspect ratio
+ */
+export function shouldMaintainSquareAspect(componentType: string): boolean {
+  const category = getComponentSizingCategory(componentType);
+  return category === 'square';
+}
+
+/**
+ * Check if a component should fill its container exactly
+ */
+export function shouldFillContainer(componentType: string): boolean {
+  const category = getComponentSizingCategory(componentType);
+  return category === 'container-filler';
+}

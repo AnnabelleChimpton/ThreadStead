@@ -286,19 +286,30 @@ export class HTMLGenerator {
         styles.push(`left: ${component.position.x}px`);
         styles.push(`top: ${component.position.y}px`);
 
-        // Keep data attributes for debugging/parsing
-        attributes['data-position'] = JSON.stringify(component.position);
+        // Keep data attributes for debugging/parsing - use consistent pixel position format
+        attributes['data-pixel-position'] = JSON.stringify({
+          x: component.position.x,
+          y: component.position.y,
+          positioning: 'absolute'
+        });
         attributes['data-positioning-mode'] = 'absolute';
+
+        // Also keep legacy format for backwards compatibility
+        attributes['data-position'] = `${component.position.x},${component.position.y}`;
       }
 
-      // Add size styles if specified
+      // Add size data attribute (avoid duplicates by consolidating size information)
       if (component.size) {
-        if (component.size.width && component.size.width !== 'auto') {
-          styles.push(`width: ${component.size.width}px`);
+        // Only add size styles if not using absolute positioning (absolute uses data attributes instead)
+        if (component.positioningMode !== 'absolute') {
+          if (component.size.width && component.size.width !== 'auto') {
+            styles.push(`width: ${component.size.width}px`);
+          }
+          if (component.size.height && component.size.height !== 'auto') {
+            styles.push(`height: ${component.size.height}px`);
+          }
         }
-        if (component.size.height && component.size.height !== 'auto') {
-          styles.push(`height: ${component.size.height}px`);
-        }
+
         if (component.size.minWidth) {
           styles.push(`min-width: ${component.size.minWidth}px`);
         }
@@ -312,10 +323,8 @@ export class HTMLGenerator {
           styles.push(`max-height: ${component.size.maxHeight}px`);
         }
 
-        // Add size data attribute for parsing
-        if (component.size && !component.position && !component.gridPosition) {
-          attributes['data-size'] = JSON.stringify(component.size);
-        }
+        // Always add size data attribute for parsing - this is the authoritative size source
+        attributes['data-component-size'] = JSON.stringify(component.size);
       }
 
       // Apply styles if any were generated
@@ -391,8 +400,12 @@ export class HTMLGenerator {
     const layoutMode = this.detectLayoutMode(canvasState);
     const containerStyles: string[] = [];
 
+    // Use consistent class naming for grid containers that matches profile renderer
+    let containerClass = this.options.containerClass;
+
     if (layoutMode === 'grid') {
-      // CSS Grid container
+      // CSS Grid container - align with profile renderer class naming
+      containerClass = 'advanced-template-container grid-enabled';
       const gridComponents = canvasState.components.filter(comp =>
         comp.positioningMode === 'grid' && comp.gridPosition
       );
@@ -404,22 +417,27 @@ export class HTMLGenerator {
 
         containerStyles.push('display: grid');
         containerStyles.push(`grid-template-columns: repeat(${Math.max(minColumns, canvasState.settings.gridSystem.columns)}, 1fr)`);
-        containerStyles.push(`grid-template-rows: repeat(${Math.max(minRows, canvasState.settings.gridSystem.rows)}, auto)`);
+        containerStyles.push(`grid-auto-rows: ${canvasState.settings.gridSystem.cellSize.height}px`);
         containerStyles.push(`gap: ${canvasState.settings.gridSystem.gap}px`);
-        containerStyles.push('min-height: 400px');
+        containerStyles.push('width: 100%');
+        containerStyles.push('max-width: 100vw');
+        containerStyles.push('min-height: 100vh');
+        containerStyles.push(`padding: ${canvasState.settings.gridSystem.gap * 2}px`);
+        containerStyles.push('box-sizing: border-box');
       } else {
         // Fallback for grid mode with no grid components
         containerStyles.push('position: relative');
         containerStyles.push('min-height: 400px');
       }
     } else {
-      // Absolute positioning container
+      // Absolute positioning container - use template-container class for backwards compatibility
+      containerClass = 'template-container';
       containerStyles.push('position: relative');
       containerStyles.push('min-height: 400px');
     }
 
     const containerStyle = containerStyles.join('; ');
-    const openTag = `<div class="${this.options.containerClass}" style="${containerStyle}">`;
+    const openTag = `<div class="${containerClass}" style="${containerStyle}">`;
     const closeTag = '</div>';
 
     if (this.options.prettyPrint) {

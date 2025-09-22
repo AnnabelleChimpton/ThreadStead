@@ -117,13 +117,15 @@ async function compileAdvancedMode(
   }
   
   try {
-    // Debug: Check positioning data in raw template HTML
-    const hasPositioningInTemplate = customTemplate.includes('data-positioning-mode') || customTemplate.includes('data-pixel-position');
+    // Debug: Check positioning data in raw template HTML (both old and new formats)
+    const hasPositioningInTemplate = customTemplate.includes('data-positioning-mode') ||
+                                     customTemplate.includes('data-pixel-position') ||
+                                     customTemplate.includes('data-pure-positioning');
     console.log('🎯 [COMPILE_ADVANCED] Starting with positioning data in custom template:', hasPositioningInTemplate);
 
     if (hasPositioningInTemplate) {
       console.log('🎯 [COMPILE_ADVANCED] Template contains positioning attributes:');
-      const positioningMatches = customTemplate.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
+      const positioningMatches = customTemplate.match(/data-(?:positioning-mode|pixel-position|position|pure-positioning)="[^"]*"/g);
       console.log('🎯 [COMPILE_ADVANCED] Found positioning attributes:', positioningMatches);
       console.log('🎯 [COMPILE_ADVANCED] Raw template preview:', customTemplate.substring(0, 800) + '...');
     }
@@ -136,8 +138,10 @@ async function compileAdvancedMode(
       const astString = JSON.stringify(parseResult.ast);
       const hasPositioningInAST = astString.includes('data-positioning-mode') ||
                                   astString.includes('data-pixel-position') ||
+                                  astString.includes('data-pure-positioning') ||
                                   astString.includes('dataPositioningMode') ||
                                   astString.includes('dataPixelPosition') ||
+                                  astString.includes('dataPurePositioning') ||
                                   astString.includes('dataPosition');
       console.log('🎯 [COMPILE_ADVANCED] Positioning data preserved in AST after parsing:', hasPositioningInAST);
 
@@ -165,8 +169,10 @@ async function compileAdvancedMode(
       const transformedAstString = JSON.stringify(transformedAst);
       const hasPositioningInTransformedAST = transformedAstString.includes('data-positioning-mode') ||
                                             transformedAstString.includes('data-pixel-position') ||
+                                            transformedAstString.includes('data-pure-positioning') ||
                                             transformedAstString.includes('dataPositioningMode') ||
                                             transformedAstString.includes('dataPixelPosition') ||
+                                            transformedAstString.includes('dataPurePositioning') ||
                                             transformedAstString.includes('dataPosition');
       console.log('🎯 [COMPILE_ADVANCED] Positioning data preserved after island identification:', hasPositioningInTransformedAST);
 
@@ -180,9 +186,11 @@ async function compileAdvancedMode(
     // Generate static HTML with island placeholders
     const staticHTML = generateStaticHTML(transformedAst, islands);
 
-    // Debug: Check final static HTML
+    // Debug: Check final static HTML (both old and new formats)
     if (hasPositioningInTemplate) {
-      const hasPositioningInStaticHTML = staticHTML.includes('data-positioning-mode') || staticHTML.includes('data-pixel-position');
+      const hasPositioningInStaticHTML = staticHTML.includes('data-positioning-mode') ||
+                                         staticHTML.includes('data-pixel-position') ||
+                                         staticHTML.includes('data-pure-positioning');
       console.log('🎯 [COMPILE_ADVANCED] Positioning data preserved in final static HTML:', hasPositioningInStaticHTML);
 
       if (!hasPositioningInStaticHTML) {

@@ -164,6 +164,8 @@ export default function Heading({
 
   const classes = [
     baseClasses[level],
+    'break-words', // Ensure text wrapping at word boundaries
+    'hyphens-auto', // Enable automatic hyphenation
     className,
     isAbsolutePositioned && _size ? 'h-full flex items-center justify-start' : '',
     // Add editing indicators
@@ -171,7 +173,7 @@ export default function Heading({
     _isInVisualBuilder && !isEditing ? 'hover:outline hover:outline-1 hover:outline-gray-300 cursor-pointer' : '',
   ].filter(Boolean).join(' ');
 
-  // Merge styles
+  // Merge styles with consistent text wrapping behavior
   const finalStyle: React.CSSProperties = {
     ...style,
     // Apply custom size if in absolute positioning mode
@@ -189,7 +191,30 @@ export default function Heading({
     ...(isEditing ? {
       minHeight: '1.5em', // Ensure minimum height when editing
     } : {}),
+    // CRITICAL: Ensure consistent text wrapping behavior across both contexts
+    wordWrap: 'break-word',
+    overflowWrap: 'break-word',
+    hyphens: 'auto',
+    // Prevent text from overflowing horizontally
+    overflowX: 'hidden',
   };
+
+  // Debug logging for WYSIWYG validation
+  const getContentLength = () => {
+    if (content && typeof content === 'string') return content.length;
+    if (children && typeof children === 'string') return children.length;
+    if (typeof children === 'number') return children.toString().length;
+    return 0;
+  };
+
+  console.log('🎯 [WYSIWYG] Heading render:', {
+    level,
+    isInVisualBuilder: _isInVisualBuilder,
+    positioningMode: _positioningMode,
+    size: _size,
+    contentLength: getContentLength(),
+    finalStyle: finalStyle
+  });
 
   // Create the heading element dynamically based on level
   const HeadingTag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';

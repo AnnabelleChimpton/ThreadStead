@@ -11,6 +11,12 @@ import {
   getCurrentBreakpoint,
   getOptimalSpan,
   COMPONENT_SIZE_METADATA,
+  GRID_BREAKPOINTS,
+  getComponentSizingCategory,
+  CONTAINER_FILLER_COMPONENTS,
+  CONTENT_DRIVEN_COMPONENTS,
+  SQUARE_COMPONENTS,
+  AUTO_SIZE_COMPONENTS,
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
 
@@ -59,12 +65,19 @@ export default function AdvancedProfileRenderer({
   const customCSS = user.profile?.customCSS;
   const cssMode = (user.profile?.cssMode || 'inherit') as CSSMode;
 
-  // Create a unique ID for this profile to scope the CSS
-  const profileId = useMemo(() => `profile-${user.id}-${Date.now()}`, [user.id]);
+  // Create a stable ID for this profile to scope the CSS (FIXED: removed Date.now() to prevent infinite loops)
+  const profileId = useMemo(() => `profile-${user.id}`, [user.id]);
 
   // Get islands from compiled template or fallback to stored islands (memoized to avoid re-renders)
   const islands = useMemo(() => {
-    return compiledTemplate?.islands || templateIslands || [];
+    const islandsData = compiledTemplate?.islands || templateIslands || [];
+    console.log('🎯 [ADVANCED_RENDERER] Islands data loaded:', islandsData.map(i => ({
+      id: i.id,
+      component: i.component,
+      props: i.props,
+      hasPositioning: !!i.props?._positioning
+    })));
+    return islandsData;
   }, [compiledTemplate?.islands, templateIslands]);
 
   // Generate properly layered CSS instead of the !important nightmare
@@ -109,12 +122,15 @@ export default function AdvancedProfileRenderer({
     }
   }, [compiledTemplate?.staticHTML, islands.length, isHydrated, onFallback]);
 
-  // Notify when all islands are ready
+  // Notify when all islands are ready (FIXED: memoize sizes to prevent infinite loops)
+  const loadedCount = useMemo(() => loadedIslands.size, [loadedIslands]);
+  const failedCount = useMemo(() => failedIslands.size, [failedIslands]);
+
   useEffect(() => {
     if (islandsReady) {
       onIslandsReady?.();
     }
-  }, [islandsReady, islands.length, loadedIslands.size, failedIslands.size, onIslandsReady]);
+  }, [islandsReady, islands.length, loadedCount, failedCount, onIslandsReady]);
 
   // Render the compiled template
 
@@ -124,6 +140,13 @@ export default function AdvancedProfileRenderer({
     onFallback?.('No compiled template available');
     return <AdvancedProfileFallback reason="No compiled template" />;
   }
+
+  // Debug: Check if static HTML contains positioning attributes
+  console.log('🎯 [ADVANCED_RENDERER] Static HTML preview:', compiledTemplate.staticHTML.substring(0, 500));
+  const hasPositioningInHTML = compiledTemplate.staticHTML.includes('data-pure-positioning') ||
+                               compiledTemplate.staticHTML.includes('data-positioning-mode') ||
+                               compiledTemplate.staticHTML.includes('data-pixel-position');
+  console.log('🎯 [ADVANCED_RENDERER] Static HTML contains positioning attributes:', hasPositioningInHTML);
 
 
   // If hydration failed, show fallback
@@ -311,250 +334,189 @@ function StaticHTMLWithIslands({
                 ).filter(child => child !== null && child !== '');
 
                 // Parse children for component props
-
                 const processedChildren = childElements.length > 0 ? childElements : undefined;
 
-                // Check for absolute positioning data on the island placeholder element
-                const positioningMode = element.getAttribute('data-positioning-mode');
-                const pixelPositionData = element.getAttribute('data-pixel-position');
-                const positionData = element.getAttribute('data-position');
+                // PROPS-BASED POSITIONING: Get positioning data directly from island props
+                const positioningData = island.props._positioning;
+                console.log('🎯 [ADVANCED_RENDERER] Island positioning data for', island.component, ':', positioningData);
 
-                if (positioningMode === 'absolute') {
+                // Create base component with props and set positioning mode
+                const componentProps = { ...island.props };
 
-                  let pixelPosition;
+                // Set positioning mode for components that have positioning data
+                if (positioningData) {
+                  componentProps._positioningMode = 'absolute';
+                  console.log('🎯 [ADVANCED_RENDERER] Setting _positioningMode=absolute for', island.component);
+                }
+                const renderedElement = (
+                  <ResidentDataProvider key={island.id} data={residentData}>
+                    <Component
+                      {...componentProps}
+                    >
+                      {processedChildren}
+                    </Component>
+                  </ResidentDataProvider>
+                );
 
-                  if (pixelPositionData) {
-                    try {
-                      pixelPosition = JSON.parse(pixelPositionData);
-                    } catch (e) {
-                      // Fallback to simple position format
-                      if (positionData) {
-                        const [x, y] = positionData.split(',').map(Number);
-                        if (!isNaN(x) && !isNaN(y)) {
-                          pixelPosition = { x, y, positioning: 'absolute' };
-                        }
-                      }
+                // Apply positioning if present - handle both old and new formats
+                const shouldApplyPositioning = positioningData && (
+                  positioningData.mode === 'absolute' ||  // Old format
+                  positioningData.isResponsive === false  // New pure positioning format
+                );
+
+                if (shouldApplyPositioning) {
+                  // Helper function to parse width/height values (handles both numbers and strings with px)
+                  const parsePositionValue = (value: any): number => {
+                    if (typeof value === 'number') return value;
+                    if (typeof value === 'string') {
+                      // Remove 'px' suffix if present and parse as number
+                      return parseInt(value.replace(/px$/, ''), 10) || 0;
                     }
-                  }
+                    return 0;
+                  };
 
-                  // Apply _size properties to component props if they exist
-                  const componentProps = { ...island.props };
-                  if (island.props._size) {
-                    componentProps._positioningMode = 'absolute';
-                  }
+                  // Smart sizing detection based on component type
+                  const componentType = island.component.toLowerCase();
 
-                  const renderedElement = (
-                    <ResidentDataProvider key={island.id} data={residentData}>
-                      <Component
-                        {...componentProps}
-                      >
-                        {processedChildren}
-                      </Component>
-                    </ResidentDataProvider>
-                  );
+                  // Use shared component categorization for WYSIWYG consistency
+                  const containerFillers = CONTAINER_FILLER_COMPONENTS;
+                  const contentDriven = CONTENT_DRIVEN_COMPONENTS;
+                  const squareComponents = SQUARE_COMPONENTS;
+                  const autoSize = AUTO_SIZE_COMPONENTS;
 
-                  if (pixelPosition && typeof pixelPosition.x === 'number' && typeof pixelPosition.y === 'number') {
-                    // Apply component size from _size prop if available
-                    const componentSize = componentProps._size;
-                    const containerStyle: React.CSSProperties = {
+                  let containerStyle: React.CSSProperties;
+
+                  if (containerFillers.includes(componentType)) {
+                    // Container-fillers: Use exact dimensions (user controls size precisely)
+                    containerStyle = {
                       position: 'absolute',
-                      left: `${pixelPosition.x}px`,
-                      top: `${pixelPosition.y}px`,
-                      zIndex: 1,
+                      left: `${parsePositionValue(positioningData.x)}px`,
+                      top: `${parsePositionValue(positioningData.y)}px`,
+                      width: `${parsePositionValue(positioningData.width)}px`,
+                      height: `${parsePositionValue(positioningData.height)}px`,
+                      zIndex: positioningData.zIndex || 1
                     };
+                    console.log('🎯 [WYSIWYG] Container-filler at', `${parsePositionValue(positioningData.x)}, ${parsePositionValue(positioningData.y)}`, 'size:', `${parsePositionValue(positioningData.width)}x${parsePositionValue(positioningData.height)}`, 'padding:', getCurrentBreakpoint().containerPadding + 'px');
+                  } else if (contentDriven.includes(componentType)) {
+                    // Content-driven: Use minimum dimensions, expand as needed but respect max constraints
+                    const userWidth = parsePositionValue(positioningData.width);
+                    const userHeight = parsePositionValue(positioningData.height);
 
-                    // Apply size properties if they exist
-                    if (componentSize) {
-                      if (componentSize.width && componentSize.width !== 'auto') {
-                        containerStyle.width = componentSize.width;
-                      }
-                      if (componentSize.height && componentSize.height !== 'auto') {
-                        containerStyle.height = componentSize.height;
-                      }
-                    }
-
-                    const positionedElement = React.createElement(
-                      'div',
-                      {
-                        key: island.id,
-                        style: containerStyle
-                      },
-                      renderedElement
-                    );
-
-                    onIslandRender(island.id);
-                    return positionedElement;
+                    containerStyle = {
+                      position: 'absolute',
+                      left: `${parsePositionValue(positioningData.x)}px`,
+                      top: `${parsePositionValue(positioningData.y)}px`,
+                      minWidth: `${userWidth}px`,
+                      minHeight: `${userHeight}px`,
+                      maxWidth: `${Math.min(Math.max(userWidth * 1.5, 400), 600)}px`, // Cap at 600px for consistent text wrapping
+                      width: 'fit-content',
+                      height: 'fit-content',
+                      zIndex: positioningData.zIndex || 1
+                    };
+                    console.log('🎯 [SIZING] Content-driven sizing for', componentType, `min: ${userWidth}x${userHeight}, max: ${Math.max(userWidth * 2, 400)}px`);
                   } else {
-                    onIslandRender(island.id);
-                    return renderedElement;
-                  }
-                } else if (positioningMode === 'grid') {
+                    // Auto-size: Respect user dimensions as preferred size with intelligent constraints
+                    const userWidth = parsePositionValue(positioningData.width);
+                    const userHeight = parsePositionValue(positioningData.height);
 
-                  // Apply _size properties to component props if they exist
-                  const componentProps = { ...island.props };
-
-                  // Check for size data in HTML attributes (from template compilation)
-                  const componentSizeAttr = element.getAttribute('data-component-size');
-                  if (componentSizeAttr) {
-                    try {
-                      const sizeData = JSON.parse(componentSizeAttr);
-                      componentProps._size = sizeData;
-                      componentProps._positioningMode = 'grid';
-                    } catch (e) {
-                      console.warn('Failed to parse component size data:', componentSizeAttr);
+                    // Special handling for specific component types
+                    if (autoSize.includes(componentType)) {
+                      if (componentType === 'displayname') {
+                        // DisplayName: Prefer natural width but respect user height
+                        containerStyle = {
+                          position: 'absolute',
+                          left: `${parsePositionValue(positioningData.x)}px`,
+                          top: `${parsePositionValue(positioningData.y)}px`,
+                          minWidth: `${Math.min(userWidth, 100)}px`, // Respect smaller user widths
+                          minHeight: `${userHeight}px`,
+                          maxWidth: `${Math.max(userWidth, 300)}px`, // Allow growth if needed
+                          width: 'fit-content',
+                          height: 'auto',
+                          zIndex: positioningData.zIndex || 1
+                        };
+                      } else if (squareComponents.includes(componentType)) {
+                        // Square components: Respect natural size, don't force into containers
+                        containerStyle = {
+                          position: 'absolute',
+                          left: `${parsePositionValue(positioningData.x)}px`,
+                          top: `${parsePositionValue(positioningData.y)}px`,
+                          zIndex: positioningData.zIndex || 1
+                          // No width/height - let component use its natural size
+                        };
+                        console.log('🎯 [WYSIWYG] Natural size container for', componentType, 'at', `${parsePositionValue(positioningData.x)}, ${parsePositionValue(positioningData.y)}`, 'with padding:', getCurrentBreakpoint().containerPadding + 'px');
+                      } else {
+                        // Other auto-size components: Prefer user dimensions with slight flexibility
+                        containerStyle = {
+                          position: 'absolute',
+                          left: `${parsePositionValue(positioningData.x)}px`,
+                          top: `${parsePositionValue(positioningData.y)}px`,
+                          minWidth: `${userWidth}px`,
+                          minHeight: `${userHeight}px`,
+                          maxWidth: `${userWidth + 50}px`, // Allow minor expansion
+                          width: `${userWidth}px`,
+                          height: 'auto',
+                          zIndex: positioningData.zIndex || 1
+                        };
+                      }
+                    } else {
+                      // Fallback for unknown components: Use user dimensions as preferred
+                      containerStyle = {
+                        position: 'absolute',
+                        left: `${parsePositionValue(positioningData.x)}px`,
+                        top: `${parsePositionValue(positioningData.y)}px`,
+                        width: `${userWidth}px`,
+                        height: `${userHeight}px`,
+                        zIndex: positioningData.zIndex || 1
+                      };
                     }
-                  } else if (island.props._size) {
-                    componentProps._positioningMode = 'grid';
+                    console.log('🎯 [SIZING] Auto-size sizing for', componentType, `user: ${userWidth}x${userHeight}`);
                   }
 
-                  const renderedElement = (
-                    <ResidentDataProvider key={island.id} data={residentData}>
-                      <Component
-                        {...componentProps}
-                      >
-                        {processedChildren}
-                      </Component>
-                    </ResidentDataProvider>
+                  console.log('🎯 [ADVANCED_RENDERER] Applying positioning styles for', island.component, ':', containerStyle);
+                  console.log('🎯 [ADVANCED_RENDERER] Raw positioning data for', island.component, ':', {
+                    x: positioningData.x,
+                    y: positioningData.y,
+                    width: positioningData.width,
+                    height: positioningData.height,
+                    widthType: typeof positioningData.width,
+                    heightType: typeof positioningData.height
+                  });
+
+                  const positionedElement = React.createElement(
+                    'div',
+                    {
+                      key: island.id,
+                      style: containerStyle,
+                      'data-component-id': island.id
+                    },
+                    renderedElement
                   );
 
-                  // Get current breakpoint for responsive rendering
-                  const currentBreakpoint = getCurrentBreakpoint();
+                  onIslandRender(island.id);
+                  return positionedElement;
+                } else if (positioningData && positioningData.mode === 'grid') {
+                  // Handle grid positioning from props
+                  const gridStyle: React.CSSProperties = {
+                    gridColumn: `${positioningData.column} / span ${positioningData.span || 1}`,
+                    gridRow: `${positioningData.row} / span 1`,
+                    zIndex: 1
+                  };
 
-                  // Check for grid position data
-                  const gridPositionAttr = element.getAttribute('data-grid-position');
-                  const columnAttr = element.getAttribute('data-grid-column');
-                  const rowAttr = element.getAttribute('data-grid-row');
-                  const spanAttr = element.getAttribute('data-grid-span');
+                  const gridElement = React.createElement(
+                    'div',
+                    {
+                      key: island.id,
+                      style: gridStyle,
+                      'data-component-id': island.id
+                    },
+                    renderedElement
+                  );
 
-                  if (gridPositionAttr || (columnAttr && rowAttr)) {
-
-                    // Parse grid position - prefer individual attributes over JSON
-                    let column = 1, row = 1, span = 1;
-                    let breakpointInfo = null;
-
-                    if (columnAttr && rowAttr) {
-                      column = parseInt(columnAttr, 10) || 1;
-                      row = parseInt(rowAttr, 10) || 1;
-                      span = spanAttr ? parseInt(spanAttr, 10) || 1 : 1;
-                    } else if (gridPositionAttr) {
-                      try {
-                        const gridData = JSON.parse(gridPositionAttr);
-                        column = gridData.column || 1;
-                        row = gridData.row || 1;
-                        span = gridData.span || 1;
-                        breakpointInfo = gridData.breakpoint;
-                      } catch (error) {
-                      }
-                    }
-
-                    // Enhanced responsive span calculation
-                    const componentMetadata = COMPONENT_SIZE_METADATA[island.component];
-                    if (componentMetadata) {
-                      // Calculate optimal span for current breakpoint if auto-span was used
-                      const optimalSpan = getOptimalSpan(island.component, currentBreakpoint.name, currentBreakpoint.columns);
-
-                      // Use responsive span if this was auto-generated or if breakpoint changed
-                      if (!spanAttr || span === 1 || (breakpointInfo && breakpointInfo !== currentBreakpoint.name)) {
-                        span = optimalSpan;
-                      }
-                    }
-
-                    // Enhanced grid positioning with fixed row spanning for consistent height
-                    // Calculate row span based on component metadata or default to 1
-                    const rowSpan = componentMetadata?.minRows || 1;
-
-                    const gridStyle: React.CSSProperties = {
-                      gridColumn: `${column} / span ${span}`,
-                      gridRow: `${row} / span ${rowSpan}`,
-                      zIndex: 1,
-                    };
-
-                    // Apply component size from _size prop if available (takes precedence over metadata)
-                    const componentSize = componentProps._size;
-                    if (componentSize) {
-                      if (componentSize.width && componentSize.width !== 'auto') {
-                        gridStyle.width = componentSize.width;
-                      }
-                      if (componentSize.height && componentSize.height !== 'auto') {
-                        gridStyle.height = componentSize.height;
-                      }
-                    }
-
-                    // Add component-specific styling based on metadata (if no _size override)
-                    if (componentMetadata && !componentSize) {
-                      if (componentMetadata.aspectRatio === 'square') {
-                        gridStyle.aspectRatio = '1';
-                      } else if (componentMetadata.aspectRatio === 'wide') {
-                        gridStyle.aspectRatio = '2/1';
-                      } else if (componentMetadata.aspectRatio === 'tall') {
-                        gridStyle.aspectRatio = '1/2';
-                      }
-
-                      // Set minimum height based on row requirements
-                      if (componentMetadata.minRows) {
-                        gridStyle.minHeight = `${componentMetadata.minRows * 60}px`;
-                      }
-                    }
-
-                    // Create enhanced grid-positioned element
-                    const gridElement = React.createElement(
-                      'div',
-                      {
-                        key: island.id,
-                        style: gridStyle,
-                        'data-component-category': componentMetadata?.category,
-                        'data-component-span': span,
-                        'data-breakpoint': currentBreakpoint.name
-                      },
-                      renderedElement
-                    );
-
-
-                    onIslandRender(island.id);
-                    return gridElement;
-                  } else {
-                    onIslandRender(island.id);
-                    return renderedElement;
-                  }
+                  onIslandRender(island.id);
+                  return gridElement;
                 } else {
-                  // No positioning, render normally
-                  // Apply _size properties to component props if they exist
-                  const componentProps = { ...island.props };
-                  if (island.props._size) {
-                    componentProps._positioningMode = 'absolute';
-                  }
-
-                  const renderedElement = (
-                    <ResidentDataProvider key={island.id} data={residentData}>
-                      <Component
-                        {...componentProps}
-                      >
-                        {processedChildren}
-                      </Component>
-                    </ResidentDataProvider>
-                  );
-
-                  // Apply size styling if _size exists
-                  const componentSize = componentProps._size;
-                  if (componentSize) {
-                    const containerStyle: React.CSSProperties = {};
-
-                    if (componentSize.width && componentSize.width !== 'auto') {
-                      containerStyle.width = componentSize.width;
-                    }
-                    if (componentSize.height && componentSize.height !== 'auto') {
-                      containerStyle.height = componentSize.height;
-                    }
-
-                    if (Object.keys(containerStyle).length > 0) {
-                      onIslandRender(island.id);
-                      return React.createElement('div', {
-                        key: island.id,
-                        style: containerStyle
-                      }, renderedElement);
-                    }
-                  }
-
+                  // No positioning - render component normally
+                  console.log('🎯 [ADVANCED_RENDERER] No positioning applied for', island.component, '- rendering normally');
                   onIslandRender(island.id);
                   return renderedElement;
                 }
@@ -610,8 +572,8 @@ function StaticHTMLWithIslands({
               }
             }
             
-            // Add a key for React reconciliation
-            props.key = `${elementComponentName}-${Math.random().toString(36).substr(2, 9)}`;
+            // Add a stable key for React reconciliation (FIXED: removed Math.random() to prevent infinite loops)
+            props.key = `${elementComponentName}-${element.getAttribute('data-island') || 'component'}`;
 
             // Recursively process children
             const children = Array.from(element.childNodes).map((child, index) =>
@@ -760,8 +722,8 @@ function StaticHTMLWithIslands({
           }
         }
         
-        // Add a key for React reconciliation
-        props.key = `${tagName}-${Math.random().toString(36).substr(2, 9)}`;
+        // Add a stable key for React reconciliation (FIXED: removed Math.random() to prevent infinite loops)
+        props.key = `${tagName}-${Array.from(element.childNodes).length}`;
         
         // Recursively process children
         const children = Array.from(element.childNodes).map((child, index) => 
@@ -842,9 +804,21 @@ function StaticHTMLWithIslands({
       
       // Use the existing parseHTMLToReactChildren approach as fallback
       const fallbackContent = [
-        <div key="fallback-container">
+        <div
+          key="fallback-container"
+          style={{
+            position: 'relative',
+            width: '100%',
+            minHeight: '100vh',
+            // Apply same responsive padding as Visual Builder canvas
+            padding: `${getCurrentBreakpoint().containerPadding}px`,
+            boxSizing: 'border-box'
+          }}
+          data-wysiwyg-padding={getCurrentBreakpoint().containerPadding}
+          data-wysiwyg-breakpoint={getCurrentBreakpoint().name}
+        >
           {islands.map(island => (
-            <ProductionIslandRendererWithHTMLChildren 
+            <ProductionIslandRendererWithHTMLChildren
               key={island.id}
               island={island}
               allIslands={islands}
@@ -938,8 +912,8 @@ function domToReact(
       }
     }
     
-    // Regular HTML element - convert attributes
-    const props: any = { key: Math.random() };
+    // Regular HTML element - convert attributes (FIXED: removed Math.random() to prevent infinite loops)
+    const props: any = { key: `element-${element.tagName}-${Array.from(element.childNodes).length}` };
     for (let i = 0; i < element.attributes.length; i++) {
       const attr = element.attributes[i];
       let propName = attr.name;
@@ -1533,12 +1507,24 @@ function StaticHTMLRenderer({
         className="static-html-content"
       />
       
-      {/* Render islands directly like in template editor */}
-      <div className="profile-islands-container">
+      {/* Render islands directly like in template editor with responsive padding to match Visual Builder */}
+      <div
+        className="profile-islands-container"
+        style={{
+          position: 'relative',
+          width: '100%',
+          minHeight: '100vh',
+          // Apply same responsive padding as Visual Builder canvas
+          padding: `${getCurrentBreakpoint().containerPadding}px`,
+          boxSizing: 'border-box'
+        }}
+        data-wysiwyg-padding={getCurrentBreakpoint().containerPadding}
+        data-wysiwyg-breakpoint={getCurrentBreakpoint().name}
+      >
         {/* Only render root-level components */}
         {islands.map((island) => (
           <IslandErrorBoundary key={island.id} islandId={island.id}>
-            <DirectIslandRenderer 
+            <DirectIslandRenderer
               island={island}
               residentData={residentData}
             />
