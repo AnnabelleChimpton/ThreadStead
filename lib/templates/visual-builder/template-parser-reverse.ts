@@ -16,6 +16,8 @@ import type {
 import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { generateComponentId } from './canvas-state';
 import { DEFAULT_GRID_SYSTEM } from './constants';
+import type { GlobalSettings } from '@/components/features/templates/visual-builder/GlobalSettingsPanel';
+import { parseGlobalSettingsFromClasses } from './css-class-generator';
 
 export interface ParseOptions {
   /** Whether to preserve layout attributes from visual builder */
@@ -33,6 +35,8 @@ export interface ParseOptions {
 export interface ParseResult {
   /** Parsed canvas state */
   canvasState: CanvasState;
+  /** Global settings extracted from template */
+  globalSettings: GlobalSettings | null;
   /** Any warnings or issues encountered */
   warnings: string[];
   /** Components that were ignored (unknown types) */
@@ -67,6 +71,9 @@ export class TemplateParserReverse {
     this.warnings = [];
     this.ignoredComponents = [];
     this.componentCount = 0;
+
+    // Extract global settings before preprocessing (which removes comments)
+    const globalSettings = this.extractGlobalSettings(htmlContent);
 
     // Clean and prepare HTML
     const cleanHtml = this.preprocessHTML(htmlContent);
@@ -114,10 +121,324 @@ export class TemplateParserReverse {
 
     return {
       canvasState,
+      globalSettings,
       warnings: [...this.warnings],
       ignoredComponents: [...this.ignoredComponents],
       componentCount: this.componentCount,
     };
+  }
+
+  /**
+   * Extract global settings from CSS classes on container element
+   */
+  private extractGlobalSettings(htmlContent: string): GlobalSettings | null {
+    try {
+      // Look for the container element with CSS classes
+      const containerRegex = /<div[^>]*class="[^"]*pure-absolute-container[^"]*"[^>]*>/;
+      const containerMatch = htmlContent.match(containerRegex);
+
+      if (!containerMatch) {
+        return null;
+      }
+
+      // Extract the class attribute value
+      const classMatch = containerMatch[0].match(/class="([^"]*)"/);
+      if (!classMatch || !classMatch[1]) {
+        return null;
+      }
+
+      const classNames = classMatch[1];
+      console.log('[TemplateParser] Found container classes:', classNames);
+
+      // Parse global settings from CSS classes
+      const parsedSettings = parseGlobalSettingsFromClasses(classNames);
+
+      // If we have any settings, try to get more detailed information from the CSS
+      if (Object.keys(parsedSettings).length > 0) {
+        const enhancedSettings = this.enhanceSettingsFromCSS(htmlContent, parsedSettings);
+        console.log('[TemplateParser] Extracted global settings from CSS classes:', enhancedSettings);
+        return enhancedSettings;
+      }
+    } catch (error) {
+      this.warnings.push(`Failed to parse global settings: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.warn('[TemplateParser] Failed to parse global settings:', error);
+    }
+
+    return null;
+  }
+
+  /**
+   * Enhance parsed settings with detailed information from CSS
+   */
+  private enhanceSettingsFromCSS(htmlContent: string, baseSettings: Partial<GlobalSettings>): GlobalSettings | null {
+    // Look for the CSS style block to extract detailed values
+    const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/;
+    const styleMatch = htmlContent.match(styleRegex);
+
+    if (!styleMatch) {
+      return this.fillDefaultSettings(baseSettings);
+    }
+
+    const cssContent = styleMatch[1];
+
+    // First, try to extract settings from :root CSS custom properties
+    const rootRule = this.extractCSSRule(cssContent, ':root');
+    if (rootRule) {
+      this.extractFromRootProperties(rootRule, baseSettings);
+    }
+
+    // Extract values from CSS rules
+    if (baseSettings.theme) {
+      const themeSelector = `.vb-theme-${baseSettings.theme}`;
+      const themeRule = this.extractCSSRule(cssContent, themeSelector);
+      if (themeRule) {
+        if (!baseSettings.background) {
+          baseSettings.background = {
+            color: '#ffffff',
+            type: 'solid'
+          };
+        }
+        if (!baseSettings.typography) {
+          baseSettings.typography = {
+            fontFamily: 'Inter, sans-serif',
+            baseSize: '16px',
+            scale: 1.2
+          };
+        }
+        if (!baseSettings.spacing) {
+          baseSettings.spacing = {
+            containerPadding: '24px',
+            sectionSpacing: '32px'
+          };
+        }
+
+        // Extract background color (only if not already set from :root)
+        const bgColor = this.extractCSSProperty(themeRule, 'background-color');
+        if (bgColor && !this.extractedFromRoot(bgColor)) {
+          baseSettings.background.color = this.extractFallbackValue(bgColor) || bgColor;
+        }
+
+        // Extract typography (only if not already set from :root)
+        const fontFamily = this.extractCSSProperty(themeRule, 'font-family');
+        if (fontFamily && !this.extractedFromRoot(fontFamily)) {
+          baseSettings.typography.fontFamily = this.extractFallbackValue(fontFamily) || fontFamily;
+        }
+
+        const fontSize = this.extractCSSProperty(themeRule, 'font-size');
+        if (fontSize && !this.extractedFromRoot(fontSize)) {
+          baseSettings.typography.baseSize = this.extractFallbackValue(fontSize) || fontSize;
+        }
+
+        const textShadow = this.extractCSSProperty(themeRule, 'text-shadow');
+        if (textShadow) baseSettings.typography.textShadow = textShadow;
+
+        const letterSpacing = this.extractCSSProperty(themeRule, 'letter-spacing');
+        if (letterSpacing) baseSettings.typography.letterSpacing = letterSpacing;
+
+        // Extract spacing
+        const padding = this.extractCSSProperty(themeRule, 'padding');
+        if (padding) baseSettings.spacing.containerPadding = padding;
+
+        // Extract typography scale from CSS custom property
+        const scale = this.extractCSSProperty(themeRule, '--vb-typography-scale');
+        if (scale) baseSettings.typography.scale = parseFloat(scale) || 1.25;
+      }
+    }
+
+    // Extract pattern details
+    if (baseSettings.background?.pattern && baseSettings.background.pattern.type !== 'none') {
+      const patternSelector = `.vb-pattern-${baseSettings.background.pattern.type}`;
+      const patternRule = this.extractCSSRule(cssContent, patternSelector);
+      if (patternRule) {
+        // Extract background-size to determine pattern size
+        const bgSize = this.extractCSSProperty(patternRule, 'background-size');
+        if (bgSize) {
+          const sizeMatch = bgSize.match(/(\d+)px/);
+          if (sizeMatch) {
+            baseSettings.background.pattern.size = parseInt(sizeMatch[1], 10) / 40; // Convert back from CSS size
+          }
+        }
+
+        // Extract pattern colors and properties from CSS custom properties
+        const primaryColor = this.extractCSSProperty(patternRule, '--vb-pattern-primary-color');
+        if (primaryColor) {
+          baseSettings.background.pattern.primaryColor = primaryColor;
+        }
+
+        const secondaryColor = this.extractCSSProperty(patternRule, '--vb-pattern-secondary-color');
+        if (secondaryColor) {
+          baseSettings.background.pattern.secondaryColor = secondaryColor;
+        }
+
+        const patternSize = this.extractCSSProperty(patternRule, '--vb-pattern-size');
+        if (patternSize) {
+          baseSettings.background.pattern.size = parseFloat(patternSize) || 1;
+        }
+
+        const patternOpacity = this.extractCSSProperty(patternRule, '--vb-pattern-opacity');
+        if (patternOpacity) {
+          baseSettings.background.pattern.opacity = parseFloat(patternOpacity) || 0.3;
+        }
+
+        const patternRotation = this.extractCSSProperty(patternRule, '--vb-pattern-rotation');
+        if (patternRotation) {
+          baseSettings.background.pattern.rotation = parseFloat(patternRotation);
+        }
+
+        // Pattern animated check
+        if (cssContent.includes(`vb-pattern-${baseSettings.background.pattern.type}-animated`)) {
+          baseSettings.background.pattern.animated = true;
+        }
+      }
+    }
+
+    return this.fillDefaultSettings(baseSettings);
+  }
+
+  /**
+   * Extract a CSS rule content for a given selector
+   */
+  private extractCSSRule(cssContent: string, selector: string): string | null {
+    const ruleRegex = new RegExp(`\\${selector}\\s*{([^}]*)}`, 'i');
+    const match = cssContent.match(ruleRegex);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Extract a specific CSS property value from a rule
+   */
+  private extractCSSProperty(ruleContent: string, property: string): string | null {
+    const propRegex = new RegExp(`${property}\\s*:\\s*([^;]+)`, 'i');
+    const match = ruleContent.match(propRegex);
+    return match ? match[1].trim() : null;
+  }
+
+  /**
+   * Fill in default values for missing settings
+   */
+  private fillDefaultSettings(settings: Partial<GlobalSettings>): GlobalSettings {
+    // Create default background, but preserve parsed pattern type if it exists
+    const defaultBackground = {
+      color: '#ffffff',
+      type: 'solid' as const
+    };
+
+    const finalBackground = {
+      ...defaultBackground,
+      ...settings.background
+    };
+
+    return {
+      background: finalBackground,
+      typography: {
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        baseSize: '16px',
+        scale: 1.25,
+        ...settings.typography
+      },
+      spacing: {
+        containerPadding: '24px',
+        sectionSpacing: '32px',
+        ...settings.spacing
+      },
+      theme: settings.theme || 'custom',
+      effects: settings.effects || {}
+    } as GlobalSettings;
+  }
+
+  /**
+   * Extract settings from :root CSS custom properties
+   */
+  private extractFromRootProperties(rootRule: string, settings: Partial<GlobalSettings>): void {
+    // Initialize nested objects if they don't exist
+    if (!settings.background) {
+      settings.background = { color: '#ffffff', type: 'solid' };
+    }
+    if (!settings.typography) {
+      settings.typography = { fontFamily: 'Inter, sans-serif', baseSize: '16px', scale: 1.2 };
+    }
+    if (!settings.spacing) {
+      settings.spacing = { containerPadding: '24px', sectionSpacing: '32px' };
+    }
+    if (!settings.effects) {
+      settings.effects = {};
+    }
+
+    // Extract background properties
+    const bgColor = this.extractCSSProperty(rootRule, '--vb-bg-color');
+    if (bgColor) settings.background.color = bgColor;
+
+    const bgType = this.extractCSSProperty(rootRule, '--vb-bg-type');
+    if (bgType) settings.background.type = bgType as 'solid' | 'pattern' | 'gradient';
+
+    // Extract pattern properties if background type is pattern
+    if (settings.background.type === 'pattern') {
+      const patternType = this.extractCSSProperty(rootRule, '--vb-pattern-type');
+      const patternPrimary = this.extractCSSProperty(rootRule, '--vb-pattern-primary');
+      const patternSecondary = this.extractCSSProperty(rootRule, '--vb-pattern-secondary');
+      const patternSize = this.extractCSSProperty(rootRule, '--vb-pattern-size');
+      const patternOpacity = this.extractCSSProperty(rootRule, '--vb-pattern-opacity');
+      const patternAnimated = this.extractCSSProperty(rootRule, '--vb-pattern-animated');
+
+      if (patternType) {
+        settings.background.pattern = {
+          type: patternType as any,
+          primaryColor: patternPrimary || '#ff69b4',
+          size: patternSize ? parseFloat(patternSize) : 1,
+          opacity: patternOpacity ? parseFloat(patternOpacity) : 0.3,
+          animated: patternAnimated === 'true'
+        };
+        if (patternSecondary) {
+          settings.background.pattern.secondaryColor = patternSecondary;
+        }
+      }
+    }
+
+    // Extract typography properties
+    const fontFamily = this.extractCSSProperty(rootRule, '--vb-font-family');
+    if (fontFamily) settings.typography.fontFamily = fontFamily;
+
+    const baseSize = this.extractCSSProperty(rootRule, '--vb-base-size');
+    if (baseSize) settings.typography.baseSize = baseSize;
+
+    const typographyScale = this.extractCSSProperty(rootRule, '--vb-typography-scale');
+    if (typographyScale) settings.typography.scale = parseFloat(typographyScale) || 1.25;
+
+    // Extract spacing properties
+    const containerPadding = this.extractCSSProperty(rootRule, '--vb-container-padding');
+    if (containerPadding) settings.spacing.containerPadding = containerPadding;
+
+    const sectionSpacing = this.extractCSSProperty(rootRule, '--vb-section-spacing');
+    if (sectionSpacing) settings.spacing.sectionSpacing = sectionSpacing;
+
+    // Extract theme
+    const theme = this.extractCSSProperty(rootRule, '--vb-theme');
+    if (theme) settings.theme = theme as any;
+
+    // Extract effects
+    const borderRadius = this.extractCSSProperty(rootRule, '--vb-border-radius');
+    if (borderRadius) settings.effects.borderRadius = borderRadius;
+
+    const boxShadow = this.extractCSSProperty(rootRule, '--vb-box-shadow');
+    if (boxShadow) settings.effects.boxShadow = boxShadow;
+
+    console.log('[TemplateParser] Extracted from :root properties:', settings);
+  }
+
+  /**
+   * Check if a CSS value was extracted from a CSS custom property (contains var())
+   */
+  private extractedFromRoot(cssValue: string): boolean {
+    return cssValue.includes('var(--vb-');
+  }
+
+  /**
+   * Extract fallback value from CSS var() function
+   * e.g., "var(--vb-bg-color, #f03333)" -> "#f03333"
+   */
+  private extractFallbackValue(cssValue: string): string | null {
+    const varMatch = cssValue.match(/var\([^,]+,\s*([^)]+)\)/);
+    return varMatch ? varMatch[1].trim() : null;
   }
 
   /**

@@ -24,6 +24,7 @@ import {
 import { generatePureHTML } from '@/lib/templates/visual-builder/pure-html-generator';
 import type { CanvasComponent } from '@/lib/templates/visual-builder/types';
 import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
+import { generateCSSFromGlobalSettings } from '@/lib/templates/visual-builder/css-class-generator';
 
 // New modern components
 import FloatingPanel, { useFloatingPanels } from './FloatingPanel';
@@ -33,6 +34,8 @@ import CanvasRenderer from './CanvasRenderer';
 // Legacy components (to be updated)
 import ComponentPalette from './ComponentPalette';
 import PropertyPanel from './PropertyPanel';
+import GlobalSettingsPanel, { type GlobalSettings } from './GlobalSettingsPanel';
+import CSSExportPanel from './CSSExportPanel';
 
 interface VisualTemplateBuilderProps {
   initialTemplate?: string;
@@ -161,8 +164,31 @@ export default function VisualTemplateBuilder({
     togglePanel('components');
   };
 
+  const handleToggleGlobal = () => {
+    togglePanel('global');
+  };
+
+  const handleToggleCSSExport = () => {
+    togglePanel('cssExport');
+  };
+
   // Simplified canvas state management with initial components
   const originalCanvasState = useCanvasState(initialComponents);
+
+  // Apply global settings from parsed template
+  React.useEffect(() => {
+    if (initialTemplate && initialTemplate.trim() !== '') {
+      try {
+        const parseResult = parseExistingTemplate(initialTemplate);
+        if (parseResult.globalSettings) {
+          originalCanvasState.setGlobalSettings(parseResult.globalSettings);
+          console.log('[VisualTemplateBuilder] Applied global settings from template:', parseResult.globalSettings);
+        }
+      } catch (error) {
+        console.warn('[VisualTemplateBuilder] Failed to extract global settings:', error);
+      }
+    }
+  }, [initialTemplate, originalCanvasState.setGlobalSettings]);
 
   // Breakpoint preview controls
   const [previewBreakpoint, setPreviewBreakpoint] = useState<string | null>(null);
@@ -183,6 +209,8 @@ export default function VisualTemplateBuilder({
     positioningMode,
     setPositioningMode,
     setGridConfig,
+    globalSettings,
+    setGlobalSettings,
     undo,
     redo,
     canUndo,
@@ -291,6 +319,8 @@ export default function VisualTemplateBuilder({
     positioningMode,
     setPositioningMode,
     setGridConfig,
+    globalSettings,
+    setGlobalSettings,
     undo,
     redo,
     canUndo,
@@ -394,8 +424,50 @@ export default function VisualTemplateBuilder({
       console.warn('Pure HTML generation warnings:', result.warnings);
     }
 
-    return result.html;
-  }, [convertToPureCanvasState]);
+    // Add global settings as CSS classes and embedded CSS
+    let finalHTML = result.html;
+    if (globalSettings) {
+      try {
+        // Generate CSS classes and styles from global settings
+        const result = generateCSSFromGlobalSettings(globalSettings);
+        const { css, classNames } = result;
+
+        // Add CSS classes to the container
+        if (classNames && classNames.length > 0) {
+          const classString = classNames.join(' ');
+          // Find the container div and add classes
+          finalHTML = finalHTML.replace(
+            /class="pure-absolute-container"/,
+            `class="pure-absolute-container ${classString}"`
+          );
+        }
+
+        // Add the CSS styles to the document
+        if (css && css.trim()) {
+          // Validate CSS is not empty and has proper structure
+          if (css.includes('{') && css.includes('}')) {
+            const styleTag = `<style>
+${css}
+</style>`;
+
+            // Insert style tag at the beginning of the HTML
+            if (finalHTML.includes('<head>')) {
+              finalHTML = finalHTML.replace('<head>', `<head>\n${styleTag}`);
+            } else {
+              finalHTML = styleTag + '\n' + finalHTML;
+            }
+          } else {
+            console.warn('Generated CSS appears to be invalid, skipping CSS injection');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to generate global settings CSS:', error);
+        // Continue without CSS to prevent compilation failure
+      }
+    }
+
+    return finalHTML;
+  }, [convertToPureCanvasState, globalSettings]);
 
   // Helper function to generate HTML for a single component and its children (LEGACY - to be removed)
   const generateComponentHTML = useCallback((component: ComponentItem, indent: string = '  ', isChild: boolean = false): string => {
@@ -579,17 +651,35 @@ export default function VisualTemplateBuilder({
 
 
   // Call template change callback only when user makes actual changes
+  // Store initial global settings for comparison (null if no template)
+  const [initialGlobalSettingsState] = React.useState(() => {
+    if (initialTemplate && initialTemplate.trim() !== '') {
+      try {
+        const parseResult = parseExistingTemplate(initialTemplate);
+        return parseResult.globalSettings || null;
+      } catch (error) {
+        console.warn('[VisualTemplateBuilder] Failed to extract initial global settings:', error);
+        return null;
+      }
+    }
+    return null;
+  });
+  const initialGlobalSettingsRef = React.useRef(initialGlobalSettingsState);
+
   React.useEffect(() => {
     // Check if components have actually changed from the initial state
     const componentsChanged = !componentsAreEqual(placedComponents, initialComponentsRef.current);
 
-    // Don't generate HTML on initial load if components haven't changed
-    if (!hasUserMadeChanges && !componentsChanged) {
+    // Check if global settings have changed from initial state
+    const globalSettingsChanged = JSON.stringify(globalSettings) !== JSON.stringify(initialGlobalSettingsRef.current);
+
+    // Don't generate HTML on initial load if nothing has changed
+    if (!hasUserMadeChanges && !componentsChanged && !globalSettingsChanged) {
       return;
     }
 
-    // Mark that user has made changes once components differ from initial
-    if (!hasUserMadeChanges && componentsChanged) {
+    // Mark that user has made changes once components or global settings differ from initial
+    if (!hasUserMadeChanges && (componentsChanged || globalSettingsChanged)) {
       setHasUserMadeChanges(true);
     }
 
@@ -598,7 +688,7 @@ export default function VisualTemplateBuilder({
       const html = generateHTML();
       onTemplateChange(html);
     }
-  }, [placedComponents, onTemplateChange, generateHTML, hasUserMadeChanges, componentsAreEqual]);
+  }, [placedComponents, globalSettings, onTemplateChange, generateHTML, hasUserMadeChanges, componentsAreEqual]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -652,8 +742,10 @@ export default function VisualTemplateBuilder({
         selectedCount={selectedComponentIds.size}
         onToggleProperties={handleToggleProperties}
         onToggleComponents={handleToggleComponents}
+        onToggleGlobal={handleToggleGlobal}
         isPropertiesOpen={isPanelOpen('properties')}
         isComponentsOpen={isPanelOpen('components')}
+        isGlobalOpen={isPanelOpen('global')}
       />
 
 
@@ -821,6 +913,131 @@ export default function VisualTemplateBuilder({
         </div>
       )}
 
+      {/* Global Settings Panel */}
+      {isPanelOpen('global') && (
+        <div style={{
+          position: 'fixed',
+          top: '64px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '400px',
+          height: 'calc(100vh - 64px)',
+          background: 'white',
+          borderLeft: '1px solid #e5e7eb',
+          borderRight: '1px solid #e5e7eb',
+          borderBottom: '1px solid #e5e7eb',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            padding: '16px',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            backgroundColor: '#f8fafc'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '16px' }}>🌐</span>
+              <h3 style={{ margin: '0', fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>
+                Global Settings
+              </h3>
+            </div>
+            <button
+              onClick={() => togglePanel('global')}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '18px',
+                cursor: 'pointer',
+                color: '#6b7280',
+                padding: '4px',
+                borderRadius: '4px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#6b7280';
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+            <GlobalSettingsPanel
+              canvasState={canvasState}
+              onGlobalSettingsChange={(settings) => {
+                setGlobalSettings(settings);
+                markUserChange();
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* CSS Export Panel */}
+      {isPanelOpen('cssExport') && (
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
+          width: '400px',
+          height: 'calc(100vh - 120px)',
+          background: 'white',
+          border: '1px solid #e5e7eb',
+          borderRadius: '12px',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#374151' }}>
+              Export CSS
+            </h3>
+            <button
+              onClick={() => togglePanel('cssExport')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: '18px',
+                cursor: 'pointer',
+                color: '#6b7280',
+                padding: '4px',
+                borderRadius: '4px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#6b7280';
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+            <CSSExportPanel globalSettings={globalSettings} />
+          </div>
+        </div>
+      )}
+
       {/* Toggle buttons at screen edges */}
       {!isPanelOpen('components') && (
         <button
@@ -869,6 +1086,77 @@ export default function VisualTemplateBuilder({
           }}
         >
           ⚙️
+        </button>
+      )}
+
+      {!isPanelOpen('global') && (
+        <button
+          onClick={() => togglePanel('global')}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '48px',
+            height: '48px',
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateX(-50%) scale(1.05)';
+            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateX(-50%) scale(1)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+          }}
+          title="Global Settings"
+        >
+          🌐
+        </button>
+      )}
+
+      {!isPanelOpen('cssExport') && (
+        <button
+          onClick={() => togglePanel('cssExport')}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            width: '48px',
+            height: '48px',
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            zIndex: 1001,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '18px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+          }}
+          title="Export CSS"
+        >
+          📄
         </button>
       )}
 

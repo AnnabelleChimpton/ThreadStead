@@ -304,7 +304,7 @@ export default function FloatingPanel({
  * Hook to manage multiple floating panels
  */
 export function useFloatingPanels() {
-  const [openPanels, setOpenPanels] = useState<Set<string>>(new Set(['components', 'properties'])); // Start with panels open
+  const [openPanels, setOpenPanels] = useState<Set<string>>(new Set()); // Start with panels closed
 
   const togglePanel = (id: string, forceState?: boolean) => {
     setOpenPanels(prev => {

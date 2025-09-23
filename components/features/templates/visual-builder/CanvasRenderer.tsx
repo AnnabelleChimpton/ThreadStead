@@ -32,6 +32,61 @@ import {
 import { SmartSnapping, type SnapResult } from '@/lib/templates/visual-builder/snapping-utils';
 import AlignmentGuides, { useAlignmentGuides } from './AlignmentGuides';
 import PositionIndicator, { usePositionIndicator } from './PositionIndicator';
+import type { GlobalSettings } from './GlobalSettingsPanel';
+import { generatePatternCSS, generateGradientCSS } from '@/lib/templates/visual-builder/background-patterns';
+
+/**
+ * Generate CSS custom properties from global settings
+ */
+function generateGlobalCSSProperties(globalSettings: GlobalSettings | null): React.CSSProperties {
+  if (!globalSettings) return {};
+
+  // Build background based on type
+  let backgroundStyle: any = {};
+
+  if (globalSettings.background?.type === 'pattern' && globalSettings.background?.pattern) {
+    const patternCSS = generatePatternCSS(globalSettings.background.pattern);
+    if (patternCSS) {
+      backgroundStyle = {
+        backgroundColor: globalSettings.background.color,
+        backgroundImage: patternCSS,
+        backgroundRepeat: 'repeat',
+        backgroundSize: `${(globalSettings.background.pattern.size || 1) * 40}px ${(globalSettings.background.pattern.size || 1) * 40}px`
+      };
+    }
+  } else if (globalSettings.background?.type === 'gradient' && globalSettings.background?.gradient) {
+    backgroundStyle = {
+      background: generateGradientCSS(globalSettings.background.gradient)
+    };
+  } else {
+    backgroundStyle = {
+      backgroundColor: globalSettings.background?.color
+    };
+  }
+
+  return {
+    // CSS Variables
+    '--global-bg-color': globalSettings.background?.color,
+    '--global-bg-type': globalSettings.background?.type,
+    '--global-font-family': globalSettings.typography?.fontFamily,
+    '--global-base-font-size': globalSettings.typography?.baseSize,
+    '--global-typography-scale': globalSettings.typography?.scale?.toString() || '1.25',
+    '--global-container-padding': globalSettings.spacing?.containerPadding,
+    '--global-section-spacing': globalSettings.spacing?.sectionSpacing,
+    '--global-theme': globalSettings.theme,
+
+    // Direct styles
+    ...backgroundStyle,
+    fontFamily: globalSettings.typography?.fontFamily,
+    fontSize: globalSettings.typography?.baseSize,
+    padding: globalSettings.spacing?.containerPadding,
+
+    // Effects
+    borderRadius: globalSettings.effects?.borderRadius,
+    boxShadow: globalSettings.effects?.boxShadow,
+  } as React.CSSProperties;
+}
+
 /**
  * Helper function to check if a component is a container that can accept children
  */
@@ -248,6 +303,9 @@ export default function CanvasRenderer({
 }: CanvasRendererProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Extract global settings from canvas state
+  const { globalSettings } = canvasState;
 
   // Full-screen responsive canvas sizing
   const [canvasSize, setCanvasSize] = useState(() => {
@@ -1765,11 +1823,17 @@ export default function CanvasRenderer({
           style={{
             width: canvasSize.width,
             height: canvasSize.height,
-            background: 'linear-gradient(45deg, #f8f9fa 25%, transparent 25%, transparent 75%, #f8f9fa 75%, #f8f9fa), linear-gradient(45deg, #f8f9fa 25%, transparent 25%, transparent 75%, #f8f9fa 75%, #f8f9fa)',
-            backgroundSize: '20px 20px',
-            backgroundPosition: '0 0, 10px 10px',
-            padding: `${gridConfig.currentBreakpoint.containerPadding}px`,
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            // Apply global settings (includes background, typography, effects)
+            ...generateGlobalCSSProperties(globalSettings),
+            // Default checkerboard if no global settings
+            ...(!globalSettings && {
+              background: 'linear-gradient(45deg, #f8f9fa 25%, transparent 25%, transparent 75%, #f8f9fa 75%, #f8f9fa), linear-gradient(45deg, #f8f9fa 25%, transparent 25%, transparent 75%, #f8f9fa 75%, #f8f9fa)',
+              backgroundSize: '20px 20px',
+              backgroundPosition: '0 0, 10px 10px',
+            }),
+            // Override padding if needed
+            padding: globalSettings?.spacing?.containerPadding || `${gridConfig.currentBreakpoint.containerPadding}px`,
           }}
           data-wysiwyg-padding={gridConfig.currentBreakpoint.containerPadding}
           data-wysiwyg-breakpoint={gridConfig.currentBreakpoint.name}

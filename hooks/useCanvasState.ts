@@ -15,6 +15,7 @@ import {
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
 import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/template-registry';
+import type { GlobalSettings } from '@/components/features/templates/visual-builder/GlobalSettingsPanel';
 
 // Enhanced component item with grid and absolute positioning support
 export interface ComponentItem {
@@ -58,6 +59,10 @@ export interface UseCanvasStateResult {
   setGridConfig: (config: Partial<GridConfig>) => void;
   positioningMode: 'absolute' | 'grid';
   setPositioningMode: (mode: 'absolute' | 'grid') => void;
+
+  // Global settings state
+  globalSettings: GlobalSettings | null;
+  setGlobalSettings: (settings: GlobalSettings) => void;
 
   // Simple operations following pixel homes pattern
   addComponent: (component: ComponentItem) => void;
@@ -122,7 +127,7 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
       columns: initialBreakpoint.columns,
       rowHeight: initialBreakpoint.rowHeight, // Use fixed row height for consistent experience
       gap: initialBreakpoint.gap,
-      showGrid: true, // Show grid by default for better UX
+      showGrid: false, // Hide grid by default for cleaner look
       currentBreakpoint: initialBreakpoint,
       autoSpanning: true,
       responsiveMode: true
@@ -131,6 +136,9 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
 
   // Positioning mode state - default to grid for better UX
   const [positioningMode, setPositioningMode] = useState<'absolute' | 'grid'>('grid');
+
+  // Global settings state
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings | null>(null);
 
   // History state (simple)
   const [history, setHistory] = useState<{
@@ -563,6 +571,10 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
     setGridConfig,
     positioningMode,
     setPositioningMode,
+
+    // Global settings
+    globalSettings,
+    setGlobalSettings,
 
     // Operations
     addComponent,

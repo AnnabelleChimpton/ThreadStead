@@ -32,10 +32,14 @@ export interface SmartToolbarProps {
   onToggleProperties?: () => void;
   /** Callback to toggle component palette */
   onToggleComponents?: () => void;
+  /** Callback to toggle global settings panel */
+  onToggleGlobal?: () => void;
   /** Whether property panel is open */
   isPropertiesOpen?: boolean;
   /** Whether component palette is open */
   isComponentsOpen?: boolean;
+  /** Whether global settings panel is open */
+  isGlobalOpen?: boolean;
 }
 
 /**
@@ -197,8 +201,10 @@ export default function SmartToolbar({
   selectedCount,
   onToggleProperties,
   onToggleComponents,
+  onToggleGlobal,
   isPropertiesOpen = false,
   isComponentsOpen = false,
+  isGlobalOpen = false,
 }: SmartToolbarProps) {
   const {
     canUndo,
@@ -381,6 +387,18 @@ export default function SmartToolbar({
               size="sm"
               variant="ghost"
               tooltip="Toggle property panel"
+            />
+          )}
+
+          {onToggleGlobal && (
+            <ToolButton
+              icon="🌐"
+              label="Global"
+              onClick={onToggleGlobal}
+              active={isGlobalOpen}
+              size="sm"
+              variant="ghost"
+              tooltip="Toggle global settings"
             />
           )}
         </div>
