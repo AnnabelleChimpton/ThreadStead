@@ -227,9 +227,6 @@ export async function runExtSearch(
   // Filter out engines that should be skipped due to circuit breaker
   const availableEngines = engines.filter(engine => {
     if (shouldSkipEngine(engine.id)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Skipping ${engine.name} due to recent failures`);
-      }
       return false;
     }
     return true;
@@ -258,11 +255,6 @@ export async function runExtSearch(
       targetEngine: 'general'
     })
   };
-
-  // Log optimization if query was changed
-  if (optimizedQuery.q !== query.q && process.env.NODE_ENV === 'development') {
-    console.log(`Query optimized: "${query.q}" → "${optimizedQuery.q}"`);
-  }
 
   // Run searches in parallel
   const searchPromises = availableEngines.map(async (engine) => {

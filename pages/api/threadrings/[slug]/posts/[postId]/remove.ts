@@ -82,19 +82,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             metadata: metadata || {}
           }
         );
-        
-        console.log(`Moderator removed post ${postId} from ring ${slug}:`, {
-          ringSpecific: ringHubResponse.ringSpecific,
-          isAuthorAction: ringHubResponse.isAuthorAction,
-          moderator: ringHubResponse.moderator
-        });
       } catch (ringHubError) {
         // Log the error but continue with local removal
         console.error("Failed to sync removal with RingHub:", ringHubError);
         console.error("Continuing with local removal despite RingHub sync failure");
       }
-    } else {
-      console.log("RingHub client not available, skipping RingHub sync");
     }
 
     // Remove the association and update count locally

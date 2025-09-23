@@ -148,7 +148,6 @@ export class TemplateParserReverse {
       }
 
       const classNames = classMatch[1];
-      console.log('[TemplateParser] Found container classes:', classNames);
 
       // Parse global settings from CSS classes
       const parsedSettings = parseGlobalSettingsFromClasses(classNames);
@@ -156,7 +155,6 @@ export class TemplateParserReverse {
       // If we have any settings, try to get more detailed information from the CSS
       if (Object.keys(parsedSettings).length > 0) {
         const enhancedSettings = this.enhanceSettingsFromCSS(htmlContent, parsedSettings);
-        console.log('[TemplateParser] Extracted global settings from CSS classes:', enhancedSettings);
         return enhancedSettings;
       }
     } catch (error) {
@@ -171,15 +169,37 @@ export class TemplateParserReverse {
    * Enhance parsed settings with detailed information from CSS
    */
   private enhanceSettingsFromCSS(htmlContent: string, baseSettings: Partial<GlobalSettings>): GlobalSettings | null {
-    // Look for the CSS style block to extract detailed values
-    const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/;
-    const styleMatch = htmlContent.match(styleRegex);
+    // Look for ALL CSS style blocks to extract detailed values
+    const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/g;
+    const styleMatches = Array.from(htmlContent.matchAll(styleRegex));
 
-    if (!styleMatch) {
+    if (styleMatches.length === 0) {
       return this.fillDefaultSettings(baseSettings);
     }
 
-    const cssContent = styleMatch[1];
+    // Combine all CSS content, prioritizing Visual Builder generated CSS
+    let cssContent = '';
+    const visualBuilderCSSBlocks = [];
+    const otherCSSBlocks = [];
+
+    for (const match of styleMatches) {
+      const content = match[1];
+      if (content.includes('/* Visual Builder Generated CSS */') ||
+          content.includes('/* CSS Custom Properties for easy editing */')) {
+        visualBuilderCSSBlocks.push(content);
+      } else {
+        otherCSSBlocks.push(content);
+      }
+    }
+
+    // Prioritize Visual Builder CSS, use the last one if multiple exist
+    if (visualBuilderCSSBlocks.length > 0) {
+      cssContent = visualBuilderCSSBlocks[visualBuilderCSSBlocks.length - 1];
+    } else if (otherCSSBlocks.length > 0) {
+      cssContent = otherCSSBlocks[otherCSSBlocks.length - 1];
+    } else {
+      cssContent = styleMatches[styleMatches.length - 1][1]; // Fallback to last style block
+    }
 
     // First, try to extract settings from :root CSS custom properties
     const rootRule = this.extractCSSRule(cssContent, ':root');
@@ -235,9 +255,19 @@ export class TemplateParserReverse {
         const letterSpacing = this.extractCSSProperty(themeRule, 'letter-spacing');
         if (letterSpacing) baseSettings.typography.letterSpacing = letterSpacing;
 
-        // Extract spacing
+        // Extract spacing (only if not already set from :root)
         const padding = this.extractCSSProperty(themeRule, 'padding');
-        if (padding) baseSettings.spacing.containerPadding = padding;
+        if (padding && !baseSettings.spacing.containerPadding) {
+          // Only extract if not already set from :root, and resolve CSS variables
+          if (this.extractedFromRoot(padding)) {
+            const resolvedPadding = this.resolveCSSVariable(padding, rootRule || '');
+            if (resolvedPadding && !resolvedPadding.startsWith('var(')) {
+              baseSettings.spacing.containerPadding = resolvedPadding;
+            }
+          } else {
+            baseSettings.spacing.containerPadding = padding;
+          }
+        }
 
         // Extract typography scale from CSS custom property
         const scale = this.extractCSSProperty(themeRule, '--vb-typography-scale');
@@ -310,7 +340,65 @@ export class TemplateParserReverse {
   private extractCSSProperty(ruleContent: string, property: string): string | null {
     const propRegex = new RegExp(`${property}\\s*:\\s*([^;]+)`, 'i');
     const match = ruleContent.match(propRegex);
-    return match ? match[1].trim() : null;
+    if (!match) return null;
+
+    const value = match[1].trim();
+
+    // Check for CSS variable recursion (var() referencing the same property)
+    const varRegex = new RegExp(`var\\s*\\(\\s*${property.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*(?:,\\s*([^)]+))?\\)`, 'i');
+    const varMatch = value.match(varRegex);
+
+    if (varMatch) {
+      // If it's a self-referencing var(), return the fallback value if available, otherwise null
+      const fallback = varMatch[1];
+      if (fallback && fallback.trim() !== value) {
+        return fallback.trim();
+      }
+      // Self-referencing without fallback, return null to avoid recursion
+      return null;
+    }
+
+    return value;
+  }
+
+  /**
+   * Store the complete CSS content for variable resolution
+   */
+  private completeCSSContent: string = '';
+
+  /**
+   * Resolve CSS variables to their actual values
+   * Prevents storing var() references in the settings panel
+   */
+  private resolveCSSVariable(value: string, rootRule: string): string | null {
+    // If it's not a CSS variable reference, return as-is
+    if (!value.startsWith('var(')) {
+      return value;
+    }
+
+    // Extract the variable name from var(--variable-name, fallback)
+    const varMatch = value.match(/var\s*\(\s*(--[\w-]+)\s*(?:,\s*([^)]+))?\)/);
+    if (!varMatch) {
+      return value; // Not a valid var() function
+    }
+
+    const varName = varMatch[1];
+    const fallback = varMatch[2];
+
+    // Try to find the actual value of this variable in the root rule
+    const actualValue = this.extractCSSProperty(rootRule, varName);
+    if (actualValue && !actualValue.startsWith('var(')) {
+      return actualValue;
+    }
+
+    // If no actual value found, use the fallback if available
+    if (fallback && fallback.trim()) {
+      return fallback.trim();
+    }
+
+    // Can't resolve, return null to skip this property
+    console.warn(`[TemplateParser] Could not resolve CSS variable ${varName}`);
+    return null;
   }
 
   /**
@@ -364,9 +452,18 @@ export class TemplateParserReverse {
       settings.effects = {};
     }
 
-    // Extract background properties
-    const bgColor = this.extractCSSProperty(rootRule, '--vb-bg-color');
-    if (bgColor) settings.background.color = bgColor;
+    // Extract background properties - try both old and new naming
+    let bgColor = this.extractCSSProperty(rootRule, '--global-bg-color');
+    if (!bgColor) {
+      bgColor = this.extractCSSProperty(rootRule, '--vb-bg-color');
+    }
+    if (bgColor) {
+      // Resolve CSS variables to actual color values, don't store var() references
+      const resolvedColor = this.resolveCSSVariable(bgColor, rootRule);
+      if (resolvedColor && !resolvedColor.startsWith('var(')) {
+        settings.background.color = resolvedColor;
+      }
+    }
 
     const bgType = this.extractCSSProperty(rootRule, '--vb-bg-type');
     if (bgType) settings.background.type = bgType as 'solid' | 'pattern' | 'gradient';
@@ -376,6 +473,7 @@ export class TemplateParserReverse {
       const patternType = this.extractCSSProperty(rootRule, '--vb-pattern-type');
       const patternPrimary = this.extractCSSProperty(rootRule, '--vb-pattern-primary');
       const patternSecondary = this.extractCSSProperty(rootRule, '--vb-pattern-secondary');
+      const patternBackground = this.extractCSSProperty(rootRule, '--vb-pattern-background');
       const patternSize = this.extractCSSProperty(rootRule, '--vb-pattern-size');
       const patternOpacity = this.extractCSSProperty(rootRule, '--vb-pattern-opacity');
       const patternAnimated = this.extractCSSProperty(rootRule, '--vb-pattern-animated');
@@ -391,25 +489,60 @@ export class TemplateParserReverse {
         if (patternSecondary) {
           settings.background.pattern.secondaryColor = patternSecondary;
         }
+        if (patternBackground) {
+          settings.background.pattern.backgroundColor = patternBackground;
+        }
       }
     }
 
-    // Extract typography properties
-    const fontFamily = this.extractCSSProperty(rootRule, '--vb-font-family');
-    if (fontFamily) settings.typography.fontFamily = fontFamily;
+    // Extract typography properties - support both old and new naming
+    let fontFamily = this.extractCSSProperty(rootRule, '--global-font-family');
+    if (!fontFamily) {
+      fontFamily = this.extractCSSProperty(rootRule, '--vb-font-family');
+    }
+    if (fontFamily) {
+      const resolvedFamily = this.resolveCSSVariable(fontFamily, rootRule);
+      if (resolvedFamily && !resolvedFamily.startsWith('var(')) {
+        settings.typography.fontFamily = resolvedFamily;
+      }
+    }
 
-    const baseSize = this.extractCSSProperty(rootRule, '--vb-base-size');
-    if (baseSize) settings.typography.baseSize = baseSize;
+    let baseSize = this.extractCSSProperty(rootRule, '--global-base-font-size');
+    if (!baseSize) {
+      baseSize = this.extractCSSProperty(rootRule, '--vb-base-size');
+    }
+    if (baseSize) {
+      const resolvedSize = this.resolveCSSVariable(baseSize, rootRule);
+      if (resolvedSize && !resolvedSize.startsWith('var(')) {
+        settings.typography.baseSize = resolvedSize;
+      }
+    }
 
     const typographyScale = this.extractCSSProperty(rootRule, '--vb-typography-scale');
     if (typographyScale) settings.typography.scale = parseFloat(typographyScale) || 1.25;
 
-    // Extract spacing properties
-    const containerPadding = this.extractCSSProperty(rootRule, '--vb-container-padding');
-    if (containerPadding) settings.spacing.containerPadding = containerPadding;
+    // Extract spacing properties - support both old and new naming, resolve variables
+    let containerPadding = this.extractCSSProperty(rootRule, '--global-container-padding');
+    if (!containerPadding) {
+      containerPadding = this.extractCSSProperty(rootRule, '--vb-container-padding');
+    }
+    if (containerPadding) {
+      const resolvedPadding = this.resolveCSSVariable(containerPadding, rootRule);
+      if (resolvedPadding && !resolvedPadding.startsWith('var(')) {
+        settings.spacing.containerPadding = resolvedPadding;
+      }
+    }
 
-    const sectionSpacing = this.extractCSSProperty(rootRule, '--vb-section-spacing');
-    if (sectionSpacing) settings.spacing.sectionSpacing = sectionSpacing;
+    let sectionSpacing = this.extractCSSProperty(rootRule, '--global-section-spacing');
+    if (!sectionSpacing) {
+      sectionSpacing = this.extractCSSProperty(rootRule, '--vb-section-spacing');
+    }
+    if (sectionSpacing) {
+      const resolvedSpacing = this.resolveCSSVariable(sectionSpacing, rootRule);
+      if (resolvedSpacing && !resolvedSpacing.startsWith('var(')) {
+        settings.spacing.sectionSpacing = resolvedSpacing;
+      }
+    }
 
     // Extract theme
     const theme = this.extractCSSProperty(rootRule, '--vb-theme');
@@ -421,15 +554,13 @@ export class TemplateParserReverse {
 
     const boxShadow = this.extractCSSProperty(rootRule, '--vb-box-shadow');
     if (boxShadow) settings.effects.boxShadow = boxShadow;
-
-    console.log('[TemplateParser] Extracted from :root properties:', settings);
   }
 
   /**
    * Check if a CSS value was extracted from a CSS custom property (contains var())
    */
   private extractedFromRoot(cssValue: string): boolean {
-    return cssValue.includes('var(--vb-');
+    return cssValue.includes('var(--vb-') || cssValue.includes('var(--global-');
   }
 
   /**
@@ -445,8 +576,6 @@ export class TemplateParserReverse {
    * Preprocess HTML to handle special cases and separate CSS from content
    */
   private preprocessHTML(html: string): string {
-    console.log('[TemplateParser] Original HTML length:', html.length);
-    console.log('[TemplateParser] HTML preview:', html.substring(0, 300) + '...');
 
     // Remove comments unless they contain component metadata
     let processed = html.replace(/<!--(?!\s*Visual Builder)[\s\S]*?-->/g, '');
@@ -454,7 +583,6 @@ export class TemplateParserReverse {
     // Extract and remove <style> tags - we only want the HTML structure for component parsing
     const styleMatches = processed.match(/<style[^>]*>[\s\S]*?<\/style>/gi);
     if (styleMatches) {
-      console.log('[TemplateParser] Found', styleMatches.length, 'style tags, removing them for component parsing');
       processed = processed.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
     }
 
@@ -464,7 +592,6 @@ export class TemplateParserReverse {
     // Handle self-closing tags that might not be properly closed
     processed = processed.replace(/<(\w+)([^>]*?)\s*\/\s*>/g, '<$1$2></$1>');
 
-    console.log('[TemplateParser] Preprocessed HTML (CSS removed):', processed.substring(0, 200) + '...');
     return processed;
   }
 
@@ -510,13 +637,11 @@ export class TemplateParserReverse {
       return [];
     }
 
-    console.log('[TemplateParser] Starting recursive component extraction...');
     const components: CanvasComponent[] = [];
 
     // Recursively find all template components, ignoring HTML containers
     this.extractComponentsRecursively(bodyDiv, components);
 
-    console.log('[TemplateParser] Found', components.length, 'components after recursive extraction');
     return components;
   }
 
@@ -526,18 +651,12 @@ export class TemplateParserReverse {
   private extractComponentsRecursively(element: Element, components: CanvasComponent[]): void {
     const tagName = element.tagName;
 
-    console.log('[TemplateParser] Examining element:', tagName);
-
     // Check if this is a template component (registered in component registry)
     const componentRegistration = componentRegistry.get(tagName);
     const isTemplateComponent = componentRegistration !== undefined;
     const isHTMLContainer = this.HTML_CONTAINERS.has(tagName.toLowerCase());
 
-    console.log(`[TemplateParser] ${tagName} - isTemplateComponent: ${isTemplateComponent}, isHTMLContainer: ${isHTMLContainer}, registration:`, componentRegistration ? 'found' : 'NOT FOUND');
-
     if (isTemplateComponent) {
-      console.log('[TemplateParser] Found template component:', tagName);
-
       const component = this.elementToComponent(element);
       if (component) {
         // Only apply logical positioning if component has no explicit positioning data
@@ -554,21 +673,16 @@ export class TemplateParserReverse {
           component.gridPosition = logicalPosition.grid;
           component.position = logicalPosition.pixel;
 
-          console.log('[TemplateParser] Assigned logical position to', tagName, '(no explicit positioning):', logicalPosition);
-        } else {
-          console.log('[TemplateParser] Preserving explicit positioning for', tagName, '- gridPosition:', component.gridPosition, 'position:', component.position);
         }
 
         components.push(component);
       }
     } else if (isHTMLContainer) {
-      console.log('[TemplateParser] Traversing through HTML container:', tagName);
       // This is an HTML container - recursively examine its children
       Array.from(element.children).forEach(child => {
         this.extractComponentsRecursively(child, components);
       });
     } else {
-      console.log('[TemplateParser] Skipping unknown element:', tagName);
       this.warnings.push(`Unknown element skipped: ${tagName}`);
     }
   }
@@ -646,9 +760,6 @@ export class TemplateParserReverse {
 
     this.componentCount++;
 
-    // Enhanced debug logging
-    console.log(`[TemplateParser] Processing component: ${tagName}`);
-
     // Extract attributes as props
     const props = this.extractProps(element);
 
@@ -659,8 +770,6 @@ export class TemplateParserReverse {
     const size = this.extractSize(element);
     const locked = this.extractBooleanAttribute(element, 'data-locked');
     const hidden = this.extractBooleanAttribute(element, 'data-hidden');
-
-    console.log(`[TemplateParser] ${tagName} - Position: ${position ? `(${position.x}, ${position.y})` : 'none'}, Grid: ${gridPosition ? `col=${gridPosition.column} row=${gridPosition.row} span=${gridPosition.columnSpan}` : 'none'}, Mode: ${positioningMode || 'none'}`);
 
     // Process children
     const children: CanvasComponent[] = [];
@@ -760,7 +869,6 @@ export class TemplateParserReverse {
     if (purePositioningAttr) {
       try {
         const pureData = JSON.parse(purePositioningAttr);
-        console.log('[TemplateParser] Found data-pure-positioning:', pureData);
         if (pureData.x !== undefined && pureData.y !== undefined) {
           return { x: pureData.x, y: pureData.y };
         }
@@ -774,7 +882,6 @@ export class TemplateParserReverse {
     if (pixelPositionAttr) {
       try {
         const pixelData = JSON.parse(pixelPositionAttr);
-        console.log('[TemplateParser] Found data-pixel-position:', pixelData);
         if (pixelData.x !== undefined && pixelData.y !== undefined) {
           return { x: pixelData.x, y: pixelData.y };
         }
@@ -929,14 +1036,12 @@ export class TemplateParserReverse {
     // Check for pure positioning format (NEW FORMAT) - indicates absolute positioning
     const purePositioningAttr = element.getAttribute('data-pure-positioning');
     if (purePositioningAttr) {
-      console.log('[TemplateParser] Found data-pure-positioning, using absolute mode');
       return 'absolute';
     }
 
     // Check for explicit positioning mode data attribute (OLD FORMAT)
     const positioningModeAttr = element.getAttribute('data-positioning-mode');
     if (positioningModeAttr) {
-      console.log('[TemplateParser] Found data-positioning-mode:', positioningModeAttr);
       return positioningModeAttr as PositioningMode;
     }
 
@@ -1003,7 +1108,6 @@ export class TemplateParserReverse {
     if (purePositioningAttr) {
       try {
         const pureData = JSON.parse(purePositioningAttr);
-        console.log('[TemplateParser] Extracting size from data-pure-positioning:', pureData);
         if (pureData.width !== undefined && pureData.height !== undefined) {
           return {
             width: pureData.width,
@@ -1020,7 +1124,6 @@ export class TemplateParserReverse {
     const sizeAttr = element.getAttribute('data-size');
     if (sizeAttr) {
       try {
-        console.log('[TemplateParser] Found data-size:', sizeAttr);
         return JSON.parse(sizeAttr) as ComponentSize;
       } catch (error) {
         this.warnings.push(`Invalid size data: ${sizeAttr}`);

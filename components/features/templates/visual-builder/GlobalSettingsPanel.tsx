@@ -19,6 +19,7 @@ export interface BackgroundPattern {
         'diamonds' | 'waves' | 'grid' | 'confetti' | 'sparkles' | 'bubbles';
   primaryColor: string;
   secondaryColor?: string;
+  backgroundColor?: string; // Background color beneath the pattern
   size: number; // 0.5 to 3
   opacity: number; // 0 to 1
   rotation?: number; // degrees
@@ -304,11 +305,28 @@ const GlobalSettingsPanel = React.memo(function GlobalSettingsPanel({
   className = ''
 }: GlobalSettingsPanelProps) {
 
-  // Get current global settings (with fallback to defaults)
-  const globalSettings = React.useMemo(
-    () => (canvasState as any).globalSettings || defaultGlobalSettings,
-    [(canvasState as any).globalSettings]
-  );
+  // Get current global settings with smart fallback that doesn't override CSS
+  const globalSettings = React.useMemo(() => {
+    const canvasGlobalSettings = (canvasState as any).globalSettings;
+
+    // If we have explicit global settings, use them
+    if (canvasGlobalSettings) {
+      return canvasGlobalSettings;
+    }
+
+    // If no explicit settings, provide minimal defaults that don't override CSS
+    // This allows the CSS custom properties to work while providing UI structure
+    return {
+      background: {
+        type: 'solid'
+        // Deliberately omit color to let CSS custom properties work
+      },
+      typography: defaultGlobalSettings.typography,
+      spacing: defaultGlobalSettings.spacing,
+      theme: 'custom',
+      effects: {}
+    };
+  }, [(canvasState as any).globalSettings]);
 
   // Handle setting updates
   const updateSetting = useCallback((path: string[], value: any) => {
@@ -503,7 +521,7 @@ const GlobalSettingsPanel = React.memo(function GlobalSettingsPanel({
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <input
               type="color"
-              value={globalSettings.background.color}
+              value={globalSettings.background.color || '#ffffff'}
               onChange={(e) => updateSetting(['background', 'color'], e.target.value)}
               style={{
                 width: '40px',
@@ -516,7 +534,7 @@ const GlobalSettingsPanel = React.memo(function GlobalSettingsPanel({
             />
             <input
               type="text"
-              value={globalSettings.background.color}
+              value={globalSettings.background.color || '#ffffff'}
               onChange={(e) => updateSetting(['background', 'color'], e.target.value)}
               placeholder="#ffffff"
               style={{
@@ -568,7 +586,27 @@ const GlobalSettingsPanel = React.memo(function GlobalSettingsPanel({
               <div style={{ padding: '12px', background: '#f9fafb', borderRadius: '8px' }}>
                 <div style={{ marginBottom: '8px' }}>
                   <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
-                    Primary Color
+                    Background Color
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="color"
+                      value={globalSettings.background.pattern?.backgroundColor || globalSettings.background.color || '#ffffff'}
+                      onChange={(e) => updatePattern({ backgroundColor: e.target.value })}
+                      style={{ width: '32px', height: '24px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                    />
+                    <input
+                      type="text"
+                      value={globalSettings.background.pattern?.backgroundColor || globalSettings.background.color || '#ffffff'}
+                      onChange={(e) => updatePattern({ backgroundColor: e.target.value })}
+                      style={{ flex: 1, padding: '2px 6px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '11px' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
+                    Pattern Color
                   </label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input

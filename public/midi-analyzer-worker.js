@@ -34,9 +34,7 @@ self.onmessage = function(e) {
   }
 };
 
-function analyzeMIDIStructure(allNotes) {
-  console.log(`🔬 Worker: Analyzing ${allNotes.length} notes...`);
-  
+function analyzeMIDIStructure(allNotes) {  
   // Detect time signature
   const timeSignature = detectTimeSignature(allNotes);
   
@@ -107,9 +105,7 @@ function detectTimeSignature(notes) {
 
 function analyzeRhythmicStructure(data) {
   const { notes, timeSignature } = data;
-  
-  console.log(`🥁 Worker: Analyzing rhythm for ${notes.length} notes...`);
-  
+    
   const rhythmicImportance = {};
   let downbeatCount = 0;
   let strongBeatCount = 0;
@@ -167,9 +163,7 @@ function calculateRhythmicImportance(noteTime, timeSignature = { numerator: 4, d
   return rhythmicImportance;
 }
 
-function detectMusicalPhrases(notes) {
-  console.log(`🎶 Worker: Detecting phrases in ${notes.length} notes...`);
-  
+function detectMusicalPhrases(notes) {  
   if (notes.length < 5) return [];
   
   const phrases = [];
@@ -244,9 +238,7 @@ function calculatePhraseImportance(notes) {
   return Math.min(importance, 1.0);
 }
 
-function analyzeBassLines(notes) {
-  console.log(`🎸 Worker: Analyzing bass lines in ${notes.length} notes...`);
-  
+function analyzeBassLines(notes) {  
   const bassNoteClasses = new Set();
   
   // Find notes below C3 (approximately 130.8 Hz)

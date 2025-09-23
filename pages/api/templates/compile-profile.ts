@@ -12,15 +12,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Get current user session
+    console.log('COMPILE_API: Getting session user...');
     const sessionUser = await getSessionUser(req);
+    console.log('COMPILE_API: Session user:', sessionUser ? { id: sessionUser.id, primaryHandle: sessionUser.primaryHandle } : 'null');
+
     if (!sessionUser?.id) {
+      console.log('COMPILE_API: No valid session user found');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const { userId, mode, customCSS, customTemplate, force = false } = req.body;
+    console.log('COMPILE_API: Request body:', { userId, mode, customTemplateLength: customTemplate?.length || 0, customCSSLength: customCSS?.length || 0, force });
 
     // Validate inputs
     if (!userId) {
+      console.log('COMPILE_API: userId is missing from request');
       return res.status(400).json({ error: 'userId is required' });
     }
 

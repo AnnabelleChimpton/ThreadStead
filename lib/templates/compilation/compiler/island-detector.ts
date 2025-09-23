@@ -28,12 +28,10 @@ function extractPositioningFromProperties(properties: Record<string, any>): any 
   const purePositioningValue = properties['data-pure-positioning'] || properties['dataPurePositioning'];
 
   if (purePositioningValue) {
-    console.log('🎯 [ISLAND_DETECTOR] Found pure positioning data:', purePositioningValue);
     try {
       // Handle HTML-escaped quotes in the JSON string
       const unescaped = String(purePositioningValue).replace(/&quot;/g, '"');
       const parsed = JSON.parse(unescaped);
-      console.log('🎯 [ISLAND_DETECTOR] Successfully parsed pure positioning data:', parsed);
       return parsed;
     } catch (e) {
       console.warn('Failed to parse data-pure-positioning:', purePositioningValue, 'Error:', e);
@@ -164,18 +162,11 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           }
         }
 
-        // Debug: Log all properties for this component
-        console.log('🎯 [ISLAND_DETECTOR] Processing component:', node.tagName);
-        console.log('🎯 [ISLAND_DETECTOR] Properties received:', node.properties);
-
         // PROPS-BASED POSITIONING: Extract positioning data and put it directly in props
         // This eliminates the need for HTML attribute parsing in the Profile Renderer
         const positioningData = extractPositioningFromProperties(node.properties || {});
         if (positioningData) {
-          console.log('🎯 [ISLAND_DETECTOR] Adding positioning data to props for component:', node.tagName, positioningData);
           rawProps._positioning = positioningData;
-        } else {
-          console.log('🎯 [ISLAND_DETECTOR] No positioning data found for component:', node.tagName);
         }
 
         const props = validateAndCoerceProps(rawProps, registration.props);
@@ -183,8 +174,6 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         // Debug: Check if positioning data survived validation
         if (rawProps._positioning && !props._positioning) {
           console.error('🚨 [ISLAND_DETECTOR] Positioning data was filtered out during prop validation!');
-        } else if (props._positioning) {
-          console.log('🎯 [ISLAND_DETECTOR] Positioning data successfully added to validated props:', props._positioning);
         }
 
         // Create island configuration with children

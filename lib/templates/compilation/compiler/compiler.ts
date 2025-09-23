@@ -54,8 +54,7 @@ export class TemplateCompiler {
           result.compiled.staticHTML,
           result.compiled.islands,
           { type: 'root', children: [] } // Simplified for now
-        );
-        console.log('Template compilation metrics:', metrics);
+        );      
       }
     }
     

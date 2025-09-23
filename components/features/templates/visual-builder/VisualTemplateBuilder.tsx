@@ -58,6 +58,36 @@ export default function VisualTemplateBuilder({
   },
   className = '',
 }: VisualTemplateBuilderProps) {
+  // Change tracking to prevent echo/feedback loops
+  const isInternalChange = React.useRef(false);
+  const lastGeneratedHTML = React.useRef<string>('');
+  const pendingTemplateChange = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Render debugging and circuit breaker
+  const renderCount = React.useRef(0);
+  const lastRenderTime = React.useRef(Date.now());
+  const rapidRenderCount = React.useRef(0);
+
+  renderCount.current += 1;
+  const now = Date.now();
+
+  // Circuit breaker: detect rapid re-renders
+  if (now - lastRenderTime.current < 50) { // Less than 50ms between renders
+    rapidRenderCount.current += 1;
+    if (rapidRenderCount.current > 10) {
+      // Force stop by setting internal change flag
+      isInternalChange.current = true;
+      setTimeout(() => {
+        isInternalChange.current = false;
+        rapidRenderCount.current = 0;
+      }, 1000);
+    }
+  } else {
+    rapidRenderCount.current = 0;
+  }
+
+  lastRenderTime.current = now;
+
   // State for template loading
   const [templateLoadingState, setTemplateLoadingState] = useState<{
     loading: boolean;
@@ -71,19 +101,11 @@ export default function VisualTemplateBuilder({
     componentCount: 0,
   });
 
-  // Parse initial template into components
+  // Parse initial template into components (pure function - no side effects)
   const initialComponents = useMemo(() => {
     if (!initialTemplate || initialTemplate.trim() === '') {
-      setTemplateLoadingState({
-        loading: false,
-        error: null,
-        warnings: [],
-        componentCount: 0,
-      });
       return [];
     }
-
-    setTemplateLoadingState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       // Parse the HTML template using existing parser
@@ -127,29 +149,46 @@ export default function VisualTemplateBuilder({
         return componentItem;
       });
 
+      return convertedComponents;
+    } catch (error) {
+      console.error('Failed to parse initial template:', error);
+      // Return empty array if parsing fails - user can start fresh
+      return [];
+    }
+  }, [initialTemplate]);
+
+  // Separate useEffect to handle loading state updates (moved from useMemo)
+  React.useEffect(() => {
+    if (!initialTemplate || initialTemplate.trim() === '') {
+      setTemplateLoadingState({
+        loading: false,
+        error: null,
+        warnings: [],
+        componentCount: 0,
+      });
+      return;
+    }
+
+    setTemplateLoadingState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const parseResult = parseExistingTemplate(initialTemplate);
       setTemplateLoadingState({
         loading: false,
         error: null,
         warnings: parseResult.warnings,
-        componentCount: convertedComponents.length,
+        componentCount: initialComponents.length,
       });
-
-      return convertedComponents;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown parsing error';
-      console.error('Failed to parse initial template:', error);
-
       setTemplateLoadingState({
         loading: false,
         error: `Failed to load existing template: ${errorMessage}. Starting with empty canvas.`,
         warnings: [],
         componentCount: 0,
       });
-
-      // Return empty array if parsing fails - user can start fresh
-      return [];
     }
-  }, [initialTemplate]);
+  }, [initialTemplate, initialComponents.length]);
 
   // Modern panel management
   const { togglePanel, isPanelOpen } = useFloatingPanels();
@@ -175,20 +214,23 @@ export default function VisualTemplateBuilder({
   // Simplified canvas state management with initial components
   const originalCanvasState = useCanvasState(initialComponents);
 
-  // Apply global settings from parsed template
+  // Apply global settings from parsed template (only on initial load)
+  const [hasLoadedInitialSettings, setHasLoadedInitialSettings] = React.useState(false);
+
   React.useEffect(() => {
-    if (initialTemplate && initialTemplate.trim() !== '') {
+    // Only run on first load when we have a template and haven't loaded settings yet
+    if (initialTemplate && initialTemplate.trim() !== '' && !hasLoadedInitialSettings) {
       try {
         const parseResult = parseExistingTemplate(initialTemplate);
         if (parseResult.globalSettings) {
           originalCanvasState.setGlobalSettings(parseResult.globalSettings);
-          console.log('[VisualTemplateBuilder] Applied global settings from template:', parseResult.globalSettings);
+          setHasLoadedInitialSettings(true);
         }
       } catch (error) {
-        console.warn('[VisualTemplateBuilder] Failed to extract global settings:', error);
+        setHasLoadedInitialSettings(true); // Mark as attempted to prevent infinite retries
       }
     }
-  }, [initialTemplate, originalCanvasState.setGlobalSettings]);
+  }, [initialTemplate, hasLoadedInitialSettings]); // Removed function dependency
 
   // Breakpoint preview controls
   const [previewBreakpoint, setPreviewBreakpoint] = useState<string | null>(null);
@@ -225,7 +267,7 @@ export default function VisualTemplateBuilder({
     ...restCanvasState
   } = originalCanvasState;
 
-  // Helper function to compare if components have actually changed
+  // Helper function to compare if components have actually changed (memoized to prevent recreation)
   const componentsAreEqual = useCallback((components1: ComponentItem[], components2: ComponentItem[]): boolean => {
     if (components1.length !== components2.length) {
       return false;
@@ -265,7 +307,7 @@ export default function VisualTemplateBuilder({
     }
 
     return true;
-  }, []);
+  }, []); // Stable callback
 
   // Track when user makes ANY changes (add, remove, update, move)
   const markUserChange = useCallback(() => {
@@ -402,14 +444,27 @@ export default function VisualTemplateBuilder({
       return PositioningMigration.convertLegacyComponent(component);
     });
 
+    const now = new Date(); // Create once to avoid different timestamps
     return {
       container: DEFAULT_CANVAS_CONTAINER,
       components: absoluteComponents,
       version: '2.0',
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: now,
+      updatedAt: now
     };
   }, [placedComponents]);
+
+  // Memoize CSS generation separately to prevent duplication
+  const globalCSS = useMemo(() => {
+    if (!globalSettings) return { css: '', classNames: [] };
+
+    try {
+      return generateCSSFromGlobalSettings(globalSettings);
+    } catch (error) {
+      console.error('Failed to generate global settings CSS:', error);
+      return { css: '', classNames: [] };
+    }
+  }, [globalSettings]);
 
   // Generate HTML using new pure positioning system
   const generatePureHTMLOutput = useCallback((): string => {
@@ -424,50 +479,42 @@ export default function VisualTemplateBuilder({
       console.warn('Pure HTML generation warnings:', result.warnings);
     }
 
-    // Add global settings as CSS classes and embedded CSS
+    // Add global settings as CSS classes (CSS already generated in memoized globalCSS)
     let finalHTML = result.html;
-    if (globalSettings) {
-      try {
-        // Generate CSS classes and styles from global settings
-        const result = generateCSSFromGlobalSettings(globalSettings);
-        const { css, classNames } = result;
+    if (globalSettings && globalCSS.classNames.length > 0) {
+      const classString = globalCSS.classNames.join(' ');
+      // Find the container div and add classes
+      finalHTML = finalHTML.replace(
+        /class="pure-absolute-container"/,
+        `class="pure-absolute-container ${classString}"`
+      );
+    }
 
-        // Add CSS classes to the container
-        if (classNames && classNames.length > 0) {
-          const classString = classNames.join(' ');
-          // Find the container div and add classes
-          finalHTML = finalHTML.replace(
-            /class="pure-absolute-container"/,
-            `class="pure-absolute-container ${classString}"`
-          );
-        }
+    // Add the CSS styles to the document (only if not already present)
+    if (globalCSS.css && globalCSS.css.trim()) {
+      // Validate CSS is not empty and has proper structure
+      if (globalCSS.css.includes('{') && globalCSS.css.includes('}')) {
+        // IMPORTANT: Don't remove existing CSS - let it be parsed by the template parser
+        // The EnhancedTemplateEditor will handle CSS replacement properly
 
-        // Add the CSS styles to the document
-        if (css && css.trim()) {
-          // Validate CSS is not empty and has proper structure
-          if (css.includes('{') && css.includes('}')) {
-            const styleTag = `<style>
-${css}
+        // Create new style tag with current CSS
+        const styleTag = `<style>
+${globalCSS.css}
 </style>`;
 
-            // Insert style tag at the beginning of the HTML
-            if (finalHTML.includes('<head>')) {
-              finalHTML = finalHTML.replace('<head>', `<head>\n${styleTag}`);
-            } else {
-              finalHTML = styleTag + '\n' + finalHTML;
-            }
-          } else {
-            console.warn('Generated CSS appears to be invalid, skipping CSS injection');
-          }
+        // Insert style tag at the beginning of the HTML
+        if (finalHTML.includes('<head>')) {
+          finalHTML = finalHTML.replace('<head>', `<head>\n${styleTag}`);
+        } else {
+          finalHTML = styleTag + '\n' + finalHTML;
         }
-      } catch (error) {
-        console.error('Failed to generate global settings CSS:', error);
-        // Continue without CSS to prevent compilation failure
+      } else {
+        console.warn('Generated CSS appears to be invalid, skipping CSS injection');
       }
     }
 
     return finalHTML;
-  }, [convertToPureCanvasState, globalSettings]);
+  }, [convertToPureCanvasState, globalCSS]);
 
   // Helper function to generate HTML for a single component and its children (LEGACY - to be removed)
   const generateComponentHTML = useCallback((component: ComponentItem, indent: string = '  ', isChild: boolean = false): string => {
@@ -666,7 +713,34 @@ ${css}
   });
   const initialGlobalSettingsRef = React.useRef(initialGlobalSettingsState);
 
+  // Debounced template change function to prevent rapid-fire updates
+  const debouncedTemplateChange = React.useCallback((html: string) => {
+    // Clear any pending template change
+    if (pendingTemplateChange.current) {
+      clearTimeout(pendingTemplateChange.current);
+    }
+
+    // Debounce the template change call
+    pendingTemplateChange.current = setTimeout(() => {
+      if (onTemplateChange && html !== lastGeneratedHTML.current) {
+        isInternalChange.current = true; // Mark as internal change
+        lastGeneratedHTML.current = html;
+        onTemplateChange(html);
+
+        // Reset internal change flag after a short delay
+        setTimeout(() => {
+          isInternalChange.current = false;
+        }, 100);
+      }
+    }, 150); // 150ms debounce
+  }, [onTemplateChange]);
+
   React.useEffect(() => {
+    // Ignore changes that are coming from our own onTemplateChange calls
+    if (isInternalChange.current) {
+      return;
+    }
+
     // Check if components have actually changed from the initial state
     const componentsChanged = !componentsAreEqual(placedComponents, initialComponentsRef.current);
 
@@ -679,16 +753,17 @@ ${css}
     }
 
     // Mark that user has made changes once components or global settings differ from initial
+    // Use functional update to avoid dependency issues
     if (!hasUserMadeChanges && (componentsChanged || globalSettingsChanged)) {
-      setHasUserMadeChanges(true);
+      setHasUserMadeChanges(prev => prev ? prev : true);
     }
 
     // Only call template change after user has made changes
-    if (onTemplateChange && hasUserMadeChanges) {
+    if (hasUserMadeChanges) {
       const html = generateHTML();
-      onTemplateChange(html);
+      debouncedTemplateChange(html);
     }
-  }, [placedComponents, globalSettings, onTemplateChange, generateHTML, hasUserMadeChanges, componentsAreEqual]);
+  }, [placedComponents, globalSettings, generateHTML, componentsAreEqual, debouncedTemplateChange]);
 
   // Keyboard shortcuts
   React.useEffect(() => {

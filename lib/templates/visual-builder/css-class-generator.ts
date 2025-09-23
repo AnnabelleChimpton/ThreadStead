@@ -24,6 +24,64 @@ export class CSSClassGenerator {
   private classDefinitions: CSSClassDefinition[] = [];
 
   /**
+   * Sanitize CSS values to prevent infinite variable recursion
+   */
+  private sanitizeCSSValue(value: string | undefined, fallback: string): string {
+    if (!value || typeof value !== 'string') {
+      return fallback;
+    }
+
+    // Trim the value
+    const trimmedValue = value.trim();
+    if (!trimmedValue) {
+      return fallback;
+    }
+
+    // Check if the value is a CSS variable (var(...))
+    const varMatch = trimmedValue.match(/^var\s*\(/);
+    if (varMatch) {
+      // Extract the variable name from var(--variable-name, fallback)
+      const selfRefMatch = trimmedValue.match(/var\s*\(\s*(--[\w-]+)\s*(?:,\s*([^)]+))?\)/);
+      if (selfRefMatch) {
+        const varName = selfRefMatch[1];
+        const varFallback = selfRefMatch[2];
+
+        // Detect self-reference by checking if variable references itself
+        const currentPropertyName = this.getCurrentPropertyName();
+        if (currentPropertyName && varName === currentPropertyName) {
+          console.warn(`[CSSClassGenerator] Detected CSS variable recursion: ${varName} references itself, using fallback: ${fallback}`);
+          return fallback;
+        }
+
+        // If there's a fallback value that's not the same variable, use it
+        if (varFallback && varFallback.trim() && !varFallback.includes(varName)) {
+          return varFallback.trim();
+        }
+
+        // If no valid fallback in the var(), use the provided fallback
+        console.warn(`[CSSClassGenerator] Preventing potential CSS variable recursion for ${varName}, using fallback: ${fallback}`);
+        return fallback;
+      }
+    }
+
+    // For normal values, return as-is
+    return trimmedValue;
+  }
+
+  /**
+   * Track current property name being processed (for recursion detection)
+   */
+  private currentPropertyName: string | null = null;
+
+  private getCurrentPropertyName(): string | null {
+    return this.currentPropertyName;
+  }
+
+  private setCurrentPropertyName(name: string | null): void {
+    this.currentPropertyName = name;
+  }
+
+  /**
    * Generate CSS classes for a complete global settings configuration
    */
   generateGlobalCSS(globalSettings: GlobalSettings): GeneratedCSS {
@@ -40,8 +98,10 @@ export class CSSClassGenerator {
     const themeClasses = this.generateThemeClasses(globalSettings);
     this.classDefinitions.push(...themeClasses);
 
-    // Generate pattern classes
-    if (globalSettings.background?.pattern && globalSettings.background.pattern.type !== 'none') {
+    // Generate pattern classes (only when background type is pattern)
+    if (globalSettings.background?.type === 'pattern' &&
+        globalSettings.background.pattern &&
+        globalSettings.background.pattern.type !== 'none') {
       const patternClasses = this.generatePatternClasses(globalSettings.background.pattern);
       this.classDefinitions.push(...patternClasses);
     }
@@ -69,9 +129,20 @@ export class CSSClassGenerator {
   private generateRootProperties(globalSettings: GlobalSettings): CSSClassDefinition {
     const properties: Record<string, string> = {};
 
-    // Background properties
-    if (globalSettings.background?.color) {
-      properties['--vb-bg-color'] = globalSettings.background.color;
+    // Background properties - sanitize to prevent CSS variable recursion
+    let backgroundColorToUse = globalSettings.background?.color;
+
+    // For patterns, use pattern's backgroundColor if available, otherwise fall back to global background color
+    if (globalSettings.background?.type === 'pattern' &&
+        globalSettings.background.pattern?.backgroundColor) {
+      backgroundColorToUse = globalSettings.background.pattern.backgroundColor;
+    }
+
+    if (backgroundColorToUse) {
+      this.setCurrentPropertyName('--global-bg-color');
+      const sanitizedBgColor = this.sanitizeCSSValue(backgroundColorToUse, '#ffffff');
+      properties['--global-bg-color'] = sanitizedBgColor;
+      this.setCurrentPropertyName(null);
     }
     if (globalSettings.background?.type) {
       properties['--vb-bg-type'] = globalSettings.background.type;
@@ -84,6 +155,9 @@ export class CSSClassGenerator {
       properties['--vb-pattern-primary'] = pattern.primaryColor;
       properties['--vb-pattern-size'] = pattern.size.toString();
       properties['--vb-pattern-opacity'] = pattern.opacity.toString();
+      if (pattern.backgroundColor) {
+        properties['--vb-pattern-background'] = pattern.backgroundColor;
+      }
       if (pattern.secondaryColor) {
         properties['--vb-pattern-secondary'] = pattern.secondaryColor;
       }
@@ -95,23 +169,35 @@ export class CSSClassGenerator {
       }
     }
 
-    // Typography properties
+    // Typography properties - sanitize to prevent CSS variable recursion (use global naming)
     if (globalSettings.typography?.fontFamily) {
-      properties['--vb-font-family'] = globalSettings.typography.fontFamily;
+      this.setCurrentPropertyName('--global-font-family');
+      const fontFamily = this.sanitizeCSSValue(globalSettings.typography.fontFamily, 'Inter, sans-serif');
+      properties['--global-font-family'] = fontFamily;
+      this.setCurrentPropertyName(null);
     }
     if (globalSettings.typography?.baseSize) {
-      properties['--vb-base-size'] = globalSettings.typography.baseSize;
+      this.setCurrentPropertyName('--global-base-font-size');
+      const baseSize = this.sanitizeCSSValue(globalSettings.typography.baseSize, '16px');
+      properties['--global-base-font-size'] = baseSize;
+      this.setCurrentPropertyName(null);
     }
     if (globalSettings.typography?.scale) {
-      properties['--vb-typography-scale'] = globalSettings.typography.scale.toString();
+      properties['--global-typography-scale'] = globalSettings.typography.scale.toString();
     }
 
-    // Spacing properties
+    // Spacing properties - sanitize to prevent CSS variable recursion (use global naming)
     if (globalSettings.spacing?.containerPadding) {
-      properties['--vb-container-padding'] = globalSettings.spacing.containerPadding;
+      this.setCurrentPropertyName('--global-container-padding');
+      const containerPadding = this.sanitizeCSSValue(globalSettings.spacing.containerPadding, '24px');
+      properties['--global-container-padding'] = containerPadding;
+      this.setCurrentPropertyName(null);
     }
     if (globalSettings.spacing?.sectionSpacing) {
-      properties['--vb-section-spacing'] = globalSettings.spacing.sectionSpacing;
+      this.setCurrentPropertyName('--global-section-spacing');
+      const sectionSpacing = this.sanitizeCSSValue(globalSettings.spacing.sectionSpacing, '32px');
+      properties['--global-section-spacing'] = sectionSpacing;
+      this.setCurrentPropertyName(null);
     }
 
     // Theme
@@ -149,17 +235,17 @@ export class CSSClassGenerator {
     const themeClass = `vb-theme-${globalSettings.theme}`;
     const themeProperties: Record<string, string> = {};
 
-    // Background color - use CSS custom property with fallback
+    // Background color - use CSS custom property (matching inline style naming)
     if (globalSettings.background?.color) {
-      themeProperties['background-color'] = `var(--vb-bg-color, ${globalSettings.background.color})`;
+      themeProperties['background-color'] = `var(--global-bg-color)`;
     }
 
-    // Typography - use CSS custom properties with fallbacks
+    // Typography - use CSS custom properties (matching global naming)
     if (globalSettings.typography?.fontFamily) {
-      themeProperties['font-family'] = `var(--vb-font-family, ${globalSettings.typography.fontFamily})`;
+      themeProperties['font-family'] = `var(--global-font-family)`;
     }
     if (globalSettings.typography?.baseSize) {
-      themeProperties['font-size'] = `var(--vb-base-size, ${globalSettings.typography.baseSize})`;
+      themeProperties['font-size'] = `var(--global-base-font-size)`;
     }
     if (globalSettings.typography?.textShadow) {
       themeProperties['text-shadow'] = globalSettings.typography.textShadow;
@@ -168,9 +254,9 @@ export class CSSClassGenerator {
       themeProperties['letter-spacing'] = globalSettings.typography.letterSpacing;
     }
 
-    // Spacing - use CSS custom properties with fallbacks
+    // Spacing - use CSS custom properties (matching global naming)
     if (globalSettings.spacing?.containerPadding) {
-      themeProperties['padding'] = `var(--vb-container-padding, ${globalSettings.spacing.containerPadding})`;
+      themeProperties['padding'] = `var(--global-container-padding)`;
     }
 
     classes.push({
@@ -414,8 +500,10 @@ export class CSSClassGenerator {
     // Theme class
     classNames.push(`vb-theme-${globalSettings.theme}`);
 
-    // Pattern class
-    if (globalSettings.background?.pattern && globalSettings.background.pattern.type !== 'none') {
+    // Pattern class (only when background type is pattern)
+    if (globalSettings.background?.type === 'pattern' &&
+        globalSettings.background.pattern &&
+        globalSettings.background.pattern.type !== 'none') {
       classNames.push(`vb-pattern-${globalSettings.background.pattern.type}`);
       if (globalSettings.background.pattern.animated) {
         classNames.push(`vb-pattern-${globalSettings.background.pattern.type}-animated`);

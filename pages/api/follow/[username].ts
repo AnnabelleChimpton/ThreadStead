@@ -32,13 +32,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Create follow notification
     try {
-      console.log(`Creating follow notification: ${viewer.id} followed ${authorId}`);
       await createFollowNotification(authorId, viewer.id);
 
       // Check if this creates a mutual friendship
       const isMutual = await checkForMutualFollow(viewer.id, authorId);
       if (isMutual) {
-        console.log(`Creating mutual friend notifications between ${viewer.id} and ${authorId}`);
         // Create friend notifications for both users
         await createFriendNotification(authorId, viewer.id);
         await createFriendNotification(viewer.id, authorId);

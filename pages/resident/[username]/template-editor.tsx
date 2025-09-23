@@ -42,29 +42,47 @@ export default function TemplateEditorPage({
   // Extract HTML content and any embedded CSS from existing template
   let extractedHtmlContent = '';
   let embeddedCSS = '';
-  
+
   if (existingTemplate) {
     // Check for embedded style tags in the template
     const styleMatches = existingTemplate.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
     if (styleMatches) {
-      // Extract CSS from style tags
+      // Extract CSS from style tags, but skip Visual Builder CSS
       styleMatches.forEach(styleTag => {
         const cssMatch = styleTag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
         if (cssMatch && cssMatch[1]) {
-          embeddedCSS += cssMatch[1].trim() + '\n\n';
+          const css = cssMatch[1].trim();
+
+          // Skip Visual Builder CSS - it will be regenerated fresh by Visual Builder
+          // This prevents accumulation of old/outdated Visual Builder CSS blocks
+          const isVisualBuilderCSS =
+            css.includes('Visual Builder Generated CSS') ||
+            css.includes('CSS Custom Properties for easy editing') ||
+            css.includes('--vb-bg-color') ||
+            css.includes('--vb-bg-type') ||
+            css.includes('--global-bg-color') ||
+            css.includes('--global-font-family') ||
+            css.includes('.vb-theme-') ||
+            css.includes('.vb-effect-') ||
+            css.includes('.vb-pattern-');
+
+          if (!isVisualBuilderCSS) {
+            // Only preserve non-Visual Builder CSS
+            embeddedCSS += css + '\n\n';
+          }
         }
       });
     }
-    // Remove style tags from HTML
+    // Remove ALL style tags from HTML (Visual Builder will regenerate its CSS)
     extractedHtmlContent = existingTemplate.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
   }
 
-  // Combine saved customCSS with any embedded CSS found in the template
+  // Combine saved customCSS with any embedded non-Visual Builder CSS
   // Priority: saved customCSS first, then any embedded CSS
   let extractedCssContent = customCSS || '';
   if (embeddedCSS && !extractedCssContent.includes(embeddedCSS.trim())) {
     // Only add embedded CSS if it's not already in the saved CSS
-    extractedCssContent = extractedCssContent.trim() 
+    extractedCssContent = extractedCssContent.trim()
       ? `${extractedCssContent}\n\n/* Recovered from template */\n${embeddedCSS.trim()}`
       : embeddedCSS.trim();
   }
@@ -87,16 +105,6 @@ export default function TemplateEditorPage({
   const cleanedCssContent = extractedCssContent.replace(/\/\* CSS_MODE:\w+ \*\/\n?/, '');
 
   const handleSave = async (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', showNavigation?: boolean) => {
-    // Debug: Check what's being passed to save
-    const hasPositioningInTemplate = template.includes('data-positioning-mode') || template.includes('data-pixel-position');
-    console.log('🎯 [TEMPLATE_EDITOR_SAVE] Received template with positioning data:', hasPositioningInTemplate);
-
-    if (hasPositioningInTemplate) {
-      console.log('🎯 [TEMPLATE_EDITOR_SAVE] Template content:', template.substring(0, 800) + '...');
-      const positioningMatches = template.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
-      console.log('🎯 [TEMPLATE_EDITOR_SAVE] Found positioning attributes:', positioningMatches);
-    }
-
     // Combine HTML and CSS for API
     const fullTemplate = `${template}${css.trim() ? `\n<style>\n${css}\n</style>` : ''}`;
 
@@ -108,10 +116,6 @@ export default function TemplateEditorPage({
       ...(compiledTemplate && { ast: compiledTemplate }),
       ...(cssMode && { cssMode: cssMode })
     };
-
-    console.log('🎯 [TEMPLATE_EDITOR_SAVE] Making API request to save template...');
-    console.log('🎯 [TEMPLATE_EDITOR_SAVE] Request body template field has positioning:', requestBody.template.includes('data-positioning-mode'));
-
     try {
       // Save the template
       const response = await fetch(`/api/profile/${username}/template`, {
@@ -122,8 +126,6 @@ export default function TemplateEditorPage({
         body: JSON.stringify(requestBody),
       });
 
-      console.log('🎯 [TEMPLATE_EDITOR_SAVE] API response status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
         console.error('🎯 [TEMPLATE_EDITOR_SAVE] API error:', errorData);
@@ -131,8 +133,6 @@ export default function TemplateEditorPage({
       }
 
       const responseData = await response.json();
-      console.log('🎯 [TEMPLATE_EDITOR_SAVE] API response:', responseData);
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to save template");

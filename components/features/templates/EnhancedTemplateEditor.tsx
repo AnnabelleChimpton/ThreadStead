@@ -277,8 +277,82 @@ export default function EnhancedTemplateEditor({
 
   // Handle template changes from visual builder
   const handleVisualTemplateChange = useCallback((html: string) => {
-    setTemplate(html);
-  }, []);
+    // When Visual Builder returns HTML, we need to separate CSS and HTML
+    // Check if the HTML contains style tags
+    const styleMatches = html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+
+    if (styleMatches && styleMatches.length > 0) {
+      // Extract CSS from style tags
+      let newCSS = '';
+      let userCSS = customCSS || '';
+
+      styleMatches.forEach(styleTag => {
+        const cssMatch = styleTag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+        if (cssMatch && cssMatch[1]) {
+          const css = cssMatch[1].trim();
+
+          // Check if this is Visual Builder CSS
+          const isVisualBuilderCSS =
+            css.includes('Visual Builder Generated CSS') ||
+            css.includes('CSS Custom Properties for easy editing') ||
+            css.includes('CSS Classes for styling') ||
+            css.includes('--global-bg-color') ||
+            css.includes('--vb-bg-type') ||
+            css.includes('--vb-pattern-type') ||
+            css.includes('--vb-pattern-primary') ||
+            css.includes('--global-font-family') ||
+            css.includes('--global-typography-scale') ||
+            css.includes('.vb-theme-') ||
+            css.includes('.vb-effect-') ||
+            css.includes('.vb-pattern-') ||
+            // Check for any CSS that contains multiple VB variables
+            (css.match(/--(?:vb-|global-)/g) || []).length > 2;
+
+          if (isVisualBuilderCSS) {
+            // For Visual Builder CSS, completely replace (not append)
+            // We'll generate fresh CSS each time instead of trying to deduplicate
+            newCSS = css;
+          } else {
+            // Keep other CSS as user CSS
+            if (!userCSS.includes(css)) {
+              userCSS += userCSS ? '\n\n' + css : css;
+            }
+          }
+        }
+      });
+
+      // Update CSS tab with ONLY user CSS + new Visual Builder CSS (complete replacement)
+      // First, strip out any existing Visual Builder CSS from current CSS
+      let cleanUserCSS = customCSS || '';
+
+      // Remove all existing Visual Builder CSS blocks
+      const vbRemovalPatterns = [
+        /\/\* Visual Builder Generated CSS \*\/[\s\S]*?(?=(?:\/\*(?!.*Visual Builder)|\s*$))/g,
+        /\/\* CSS Custom Properties for easy editing \*\/[\s\S]*?(?=(?:\/\*(?!.*CSS Custom Properties)|\s*$))/g,
+        /\/\* CSS Classes for styling \*\/[\s\S]*?(?=(?:\/\*(?!.*CSS Classes)|\s*$))/g
+      ];
+
+      vbRemovalPatterns.forEach(pattern => {
+        cleanUserCSS = cleanUserCSS.replace(pattern, '').trim();
+      });
+
+      // Clean up multiple newlines
+      cleanUserCSS = cleanUserCSS.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
+
+      // Combine clean user CSS with new Visual Builder CSS
+      const combinedCSS = newCSS ?
+        (cleanUserCSS ? `${cleanUserCSS}\n\n/* Visual Builder Generated CSS */\n${newCSS}` : `/* Visual Builder Generated CSS */\n${newCSS}`) :
+        cleanUserCSS;
+
+      if (combinedCSS !== customCSS) {
+        setCustomCSS(combinedCSS);
+      }
+    }
+
+    // Remove style tags from HTML for the template tab
+    const cleanedHtml = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
+    setTemplate(cleanedHtml);
+  }, [customCSS]);
 
   // Handle mode switching between code and visual
   const handleModeSwitch = useCallback((newMode: 'code' | 'visual') => {
@@ -375,10 +449,16 @@ export default function EnhancedTemplateEditor({
     }
 
     try {
+      // Validate user.id before making the request
+      if (!user?.id) {
+        return null;
+      }
+
       // Call the same compilation API that production uses
       const response = await fetch('/api/templates/compile-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Ensure cookies are sent with the request
         body: JSON.stringify({
           userId: user.id,
           mode: 'advanced',
@@ -389,14 +469,24 @@ export default function EnhancedTemplateEditor({
       });
 
       if (!response.ok) {
-        console.error('POPUP: Compilation API failed:', response.status, response.statusText);
+        // Handle specific status codes
+        if (response.status === 401) {
+          // User not authenticated - Visual Builder will continue to work
+          return null;
+        }
+
+        // Try to get more details from the response
+        try {
+          const errorData = await response.json();
+        } catch (parseError) {
+          // Could not parse error response
+        }
         return null;
       }
 
       const result = await response.json();
 
       if (!result.success || !result.compiled) {
-        console.error('POPUP: Compilation failed:', result.errors);
         return null;
       }
 
@@ -404,7 +494,12 @@ export default function EnhancedTemplateEditor({
       setLastCompiledTemplate(template); // Track what we compiled
       return result.compiled;
     } catch (error) {
-      console.error('POPUP: Template compilation failed:', error);
+      // Check if it's a network error specifically
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        // Network connectivity issue - Visual Builder will continue to work
+      }
+
+      // Don't throw the error, just return null to allow Visual Builder to continue working
       return null;
     }
   }, [template, useStandardLayout, user.id, customCSS, lastCompiledTemplate, compiledTemplate]);
@@ -813,8 +908,13 @@ export default function EnhancedTemplateEditor({
   useEffect(() => {
     if (!useStandardLayout && template.trim()) {
       // Only recompile if template content actually changed
-      const timer = setTimeout(() => {
-        compileTemplateForPreview();
+      const timer = setTimeout(async () => {
+        const result = await compileTemplateForPreview();
+
+        // If compilation failed, Visual Builder continues to work
+        if (result === null && template.trim()) {
+          // Could show a toast notification here if needed
+        }
       }, 500);
       return () => clearTimeout(timer);
     } else if (useStandardLayout) {
@@ -1611,7 +1711,9 @@ body {
             {/* Visual Builder Content */}
             <div className="flex-1 overflow-hidden">
               <VisualTemplateBuilder
-                initialTemplate={template}
+                initialTemplate={customCSS && customCSS.trim() && !customCSS.includes('/* Add your custom CSS here */')
+                  ? `<style>\n${customCSS}\n</style>\n${template}`
+                  : template}
                 onTemplateChange={handleVisualTemplateChange}
                 residentData={residentData || undefined}
                 className="h-full"

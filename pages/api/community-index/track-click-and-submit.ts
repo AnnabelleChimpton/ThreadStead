@@ -112,9 +112,6 @@ export default async function handler(
             autoValidated: shouldAutoValidate,
             reasons: evaluation.reasons
           };
-
-          console.log(`🎯 Auto-submitted clicked site: ${result.title} (score: ${evaluation.score}, auto-validated: ${shouldAutoValidate})`);
-
         } catch (error) {
           console.error('Failed to auto-submit clicked site:', error);
           submissionResult = {

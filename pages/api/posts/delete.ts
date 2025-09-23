@@ -66,8 +66,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const threadRingPostId = threadRingPostIds[ringSlug];
           
           if (threadRingPostId) {
-            // Use the stored database UUID directly
-            console.log(`🎯 Using stored ThreadRing post ID ${threadRingPostId} for ring ${ringSlug}`);
             
             const ringHubResponse = await authenticatedClient.curatePost(
               threadRingPostId, 
@@ -76,12 +74,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 reason: reason || "Author removed their own content"
               }
             );
-            
-            console.log(`✅ Removed post from RingHub ring ${ringSlug}:`, {
-              threadSteadPostId: id,
-              threadRingPostId: threadRingPostId,
-              ringSlug
-            });
             
             totalRemovedCount++;
             affectedRings.push(ringSlug);
@@ -106,12 +98,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
               );
               
-              console.log(`⚠️ Removed post using URI fallback from ring ${ringSlug}:`, {
-                threadSteadPostId: id,
-                ringHubPostRefId: matchingPostRef.id,
-                ringSlug
-              });
-              
               totalRemovedCount++;
               affectedRings.push(ringSlug);
             } else {
@@ -125,11 +111,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
         }
       }
-      
-      console.log(`Author ${me.primaryHandle || me.id} removed their post ${id} from RingHub:`, {
-        totalRemoved: totalRemovedCount,
-        affectedRings: affectedRings
-      });
       
       ringHubSynced = totalRemovedCount > 0;
       affectedRingsResult = affectedRings;

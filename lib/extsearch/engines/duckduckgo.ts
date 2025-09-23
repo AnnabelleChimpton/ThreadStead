@@ -197,8 +197,6 @@ export class DuckDuckGoEngine implements ExtSearchEngine {
         throw error;
       }
 
-      // DuckDuckGo instant API failures are not critical
-      console.log('DuckDuckGo instant answer failed (expected for many queries)');
       return {
         results: [],
         totalResults: 0,

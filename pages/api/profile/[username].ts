@@ -58,10 +58,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .map(i => ({ id: i.pluginId, mode: i.mode, label: undefined })),
   };
   
-  // Debug includeSiteCSS value
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`Profile API [${username}] includeSiteCSS:`, u.profile?.includeSiteCSS);
-  }
-  
   return res.json(response);
 }

@@ -34,6 +34,7 @@ import AlignmentGuides, { useAlignmentGuides } from './AlignmentGuides';
 import PositionIndicator, { usePositionIndicator } from './PositionIndicator';
 import type { GlobalSettings } from './GlobalSettingsPanel';
 import { generatePatternCSS, generateGradientCSS } from '@/lib/templates/visual-builder/background-patterns';
+import { generateCSSFromGlobalSettings } from '@/lib/templates/visual-builder/css-class-generator';
 
 /**
  * Generate CSS custom properties from global settings
@@ -41,50 +42,65 @@ import { generatePatternCSS, generateGradientCSS } from '@/lib/templates/visual-
 function generateGlobalCSSProperties(globalSettings: GlobalSettings | null): React.CSSProperties {
   if (!globalSettings) return {};
 
-  // Build background based on type
+  // Minimal inline styles - let CSS classes handle most styling
+  // Only include complex backgrounds that require dynamic generation
   let backgroundStyle: any = {};
 
   if (globalSettings.background?.type === 'pattern' && globalSettings.background?.pattern) {
+    // For patterns, generate the background image inline but let CSS classes handle color
     const patternCSS = generatePatternCSS(globalSettings.background.pattern);
     if (patternCSS) {
       backgroundStyle = {
-        backgroundColor: globalSettings.background.color,
         backgroundImage: patternCSS,
         backgroundRepeat: 'repeat',
         backgroundSize: `${(globalSettings.background.pattern.size || 1) * 40}px ${(globalSettings.background.pattern.size || 1) * 40}px`
+        // Let CSS classes handle backgroundColor via var(--vb-bg-color)
       };
     }
   } else if (globalSettings.background?.type === 'gradient' && globalSettings.background?.gradient) {
     backgroundStyle = {
       background: generateGradientCSS(globalSettings.background.gradient)
     };
-  } else {
-    backgroundStyle = {
-      backgroundColor: globalSettings.background?.color
-    };
+  }
+  // For solid colors, let CSS classes handle everything via var(--vb-bg-color)
+
+  const cssProperties: React.CSSProperties = {
+    // Only complex backgrounds as inline styles
+    ...backgroundStyle,
+
+    // Let CSS classes handle text and spacing via CSS custom properties
+    // Remove conflicting inline styles that override CSS classes
+  };
+
+  // Only add CSS variables if they have actual values (avoid overriding CSS)
+  // Note: Don't set --global-bg-color for solid backgrounds - let CSS classes handle it
+  // This prevents white overrides from fallback values
+  if (globalSettings.background?.color && globalSettings.background?.type !== 'solid') {
+    (cssProperties as any)['--global-bg-color'] = globalSettings.background.color;
+  }
+  if (globalSettings.background?.type) {
+    (cssProperties as any)['--global-bg-type'] = globalSettings.background.type;
+  }
+  if (globalSettings.typography?.fontFamily) {
+    (cssProperties as any)['--global-font-family'] = globalSettings.typography.fontFamily;
+  }
+  if (globalSettings.typography?.baseSize) {
+    (cssProperties as any)['--global-base-font-size'] = globalSettings.typography.baseSize;
+  }
+  if (globalSettings.typography?.scale) {
+    (cssProperties as any)['--global-typography-scale'] = globalSettings.typography.scale.toString();
+  }
+  if (globalSettings.spacing?.containerPadding) {
+    (cssProperties as any)['--global-container-padding'] = globalSettings.spacing.containerPadding;
+  }
+  if (globalSettings.spacing?.sectionSpacing) {
+    (cssProperties as any)['--global-section-spacing'] = globalSettings.spacing.sectionSpacing;
+  }
+  if (globalSettings.theme) {
+    (cssProperties as any)['--global-theme'] = globalSettings.theme;
   }
 
-  return {
-    // CSS Variables
-    '--global-bg-color': globalSettings.background?.color,
-    '--global-bg-type': globalSettings.background?.type,
-    '--global-font-family': globalSettings.typography?.fontFamily,
-    '--global-base-font-size': globalSettings.typography?.baseSize,
-    '--global-typography-scale': globalSettings.typography?.scale?.toString() || '1.25',
-    '--global-container-padding': globalSettings.spacing?.containerPadding,
-    '--global-section-spacing': globalSettings.spacing?.sectionSpacing,
-    '--global-theme': globalSettings.theme,
-
-    // Direct styles
-    ...backgroundStyle,
-    fontFamily: globalSettings.typography?.fontFamily,
-    fontSize: globalSettings.typography?.baseSize,
-    padding: globalSettings.spacing?.containerPadding,
-
-    // Effects
-    borderRadius: globalSettings.effects?.borderRadius,
-    boxShadow: globalSettings.effects?.boxShadow,
-  } as React.CSSProperties;
+  return cssProperties;
 }
 
 /**
@@ -306,6 +322,36 @@ export default function CanvasRenderer({
 
   // Extract global settings from canvas state
   const { globalSettings } = canvasState;
+
+  // Generate CSS classes for global settings
+  const globalCSS = useMemo(() => {
+    if (!globalSettings) return { css: '', classNames: [] };
+    return generateCSSFromGlobalSettings(globalSettings);
+  }, [globalSettings]);
+
+  // Inject CSS into document head for visual builder
+  useEffect(() => {
+    if (!globalCSS.css) return;
+
+    const styleId = 'visual-builder-global-css';
+    let styleElement = document.getElementById(styleId) as HTMLStyleElement;
+
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = styleId;
+      document.head.appendChild(styleElement);
+    }
+
+    styleElement.textContent = globalCSS.css;
+
+    return () => {
+      // Clean up the style element when component unmounts
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle && existingStyle.parentNode) {
+        existingStyle.parentNode.removeChild(existingStyle);
+      }
+    };
+  }, [globalCSS.css]);
 
   // Full-screen responsive canvas sizing
   const [canvasSize, setCanvasSize] = useState(() => {
@@ -1805,7 +1851,7 @@ export default function CanvasRenderer({
   return (
     <ResidentDataProvider data={residentData}>
       <div
-        className={`relative bg-white border border-gray-200 overflow-hidden ${className}`}
+        className={`relative border border-gray-200 overflow-hidden ${className}`}
         key={`canvas-${placedComponents.length}`}
         style={{
           width: `${canvasSize.width}px`,
@@ -1819,7 +1865,7 @@ export default function CanvasRenderer({
           ref={canvasRef}
           className={`relative overflow-hidden ${
             isDragOver ? 'cursor-crosshair' : 'cursor-default'
-          }`}
+          } ${globalCSS.classNames.join(' ')}`}
           style={{
             width: canvasSize.width,
             height: canvasSize.height,
@@ -1832,8 +1878,11 @@ export default function CanvasRenderer({
               backgroundSize: '20px 20px',
               backgroundPosition: '0 0, 10px 10px',
             }),
-            // Override padding if needed
-            padding: globalSettings?.spacing?.containerPadding || `${gridConfig.currentBreakpoint.containerPadding}px`,
+            // Let CSS classes handle padding via CSS custom properties
+            // Only use fallback padding if no global settings exist
+            ...((!globalSettings?.spacing?.containerPadding) && {
+              padding: `${gridConfig.currentBreakpoint.containerPadding}px`
+            }),
           }}
           data-wysiwyg-padding={gridConfig.currentBreakpoint.containerPadding}
           data-wysiwyg-breakpoint={gridConfig.currentBreakpoint.name}

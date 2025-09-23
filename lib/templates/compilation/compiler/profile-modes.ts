@@ -121,35 +121,10 @@ async function compileAdvancedMode(
     const hasPositioningInTemplate = customTemplate.includes('data-positioning-mode') ||
                                      customTemplate.includes('data-pixel-position') ||
                                      customTemplate.includes('data-pure-positioning');
-    console.log('🎯 [COMPILE_ADVANCED] Starting with positioning data in custom template:', hasPositioningInTemplate);
 
-    if (hasPositioningInTemplate) {
-      console.log('🎯 [COMPILE_ADVANCED] Template contains positioning attributes:');
-      const positioningMatches = customTemplate.match(/data-(?:positioning-mode|pixel-position|position|pure-positioning)="[^"]*"/g);
-      console.log('🎯 [COMPILE_ADVANCED] Found positioning attributes:', positioningMatches);
-      console.log('🎯 [COMPILE_ADVANCED] Raw template preview:', customTemplate.substring(0, 800) + '...');
-    }
 
     // Parse the custom template
     const parseResult = compileTemplate(customTemplate);
-
-    // Debug: Check positioning data in parsed AST
-    if (parseResult.success && parseResult.ast) {
-      const astString = JSON.stringify(parseResult.ast);
-      const hasPositioningInAST = astString.includes('data-positioning-mode') ||
-                                  astString.includes('data-pixel-position') ||
-                                  astString.includes('data-pure-positioning') ||
-                                  astString.includes('dataPositioningMode') ||
-                                  astString.includes('dataPixelPosition') ||
-                                  astString.includes('dataPurePositioning') ||
-                                  astString.includes('dataPosition');
-      console.log('🎯 [COMPILE_ADVANCED] Positioning data preserved in AST after parsing:', hasPositioningInAST);
-
-      if (hasPositioningInTemplate && !hasPositioningInAST) {
-        console.error('🚨 [COMPILE_ADVANCED] POSITIONING DATA LOST during template parsing!');
-        console.log('🎯 [COMPILE_ADVANCED] AST preview:', JSON.stringify(parseResult.ast, null, 2).substring(0, 1000) + '...');
-      }
-    }
 
     if (!parseResult.success || !parseResult.ast) {
       // Compilation failed, create fallback
@@ -164,40 +139,8 @@ async function compileAdvancedMode(
     // Identify interactive components (islands)
     const { islands, transformedAst } = identifyIslandsWithTransform(parseResult.ast);
 
-    // Debug: Check positioning data after island identification
-    if (hasPositioningInTemplate) {
-      const transformedAstString = JSON.stringify(transformedAst);
-      const hasPositioningInTransformedAST = transformedAstString.includes('data-positioning-mode') ||
-                                            transformedAstString.includes('data-pixel-position') ||
-                                            transformedAstString.includes('data-pure-positioning') ||
-                                            transformedAstString.includes('dataPositioningMode') ||
-                                            transformedAstString.includes('dataPixelPosition') ||
-                                            transformedAstString.includes('dataPurePositioning') ||
-                                            transformedAstString.includes('dataPosition');
-      console.log('🎯 [COMPILE_ADVANCED] Positioning data preserved after island identification:', hasPositioningInTransformedAST);
-
-      if (!hasPositioningInTransformedAST) {
-        console.error('🚨 [COMPILE_ADVANCED] POSITIONING DATA LOST during island identification!');
-        console.log('🎯 [COMPILE_ADVANCED] Transformed AST preview:', JSON.stringify(transformedAst, null, 2).substring(0, 1000) + '...');
-        console.log('🎯 [COMPILE_ADVANCED] Islands created:', islands.map(i => ({ id: i.id, component: i.component, props: i.props })));
-      }
-    }
-
     // Generate static HTML with island placeholders
     const staticHTML = generateStaticHTML(transformedAst, islands);
-
-    // Debug: Check final static HTML (both old and new formats)
-    if (hasPositioningInTemplate) {
-      const hasPositioningInStaticHTML = staticHTML.includes('data-positioning-mode') ||
-                                         staticHTML.includes('data-pixel-position') ||
-                                         staticHTML.includes('data-pure-positioning');
-      console.log('🎯 [COMPILE_ADVANCED] Positioning data preserved in final static HTML:', hasPositioningInStaticHTML);
-
-      if (!hasPositioningInStaticHTML) {
-        console.error('🚨 [COMPILE_ADVANCED] POSITIONING DATA LOST during static HTML generation!');
-        console.log('🎯 [COMPILE_ADVANCED] Final static HTML preview:', staticHTML.substring(0, 800) + '...');
-      }
-    }
     
     // Create fallback compilation
     const fallback = await compileEnhancedMode(context, { ...options, mode: 'enhanced' });

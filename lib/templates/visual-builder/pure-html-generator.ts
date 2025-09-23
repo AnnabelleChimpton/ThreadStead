@@ -79,15 +79,6 @@ export class PureHtmlGenerator {
   private generateComponentHTML(component: AbsoluteComponent, depth: number = 1): string {
     const indent = this.options.prettyPrint ? '  '.repeat(depth) : '';
 
-    // Debug: Check for positioning data in both places
-    if (component.props && (component.props['data-pure-positioning'] || component.props['dataPurePositioning'])) {
-      console.log('⚠️ [HTML_GENERATOR] Component has positioning in props:', {
-        type: component.type,
-        propsPositioning: component.props['data-pure-positioning'] || component.props['dataPurePositioning'],
-        componentPositioning: component.positioning
-      });
-    }
-
     const props = this.generatePropsString(component);
     const positioningAttr = this.generatePositioningAttribute(component.positioning);
     const metadataAttrs = this.generateMetadataAttributes(component);
@@ -132,7 +123,6 @@ export class PureHtmlGenerator {
 
       // Skip data-pure-positioning if it exists in props - it's handled by generatePositioningAttribute
       if (key === 'data-pure-positioning' || key === 'dataPurePositioning') {
-        console.log('⚠️ [HTML_GENERATOR] Skipping duplicate data-pure-positioning in props');
         return;
       }
 

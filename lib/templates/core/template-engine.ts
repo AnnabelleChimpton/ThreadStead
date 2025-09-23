@@ -85,7 +85,6 @@ function convertDataAttributesToCustomTags(html: string): string {
 
 // Main rendering function
 export function renderTemplateFromRequest(request: TemplateRenderRequest): TemplateRenderResponse {
-  console.log('Render request:', request);
   try {
     const { ast, residentData, mode = 'production' } = request;
     

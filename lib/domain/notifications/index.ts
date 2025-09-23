@@ -22,13 +22,10 @@ export async function createNotification(
 ) {
   // Don't create notification if actor is the same as recipient
   if (recipientId === actorId) {
-    console.log(`Skipping self-notification: ${actorId} -> ${recipientId} (${type})`);
     return null;
   }
 
-  try {
-    console.log(`Creating notification: ${actorId} -> ${recipientId} (${type})`, data);
-    
+  try {    
     // Check if a similar notification already exists (within last hour to prevent spam)
     const recentNotification = await db.notification.findFirst({
       where: {
@@ -42,7 +39,6 @@ export async function createNotification(
     });
 
     if (recentNotification) {
-      console.log(`Recent notification exists, updating timestamp`);
       const notification = await db.notification.update({
         where: { id: recentNotification.id },
         data: {
@@ -65,7 +61,6 @@ export async function createNotification(
       },
     });
 
-    console.log(`Notification created:`, notification.id);
     return notification;
   } catch (error) {
     console.error("Failed to create notification:", error);

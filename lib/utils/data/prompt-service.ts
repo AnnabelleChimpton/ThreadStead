@@ -281,10 +281,8 @@ export class PromptService {
     try {
       // Get current responses
       const responses = await this.getPromptResponses(promptId);
-      const actualCount = responses.length;
-      
-      console.log(`📊 Prompt ${promptId} has ${actualCount} actual responses`);
-      
+
+            
       // Note: Ring Hub doesn't currently support updating PostRef metadata
       // The response count will be calculated dynamically for now
       // This could be implemented with Ring Hub curation features in the future
@@ -303,9 +301,7 @@ export class PromptService {
     promptId: string,
     promptTitle: string,
     responseType: 'direct' | 'inspired_by' | 'continuation' = 'direct'
-  ): Promise<void> {
-    console.log(`🔗 Associating post ${postUri} with prompt ${promptId}`);
-    
+  ): Promise<void> {    
     // Update the response count after the association
     await this.updatePromptResponseCount(promptId);
   }

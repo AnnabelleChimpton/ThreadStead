@@ -67,11 +67,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               reason: `Post deleted by admin: ${adminUser.primaryHandle || adminUser.id}`
             }
           );
-          
-          console.log(`Successfully removed post ${postId} from RingHub:`, {
-            affectedRings: ringHubResponse.affectedRings,
-            totalRemoved: ringHubResponse.totalRemoved,
-          });
         } catch (ringHubError: any) {
           // Log the error but continue with local deletion
           // We don't want to block local deletion if RingHub is unavailable
@@ -83,8 +78,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
           console.error("Continuing with local deletion despite RingHub sync failure for post:", postId);
         }
-      } else {
-        console.log("RingHub client not available, skipping RingHub sync");
       }
     }
 

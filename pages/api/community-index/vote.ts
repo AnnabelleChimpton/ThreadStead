@@ -18,10 +18,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Invalid vote data' });
     }
 
-    // For now, return a success response
-    // This would need to be implemented with proper database operations
-    console.log(`User ${user.id} voted ${voteType} on site ${siteId}`);
-
     return res.json({
       success: true,
       message: 'Vote recorded successfully'

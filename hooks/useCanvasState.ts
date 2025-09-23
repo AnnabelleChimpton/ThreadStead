@@ -3,7 +3,7 @@
  * Phase 1: Visual Builder Foundation - Direct State Management
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   getOptimalSpan,
   getCurrentBreakpoint,
@@ -114,6 +114,42 @@ export interface UseCanvasStateResult {
 export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanvasStateResult {
   // Direct state management like pixel homes
   const [placedComponents, setPlacedComponents] = useState<ComponentItem[]>(initialComponents);
+
+  // Efficient shallow comparison for components
+  const componentsAreShallowEqual = useCallback((arr1: ComponentItem[], arr2: ComponentItem[]): boolean => {
+    if (arr1.length !== arr2.length) return false;
+    if (arr1.length === 0 && arr2.length === 0) return true;
+
+    // For performance, just check length and first/last component IDs
+    // This catches most cases without expensive deep comparison
+    if (arr1.length > 0 && arr2.length > 0) {
+      return arr1[0]?.id === arr2[0]?.id &&
+             arr1[arr1.length - 1]?.id === arr2[arr2.length - 1]?.id;
+    }
+
+    return false;
+  }, []);
+
+  // Track last initial components to avoid unnecessary updates
+  const lastInitialComponents = useRef<ComponentItem[]>([]);
+
+  // Update placed components when initial components change (e.g., from template parsing)
+  useEffect(() => {
+    // Skip if initial components haven't actually changed
+    if (componentsAreShallowEqual(initialComponents, lastInitialComponents.current)) {
+      return;
+    }
+
+    // Only update if the initial components are not empty and different from current
+    if (initialComponents.length > 0 && !componentsAreShallowEqual(initialComponents, placedComponents)) {
+      setPlacedComponents(initialComponents);
+      lastInitialComponents.current = [...initialComponents];
+    } else if (initialComponents.length === 0 && placedComponents.length > 0) {
+      // Handle case where template is cleared
+      setPlacedComponents([]);
+      lastInitialComponents.current = [];
+    }
+  }, [initialComponents, componentsAreShallowEqual]); // Don't include placedComponents to avoid loops
   const [selectedComponentIds, setSelectedComponentIds] = useState<Set<string>>(new Set());
   const [draggedComponent, setDraggedComponent] = useState<ComponentItem | null>(null);
   const [isDragging, setIsDragging] = useState(false);

@@ -218,17 +218,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             let promptDetails = null;
             
             if (promptId) {
-              console.log(`🎯 Checking if post is response to prompt ${promptId} in ring ${slug}`);
               try {
                 const { createPromptService } = await import('@/lib/utils/data/prompt-service');
                 const promptService = createPromptService(slug);
                 promptDetails = await promptService.getPromptDetails(promptId);
                 isPromptResponse = !!promptDetails;
-                console.log(`${isPromptResponse ? '✅' : '❌'} Prompt ${promptId} ${isPromptResponse ? 'found' : 'not found'} in ring ${slug}`);
                 
                 // Dev mode workaround: If prompt not found but we have a promptId, treat as prompt response anyway
                 if (!isPromptResponse && isLocalhost) {
-                  console.log(`⚠️ Dev mode: Prompt not found in Ring Hub, but treating as prompt response anyway`);
                   isPromptResponse = true;
                   // Create minimal prompt details for metadata
                   promptDetails = {
@@ -239,11 +236,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   } as any;
                 }
               } catch (promptError) {
-                console.log(`⚠️ Error checking prompt ${promptId} in ring ${slug}:`, promptError);
                 
                 // Dev mode workaround: On error, still treat as prompt response
                 if (isLocalhost) {
-                  console.log(`⚠️ Dev mode: Error checking prompt, treating as response anyway`);
                   isPromptResponse = true;
                   promptDetails = {
                     prompt: {
@@ -260,7 +255,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             
             if (isPromptResponse && promptDetails) {
               // This is a prompt response - use prompt response metadata
-              console.log(`📝 Creating prompt response PostRef for prompt: ${promptDetails.prompt.title}`);
               metadata = {
                 type: 'prompt_response',
                 response: {
@@ -312,9 +306,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               metadata: metadata
             };
             
-            console.log(`📤 Submitting post to Ring Hub ring: ${slug} (isPromptResponse: ${isPromptResponse})`, postSubmission);
             const result = await authenticatedClient.submitPost(slug, postSubmission);
-            console.log(`✅ Post ${post.id} successfully submitted to Ring Hub ring: ${slug}`, result);
             
             // Store the ThreadRing database UUID from the response
             if (result.id) {
@@ -325,9 +317,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               await db.post.update({
                 where: { id: post.id },
                 data: { threadRingPostIds: currentThreadRingPostIds }
-              });
-              
-              console.log(`💾 Stored ThreadRing post ID ${result.id} for ring ${slug}`);
+              });              
             }
             
             // If this was a prompt response, update the response count
@@ -341,7 +331,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   promptId!,
                   promptDetails.prompt.title
                 );
-                console.log(`✅ Updated response count for prompt ${promptId} in ring ${slug}`);
               } catch (countError) {
                 console.error(`⚠️ Failed to update response count for prompt ${promptId} in ring ${slug}:`, countError);
               }
@@ -381,7 +370,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
                 const ringUri = `${baseUrl}/tr/${slug}`;
                 
-                console.log(`🔧 Creating missing local ThreadRing record for RingHub ring: ${slug}`);
                 const newLocalRing = await db.threadRing.create({
                   data: {
                     uri: ringUri,
@@ -398,7 +386,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 });
                 
                 existingRingsMap.set(slug, newLocalRing);
-                console.log(`✅ Created local ThreadRing record for ${slug}`);
               } catch (createError) {
                 console.error(`❌ Failed to create local ThreadRing ${slug}:`, createError);
                 // Continue with other rings
@@ -415,7 +402,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   addedBy: viewer.id
                 }))
               });
-              console.log(`✅ Created local PostThreadRing associations for ${allLocalRings.length} rings`);
             }
           } catch (localAssocError) {
             console.error("Failed to create local PostThreadRing associations:", localAssocError);
@@ -423,7 +409,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       } else {
-        console.log('🏠 Using local database for ThreadRing associations');
         // Original local-only logic
         // 1. Validate user is member of all specified ThreadRings
         const userMemberships = await db.threadRingMember.findMany({

@@ -17,18 +17,14 @@ export default withThreadRingSupport(async function handler(
     // Ring Hub system - use PostRef-based prompts
     if (system === 'ringhub') {
       try {
-        console.log(`🎯 Fetching responses for prompt ${promptId} in ring ${slug}`);
         const promptService = createPromptService(slug)
         
         // Get prompt details and responses
         const promptDetails = await promptService.getPromptDetails(promptId)
         
         if (!promptDetails) {
-          console.log(`❌ Prompt ${promptId} not found in ring ${slug}`);
           return res.status(404).json({ error: 'Prompt not found' })
         }
-
-        console.log(`✅ Found prompt ${promptId}, checking for responses...`);
 
         // Pagination parameters
         const page = parseInt(req.query.page as string) || 1
@@ -37,12 +33,6 @@ export default withThreadRingSupport(async function handler(
 
         // Get responses from Ring Hub
         const responses = await promptService.getPromptResponses(promptId)
-        console.log(`📝 Found ${responses.length} responses for prompt ${promptId}:`, responses.map(r => ({
-          id: r.id,
-          uri: r.uri,
-          metadataType: r.metadata?.type,
-          responseData: (r.metadata as any)?.response
-        })));
         
         // Apply pagination
         const paginatedResponses = responses.slice(skip, skip + limit)
@@ -107,8 +97,6 @@ export default withThreadRingSupport(async function handler(
                     createdAt: actualPost.createdAt.toISOString(),
                     authorId: actualPost.authorId,
                   };
-
-                  console.log(`✅ Resolved post data for response ${response.id}: ${actualPost.title}`);
                 }
               } catch (dbError) {
                 console.log(`⚠️ Could not resolve post data for ${postId}:`, dbError);

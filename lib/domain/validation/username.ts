@@ -34,21 +34,3 @@ export function validateUsername(raw: string): ValidationResult {
     contextName: "Username"
   });
 }
-
-// Optional: quick tests for development
-if (process.env.NODE_ENV === "test") {
-  const samples = [
-    "annabelle",
-    "0fficial",
-    "official",
-    "user__name",
-    "admin-",
-    "ni99er",
-    "f4ggot",
-    "nice-name",
-  ];
-  for (const s of samples) {
-     
-    console.log(s, "=>", validateUsername(s));
-  }
-}

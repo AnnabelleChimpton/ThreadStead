@@ -13,9 +13,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log(`Looking for user with username: ${username}`);
-    console.log(`SITE_HANDLE_DOMAIN: ${process.env.SITE_HANDLE_DOMAIN || "localhost:3000"}`);
-    
     // Find user by username (handle) - check both primaryHandle and handles table
     let user = await db.user.findFirst({
       where: {
@@ -61,11 +58,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (!user) {
-      console.log(`User not found for username: ${username}`);
       return res.status(404).json({ error: "User not found or password authentication not enabled" });
     }
 
-    console.log(`Found user with authMethod: ${user.authMethod}, has encryptedSeedPhrase: ${!!user.encryptedSeedPhrase}`);
     res.json({ encryptedSeedPhrase: user.encryptedSeedPhrase });
   } catch (error) {
     console.error("Failed to get encrypted seed:", error);

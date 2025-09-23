@@ -67,25 +67,6 @@ function createCustomSchema() {
 
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
 export function parseTemplate(htmlString: string): Root {
-  console.log('🔍 [TEMPLATE_PARSER] Starting parseTemplate with HTML:', htmlString.substring(0, 500) + '...');
-
-  // Check for positioning data in original HTML (both old and new formats)
-  const hasPositioningData = htmlString.includes('data-positioning-mode') ||
-                             htmlString.includes('data-pixel-position') ||
-                             htmlString.includes('data-pure-positioning');
-  console.log('🔍 [TEMPLATE_PARSER] Original HTML contains positioning data:', hasPositioningData);
-
-  if (hasPositioningData) {
-    console.log('🔍 [TEMPLATE_PARSER] Found positioning attributes in original HTML:');
-    // Updated regex to handle both normal quotes and HTML-escaped quotes
-    const positioningMatches = htmlString.match(/data-(?:positioning-mode|pixel-position|position|pure-positioning)=(?:"[^"]*"|'[^']*')/g);
-    console.log('🔍 [TEMPLATE_PARSER] Positioning attributes found:', positioningMatches);
-
-    // Check if we have HTML-escaped quotes
-    if (htmlString.includes('&quot;')) {
-      console.log('🔍 [TEMPLATE_PARSER] WARNING: HTML contains escaped quotes (&quot;), this may affect parsing');
-    }
-  }
 
   // Unescape HTML entities in attributes before processing
   // This handles &quot; &apos; &lt; &gt; &amp; etc.
@@ -95,8 +76,6 @@ export function parseTemplate(htmlString: string): Root {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&');
-
-  console.log('🔍 [TEMPLATE_PARSER] After unescaping HTML entities:', processedHtml.substring(0, 500) + '...');
   
   // Check if this is a full HTML document
   const isFullDocument = processedHtml.includes('<!DOCTYPE') || 
@@ -106,15 +85,7 @@ export function parseTemplate(htmlString: string): Root {
     // Extract body content from full HTML document
     const bodyMatch = processedHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
     if (bodyMatch && bodyMatch[1]) {
-      const originalLength = processedHtml.length;
       processedHtml = bodyMatch[1].trim();
-      console.log('🔍 Body extraction:', {
-        method: 'regex',
-        originalLength,
-        extractedLength: processedHtml.length,
-        preview: processedHtml.substring(0, 200) + '...',
-        endsAt: processedHtml.substring(processedHtml.length - 50)
-      });
     } else {
       // Fallback: try to extract content between body tags even if malformed
       const bodyStart = processedHtml.indexOf('<body');
@@ -122,32 +93,13 @@ export function parseTemplate(htmlString: string): Root {
       if (bodyStart !== -1 && bodyEnd !== -1) {
         const bodyOpenEnd = processedHtml.indexOf('>', bodyStart);
         if (bodyOpenEnd !== -1) {
-          const originalLength = processedHtml.length;
           processedHtml = processedHtml.substring(bodyOpenEnd + 1, bodyEnd).trim();
-          console.log('🔍 Body extraction:', {
-            method: 'fallback',
-            originalLength,
-            extractedLength: processedHtml.length,
-            bodyStart,
-            bodyEnd,
-            preview: processedHtml.substring(0, 200) + '...'
-          });
         }
       }
     }
   }
   
-  // Always convert self-closing custom tags to opening/closing pairs for better parsing
-  const originalLength = processedHtml.length;
-  const beforeConversion = processedHtml.substring(0, 500);
   processedHtml = processedHtml.replace(/<([^>\s/]+)([^>]*?)\s*\/>/g, '<$1$2></$1>');
-  console.log('🔄 Self-closing tag conversion:', {
-    originalLength,
-    processedLength: processedHtml.length,
-    beforePreview: beforeConversion,
-    afterPreview: processedHtml.substring(0, 500),
-    exampleConversions: processedHtml.match(/<(carouselimage|skill|contactmethod)[^>]*>/gi)?.slice(0, 3)
-  });
   
   // Detect if we have multiple root-level components after conversion and wrap them
   const trimmedHtml = processedHtml.trim();
@@ -165,13 +117,9 @@ export function parseTemplate(htmlString: string): Root {
     .use(rehypeParse, { fragment: true })
     .use(rehypeSanitize, createCustomSchema());
 
-  console.log('🔍 [TEMPLATE_PARSER] Processing with sanitization schema, input HTML:', processedHtml.substring(0, 300) + '...');
-
   const tree = processor.parse(processedHtml);
-  console.log('🔍 [TEMPLATE_PARSER] Parsed tree before sanitization:', JSON.stringify(tree, null, 2).substring(0, 1000) + '...');
 
   const processed = processor.runSync(tree);
-  console.log('🔍 [TEMPLATE_PARSER] Processed tree after sanitization:', JSON.stringify(processed, null, 2).substring(0, 1000) + '...');
 
   // Check if positioning data survived sanitization (check both old and new formats)
   const processedString = JSON.stringify(processed);
@@ -182,7 +130,6 @@ export function parseTemplate(htmlString: string): Root {
                                           processedString.includes('dataPixelPosition') ||
                                           processedString.includes('dataPurePositioning') ||
                                           processedString.includes('dataPosition');
-  console.log('🔍 [TEMPLATE_PARSER] Positioning data survived sanitization:', hasPositioningAfterSanitization);
 
   return processed as Root;
 }
@@ -199,20 +146,6 @@ export interface TemplateNode {
 export function astToJson(node: unknown): TemplateNode {
   const typedNode = node as { type: string; value?: string; tagName?: string; properties?: Record<string, unknown>; children?: unknown[] };
 
-  // Debug positioning data preservation through AST transformation
-  if (typedNode.type === 'element' && typedNode.properties) {
-    const hasPositioningProps = Object.keys(typedNode.properties).some(key =>
-      key.includes('data-positioning-mode') || key.includes('data-pixel-position') ||
-      key.includes('data-pure-positioning') || key.includes('data-position')
-    );
-    if (hasPositioningProps) {
-      console.log('🔍 [AST_TRANSFORM] Element with positioning props:', {
-        tagName: typedNode.tagName,
-        properties: typedNode.properties
-      });
-    }
-  }
-
   if (typedNode.type === 'text') {
     return {
       type: 'text',
@@ -221,31 +154,12 @@ export function astToJson(node: unknown): TemplateNode {
   }
 
   if (typedNode.type === 'element') {
-    // Debug: Log positioning data preservation during astToJson conversion
-    const hasPositioningProps = typedNode.properties && Object.keys(typedNode.properties).some(key =>
-      key.includes('dataPositioningMode') || key.includes('dataPixelPosition') ||
-      key.includes('dataPurePositioning') || key.includes('dataPosition')
-    );
-    if (hasPositioningProps) {
-      console.log('🔍 [AST_TO_JSON] Converting element with positioning props:', {
-        tagName: typedNode.tagName,
-        beforeProperties: typedNode.properties
-      });
-    }
-
     const result: TemplateNode = {
       type: 'element' as const,
       tagName: typedNode.tagName,
       properties: typedNode.properties || {},
       children: typedNode.children?.map(astToJson) || []
     };
-
-    if (hasPositioningProps) {
-      console.log('🔍 [AST_TO_JSON] After conversion:', {
-        tagName: result.tagName,
-        afterProperties: result.properties
-      });
-    }
 
     return result;
   }
@@ -376,8 +290,6 @@ export interface CompilationResult {
 }
 
 export function compileTemplate(htmlString: string): CompilationResult {
-  console.log('🔍 [COMPILE_TEMPLATE] Starting compilation for HTML:', htmlString.substring(0, 200) + '...');
-
   try {
     // Check size limit
     const sizeKB = new Blob([htmlString]).size / 1024;
@@ -389,30 +301,15 @@ export function compileTemplate(htmlString: string): CompilationResult {
     }
 
     // Parse and sanitize
-    console.log('🔍 [COMPILE_TEMPLATE] Calling parseTemplate...');
     const hast = parseTemplate(htmlString);
 
     // Convert to JSON AST
-    console.log('🔍 [COMPILE_TEMPLATE] Converting HAST to JSON AST...');
     const ast = astToJson(hast);
 
     // Check final AST for positioning data (both old and new formats)
     const astString = JSON.stringify(ast);
-    const hasPositioningInFinalAST = astString.includes('data-positioning-mode') ||
-                                     astString.includes('data-pixel-position') ||
-                                     astString.includes('data-pure-positioning') ||
-                                     astString.includes('dataPositioningMode') ||
-                                     astString.includes('dataPixelPosition') ||
-                                     astString.includes('dataPurePositioning') ||
-                                     astString.includes('dataPosition');
-    console.log('🔍 [COMPILE_TEMPLATE] Final AST contains positioning data:', hasPositioningInFinalAST);
-
-    if (hasPositioningInFinalAST) {
-      console.log('🔍 [COMPILE_TEMPLATE] Final AST preview:', JSON.stringify(ast, null, 2).substring(0, 800) + '...');
-    }
 
     // Validate
-    console.log('🔍 [COMPILE_TEMPLATE] Validating template...');
     const validation = validateTemplate(ast);
     
     return {

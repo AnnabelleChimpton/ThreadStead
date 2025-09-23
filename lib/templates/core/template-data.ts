@@ -51,19 +51,15 @@ export interface GuestbookEntries {
 // Fetch user profile data
 export async function fetchUserProfile(username: string): Promise<UserProfile | null> {
   try {
-    console.log('Fetching profile for username:', username);
     const response = await fetch(`/api/profile/${encodeURIComponent(username)}`);
-    console.log('Profile API response status:', response.status);
     
     if (!response.ok) {
       if (response.status === 404) {
-        console.log('Profile not found for user');
         return null;
       }
       throw new Error(`Profile fetch failed: ${response.status}`);
     }
     const result = await response.json();
-    console.log('Profile fetched successfully:', result);
     return result;
   } catch (error) {
     console.error('Error fetching user profile:', error);
@@ -74,19 +70,15 @@ export async function fetchUserProfile(username: string): Promise<UserProfile | 
 // Fetch user posts
 export async function fetchUserPosts(username: string): Promise<UserPosts> {
   try {
-    console.log('Fetching posts for username:', username);
     const response = await fetch(`/api/posts/${encodeURIComponent(username)}`);
-    console.log('Posts API response status:', response.status);
     
     if (!response.ok) {
       if (response.status === 404) {
-        console.log('Posts not found for user, returning empty array');
         return { posts: [] };
       }
       throw new Error(`Posts fetch failed: ${response.status}`);
     }
     const result = await response.json();
-    console.log('Posts fetched successfully:', result);
     return result;
   } catch (error) {
     console.error('Error fetching user posts:', error);
@@ -97,19 +89,15 @@ export async function fetchUserPosts(username: string): Promise<UserPosts> {
 // Fetch guestbook entries
 export async function fetchGuestbookEntries(username: string): Promise<GuestbookEntries> {
   try {
-    console.log('Fetching guestbook for username:', username);
     const response = await fetch(`/api/guestbook/${encodeURIComponent(username)}`);
-    console.log('Guestbook API response status:', response.status);
     
     if (!response.ok) {
       if (response.status === 404) {
-        console.log('Guestbook not found for user, returning empty array');
         return { entries: [] };
       }
       throw new Error(`Guestbook fetch failed: ${response.status}`);
     }
     const result = await response.json();
-    console.log('Guestbook fetched successfully:', result);
     return result;
   } catch (error) {
     console.error('Error fetching guestbook entries:', error);
@@ -125,7 +113,6 @@ export async function fetchCurrentUser(): Promise<{ loggedIn: boolean; user?: an
       throw new Error(`User fetch failed: ${response.status}`);
     }
     const result = await response.json();
-    console.log('Current user data:', result);
     return result;
   } catch (error) {
     console.error('Error fetching current user:', error);
@@ -136,7 +123,6 @@ export async function fetchCurrentUser(): Promise<{ loggedIn: boolean; user?: an
 // Fetch all resident data for a user
 export async function fetchResidentData(username: string): Promise<ResidentData | null> {
   try {
-    console.log('fetchResidentData starting for username:', username);
     
     // Fetch all data in parallel but handle errors individually
     const [profileResult, postsResult, guestbookResult, currentUserResult] = await Promise.allSettled([
@@ -152,10 +138,7 @@ export async function fetchResidentData(username: string): Promise<ResidentData 
     const guestbook = guestbookResult.status === 'fulfilled' ? guestbookResult.value : { entries: [] };
     const currentUser = currentUserResult.status === 'fulfilled' ? currentUserResult.value : null;
 
-    console.log('Data fetch results:', { profile, posts, guestbook, currentUser });
-
     if (!profile) {
-      console.log('Profile not found, returning null');
       return null; // User not found
     }
 
@@ -199,20 +182,15 @@ export async function fetchResidentData(username: string): Promise<ResidentData 
 export async function fetchCurrentUserResidentData(): Promise<ResidentData | null> {
   try {
     const currentUser = await fetchCurrentUser();
-    console.log('fetchCurrentUserResidentData - current user:', currentUser);
     
     if (!currentUser?.loggedIn || !currentUser.user?.primaryHandle) {
-      console.log('User not logged in or no primary handle');
       return null;
     }
 
     const username = currentUser.user.primaryHandle;
-    console.log('Using username for data fetch:', username);
     const result = await fetchResidentData(username);
-    console.log('fetchCurrentUserResidentData - result:', result);
     
     if (!result) {
-      console.log('fetchResidentData returned null, user profile not found');
       // Return null so the calling code can fall back to mock data
       return null;
     }

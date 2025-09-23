@@ -110,8 +110,6 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
       // Perform search directly with URL parameters to avoid state timing issues
       const performUrlSearch = async () => {
-        console.log('Performing URL search with:', { query: queryParam, tab: finalTab, type: finalType });
-
         if (finalTab === 'all') {
           // Search all sources in parallel
           setLoading(true);
@@ -325,13 +323,6 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
         `/api/extsearch?q=${encodeURIComponent(query)}&page=0&perPage=20`
       );
       const data = await response.json();
-
-      if (data.results && data.results.length > 0) {
-        // Note: Brave Search is configured to only work on page 0 to avoid 422 errors
-        // SearchMySite and other engines may still provide results on additional pages
-        // For now, we'll stick to single page to ensure reliability
-        console.log(`External search returned ${data.results.length} results from ${data.meta?.engines?.length || 0} engines`);
-      }
 
       return {
         results: data.results || [],
@@ -616,11 +607,6 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                       saveResult = await saveFromSiteContent(result);
                                     } else if (result.source === 'external') {
                                       saveResult = await saveFromExternalSearch(result, searchQuery);
-                                    }
-
-                                    if (saveResult) {
-                                      // Could show a toast notification here
-                                      console.log('Saved:', saveResult);
                                     }
                                   }}
                                   disabled={saving}
