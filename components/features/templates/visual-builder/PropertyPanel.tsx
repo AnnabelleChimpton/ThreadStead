@@ -19,6 +19,8 @@ import {
   TextAreaEditor,
   SpacingEditor,
 } from './VisualPropertyControls';
+import StyleControls from './StyleControls';
+import StyleErrorBoundary from './StyleErrorBoundary';
 
 interface PropertyPanelProps {
   selectedComponent: ComponentItem | null;
@@ -93,7 +95,7 @@ export default function PropertyPanel({
     };
   }, []);
   const [activeTab, setActiveTab] = useState<PropertyTab>('component');
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['component-props', 'appearance', 'typography']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['component-props', 'appearance', 'typography', 'css-styling']));
   const { gridConfig } = canvasState;
 
   // Tab definitions
@@ -189,6 +191,21 @@ export default function PropertyPanel({
           onToggle={() => toggleSection('typography')}
         >
           {renderTypographyProperties()}
+        </PropertySection>
+      );
+    }
+
+    // CSS Styling section - primitive styles stored in style object
+    if (isTextComponent(selectedComponent!.type)) {
+      sections.push(
+        <PropertySection
+          key="css-styling"
+          title="CSS Styling"
+          icon="🎨"
+          isExpanded={expandedSections.has('css-styling')}
+          onToggle={() => toggleSection('css-styling')}
+        >
+          {renderCSSStyleSection()}
         </PropertySection>
       );
     }
@@ -524,6 +541,54 @@ export default function PropertyPanel({
           ]}
           description="Text alignment"
         />
+      </div>
+    );
+  };
+
+  // Render CSS styling section - primitive styles stored in style object
+  const renderCSSStyleSection = () => {
+    if (!selectedComponent) return null;
+
+    // Handler to update the style object specifically
+    const handleStyleChange = (newStyles: React.CSSProperties) => {
+      onComponentUpdate(selectedComponent.id, {
+        props: {
+          ...selectedComponent.props,
+          style: newStyles
+        }
+      });
+    };
+
+    return (
+      <div>
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#f8fafc',
+          borderRadius: '6px',
+          marginBottom: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          <div style={{
+            fontSize: '11px',
+            color: '#64748b',
+            marginBottom: '8px',
+            lineHeight: '1.4'
+          }}>
+            💡 <strong>CSS Styling vs Component Props:</strong><br/>
+            These are primitive CSS styles stored in the component&apos;s style object,
+            separate from component-specific properties above.
+          </div>
+        </div>
+
+        <StyleErrorBoundary
+          componentId={selectedComponent.id}
+          fallbackMessage="Error in CSS styling controls. Please check your CSS values."
+        >
+          <StyleControls
+            styles={selectedComponent.props?.style || {}}
+            onStyleChange={handleStyleChange}
+          />
+        </StyleErrorBoundary>
       </div>
     );
   };
@@ -916,10 +981,18 @@ export default function PropertyPanel({
     onToggle: () => void;
   }) {
     const sectionRef = React.useRef<HTMLDivElement>(null);
+    const previousExpandedRef = React.useRef<boolean>(isExpanded);
 
-    // Scroll section into view when expanded
+    // Scroll section into view when expanded (only on actual transitions)
     React.useEffect(() => {
-      if (isExpanded && sectionRef.current) {
+      const wasExpanded = previousExpandedRef.current;
+      const isNowExpanded = isExpanded;
+
+      // Update the ref for next time
+      previousExpandedRef.current = isExpanded;
+
+      // Only scroll if we're transitioning from collapsed to expanded
+      if (!wasExpanded && isNowExpanded && sectionRef.current) {
         // Delay to ensure DOM has updated and animations completed
         setTimeout(() => {
           const section = sectionRef.current;
