@@ -58,7 +58,6 @@ export function cleanupIslandsInContainer(containerId: string): void {
     if (islandId) {
       const root = islandRoots.get(islandId);
       if (root) {
-        console.log('Unmounting React root for island:', islandId);
         try {
           root.unmount();
         } catch (error) {
@@ -73,8 +72,6 @@ export function cleanupIslandsInContainer(containerId: string): void {
     element.removeAttribute('data-hydrating');
     element.removeAttribute('data-hydration-time');
   });
-  
-  console.log(`🧹 Cleaned up ${hydratedElements.length} islands in container ${containerId}`);
 }
 
 // Main hydration function for profile islands
@@ -121,9 +118,7 @@ export async function hydrateProfileIslands(context: HydrationContext): Promise<
           context
         });
         
-        hydratedCount++;
-        console.log(`✅ Successfully hydrated island: ${islandId} (${componentType})`);
-        
+        hydratedCount++;        
       } catch (error) {
         failedCount++;
         const hydrationError: HydrationError = {
@@ -150,10 +145,7 @@ export async function hydrateProfileIslands(context: HydrationContext): Promise<
     errors,
     startTime,
     endTime
-  };
-
-  console.log(`Island hydration completed in ${(endTime - startTime).toFixed(2)}ms`, result);
-  
+  };  
   return result;
 }
 
@@ -164,9 +156,7 @@ interface HydrateIslandParams {
   context: HydrationContext;
 }
 
-async function hydrateIsland({ element, island, context }: HydrateIslandParams): Promise<void> {
-  console.log(`Starting hydration of island ${island.id} with component ${island.component}`);
-  
+async function hydrateIsland({ element, island, context }: HydrateIslandParams): Promise<void> {  
   // Check if element is already hydrated to prevent double hydration
   if (element.hasAttribute('data-hydrated') || element.hasAttribute('data-hydrating')) {
     console.warn(`Island ${island.id} already hydrated or hydrating, skipping`);
@@ -194,14 +184,6 @@ async function hydrateIsland({ element, island, context }: HydrateIslandParams):
       return;
     }
     
-    console.log(`Pre-hydration DOM check for ${island.id}:`, {
-      element: element,
-      hasParent: !!element.parentElement,
-      isConnected: element.isConnected,
-      innerHTML: element.innerHTML,
-      clientRect: element.getBoundingClientRect()
-    });
-    
     // Clear existing content but preserve the element itself
     while (element.firstChild) {
       element.removeChild(element.firstChild);
@@ -213,14 +195,10 @@ async function hydrateIsland({ element, island, context }: HydrateIslandParams):
     (element as HTMLElement).style.padding = '10px';
     (element as HTMLElement).style.minHeight = '100px';
     (element as HTMLElement).style.display = 'block';
-    
-    console.log(`Creating React root for ${island.id} in element:`, element);
-    
+        
     // Create React root directly in the element
     const root = createRoot(element);
-    
-    console.log(`React root created for ${island.id}:`, root);
-    
+        
     // Store root for cleanup later
     storeIslandRoot(island.id, root);
     
@@ -235,31 +213,12 @@ async function hydrateIsland({ element, island, context }: HydrateIslandParams):
         onError={(error, islandId) => {
           console.error(`Runtime error in island ${islandId}:`, error);
         }}
-        onRender={(islandId) => {
-          console.log(`Island ${islandId} rendered successfully`);
-        }}
+        onRender={(islandId) => {}}
       />
     );
-    
-    console.log(`Rendering component for ${island.id}`);
-    
+        
     // Render the island component
     root.render(IslandComponent);
-    
-    console.log(`After render call for ${island.id}:`, {
-      innerHTML: element.innerHTML,
-      children: element.children.length,
-      clientRect: element.getBoundingClientRect()
-    });
-    
-    // Small delay to allow React to render, then check again
-    setTimeout(() => {
-      console.log(`Post-render check for ${island.id}:`, {
-        innerHTML: element.innerHTML,
-        children: element.children.length,
-        hasContent: element.innerHTML.length > 0
-      });
-    }, 100);
     
     // Mark element as hydrated and remove hydrating flag
     element.removeAttribute('data-hydrating');
@@ -291,9 +250,7 @@ function storeIslandRoot(islandId: string, root: Root): void {
 }
 
 // Cleanup all islands
-export function cleanupIslands(): void {
-  console.log(`Cleaning up ${islandRoots.size} islands`);
-  
+export function cleanupIslands(): void {  
   islandRoots.forEach((root, islandId) => {
     try {
       root.unmount();
@@ -381,16 +338,7 @@ export function debugIslands(): void {
   if (process.env.NODE_ENV !== 'development') return;
   
   console.group('🏝️ Islands Debug Information');
-  
-  console.log('Hydrated Islands:', islandRoots.size);
-  console.log('Island Roots:', islandRoots);
-  
-  const hydratedElements = document.querySelectorAll('[data-hydrated="true"]');
-  console.log('Hydrated Elements:', hydratedElements.length);
-  
-  const errorElements = document.querySelectorAll('[data-hydration-error="true"]');
-  console.log('Failed Elements:', errorElements.length);
-  
+
   const metrics = getIslandPerformanceMetrics();
   if (metrics.length > 0) {
     console.table(metrics);

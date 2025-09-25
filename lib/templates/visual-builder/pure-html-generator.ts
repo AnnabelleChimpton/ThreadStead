@@ -115,7 +115,10 @@ export class PureHtmlGenerator {
     const props = component.props || {};
     const propStrings: string[] = [];
 
-    Object.entries(props).forEach(([key, value]) => {
+    // Remove duplicate styling props (keep universal names, remove legacy duplicates)
+    const deduplicatedProps = this.removeDuplicateStylingProps(props);
+
+    Object.entries(deduplicatedProps).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
 
       // Skip special props that are handled separately
@@ -143,6 +146,35 @@ export class PureHtmlGenerator {
     });
 
     return propStrings.length > 0 ? ' ' + propStrings.join(' ') : '';
+  }
+
+  /**
+   * Remove duplicate styling props - keep universal names, remove legacy duplicates
+   * This prevents both backgroundColor AND backgroundcolor from appearing in HTML
+   */
+  private removeDuplicateStylingProps(props: Record<string, any>): Record<string, any> {
+    const deduplicated = { ...props };
+
+    // Universal to legacy mappings - if both exist, keep universal and remove legacy
+    const duplicateMappings: Record<string, string> = {
+      'backgroundColor': 'backgroundcolor',
+      'textColor': 'color',
+      'borderColor': 'bordercolor',
+      'fontSize': 'fontsize',
+      'fontWeight': 'fontweight',
+      'textAlign': 'textalign',
+      'borderRadius': 'borderradius'
+    };
+
+    // Remove legacy props when universal equivalent exists
+    Object.entries(duplicateMappings).forEach(([universalProp, legacyProp]) => {
+      if (deduplicated[universalProp] !== undefined && deduplicated[legacyProp] !== undefined) {
+        // Both exist - remove the legacy version
+        delete deduplicated[legacyProp];
+      }
+    });
+
+    return deduplicated;
   }
 
   /**

@@ -7,6 +7,7 @@ import type { CompiledTemplate, Island } from '@/lib/templates/compilation/compi
 import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { generateOptimizedCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
+import { extractVisualBuilderClasses, generateContainerClasses } from '@/lib/utils/css/visual-builder-class-extractor';
 import {
   getCurrentBreakpoint,
   getOptimalSpan,
@@ -56,14 +57,17 @@ export default function AdvancedProfileRenderer({
 }: AdvancedProfileRendererProps) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
-  
-  const { css: siteWideCSS } = useSiteCSS();
-  
-  // Get compiled template from user profile
+
+  // Get compiled template from user profile and CSS mode first
   const compiledTemplate = user.profile?.compiledTemplate as CompiledTemplate | null;
   const templateIslands = user.profile?.templateIslands as ExtendedIsland[] | null;
   const customCSS = user.profile?.customCSS;
   const cssMode = (user.profile?.cssMode || 'inherit') as CSSMode;
+
+  const { css: siteWideCSS } = useSiteCSS({
+    skipDOMInjection: true, // We handle CSS injection ourselves
+    cssMode
+  });
 
   // Create a stable ID for this profile to scope the CSS (FIXED: removed Date.now() to prevent infinite loops)
   const profileId = useMemo(() => `profile-${user.id}`, [user.id]);
@@ -74,16 +78,24 @@ export default function AdvancedProfileRenderer({
     return islandsData;
   }, [compiledTemplate?.islands, templateIslands]);
 
-  // Generate properly layered CSS instead of the !important nightmare
+  // Generate properly layered CSS with strict mode isolation
   const layeredCSS = useMemo(() => {
     return generateOptimizedCSS({
       cssMode,
       templateMode: 'advanced',
-      siteWideCSS: cssMode !== 'disable' ? siteWideCSS : '',
+      // For 'disable' mode: exclude ALL system CSS, only user CSS allowed
+      globalCSS: '', // Never include global CSS for advanced templates
+      siteWideCSS: cssMode !== 'disable' ? siteWideCSS : '', // Exclude site CSS in disable mode
       userCustomCSS: customCSS || '',
       profileId
     });
   }, [customCSS, cssMode, profileId, siteWideCSS]);
+
+  // Extract Visual Builder classes from CSS to apply to HTML elements
+  const visualBuilderClasses = useMemo(() => {
+    if (!customCSS) return [];
+    return extractVisualBuilderClasses(customCSS);
+  }, [customCSS]);
   
   const islandIds = useMemo(() => islands.map(island => island.id), [islands]);
 
@@ -151,12 +163,13 @@ export default function AdvancedProfileRenderer({
       )}
       
       {/* No wrapper div - let advanced templates control their own layout completely */}
-      <ProfileContentRenderer 
+      <ProfileContentRenderer
         compiledTemplate={compiledTemplate}
         islands={islands}
         residentData={residentData}
         onIslandRender={handleIslandRender}
         onIslandError={handleIslandError}
+        visualBuilderClasses={visualBuilderClasses}
       />
       
       {/* Hydration status indicator (dev mode only) - positioned absolutely to avoid layout interference */}
@@ -189,14 +202,16 @@ interface ProfileContentRendererProps {
   residentData: ResidentData;
   onIslandRender: (islandId: string) => void;
   onIslandError: (error: Error, islandId: string) => void;
+  visualBuilderClasses?: string[];
 }
 
-function ProfileContentRenderer({ 
+function ProfileContentRenderer({
   compiledTemplate,
-  islands, 
-  residentData, 
-  onIslandRender, 
-  onIslandError 
+  islands,
+  residentData,
+  onIslandRender,
+  onIslandError,
+  visualBuilderClasses = []
 }: ProfileContentRendererProps) {
   // Same logic as preview's renderIslandsDirectly
   if (!compiledTemplate) {
@@ -214,12 +229,13 @@ function ProfileContentRenderer({
   if (hasIslands && hasStaticHTML) {
     // Create a combined approach: render static HTML and replace placeholders with islands
     return (
-      <StaticHTMLWithIslands 
+      <StaticHTMLWithIslands
         staticHTML={compiledTemplate.staticHTML}
         islands={islands}
         residentData={residentData}
         onIslandRender={onIslandRender}
         onIslandError={onIslandError}
+        visualBuilderClasses={visualBuilderClasses}
       />
     );
   }
@@ -261,6 +277,7 @@ interface StaticHTMLWithIslandsProps {
   residentData: ResidentData;
   onIslandRender: (islandId: string) => void;
   onIslandError: (error: Error, islandId: string) => void;
+  visualBuilderClasses?: string[];
 }
 
 function StaticHTMLWithIslands({
@@ -268,7 +285,8 @@ function StaticHTMLWithIslands({
   islands,
   residentData,
   onIslandRender,
-  onIslandError
+  onIslandError,
+  visualBuilderClasses = []
 }: StaticHTMLWithIslandsProps) {
   // Debug: Check for positioning data in staticHTML
   const hasPositioningInHTML = staticHTML.includes('data-positioning-mode') || staticHTML.includes('data-pixel-position');
@@ -284,12 +302,69 @@ function StaticHTMLWithIslands({
     
     // Instead of regex, parse the HTML properly and work with the DOM tree
     if (typeof document === 'undefined') {
-      return [<div key="fallback" dangerouslySetInnerHTML={{ __html: staticHTML }} />];
+      // SSR fallback: inject Visual Builder classes into static HTML
+      let processedHTML = staticHTML;
+      if (visualBuilderClasses.length > 0) {
+        const vbClassString = visualBuilderClasses.join(' ');
+
+        // Look for advanced-template-container first (Visual Builder templates)
+        processedHTML = processedHTML.replace(
+          /class="(advanced-template-container[^"]*?)"/g,
+          `class="$1 ${vbClassString}"`
+        );
+
+        // Fallback: if no advanced-template-container, look for pure-absolute-container
+        if (!processedHTML.includes(vbClassString)) {
+          processedHTML = processedHTML.replace(
+            /class="(pure-absolute-container[^"]*?)"/g,
+            `class="$1 ${vbClassString}"`
+          );
+        }
+
+        // Final fallback: template-container
+        if (!processedHTML.includes(vbClassString)) {
+          processedHTML = processedHTML.replace(
+            /class="(template-container[^"]*?)"/g,
+            `class="$1 ${vbClassString}"`
+          );
+        }
+      }
+
+      return [<div key="fallback" dangerouslySetInnerHTML={{ __html: processedHTML }} />];
     }
     
     // Parse the entire static HTML into a DOM tree
     const container = document.createElement('div');
-    container.innerHTML = staticHTML;
+
+    // Inject Visual Builder classes into the container element
+    let processedHTML = staticHTML;
+    if (visualBuilderClasses.length > 0) {
+      const vbClassString = visualBuilderClasses.join(' ');
+
+      // Look for advanced-template-container first (Visual Builder templates)
+      processedHTML = processedHTML.replace(
+        /class="(advanced-template-container[^"]*?)"/g,
+        `class="$1 ${vbClassString}"`
+      );
+
+      // Fallback: if no advanced-template-container, look for pure-absolute-container
+      if (!processedHTML.includes(vbClassString)) {
+        processedHTML = processedHTML.replace(
+          /class="(pure-absolute-container[^"]*?)"/g,
+          `class="$1 ${vbClassString}"`
+        );
+      }
+
+      // Final fallback: template-container
+      if (!processedHTML.includes(vbClassString)) {
+        processedHTML = processedHTML.replace(
+          /class="(template-container[^"]*?)"/g,
+          `class="$1 ${vbClassString}"`
+        );
+      }
+    }
+
+    container.innerHTML = processedHTML;
     
     // Find all island placeholders in the DOM tree
     const placeholders = container.querySelectorAll('[data-island]');
@@ -328,6 +403,7 @@ function StaticHTMLWithIslands({
 
                 // Create base component with props and set positioning mode
                 const componentProps = { ...island.props };
+
 
                 // Set positioning mode for components that have positioning data
                 if (positioningData) {
@@ -1157,6 +1233,8 @@ function ProductionIslandRendererWithHTMLChildren({
 
     // Apply _size properties to component props if they exist
     const componentProps = { ...island.props };
+
+
     if (island.props._size) {
       componentProps._positioningMode = 'absolute';
     }
@@ -1413,6 +1491,8 @@ function ProductionIslandRenderer({
 
     // Apply _size properties to component props if they exist
     const componentProps = { ...island.props };
+
+
     if (island.props._size) {
       componentProps._positioningMode = 'absolute';
     }

@@ -287,30 +287,54 @@ export class CSSClassGenerator {
     // Generate the pattern background
     const patternCSS = generatePatternCSS(pattern);
     if (patternCSS) {
-      const properties: Record<string, string> = {
+      // FULL VIEWPORT PATTERN: Apply pattern to body for edge-to-edge coverage
+      const bodyProperties: Record<string, string> = {
         'background-image': patternCSS,
         'background-repeat': 'repeat',
         'background-size': `${(pattern.size || 1) * 40}px ${(pattern.size || 1) * 40}px`,
+        'background-attachment': 'fixed', // Keep pattern fixed during scroll
         // Store pattern configuration as CSS custom properties for parsing back
         '--vb-pattern-primary-color': pattern.primaryColor,
         '--vb-pattern-size': pattern.size.toString(),
         '--vb-pattern-opacity': pattern.opacity.toString()
       };
 
-      // Add secondary color if specified
+      // Also create container properties for backwards compatibility
+      const containerProperties: Record<string, string> = {
+        // Pattern background combines pattern and background color
+        'background-image': patternCSS,
+        'background-repeat': 'repeat',
+        'background-size': `${(pattern.size || 1) * 40}px ${(pattern.size || 1) * 40}px`,
+        'background-color': pattern.backgroundColor || '#ffffff', // Keep the theme background color
+        // Store pattern configuration as CSS custom properties for parsing back
+        '--vb-pattern-primary-color': pattern.primaryColor,
+        '--vb-pattern-size': pattern.size.toString(),
+        '--vb-pattern-opacity': pattern.opacity.toString()
+      };
+
+      // Add secondary color to both body and container properties
       if (pattern.secondaryColor) {
-        properties['--vb-pattern-secondary-color'] = pattern.secondaryColor;
+        bodyProperties['--vb-pattern-secondary-color'] = pattern.secondaryColor;
+        containerProperties['--vb-pattern-secondary-color'] = pattern.secondaryColor;
       }
 
-      // Add rotation if specified
+      // Add rotation to body properties (where the pattern is)
       if (pattern.rotation) {
-        properties['transform'] = `rotate(${pattern.rotation}deg)`;
-        properties['--vb-pattern-rotation'] = pattern.rotation.toString();
+        bodyProperties['transform'] = `rotate(${pattern.rotation}deg)`;
+        bodyProperties['--vb-pattern-rotation'] = pattern.rotation.toString();
+        containerProperties['--vb-pattern-rotation'] = pattern.rotation.toString();
       }
 
+      // Add body selector for full viewport pattern coverage
+      classes.push({
+        selector: `body.${patternClass}`,
+        properties: bodyProperties
+      });
+
+      // Add container selector for backwards compatibility and background color
       classes.push({
         selector: `.${patternClass}`,
-        properties
+        properties: containerProperties
       });
 
       // Add animation if enabled
@@ -484,7 +508,7 @@ export class CSSClassGenerator {
       case 'zoom':
         return {
           'animation': 'vb-zoom-in 0.6s ease-out',
-          'transform': 'scale(0.95)'
+          'transform': 'scale(1)' // Keep transform but don't shrink (was 0.95)
         };
       default:
         return null;

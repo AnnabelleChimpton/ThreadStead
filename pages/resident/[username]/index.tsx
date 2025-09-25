@@ -125,10 +125,22 @@ export default function ProfilePage({
   // Extract CSS mode from custom CSS to determine rendering approach
   const extractCSSMode = (css: string | null | undefined): 'inherit' | 'override' | 'disable' => {
     if (!css) return 'inherit';
+
+    // Check for explicit CSS_MODE comment
     const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
     if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
       return modeMatch[1] as 'inherit' | 'override' | 'disable';
     }
+
+    // Check for Visual Builder CSS (has vb- classes and variables)
+    const hasVisualBuilderCSS = css.includes('/* Visual Builder Generated CSS */') ||
+                               (css.includes('.vb-theme-') && css.includes('--global-bg-color'));
+
+    if (hasVisualBuilderCSS) {
+      // Visual Builder CSS should use disable mode for full isolation
+      return 'disable';
+    }
+
     // Default to inherit
     return 'inherit';
   };

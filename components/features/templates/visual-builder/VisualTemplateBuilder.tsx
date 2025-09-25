@@ -3,7 +3,7 @@
  * Phase 1: Visual Builder Foundation - Direct State Management
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useCanvasState, type ComponentItem } from '@/hooks/useCanvasState';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import {
@@ -25,6 +25,7 @@ import { generatePureHTML } from '@/lib/templates/visual-builder/pure-html-gener
 import type { CanvasComponent } from '@/lib/templates/visual-builder/types';
 import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
 import { generateCSSFromGlobalSettings } from '@/lib/templates/visual-builder/css-class-generator';
+import { deepEqualsComponentArray } from '@/lib/templates/visual-builder/component-equality';
 
 // New modern components
 import FloatingPanel, { useFloatingPanels } from './FloatingPanel';
@@ -390,53 +391,34 @@ export default function VisualTemplateBuilder({
     return null;
   };
 
-  // Get the first selected component for property editing and map to CanvasComponent format
-  const selectedComponent: CanvasComponent | null = selectedComponentIds.size === 1
-    ? (() => {
-        const selectedId = Array.from(selectedComponentIds)[0];
-        const comp = findComponentById(placedComponents, selectedId);
-        if (!comp) return null;
-        return {
-          id: comp.id,
-          type: comp.type,
-          props: comp.props || {},  // All properties including _size, _locked, _hidden
-          position: comp.position,
-          gridPosition: comp.gridPosition ? {
-            column: comp.gridPosition.column,
-            row: comp.gridPosition.row,
-            columnSpan: comp.gridPosition.span,
-            rowSpan: 1
-          } : undefined,
-          positioningMode: comp.positioningMode,
-          children: comp.children as CanvasComponent[] | undefined  // Include children for parent-child relationships
-        };
-      })()
-    : null;
+  // Get the first selected component for property editing with stable memoized reference
+  const selectedComponent: CanvasComponent | null = useMemo(() => {
+    if (selectedComponentIds.size !== 1) return null;
 
-  // Handle component property updates
-  const handleComponentUpdate = useCallback((componentId: string, updates: Partial<CanvasComponent>) => {
-    markUserChange(); // Mark that user made a change
+    const selectedId = Array.from(selectedComponentIds)[0];
+    const comp = findComponentById(placedComponents, selectedId);
+    if (!comp) return null;
 
-    // Map CanvasComponent updates to ComponentItem format
-    // Only include fields that are actually being updated (not undefined)
-    const mappedUpdates: Partial<ComponentItem> = {};
+    return {
+      id: comp.id,
+      type: comp.type,
+      props: comp.props || {},  // All properties including _size, _locked, _hidden
+      position: comp.position,
+      gridPosition: comp.gridPosition ? {
+        column: comp.gridPosition.column,
+        row: comp.gridPosition.row,
+        columnSpan: comp.gridPosition.span,
+        rowSpan: 1
+      } : undefined,
+      positioningMode: comp.positioningMode,
+      children: comp.children as CanvasComponent[] | undefined  // Include children for parent-child relationships
+    };
+  }, [selectedComponentIds, placedComponents]);
 
-    if (updates.id !== undefined) mappedUpdates.id = updates.id;
-    if (updates.type !== undefined) mappedUpdates.type = updates.type;
-    if (updates.props !== undefined) mappedUpdates.props = updates.props;
-    if (updates.position !== undefined) mappedUpdates.position = updates.position;
-    if (updates.positioningMode !== undefined) {
-      mappedUpdates.positioningMode = updates.positioningMode === 'flow' ? 'absolute' : updates.positioningMode;
-    }
-    if (updates.gridPosition !== undefined) {
-      mappedUpdates.gridPosition = {
-        column: updates.gridPosition.column,
-        row: updates.gridPosition.row,
-        span: updates.gridPosition.columnSpan || 1
-      };
-    }
-    updateComponent(componentId, mappedUpdates);
-  }, [updateComponent, markUserChange]);
+  // Handle component property updates - direct passthrough to avoid unnecessary transformations
+  const handleComponentUpdate = useCallback((componentId: string, updates: Partial<ComponentItem>) => {
+    updateComponent(componentId, updates);
+  }, [updateComponent]);
 
   // Convert current canvas state to pure absolute positioning format
   const convertToPureCanvasState = useCallback((): AbsoluteCanvasState => {
@@ -735,17 +717,25 @@ ${globalCSS.css}
     }, 150); // 150ms debounce
   }, [onTemplateChange]);
 
+  // Store previous components for deep comparison to avoid unnecessary template generation
+  const prevPlacedComponentsRef = useRef<ComponentItem[]>([]);
+
   React.useEffect(() => {
     // Ignore changes that are coming from our own onTemplateChange calls
     if (isInternalChange.current) {
       return;
     }
 
-    // Check if components have actually changed from the initial state
-    const componentsChanged = !componentsAreEqual(placedComponents, initialComponentsRef.current);
+    // Use deep comparison to check if components have actually changed
+    const componentsChanged = !deepEqualsComponentArray(placedComponents, prevPlacedComponentsRef.current);
 
     // Check if global settings have changed from initial state
     const globalSettingsChanged = JSON.stringify(globalSettings) !== JSON.stringify(initialGlobalSettingsRef.current);
+
+    // Update the previous components reference only if components actually changed
+    if (componentsChanged) {
+      prevPlacedComponentsRef.current = [...placedComponents];
+    }
 
     // Don't generate HTML on initial load if nothing has changed
     if (!hasUserMadeChanges && !componentsChanged && !globalSettingsChanged) {
@@ -758,12 +748,12 @@ ${globalCSS.css}
       setHasUserMadeChanges(prev => prev ? prev : true);
     }
 
-    // Only call template change after user has made changes
-    if (hasUserMadeChanges) {
+    // Only call template change after user has made changes AND components actually changed
+    if (hasUserMadeChanges && (componentsChanged || globalSettingsChanged)) {
       const html = generateHTML();
       debouncedTemplateChange(html);
     }
-  }, [placedComponents, globalSettings, generateHTML, componentsAreEqual, debouncedTemplateChange]);
+  }, [placedComponents, globalSettings, generateHTML, debouncedTemplateChange, hasUserMadeChanges]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -954,35 +944,12 @@ ${globalCSS.css}
           <div style={{ flex: 1, overflow: 'auto' }}>
             <PropertyPanel
               selectedComponent={selectedComponent ? {
-                id: selectedComponent.id,
-                type: selectedComponent.type,
+                ...selectedComponent,
                 position: selectedComponent.position || { x: 0, y: 0 },
-                positioningMode: (selectedComponent.positioningMode as 'absolute' | 'grid') || 'grid',
-                props: selectedComponent.props || {},
-                children: selectedComponent.children as ComponentItem[] | undefined,
-              } : null}
+                positioningMode: selectedComponent.positioningMode || 'absolute'
+              } as ComponentItem : null}
               canvasState={canvasState}
-              onComponentUpdate={(componentId: string, updates: Partial<ComponentItem>) => {
-                // Convert ComponentItem updates to CanvasComponent updates
-                const canvasUpdates: Partial<CanvasComponent> = {
-                  id: updates.id,
-                  type: updates.type,
-                  props: updates.props || {},
-                  children: updates.children as CanvasComponent[] | undefined,
-                  position: updates.position,
-                  positioningMode: updates.positioningMode,
-                  // Convert gridPosition format if present
-                  ...(updates.gridPosition && {
-                    gridPosition: {
-                      column: updates.gridPosition.column,
-                      row: updates.gridPosition.row,
-                      columnSpan: updates.gridPosition.span,
-                      rowSpan: 1, // Default row span
-                    }
-                  }),
-                };
-                handleComponentUpdate(componentId, canvasUpdates);
-              }}
+              onComponentUpdate={handleComponentUpdate}
             />
           </div>
         </div>

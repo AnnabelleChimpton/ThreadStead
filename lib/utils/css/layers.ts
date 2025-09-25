@@ -70,8 +70,9 @@ ${siteWideCSS}
     }
   }
   
-  // Add component styles (always included for proper component function)
-  if (componentCSS) {
+  // Add component styles only if not in disable mode
+  // In disable mode, user has complete control - no system component styles
+  if (componentCSS && cssMode !== 'disable') {
     layers.push(`@layer ${CSS_LAYERS.COMPONENT_BASE} {
 ${componentCSS}
 }`);
@@ -81,7 +82,7 @@ ${componentCSS}
   if (userCustomCSS) {
     const cleanCSS = cleanUserCSS(userCustomCSS);
     const scopedCSS = profileId ? scopeCSSToProfile(cleanCSS, profileId) : cleanCSS;
-    const nuclearCSS = forceUserCSSDominance(scopedCSS);
+    const nuclearCSS = forceUserCSSDominance(scopedCSS, cssMode);
     
     switch (cssMode) {
       case 'inherit':
@@ -187,7 +188,7 @@ function cleanUserCSS(css: string): string {
  * NUCLEAR OPTION: Force user CSS to always win with maximum specificity and !important
  * User CSS must ALWAYS be the most important on their own page
  */
-export function forceUserCSSDominance(css: string): string {
+export function forceUserCSSDominance(css: string, cssMode: CSSMode = 'inherit'): string {
   if (!css.trim()) return '';
   
   // Extract and preserve @import, @media, @keyframes etc. - don't process these
@@ -230,19 +231,87 @@ export function forceUserCSSDominance(css: string): string {
           return trimmed;
         }
         
-        // Force nuclear specificity: html body html body selector
-        return `html body html body ${trimmed}`;
+        // Special handling for Visual Builder classes in nuclear mode
+        if (trimmed.includes('.vb-')) {
+          // Check if this is already a scoped selector with profile ID
+          const hasProfileId = trimmed.includes('#profile-');
+
+          if (hasProfileId) {
+            // Selector already scoped in scopeCSSToProfile - just apply nuclear specificity
+            return `html body html body ${trimmed}`;
+          }
+
+          // Pure Visual Builder class - will be handled by scopeCSSToProfile first
+          return `html body html body ${trimmed}`;
+        }
+
+        // Force maximum nuclear specificity: extra layer for Visual Builder in disable mode
+        const isVisualBuilderDisable = cssMode === 'disable' && (trimmed.includes('.vb-') || trimmed.includes('--global-'));
+        return isVisualBuilderDisable
+          ? `html body html body html body ${trimmed}`
+          : `html body html body ${trimmed}`;
       })
       .join(', ');
     
     // Force !important on every CSS property that doesn't already have it
-    const nuclearProps = rules.replace(/([^;{]+):\s*([^;!]+)(?!.*!important)\s*;/g, '$1: $2 !important;');
+    // Be careful with URLs and data URIs to avoid breaking them
+    const nuclearProps = rules.replace(/([^;{]+):\s*([^;!]+?)(?!\s*!important)\s*;/g, (match: string, property: string, value: string) => {
+      // Skip adding !important if value contains data: or url( to avoid breaking URLs
+      if (value.includes('data:') || value.includes('url(')) {
+        return `${property}: ${value} !important;`;
+      }
+      return `${property}: ${value} !important;`;
+    });
       
     return `${nuclearSelectors} { ${nuclearProps} }`;
   });
   
-  // Combine preserved @rules with nuclear regular rules
-  return (atRules.join('\n') + '\n' + nuclearRules).trim();
+  // Add extra Visual Builder overrides for disable mode
+  let additionalOverrides = '';
+  if (cssMode === 'disable' && css.includes('.vb-')) {
+    additionalOverrides = `
+/* VISUAL BUILDER ABSOLUTE OVERRIDES - FULL PAGE COVERAGE */
+html body html body html body html {
+  background-color: var(--global-bg-color, var(--vb-background-color)) !important;
+  color: var(--global-text-color, var(--vb-text-color)) !important;
+  font-family: var(--global-font-family, var(--vb-font-family)) !important;
+}
+
+html body html body html body body {
+  background-color: var(--global-bg-color, var(--vb-background-color)) !important;
+  color: var(--global-text-color, var(--vb-text-color)) !important;
+  font-family: var(--global-font-family, var(--vb-font-family)) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* WRAPPER ELEMENT PATTERN INHERITANCE FOR FULL-PAGE VISUAL BUILDER */
+/* Copy pattern backgrounds from Visual Builder containers to wrapper for seamless coverage */
+html body html body html body #__next > div:has([class*="vb-pattern-"]) {
+  /* Inherit all Visual Builder styling for full-page coverage */
+  background-color: var(--global-bg-color, var(--vb-background-color)) !important;
+  color: var(--global-text-color, var(--vb-text-color)) !important;
+  font-family: var(--global-font-family, var(--vb-font-family)) !important;
+  font-size: var(--global-font-size, var(--vb-font-size)) !important;
+}
+
+/* PATTERN-SPECIFIC WRAPPER INHERITANCE */
+/* Stars pattern */
+html body html body html body #__next > div:has(.vb-pattern-stars) {
+  background-image: url("data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%20%20%20%20%20%20%3Cpolygon%20points%3D%2220%2C10%2024%2C18%2030%2C14%2026%2C22%2032%2C30%2020%2C24%208%2C30%2014%2C22%2010%2C14%2016%2C18%22%0A%20%20%20%20%20%20%20%20%20%20fill%3D%22%23ffffff%22%20opacity%3D%220.8%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Cpolygon%20points%3D%2240%2C30%2042%2C33%2045%2C32%2043%2C35%2046%2C38%2040%2C36%2034%2C38%2037%2C35%2035%2C32%2038%2C33%22%0A%20%20%20%20%20%20%20%20%20%20fill%3D%22%23ffd700%22%20opacity%3D%220.48%22%2F%3E%0A%20%20%20%20%20%20%3C%2Fsvg%3E") !important;
+  background-repeat: repeat !important;
+  background-size: 40px 40px !important;
+}
+
+/* Animated stars pattern */
+html body html body html body #__next > div:has(.vb-pattern-stars-animated) {
+  animation: vb-twinkle 3s ease-in-out infinite !important;
+}
+`;
+  }
+
+  // Combine preserved @rules with nuclear regular rules and additional overrides
+  return (atRules.join('\n') + '\n' + nuclearRules + additionalOverrides).trim();
 }
 
 /**
@@ -278,6 +347,12 @@ function scopeCSSToProfile(css: string, profileId: string): string {
           return `#${profileId}`;
         }
         
+        // Special handling for Visual Builder classes - they can be on the container itself
+        if (trimmed.startsWith('.vb-')) {
+          // Generate both direct targeting (for container) and descendant targeting (for children)
+          return `#${profileId}${trimmed}, #${profileId} ${trimmed}`;
+        }
+
         // Scope all other selectors to the profile
         return `#${profileId} ${trimmed}`;
       })
@@ -363,7 +438,7 @@ export function generateFallbackCSS({
   if (userCustomCSS) {
     const cleanCSS = cleanUserCSS(userCustomCSS);
     const scopedCSS = profileId ? scopeCSSToProfile(cleanCSS, profileId) : cleanCSS;
-    const nuclearCSS = forceUserCSSDominance(scopedCSS);
+    const nuclearCSS = forceUserCSSDominance(scopedCSS, cssMode);
     
     parts.push(`/* USER CSS MUST ALWAYS WIN - NUCLEAR FALLBACK (${cssMode} mode) */\n${nuclearCSS}`);
   }

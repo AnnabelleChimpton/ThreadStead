@@ -16,6 +16,7 @@ import {
 } from '@/lib/templates/visual-builder/grid-utils';
 import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/template-registry';
 import type { GlobalSettings } from '@/components/features/templates/visual-builder/GlobalSettingsPanel';
+import { deepEqualsComponent, wouldComponentChange, optimizeComponentArrayUpdate } from '@/lib/templates/visual-builder/component-equality';
 
 // Enhanced component item with grid and absolute positioning support
 export interface ComponentItem {
@@ -280,12 +281,20 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
     });
   }, []); // No dependencies to avoid stale closures
 
-  // Helper function to update component by ID (including children)
+  // Optimized helper function to update component by ID (including children)
   const updateComponentRecursively = (components: ComponentItem[], targetId: string, updates: Partial<ComponentItem>): ComponentItem[] => {
-    return components.map(component => {
+    let hasChanges = false;
+
+    const newComponents = components.map(component => {
       if (component.id === targetId) {
-        // Found the target component - update it
-        let updatedComponent;
+        // Found the target component - check if update would actually change it
+        if (!wouldComponentChange(component, updates)) {
+          // No actual change needed, return original component
+          return component;
+        }
+
+        // Create updated component
+        let updatedComponent: ComponentItem;
         if (updates.props && component.props) {
           updatedComponent = {
             ...component,
@@ -295,26 +304,40 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
         } else {
           updatedComponent = { ...component, ...updates };
         }
+
+        hasChanges = true;
         return updatedComponent;
       }
 
       // If this component has children, recursively search and update them
       if (component.children && component.children.length > 0) {
         const updatedChildren = updateComponentRecursively(component.children, targetId, updates);
-        return {
-          ...component,
-          children: updatedChildren
-        };
+
+        // Only create new parent component if children actually changed
+        if (updatedChildren !== component.children) {
+          hasChanges = true;
+          return {
+            ...component,
+            children: updatedChildren
+          };
+        }
       }
 
       return component;
     });
+
+    // Return original array if no changes occurred to maintain reference equality
+    return hasChanges ? newComponents : components;
   };
 
   // Update component with any properties (handles both parents and children)
   const updateComponent = useCallback((id: string, updates: Partial<ComponentItem>) => {
     setPlacedComponents(prev => {
-      return updateComponentRecursively(prev, id, updates);
+      const newComponents = updateComponentRecursively(prev, id, updates);
+
+      // If the optimized function returned the same reference, no changes occurred
+      // This prevents unnecessary state updates and re-renders
+      return newComponents;
     });
   }, []);
 

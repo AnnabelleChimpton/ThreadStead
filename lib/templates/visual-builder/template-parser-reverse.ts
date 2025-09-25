@@ -18,6 +18,7 @@ import { generateComponentId } from './canvas-state';
 import { DEFAULT_GRID_SYSTEM } from './constants';
 import type { GlobalSettings } from '@/components/features/templates/visual-builder/GlobalSettingsPanel';
 import { parseGlobalSettingsFromClasses } from './css-class-generator';
+import { type UniversalStyleProps, getDisplayValueForStyleProp } from './universal-styling';
 
 export interface ParseOptions {
   /** Whether to preserve layout attributes from visual builder */
@@ -836,7 +837,7 @@ export class TemplateParserReverse {
   }
 
   /**
-   * Extract props from element attributes
+   * Extract props from element attributes with universal styling support
    */
   private extractProps(element: Element): Record<string, unknown> {
     const props: Record<string, unknown> = {};
@@ -853,7 +854,59 @@ export class TemplateParserReverse {
       props[name] = this.parseAttributeValue(value, name);
     });
 
-    return props;
+    // Normalize universal styling props for backwards compatibility
+    return this.normalizeUniversalStyleProps(props);
+  }
+
+  /**
+   * Normalize universal styling props to ensure compatibility
+   * Maps both old and new prop names to the standard universal format
+   */
+  private normalizeUniversalStyleProps(props: Record<string, unknown>): Record<string, unknown> {
+    const normalized = { ...props };
+
+    // Universal styling prop mappings
+    const universalPropMappings: Record<string, string> = {
+      // Legacy -> Universal mappings
+      'backgroundcolor': 'backgroundColor',
+      'color': 'textColor',
+      'bordercolor': 'borderColor',
+      'fontsize': 'fontSize',
+      'fontweight': 'fontWeight',
+      'textalign': 'textAlign',
+      'borderradius': 'borderRadius',
+      // Keep universal props as-is
+      'backgroundColor': 'backgroundColor',
+      'textColor': 'textColor',
+      'borderColor': 'borderColor',
+      'accentColor': 'accentColor',
+      'opacity': 'opacity',
+      'borderWidth': 'borderWidth',
+      'boxShadow': 'boxShadow',
+      'fontSize': 'fontSize',
+      'fontWeight': 'fontWeight',
+      'fontFamily': 'fontFamily',
+      'textAlign': 'textAlign',
+      'lineHeight': 'lineHeight',
+      'padding': 'padding',
+      'margin': 'margin',
+      'customCSS': 'customCSS'
+    };
+
+    // Apply mappings
+    Object.entries(universalPropMappings).forEach(([sourceKey, targetKey]) => {
+      if (normalized[sourceKey] !== undefined) {
+        // If target key doesn't exist, use the source value
+        if (normalized[targetKey] === undefined) {
+          normalized[targetKey] = normalized[sourceKey];
+        }
+
+        // Keep both old and new prop names for maximum compatibility
+        // Don't remove the old prop name in case other parts of the system expect it
+      }
+    });
+
+    return normalized;
   }
 
   /**

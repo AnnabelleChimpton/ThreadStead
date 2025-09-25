@@ -10,6 +10,7 @@ import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { CSSModeProvider } from "@/contexts/CSSModeContext";
 
 // Import Layout to ensure CSS dependencies are always available
 import Layout from "@/components/ui/layout/Layout";
@@ -24,9 +25,19 @@ import CookieConsentBanner from "@/components/ui/feedback/CookieConsentBanner";
 import "@/lib/domain/threadrings/reconciliation-bootstrap";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
-  const { css, loading } = useSiteCSS();
   const router = useRouter();
   const { user } = useCurrentUser();
+
+  // Extract CSS mode information from pageProps
+  const cssMode = pageProps.cssMode || 'inherit';
+  const templateMode = pageProps.templateMode || 'default';
+  const isVisualBuilder = templateMode === 'advanced' && cssMode === 'disable';
+
+  // Conditionally load site CSS - skip for Visual Builder in disable mode
+  const { css, loading } = useSiteCSS({
+    skipDOMInjection: isVisualBuilder,
+    cssMode: isVisualBuilder ? 'disable' : cssMode
+  });
 
   // Ensure Layout component is bundled to include its CSS dependencies
   // This fixes CSS loading issues for dynamically imported components
@@ -106,29 +117,60 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                        router.pathname === '/preview-temp';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
   
-  // Extract CSS mode from custom CSS to determine if resets are needed
-  const extractCSSMode = (css: string | undefined): 'inherit' | 'override' | 'disable' => {
-    if (!css) return 'inherit';
-    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
-    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
-      return modeMatch[1] as 'inherit' | 'override' | 'disable';
-    }
-    // Default based on includeSiteCSS
-    return pageProps.includeSiteCSS === false ? 'disable' : 'inherit';
-  };
-  
-  const cssMode = extractCSSMode(pageProps.customCSS);
-  const needsCSSResets = isProfilePage && pageProps.templateMode === 'advanced' && cssMode !== 'inherit';
+  // For Visual Builder in disable mode, we need to completely isolate from global styles
+  const actualCSSMode = cssMode;
+  const needsCSSResets = isProfilePage && pageProps.templateMode === 'advanced' && actualCSSMode !== 'inherit';
   const includeSiteCSS = pageProps.includeSiteCSS !== false; // Default to true if not specified
   
 
   return (
     <GlobalAudioProvider>
+      <CSSModeProvider
+        cssMode={actualCSSMode}
+        templateMode={templateMode}
+        isVisualBuilder={isVisualBuilder}
+      >
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
-        {/* Only apply targeted CSS resets for advanced templates that need override/disable control */}
-        {needsCSSResets && (
+        {/* Conditional CSS handling based on Visual Builder mode */}
+        {isVisualBuilder ? (
+          /* Visual Builder in disable mode - inject page-level variable mapping only */
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              /* Visual Builder Page-Level Variable Mapping */
+              /* Map Visual Builder variables to page elements for complete control */
+
+              html {
+                background-color: var(--global-bg-color, var(--vb-background-color, #FCFAF7)) !important;
+                color: var(--global-text-color, var(--vb-text-color, #2F2F2F)) !important;
+                font-family: var(--global-font-family, var(--vb-font-family, system-ui)) !important;
+                font-size: var(--global-font-size, var(--vb-font-size, 16px)) !important;
+              }
+
+              body {
+                background-color: var(--global-bg-color, var(--vb-background-color, #FCFAF7)) !important;
+                color: var(--global-text-color, var(--vb-text-color, #2F2F2F)) !important;
+                font-family: var(--global-font-family, var(--vb-font-family, system-ui)) !important;
+                font-size: var(--global-font-size, var(--vb-font-size, 16px)) !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                min-height: 100vh !important;
+              }
+
+              /* Ensure Visual Builder has complete page control */
+              * {
+                box-sizing: border-box;
+              }
+
+              /* Remove any remaining global overrides */
+              #__next {
+                min-height: 100vh !important;
+                background: inherit !important;
+              }
+            `
+          }} />
+        ) : needsCSSResets && (
           <style dangerouslySetInnerHTML={{
             __html: `
               /* Advanced template mode - complete CSS control */
@@ -207,11 +249,25 @@ ${pageProps.customCSS}`
           />
         )}
       </Head>
-      <div className={`min-h-screen font-body ${
-        pageProps.templateMode === 'advanced'
-          ? '' // No default classes for advanced templates - completely clean
-          : 'thread-surface text-thread-charcoal' // Normal styling for everything else
-      }`}>
+      <div
+        className={`${
+          isVisualBuilder
+            ? '' // Visual Builder disable mode: completely clean wrapper
+            : pageProps.templateMode === 'advanced'
+            ? 'min-h-screen font-body' // Advanced mode (non-Visual Builder): clean but structured
+            : 'min-h-screen font-body thread-surface text-thread-charcoal' // Normal styling for everything else
+        }`}
+        style={isVisualBuilder ? {
+          // Visual Builder disable mode: wrapper inherits from Visual Builder variables
+          backgroundColor: 'var(--global-bg-color, var(--vb-background-color, #FCFAF7))',
+          color: 'var(--global-text-color, var(--vb-text-color, #2F2F2F))',
+          fontFamily: 'var(--global-font-family, var(--vb-font-family, system-ui))',
+          fontSize: 'var(--global-font-size, var(--vb-font-size, 16px))',
+          minHeight: '100vh',
+          margin: 0,
+          padding: 0
+        } : undefined}
+      >
         <Component {...pageProps} />
 
         {/* Cookie Consent Banner */}
@@ -223,6 +279,7 @@ ${pageProps.customCSS}`
           }}
         />
       </div>
+      </CSSModeProvider>
     </GlobalAudioProvider>
   );
 }

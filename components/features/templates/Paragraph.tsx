@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import FloatingToolbar from './visual-builder/FloatingToolbar';
+import { useUniversalStyles, type UniversalStyleProps, separateUniversalStyleProps } from '@/lib/templates/visual-builder/universal-styling';
 
-export interface ParagraphProps {
+export interface ParagraphProps extends UniversalStyleProps {
   content?: string;
-  style?: React.CSSProperties;
+  style?: React.CSSProperties | string; // Accept both object and JSON string
   className?: string;
   children?: React.ReactNode;
   // Internal props for visual builder
@@ -34,6 +35,41 @@ export default function Paragraph({
   const [isEditing, setIsEditing] = useState(false);
   const [editingContent, setEditingContent] = useState(content);
   const editRef = useRef<HTMLParagraphElement>(null);
+
+  // Separate styling props from DOM props to prevent invalid HTML attributes
+  console.log('🎨 [PARAGRAPH DEBUG] rest props before separation:', {
+    rest,
+    restKeys: Object.keys(rest),
+    hasBackgroundColor: 'backgroundColor' in rest,
+    hasTextColor: 'textColor' in rest,
+    backgroundColorValue: rest.backgroundColor,
+    textColorValue: rest.textColor
+  });
+
+  const { styleProps, otherProps } = separateUniversalStyleProps(rest);
+
+  console.log('🎨 [PARAGRAPH DEBUG] after separation:', {
+    styleProps,
+    stylePropsKeys: Object.keys(styleProps),
+    otherProps,
+    otherPropsKeys: Object.keys(otherProps)
+  });
+
+  // Parse existing style prop if it's a JSON string
+  const existingStyle = React.useMemo(() => {
+    if (typeof style === 'string') {
+      try {
+        return JSON.parse(style) as React.CSSProperties;
+      } catch (error) {
+        console.warn('Failed to parse style JSON string:', style, error);
+        return {};
+      }
+    }
+    return style && typeof style === 'object' ? style : {};
+  }, [style]);
+
+  // Process universal styling props with existing style as base
+  const processedStyle = useUniversalStyles(styleProps, 'Paragraph', existingStyle);
 
   // Apply height-aware pattern for absolute positioning
   const isAbsolutePositioned = _positioningMode === 'absolute';
@@ -166,7 +202,7 @@ export default function Paragraph({
 
   // Merge styles with consistent text wrapping behavior
   const finalStyle: React.CSSProperties = {
-    ...style,
+    ...processedStyle, // Use processed style instead of raw style
     // Apply custom size if in absolute positioning mode
     ...(isAbsolutePositioned && _size ? {
       width: _size.width,
@@ -202,7 +238,7 @@ export default function Paragraph({
         onBlur={isEditing ? handleEndEdit : undefined}
         onKeyDown={isEditing ? handleKeyDown : undefined}
         onInput={undefined}
-        {...rest}
+        {...otherProps}
       >
         {(() => {
           // Handle children vs content priority with validation

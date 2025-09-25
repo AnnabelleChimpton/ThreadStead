@@ -3,9 +3,10 @@
  * Replaces technical forms with intuitive visual controls
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { ComponentItem, UseCanvasStateResult } from '@/hooks/useCanvasState';
 import { componentRegistry } from '@/lib/templates/core/template-registry';
+import { getDisplayValueForStyleProp } from '@/lib/templates/visual-builder/universal-styling';
 import {
   getCurrentBreakpoint,
   type GridBreakpoint
@@ -21,6 +22,20 @@ import {
 } from './VisualPropertyControls';
 import StyleControls from './StyleControls';
 import StyleErrorBoundary from './StyleErrorBoundary';
+
+// Utility function for debouncing
+function debounce<T extends (...args: any[]) => void>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
 
 interface PropertyPanelProps {
   selectedComponent: ComponentItem | null;
@@ -95,8 +110,76 @@ export default function PropertyPanel({
     };
   }, []);
   const [activeTab, setActiveTab] = useState<PropertyTab>('component');
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['component-props', 'appearance', 'typography', 'css-styling']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['visual-styling', 'advanced-css']));
   const { gridConfig } = canvasState;
+
+  // Stable property update function
+  const updatePropertyStable = useCallback((key: string, value: any) => {
+    if (!selectedComponent) return;
+
+    onComponentUpdate(selectedComponent.id, {
+      props: {
+        ...selectedComponent.props,
+        [key]: value
+      }
+    });
+  }, [selectedComponent?.id, onComponentUpdate]);
+
+  // Individual memoized display values to prevent unnecessary re-renders
+  const displayValues = {
+    backgroundColor: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'backgroundColor') : '',
+      [selectedComponent?.props?.backgroundColor, selectedComponent?.props?.backgroundcolor]
+    ),
+    textColor: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'textColor') : '',
+      [selectedComponent?.props?.textColor, selectedComponent?.props?.color]
+    ),
+    borderColor: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'borderColor') : '',
+      [selectedComponent?.props?.borderColor, selectedComponent?.props?.bordercolor]
+    ),
+    accentColor: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'accentColor') : '',
+      [selectedComponent?.props?.accentColor]
+    ),
+    fontSize: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'fontSize') : '',
+      [selectedComponent?.props?.fontSize, selectedComponent?.props?.fontsize]
+    ),
+    fontWeight: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'fontWeight') : '',
+      [selectedComponent?.props?.fontWeight, selectedComponent?.props?.fontweight]
+    ),
+    textAlign: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'textAlign') : '',
+      [selectedComponent?.props?.textAlign, selectedComponent?.props?.textalign]
+    ),
+    opacity: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'opacity') : '',
+      [selectedComponent?.props?.opacity]
+    ),
+    borderRadius: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'borderRadius') : '',
+      [selectedComponent?.props?.borderRadius, selectedComponent?.props?.borderradius]
+    ),
+    borderWidth: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'borderWidth') : '',
+      [selectedComponent?.props?.borderWidth]
+    ),
+    padding: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'padding') : '',
+      [selectedComponent?.props?.padding]
+    ),
+    margin: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'margin') : '',
+      [selectedComponent?.props?.margin]
+    ),
+    customCSS: useMemo(() =>
+      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'customCSS') : '',
+      [selectedComponent?.props?.customCSS]
+    ),
+  };
 
   // Tab definitions
   const tabs: TabDefinition[] = [
@@ -104,25 +187,25 @@ export default function PropertyPanel({
       id: 'component',
       label: 'Component',
       icon: '🧩',
-      description: 'Component-specific properties and settings'
+      description: 'Content and behavior settings'
     },
     {
       id: 'style',
       label: 'Style',
       icon: '🎨',
-      description: 'Colors, typography, and visual appearance'
+      description: 'Universal visual styling (colors, fonts, effects)'
     },
     {
       id: 'layout',
       label: 'Layout',
       icon: '📐',
-      description: 'Position, size, spacing, and alignment'
+      description: 'Position, size, and alignment'
     },
     {
       id: 'content',
       label: 'Content',
       icon: '📝',
-      description: 'Text, images, and component data'
+      description: 'Text content and editable data'
     },
     {
       id: 'advanced',
@@ -163,52 +246,35 @@ export default function PropertyPanel({
     }
   };
 
-  // Style tab with visual appearance controls
+  // Style tab with unified visual styling controls
   const renderStyleTab = () => {
     const sections = [];
 
-    // Appearance section
+    // Unified Visual Styling section - works for all components
     sections.push(
       <PropertySection
-        key="appearance"
-        title="Appearance"
+        key="visual-styling"
+        title="Visual Styling"
         icon="🎨"
-        isExpanded={expandedSections.has('appearance')}
-        onToggle={() => toggleSection('appearance')}
+        isExpanded={expandedSections.has('visual-styling')}
+        onToggle={() => toggleSection('visual-styling')}
       >
-        {renderAppearanceProperties()}
+        {renderUnifiedVisualStyling()}
       </PropertySection>
     );
 
-    // Typography section
-    if (isTextComponent(selectedComponent!.type)) {
-      sections.push(
-        <PropertySection
-          key="typography"
-          title="Typography"
-          icon="📝"
-          isExpanded={expandedSections.has('typography')}
-          onToggle={() => toggleSection('typography')}
-        >
-          {renderTypographyProperties()}
-        </PropertySection>
-      );
-    }
-
-    // CSS Styling section - primitive styles stored in style object
-    if (isTextComponent(selectedComponent!.type)) {
-      sections.push(
-        <PropertySection
-          key="css-styling"
-          title="CSS Styling"
-          icon="🎨"
-          isExpanded={expandedSections.has('css-styling')}
-          onToggle={() => toggleSection('css-styling')}
-        >
-          {renderCSSStyleSection()}
-        </PropertySection>
-      );
-    }
+    // Advanced CSS section - for power users only
+    sections.push(
+      <PropertySection
+        key="advanced-css"
+        title="Advanced CSS"
+        icon="⚙️"
+        isExpanded={expandedSections.has('advanced-css')}
+        onToggle={() => toggleSection('advanced-css')}
+      >
+        {renderAdvancedCSSSection()}
+      </PropertySection>
+    );
 
     return (
       <div style={{
@@ -444,6 +510,290 @@ export default function PropertyPanel({
     return textComponents.includes(componentType);
   };
 
+  // Helper to get component style category for determining available props
+  const getComponentStyleCategory = (componentType: string) => {
+    const textComponents = ['TextElement', 'Heading', 'Paragraph', 'DisplayName', 'Bio'];
+    const containerComponents = ['GradientBox', 'CenteredBox', 'NeonBorder', 'RevealBox', 'FlexContainer'];
+    const mediaComponents = ['ProfilePhoto', 'UserImage', 'MediaGrid'];
+    const interactiveComponents = ['FollowButton', 'ContactCard', 'Tabs'];
+
+    if (textComponents.includes(componentType)) return 'text';
+    if (containerComponents.includes(componentType)) return 'container';
+    if (mediaComponents.includes(componentType)) return 'media';
+    if (interactiveComponents.includes(componentType)) return 'interactive';
+    return 'decorative';
+  };
+
+  // Render unified visual styling controls based on component category
+  const renderUnifiedVisualStyling = () => {
+    if (!selectedComponent) return null;
+
+    const styleCategory = getComponentStyleCategory(selectedComponent.type);
+    const isText = styleCategory === 'text';
+    const isContainer = ['container', 'decorative'].includes(styleCategory);
+
+    return (
+      <div>
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#f0f9ff',
+          borderRadius: '6px',
+          marginBottom: '16px',
+          border: '1px solid #bae6fd'
+        }}>
+          <div style={{
+            fontSize: '12px',
+            color: '#0284c7',
+            fontWeight: 'bold',
+            marginBottom: '4px'
+          }}>
+            ✨ Universal Styling
+          </div>
+          <div style={{
+            fontSize: '11px',
+            color: '#0369a1',
+            lineHeight: '1.4'
+          }}>
+            These properties work consistently across all components and override any conflicting settings.
+          </div>
+        </div>
+
+        {/* Colors Section */}
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{
+            fontSize: '13px',
+            fontWeight: 'bold',
+            color: '#374151',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            🎨 Colors
+          </div>
+
+          <ColorEditor
+            label="Background Color"
+            value={displayValues.backgroundColor || ''}
+            onChange={(value) => updatePropertyStable('backgroundColor', value)}
+            description="Component background color"
+          />
+
+          {isText && (
+            <ColorEditor
+              label="Text Color"
+              value={displayValues.textColor || ''}
+              onChange={(value) => updatePropertyStable('textColor', value)}
+              description="Text color"
+            />
+          )}
+
+          {isContainer && (
+            <ColorEditor
+              label="Border Color"
+              value={displayValues.borderColor || ''}
+              onChange={(value) => updatePropertyStable('borderColor', value)}
+              description="Border color"
+            />
+          )}
+
+          <ColorEditor
+            label="Accent Color"
+            value={displayValues.accentColor || ''}
+            onChange={(value) => updatePropertyStable('accentColor', value)}
+            description="Accent color for highlights"
+          />
+        </div>
+
+        {/* Typography Section - only for text components */}
+        {isText && (
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{
+              fontSize: '13px',
+              fontWeight: 'bold',
+              color: '#374151',
+              marginBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              📝 Typography
+            </div>
+
+            <SliderEditor
+              label="Font Size"
+              value={parseFloat((displayValues.fontSize || '16px').replace('px', ''))}
+              onChange={(value) => updatePropertyStable('fontSize', `${value}px`)}
+              min={8}
+              max={72}
+              step={1}
+              unit="px"
+              description="Text size"
+            />
+
+            <SelectEditor
+              label="Font Weight"
+              value={displayValues.fontWeight || 'normal'}
+              onChange={(value) => updatePropertyStable('fontWeight', value)}
+              options={[
+                { value: 'normal', label: 'Normal', icon: '📝' },
+                { value: 'bold', label: 'Bold', icon: '🔤' },
+                { value: '300', label: 'Light', icon: '📃' },
+                { value: '500', label: 'Medium', icon: '📋' },
+                { value: '700', label: 'Bold', icon: '📰' },
+                { value: '900', label: 'Black', icon: '📓' },
+              ]}
+              description="Font weight"
+            />
+
+            <SelectEditor
+              label="Text Align"
+              value={displayValues.textAlign || 'left'}
+              onChange={(value) => updatePropertyStable('textAlign', value)}
+              options={[
+                { value: 'left', label: 'Left', icon: '◀️' },
+                { value: 'center', label: 'Center', icon: '🔶' },
+                { value: 'right', label: 'Right', icon: '▶️' },
+                { value: 'justify', label: 'Justify', icon: '📝' },
+              ]}
+              description="Text alignment"
+            />
+          </div>
+        )}
+
+        {/* Visual Effects Section */}
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{
+            fontSize: '13px',
+            fontWeight: 'bold',
+            color: '#374151',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            ✨ Effects
+          </div>
+
+          <SliderEditor
+            label="Opacity"
+            value={parseFloat((displayValues.opacity || '100%').replace('%', ''))}
+            onChange={(value) => updatePropertyStable('opacity', `${value}%`)}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            description="Component transparency"
+          />
+
+          <SliderEditor
+            label="Border Radius"
+            value={parseFloat((displayValues.borderRadius || '0px').replace('px', ''))}
+            onChange={(value) => updatePropertyStable('borderRadius', `${value}px`)}
+            min={0}
+            max={50}
+            step={1}
+            unit="px"
+            description="Rounded corners"
+          />
+
+          {isContainer && (
+            <SliderEditor
+              label="Border Width"
+              value={parseFloat((displayValues.borderWidth || '0px').replace('px', ''))}
+              onChange={(value) => updatePropertyStable('borderWidth', `${value}px`)}
+              min={0}
+              max={10}
+              step={1}
+              unit="px"
+              description="Border thickness"
+            />
+          )}
+        </div>
+
+        {/* Spacing Section */}
+        <div>
+          <div style={{
+            fontSize: '13px',
+            fontWeight: 'bold',
+            color: '#374151',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            📏 Spacing
+          </div>
+
+          <TextEditor
+            label="Padding"
+            value={displayValues.padding || ''}
+            onChange={(value) => updatePropertyStable('padding', value)}
+            description="Internal spacing (e.g., 16px, 8px 16px)"
+          />
+
+          <TextEditor
+            label="Margin"
+            value={displayValues.margin || ''}
+            onChange={(value) => updatePropertyStable('margin', value)}
+            description="External spacing (e.g., 16px, 8px 16px)"
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // Render advanced CSS section for power users
+  const renderAdvancedCSSSection = () => {
+    if (!selectedComponent) return null;
+
+    return (
+      <div>
+        <div style={{
+          padding: '12px',
+          backgroundColor: '#fef3c7',
+          borderRadius: '6px',
+          marginBottom: '16px',
+          border: '1px solid #f59e0b'
+        }}>
+          <div style={{
+            fontSize: '12px',
+            color: '#92400e',
+            fontWeight: 'bold',
+            marginBottom: '4px'
+          }}>
+            ⚠️ Advanced CSS Override
+          </div>
+          <div style={{
+            fontSize: '11px',
+            color: '#b45309',
+            lineHeight: '1.4'
+          }}>
+            Custom CSS styles as JSON. These will override universal styling properties. Use with caution.
+          </div>
+        </div>
+
+        <TextEditor
+          label="Custom CSS (JSON)"
+          value={displayValues.customCSS || ''}
+          onChange={(value) => updatePropertyStable('customCSS', value)}
+          description='Raw CSS styles as JSON object (e.g., {"color": "#000", "fontSize": "18px"})'
+        />
+
+        <div style={{
+          marginTop: '12px',
+          padding: '8px',
+          backgroundColor: '#f9fafb',
+          borderRadius: '4px',
+          fontSize: '11px',
+          color: '#6b7280'
+        }}>
+          💡 Example: {"{"}&#34;color&#34;: &#34;#ff0000&#34;, &#34;fontWeight&#34;: &#34;bold&#34;, &#34;textShadow&#34;: &#34;2px 2px 4px rgba(0,0,0,0.3)&#34;{"}"}
+        </div>
+      </div>
+    );
+  };
+
   // Render appearance properties with visual controls
   const renderAppearanceProperties = () => {
     if (!selectedComponent) return null;
@@ -452,8 +802,8 @@ export default function PropertyPanel({
       <div>
         <ColorEditor
           label="Background Color"
-          value={selectedComponent.props?.backgroundColor || ''}
-          onChange={(value) => updateProperty('backgroundColor', value)}
+          value={selectedComponent.props?.backgroundcolor || ''}
+          onChange={(value) => updateProperty('backgroundcolor', value)}
           description="Set the background color of the component"
         />
 
@@ -814,7 +1164,7 @@ export default function PropertyPanel({
     );
   };
 
-  // Update a specific property
+  // Legacy updateProperty function for non-optimized components
   const updateProperty = (key: string, value: any) => {
     if (!selectedComponent) return;
 
@@ -860,9 +1210,21 @@ export default function PropertyPanel({
   const renderComponentSpecificProperties = (registration: any) => {
     if (!selectedComponent) return null;
 
+    // Universal styling props that should NOT appear in Component tab
+    const universalStyleProps = [
+      'backgroundColor', 'textColor', 'borderColor', 'accentColor',
+      'opacity', 'borderRadius', 'borderWidth', 'boxShadow',
+      'fontSize', 'fontWeight', 'fontFamily', 'textAlign', 'lineHeight',
+      'padding', 'margin', 'customCSS', 'style'
+    ];
+
     const propElements: React.ReactNode[] = [];
 
     Object.entries(registration.props).forEach(([propKey, propSchema]: [string, any]) => {
+      // Skip universal styling props - they belong in the Style tab
+      if (universalStyleProps.includes(propKey)) {
+        return;
+      }
       const currentValue = selectedComponent.props?.[propKey];
       const isRequired = propSchema.required;
       const hasDefault = propSchema.default !== undefined;
@@ -962,6 +1324,23 @@ export default function PropertyPanel({
           );
       }
     });
+
+    if (propElements.length === 0) {
+      return (
+        <div style={{
+          textAlign: 'center',
+          padding: '24px',
+          color: '#6b7280',
+          fontSize: '14px',
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎨</div>
+          <p>All styling moved to Style tab</p>
+          <p style={{ fontSize: '12px', marginTop: '4px' }}>
+            This component&#39;s properties are now in the Style tab for consistency
+          </p>
+        </div>
+      );
+    }
 
     return <div>{propElements}</div>;
   };

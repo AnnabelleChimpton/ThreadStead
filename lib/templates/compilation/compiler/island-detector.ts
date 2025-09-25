@@ -151,6 +151,64 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         // Validate and coerce props from node properties
         const rawProps = node.properties || {};
 
+        // STYLING ATTRIBUTE NORMALIZATION
+        // Map from actual lowercase HTML attributes to proper camelCase React props
+        // HTML attributes are already normalized to lowercase when they reach here
+        const styleAttributeMap: Record<string, string> = {
+          // Universal styling props - map from lowercase HTML attrs to camelCase React props
+          'backgroundcolor': 'backgroundColor',
+          'textcolor': 'textColor',
+          'bordercolor': 'borderColor',
+          'accentcolor': 'accentColor',
+          'borderradius': 'borderRadius',
+          'borderwidth': 'borderWidth',
+          'boxshadow': 'boxShadow',
+          'fontsize': 'fontSize',
+          'fontweight': 'fontWeight',
+          'fontfamily': 'fontFamily',
+          'textalign': 'textAlign',
+          'lineheight': 'lineHeight',
+          'customcss': 'customCSS',
+          // Legacy CSS props - keep as lowercase
+          'text-decoration': 'textdecoration',
+          'font-style': 'fontstyle',
+          'text-transform': 'texttransform',
+          'letter-spacing': 'letterspacing',
+          'word-spacing': 'wordspacing',
+          'text-indent': 'textindent',
+          'white-space': 'whitespace',
+          'word-break': 'wordbreak',
+          'word-wrap': 'wordwrap',
+          'text-overflow': 'textoverflow'
+        };
+
+        // Apply attribute name conversions for kebab-case to camelCase
+        for (const [htmlAttr, reactProp] of Object.entries(styleAttributeMap)) {
+          if (rawProps[htmlAttr] !== undefined) {
+            rawProps[reactProp] = rawProps[htmlAttr];
+            delete rawProps[htmlAttr];
+          }
+        }
+
+        // DEBUG: Check if styling props are present in rawProps (before and after conversion)
+        if (node.tagName === 'Paragraph') {
+          console.log('🎨 [ISLAND_DETECTOR] BEFORE normalization - rawProps keys:', Object.keys(node.properties || {}));
+          console.log('🎨 [ISLAND_DETECTOR] BEFORE normalization - full props:', node.properties || {});
+
+          console.log('🎨 [ISLAND_DETECTOR] Paragraph rawProps AFTER normalization:', {
+            // Check for lowercase HTML attributes (input)
+            hasBackgroundColorLowercase: 'backgroundcolor' in rawProps,
+            hasTextColorLowercase: 'textcolor' in rawProps,
+            // Check for camelCase React props (output)
+            hasBackgroundColor: 'backgroundColor' in rawProps,
+            hasTextColor: 'textColor' in rawProps,
+            // Show values
+            backgroundColorValue: rawProps.backgroundColor,
+            textColorValue: rawProps.textColor,
+            allKeys: Object.keys(rawProps)
+          });
+        }
+
         // Convert dataComponentSize attribute back to _size prop if present
         if (rawProps['dataComponentSize'] || rawProps['data-component-size']) {
           try {

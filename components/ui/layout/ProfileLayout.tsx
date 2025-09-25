@@ -26,8 +26,6 @@ export default function ProfileLayout({
   templateMode = 'default',
   cssMode = 'inherit'
 }: ProfileLayoutProps) {
-  const { css: siteWideCSS } = useSiteCSS();
-  
   // Extract CSS mode from custom CSS if not explicitly provided
   const extractCSSMode = (css: string | undefined): CSSMode => {
     if (!css) return cssMode;
@@ -39,7 +37,12 @@ export default function ProfileLayout({
   };
   
   const actualCSSMode = extractCSSMode(customCSS);
-  
+
+  const { css: siteWideCSS } = useSiteCSS({
+    skipDOMInjection: templateMode === 'advanced', // Advanced templates manage their own CSS
+    cssMode: actualCSSMode
+  });
+
   // Generate layered CSS instead of direct injection
   // Use a stable profile ID that doesn't change between server and client
   const layeredCSS = generateOptimizedCSS({
@@ -50,35 +53,29 @@ export default function ProfileLayout({
     profileId: 'profile-layout'
   });
   
-  // Advanced template mode: ONLY USER CSS - zero system interference
+  // Advanced template mode: DO NOT inject CSS here - ProfileModeRenderer handles it
   if (templateMode === 'advanced') {
-    // Clean user CSS - remove any system comments or layer declarations
-    const cleanUserCSS = (customCSS || '')
-      .replace(/\/\* CSS_MODE:\w+ \*\/\n?/g, '') // Remove mode comments
-      .replace(/!important/g, ''); // Remove !important declarations
-    
+    // For Visual Builder (advanced mode), ProfileModeRenderer handles ALL CSS injection
+    // ProfileLayout should NOT interfere with advanced template CSS rendering
+
     // Handle navigation for advanced templates
     if (hideNavigation) {
-      // Advanced template with hidden navigation - ONLY user CSS
+      // Advanced template with hidden navigation - no CSS injection, no containers
       return (
         <>
-          {/* ONLY raw user CSS - no layers, no system CSS, no processing */}
-          {cleanUserCSS && <style dangerouslySetInnerHTML={{ __html: cleanUserCSS }} />}
-          
+          {/* NO CSS injection - ProfileModeRenderer handles it */}
           {/* Completely raw content - no containers, no classes, no styling */}
           {children}
         </>
       );
     } else {
-      // Advanced template with navigation shown - minimal navigation + user CSS only
+      // Advanced template with navigation shown - minimal navigation only
       return (
         <>
-          {/* ONLY raw user CSS - no layers, no system CSS, no processing */}
-          {cleanUserCSS && <style dangerouslySetInnerHTML={{ __html: cleanUserCSS }} />}
-          
+          {/* NO CSS injection - ProfileModeRenderer handles it */}
           {/* Completely unstyled minimal navigation */}
           <MinimalNavBar />
-          
+
           {/* Completely raw content - no containers, no classes, no styling */}
           {children}
         </>

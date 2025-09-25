@@ -34,7 +34,7 @@ function createCustomSchema() {
       // Allow ALL attributes for custom components - use a very permissive list
       const allAttributes = [
         '*', // Wildcard
-        'src', 'alt', 'caption', 'link', 'level', 'name', 'category', 'color', 'type', 'value',
+        'src', 'alt', 'caption', 'link', 'level', 'name', 'category', 'color', 'textcolor', 'textColor', 'accentcolor', 'accentColor', 'type', 'value',
         'title', 'text', 'speed', 'amplitude', 'label', 'max', 'description', 'icon', 'priority',
         'when', 'data', 'equals', 'exists', 'condition', 'variant', 'size', 'rotation', 'shadow',
         'buttonText', 'revealText', 'buttonStyle', 'ratio', 'vertical', 'gap', 'responsive',
@@ -45,6 +45,67 @@ function createCustomSchema() {
         'transition', 'loop', 'controls', 'direction', 'align', 'justify', 'wrap', 'gradient',
         'padding', 'rounded', 'colors', 'opacity', 'limit', 'maxWidth', 'animation', 'position',
         'yearsExperience', 'className', 'class',
+
+        // COMPREHENSIVE STYLING ATTRIBUTES FOR MAXIMUM CREATIVE EXPRESSION
+
+        // Core Styling Props
+        'backgroundcolor', 'backgroundColor', 'style', 'customcss', 'customCSS', // Critical missing props
+        'fontfamily', 'fontFamily',
+        'fontsize', 'fontSize',
+        'fontweight', 'fontWeight',
+        'textalign', 'textAlign',
+        'textdecoration', 'textDecoration',
+        'fontstyle', 'fontStyle',
+        'texttransform', 'textTransform',
+
+        // Spacing & Layout Props
+        'margin', 'margintop', 'marginTop', 'marginright', 'marginRight',
+        'marginbottom', 'marginBottom', 'marginleft', 'marginLeft',
+        'padding', 'paddingtop', 'paddingTop', 'paddingright', 'paddingRight',
+        'paddingbottom', 'paddingBottom', 'paddingleft', 'paddingLeft',
+        'width', 'minwidth', 'minWidth', 'maxwidth', 'maxWidth',
+        'height', 'minheight', 'minHeight', 'maxheight', 'maxHeight',
+        'display', 'position', 'top', 'right', 'bottom', 'left', 'zindex', 'zIndex',
+
+        // Border & Visual Effects
+        'border', 'borderstyle', 'borderStyle', 'borderwidth', 'borderWidth',
+        'bordercolor', 'borderColor', 'borderradius', 'borderRadius',
+        'bordertop', 'borderTop', 'borderright', 'borderRight',
+        'borderbottom', 'borderBottom', 'borderleft', 'borderLeft',
+        'boxshadow', 'boxShadow', 'opacity', 'visibility', 'overflow', 'cursor',
+
+        // Flexbox & Grid Props
+        'flexdirection', 'flexDirection', 'flexwrap', 'flexWrap',
+        'flexgrow', 'flexGrow', 'flexshrink', 'flexShrink', 'flexbasis', 'flexBasis',
+        'justifycontent', 'justifyContent', 'alignitems', 'alignItems',
+        'alignself', 'alignSelf', 'aligncontent', 'alignContent',
+        'gridtemplate', 'gridTemplate', 'gridcolumn', 'gridColumn',
+        'gridrow', 'gridRow', 'gap', 'columngap', 'columnGap', 'rowgap', 'rowGap',
+
+        // Text & Typography
+        'lineheight', 'lineHeight', 'letterspacing', 'letterSpacing',
+        'wordspacing', 'wordSpacing', 'textindent', 'textIndent',
+        'whitespace', 'whiteSpace', 'wordbreak', 'wordBreak',
+        'wordwrap', 'wordWrap', 'textoverflow', 'textOverflow',
+
+        // Animation & Transitions
+        'transform', 'transition', 'animation',
+        'animationduration', 'animationDuration',
+        'animationdelay', 'animationDelay',
+        'animationtiming', 'animationTimingFunction',
+
+        // Background Properties
+        'backgroundimage', 'backgroundImage',
+        'backgroundsize', 'backgroundSize',
+        'backgroundposition', 'backgroundPosition',
+        'backgroundrepeat', 'backgroundRepeat',
+        'backgroundattachment', 'backgroundAttachment',
+
+        // Additional Creative Props
+        'filter', 'clippath', 'clipPath',
+        'mixblendmode', 'mixBlendMode',
+        'gradient', 'content',
+
         // Add positioning data attributes for visual builder (both kebab-case and camelCase)
         'data-position', 'data-pixel-position', 'data-positioning-mode', 'data-grid-position',
         'dataPosition', 'dataPixelPosition', 'dataPositioningMode', 'dataGridPosition',
@@ -54,7 +115,9 @@ function createCustomSchema() {
         'data-grid-column', 'data-grid-row', 'data-grid-span',
         'dataGridColumn', 'dataGridRow', 'dataGridSpan',
         // Add size attributes for visual builder
-        'data-component-size', 'dataComponentSize'
+        'data-component-size', 'dataComponentSize',
+        // Add component ID for tracking
+        'data-component-id', 'dataComponentId'
       ];
       
       schema.attributes[tagName] = allAttributes;

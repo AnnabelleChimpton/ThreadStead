@@ -1,6 +1,9 @@
 // Component registry for user templates
 import React from 'react';
 
+// Import universal styling system
+import { mergeWithUniversalProps } from '@/lib/templates/visual-builder/universal-styling';
+
 // Import template components
 import ProfilePhoto from '@/components/features/templates/ProfilePhoto';
 import DisplayName from '@/components/features/templates/DisplayName';
@@ -314,9 +317,10 @@ componentRegistry.register({
 componentRegistry.register({
   name: 'Paragraph',
   component: Paragraph,
-  props: {
-    content: { type: 'string', default: 'This is a paragraph. Click to edit this text and add your own content.' }
-  },
+  props: mergeWithUniversalProps({
+    content: { type: 'string', default: 'This is a paragraph. Click to edit this text and add your own content.' },
+    style: { type: 'string' } // Accept JSON string for style object
+  }, 'text'),
   relationship: {
     type: 'text',
     acceptsChildren: true,
