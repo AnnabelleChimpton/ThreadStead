@@ -80,7 +80,9 @@ export class PureHtmlGenerator {
     const indent = this.options.prettyPrint ? '  '.repeat(depth) : '';
 
     const props = this.generatePropsString(component);
-    const positioningAttr = this.generatePositioningAttribute(component.positioning);
+    // CRITICAL FIX: Only add positioning attributes to top-level components (depth 1)
+    // Nested components should use relative positioning within their parent containers
+    const positioningAttr = depth === 1 ? this.generatePositioningAttribute(component.positioning) : '';
     const metadataAttrs = this.generateMetadataAttributes(component);
 
     // Generate children HTML
@@ -163,7 +165,23 @@ export class PureHtmlGenerator {
       'fontSize': 'fontsize',
       'fontWeight': 'fontweight',
       'textAlign': 'textalign',
-      'borderRadius': 'borderradius'
+      'borderRadius': 'borderradius',
+      // Component-specific props - CRTMonitor
+      'screenColor': 'screencolor',
+      'phosphorGlow': 'phosphorglow',
+      // Component-specific props - ArcadeButton
+      'style3D': 'style3d',
+      'clickEffect': 'clickeffect',
+      // Component-specific props - PixelArtFrame
+      'frameColor': 'framecolor',
+      'frameWidth': 'framewidth',
+      'borderStyle': 'borderstyle',
+      'cornerStyle': 'cornerstyle',
+      'shadowEffect': 'shadoweffect',
+      'glowEffect': 'gloweffect',
+      'innerPadding': 'innerpadding',
+      // Component-specific props - RetroGrid
+      'gridStyle': 'gridstyle'
     };
 
     // Remove legacy props when universal equivalent exists

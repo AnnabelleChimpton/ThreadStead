@@ -334,9 +334,6 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
   const updateComponent = useCallback((id: string, updates: Partial<ComponentItem>) => {
     setPlacedComponents(prev => {
       const newComponents = updateComponentRecursively(prev, id, updates);
-
-      // If the optimized function returned the same reference, no changes occurred
-      // This prevents unnecessary state updates and re-renders
       return newComponents;
     });
   }, []);

@@ -890,7 +890,23 @@ export class TemplateParserReverse {
       'lineHeight': 'lineHeight',
       'padding': 'padding',
       'margin': 'margin',
-      'customCSS': 'customCSS'
+      'customCSS': 'customCSS',
+      // Component-specific props - CRTMonitor
+      'screencolor': 'screenColor',
+      'phosphorglow': 'phosphorGlow',
+      // Component-specific props - ArcadeButton
+      'style3d': 'style3D',
+      'clickeffect': 'clickEffect',
+      // Component-specific props - PixelArtFrame
+      'framecolor': 'frameColor',
+      'framewidth': 'frameWidth',
+      'borderstyle': 'borderStyle',
+      'cornerstyle': 'cornerStyle',
+      'shadoweffect': 'shadowEffect',
+      'gloweffect': 'glowEffect',
+      'innerpadding': 'innerPadding',
+      // Component-specific props - RetroGrid
+      'gridstyle': 'gridStyle'
     };
 
     // Apply mappings

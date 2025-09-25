@@ -18,6 +18,7 @@ interface ProfilePhotoProps {
 export default function ProfilePhoto({ size = 'md', shape = 'circle', className: customClassName, _isInGrid = false, _positioningMode = 'normal', _isInVisualBuilder = false, imageFit = 'auto' }: ProfilePhotoProps) {
   const { owner } = useResidentData();
 
+
   // Use prop-based grid detection instead of context hook to prevent infinite loops
   const isInGrid = _isInGrid;
 

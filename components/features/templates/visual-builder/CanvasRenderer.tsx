@@ -73,9 +73,8 @@ function generateGlobalCSSProperties(globalSettings: GlobalSettings | null): Rea
   };
 
   // Only add CSS variables if they have actual values (avoid overriding CSS)
-  // Note: Don't set --global-bg-color for solid backgrounds - let CSS classes handle it
-  // This prevents white overrides from fallback values
-  if (globalSettings.background?.color && globalSettings.background?.type !== 'solid') {
+  // Set --global-bg-color for all background types so CSS classes work properly
+  if (globalSettings.background?.color) {
     (cssProperties as any)['--global-bg-color'] = globalSettings.background.color;
   }
   if (globalSettings.background?.type) {
@@ -594,6 +593,41 @@ export default function CanvasRenderer({
     targetContainer: null,
     dropAction: 'normal',
   });
+
+  // Animation state for component lifecycle
+  const [newlyAddedComponents, setNewlyAddedComponents] = useState<Set<string>>(new Set());
+  const [removingComponents, setRemovingComponents] = useState<Set<string>>(new Set());
+  const previousComponentIds = useRef<Set<string>>(new Set());
+
+  // Track component additions and removals for animations
+  useEffect(() => {
+    const currentIds = new Set(placedComponents.map(c => c.id));
+    const previousIds = previousComponentIds.current;
+
+    // Find newly added components
+    const newIds = new Set([...currentIds].filter(id => !previousIds.has(id)));
+    if (newIds.size > 0) {
+      setNewlyAddedComponents(prev => new Set([...prev, ...newIds]));
+
+      // Remove from newly added after animation duration
+      setTimeout(() => {
+        setNewlyAddedComponents(prev => {
+          const updated = new Set(prev);
+          newIds.forEach(id => updated.delete(id));
+          return updated;
+        });
+      }, 300); // Match CSS animation duration
+    }
+
+    // Find removed components (for future use)
+    const removedIds = new Set([...previousIds].filter(id => !currentIds.has(id)));
+    if (removedIds.size > 0) {
+      // Components are already removed, but we could trigger exit animations here
+      console.log('Components removed:', removedIds);
+    }
+
+    previousComponentIds.current = currentIds;
+  }, [placedComponents]);
 
   // Enhanced drag over for preview and drop zone feedback
   const handleDragOverWithPreview = useCallback((event: React.DragEvent) => {
@@ -1457,13 +1491,28 @@ export default function CanvasRenderer({
           };
       }
 
+      const isNewlyAdded = newlyAddedComponents.has(component.id);
+      const isRemoving = removingComponents.has(component.id);
+
       return (
         <div
           key={component.id}
-          className={`absolute cursor-move ${isTextComponent(component.type) ? 'hover:ring-2 hover:ring-green-300 hover:ring-opacity-50 transition-all' : ''}`}
+          className={`
+            absolute cursor-move transition-all duration-300 ease-out
+            ${isTextComponent(component.type) ? 'hover:ring-2 hover:ring-green-300 hover:ring-opacity-50' : ''}
+            ${isNewlyAdded ? 'animate-scale-in' : ''}
+            ${isRemoving ? 'animate-scale-out' : ''}
+            ${isSelected ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
+            hover:shadow-lg
+          `}
           style={{
             ...componentStyle,
-            zIndex: draggedComponentId === component.id ? 10 : (isSelected ? 5 : 1)
+            zIndex: draggedComponentId === component.id ? 10 : (isSelected ? 5 : 1),
+            transform: isNewlyAdded ? 'scale(0.8)' : isRemoving ? 'scale(0.8)' : 'scale(1)',
+            opacity: isRemoving ? 0 : 1,
+            ...(isNewlyAdded && {
+              animation: 'scaleInBounce 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards'
+            })
           }}
           onClick={(e) => handleComponentClick(component.id, e)}
           onMouseDown={(e) => handleComponentMouseDown(component.id, e)}
@@ -1850,6 +1899,79 @@ export default function CanvasRenderer({
 
   return (
     <ResidentDataProvider data={residentData}>
+      {/* CSS Animations for Visual Builder */}
+      <style jsx>{`
+        @keyframes scaleInBounce {
+          0% {
+            transform: scale(0);
+            opacity: 0;
+          }
+          50% {
+            transform: scale(1.1);
+            opacity: 0.8;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+
+        @keyframes scaleOut {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(0);
+            opacity: 0;
+          }
+        }
+
+        .animate-scale-in {
+          animation: scaleInBounce 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+
+        .animate-scale-out {
+          animation: scaleOut 0.2s ease-in forwards;
+        }
+
+        /* Enhanced hover effects */
+        .cursor-move:hover {
+          transform: translateY(-1px) !important;
+          transition: transform 0.2s ease-out, box-shadow 0.2s ease-out !important;
+        }
+
+        /* Selection pulse animation */
+        .ring-blue-400 {
+          animation: selection-pulse 2s infinite;
+        }
+
+        @keyframes selection-pulse {
+          0%, 100% {
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+          }
+          50% {
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+          }
+        }
+
+        /* Success feedback for component drops */
+        @keyframes sparkle {
+          0% {
+            opacity: 0;
+            transform: scale(0) rotate(0deg);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1) rotate(180deg);
+          }
+          100% {
+            opacity: 0;
+            transform: scale(0) rotate(360deg);
+          }
+        }
+      `}</style>
+
       <div
         className={`relative border border-gray-200 overflow-hidden ${className}`}
         key={`canvas-${placedComponents.length}`}

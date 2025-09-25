@@ -117,7 +117,21 @@ function createCustomSchema() {
         // Add size attributes for visual builder
         'data-component-size', 'dataComponentSize',
         // Add component ID for tracking
-        'data-component-id', 'dataComponentId'
+        'data-component-id', 'dataComponentId',
+
+        // Component-specific props - CRTMonitor
+        'screencolor', 'screenColor', 'phosphorglow', 'phosphorGlow',
+        'scanlines', 'curvature',
+        // Component-specific props - NeonSign (already covered by existing props)
+        // Component-specific props - ArcadeButton
+        'style3d', 'style3D', 'clickeffect', 'clickEffect', 'glowing', 'sound', 'href',
+        // Component-specific props - PixelArtFrame
+        'framecolor', 'frameColor', 'framewidth', 'frameWidth',
+        'borderstyle', 'borderStyle', 'cornerstyle', 'cornerStyle',
+        'shadoweffect', 'shadowEffect', 'gloweffect', 'glowEffect',
+        'innerpadding', 'innerPadding', 'animated',
+        // Component-specific props - RetroGrid
+        'gridstyle', 'gridStyle', 'perspective', 'horizon', 'glow'
       ];
       
       schema.attributes[tagName] = allAttributes;

@@ -44,6 +44,11 @@ import ProgressTracker, { ProgressItem } from '@/components/features/templates/P
 import ImageCarousel, { CarouselImage } from '@/components/features/templates/ImageCarousel';
 import ContactCard, { ContactMethod } from '@/components/features/templates/ContactCard';
 import SkillChart, { Skill } from '@/components/features/templates/SkillChart';
+import CRTMonitor from '@/components/features/templates/CRTMonitor';
+import NeonSign from '@/components/features/templates/NeonSign';
+import ArcadeButton from '@/components/features/templates/ArcadeButton';
+import PixelArtFrame from '@/components/features/templates/PixelArtFrame';
+import RetroGrid from '@/components/features/templates/RetroGrid';
 
 // Import HTML element components
 import TextElement from '@/components/features/templates/TextElement';
@@ -141,6 +146,7 @@ export function validateAndCoerceProps(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   const warnings: string[] = [];
+
 
   // Validate provided attrs
   for (const [key, value] of Object.entries(attrs)) {
@@ -910,5 +916,110 @@ componentRegistry.register({
     yearsExperience: { type: 'number', min: 0, max: 50 },
     priority: { type: 'number', min: 1, max: 10, default: 5 },
     max: { type: 'number', min: 1, default: 100 }
+  }
+});
+
+componentRegistry.register({
+  name: 'CRTMonitor',
+  component: CRTMonitor,
+  props: {
+    content: { type: 'string', default: 'System initialized...\n> Ready for input' },
+    screenColor: { type: 'enum', values: ['green', 'amber', 'blue', 'white'], default: 'green' },
+    intensity: { type: 'enum', values: ['low', 'medium', 'high'], default: 'medium' },
+    scanlines: { type: 'boolean', default: true },
+    phosphorGlow: { type: 'boolean', default: true },
+    curvature: { type: 'boolean', default: true },
+    fontSize: { type: 'enum', values: ['small', 'medium', 'large'], default: 'medium' },
+    fontFamily: { type: 'enum', values: ['monospace', 'terminal'], default: 'monospace' }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true,
+    childrenLabel: 'Terminal Content'
+  }
+});
+
+componentRegistry.register({
+  name: 'NeonSign',
+  component: NeonSign,
+  props: {
+    text: { type: 'string', default: 'NEON SIGN' },
+    color: { type: 'enum', values: ['blue', 'pink', 'green', 'purple', 'cyan', 'yellow', 'red', 'white'], default: 'blue' },
+    intensity: { type: 'enum', values: ['dim', 'bright', 'blazing'], default: 'bright' },
+    animation: { type: 'enum', values: ['steady', 'flicker', 'pulse', 'buzz'], default: 'steady' },
+    fontSize: { type: 'enum', values: ['small', 'medium', 'large', 'xl'], default: 'medium' },
+    fontWeight: { type: 'enum', values: ['normal', 'bold', 'black'], default: 'bold' },
+    uppercase: { type: 'boolean', default: true },
+    outline: { type: 'boolean', default: true },
+    background: { type: 'boolean', default: false }
+  },
+  relationship: {
+    type: 'text',
+    acceptsChildren: true,
+    childrenLabel: 'Neon Text'
+  }
+});
+
+componentRegistry.register({
+  name: 'ArcadeButton',
+  component: ArcadeButton,
+  props: {
+    text: { type: 'string', default: 'START' },
+    color: { type: 'enum', values: ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'white', 'black'], default: 'red' },
+    size: { type: 'enum', values: ['small', 'medium', 'large', 'xl'], default: 'medium' },
+    shape: { type: 'enum', values: ['circle', 'square', 'rectangle'], default: 'circle' },
+    style3D: { type: 'boolean', default: true },
+    glowing: { type: 'boolean', default: false },
+    clickEffect: { type: 'boolean', default: true },
+    sound: { type: 'boolean', default: false },
+    href: { type: 'string' }
+  },
+  relationship: {
+    type: 'leaf',
+    acceptsChildren: true,
+    childrenLabel: 'Button Text'
+  }
+});
+
+componentRegistry.register({
+  name: 'PixelArtFrame',
+  component: PixelArtFrame,
+  props: {
+    content: { type: 'string', default: '' },
+    frameColor: { type: 'enum', values: ['classic', 'gold', 'silver', 'copper', 'neon', 'rainbow'], default: 'classic' },
+    frameWidth: { type: 'enum', values: ['thin', 'medium', 'thick', 'ultra'], default: 'medium' },
+    borderStyle: { type: 'enum', values: ['solid', 'dashed', 'dotted', 'double'], default: 'solid' },
+    cornerStyle: { type: 'enum', values: ['square', 'beveled', 'rounded', 'ornate'], default: 'square' },
+    shadowEffect: { type: 'boolean', default: true },
+    glowEffect: { type: 'boolean', default: false },
+    animated: { type: 'boolean', default: false },
+    innerPadding: { type: 'enum', values: ['none', 'small', 'medium', 'large'], default: 'medium' },
+    backgroundColor: { type: 'string', default: 'transparent' }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true,
+    childrenLabel: 'Frame Content'
+  }
+});
+
+componentRegistry.register({
+  name: 'RetroGrid',
+  component: RetroGrid,
+  props: {
+    gridStyle: { type: 'enum', values: ['synthwave', 'outrun', 'cyberpunk', 'vaporwave', 'matrix', 'tron'], default: 'synthwave' },
+    perspective: { type: 'enum', values: ['none', 'shallow', 'deep', 'extreme'], default: 'deep' },
+    animation: { type: 'enum', values: ['none', 'pulse', 'scroll', 'wave', 'glitch'], default: 'none' },
+    opacity: { type: 'enum', values: ['subtle', 'medium', 'strong', 'intense'], default: 'medium' },
+    size: { type: 'enum', values: ['small', 'medium', 'large', 'xlarge'], default: 'medium' },
+    horizon: { type: 'enum', values: ['high', 'middle', 'low', 'hidden'], default: 'middle' },
+    scanlines: { type: 'boolean', default: false },
+    glow: { type: 'boolean', default: true },
+    content: { type: 'string', default: '' }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true,
+    childrenLabel: 'Grid Overlay Content'
   }
 });

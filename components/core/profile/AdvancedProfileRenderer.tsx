@@ -370,7 +370,7 @@ function StaticHTMLWithIslands({
     const placeholders = container.querySelectorAll('[data-island]');
     
     // Helper function to convert DOM node to React element
-    const domToReact = (node: Node, islands: Island[], residentData: any, onIslandRender: (islandId: string) => void, onIslandError: (error: Error, islandId: string) => void): React.ReactNode => {
+    const domToReact = (node: Node, islands: Island[], residentData: any, onIslandRender: (islandId: string) => void, onIslandError: (error: Error, islandId: string) => void, isNestedComponent = false): React.ReactNode => {
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent?.trim();
         return text ? text : null;
@@ -392,7 +392,7 @@ function StaticHTMLWithIslands({
               if (Component) {
                 // Recursively process children inside this island placeholder
                 const childElements = Array.from(element.childNodes).map((child, index) =>
-                  domToReact(child, islands, residentData, onIslandRender, onIslandError)
+                  domToReact(child, islands, residentData, onIslandRender, onIslandError, true)
                 ).filter(child => child !== null && child !== '');
 
                 // Parse children for component props
@@ -420,7 +420,9 @@ function StaticHTMLWithIslands({
                 );
 
                 // Apply positioning if present - handle both old and new formats
-                const shouldApplyPositioning = positioningData && (
+                // CRITICAL FIX: Only apply positioning wrapper to top-level components
+                // Nested components should render naturally within their parent containers
+                const shouldApplyPositioning = !isNestedComponent && positioningData && (
                   positioningData.mode === 'absolute' ||  // Old format
                   positioningData.isResponsive === false  // New pure positioning format
                 );
@@ -611,13 +613,46 @@ function StaticHTMLWithIslands({
           if (Component) {
             const props: any = {};
 
+            // Attribute mapping for component props (same as island-detector.ts)
+            const attributeMap: Record<string, string> = {
+              // Universal styling props
+              'backgroundcolor': 'backgroundColor',
+              'textcolor': 'textColor',
+              'bordercolor': 'borderColor',
+              'fontsize': 'fontSize',
+              'fontweight': 'fontWeight',
+              'fontfamily': 'fontFamily',
+              'textalign': 'textAlign',
+              'borderradius': 'borderRadius',
+              // Component-specific props - CRTMonitor
+              'screencolor': 'screenColor',
+              'phosphorglow': 'phosphorGlow',
+              // Component-specific props - ArcadeButton
+              'style3d': 'style3D',
+              'clickeffect': 'clickEffect',
+              // Component-specific props - PixelArtFrame
+              'framecolor': 'frameColor',
+              'framewidth': 'frameWidth',
+              'borderstyle': 'borderStyle',
+              'cornerstyle': 'cornerStyle',
+              'shadoweffect': 'shadowEffect',
+              'gloweffect': 'glowEffect',
+              'innerpadding': 'innerPadding',
+              // Component-specific props - RetroGrid
+              'gridstyle': 'gridStyle'
+            };
+
             // Copy attributes as props
             for (let i = 0; i < element.attributes.length; i++) {
               const attr = element.attributes[i];
               let propName = attr.name;
 
+              // Apply attribute mapping first
+              if (attributeMap[propName]) {
+                propName = attributeMap[propName];
+              }
               // Convert HTML attributes to React props
-              if (propName === 'class') {
+              else if (propName === 'class') {
                 propName = 'className';
               } else if (propName.includes('-')) {
                 // PRESERVE positioning data attributes in original form for template renderer
@@ -627,14 +662,14 @@ function StaticHTMLWithIslands({
                     propName === 'data-grid-position') {
                   // Keep these attributes as-is for positioning logic
                   props[propName] = attr.value;
+                  continue;
                 } else {
                   // Convert other kebab-case to camelCase
                   propName = propName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
-                  props[propName] = attr.value;
                 }
-              } else {
-                props[propName] = attr.value;
               }
+
+              props[propName] = attr.value;
             }
             
             // Add a stable key for React reconciliation (FIXED: removed Math.random() to prevent infinite loops)
@@ -642,7 +677,7 @@ function StaticHTMLWithIslands({
 
             // Recursively process children
             const children = Array.from(element.childNodes).map((child, index) =>
-              domToReact(child, islands, residentData, onIslandRender, onIslandError)
+              domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent)
             ).filter(child => child !== null && child !== '');
 
             const processedChildren = children.length > 0 ? children : undefined;
@@ -791,8 +826,8 @@ function StaticHTMLWithIslands({
         props.key = `${tagName}-${Array.from(element.childNodes).length}`;
         
         // Recursively process children
-        const children = Array.from(element.childNodes).map((child, index) => 
-          domToReact(child, islands, residentData, onIslandRender, onIslandError)
+        const children = Array.from(element.childNodes).map((child, index) =>
+          domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent)
         ).filter(child => child !== null && child !== '');
         
         if (children.length === 0) {
@@ -979,14 +1014,48 @@ function domToReact(
     
     // Regular HTML element - convert attributes (FIXED: removed Math.random() to prevent infinite loops)
     const props: any = { key: `element-${element.tagName}-${Array.from(element.childNodes).length}` };
+
+    // Attribute mapping for component props (same as island-detector.ts)
+    const attributeMap: Record<string, string> = {
+      // Universal styling props
+      'backgroundcolor': 'backgroundColor',
+      'textcolor': 'textColor',
+      'bordercolor': 'borderColor',
+      'fontsize': 'fontSize',
+      'fontweight': 'fontWeight',
+      'fontfamily': 'fontFamily',
+      'textalign': 'textAlign',
+      'borderradius': 'borderRadius',
+      // Component-specific props - CRTMonitor
+      'screencolor': 'screenColor',
+      'phosphorglow': 'phosphorGlow',
+      // Component-specific props - ArcadeButton
+      'style3d': 'style3D',
+      'clickeffect': 'clickEffect',
+      // Component-specific props - PixelArtFrame
+      'framecolor': 'frameColor',
+      'framewidth': 'frameWidth',
+      'borderstyle': 'borderStyle',
+      'cornerstyle': 'cornerStyle',
+      'shadoweffect': 'shadowEffect',
+      'gloweffect': 'glowEffect',
+      'innerpadding': 'innerPadding',
+      // Component-specific props - RetroGrid
+      'gridstyle': 'gridStyle'
+    };
+
     for (let i = 0; i < element.attributes.length; i++) {
       const attr = element.attributes[i];
       let propName = attr.name;
-      
+
+      // Apply attribute mapping first
+      if (attributeMap[propName]) {
+        propName = attributeMap[propName];
+      }
       // Convert HTML attributes to React props
-      if (propName === 'class') propName = 'className';
-      if (propName === 'for') propName = 'htmlFor';
-      
+      else if (propName === 'class') propName = 'className';
+      else if (propName === 'for') propName = 'htmlFor';
+
       props[propName] = attr.value;
     }
     

@@ -113,7 +113,10 @@ export default function PropertyPanel({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['visual-styling', 'advanced-css']));
   const { gridConfig } = canvasState;
 
-  // Stable property update function
+  // Success feedback state
+  const [successFeedback, setSuccessFeedback] = useState<string | null>(null);
+
+  // Stable property update function with success feedback
   const updatePropertyStable = useCallback((key: string, value: any) => {
     if (!selectedComponent) return;
 
@@ -123,6 +126,10 @@ export default function PropertyPanel({
         [key]: value
       }
     });
+
+    // Show success feedback
+    setSuccessFeedback(key);
+    setTimeout(() => setSuccessFeedback(null), 1000);
   }, [selectedComponent?.id, onComponentUpdate]);
 
   // Individual memoized display values to prevent unnecessary re-renders
@@ -1168,13 +1175,11 @@ export default function PropertyPanel({
   const updateProperty = (key: string, value: any) => {
     if (!selectedComponent) return;
 
-    const updatedProps = {
-      ...selectedComponent.props,
-      [key]: value,
-    };
-
+    console.log(`📝 PROP UPDATE: ${selectedComponent.type}.${key} = ${value}`);
     onComponentUpdate(selectedComponent.id, {
-      props: updatedProps,
+      props: {
+        [key]: value
+      }
     });
   };
 
@@ -1489,6 +1494,74 @@ export default function PropertyPanel({
 
   return (
     <div className={`bg-white flex flex-col ${className}`} style={{ ...style, display: 'flex', flexDirection: 'column' }}>
+      {/* Success Feedback Animation */}
+      {successFeedback && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontWeight: '500',
+            zIndex: 1000,
+            animation: 'slideInRight 0.3s ease-out',
+            boxShadow: '0 8px 25px rgba(16, 185, 129, 0.25)',
+          }}
+        >
+          ✨ {successFeedback} updated!
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes slideInRight {
+          0% {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          100% {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        /* Enhanced property control hover effects */
+        .property-control:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          transition: all 0.2s ease-out;
+        }
+
+        /* Tab hover animation */
+        .property-tab {
+          transition: all 0.2s ease-out;
+        }
+
+        .property-tab:hover {
+          transform: translateY(-1px);
+          background-color: #f8fafc !important;
+        }
+
+        .property-tab.active {
+          animation: tabActivate 0.3s ease-out;
+        }
+
+        @keyframes tabActivate {
+          0% {
+            transform: scale(0.95);
+          }
+          50% {
+            transform: scale(1.02);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+      `}</style>
+
       {!selectedComponent ? (
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center max-w-sm">
@@ -1554,6 +1627,7 @@ export default function PropertyPanel({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                className={`property-tab ${activeTab === tab.id ? 'active' : ''}`}
                 style={{
                   flex: 1,
                   padding: '12px 8px',

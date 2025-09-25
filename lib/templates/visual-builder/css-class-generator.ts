@@ -102,7 +102,7 @@ export class CSSClassGenerator {
     if (globalSettings.background?.type === 'pattern' &&
         globalSettings.background.pattern &&
         globalSettings.background.pattern.type !== 'none') {
-      const patternClasses = this.generatePatternClasses(globalSettings.background.pattern);
+      const patternClasses = this.generatePatternClasses(globalSettings.background.pattern, globalSettings);
       this.classDefinitions.push(...patternClasses);
     }
 
@@ -280,7 +280,7 @@ export class CSSClassGenerator {
   /**
    * Generate pattern-specific CSS classes
    */
-  private generatePatternClasses(pattern: BackgroundPattern): CSSClassDefinition[] {
+  private generatePatternClasses(pattern: BackgroundPattern, globalSettings: GlobalSettings): CSSClassDefinition[] {
     const classes: CSSClassDefinition[] = [];
     const patternClass = `vb-pattern-${pattern.type}`;
 
@@ -305,7 +305,7 @@ export class CSSClassGenerator {
         'background-image': patternCSS,
         'background-repeat': 'repeat',
         'background-size': `${(pattern.size || 1) * 40}px ${(pattern.size || 1) * 40}px`,
-        'background-color': pattern.backgroundColor || '#ffffff', // Keep the theme background color
+        'background-color': pattern.backgroundColor || globalSettings.background?.color || '#ffffff', // Use global background color for patterns
         // Store pattern configuration as CSS custom properties for parsing back
         '--vb-pattern-primary-color': pattern.primaryColor,
         '--vb-pattern-size': pattern.size.toString(),

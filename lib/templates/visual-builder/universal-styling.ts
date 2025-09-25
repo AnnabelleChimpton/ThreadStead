@@ -206,35 +206,18 @@ export function processUniversalStyles(
   category: ComponentStyleCategory = 'container',
   existingStyle?: React.CSSProperties
 ): React.CSSProperties {
-  console.log('🎨 [STYLING DEBUG] processUniversalStyles input:', {
-    props,
-    category,
-    propsKeys: Object.keys(props),
-    hasTextColor: 'textColor' in props,
-    textColorValue: props.textColor
-  });
 
   // First migrate any legacy props
   const migratedProps = migrateLegacyProps(props);
-
-  console.log('🎨 [STYLING DEBUG] after migration:', {
-    migratedProps,
-    migratedPropsKeys: Object.keys(migratedProps),
-    hasTextColor: 'textColor' in migratedProps,
-    textColorValue: migratedProps.textColor
-  });
 
   let processedStyle: React.CSSProperties = existingStyle ? { ...existingStyle } : {};
 
   // Get relevant props for this component category
   const relevantProps = CATEGORY_STYLE_PROPS[category];
 
-  console.log('🎨 [STYLING DEBUG] relevantProps for category', category, ':', relevantProps);
-
   // Process each universal style prop
   for (const propName of relevantProps) {
     const value = migratedProps[propName];
-    console.log('🎨 [STYLING DEBUG] checking prop:', propName, 'value:', value, 'type:', typeof value);
     if (!value || typeof value !== 'string') continue;
 
     switch (propName) {
@@ -242,9 +225,7 @@ export function processUniversalStyles(
         processedStyle.backgroundColor = value;
         break;
       case 'textColor':
-        console.log('🎨 [STYLING DEBUG] Setting textColor:', value);
         processedStyle.color = value;
-        console.log('🎨 [STYLING DEBUG] processedStyle.color after setting:', processedStyle.color);
         break;
       case 'borderColor':
         processedStyle.borderColor = value;

@@ -169,6 +169,22 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'textalign': 'textAlign',
           'lineheight': 'lineHeight',
           'customcss': 'customCSS',
+          // Component-specific props - CRTMonitor
+          'screencolor': 'screenColor',
+          'phosphorglow': 'phosphorGlow',
+          // Component-specific props - ArcadeButton
+          'style3d': 'style3D',
+          'clickeffect': 'clickEffect',
+          // Component-specific props - PixelArtFrame
+          'framecolor': 'frameColor',
+          'framewidth': 'frameWidth',
+          'borderstyle': 'borderStyle',
+          'cornerstyle': 'cornerStyle',
+          'shadoweffect': 'shadowEffect',
+          'gloweffect': 'glowEffect',
+          'innerpadding': 'innerPadding',
+          // Component-specific props - RetroGrid
+          'gridstyle': 'gridStyle',
           // Legacy CSS props - keep as lowercase
           'text-decoration': 'textdecoration',
           'font-style': 'fontstyle',
@@ -190,25 +206,6 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           }
         }
 
-        // DEBUG: Check if styling props are present in rawProps (before and after conversion)
-        if (node.tagName === 'Paragraph') {
-          console.log('🎨 [ISLAND_DETECTOR] BEFORE normalization - rawProps keys:', Object.keys(node.properties || {}));
-          console.log('🎨 [ISLAND_DETECTOR] BEFORE normalization - full props:', node.properties || {});
-
-          console.log('🎨 [ISLAND_DETECTOR] Paragraph rawProps AFTER normalization:', {
-            // Check for lowercase HTML attributes (input)
-            hasBackgroundColorLowercase: 'backgroundcolor' in rawProps,
-            hasTextColorLowercase: 'textcolor' in rawProps,
-            // Check for camelCase React props (output)
-            hasBackgroundColor: 'backgroundColor' in rawProps,
-            hasTextColor: 'textColor' in rawProps,
-            // Show values
-            backgroundColorValue: rawProps.backgroundColor,
-            textColorValue: rawProps.textColor,
-            allKeys: Object.keys(rawProps)
-          });
-        }
-
         // Convert dataComponentSize attribute back to _size prop if present
         if (rawProps['dataComponentSize'] || rawProps['data-component-size']) {
           try {
@@ -227,7 +224,10 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           rawProps._positioning = positioningData;
         }
 
-        const props = validateAndCoerceProps(rawProps, registration.props);
+        const props = validateAndCoerceProps(rawProps, registration.props, {
+          componentType: node.tagName,
+          hasChildren: childIslands.length > 0
+        });
 
         // Debug: Check if positioning data survived validation
         if (rawProps._positioning && !props._positioning) {
@@ -318,8 +318,10 @@ export function identifyIslands(ast: TemplateNode): Island[] {
         const islandId = generateIslandId(node.tagName, path);
         
         // Validate and coerce props from node properties
-        const props = node.properties ? 
-          validateAndCoerceProps(node.properties, registration.props) : {};
+        const props = node.properties ?
+          validateAndCoerceProps(node.properties, registration.props, {
+            componentType: node.tagName
+          }) : {};
         
         // Create island configuration
         const island: Island = {

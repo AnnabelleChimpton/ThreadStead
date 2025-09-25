@@ -180,6 +180,46 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     tags: ['retro', 'vintage', 'card', 'style'],
     popularity: 40
   },
+  'CRTMonitor': {
+    name: 'CRT Monitor',
+    description: 'Retro computer monitor with scanlines',
+    icon: '📺',
+    category: 'Effects',
+    tags: ['retro', 'monitor', 'terminal', 'computer', 'crt', 'vintage'],
+    popularity: 65
+  },
+  'NeonSign': {
+    name: 'Neon Sign',
+    description: 'Animated neon text with authentic glow',
+    icon: '💡',
+    category: 'Effects',
+    tags: ['neon', 'sign', 'glow', 'light', 'retro', 'text'],
+    popularity: 70
+  },
+  'ArcadeButton': {
+    name: 'Arcade Button',
+    description: 'Chunky retro button with 3D styling',
+    icon: '🔴',
+    category: 'Interactive',
+    tags: ['arcade', 'button', 'retro', 'game', '3d', 'click'],
+    popularity: 75
+  },
+  'PixelArtFrame': {
+    name: 'Pixel Art Frame',
+    description: '8-bit style borders and containers',
+    icon: '🖼️',
+    category: 'Layout',
+    tags: ['pixel', '8bit', 'frame', 'retro', 'border', 'container'],
+    popularity: 60
+  },
+  'RetroGrid': {
+    name: 'Retro Grid',
+    description: 'Synthwave/outrun grid backgrounds',
+    icon: '🌐',
+    category: 'Effects',
+    tags: ['synthwave', 'outrun', 'grid', 'background', 'retro', '80s'],
+    popularity: 65
+  },
 };
 
 /**
@@ -292,9 +332,13 @@ export default function ComponentSearcher({
   const ComponentCard = ({ component, isRecent = false }: { component: ComponentSuggestion; isRecent?: boolean }) => {
     return (
       <div
-        className={`p-3 m-1 border rounded text-center cursor-grab ${
-          component.isRegistered ? 'border-gray-300 bg-white hover:border-blue-400' : 'border-red-300 bg-red-50 opacity-50 cursor-not-allowed'
-        }`}
+        className={`
+          p-3 m-1 border rounded text-center transition-all duration-200 ease-out
+          ${component.isRegistered
+            ? 'border-gray-300 bg-white cursor-grab hover:border-blue-400 hover:shadow-lg hover:shadow-blue-100 hover:-translate-y-1 hover:scale-105'
+            : 'border-red-300 bg-red-50 opacity-50 cursor-not-allowed'
+          }
+        `}
         draggable={component.isRegistered}
         onDragStart={(e) => {
           e.dataTransfer.setData('application/json', JSON.stringify({
