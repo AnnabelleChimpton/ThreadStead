@@ -39,7 +39,11 @@ function debounce<T extends (...args: any[]) => void>(
 
 interface PropertyPanelProps {
   selectedComponent: ComponentItem | null;
-  canvasState: UseCanvasStateResult;
+  canvasState: {
+    gridConfig: UseCanvasStateResult['gridConfig'];
+    globalSettings: UseCanvasStateResult['globalSettings'];
+    removeComponent: (componentId: string) => void;
+  };
   onComponentUpdate: (componentId: string, updates: Partial<ComponentItem>) => void;
   className?: string;
   style?: React.CSSProperties;
@@ -58,7 +62,7 @@ interface TabDefinition {
 /**
  * Modern Property Panel with visual controls and smart organization
  */
-export default function PropertyPanel({
+function PropertyPanel({
   selectedComponent,
   canvasState,
   onComponentUpdate,
@@ -117,12 +121,19 @@ export default function PropertyPanel({
   const [successFeedback, setSuccessFeedback] = useState<string | null>(null);
 
   // Stable property update function with success feedback
-  const updatePropertyStable = useCallback((key: string, value: any) => {
-    if (!selectedComponent) return;
+  // Using refs to avoid dependency on selectedComponent which changes frequently
+  const selectedComponentRef = useRef(selectedComponent);
+  useEffect(() => {
+    selectedComponentRef.current = selectedComponent;
+  }, [selectedComponent]);
 
-    onComponentUpdate(selectedComponent.id, {
+  const updatePropertyStable = useCallback((key: string, value: any) => {
+    const currentComponent = selectedComponentRef.current;
+    if (!currentComponent) return;
+
+    onComponentUpdate(currentComponent.id, {
       props: {
-        ...selectedComponent.props,
+        ...currentComponent.props,
         [key]: value
       }
     });
@@ -130,7 +141,7 @@ export default function PropertyPanel({
     // Show success feedback
     setSuccessFeedback(key);
     setTimeout(() => setSuccessFeedback(null), 1000);
-  }, [selectedComponent?.id, onComponentUpdate]);
+  }, [onComponentUpdate]); // Only depend on onComponentUpdate which should be stable
 
   // Individual memoized display values to prevent unnecessary re-renders
   const displayValues = {
@@ -1172,16 +1183,17 @@ export default function PropertyPanel({
   };
 
   // Legacy updateProperty function for non-optimized components
-  const updateProperty = (key: string, value: any) => {
-    if (!selectedComponent) return;
+  // Memoized to prevent recreation on every render
+  const updateProperty = useCallback((key: string, value: any) => {
+    const currentComponent = selectedComponentRef.current;
+    if (!currentComponent) return;
 
-    console.log(`📝 PROP UPDATE: ${selectedComponent.type}.${key} = ${value}`);
-    onComponentUpdate(selectedComponent.id, {
+    onComponentUpdate(currentComponent.id, {
       props: {
         [key]: value
       }
     });
-  };
+  }, [onComponentUpdate]); // Only depend on onComponentUpdate which should be stable
 
   // Update size properties in the _size object
   const updateSizeProperty = (dimension: 'width' | 'height', value: string) => {
@@ -1663,3 +1675,66 @@ export default function PropertyPanel({
     </div>
   );
 }
+
+// Memoize PropertyPanel to prevent unnecessary re-renders
+// Custom comparison to prevent re-renders when props haven't meaningfully changed
+// IMPORTANT: Return true when props are EQUAL (to skip re-render), false when DIFFERENT
+export default React.memo(PropertyPanel, (prevProps, nextProps) => {
+  // Quick reference check - if the same object, definitely skip re-render
+  if (prevProps.selectedComponent === nextProps.selectedComponent &&
+      prevProps.onComponentUpdate === nextProps.onComponentUpdate &&
+      prevProps.canvasState === nextProps.canvasState) {
+    return true; // Exact same props, skip re-render
+  }
+
+  // Check if selectedComponent changed meaningfully
+  if (prevProps.selectedComponent?.id !== nextProps.selectedComponent?.id) {
+    return false; // Component ID changed, re-render needed
+  }
+
+  // Check if component props changed
+  if (prevProps.selectedComponent && nextProps.selectedComponent) {
+    const prevCompProps = prevProps.selectedComponent.props || {};
+    const nextCompProps = nextProps.selectedComponent.props || {};
+
+    // Deep comparison of props
+    const prevKeys = Object.keys(prevCompProps);
+    const nextKeys = Object.keys(nextCompProps);
+
+    if (prevKeys.length !== nextKeys.length) {
+      return false; // Props count changed, re-render needed
+    }
+
+    for (const key of prevKeys) {
+      // Deep comparison for objects like _size
+      const prevVal = prevCompProps[key];
+      const nextVal = nextCompProps[key];
+
+      if (typeof prevVal === 'object' && typeof nextVal === 'object' && prevVal !== null && nextVal !== null) {
+        if (JSON.stringify(prevVal) !== JSON.stringify(nextVal)) {
+          return false; // Object prop changed, re-render needed
+        }
+      } else if (prevVal !== nextVal) {
+        return false; // Primitive prop changed, re-render needed
+      }
+    }
+  }
+
+  // Check if onComponentUpdate reference changed (it shouldn't if properly memoized)
+  if (prevProps.onComponentUpdate !== nextProps.onComponentUpdate) {
+    return false; // Callback changed, re-render needed
+  }
+
+  // Check specific canvasState properties instead of the whole object
+  // Only check the properties that PropertyPanel actually uses
+  if (prevProps.canvasState.gridConfig !== nextProps.canvasState.gridConfig) {
+    return false; // Grid config changed, re-render needed
+  }
+
+  if (prevProps.canvasState.globalSettings !== nextProps.canvasState.globalSettings) {
+    return false; // Global settings changed, re-render needed
+  }
+
+  // If we get here, props are effectively the same - skip re-render
+  return true;
+});

@@ -44,16 +44,18 @@ export interface AdvancedProfileRendererProps {
   residentData: ResidentData;
   onFallback?: (reason: string) => void;
   onIslandsReady?: () => void;
+  isInVisualBuilder?: boolean;
   onIslandError?: (error: Error, islandId: string) => void;
 }
 
 // Advanced profile renderer component
-export default function AdvancedProfileRenderer({ 
-  user, 
-  residentData, 
+export default function AdvancedProfileRenderer({
+  user,
+  residentData,
   onFallback,
   onIslandsReady,
-  onIslandError
+  onIslandError,
+  isInVisualBuilder = false
 }: AdvancedProfileRendererProps) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
@@ -170,6 +172,7 @@ export default function AdvancedProfileRenderer({
         onIslandRender={handleIslandRender}
         onIslandError={handleIslandError}
         visualBuilderClasses={visualBuilderClasses}
+        isInVisualBuilder={isInVisualBuilder}
       />
       
       {/* Hydration status indicator (dev mode only) - positioned absolutely to avoid layout interference */}
@@ -203,6 +206,7 @@ interface ProfileContentRendererProps {
   onIslandRender: (islandId: string) => void;
   onIslandError: (error: Error, islandId: string) => void;
   visualBuilderClasses?: string[];
+  isInVisualBuilder?: boolean;
 }
 
 function ProfileContentRenderer({
@@ -211,7 +215,8 @@ function ProfileContentRenderer({
   residentData,
   onIslandRender,
   onIslandError,
-  visualBuilderClasses = []
+  visualBuilderClasses = [],
+  isInVisualBuilder = false
 }: ProfileContentRendererProps) {
   // Same logic as preview's renderIslandsDirectly
   if (!compiledTemplate) {
@@ -236,6 +241,7 @@ function ProfileContentRenderer({
         onIslandRender={onIslandRender}
         onIslandError={onIslandError}
         visualBuilderClasses={visualBuilderClasses}
+        isInVisualBuilder={isInVisualBuilder}
       />
     );
   }
@@ -278,6 +284,7 @@ interface StaticHTMLWithIslandsProps {
   onIslandRender: (islandId: string) => void;
   onIslandError: (error: Error, islandId: string) => void;
   visualBuilderClasses?: string[];
+  isInVisualBuilder?: boolean;
 }
 
 function StaticHTMLWithIslands({
@@ -286,7 +293,8 @@ function StaticHTMLWithIslands({
   residentData,
   onIslandRender,
   onIslandError,
-  visualBuilderClasses = []
+  visualBuilderClasses = [],
+  isInVisualBuilder = false
 }: StaticHTMLWithIslandsProps) {
   // Debug: Check for positioning data in staticHTML
   const hasPositioningInHTML = staticHTML.includes('data-positioning-mode') || staticHTML.includes('data-pixel-position');
@@ -370,7 +378,7 @@ function StaticHTMLWithIslands({
     const placeholders = container.querySelectorAll('[data-island]');
     
     // Helper function to convert DOM node to React element
-    const domToReact = (node: Node, islands: Island[], residentData: any, onIslandRender: (islandId: string) => void, onIslandError: (error: Error, islandId: string) => void, isNestedComponent = false): React.ReactNode => {
+    const domToReact = (node: Node, islands: Island[], residentData: any, onIslandRender: (islandId: string) => void, onIslandError: (error: Error, islandId: string) => void, isNestedComponent = false, isInVisualBuilder = false): React.ReactNode => {
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent?.trim();
         return text ? text : null;
@@ -392,7 +400,7 @@ function StaticHTMLWithIslands({
               if (Component) {
                 // Recursively process children inside this island placeholder
                 const childElements = Array.from(element.childNodes).map((child, index) =>
-                  domToReact(child, islands, residentData, onIslandRender, onIslandError, true)
+                  domToReact(child, islands, residentData, onIslandRender, onIslandError, true, isInVisualBuilder)
                 ).filter(child => child !== null && child !== '');
 
                 // Parse children for component props
@@ -675,9 +683,14 @@ function StaticHTMLWithIslands({
             // Add a stable key for React reconciliation (FIXED: removed Math.random() to prevent infinite loops)
             props.key = `${elementComponentName}-${element.getAttribute('data-island') || 'component'}`;
 
+            // Add Visual Builder flag when rendering in Visual Builder context
+            if (isInVisualBuilder) {
+              props._isInVisualBuilder = true;
+            }
+
             // Recursively process children
             const children = Array.from(element.childNodes).map((child, index) =>
-              domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent)
+              domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent, isInVisualBuilder)
             ).filter(child => child !== null && child !== '');
 
             const processedChildren = children.length > 0 ? children : undefined;
@@ -827,7 +840,7 @@ function StaticHTMLWithIslands({
         
         // Recursively process children
         const children = Array.from(element.childNodes).map((child, index) =>
-          domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent)
+          domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent, isInVisualBuilder)
         ).filter(child => child !== null && child !== '');
         
         if (children.length === 0) {
@@ -880,8 +893,8 @@ function StaticHTMLWithIslands({
     };
     
     // Convert the entire DOM tree to React, replacing placeholders as we go
-    const processedContent = Array.from(container.childNodes).map((node, index) => 
-      domToReact(node, islands, residentData, onIslandRender, onIslandError)
+    const processedContent = Array.from(container.childNodes).map((node, index) =>
+      domToReact(node, islands, residentData, onIslandRender, onIslandError, false, isInVisualBuilder)
     ).filter(child => child !== null && child !== '');
     
     // Return processed content
@@ -966,16 +979,17 @@ function parseHTMLToReactChildren(
   // Process the parsed HTML nodes
   
   // Convert DOM nodes to React elements
-  return domToReact(tempDiv, allIslands, residentData, onIslandRender, onIslandError);
+  return domToReact(tempDiv, allIslands, residentData, onIslandRender, onIslandError, false);
 }
 
 // Convert DOM nodes to React elements recursively
 function domToReact(
-  node: Node, 
-  allIslands: Island[], 
-  residentData: ResidentData, 
-  onIslandRender: (islandId: string) => void, 
-  onIslandError: (error: Error, islandId: string) => void
+  node: Node,
+  allIslands: Island[],
+  residentData: ResidentData,
+  onIslandRender: (islandId: string) => void,
+  onIslandError: (error: Error, islandId: string) => void,
+  isInVisualBuilder = false
 ): React.ReactNode {
   // Text node
   if (node.nodeType === Node.TEXT_NODE) {
@@ -1089,7 +1103,7 @@ function domToReact(
 
     // Convert children recursively
     const children = Array.from(node.childNodes)
-      .map(child => domToReact(child, allIslands, residentData, onIslandRender, onIslandError))
+      .map(child => domToReact(child, allIslands, residentData, onIslandRender, onIslandError, isInVisualBuilder))
       .filter(child => child !== null && child !== '');
 
     // Create React element

@@ -227,10 +227,11 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
       component = { ...component, positioningMode };
     }
 
-    // Apply default props from registry if props are missing or empty
+    // Apply default props from registry for any missing props
     const registration = componentRegistry.get(component.type);
-    if (registration && (!component.props || Object.keys(component.props).length === 0)) {
-      const defaultProps = validateAndCoerceProps({}, registration.props, {
+    if (registration) {
+      const currentProps = component.props || {};
+      const defaultProps = validateAndCoerceProps(currentProps, registration.props, {
         hasChildren: false,
         componentType: component.type
       });

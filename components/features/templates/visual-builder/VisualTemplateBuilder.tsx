@@ -3,7 +3,7 @@
  * Phase 1: Visual Builder Foundation - Direct State Management
  */
 
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useCanvasState, type ComponentItem } from '@/hooks/useCanvasState';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import {
@@ -391,34 +391,60 @@ export default function VisualTemplateBuilder({
     return null;
   };
 
-  // Get the first selected component for property editing with stable memoized reference
-  const selectedComponent: CanvasComponent | null = useMemo(() => {
-    if (selectedComponentIds.size !== 1) return null;
+  // Separate state for selected component to avoid re-renders when placedComponents changes
+  const [selectedComponentForPanel, setSelectedComponentForPanel] = useState<ComponentItem | null>(null);
 
-    const selectedId = Array.from(selectedComponentIds)[0];
+  // Get selected component ID
+  const selectedId = selectedComponentIds.size === 1 ? Array.from(selectedComponentIds)[0] : null;
+
+  // Update selected component state ONLY when selection changes (not when components update)
+  useEffect(() => {
+    if (!selectedId) {
+      setSelectedComponentForPanel(null);
+      return;
+    }
+
     const comp = findComponentById(placedComponents, selectedId);
-    if (!comp) return null;
+    if (!comp) {
+      setSelectedComponentForPanel(null);
+      return;
+    }
 
-    return {
+    // Create the component object
+    const newSelectedComponent: ComponentItem = {
       id: comp.id,
       type: comp.type,
-      props: comp.props || {},  // All properties including _size, _locked, _hidden
-      position: comp.position,
+      props: comp.props || {},
+      position: comp.position || { x: 0, y: 0 }, // Provide default position
       gridPosition: comp.gridPosition ? {
         column: comp.gridPosition.column,
         row: comp.gridPosition.row,
-        columnSpan: comp.gridPosition.span,
-        rowSpan: 1
+        span: (comp.gridPosition as any).columnSpan || (comp.gridPosition as any).span || 1
       } : undefined,
-      positioningMode: comp.positioningMode,
-      children: comp.children as CanvasComponent[] | undefined  // Include children for parent-child relationships
+      positioningMode: comp.positioningMode || 'absolute',
+      children: comp.children as ComponentItem[] | undefined
     };
-  }, [selectedComponentIds, placedComponents]);
+
+    setSelectedComponentForPanel(newSelectedComponent);
+  }, [selectedId]); // ONLY depend on selectedId, not placedComponents!
+
+  // Get the actual current selected component for other uses (canvas, etc.)
+  const selectedComponent = useMemo(() => {
+    if (!selectedId) return null;
+    return findComponentById(placedComponents, selectedId);
+  }, [selectedId, placedComponents]);
 
   // Handle component property updates - direct passthrough to avoid unnecessary transformations
   const handleComponentUpdate = useCallback((componentId: string, updates: Partial<ComponentItem>) => {
     updateComponent(componentId, updates);
   }, [updateComponent]);
+
+  // Memoize the subset of canvasState that PropertyPanel needs
+  const propertyPanelCanvasState = useMemo(() => ({
+    gridConfig: canvasState.gridConfig,
+    globalSettings: canvasState.globalSettings,
+    removeComponent: canvasState.removeComponent
+  }), [canvasState.gridConfig, canvasState.globalSettings, canvasState.removeComponent]);
 
   // Convert current canvas state to pure absolute positioning format
   const convertToPureCanvasState = useCallback((): AbsoluteCanvasState => {
@@ -943,12 +969,8 @@ ${globalCSS.css}
           </div>
           <div style={{ flex: 1, overflow: 'auto' }}>
             <PropertyPanel
-              selectedComponent={selectedComponent ? {
-                ...selectedComponent,
-                position: selectedComponent.position || { x: 0, y: 0 },
-                positioningMode: selectedComponent.positioningMode || 'absolute'
-              } as ComponentItem : null}
-              canvasState={canvasState}
+              selectedComponent={selectedComponentForPanel}
+              canvasState={propertyPanelCanvasState}
               onComponentUpdate={handleComponentUpdate}
             />
           </div>

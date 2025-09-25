@@ -179,7 +179,13 @@ export default function ArcadeButton({
     }
   };
 
-  const buttonContent = children || (text && text.trim() ? text : 'START');
+  // Handle children properly - filter out falsy values and check if we have real content
+  const hasValidChildren = children &&
+    (Array.isArray(children)
+      ? children.some(child => child !== null && child !== undefined && child !== false && child !== '')
+      : children !== null && children !== undefined && children !== '');
+
+  const buttonContent = hasValidChildren ? children : (text && text.trim() ? text : 'START');
   const isClickable = href || onClick;
 
   const baseStyles = {

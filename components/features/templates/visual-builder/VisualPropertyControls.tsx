@@ -562,9 +562,50 @@ export function SelectEditor({ label, value, onChange, description, disabled, op
 }
 
 /**
- * Text input with enhanced styling
+ * Text input with enhanced styling and local state management
  */
 export function TextEditor({ label, value, onChange, description, disabled }: PropertyEditorProps) {
+  // Local state to manage input value during typing
+  const [localValue, setLocalValue] = useState(value || '');
+
+  // Sync local state with prop value when it changes externally
+  useEffect(() => {
+    setLocalValue(value || '');
+  }, [value]);
+
+  // Store onChange in a ref to avoid recreating handlers when it changes
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  // Debounce timer ref to batch updates
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+
+    // Clear existing timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    // Set new debounce timer
+    debounceTimer.current = setTimeout(() => {
+      onChangeRef.current(newValue);
+    }, 300); // 300ms debounce delay
+  }, []); // No dependencies - uses refs
+
+  const handleBlur = useCallback(() => {
+    // Clear any pending debounce timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    // Ensure final value is sent on blur using current local value
+    onChangeRef.current(localValue);
+  }, [localValue]); // Only depend on localValue
+
   return (
     <div style={{ marginBottom: '16px' }}>
       <label style={{
@@ -579,8 +620,9 @@ export function TextEditor({ label, value, onChange, description, disabled }: Pr
 
       <input
         type="text"
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
+        value={localValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
         disabled={disabled}
         style={{
           width: '100%',
@@ -594,9 +636,6 @@ export function TextEditor({ label, value, onChange, description, disabled }: Pr
         }}
         onFocus={(e) => {
           (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
-        }}
-        onBlur={(e) => {
-          (e.target as HTMLInputElement).style.borderColor = '#d1d5db';
         }}
       />
 
@@ -615,9 +654,50 @@ export function TextEditor({ label, value, onChange, description, disabled }: Pr
 }
 
 /**
- * Multi-line text area
+ * Multi-line text area with local state management
  */
 export function TextAreaEditor({ label, value, onChange, description, disabled }: PropertyEditorProps) {
+  // Local state to manage textarea value during typing
+  const [localValue, setLocalValue] = useState(value || '');
+
+  // Sync local state with prop value when it changes externally
+  useEffect(() => {
+    setLocalValue(value || '');
+  }, [value]);
+
+  // Store onChange in a ref to avoid recreating handlers when it changes
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  // Debounce timer ref to batch updates
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+
+    // Clear existing timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    // Set new debounce timer
+    debounceTimer.current = setTimeout(() => {
+      onChangeRef.current(newValue);
+    }, 300); // 300ms debounce delay
+  }, []); // No dependencies - uses refs
+
+  const handleBlur = useCallback(() => {
+    // Clear any pending debounce timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    // Ensure final value is sent on blur using current local value
+    onChangeRef.current(localValue);
+  }, [localValue]); // Only depend on localValue
+
   return (
     <div style={{ marginBottom: '16px' }}>
       <label style={{
@@ -631,8 +711,9 @@ export function TextAreaEditor({ label, value, onChange, description, disabled }
       </label>
 
       <textarea
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
+        value={localValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
         disabled={disabled}
         rows={3}
         style={{
@@ -649,9 +730,6 @@ export function TextAreaEditor({ label, value, onChange, description, disabled }
         }}
         onFocus={(e) => {
           (e.target as HTMLTextAreaElement).style.borderColor = '#3b82f6';
-        }}
-        onBlur={(e) => {
-          (e.target as HTMLTextAreaElement).style.borderColor = '#d1d5db';
         }}
       />
 
