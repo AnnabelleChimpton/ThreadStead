@@ -647,7 +647,28 @@ function StaticHTMLWithIslands({
               'gloweffect': 'glowEffect',
               'innerpadding': 'innerPadding',
               // Component-specific props - RetroGrid
-              'gridstyle': 'gridStyle'
+              'gridstyle': 'gridStyle',
+              // Component-specific props - VHSTape
+              'tapecolor': 'tapeColor',
+              'labelstyle': 'labelStyle',
+              'showbarcode': 'showBarcode',
+              // Component-specific props - CassetteTape
+              'showspokestorotate': 'showSpokesToRotate',
+              // Component-specific props - RetroTV
+              'tvstyle': 'tvStyle',
+              'channelnumber': 'channelNumber',
+              'showstatic': 'showStatic',
+              'showscanlines': 'showScanlines',
+              // Component-specific props - Boombox
+              'showequalizer': 'showEqualizer',
+              'showcassettedeck': 'showCassetteDeck',
+              'showradio': 'showRadio',
+              'isplaying': 'isPlaying',
+              'currenttrack': 'currentTrack',
+              // Component-specific props - MatrixRain
+              'customcharacters': 'customCharacters',
+              'fadeeffect': 'fadeEffect',
+              'backgroundopacity': 'backgroundOpacity'
             };
 
             // Copy attributes as props
@@ -1055,7 +1076,28 @@ function domToReact(
       'gloweffect': 'glowEffect',
       'innerpadding': 'innerPadding',
       // Component-specific props - RetroGrid
-      'gridstyle': 'gridStyle'
+      'gridstyle': 'gridStyle',
+      // Component-specific props - VHSTape
+      'tapecolor': 'tapeColor',
+      'labelstyle': 'labelStyle',
+      'showbarcode': 'showBarcode',
+      // Component-specific props - CassetteTape
+      'showspokestorotate': 'showSpokesToRotate',
+      // Component-specific props - RetroTV
+      'tvstyle': 'tvStyle',
+      'channelnumber': 'channelNumber',
+      'showstatic': 'showStatic',
+      'showscanlines': 'showScanlines',
+      // Component-specific props - Boombox
+      'showequalizer': 'showEqualizer',
+      'showcassettedeck': 'showCassetteDeck',
+      'showradio': 'showRadio',
+      'isplaying': 'isPlaying',
+      'currenttrack': 'currentTrack',
+      // Component-specific props - MatrixRain
+      'customcharacters': 'customCharacters',
+      'fadeeffect': 'fadeEffect',
+      'backgroundopacity': 'backgroundOpacity'
     };
 
     for (let i = 0; i < element.attributes.length; i++) {

@@ -181,7 +181,28 @@ export class PureHtmlGenerator {
       'glowEffect': 'gloweffect',
       'innerPadding': 'innerpadding',
       // Component-specific props - RetroGrid
-      'gridStyle': 'gridstyle'
+      'gridStyle': 'gridstyle',
+      // Component-specific props - VHSTape
+      'tapeColor': 'tapecolor',
+      'labelStyle': 'labelstyle',
+      'showBarcode': 'showbarcode',
+      // Component-specific props - CassetteTape
+      'showSpokesToRotate': 'showspokestorotate',
+      // Component-specific props - RetroTV
+      'tvStyle': 'tvstyle',
+      'channelNumber': 'channelnumber',
+      'showStatic': 'showstatic',
+      'showScanlines': 'showscanlines',
+      // Component-specific props - Boombox
+      'showEqualizer': 'showequalizer',
+      'showCassetteDeck': 'showcassettedeck',
+      'showRadio': 'showradio',
+      'isPlaying': 'isplaying',
+      'currentTrack': 'currenttrack',
+      // Component-specific props - MatrixRain
+      'customCharacters': 'customcharacters',
+      'fadeEffect': 'fadeeffect',
+      'backgroundOpacity': 'backgroundopacity'
     };
 
     // Remove legacy props when universal equivalent exists

@@ -254,6 +254,148 @@ const COMPONENT_PREVIEWS: Record<string, ComponentPreview> = {
     padding: '2px'
   },
 
+  'VHSTape': {
+    componentType: 'VHSTape',
+    previewElement: (
+      <div className="bg-gray-800 rounded p-1">
+        <div className="bg-gray-900 border border-gray-600 rounded relative">
+          {/* VHS shell */}
+          <div className="w-10 h-6 bg-black border border-gray-500 rounded-sm relative">
+            {/* Tape window */}
+            <div className="absolute top-1 left-1 right-1 h-0.5 bg-gray-700"></div>
+            {/* Tape reels */}
+            <div className="absolute top-2 left-1.5 w-1.5 h-1.5 border border-gray-400 rounded-full bg-gray-800"></div>
+            <div className="absolute top-2 right-1.5 w-1.5 h-1.5 border border-gray-400 rounded-full bg-gray-800"></div>
+            {/* Label */}
+            <div className="absolute bottom-0.5 left-0.5 right-0.5 h-2 bg-white rounded-sm">
+              <div className="text-xs text-black font-bold text-center leading-none">📼</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+    backgroundColor: '#1f2937',
+    padding: '4px'
+  },
+
+  'CassetteTape': {
+    componentType: 'CassetteTape',
+    previewElement: (
+      <div className="bg-gray-800 rounded p-1">
+        <div className="bg-gray-900 border border-gray-600 rounded relative">
+          {/* Cassette shell */}
+          <div className="w-10 h-6 bg-black border border-gray-500 rounded-sm relative">
+            {/* Tape window */}
+            <div className="absolute top-0.5 left-0.5 right-0.5 h-0.5 bg-gray-700"></div>
+            {/* Tape spokes */}
+            <div className="absolute top-1.5 left-1 w-1.5 h-1.5 border border-gray-400 rounded-full bg-gray-800"></div>
+            <div className="absolute top-1.5 right-1 w-1.5 h-1.5 border border-gray-400 rounded-full bg-gray-800"></div>
+            {/* Label */}
+            <div className="absolute bottom-0.5 left-0.5 right-0.5 h-2 bg-white rounded-sm">
+              <div className="text-xs text-black font-bold text-center leading-none">🎵</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+    backgroundColor: '#1f2937',
+    padding: '4px'
+  },
+
+  'RetroTV': {
+    componentType: 'RetroTV',
+    previewElement: (
+      <div className="bg-gray-800 rounded p-1">
+        <div className="bg-gray-900 border-2 border-gray-700 rounded relative">
+          {/* TV Shell */}
+          <div className="w-10 h-8 bg-gray-800 border border-gray-600 rounded-sm relative p-1">
+            {/* TV Screen */}
+            <div className="w-full h-full bg-green-900 border border-green-600 rounded-sm relative overflow-hidden">
+              {/* Screen content */}
+              <div className="absolute inset-0 bg-green-400 opacity-20"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-green-300 text-xs">📺</span>
+              </div>
+              {/* Scanlines */}
+              <div className="absolute inset-0 opacity-40">
+                <div className="h-px bg-black mt-1"></div>
+                <div className="h-px bg-black mt-1"></div>
+                <div className="h-px bg-black mt-1"></div>
+              </div>
+            </div>
+            {/* Control knobs */}
+            <div className="absolute -right-0.5 top-1/2 transform -translate-y-1/2">
+              <div className="w-1 h-1 bg-gray-500 rounded-full mb-0.5"></div>
+              <div className="w-1 h-1 bg-gray-500 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+    backgroundColor: '#1f2937',
+    padding: '4px'
+  },
+
+  'Boombox': {
+    componentType: 'Boombox',
+    previewElement: (
+      <div className="bg-gray-800 rounded p-1">
+        <div className="bg-gray-900 border border-gray-600 rounded relative">
+          {/* Boombox shell */}
+          <div className="w-12 h-7 bg-gray-800 border border-gray-500 rounded-sm relative p-1 flex items-center gap-1">
+            {/* Left speaker */}
+            <div className="w-2 h-2 border border-gray-400 rounded-full bg-gray-700 relative">
+              <div className="absolute inset-0.5 border border-gray-500 rounded-full"></div>
+            </div>
+            {/* Center section */}
+            <div className="flex-1 flex flex-col justify-center gap-0.5">
+              {/* Display */}
+              <div className="h-0.5 bg-green-400 rounded"></div>
+              {/* Controls */}
+              <div className="flex justify-center gap-0.5">
+                <div className="w-0.5 h-0.5 bg-gray-400 rounded"></div>
+                <div className="w-0.5 h-0.5 bg-gray-400 rounded"></div>
+                <div className="w-0.5 h-0.5 bg-gray-400 rounded"></div>
+              </div>
+            </div>
+            {/* Right speaker */}
+            <div className="w-2 h-2 border border-gray-400 rounded-full bg-gray-700 relative">
+              <div className="absolute inset-0.5 border border-gray-500 rounded-full"></div>
+            </div>
+            {/* Handle */}
+            <div className="absolute -top-0.5 left-1/2 transform -translate-x-1/2 w-3 h-0.5 bg-gray-600 rounded-t"></div>
+          </div>
+        </div>
+      </div>
+    ),
+    backgroundColor: '#1f2937',
+    padding: '4px'
+  },
+
+  'MatrixRain': {
+    componentType: 'MatrixRain',
+    previewElement: (
+      <div className="bg-black rounded p-1 relative overflow-hidden">
+        <div className="w-10 h-6 bg-black border border-green-400 rounded-sm relative">
+          {/* Matrix rain effect */}
+          <div className="absolute inset-0 bg-gradient-to-b from-green-900 to-black opacity-60"></div>
+          {/* Falling characters */}
+          <div className="absolute top-0 left-1 text-green-400 text-xs leading-none animate-pulse">0</div>
+          <div className="absolute top-1 left-3 text-green-400 text-xs leading-none animate-pulse" style={{animationDelay: '0.2s'}}>1</div>
+          <div className="absolute top-0 left-5 text-green-400 text-xs leading-none animate-pulse" style={{animationDelay: '0.4s'}}>0</div>
+          <div className="absolute top-2 left-7 text-green-400 text-xs leading-none animate-pulse" style={{animationDelay: '0.6s'}}>1</div>
+          <div className="absolute top-1 left-2 text-green-500 text-xs leading-none">カ</div>
+          <div className="absolute top-3 left-4 text-green-500 text-xs leading-none">タ</div>
+          <div className="absolute top-2 left-6 text-green-500 text-xs leading-none">ナ</div>
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-green-400 opacity-10 animate-pulse"></div>
+        </div>
+      </div>
+    ),
+    backgroundColor: '#000000',
+    padding: '4px'
+  },
+
   // Default fallback for unknown components
   'default': {
     componentType: 'default',

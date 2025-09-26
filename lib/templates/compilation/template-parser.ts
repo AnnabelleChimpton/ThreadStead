@@ -131,7 +131,23 @@ function createCustomSchema() {
         'shadoweffect', 'shadowEffect', 'gloweffect', 'glowEffect',
         'innerpadding', 'innerPadding', 'animated',
         // Component-specific props - RetroGrid
-        'gridstyle', 'gridStyle', 'perspective', 'horizon', 'glow'
+        'gridstyle', 'gridStyle', 'perspective', 'horizon', 'glow',
+        // Component-specific props - VHSTape
+        'year', 'genre', 'duration', 'tapecolor', 'tapeColor',
+        'labelstyle', 'labelStyle', 'wear', 'showbarcode', 'showBarcode',
+        // Component-specific props - CassetteTape
+        'artist', 'album', 'side', 'showspokestorotate', 'showSpokesToRotate',
+        // Component-specific props - RetroTV
+        'screencolor', 'screenColor', 'tvstyle', 'tvStyle', 'channelnumber', 'channelNumber',
+        'showstatic', 'showStatic', 'showscanlines', 'showScanlines', 'curvature',
+        'brightness', 'contrast',
+        // Component-specific props - Boombox
+        'showequalizer', 'showEqualizer', 'showcassettedeck', 'showCassetteDeck',
+        'showradio', 'showRadio', 'isplaying', 'isPlaying', 'currenttrack', 'currentTrack',
+        'volume',
+        // Component-specific props - MatrixRain
+        'speed', 'density', 'characters', 'customcharacters', 'customCharacters',
+        'fadeeffect', 'fadeEffect', 'gloweffect', 'glowEffect', 'backgroundopacity', 'backgroundOpacity'
       ];
       
       schema.attributes[tagName] = allAttributes;

@@ -49,6 +49,11 @@ import NeonSign from '@/components/features/templates/NeonSign';
 import ArcadeButton from '@/components/features/templates/ArcadeButton';
 import PixelArtFrame from '@/components/features/templates/PixelArtFrame';
 import RetroGrid from '@/components/features/templates/RetroGrid';
+import VHSTape from '@/components/features/templates/VHSTape';
+import CassetteTape from '@/components/features/templates/CassetteTape';
+import RetroTV from '@/components/features/templates/RetroTV';
+import Boombox from '@/components/features/templates/Boombox';
+import MatrixRain from '@/components/features/templates/MatrixRain';
 
 // Import HTML element components
 import TextElement from '@/components/features/templates/TextElement';
@@ -1021,5 +1026,107 @@ componentRegistry.register({
     type: 'container',
     acceptsChildren: true,
     childrenLabel: 'Grid Overlay Content'
+  }
+});
+
+componentRegistry.register({
+  name: 'VHSTape',
+  component: VHSTape,
+  props: {
+    title: { type: 'string', default: 'HOME VIDEO' },
+    year: { type: 'string', default: '1985' },
+    genre: { type: 'enum', values: ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Thriller', 'Documentary'], default: 'Action' },
+    duration: { type: 'string', default: '120 min' },
+    tapeColor: { type: 'enum', values: ['black', 'white', 'clear', 'blue', 'red'], default: 'black' },
+    labelStyle: { type: 'enum', values: ['classic', 'rental', 'homemade', 'premium'], default: 'classic' },
+    wear: { type: 'enum', values: ['mint', 'good', 'worn', 'damaged'], default: 'good' },
+    showBarcode: { type: 'boolean', default: true }
+  },
+  relationship: {
+    type: 'text',
+    acceptsChildren: true,
+    childrenLabel: 'VHS Title'
+  }
+});
+
+componentRegistry.register({
+  name: 'CassetteTape',
+  component: CassetteTape,
+  props: {
+    title: { type: 'string', default: 'MIX TAPE' },
+    artist: { type: 'string', default: 'Various Artists' },
+    album: { type: 'string', default: '' },
+    year: { type: 'string', default: '1985' },
+    side: { type: 'enum', values: ['A', 'B'], default: 'A' },
+    duration: { type: 'string', default: '45 min' },
+    tapeColor: { type: 'enum', values: ['black', 'white', 'clear', 'chrome', 'metal'], default: 'black' },
+    labelStyle: { type: 'enum', values: ['classic', 'handwritten', 'typed', 'minimal'], default: 'classic' },
+    wear: { type: 'enum', values: ['mint', 'good', 'worn', 'damaged'], default: 'good' },
+    showSpokesToRotate: { type: 'boolean', default: true }
+  },
+  relationship: {
+    type: 'text',
+    acceptsChildren: true,
+    childrenLabel: 'Cassette Title'
+  }
+});
+
+componentRegistry.register({
+  name: 'RetroTV',
+  component: RetroTV,
+  props: {
+    screenColor: { type: 'enum', values: ['green', 'amber', 'white', 'blue', 'red'], default: 'green' },
+    tvStyle: { type: 'enum', values: ['crt', 'vintage', 'portable', 'console'], default: 'crt' },
+    channelNumber: { type: 'string', default: '3' },
+    showStatic: { type: 'boolean', default: false },
+    showScanlines: { type: 'boolean', default: true },
+    curvature: { type: 'enum', values: ['none', 'slight', 'medium', 'heavy'], default: 'medium' },
+    brightness: { type: 'number', default: 100 },
+    contrast: { type: 'number', default: 100 }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true,
+    childrenLabel: 'TV Screen Content'
+  }
+});
+
+componentRegistry.register({
+  name: 'Boombox',
+  component: Boombox,
+  props: {
+    boomboxStyle: { type: 'enum', values: ['classic', 'modern', 'portable', 'monster'], default: 'classic' },
+    color: { type: 'enum', values: ['black', 'silver', 'red', 'blue', 'white'], default: 'black' },
+    showEqualizer: { type: 'boolean', default: true },
+    showCassetteDeck: { type: 'boolean', default: true },
+    showRadio: { type: 'boolean', default: true },
+    isPlaying: { type: 'boolean', default: false },
+    currentTrack: { type: 'string', default: 'Track 01' },
+    volume: { type: 'number', default: 75 }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true,
+    childrenLabel: 'Boombox Content'
+  }
+});
+
+componentRegistry.register({
+  name: 'MatrixRain',
+  component: MatrixRain,
+  props: {
+    color: { type: 'enum', values: ['green', 'blue', 'red', 'purple', 'cyan', 'white'], default: 'green' },
+    speed: { type: 'enum', values: ['slow', 'medium', 'fast', 'ultra'], default: 'medium' },
+    density: { type: 'enum', values: ['low', 'medium', 'high', 'extreme'], default: 'medium' },
+    characters: { type: 'enum', values: ['katakana', 'binary', 'hex', 'ascii', 'custom'], default: 'katakana' },
+    customCharacters: { type: 'string', default: '' },
+    fadeEffect: { type: 'boolean', default: true },
+    glowEffect: { type: 'boolean', default: true },
+    backgroundOpacity: { type: 'number', default: 95 }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true,
+    childrenLabel: 'Matrix Content'
   }
 });

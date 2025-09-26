@@ -221,6 +221,46 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     tags: ['synthwave', 'outrun', 'grid', 'background', 'retro', '80s'],
     popularity: 65
   },
+  'VHSTape': {
+    name: 'VHS Tape',
+    description: 'Video content with vintage VHS labeling',
+    icon: '📼',
+    category: 'Media',
+    tags: ['vhs', 'tape', 'video', 'vintage', 'retro', 'cassette', '80s', 'nostalgia'],
+    popularity: 65
+  },
+  'CassetteTape': {
+    name: 'Cassette Tape',
+    description: 'Audio content with vintage cassette labeling',
+    icon: '📼',
+    category: 'Media',
+    tags: ['cassette', 'tape', 'audio', 'vintage', 'retro', 'music', '80s', 'nostalgia', 'mix'],
+    popularity: 64
+  },
+  'RetroTV': {
+    name: 'Retro TV',
+    description: 'Old television set container',
+    icon: '📺',
+    category: 'Layout',
+    tags: ['tv', 'television', 'retro', 'crt', 'vintage', 'container', 'frame', '80s'],
+    popularity: 63
+  },
+  'Boombox': {
+    name: 'Boombox',
+    description: '80s-style music player UI',
+    icon: '📻',
+    category: 'Media',
+    tags: ['boombox', 'radio', 'music', 'player', '80s', 'retro', 'stereo', 'cassette', 'equalizer'],
+    popularity: 62
+  },
+  'MatrixRain': {
+    name: 'Matrix Rain',
+    description: 'Falling code effect background',
+    icon: '🌧️',
+    category: 'Effects',
+    tags: ['matrix', 'rain', 'code', 'falling', 'background', 'digital', 'cyber', 'effect', 'animation'],
+    popularity: 61
+  },
 };
 
 /**
