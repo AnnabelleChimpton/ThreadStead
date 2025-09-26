@@ -13,7 +13,8 @@ export function extractVisualBuilderClasses(css: string): string[] {
 
   // Match CSS selectors that are Visual Builder classes
   // Look for .vb-theme-*, .vb-pattern-*, .vb-effect-*, etc.
-  const vbClassRegex = /\.(vb-[a-z]+-[a-z0-9-]+)/g;
+  // Handle both standalone and compound selectors (e.g., #profile.vb-theme-bubblegum)
+  const vbClassRegex = /\.(vb-[a-z]+-[a-z0-9-]+(?:-[a-z0-9-]+)*)/g;
 
   let match;
   while ((match = vbClassRegex.exec(css)) !== null) {

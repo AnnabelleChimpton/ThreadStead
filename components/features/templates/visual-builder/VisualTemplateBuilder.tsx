@@ -567,19 +567,22 @@ export default function VisualTemplateBuilder({
     if (globalCSS.css && globalCSS.css.trim()) {
       // Validate CSS is not empty and has proper structure
       if (globalCSS.css.includes('{') && globalCSS.css.includes('}')) {
-        // IMPORTANT: Don't remove existing CSS - let it be parsed by the template parser
-        // The EnhancedTemplateEditor will handle CSS replacement properly
+        // Always inject CSS for Visual Builder - we handle CSS merging at the EnhancedTemplateEditor level
+        // This ensures CSS is always included in the HTML output for proper extraction
+        const shouldInjectCSS = true;
 
-        // Create new style tag with current CSS
-        const styleTag = `<style>
+        if (shouldInjectCSS) {
+          // Inject/update CSS - allows theme changes while preserving user customizations
+          const styleTag = `<style>
 ${globalCSS.css}
 </style>`;
 
-        // Insert style tag at the beginning of the HTML
-        if (finalHTML.includes('<head>')) {
-          finalHTML = finalHTML.replace('<head>', `<head>\n${styleTag}`);
-        } else {
-          finalHTML = styleTag + '\n' + finalHTML;
+          // Insert style tag at the beginning of the HTML
+          if (finalHTML.includes('<head>')) {
+            finalHTML = finalHTML.replace('<head>', `<head>\n${styleTag}`);
+          } else {
+            finalHTML = styleTag + '\n' + finalHTML;
+          }
         }
       } else {
         console.warn('Generated CSS appears to be invalid, skipping CSS injection');
@@ -720,13 +723,10 @@ ${globalCSS.css}
 
   // Generate HTML for template output using pure absolute positioning
   const generateHTML = useCallback(() => {
-    if (placedComponents.length === 0) {
-      return '<div class="template-empty">No components placed</div>';
-    }
-
-    // Use new pure HTML generation system
+    // Always use pure HTML generation system to ensure CSS injection works
+    // even when no components are placed (important for theme/global settings)
     return generatePureHTMLOutput();
-  }, [placedComponents, generatePureHTMLOutput]);
+  }, [generatePureHTMLOutput]);
 
   // LEGACY HTML generation (kept for reference, will be removed)
   const generateLegacyHTML = useCallback(() => {

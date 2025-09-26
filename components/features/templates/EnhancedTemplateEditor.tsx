@@ -15,6 +15,7 @@ import { useSiteCSS } from '@/hooks/useSiteCSS';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
 import VisualTemplateBuilder from './visual-builder/VisualTemplateBuilder';
 import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
+import { extractLegacyValues, generateConvertedTemplate, generateConvertedCSS, generateConvertedTemplateWithCSS, validateExtractedValues, generateConversionSummary, generateGlobalSettingsFromLegacy } from '@/lib/utils/css/legacy-conversion';
 
 // Warning dialog for data loss prevention
 interface DataLossWarningProps {
@@ -24,29 +25,74 @@ interface DataLossWarningProps {
   title: string;
   message: string;
   confirmText?: string;
+  // Enhanced properties for legacy conversion
+  preservedItems?: string[];
+  clearedItems?: string[];
 }
 
-function DataLossWarning({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  title, 
-  message, 
-  confirmText = "Yes, Continue" 
+function DataLossWarning({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText = "Yes, Continue",
+  preservedItems,
+  clearedItems
 }: DataLossWarningProps) {
   if (!isOpen) return null;
 
+  const hasConversionDetails = preservedItems && clearedItems;
+
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[10000]">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 border-2 border-gray-200">
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 border-2 border-gray-200">
         <div className="flex items-center gap-3 mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
         </div>
-        
+
         <div className="mb-6">
-          <p className="text-gray-700 leading-relaxed">{message}</p>
+          <p className="text-gray-700 leading-relaxed mb-4">{message}</p>
+
+          {hasConversionDetails && (
+            <div className="space-y-4">
+              {/* Preserved Items */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
+                  ✅ Will be preserved
+                </h4>
+                {preservedItems.length > 0 ? (
+                  <ul className="text-sm text-green-700 space-y-1">
+                    {preservedItems.map((item, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <span className="w-1 h-1 bg-green-600 rounded-full"></span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-green-700 italic">No convertible styles found</p>
+                )}
+              </div>
+
+              {/* Cleared Items */}
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-red-800 mb-2 flex items-center gap-2">
+                  🗑️ Will be cleared
+                </h4>
+                <ul className="text-sm text-red-700 space-y-1">
+                  {clearedItems.map((item, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <span className="w-1 h-1 bg-red-600 rounded-full"></span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
-        
+
         <div className="flex gap-3 justify-end">
           <button
             onClick={onClose}
@@ -56,7 +102,7 @@ function DataLossWarning({
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
           >
             {confirmText}
           </button>
@@ -281,6 +327,39 @@ export default function EnhancedTemplateEditor({
   // Set to true to always show welcome on Visual Builder open (for testing)
   const [showVisualBuilderWelcome, setShowVisualBuilderWelcome] = useState(true);
 
+  // Legacy template conversion warning
+  const [showLegacyWarning, setShowLegacyWarning] = useState(false);
+  const [conversionSummary, setConversionSummary] = useState<{ preserved: string[]; cleared: string[] } | null>(null);
+
+  // Detect if current template is legacy (no Visual Builder wrapper)
+  const isLegacyTemplate = useCallback(() => {
+    const fullTemplate = `${template}${customCSS.trim() ? `\n<style>\n${customCSS}\n</style>` : ''}`;
+
+    // Check for Visual Builder HTML markers
+    const hasVBHtmlMarkers = fullTemplate.includes('pure-absolute-container') &&
+                            (fullTemplate.includes('vb-theme-') ||
+                             fullTemplate.includes('vb-pattern-') ||
+                             fullTemplate.includes('vb-effect-'));
+
+    // Check for Visual Builder CSS markers - indicates generated or converted VB content
+    const hasVBCssMarkers = customCSS.includes('Visual Builder Generated CSS') ||
+                           customCSS.includes('Visual Builder\'s theme system') ||
+                           customCSS.includes('vb-theme-custom') ||
+                           customCSS.includes('--global-bg-color') ||
+                           customCSS.includes('--global-bg-gradient') ||
+                           customCSS.includes(':root');
+
+    // Check for Visual Builder empty template - generated when no components are placed
+    const isVBEmptyTemplate = template.includes('template-empty') ||
+                             template.includes('No components placed');
+
+    // It's a Visual Builder template if it has any VB markers OR is an empty VB template
+    const isVisualBuilderTemplate = hasVBHtmlMarkers || hasVBCssMarkers || isVBEmptyTemplate;
+
+    // It's legacy only if it has content but no VB markers
+    return !isVisualBuilderTemplate && template.trim().length > 0;
+  }, [template, customCSS]);
+
   // Save state management
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error' | 'pending'>('saved');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -305,6 +384,7 @@ export default function EnhancedTemplateEditor({
           // Check if this is Visual Builder CSS
           const isVisualBuilderCSS =
             css.includes('Visual Builder Generated CSS') ||
+            css.includes('VB_GENERATED_CSS') || // New marker
             css.includes('CSS Custom Properties for easy editing') ||
             css.includes('CSS Classes for styling') ||
             css.includes('--global-bg-color') ||
@@ -338,7 +418,7 @@ export default function EnhancedTemplateEditor({
 
       // Remove all existing Visual Builder CSS blocks
       const vbRemovalPatterns = [
-        /\/\* Visual Builder Generated CSS \*\/[\s\S]*?(?=(?:\/\*(?!.*Visual Builder)|\s*$))/g,
+        /\/\* Visual Builder Generated CSS.*?\*\/[\s\S]*?(?=(?:\/\*(?!.*Visual Builder)|\s*$))/g,
         /\/\* CSS Custom Properties for easy editing \*\/[\s\S]*?(?=(?:\/\*(?!.*CSS Custom Properties)|\s*$))/g,
         /\/\* CSS Classes for styling \*\/[\s\S]*?(?=(?:\/\*(?!.*CSS Classes)|\s*$))/g
       ];
@@ -367,13 +447,58 @@ export default function EnhancedTemplateEditor({
 
   // Handle mode switching between code and visual
   const handleModeSwitch = useCallback((newMode: 'code' | 'visual') => {
+    // Check for legacy template conversion before opening Visual Builder
+    if (newMode === 'visual' && isLegacyTemplate()) {
+      // Generate conversion summary for the warning dialog
+      const rawExtracted = extractLegacyValues(customCSS);
+      const extractedValues = validateExtractedValues(rawExtracted);
+      const summary = generateConversionSummary(extractedValues);
+
+      setConversionSummary(summary);
+      setShowLegacyWarning(true);
+      return;
+    }
+
     setEditorMode(newMode);
     if (newMode === 'visual') {
       setActiveTab('visual');
     } else {
       setActiveTab('template');
     }
+  }, [isLegacyTemplate, customCSS]);
+
+  // Handle legacy template conversion confirmation
+  const handleLegacyConversion = useCallback(() => {
+    setShowLegacyWarning(false);
+
+    // Extract values from current CSS for conversion
+    const rawExtracted = extractLegacyValues(customCSS);
+    const extractedValues = validateExtractedValues(rawExtracted);
+
+    // Generate complete template with CSS for Visual Builder parsing
+    // This allows the Visual Builder to understand the global settings
+    const convertedTemplateWithCSS = generateConvertedTemplateWithCSS(extractedValues);
+
+    // For the template tab, we want just the clean HTML
+    const cleanTemplate = generateConvertedTemplate();
+
+    // For the CSS tab, we want the proper Visual Builder CSS
+    const convertedCSS = generateConvertedCSS(extractedValues);
+
+    // Set both template and CSS
+    setTemplate(convertedTemplateWithCSS); // This will be parsed by Visual Builder
+    setCustomCSS(convertedCSS); // This shows in the CSS tab for editing
+
+    // Switch to Visual Builder mode
+    setEditorMode('visual');
+    setActiveTab('visual');
+  }, [customCSS]);
+
+  const handleLegacyCancel = useCallback(() => {
+    setShowLegacyWarning(false);
+    // Stay in code mode
   }, []);
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loadingDefault, setLoadingDefault] = useState(false);
@@ -2011,6 +2136,18 @@ body {
         onConfirm={confirmWarningAction}
         title={warningDialog.title}
         message={warningDialog.message}
+      />
+
+      {/* Legacy Template Conversion Warning */}
+      <DataLossWarning
+        isOpen={showLegacyWarning}
+        onClose={handleLegacyCancel}
+        onConfirm={handleLegacyConversion}
+        title="🔄 Convert to Visual Builder"
+        message="This legacy template will be converted to Visual Builder format. We'll preserve your key styling choices and provide a clean slate for Visual Builder development."
+        confirmText="Convert & Preserve Styling"
+        preservedItems={conversionSummary?.preserved}
+        clearedItems={conversionSummary?.cleared}
       />
     </div>
     </>

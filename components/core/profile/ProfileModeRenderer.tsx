@@ -1,6 +1,7 @@
 // Profile mode renderer with fallback logic
 import React from 'react';
 import { extractVisualBuilderClasses } from '@/lib/utils/css/visual-builder-class-extractor';
+import { detectTemplateType, type TemplateType } from '@/lib/utils/template-type-detector';
 
 // Simple error boundary for advanced profile renderer
 class ErrorBoundary extends React.Component<
@@ -135,284 +136,30 @@ export default function ProfileModeRenderer({
         
       case 'advanced':
         if (shouldUseIslands && user.profile?.compiledTemplate) {
-          
-          // Advanced template mode: Let AdvancedProfileRenderer handle ALL CSS with proper layering
-          // Remove duplicate CSS application - AdvancedProfileRenderer has sophisticated CSS system
+          // Detect template type to determine rendering approach
+          const compiledTemplate = user.profile?.compiledTemplate as any;
+          const templateType = detectTemplateType(
+            compiledTemplate?.staticHTML,
+            user.profile?.customCSS
+          );
+
+          // Show MinimalNavBar when navigation toggle is ON and template doesn't have its own navigation
+          const navigationElement = !hideNavigation && (() => {
+            const islands = compiledTemplate?.islands || [];
+            const hasTemplateNavigation = islands.some((island: any) =>
+              island.component.toLowerCase().includes('navigation')
+            );
+            return !hasTemplateNavigation && <MinimalNavBar />;
+          })();
 
           return (
             <>
-
-
-              {/* Conditional system styles based on CSS mode */}
-              {!isVisualBuilderDisableMode && (
-                <style dangerouslySetInnerHTML={{ __html: `
-                /* Complete CSS reset for advanced templates - user has total control */
-                .advanced-template-container:not([class*="vb-"]) {
-                  /* Reset all Tailwind utilities to prevent inheritance */
-                  --tw-gradient-from: initial;
-                  --tw-gradient-to: initial;
-                  --tw-gradient-stops: initial;
-                  --tw-gradient-position: initial;
-                }
-
-                /* NEVER reset Visual Builder container - preserve ALL styling */
-                .advanced-template-container[class*="vb-"] {
-                  /* Explicitly preserve Visual Builder styling - no resets! */
-                  /* Ensure Visual Builder container styling is never overridden */
-                  all: revert !important;
-                }
-
-                /* Allow template components to use gradients normally */
-
-                /* Reset system CSS for ThreadStead components - EXCLUDE Visual Builder elements */
-                .advanced-template-container .thread-module:not([class*="vb-"]) {
-                  all: unset;
-                  display: block;
-                  box-sizing: border-box;
-                }
-
-                .advanced-template-container .thread-headline:not([class*="vb-"]) {
-                  all: unset;
-                  display: block;
-                  box-sizing: border-box;
-                }
-
-                .advanced-template-container .thread-label:not([class*="vb-"]) {
-                  all: unset;
-                  display: inline;
-                  box-sizing: border-box;
-                }
-
-                .advanced-template-container .thread-button:not([class*="vb-"]) {
-                  all: unset;
-                  display: inline-block;
-                  box-sizing: border-box;
-                  cursor: pointer;
-                }
-
-                .advanced-template-container .profile-tab-button:not([class*="vb-"]) {
-                  all: unset;
-                  display: inline-block;
-                  box-sizing: border-box;
-                  cursor: pointer;
-                }
-
-                .advanced-template-container .profile-tab-panel:not([class*="vb-"]) {
-                  all: unset;
-                  display: block;
-                  box-sizing: border-box;
-                }
-
-                .advanced-template-container .profile-tabs:not([class*="vb-"]) {
-                  all: unset;
-                  display: block;
-                  box-sizing: border-box;
-                }
-
-                .advanced-template-container .profile-tab-list:not([class*="vb-"]) {
-                  all: unset;
-                  display: flex;
-                  box-sizing: border-box;
-                }
-
-                /* Provide default component styling that user can override - EXCLUDE Visual Builder elements */
-                .advanced-template-container .thread-module:not([class*="vb-"]) {
-                  background: #FCFAF7;
-                  border: 1px solid #A18463;
-                  border-radius: 8px;
-                  box-shadow: 3px 3px 0 #A18463;
-                  position: relative;
-                  min-width: 0;
-                  width: 100%;
-                  max-width: min(1100px, 100vw);
-                  padding: 1.5rem;
-                  margin-bottom: 1.5rem;
-                }
-
-                @media (max-width: 768px) {
-                  .advanced-template-container {
-                    max-width: 100vw;
-                    padding: 1rem;
-                    margin: 0 0 1rem 0;
-                    border-radius: 0;
-                    box-shadow: none;
-                    border-left: none;
-                    border-right: none;
-                  }
-                }
-
-                .advanced-template-container .thread-headline:not([class*="vb-"]) {
-                  font-family: Georgia, "Times New Roman", serif;
-                  color: #2E4B3F;
-                  font-weight: 600;
-                  letter-spacing: -0.02em;
-                  font-size: 1.25rem;
-                  margin-bottom: 1rem;
-                }
-
-                .advanced-template-container .thread-label:not([class*="vb-"]) {
-                  font-size: 0.75rem;
-                  font-weight: 600;
-                  letter-spacing: 0.5px;
-                  text-transform: uppercase;
-                  color: #A18463;
-                }
-
-                .advanced-template-container .profile-tab-button:not([class*="vb-"]) {
-                  padding: 0.75rem 1rem;
-                  background: #FCFAF7;
-                  color: #A18463;
-                  border-right: 1px solid rgba(161, 132, 99, 0.2);
-                  transition: all 0.2s ease;
-                }
-
-                .advanced-template-container .profile-tab-button.active:not([class*="vb-"]) {
-                  background: #F5E9D4;
-                  color: #2E4B3F;
-                  font-weight: 500;
-                }
-
-                .advanced-template-container .profile-tab-panel:not([class*="vb-"]) {
-                  padding: 1.5rem;
-                }
-
-                .advanced-template-container .profile-tab-list:not([class*="vb-"]) {
-                  border-bottom: 1px solid rgba(161, 132, 99, 0.3);
-                }
-
-
-                /* Legacy grid system support (will be deprecated) */
-                .advanced-template-container.grid-enabled {
-                  display: grid;
-                  grid-template-columns: repeat(4, 1fr);
-                  grid-auto-rows: 60px;
-                  gap: 12px;
-                  padding: 16px;
-                  width: 100%;
-                  max-width: 100vw;
-                  min-height: 100vh;
-                  box-sizing: border-box;
-                }
-
-                @media (min-width: 768px) {
-                  .advanced-template-container.grid-enabled {
-                    grid-template-columns: repeat(8, 1fr);
-                    grid-auto-rows: 60px;
-                    gap: 12px;
-                    padding: 24px;
-                  }
-                }
-
-                @media (min-width: 1024px) {
-                  .advanced-template-container.grid-enabled {
-                    grid-template-columns: repeat(16, 1fr);
-                    grid-auto-rows: 60px;
-                    gap: 12px;
-                    padding: 32px;
-                  }
-                }
-
-                .template-container.grid-container {
-                  display: grid;
-                  grid-template-columns: repeat(16, 1fr);
-                  grid-auto-rows: 60px;
-                  gap: 12px;
-                  width: 100%;
-                  max-width: 100vw;
-                  min-height: 100vh;
-                  padding: 32px;
-                  box-sizing: border-box;
-                }
-              ` }} />
-              )}
-
-              {/* No user CSS here - AdvancedProfileRenderer handles it with proper layering */}
-              
-              {/* Show MinimalNavBar when navigation toggle is ON and template doesn't have its own navigation */}
-              {!hideNavigation && (() => {
-                // FIXED: Don't show MinimalNavBar if template contains its own navigation component
-                const compiledTemplate = user.profile?.compiledTemplate as any;
-                const islands = compiledTemplate?.islands || [];
-                const hasTemplateNavigation = islands.some((island: any) =>
-                  island.component.toLowerCase().includes('navigation')
-                );
-                return !hasTemplateNavigation && <MinimalNavBar />;
-              })()}
-
-              {/* Wrap in container for CSS isolation */}
-              <div
-                id={`profile-${user.id}`}
-                className={(() => {
-                  // Extract Visual Builder classes from user's CSS
-                  const visualBuilderClasses = user.profile?.customCSS
-                    ? extractVisualBuilderClasses(user.profile.customCSS)
-                    : [];
-
-                  // Check template positioning mode
-                  const compiledTemplate = user.profile?.compiledTemplate as any;
-                  const templateHtml = compiledTemplate?.staticHTML || '';
-
-                  const hasGridPositioning = templateHtml.includes('data-positioning-mode="grid"') ||
-                                           templateHtml.includes('template-container grid-container');
-
-                  // REVERTED: Use the working advanced-template-container approach
-                  const baseClasses = hasGridPositioning
-                    ? 'advanced-template-container grid-enabled'
-                    : 'advanced-template-container';
-
-
-                  // Combine base classes with Visual Builder classes
-                  return visualBuilderClasses.length > 0
-                    ? `${baseClasses} ${visualBuilderClasses.join(' ')}`
-                    : baseClasses;
-                })()}
-                style={(() => {
-                  // Check template positioning mode
-                  const compiledTemplate = user.profile?.compiledTemplate as any;
-                  const templateHtml = compiledTemplate?.staticHTML || '';
-
-                  const hasGridPositioning = templateHtml.includes('data-positioning-mode="grid"') ||
-                                           templateHtml.includes('template-container grid-container');
-
-                  // REVERTED: Back to original working approach
-                  const baseStyles: React.CSSProperties = isVisualBuilderDisableMode ? {
-                    // Make container fill entire viewport edge-to-edge (ORIGINAL WORKING APPROACH)
-                    position: 'fixed' as const,
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    width: '100vw',
-                    height: '100vh',
-                    minHeight: '100vh',
-                    maxWidth: 'none',
-                    margin: 0,
-                    padding: 0,
-                    boxSizing: 'border-box' as const,
-                    overflow: 'auto' as const
-                  } : {};
-
-                  if (hasGridPositioning) {
-                    // Use the same grid system as Visual Builder
-                    const currentBreakpoint = getCurrentBreakpoint();
-
-                    return {
-                      ...baseStyles,
-                      display: 'grid' as const,
-                      gridTemplateColumns: `repeat(${currentBreakpoint.columns}, 1fr)`,
-                      gridAutoRows: `${currentBreakpoint.rowHeight}px`,
-                      gap: `${currentBreakpoint.gap}px`,
-                      padding: `${currentBreakpoint.containerPadding}px`
-                    };
-                  }
-
-                  return baseStyles;
-                })()}
-              >
-                <AdvancedProfileRenderer user={user} residentData={residentData} />
-
-
-              </div>
+              {navigationElement}
+              <AdvancedProfileRenderer
+                user={user}
+                residentData={residentData}
+                templateType={templateType}
+              />
             </>
           );
         } else if (shouldUseIslands && !user.profile?.compiledTemplate) {
@@ -422,7 +169,7 @@ export default function ProfileModeRenderer({
         } else {
           return renderAdvancedLegacyMode(user, residentData);
         }
-        
+
       default:
         console.warn(`Unknown template mode: ${mode}, falling back to default`);
         return renderDefaultMode(user, residentData, fallbackContent);

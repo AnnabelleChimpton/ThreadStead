@@ -1,5 +1,6 @@
 import type { AppProps } from "next/app";
 import Head from "next/head";
+import React, { useEffect } from "react";
 import 'highlight.js/styles/github.css'; // Restore highlight.js for non-profile pages
 import "../styles/globals.css"; // Restore global CSS
 import "../styles/neighborhood.css"; // Neighborhood street view styles
@@ -8,9 +9,9 @@ import "../styles/pixel-homes-animations.css"; // Visual polish and animations f
 import "../styles/visual-builder.module.css"; // Visual template builder styles
 import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { CSSModeProvider } from "@/contexts/CSSModeContext";
+import { detectTemplateType } from "@/lib/utils/template-type-detector";
 
 // Import Layout to ensure CSS dependencies are always available
 import Layout from "@/components/ui/layout/Layout";
@@ -31,7 +32,15 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   // Extract CSS mode information from pageProps
   const cssMode = pageProps.cssMode || 'inherit';
   const templateMode = pageProps.templateMode || 'default';
+
+  // Detect template type for better handling
+  const templateType = templateMode === 'advanced' && pageProps.customCSS
+    ? detectTemplateType('', pageProps.customCSS)
+    : 'legacy';
+
+  // Visual Builder mode needs wrapper styles for patterns, but we need to be smarter about legacy templates
   const isVisualBuilder = templateMode === 'advanced' && cssMode === 'disable';
+  const isLegacyTemplate = isVisualBuilder && templateType === 'legacy';
 
   // Conditionally load site CSS - skip for Visual Builder in disable mode
   const { css, loading } = useSiteCSS({
@@ -88,6 +97,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   //   };
   // }, [router]);
 
+
   // Handle tab routing for pages with tabs
   useEffect(() => {
     const { tab } = router.query;
@@ -112,11 +122,31 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   }, [router.query.tab, router.pathname]);
   
   // Check if we're on a user profile page or preview page that might have custom CSS
-  const isProfilePage = router.pathname === '/resident/[username]' || 
+  const isProfilePage = router.pathname === '/resident/[username]' ||
                        router.pathname === '/resident/[username]/index' ||
                        router.pathname === '/preview-temp';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
-  
+
+  // Extract Visual Builder classes for body application (backup for patterns)
+  const visualBuilderBodyClasses = React.useMemo(() => {
+    if (!isProfilePage || !pageProps.customCSS || templateMode !== 'advanced') return '';
+
+    // Simple extraction of Visual Builder classes from CSS
+    const css = pageProps.customCSS;
+    const classes = [];
+
+    // Extract vb-pattern-* classes
+    const patternMatch = css.match(/\.vb-pattern-([a-z0-9-]+)/);
+    if (patternMatch) classes.push(`vb-pattern-${patternMatch[1]}`);
+
+    // Extract vb-theme-* classes
+    const themeMatch = css.match(/\.vb-theme-([a-z0-9-]+)/);
+    if (themeMatch) classes.push(`vb-theme-${themeMatch[1]}`);
+
+    return classes.join(' ');
+  }, [isProfilePage, pageProps.customCSS, templateMode]);
+
+
   // For Visual Builder in disable mode, we need to completely isolate from global styles
   const actualCSSMode = cssMode;
   const needsCSSResets = isProfilePage && pageProps.templateMode === 'advanced' && actualCSSMode !== 'inherit';
@@ -142,14 +172,16 @@ export default function MyApp({ Component, pageProps }: AppProps) {
               /* Map Visual Builder variables to page elements for complete control */
 
               html {
-                background-color: var(--global-bg-color, var(--vb-background-color, #FCFAF7)) !important;
+                ${isLegacyTemplate ? '/* Legacy template: background handled by profile container */' :
+                  'background-color: var(--global-bg-color, var(--vb-background-color, #FCFAF7)) !important;'}
                 color: var(--global-text-color, var(--vb-text-color, #2F2F2F)) !important;
                 font-family: var(--global-font-family, var(--vb-font-family, system-ui)) !important;
                 font-size: var(--global-font-size, var(--vb-font-size, 16px)) !important;
               }
 
               body {
-                background-color: var(--global-bg-color, var(--vb-background-color, #FCFAF7)) !important;
+                ${isLegacyTemplate ? '/* Legacy template: background handled by profile container */' :
+                  'background-color: var(--global-bg-color, var(--vb-background-color, #FCFAF7)) !important;'}
                 color: var(--global-text-color, var(--vb-text-color, #2F2F2F)) !important;
                 font-family: var(--global-font-family, var(--vb-font-family, system-ui)) !important;
                 font-size: var(--global-font-size, var(--vb-font-size, 16px)) !important;
@@ -251,15 +283,20 @@ ${pageProps.customCSS}`
       </Head>
       <div
         className={`${
-          isVisualBuilder
-            ? '' // Visual Builder disable mode: completely clean wrapper
+          isVisualBuilder && !isLegacyTemplate
+            ? visualBuilderBodyClasses // Visual Builder templates: apply VB classes to wrapper
+            : isVisualBuilder && isLegacyTemplate
+            ? '' // Legacy advanced templates: clean wrapper, they handle their own styling
             : pageProps.templateMode === 'advanced'
             ? 'min-h-screen font-body' // Advanced mode (non-Visual Builder): clean but structured
             : 'min-h-screen font-body thread-surface text-thread-charcoal' // Normal styling for everything else
         }`}
         style={isVisualBuilder ? {
           // Visual Builder disable mode: wrapper inherits from Visual Builder variables
-          backgroundColor: 'var(--global-bg-color, var(--vb-background-color, #FCFAF7))',
+          // For legacy templates, omit background to let their body styles work
+          ...(isLegacyTemplate ? {} : {
+            backgroundColor: 'var(--global-bg-color, var(--vb-background-color, #FCFAF7))'
+          }),
           color: 'var(--global-text-color, var(--vb-text-color, #2F2F2F))',
           fontFamily: 'var(--global-font-family, var(--vb-font-family, system-ui))',
           fontSize: 'var(--global-font-size, var(--vb-font-size, 16px))',

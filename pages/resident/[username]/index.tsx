@@ -688,7 +688,12 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;
   if (customTemplateAst != null) props.customTemplateAst = customTemplateAst;
   if (residentData != null) props.residentData = residentData;
-  if (data.profile?.hideNavigation != null) props.hideNavigation = data.profile.hideNavigation;
+  // hideNavigation should only apply to advanced templates, always show navigation in standard mode
+  if (data.profile?.hideNavigation != null && data.profile?.templateMode === 'advanced') {
+    props.hideNavigation = data.profile.hideNavigation;
+  } else {
+    props.hideNavigation = false; // Always show navigation for standard/enhanced modes
+  }
   if (data.profile?.templateMode != null) props.templateMode = data.profile.templateMode;
   
   

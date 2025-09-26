@@ -4,7 +4,7 @@
  */
 
 import type { GlobalSettings, BackgroundPattern } from '@/components/features/templates/visual-builder/GlobalSettingsPanel';
-import { generatePatternCSS } from './background-patterns';
+import { generatePatternCSS, generateGradientCSS } from './background-patterns';
 
 export interface CSSClassDefinition {
   selector: string;
@@ -148,6 +148,14 @@ export class CSSClassGenerator {
       properties['--vb-bg-type'] = globalSettings.background.type;
     }
 
+    // Gradient properties
+    if (globalSettings.background?.type === 'gradient' && globalSettings.background.gradient) {
+      const gradientCSS = generateGradientCSS(globalSettings.background.gradient);
+      properties['--global-bg-gradient'] = gradientCSS;
+      properties['--vb-gradient-angle'] = globalSettings.background.gradient.angle.toString();
+      properties['--vb-gradient-colors'] = globalSettings.background.gradient.colors.join(', ');
+    }
+
     // Pattern properties
     if (globalSettings.background?.pattern && globalSettings.background.pattern.type !== 'none') {
       const pattern = globalSettings.background.pattern;
@@ -235,9 +243,16 @@ export class CSSClassGenerator {
     const themeClass = `vb-theme-${globalSettings.theme}`;
     const themeProperties: Record<string, string> = {};
 
-    // Background color - use CSS custom property (matching inline style naming)
-    if (globalSettings.background?.color) {
-      themeProperties['background-color'] = `var(--global-bg-color)`;
+    // Background - handle gradient, solid, and patterns with proper fallbacks
+    if (globalSettings.background) {
+      if (globalSettings.background.type === 'gradient' && globalSettings.background.gradient) {
+        // For gradients, use gradient variable with solid color fallback
+        themeProperties['background'] = `var(--global-bg-gradient, var(--global-bg-color))`;
+      } else if (globalSettings.background.type === 'solid' && globalSettings.background.color) {
+        // For solid colors, use background-color for better pattern compatibility
+        themeProperties['background-color'] = `var(--global-bg-color)`;
+      }
+      // Note: Patterns are handled separately in generatePatternClasses
     }
 
     // Typography - use CSS custom properties (matching global naming)
@@ -560,7 +575,7 @@ export class CSSClassGenerator {
     const cssRules: string[] = [];
 
     // Add header comment
-    cssRules.push('/* Visual Builder Generated CSS */');
+    cssRules.push('/* Visual Builder Generated CSS - VB_GENERATED_CSS */');
     cssRules.push('/* CSS Custom Properties for easy editing */');
     cssRules.push('/* CSS Classes for styling */');
     cssRules.push('');

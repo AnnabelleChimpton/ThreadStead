@@ -36,6 +36,7 @@ interface LayeredCSSOptions {
   userCustomCSS?: string;
   componentCSS?: string;
   profileId?: string; // For scoping
+  templateHtml?: string; // For detecting legacy vs Visual Builder templates
 }
 
 /**
@@ -48,7 +49,8 @@ export function generateLayeredCSS({
   siteWideCSS = '',
   userCustomCSS = '',
   componentCSS = '',
-  profileId
+  profileId,
+  templateHtml = ''
 }: LayeredCSSOptions): string {
   const layers: string[] = [];
   
@@ -80,7 +82,14 @@ ${componentCSS}
   
   // Add user CSS based on CSS mode and template mode
   if (userCustomCSS) {
-    const cleanCSS = cleanUserCSS(userCustomCSS);
+    // Detect if this is a legacy template (no Visual Builder wrapper)
+    const isLegacyTemplate = Boolean(templateHtml &&
+                            (!templateHtml.includes('pure-absolute-container') ||
+                             (!templateHtml.includes('vb-theme-') &&
+                              !templateHtml.includes('vb-pattern-') &&
+                              !templateHtml.includes('vb-effect-'))));
+
+    const cleanCSS = cleanUserCSS(userCustomCSS, profileId, isLegacyTemplate);
     const scopedCSS = profileId ? scopeCSSToProfile(cleanCSS, profileId) : cleanCSS;
     const nuclearCSS = forceUserCSSDominance(scopedCSS, cssMode);
     
@@ -173,15 +182,55 @@ ${nuclearCSS}
 
 /**
  * Clean user CSS by removing old CSS_MODE comments but PRESERVE !important for theme overrides
+ * Optionally transform body styles for legacy templates
  */
-function cleanUserCSS(css: string): string {
-  return css
+function cleanUserCSS(css: string, profileId?: string, isLegacyTemplate?: boolean): string {
+  let cleanedCSS = css
     // Remove CSS mode comments
     .replace(/\/\* CSS_MODE:\w+ \*\/\n?/g, '')
     // Keep !important declarations - they're needed to override site styles
     // Only remove empty semicolons
     .replace(/;;+/g, ';')
     .trim();
+
+  // Apply body transformation for legacy templates only
+  if (isLegacyTemplate && profileId) {
+    cleanedCSS = transformBodyStyles(cleanedCSS, profileId);
+  }
+
+  return cleanedCSS;
+}
+
+/**
+ * Transform body styles to target template container for legacy templates
+ * Allows legacy templates to use body styling while working in nested architecture
+ */
+function transformBodyStyles(css: string, profileId: string): string {
+  if (!css.trim() || !profileId) return css;
+
+  // Extract body rules using regex
+  const bodyRuleRegex = /body\s*\{([^{}]*)\}/g;
+  const bodyRules: string[] = [];
+  let match;
+
+  while ((match = bodyRuleRegex.exec(css)) !== null) {
+    const properties = match[1].trim();
+    if (properties) {
+      bodyRules.push(properties);
+    }
+  }
+
+  if (bodyRules.length === 0) return css;
+
+  // Generate container targeting for each body rule
+  const containerRules = bodyRules.map(properties => `
+#${profileId} {
+  ${properties}
+  min-height: 100vh;
+  box-sizing: border-box;
+}`).join('\n');
+
+  return css + '\n\n/* Auto-generated container targeting for body styles */\n' + containerRules;
 }
 
 /**
@@ -255,12 +304,16 @@ export function forceUserCSSDominance(css: string, cssMode: CSSMode = 'inherit')
     
     // Force !important on every CSS property that doesn't already have it
     // Be careful with URLs and data URIs to avoid breaking them
-    const nuclearProps = rules.replace(/([^;{]+):\s*([^;!]+?)(?!\s*!important)\s*;/g, (match: string, property: string, value: string) => {
+    const nuclearProps = rules.replace(/([^;{]+?):\s*([^;!]+?)(?!\s*!important)\s*;/g, (match: string, property: string, value: string) => {
+      // Clean property name and value to avoid spaces in URLs
+      const cleanProperty = property.trim();
+      const cleanValue = value.trim();
+
       // Skip adding !important if value contains data: or url( to avoid breaking URLs
-      if (value.includes('data:') || value.includes('url(')) {
-        return `${property}: ${value} !important;`;
+      if (cleanValue.includes('data:') || cleanValue.includes('url(')) {
+        return `${cleanProperty}: ${cleanValue} !important;`;
       }
-      return `${property}: ${value} !important;`;
+      return `${cleanProperty}: ${cleanValue} !important;`;
     });
       
     return `${nuclearSelectors} { ${nuclearProps} }`;
@@ -342,8 +395,11 @@ function scopeCSSToProfile(css: string, profileId: string): string {
           return `#${profileId}`;
         } else if (trimmed.startsWith('body ')) {
           return `#${profileId}${trimmed.substring(4)}`;
+        } else if (trimmed.startsWith('body.')) {
+          // Handle body.class selectors (like body.vb-pattern-grid) -> #profile.class
+          return `#${profileId}${trimmed.substring(4)}`;
         } else if (trimmed === ':root') {
-          // Root variables should apply to the profile container
+          // Root variables should apply to the profile container for proper CSS variable scoping
           return `#${profileId}`;
         }
         
@@ -424,7 +480,8 @@ export function generateFallbackCSS({
   globalCSS = '',
   siteWideCSS = '',
   userCustomCSS = '',
-  profileId
+  profileId,
+  templateHtml = ''
 }: LayeredCSSOptions): string {
   const parts: string[] = [];
   
@@ -436,7 +493,14 @@ export function generateFallbackCSS({
   
   // User styles (NUCLEAR DOMINANCE for fallback browsers too)
   if (userCustomCSS) {
-    const cleanCSS = cleanUserCSS(userCustomCSS);
+    // Detect if this is a legacy template (no Visual Builder wrapper)
+    const isLegacyTemplate = Boolean(templateHtml &&
+                            (!templateHtml.includes('pure-absolute-container') ||
+                             (!templateHtml.includes('vb-theme-') &&
+                              !templateHtml.includes('vb-pattern-') &&
+                              !templateHtml.includes('vb-effect-'))));
+
+    const cleanCSS = cleanUserCSS(userCustomCSS, profileId, isLegacyTemplate);
     const scopedCSS = profileId ? scopeCSSToProfile(cleanCSS, profileId) : cleanCSS;
     const nuclearCSS = forceUserCSSDominance(scopedCSS, cssMode);
     
