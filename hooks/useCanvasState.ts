@@ -18,6 +18,17 @@ import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/
 import type { GlobalSettings } from '@/components/features/templates/visual-builder/GlobalSettingsPanel';
 import { deepEqualsComponent, wouldComponentChange, optimizeComponentArrayUpdate } from '@/lib/templates/visual-builder/component-equality';
 
+// Component group for organizing multiple components
+export interface ComponentGroup {
+  id: string;
+  name: string;
+  color: string;          // Visual color for group identification
+  componentIds: string[];  // IDs of components in this group
+  locked: boolean;        // Whether group is locked from editing
+  visible: boolean;       // Whether group is visible
+  createdAt: number;      // Timestamp for sorting
+}
+
 // Enhanced component item with grid and absolute positioning support
 export interface ComponentItem {
   id: string;
@@ -31,6 +42,7 @@ export interface ComponentItem {
   positioningMode: 'absolute' | 'grid';
   props?: Record<string, any>;  // ALL component properties go here, including size, locked, hidden, etc.
   children?: ComponentItem[];   // Child components for parent-child relationships
+  groupId?: string;             // ID of group this component belongs to
 }
 
 // Enhanced grid configuration for responsive canvas
@@ -54,6 +66,10 @@ export interface UseCanvasStateResult {
   draggedComponent: ComponentItem | null;
   isDragging: boolean;
   previewPosition: { x: number; y: number } | null;
+
+  // Component groups state
+  componentGroups: ComponentGroup[];
+  selectedGroupId: string | null;
 
   // Grid configuration state
   gridConfig: GridConfig;
@@ -89,6 +105,17 @@ export interface UseCanvasStateResult {
   clearSelection: () => void;
   removeSelected: () => void;
 
+  // Component grouping operations
+  createGroup: (name: string, componentIds: string[], color?: string) => void;
+  updateGroup: (groupId: string, updates: Partial<ComponentGroup>) => void;
+  deleteGroup: (groupId: string) => void;
+  addComponentsToGroup: (groupId: string, componentIds: string[]) => void;
+  removeComponentsFromGroup: (componentIds: string[]) => void;
+  selectGroup: (groupId: string) => void;
+  ungroupComponents: (groupId: string) => void;
+  getGroupedComponents: (groupId: string) => ComponentItem[];
+  getComponentGroup: (componentId: string) => ComponentGroup | undefined;
+
   // Drag and drop (pixel homes style)
   startDrag: (component: ComponentItem) => void;
   setPreviewPosition: (position: { x: number; y: number } | null) => void;
@@ -115,6 +142,10 @@ export interface UseCanvasStateResult {
 export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanvasStateResult {
   // Direct state management like pixel homes
   const [placedComponents, setPlacedComponents] = useState<ComponentItem[]>(initialComponents);
+
+  // Component grouping state
+  const [componentGroups, setComponentGroups] = useState<ComponentGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   // Efficient shallow comparison for components
   const componentsAreShallowEqual = useCallback((arr1: ComponentItem[], arr2: ComponentItem[]): boolean => {
@@ -454,7 +485,131 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
   const resetCanvas = useCallback(() => {
     setPlacedComponents([]);
     setSelectedComponentIds(new Set());
+    setComponentGroups([]);
+    setSelectedGroupId(null);
   }, []);
+
+  // Generate a random color for groups
+  const generateGroupColor = useCallback(() => {
+    const colors = [
+      '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+      '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }, []);
+
+  // Component grouping operations
+  const createGroup = useCallback((name: string, componentIds: string[], color?: string) => {
+    const groupId = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newGroup: ComponentGroup = {
+      id: groupId,
+      name: name || `Group ${componentGroups.length + 1}`,
+      color: color || generateGroupColor(),
+      componentIds: [...componentIds],
+      locked: false,
+      visible: true,
+      createdAt: Date.now()
+    };
+
+    // Add the group
+    setComponentGroups(prev => [...prev, newGroup]);
+
+    // Update components to reference the group
+    setPlacedComponents(prev => prev.map(comp =>
+      componentIds.includes(comp.id)
+        ? { ...comp, groupId }
+        : comp
+    ));
+
+    // Select the new group
+    setSelectedGroupId(groupId);
+  }, [componentGroups.length, generateGroupColor]);
+
+  const updateGroup = useCallback((groupId: string, updates: Partial<ComponentGroup>) => {
+    setComponentGroups(prev => prev.map(group =>
+      group.id === groupId
+        ? { ...group, ...updates }
+        : group
+    ));
+  }, []);
+
+  const deleteGroup = useCallback((groupId: string) => {
+    // Remove group reference from components
+    setPlacedComponents(prev => prev.map(comp =>
+      comp.groupId === groupId
+        ? { ...comp, groupId: undefined }
+        : comp
+    ));
+
+    // Remove the group
+    setComponentGroups(prev => prev.filter(group => group.id !== groupId));
+
+    // Clear selection if this group was selected
+    if (selectedGroupId === groupId) {
+      setSelectedGroupId(null);
+    }
+  }, [selectedGroupId]);
+
+  const addComponentsToGroup = useCallback((groupId: string, componentIds: string[]) => {
+    // Update group to include new components
+    setComponentGroups(prev => prev.map(group => {
+      if (group.id === groupId) {
+        const uniqueIds = Array.from(new Set([...group.componentIds, ...componentIds]));
+        return { ...group, componentIds: uniqueIds };
+      }
+      return group;
+    }));
+
+    // Update components to reference the group
+    setPlacedComponents(prev => prev.map(comp =>
+      componentIds.includes(comp.id)
+        ? { ...comp, groupId }
+        : comp
+    ));
+  }, []);
+
+  const removeComponentsFromGroup = useCallback((componentIds: string[]) => {
+    // Remove components from their groups
+    setPlacedComponents(prev => prev.map(comp =>
+      componentIds.includes(comp.id)
+        ? { ...comp, groupId: undefined }
+        : comp
+    ));
+
+    // Update groups to remove these components
+    setComponentGroups(prev => prev.map(group => ({
+      ...group,
+      componentIds: group.componentIds.filter(id => !componentIds.includes(id))
+    })).filter(group => group.componentIds.length > 0)); // Remove empty groups
+  }, []);
+
+  const selectGroup = useCallback((groupId: string) => {
+    setSelectedGroupId(groupId);
+
+    // Select all components in the group
+    const group = componentGroups.find(g => g.id === groupId);
+    if (group) {
+      setSelectedComponentIds(new Set(group.componentIds));
+    }
+  }, [componentGroups]);
+
+  const ungroupComponents = useCallback((groupId: string) => {
+    deleteGroup(groupId);
+  }, [deleteGroup]);
+
+  const getGroupedComponents = useCallback((groupId: string): ComponentItem[] => {
+    const group = componentGroups.find(g => g.id === groupId);
+    if (!group) return [];
+
+    return placedComponents.filter(comp => group.componentIds.includes(comp.id));
+  }, [componentGroups, placedComponents]);
+
+  const getComponentGroup = useCallback((componentId: string): ComponentGroup | undefined => {
+    const component = placedComponents.find(comp => comp.id === componentId);
+    if (!component?.groupId) return undefined;
+
+    return componentGroups.find(group => group.id === component.groupId);
+  }, [placedComponents, componentGroups]);
 
   // Child component management methods
   const addChildComponent = useCallback((parentId: string, child: ComponentItem) => {
@@ -623,6 +778,10 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
     isDragging,
     previewPosition,
 
+    // Component groups state
+    componentGroups,
+    selectedGroupId,
+
     // Grid configuration
     gridConfig,
     setGridConfig,
@@ -656,6 +815,17 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
     selectComponent,
     clearSelection,
     removeSelected,
+
+    // Component grouping operations
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    addComponentsToGroup,
+    removeComponentsFromGroup,
+    selectGroup,
+    ungroupComponents,
+    getGroupedComponents,
+    getComponentGroup,
 
     // Drag and drop
     startDrag,

@@ -37,6 +37,8 @@ import ComponentPalette from './ComponentPalette';
 import PropertyPanel from './PropertyPanel';
 import GlobalSettingsPanel, { type GlobalSettings } from './GlobalSettingsPanel';
 import CSSExportPanel from './CSSExportPanel';
+import GroupPanel from './GroupPanel';
+import BulkPropertyEditor from './BulkPropertyEditor';
 
 interface VisualTemplateBuilderProps {
   initialTemplate?: string;
@@ -212,6 +214,14 @@ export default function VisualTemplateBuilder({
     togglePanel('cssExport');
   };
 
+  const handleToggleGroups = () => {
+    togglePanel('groups');
+  };
+
+  const handleToggleBulkEdit = () => {
+    togglePanel('bulkEdit');
+  };
+
   // Simplified canvas state management with initial components
   const originalCanvasState = useCanvasState(initialComponents);
 
@@ -254,6 +264,16 @@ export default function VisualTemplateBuilder({
     setGridConfig,
     globalSettings,
     setGlobalSettings,
+    componentGroups,
+    selectedGroupId,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    selectGroup,
+    ungroupComponents,
+    removeComponentsFromGroup,
+    getGroupedComponents,
+    getComponentGroup,
     undo,
     redo,
     canUndo,
@@ -364,6 +384,16 @@ export default function VisualTemplateBuilder({
     setGridConfig,
     globalSettings,
     setGlobalSettings,
+    componentGroups,
+    selectedGroupId,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    selectGroup,
+    ungroupComponents,
+    removeComponentsFromGroup,
+    getGroupedComponents,
+    getComponentGroup,
     undo,
     redo,
     canUndo,
@@ -834,9 +864,14 @@ ${globalCSS.css}
         onToggleProperties={handleToggleProperties}
         onToggleComponents={handleToggleComponents}
         onToggleGlobal={handleToggleGlobal}
+        onToggleGroups={handleToggleGroups}
+        onToggleBulkEdit={handleToggleBulkEdit}
         isPropertiesOpen={isPanelOpen('properties')}
         isComponentsOpen={isPanelOpen('components')}
         isGlobalOpen={isPanelOpen('global')}
+        isGroupsOpen={isPanelOpen('groups')}
+        isBulkEditOpen={isPanelOpen('bulkEdit')}
+        groupCount={componentGroups.length}
       />
 
 
@@ -1098,6 +1133,101 @@ ${globalCSS.css}
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
             <CSSExportPanel globalSettings={globalSettings} />
+          </div>
+        </div>
+      )}
+
+      {/* Group Panel */}
+      {isPanelOpen('groups') && (
+        <div style={{
+          position: 'fixed',
+          top: '64px',
+          right: '400px', // Position to the left of properties panel
+          width: '320px',
+          height: 'calc(100vh - 64px)',
+          background: 'white',
+          borderLeft: '1px solid #e5e7eb',
+          borderRight: '1px solid #e5e7eb',
+          zIndex: 999,
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <div style={{
+            padding: '16px',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>🗂️ Groups</h3>
+            <button
+              onClick={() => togglePanel('groups')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <GroupPanel
+              componentGroups={componentGroups}
+              selectedGroupId={selectedGroupId}
+              selectedComponentIds={selectedComponentIds}
+              placedComponents={placedComponents}
+              onCreateGroup={createGroup}
+              onUpdateGroup={updateGroup}
+              onDeleteGroup={deleteGroup}
+              onSelectGroup={selectGroup}
+              onUngroupComponents={ungroupComponents}
+              onRemoveComponentsFromGroup={removeComponentsFromGroup}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Property Editor */}
+      {isPanelOpen('bulkEdit') && selectedComponentIds.size > 1 && (
+        <div style={{
+          position: 'fixed',
+          top: '64px',
+          right: isPanelOpen('properties') ? '380px' : '0', // Position based on properties panel
+          width: '350px',
+          height: 'calc(100vh - 64px)',
+          background: 'white',
+          borderLeft: '1px solid #e5e7eb',
+          zIndex: 998,
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <div style={{
+            padding: '16px',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>🎛️ Bulk Edit</h3>
+            <button
+              onClick={() => togglePanel('bulkEdit')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <BulkPropertyEditor
+              selectedComponents={placedComponents.filter(comp => selectedComponentIds.has(comp.id))}
+              onComponentUpdate={updateComponent}
+            />
           </div>
         </div>
       )}

@@ -6,6 +6,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { ComponentItem, UseCanvasStateResult } from '@/hooks/useCanvasState';
 import { componentRegistry } from '@/lib/templates/core/template-registry';
+import { ComponentThumbnailGenerator } from './ComponentThumbnailGenerator';
 
 interface ComponentSearcherProps {
   canvasState: UseCanvasStateResult;
@@ -232,7 +233,42 @@ export default function ComponentSearcher({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [recentComponents, setRecentComponents] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Load favorites from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedFavorites = localStorage.getItem('vb-component-favorites');
+      if (savedFavorites) {
+        setFavorites(new Set(JSON.parse(savedFavorites)));
+      }
+    } catch (error) {
+      console.warn('Failed to load component favorites:', error);
+    }
+  }, []);
+
+  // Save favorites to localStorage
+  const saveFavorites = (newFavorites: Set<string>) => {
+    try {
+      localStorage.setItem('vb-component-favorites', JSON.stringify(Array.from(newFavorites)));
+      setFavorites(newFavorites);
+    } catch (error) {
+      console.warn('Failed to save component favorites:', error);
+    }
+  };
+
+  // Toggle component favorite status
+  const toggleFavorite = (componentType: string) => {
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(componentType)) {
+      newFavorites.delete(componentType);
+    } else {
+      newFavorites.add(componentType);
+    }
+    saveFavorites(newFavorites);
+  };
 
   const { startDrag, endDrag } = canvasState;
 
@@ -328,157 +364,323 @@ export default function ComponentSearcher({
     searchInputRef.current?.focus();
   }, []);
 
-  // Ultra-simple drag component - minimal DOM for ghost image creation
+  // Enhanced component card with grid/list views and favorites
   const ComponentCard = ({ component, isRecent = false }: { component: ComponentSuggestion; isRecent?: boolean }) => {
+    const isAvailable = component.isRegistered;
+    const isFavorite = favorites.has(component.type);
+
+    if (viewMode === 'grid') {
+      // Grid view: Ultra-compact thumbnail layout
+      return (
+        <div
+          className={`
+            p-2 border rounded text-center transition-all duration-200 relative
+            ${isRecent ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300' : 'bg-white'}
+            ${isAvailable
+              ? 'border-gray-200 cursor-grab hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5'
+              : 'border-red-200 bg-red-50 opacity-50 cursor-not-allowed'
+            }
+          `}
+          style={{ minHeight: '100px' }}
+          draggable={isAvailable}
+          onDragStart={(e) => {
+            if (!isAvailable) return;
+            e.dataTransfer.setData('application/json', JSON.stringify({
+              id: `${component.type}_${Date.now()}`,
+              type: component.type,
+              position: { x: 0, y: 0 },
+              positioningMode: 'absolute',
+              props: {},
+            }));
+            e.dataTransfer.effectAllowed = 'copy';
+          }}
+          onDragEnd={handleDragEnd}
+          title={`${component.name} - ${component.description}`}
+        >
+          {/* Favorite star */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFavorite(component.type);
+            }}
+            className={`
+              absolute top-1 right-1 text-xs transition-opacity duration-200 bg-none border-none cursor-pointer p-0.5 rounded
+              ${isFavorite ? 'opacity-100' : 'opacity-30 hover:opacity-100'}
+            `}
+          >
+            {isFavorite ? '⭐' : '☆'}
+          </button>
+
+          {/* Component thumbnail */}
+          <div className="mb-1 flex justify-center">
+            <ComponentThumbnailGenerator componentType={component.type} size="small" />
+          </div>
+
+          {/* Component name */}
+          <div className="text-xs font-medium text-gray-700 leading-tight">
+            {component.name}
+          </div>
+        </div>
+      );
+    }
+
+    // List view: Compact detailed layout
     return (
       <div
         className={`
-          p-3 m-1 border rounded text-center transition-all duration-200 ease-out
-          ${component.isRegistered
-            ? 'border-gray-300 bg-white cursor-grab hover:border-blue-400 hover:shadow-lg hover:shadow-blue-100 hover:-translate-y-1 hover:scale-105'
-            : 'border-red-300 bg-red-50 opacity-50 cursor-not-allowed'
+          p-3 border rounded transition-all duration-200 relative
+          ${isRecent ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300' : 'bg-white'}
+          ${isAvailable
+            ? 'border-gray-200 cursor-grab hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5'
+            : 'border-red-200 bg-red-50 opacity-50 cursor-not-allowed'
           }
         `}
-        draggable={component.isRegistered}
+        draggable={isAvailable}
         onDragStart={(e) => {
+          if (!isAvailable) return;
           e.dataTransfer.setData('application/json', JSON.stringify({
-            id: '',
+            id: `${component.type}_${Date.now()}`,
             type: component.type,
             position: { x: 0, y: 0 },
-            positioningMode: 'grid',
+            positioningMode: 'absolute',
             props: {},
           }));
           e.dataTransfer.effectAllowed = 'copy';
         }}
         onDragEnd={handleDragEnd}
-        title={component.isRegistered ? `Drag ${component.name} to canvas` : `${component.name} not available`}
+        title={`${component.name} - ${component.description}`}
       >
-        <div className="text-2xl mb-1">{component.icon}</div>
-        <div className="text-xs text-gray-700">{component.name}</div>
+        {/* Favorite star */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleFavorite(component.type);
+          }}
+          className={`
+            absolute top-3 right-3 text-base transition-opacity duration-200 bg-none border-none cursor-pointer p-1 rounded
+            ${isFavorite ? 'opacity-100' : 'opacity-30 hover:opacity-100'}
+          `}
+        >
+          {isFavorite ? '⭐' : '☆'}
+        </button>
+
+        <div className="flex items-center gap-3">
+          {/* Icon or thumbnail */}
+          <div className="text-2xl">{component.icon}</div>
+
+          {/* Component info */}
+          <div className="flex-1">
+            <div className="font-semibold text-sm text-gray-800 mb-1">
+              {component.name}
+            </div>
+            <div className="text-xs text-gray-600 leading-relaxed">
+              {component.description}
+            </div>
+            <div className="mt-1 flex gap-1 flex-wrap">
+              <span className="text-xs px-2 py-0.5 bg-gray-100 rounded text-gray-600">
+                {component.category}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
 
   return (
     <div className={`flex flex-col h-full bg-gray-50 ${className}`}>
-      {/* Search header */}
+      {/* Compact search header */}
       <div style={{
-        padding: '24px',
+        padding: '12px',
         background: 'white',
         borderBottom: '1px solid #e5e7eb',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
       }}>
-        <div style={{ marginBottom: '20px' }}>
-          <p style={{
-            margin: 0,
-            fontSize: '14px',
-            color: '#6b7280',
-          }}>
-            Search and add components to build your template
-          </p>
-        </div>
-
-        {/* Search input */}
-        <div style={{ position: 'relative', marginBottom: '16px' }}>
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search components... (text, profile, layout, etc.)"
-            style={{
-              width: '100%',
-              padding: '12px 16px 12px 48px',
-              border: '2px solid #e5e7eb',
-              borderRadius: '12px',
-              fontSize: '16px',
-              background: '#fafafa',
-              outline: 'none',
-              transition: 'all 0.2s ease',
-            }}
-            onFocus={(e) => {
-              (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
-              (e.target as HTMLInputElement).style.background = 'white';
-            }}
-            onBlur={(e) => {
-              (e.target as HTMLInputElement).style.borderColor = '#e5e7eb';
-              (e.target as HTMLInputElement).style.background = '#fafafa';
-            }}
-          />
-          <div style={{
-            position: 'absolute',
-            left: '16px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            fontSize: '20px',
-            color: '#9ca3af',
-          }}>
-            🔍
-          </div>
-        </div>
-
-        {/* Category filters */}
+        {/* Search input with inline view toggle */}
         <div style={{
           display: 'flex',
           gap: '8px',
-          flexWrap: 'wrap',
+          alignItems: 'center',
+          marginBottom: searchTerm || selectedCategory !== 'All' ? '8px' : '0'
         }}>
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search components..."
               style={{
-                padding: '6px 12px',
-                border: 'none',
+                width: '100%',
+                padding: '8px 12px 8px 36px',
+                border: '1px solid #e5e7eb',
                 borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: '500',
+                fontSize: '14px',
+                background: '#fafafa',
+                outline: 'none',
+                transition: 'all 0.2s ease',
+              }}
+              onFocus={(e) => {
+                (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
+                (e.target as HTMLInputElement).style.background = 'white';
+              }}
+              onBlur={(e) => {
+                (e.target as HTMLInputElement).style.borderColor = '#e5e7eb';
+                (e.target as HTMLInputElement).style.background = '#fafafa';
+              }}
+            />
+            <div style={{
+              position: 'absolute',
+              left: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: '16px',
+              color: '#9ca3af',
+            }}>
+              🔍
+            </div>
+          </div>
+
+          {/* Compact view toggle */}
+          <div style={{
+            display: 'flex',
+            gap: '2px',
+            background: '#f3f4f6',
+            borderRadius: '6px',
+            padding: '2px',
+          }}>
+            <button
+              onClick={() => setViewMode('list')}
+              style={{
+                padding: '4px 6px',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '11px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                background: selectedCategory === category ? '#3b82f6' : '#f3f4f6',
-                color: selectedCategory === category ? 'white' : '#6b7280',
+                background: viewMode === 'list' ? '#3b82f6' : 'transparent',
+                color: viewMode === 'list' ? 'white' : '#6b7280',
               }}
-              onMouseEnter={(e) => {
-                if (selectedCategory !== category) {
-                  (e.target as HTMLButtonElement).style.background = '#e5e7eb';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (selectedCategory !== category) {
-                  (e.target as HTMLButtonElement).style.background = '#f3f4f6';
-                }
-              }}
+              title="List view"
             >
-              {category}
+              📝
             </button>
-          ))}
+            <button
+              onClick={() => setViewMode('grid')}
+              style={{
+                padding: '4px 6px',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '11px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: viewMode === 'grid' ? '#3b82f6' : 'transparent',
+                color: viewMode === 'grid' ? 'white' : '#6b7280',
+              }}
+              title="Grid view"
+            >
+              ⊞
+            </button>
+          </div>
         </div>
+
+        {/* Category filters - only show when searching or non-All selected */}
+        {(searchTerm || selectedCategory !== 'All') && (
+          <div style={{
+            display: 'flex',
+            gap: '4px',
+            flexWrap: 'wrap',
+          }}>
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                style={{
+                  padding: '3px 8px',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  background: selectedCategory === category ? '#3b82f6' : '#f3f4f6',
+                  color: selectedCategory === category ? 'white' : '#6b7280',
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedCategory !== category) {
+                    (e.target as HTMLButtonElement).style.background = '#e5e7eb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedCategory !== category) {
+                    (e.target as HTMLButtonElement).style.background = '#f3f4f6';
+                  }
+                }}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Content area */}
+      {/* Compact content area */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '24px',
+        padding: '16px',
       }}>
+        {/* Favorites section */}
+        {favorites.size > 0 && !searchTerm && selectedCategory === 'All' && (
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{
+              margin: '0 0 8px 0',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#374151',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              ⭐ Favorites
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: viewMode === 'grid'
+                ? 'repeat(auto-fill, minmax(120px, 1fr))'
+                : 'repeat(auto-fill, minmax(260px, 1fr))',
+              gap: viewMode === 'grid' ? '8px' : '12px',
+            }}>
+              {Array.from(favorites).slice(0, 8).map((componentType) => {
+                const component = availableComponents.find(c => c.type === componentType);
+                return component ? (
+                  <ComponentCard key={componentType} component={component} isRecent />
+                ) : null;
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Recent components */}
         {recentComponents.length > 0 && !searchTerm && selectedCategory === 'All' && (
-          <div style={{ marginBottom: '32px' }}>
+          <div style={{ marginBottom: '20px' }}>
             <h3 style={{
-              margin: '0 0 16px 0',
-              fontSize: '16px',
+              margin: '0 0 8px 0',
+              fontSize: '14px',
               fontWeight: '600',
               color: '#374151',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
             }}>
-              🕒 Recently Used
+              🕒 Recent
             </h3>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '12px',
+              gridTemplateColumns: viewMode === 'grid'
+                ? 'repeat(auto-fill, minmax(120px, 1fr))'
+                : 'repeat(auto-fill, minmax(260px, 1fr))',
+              gap: viewMode === 'grid' ? '8px' : '12px',
             }}>
               {recentComponents.slice(0, 4).map((componentType) => {
                 const component = availableComponents.find(c => c.type === componentType);
@@ -490,21 +692,21 @@ export default function ComponentSearcher({
           </div>
         )}
 
-        {/* Results header */}
+        {/* Compact results header */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '16px',
+          marginBottom: '8px',
         }}>
           <h3 style={{
             margin: 0,
-            fontSize: '16px',
+            fontSize: '14px',
             fontWeight: '600',
             color: '#374151',
           }}>
-            {searchTerm ? `Search Results (${filteredComponents.length})` :
-             selectedCategory === 'All' ? 'All Components' : `${selectedCategory} Components`}
+            {searchTerm ? `🔍 Results (${filteredComponents.length})` :
+             selectedCategory === 'All' ? 'All Components' : `📂 ${selectedCategory} (${filteredComponents.length})`}
           </h3>
 
           {searchTerm && (
@@ -529,8 +731,10 @@ export default function ComponentSearcher({
         {filteredComponents.length > 0 ? (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '16px',
+            gridTemplateColumns: viewMode === 'grid'
+              ? 'repeat(auto-fill, minmax(120px, 1fr))'
+              : 'repeat(auto-fill, minmax(260px, 1fr))',
+            gap: viewMode === 'grid' ? '8px' : '12px',
           }}>
             {filteredComponents.map((component) => (
               <ComponentCard key={component.type} component={component} />

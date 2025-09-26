@@ -34,12 +34,22 @@ export interface SmartToolbarProps {
   onToggleComponents?: () => void;
   /** Callback to toggle global settings panel */
   onToggleGlobal?: () => void;
+  /** Callback to toggle groups panel */
+  onToggleGroups?: () => void;
+  /** Callback to toggle bulk edit panel */
+  onToggleBulkEdit?: () => void;
   /** Whether property panel is open */
   isPropertiesOpen?: boolean;
   /** Whether component palette is open */
   isComponentsOpen?: boolean;
   /** Whether global settings panel is open */
   isGlobalOpen?: boolean;
+  /** Whether groups panel is open */
+  isGroupsOpen?: boolean;
+  /** Whether bulk edit panel is open */
+  isBulkEditOpen?: boolean;
+  /** Number of groups */
+  groupCount?: number;
 }
 
 /**
@@ -202,9 +212,14 @@ export default function SmartToolbar({
   onToggleProperties,
   onToggleComponents,
   onToggleGlobal,
+  onToggleGroups,
+  onToggleBulkEdit,
   isPropertiesOpen = false,
   isComponentsOpen = false,
   isGlobalOpen = false,
+  isGroupsOpen = false,
+  isBulkEditOpen = false,
+  groupCount = 0,
 }: SmartToolbarProps) {
   const {
     canUndo,
@@ -387,6 +402,30 @@ export default function SmartToolbar({
               size="sm"
               variant="ghost"
               tooltip="Toggle property panel"
+            />
+          )}
+
+          {onToggleGroups && (
+            <ToolButton
+              icon="🗂️"
+              label={`Groups${groupCount > 0 ? ` (${groupCount})` : ''}`}
+              onClick={onToggleGroups}
+              active={isGroupsOpen}
+              size="sm"
+              variant="ghost"
+              tooltip="Organize components into groups"
+            />
+          )}
+
+          {onToggleBulkEdit && selectedCount > 1 && (
+            <ToolButton
+              icon="🎛️"
+              label={`Bulk Edit (${selectedCount})`}
+              onClick={onToggleBulkEdit}
+              active={isBulkEditOpen}
+              size="sm"
+              variant="ghost"
+              tooltip="Edit multiple components simultaneously"
             />
           )}
 

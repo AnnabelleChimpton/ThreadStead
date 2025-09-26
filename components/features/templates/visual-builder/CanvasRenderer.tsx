@@ -420,6 +420,9 @@ export default function CanvasRenderer({
     isDragging,
     previewPosition,
     gridConfig,
+    componentGroups,
+    selectedGroupId,
+    getComponentGroup,
     addComponent,
     addChildComponent,
     removeChildComponent,
@@ -435,6 +438,198 @@ export default function CanvasRenderer({
     setPreviewPosition,
     endDrag,
   } = canvasState;
+
+  // Multi-select and rubber band selection state
+  const [isRubberBanding, setIsRubberBanding] = useState(false);
+  const [rubberBandStart, setRubberBandStart] = useState<{ x: number; y: number } | null>(null);
+  const [rubberBandEnd, setRubberBandEnd] = useState<{ x: number; y: number } | null>(null);
+  const [draggedComponentId, setDraggedComponentId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Enhanced component click handler with multi-select support
+  const handleComponentClick = useCallback((componentId: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const isCtrlClick = event.ctrlKey || event.metaKey;
+    const isShiftClick = event.shiftKey;
+
+    if (isCtrlClick) {
+      // Ctrl+click for multi-select toggle - useCanvasState DOES support this!
+      selectComponent(componentId, true); // This handles both add/remove automatically
+    } else if (isShiftClick && selectedComponentIds.size > 0) {
+      // Shift+click for range selection - select from last selected to current
+      const componentIds = placedComponents.map(c => c.id);
+      const currentIndex = componentIds.indexOf(componentId);
+      const lastSelectedId = Array.from(selectedComponentIds).pop();
+      const lastIndex = lastSelectedId ? componentIds.indexOf(lastSelectedId) : -1;
+
+      if (currentIndex !== -1 && lastIndex !== -1) {
+        const startIndex = Math.min(currentIndex, lastIndex);
+        const endIndex = Math.max(currentIndex, lastIndex);
+        const rangeIds = componentIds.slice(startIndex, endIndex + 1);
+
+        // Add all components in range to selection
+        rangeIds.forEach(id => selectComponent(id, true));
+      } else {
+        // Fallback to regular selection
+        selectComponent(componentId);
+      }
+    } else {
+      // Regular click - single selection (clears others)
+      selectComponent(componentId);
+    }
+  }, [selectedComponentIds, selectComponent, placedComponents]);
+
+  // Component mouse down handler for drag preparation
+  const handleComponentMouseDown = useCallback((componentId: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const component = placedComponents.find(c => c.id === componentId);
+    if (!component) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const canvasRect = canvasRef.current?.getBoundingClientRect();
+    if (canvasRect) {
+      setDragOffset({
+        x: event.clientX - canvasRect.left - (component.position?.x || 0),
+        y: event.clientY - canvasRect.top - (component.position?.y || 0),
+      });
+    }
+
+    setDraggedComponentId(componentId);
+    if (!selectedComponentIds.has(componentId)) {
+      selectComponent(componentId);
+    }
+  }, [placedComponents, selectComponent, selectedComponentIds]);
+
+  // Canvas mouse down for rubber band selection
+  const handleCanvasMouseDown = useCallback((event: React.MouseEvent) => {
+    // Only start rubber band if not clicking on a component and not dragging
+    if (event.target === event.currentTarget && !draggedComponent && !isDragging) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const startPos = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+
+      setIsRubberBanding(true);
+      setRubberBandStart(startPos);
+      setRubberBandEnd(startPos);
+    }
+  }, [draggedComponent, isDragging]);
+
+  // Canvas mouse move for rubber band selection
+  const handleCanvasMouseMove = useCallback((event: React.MouseEvent) => {
+    if (isRubberBanding && rubberBandStart) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const endPos = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+      setRubberBandEnd(endPos);
+
+      // Calculate selection rectangle
+      const selectionRect = {
+        left: Math.min(rubberBandStart.x, endPos.x),
+        top: Math.min(rubberBandStart.y, endPos.y),
+        right: Math.max(rubberBandStart.x, endPos.x),
+        bottom: Math.max(rubberBandStart.y, endPos.y),
+      };
+
+      // Find components within selection rectangle
+      const selectedIds = placedComponents
+        .filter(component => {
+          if (!component.position) return false;
+
+          const componentRect = {
+            left: component.position.x,
+            top: component.position.y,
+            right: component.position.x + 200, // Approximate component width
+            bottom: component.position.y + 150, // Approximate component height
+          };
+
+          // Check if component rectangle intersects with selection rectangle
+          return !(componentRect.right < selectionRect.left ||
+                   componentRect.left > selectionRect.right ||
+                   componentRect.bottom < selectionRect.top ||
+                   componentRect.top > selectionRect.bottom);
+        })
+        .map(c => c.id);
+
+      // For now, select the first component in the selection
+      // TODO: Enhance useCanvasState to support multi-select
+      if (selectedIds.length > 0) {
+        selectComponent(selectedIds[0]);
+      }
+    }
+  }, [isRubberBanding, rubberBandStart, placedComponents, selectComponent]);
+
+  // Canvas mouse up to end rubber band selection
+  const handleCanvasMouseUp = useCallback(() => {
+    if (isRubberBanding) {
+      setIsRubberBanding(false);
+      setRubberBandStart(null);
+      setRubberBandEnd(null);
+    }
+    setDraggedComponentId(null);
+  }, [isRubberBanding]);
+
+  // Add global mouse event listeners for rubber band selection
+  useEffect(() => {
+    if (isRubberBanding) {
+      const handleGlobalMouseMove = (e: MouseEvent) => {
+        if (canvasRef.current) {
+          const rect = canvasRef.current.getBoundingClientRect();
+          const endPos = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+          };
+          setRubberBandEnd(endPos);
+        }
+      };
+
+      const handleGlobalMouseUp = () => {
+        setIsRubberBanding(false);
+        setRubberBandStart(null);
+        setRubberBandEnd(null);
+      };
+
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+
+      return () => {
+        document.removeEventListener('mousemove', handleGlobalMouseMove);
+        document.removeEventListener('mouseup', handleGlobalMouseUp);
+      };
+    }
+  }, [isRubberBanding]);
+
+  // Render rubber band selection rectangle
+  const renderRubberBand = useCallback(() => {
+    if (!isRubberBanding || !rubberBandStart || !rubberBandEnd) return null;
+
+    const rect = {
+      left: Math.min(rubberBandStart.x, rubberBandEnd.x),
+      top: Math.min(rubberBandStart.y, rubberBandEnd.y),
+      width: Math.abs(rubberBandEnd.x - rubberBandStart.x),
+      height: Math.abs(rubberBandEnd.y - rubberBandStart.y),
+    };
+
+    return (
+      <div
+        className="absolute border-2 border-blue-400 bg-blue-100 bg-opacity-20 pointer-events-none"
+        style={{
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+          zIndex: 1000,
+        }}
+      />
+    );
+  }, [isRubberBanding, rubberBandStart, rubberBandEnd]);
 
   // Auto-expand canvas height based on component positions
   useEffect(() => {
@@ -731,15 +926,7 @@ export default function CanvasRenderer({
     });
   }, [setPreviewPosition]);
 
-  // Component click handling like pixel homes
-  const handleComponentClick = useCallback((componentId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    selectComponent(componentId, event.ctrlKey || event.metaKey);
-  }, [selectComponent]);
-
-  // Component drag handling
-  const [draggedComponentId, setDraggedComponentId] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  // Component drag handling (duplicate removed - already declared above)
 
   // Component resize handling
   const [resizingComponentId, setResizingComponentId] = useState<string | null>(null);
@@ -817,27 +1004,7 @@ export default function CanvasRenderer({
     handleMeasuredDimensions(componentId, dimensions);
   }, [handleMeasuredDimensions]);
 
-  const handleComponentMouseDown = useCallback((componentId: string, event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const component = placedComponents.find(c => c.id === componentId);
-    if (!component) return;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const canvasRect = canvasRef.current?.getBoundingClientRect();
-    if (canvasRect) {
-      setDragOffset({
-        x: event.clientX - canvasRect.left - (component.position?.x || 0),
-        y: event.clientY - canvasRect.top - (component.position?.y || 0),
-      });
-    }
-
-    setDraggedComponentId(componentId);
-    if (!selectedComponentIds.has(componentId)) {
-      selectComponent(componentId);
-    }
-  }, [placedComponents, selectComponent, selectedComponentIds]);
+  // handleComponentMouseDown duplicate removed - already declared above
 
   const handleComponentMouseMove = useCallback((event: MouseEvent) => {
     if (!draggedComponentId || !canvasRef.current) return;
@@ -1645,9 +1812,25 @@ export default function CanvasRenderer({
               ) : null;
             })()}
 
+            {/* Group indicator */}
+            {(() => {
+              const group = getComponentGroup(component.id);
+              if (!group) return null;
+
+              return (
+                <div
+                  className="absolute -top-2 -right-2 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold z-10 border-2 border-white shadow-sm"
+                  style={{ backgroundColor: group.color }}
+                  title={`Group: ${group.name}`}
+                >
+                  🗂️
+                </div>
+              );
+            })()}
+
             {/* Simple visual indicator for children count */}
             {component.children && component.children.length > 0 && (
-              <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold z-10">
+              <div className="absolute -top-2 right-6 bg-purple-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold z-10">
                 {component.children.length}
               </div>
             )}
@@ -2011,6 +2194,7 @@ export default function CanvasRenderer({
           data-wysiwyg-canvas-width={canvasSize.width}
           onDragOver={handleDragOverWithPreview}
           onDrop={handleDrop}
+          onMouseDown={handleCanvasMouseDown}
           onMouseMove={(e) => {
             // Handle mouse movement for click-to-place preview
             if (draggedComponent && !isDragging) {
@@ -2024,7 +2208,11 @@ export default function CanvasRenderer({
               const snappedPosition = snapToGrid(constrainedX, constrainedY, canvasSize.width);
               setPreviewPosition(snappedPosition);
             }
+
+            // Handle rubber band selection
+            handleCanvasMouseMove(e);
           }}
+          onMouseUp={handleCanvasMouseUp}
           onClick={(e) => {
             // Handle click to place component
             if (draggedComponent && !isDragging) {
@@ -2109,6 +2297,9 @@ export default function CanvasRenderer({
           {/* Render drop zone feedback */}
           {renderDropZoneFeedback()}
 
+          {/* Rubber band selection rectangle */}
+          {renderRubberBand()}
+
           {/* Smart alignment guides */}
           <AlignmentGuides
             guides={alignmentGuides.guides}
@@ -2129,7 +2320,7 @@ export default function CanvasRenderer({
           {/* Snapping controls panel */}
           <div className="absolute top-4 left-4 bg-white bg-opacity-95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg text-sm border">
             <div className="flex items-center gap-3">
-              <span className="text-gray-600 font-medium text-xs">SNAP:</span>
+              <span className="text-gray-600 font-medium text-xs">TOOLS:</span>
 
               {/* Component snapping toggle */}
               <button
@@ -2159,6 +2350,21 @@ export default function CanvasRenderer({
                 <span>📏</span>
                 <span>Guides</span>
               </button>
+            </div>
+
+            {/* Multi-select and keyboard shortcuts info */}
+            <div className="mt-2 pt-2 border-t border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">SELECTION:</div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-600">Ctrl+Click</span>
+                  <span className="text-gray-500">Multi-select</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-600">Drag</span>
+                  <span className="text-gray-500">Rectangle select</span>
+                </div>
+              </div>
             </div>
 
             {/* Sizing behavior legend */}
