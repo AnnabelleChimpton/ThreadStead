@@ -443,6 +443,8 @@ model Media {
   featured      Boolean        @default(false)
   featuredOrder Int?
   visibility    Visibility     @default(public)
+  uploadContext UploadContext  @default(media_collection)
+  isGalleryItem Boolean        @default(true)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -451,6 +453,7 @@ model Media {
   @@index([userId, featured, featuredOrder])
   @@index([userId, createdAt])
   @@index([userId, visibility])
+  @@index([userId, isGalleryItem])
 }
 
 model PhotoComment {
@@ -736,6 +739,14 @@ enum NotificationType {
   threadring_join
   threadring_post
   threadring_fork
+}
+
+enum UploadContext {
+  media_collection  // Intentional gallery uploads with captions/titles
+  post_embed       // Images embedded in posts
+  profile_photo    // Profile/avatar photos
+  threadring_badge // ThreadRing badge images
+  other           // Other contexts
 }
 
 enum NotificationStatus {

@@ -5,6 +5,7 @@ import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import ThreadRing88x31Badge from '@/components/core/threadring/ThreadRing88x31Badge';
+import BadgeUpload from '@/components/ui/media/BadgeUpload';
 import { getSessionUser } from '@/lib/auth/server';
 import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
@@ -461,9 +462,23 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                   {/* Custom Image Upload */}
                   {previewMode === 'upload' && (
                     <div>
-                      <h4 className="font-bold text-lg mb-3">Custom Image</h4>
-                      <div>
-                        <label className="block font-bold text-gray-800 mb-2">Badge Image URL (HTTPS required):</label>
+                      <h4 className="font-bold text-lg mb-3">Upload Badge Image</h4>
+                      <BadgeUpload
+                        ringSlug={ring.slug}
+                        onUploadSuccess={(badgeUrls) => {
+                          setEditedBadge({
+                            ...editedBadge,
+                            customImageUrl: badgeUrls.badgeImageUrl,
+                            templateId: undefined
+                          });
+                          setSuccess('Badge image uploaded successfully!');
+                        }}
+                        disabled={isLoading}
+                      />
+
+                      {/* Alternative URL input for existing workflow */}
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <h5 className="font-bold text-gray-800 mb-2">Or enter an image URL:</h5>
                         <input
                           type="url"
                           placeholder="https://example.com/badge.png"

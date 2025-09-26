@@ -31,13 +31,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Get featured media for this user (images only)
+    // Get featured media for this user (images only, gallery items only)
     const featuredMedia = await db.media.findMany({
       where: {
         userId: handle.user.id,
         featured: true,
         mediaType: "image", // Only images, not MIDI files
-        visibility: "public" // Only show public media for now
+        visibility: "public", // Only show public media for now
+        isGalleryItem: true // Only show intentional gallery uploads
       },
       orderBy: {
         featuredOrder: "asc"

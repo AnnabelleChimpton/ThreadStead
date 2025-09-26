@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
+import type { UploadContext } from "@prisma/client";
 
 import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
@@ -47,17 +48,21 @@ const upload = multer({
       cb(null, true);
       return;
     }
-    
+
     // Allow MIDI files (check both MIME type and extension)
     const midiMimeTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi', 'audio/mid'];
     const isMidiByMime = midiMimeTypes.includes(file.mimetype);
-    const isMidiByExtension = file.originalname.toLowerCase().endsWith('.mid') || 
+    const isMidiByExtension = file.originalname.toLowerCase().endsWith('.mid') ||
                               file.originalname.toLowerCase().endsWith('.midi');
-    
-    if (isMidiByMime || isMidiByExtension) {
+
+    // Allow HEIC files (check by extension since MIME types can be inconsistent on mobile)
+    const isHeicByExtension = file.originalname.toLowerCase().endsWith('.heic') ||
+                              file.originalname.toLowerCase().endsWith('.heif');
+
+    if (isMidiByMime || isMidiByExtension || isHeicByExtension) {
       cb(null, true);
     } else {
-      cb(new Error('Only image and MIDI files are allowed'));
+      cb(new Error('Only image, HEIC, and MIDI files are allowed'));
     }
   },
 });
@@ -108,7 +113,8 @@ async function processAndUploadMedia(
   buffer: Buffer,
   userId: string,
   mimeType: string,
-  originalName: string
+  originalName: string,
+  uploadContext?: UploadContext
 ): Promise<{
   thumbnailUrl: string;
   mediumUrl: string;
@@ -144,27 +150,49 @@ async function processAndUploadMedia(
     const imageInfo = await sharp(buffer).metadata();
     const originalWidth = imageInfo.width || 0;
     const originalHeight = imageInfo.height || 0;
-    
-    // Process images in different sizes
-    const thumbnail = await sharp(buffer)
-      .resize(150, 150, { fit: 'cover' })
-      .jpeg({ quality: 80 })
-      .toBuffer();
-      
-    const medium = await sharp(buffer)
-      .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 85 })
-      .toBuffer();
-      
-    const full = await sharp(buffer)
-      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 90 })
-      .toBuffer();
 
+    // Process images in different sizes based on context
+    let thumbnail: Buffer, medium: Buffer, full: Buffer;
+
+    if (uploadContext === 'threadring_badge') {
+      // Badge-specific processing
+      thumbnail = await sharp(buffer)
+        .resize(88, 31, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+        .png({ quality: 100 })
+        .toBuffer();
+
+      medium = await sharp(buffer)
+        .resize(88, 31, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+        .png({ quality: 100 })
+        .toBuffer();
+
+      full = await sharp(buffer)
+        .resize(352, 124, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+        .png({ quality: 100 })
+        .toBuffer();
+    } else {
+      // Standard image processing
+      thumbnail = await sharp(buffer)
+        .resize(150, 150, { fit: 'cover' })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+
+      medium = await sharp(buffer)
+        .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+
+      full = await sharp(buffer)
+        .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 90 })
+        .toBuffer();
+    }
+
+    const fileExtension = uploadContext === 'threadring_badge' ? 'png' : 'jpg';
     uploads = [
-      { key: `${baseKey}_thumb.jpg`, buffer: thumbnail, size: 'thumbnail' },
-      { key: `${baseKey}_medium.jpg`, buffer: medium, size: 'medium' },
-      { key: `${baseKey}_full.jpg`, buffer: full, size: 'full' },
+      { key: `${baseKey}_thumb.${fileExtension}`, buffer: thumbnail, size: 'thumbnail' },
+      { key: `${baseKey}_medium.${fileExtension}`, buffer: medium, size: 'medium' },
+      { key: `${baseKey}_full.${fileExtension}`, buffer: full, size: 'full' },
     ];
     
     metadata = {
@@ -177,7 +205,9 @@ async function processAndUploadMedia(
   const urls: Record<string, string> = {};
 
   for (const { key, buffer: imageBuffer, size } of uploads) {
-    const contentType = isMidi ? mimeType : 'image/jpeg';
+    const contentType = isMidi ? mimeType :
+                        uploadContext === 'threadring_badge' ? 'image/png' :
+                        'image/jpeg';
     await getS3Client().send(
       new PutObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME!,
@@ -236,25 +266,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Validate file type and size
-    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
     const allowedMidiTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi', 'audio/mid'];
     const allowedTypes = [...allowedImageTypes, ...allowedMidiTypes];
-    
+
     // Check by MIME type first
     const isAllowedByMime = allowedTypes.includes(file.mimetype);
-    
+
     // For MIDI files, also check by extension as fallback
-    const isMidiByExtension = file.originalname.toLowerCase().endsWith('.mid') || 
+    const isMidiByExtension = file.originalname.toLowerCase().endsWith('.mid') ||
                               file.originalname.toLowerCase().endsWith('.midi');
-    
-    if (!isAllowedByMime && !isMidiByExtension) {
-      return res.status(400).json({ 
-        error: "Invalid file type. Only JPEG, PNG, WebP, GIF, and MIDI files are allowed." 
+
+    // For HEIC files, also check by extension as fallback (mobile MIME types can be inconsistent)
+    const isHeicByExtension = file.originalname.toLowerCase().endsWith('.heic') ||
+                              file.originalname.toLowerCase().endsWith('.heif');
+
+    if (!isAllowedByMime && !isMidiByExtension && !isHeicByExtension) {
+      return res.status(400).json({
+        error: "Invalid file type. Only JPEG, PNG, WebP, GIF, HEIC, and MIDI files are allowed."
       });
     }
 
     // Check capability
-    const { cap, caption, title } = req.body;
+    const { cap, caption, title, context, ringSlug } = req.body;
     if (!cap) {
       return res.status(401).json({ error: "Capability required" });
     }
@@ -265,21 +299,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: "Invalid capability" });
     }
 
+    // Determine upload context and gallery visibility
+    const uploadContext: UploadContext =
+      context === 'post_embed' ? 'post_embed' :
+      context === 'threadring_badge' ? 'threadring_badge' :
+      'media_collection';
+    const isGalleryItem = uploadContext === 'media_collection';
+
     // Process and upload media
     const { thumbnailUrl, mediumUrl, fullUrl, metadata, mediaType } = await processAndUploadMedia(
-      file.buffer, 
+      file.buffer,
       me.id,
       file.mimetype,
-      file.originalname
+      file.originalname,
+      uploadContext
     );
 
-    // Check if this should be featured (if user has < 6 featured media)
-    const featuredCount = await db.media.count({
-      where: { userId: me.id, featured: true }
-    });
-    
-    const shouldFeature = featuredCount < 6;
-    const featuredOrder = shouldFeature ? featuredCount + 1 : null;
+    // Check if this should be featured (only for gallery items)
+    let shouldFeature = false;
+    let featuredOrder = null;
+
+    if (isGalleryItem) {
+      const featuredCount = await db.media.count({
+        where: { userId: me.id, featured: true }
+      });
+
+      shouldFeature = featuredCount < 6;
+      featuredOrder = shouldFeature ? featuredCount + 1 : null;
+    }
 
     // Save media record to database
     const mediaRecord = await db.media.create({
@@ -298,6 +345,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         height: metadata.height || null,
         featured: shouldFeature,
         featuredOrder,
+        uploadContext,
+        isGalleryItem,
       },
     });
 
@@ -323,11 +372,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Media upload error:", error);
     
     if (error instanceof Error) {
-      if (error.message === 'Only image and MIDI files are allowed') {
+      if (error.message === 'Only image, HEIC, and MIDI files are allowed') {
         return res.status(400).json({ error: error.message });
       }
       if (error.message.includes('File too large')) {
         return res.status(413).json({ error: "File too large. Maximum size is 15MB." });
+      }
+      // Handle HEIC conversion errors from Sharp
+      if (error.message.includes('heic') || error.message.includes('HEIC')) {
+        return res.status(400).json({
+          error: "HEIC file processing failed. Please try converting to JPEG first."
+        });
       }
     }
     

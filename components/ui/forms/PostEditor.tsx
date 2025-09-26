@@ -200,11 +200,55 @@ export default function PostEditor({
     }
   };
 
+  const isValidImageFile = (file: File): boolean => {
+    // Check MIME type first
+    if (file.type.startsWith('image/')) {
+      return true;
+    }
+
+    // For files with missing/incorrect MIME types (common with HEIC on mobile),
+    // check file extension as fallback
+    const fileName = file.name.toLowerCase();
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
+    return validExtensions.some(ext => fileName.endsWith(ext));
+  };
+
+  const isHeicFile = (file: File): boolean => {
+    const fileName = file.name.toLowerCase();
+    return fileName.endsWith('.heic') || fileName.endsWith('.heif') ||
+           file.type === 'image/heic' || file.type === 'image/heif';
+  };
+
+  const convertHeicToJpeg = async (file: File): Promise<File> => {
+    try {
+      // Dynamic import to reduce bundle size
+      const heic2any = (await import('heic2any')).default;
+
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: 'image/jpeg',
+        quality: 0.9
+      }) as Blob;
+
+      // Create a new File object from the converted blob
+      const convertedFile = new File(
+        [convertedBlob],
+        file.name.replace(/\.(heic|heif)$/i, '.jpg'),
+        { type: 'image/jpeg' }
+      );
+
+      return convertedFile;
+    } catch (error) {
+      console.error('HEIC conversion failed:', error);
+      throw new Error('Failed to convert HEIC image. Please try a different image or convert to JPEG first.');
+    }
+  };
+
   const handleImageUpload = async (file: File) => {
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file');
+    if (!isValidImageFile(file)) {
+      setError('Please select an image file (JPEG, PNG, GIF, WebP, or HEIC)');
       return;
     }
 
@@ -217,6 +261,21 @@ export default function PostEditor({
     setUploadProgress(0);
     setError(null);
 
+    // Handle HEIC conversion if needed
+    let fileToUpload = file;
+    if (isHeicFile(file)) {
+      try {
+        setUploadProgress(10); // Show some progress during conversion
+        fileToUpload = await convertHeicToJpeg(file);
+        setUploadProgress(20);
+      } catch (conversionError: any) {
+        setError(conversionError.message);
+        setUploadingImage(false);
+        setUploadProgress(0);
+        return;
+      }
+    }
+
     try {
       const capRes = await fetch('/api/cap/media', { method: 'POST' });
       if (!capRes.ok) {
@@ -225,8 +284,9 @@ export default function PostEditor({
       const { token } = await capRes.json();
 
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', fileToUpload);
       formData.append('cap', token);
+      formData.append('context', 'post_embed');
 
       const xhr = new XMLHttpRequest();
 
@@ -267,7 +327,7 @@ export default function PostEditor({
         const end = textarea.selectionEnd;
         const value = textarea.value;
 
-        const imageMarkdown = `![${file.name}](${response.media.mediumUrl})`;
+        const imageMarkdown = `![${fileToUpload.name}](${response.media.mediumUrl})`;
         const newValue = value.substring(0, start) + imageMarkdown + value.substring(end);
 
         setContent(newValue);
@@ -769,7 +829,7 @@ export default function PostEditor({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.heic,.heif"
                     onChange={handleFileInputChange}
                     className="hidden"
                   />
