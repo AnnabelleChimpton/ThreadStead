@@ -1122,7 +1122,7 @@ export function calculateSpanWidth(
  * CRITICAL: Must be used by both Visual Builder and Profile page for WYSIWYG consistency
  */
 
-export type ComponentSizingCategory = 'container-filler' | 'content-driven' | 'auto-size' | 'square';
+export type ComponentSizingCategory = 'container-filler' | 'content-driven' | 'auto-size' | 'square' | 'full-width';
 
 /**
  * Components that should fill their container exactly (user controls size precisely)
@@ -1156,10 +1156,21 @@ export const AUTO_SIZE_COMPONENTS = [
 ];
 
 /**
+ * Components that should always take full width (like navigation bars)
+ */
+export const FULL_WIDTH_COMPONENTS = [
+  'threadsteadnavigation'
+];
+
+/**
  * Get the sizing category for a component type
  */
 export function getComponentSizingCategory(componentType: string): ComponentSizingCategory {
   const normalizedType = componentType.toLowerCase();
+
+  if (FULL_WIDTH_COMPONENTS.includes(normalizedType)) {
+    return 'full-width';
+  }
 
   if (CONTAINER_FILLER_COMPONENTS.includes(normalizedType)) {
     return 'container-filler';

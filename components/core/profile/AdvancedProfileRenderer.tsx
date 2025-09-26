@@ -14,10 +14,6 @@ import {
   COMPONENT_SIZE_METADATA,
   GRID_BREAKPOINTS,
   getComponentSizingCategory,
-  CONTAINER_FILLER_COMPONENTS,
-  CONTENT_DRIVEN_COMPONENTS,
-  SQUARE_COMPONENTS,
-  AUTO_SIZE_COMPONENTS,
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
 
@@ -409,6 +405,7 @@ function StaticHTMLWithIslands({
                 // PROPS-BASED POSITIONING: Get positioning data directly from island props
                 const positioningData = island.props._positioning;
 
+
                 // Create base component with props and set positioning mode
                 const componentProps = { ...island.props };
 
@@ -449,114 +446,16 @@ function StaticHTMLWithIslands({
                   // Smart sizing detection based on component type
                   const componentType = island.component.toLowerCase();
 
-                  // Use shared component categorization for WYSIWYG consistency
-                  const containerFillers = CONTAINER_FILLER_COMPONENTS;
-                  const contentDriven = CONTENT_DRIVEN_COMPONENTS;
-                  const squareComponents = SQUARE_COMPONENTS;
-                  const autoSize = AUTO_SIZE_COMPONENTS;
-
-                  let containerStyle: React.CSSProperties;
-
-                  if (containerFillers.includes(componentType)) {
-                    // Container-fillers: Use exact dimensions (user controls size precisely)
-                    containerStyle = {
-                      position: 'absolute',
-                      left: `${parsePositionValue(positioningData.x)}px`,
-                      top: `${parsePositionValue(positioningData.y)}px`,
-                      width: `${parsePositionValue(positioningData.width)}px`,
-                      height: `${parsePositionValue(positioningData.height)}px`,
-                      zIndex: positioningData.zIndex || 1
-                    };
-                  } else if (contentDriven.includes(componentType)) {
-                    // Content-driven: Check if explicit sizing exists for WYSIWYG consistency
-                    const userWidth = parsePositionValue(positioningData.width);
-                    const userHeight = parsePositionValue(positioningData.height);
-
-                    // CRITICAL FIX: If component has explicit sizing from positioning data,
-                    // respect exact dimensions to maintain text wrapping consistency
-                    const hasExplicitSize = positioningData && positioningData.width && positioningData.height &&
-                      (typeof positioningData.width === 'string' && positioningData.width.includes('px')) &&
-                      (typeof positioningData.height === 'string' && positioningData.height.includes('px'));
-
-                    if (hasExplicitSize) {
-                      // Use exact dimensions like Visual Builder does - WYSIWYG consistency
-                      containerStyle = {
-                        position: 'absolute',
-                        left: `${parsePositionValue(positioningData.x)}px`,
-                        top: `${parsePositionValue(positioningData.y)}px`,
-                        width: `${userWidth}px`, // Exact width for consistent text wrapping
-                        height: `${userHeight}px`, // Exact height for consistent layout
-                        zIndex: positioningData.zIndex || 1
-                      };
-                    } else {
-                      // Legacy behavior: Use minimum dimensions, expand as needed
-                      containerStyle = {
-                        position: 'absolute',
-                        left: `${parsePositionValue(positioningData.x)}px`,
-                        top: `${parsePositionValue(positioningData.y)}px`,
-                        minWidth: `${userWidth}px`,
-                        minHeight: `${userHeight}px`,
-                        maxWidth: `${Math.min(Math.max(userWidth * 1.5, 400), 600)}px`,
-                        width: 'fit-content',
-                        height: 'fit-content',
-                        zIndex: positioningData.zIndex || 1
-                      };
-                    }
-                  } else {
-                    // Auto-size: Respect user dimensions as preferred size with intelligent constraints
-                    const userWidth = parsePositionValue(positioningData.width);
-                    const userHeight = parsePositionValue(positioningData.height);
-
-                    // Special handling for specific component types
-                    if (autoSize.includes(componentType)) {
-                      if (componentType === 'displayname') {
-                        // DisplayName: Prefer natural width but respect user height
-                        containerStyle = {
-                          position: 'absolute',
-                          left: `${parsePositionValue(positioningData.x)}px`,
-                          top: `${parsePositionValue(positioningData.y)}px`,
-                          minWidth: `${Math.min(userWidth, 100)}px`, // Respect smaller user widths
-                          minHeight: `${userHeight}px`,
-                          maxWidth: `${Math.max(userWidth, 300)}px`, // Allow growth if needed
-                          width: 'fit-content',
-                          height: 'auto',
-                          zIndex: positioningData.zIndex || 1
-                        };
-                      } else if (squareComponents.includes(componentType)) {
-                        // Square components: Respect natural size, don't force into containers
-                        containerStyle = {
-                          position: 'absolute',
-                          left: `${parsePositionValue(positioningData.x)}px`,
-                          top: `${parsePositionValue(positioningData.y)}px`,
-                          zIndex: positioningData.zIndex || 1
-                          // No width/height - let component use its natural size
-                        };
-                      } else {
-                        // Other auto-size components: Prefer user dimensions with slight flexibility
-                        containerStyle = {
-                          position: 'absolute',
-                          left: `${parsePositionValue(positioningData.x)}px`,
-                          top: `${parsePositionValue(positioningData.y)}px`,
-                          minWidth: `${userWidth}px`,
-                          minHeight: `${userHeight}px`,
-                          maxWidth: `${userWidth + 50}px`, // Allow minor expansion
-                          width: `${userWidth}px`,
-                          height: 'auto',
-                          zIndex: positioningData.zIndex || 1
-                        };
-                      }
-                    } else {
-                      // Fallback for unknown components: Use user dimensions as preferred
-                      containerStyle = {
-                        position: 'absolute',
-                        left: `${parsePositionValue(positioningData.x)}px`,
-                        top: `${parsePositionValue(positioningData.y)}px`,
-                        width: `${userWidth}px`,
-                        height: `${userHeight}px`,
-                        zIndex: positioningData.zIndex || 1
-                      };
-                    }
-                  }
+                  // FIXED: Remove forced width/height constraints - let components size naturally
+                  const containerStyle: React.CSSProperties = {
+                    position: 'absolute',
+                    left: `${parsePositionValue(positioningData.x)}px`,
+                    top: `${parsePositionValue(positioningData.y)}px`,
+                    zIndex: componentType === 'threadsteadnavigation'
+                      ? 999998  // Navigation gets highest z-index so dropdowns render above other components
+                      : (positioningData.zIndex || 1)
+                    // Removed forced width/height - components will use their natural size
+                  };
 
                   const positionedElement = React.createElement(
                     'div',

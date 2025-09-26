@@ -1,5 +1,5 @@
 // Enhanced template editor with islands support
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { fetchResidentData } from '@/lib/templates/core/template-data';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
@@ -280,6 +280,11 @@ export default function EnhancedTemplateEditor({
   const [editorMode, setEditorMode] = useState<'code' | 'visual'>('code');
   // Set to true to always show welcome on Visual Builder open (for testing)
   const [showVisualBuilderWelcome, setShowVisualBuilderWelcome] = useState(true);
+
+  // Save state management
+  const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error' | 'pending'>('saved');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Handle template changes from visual builder
   const handleVisualTemplateChange = useCallback((html: string) => {
@@ -723,102 +728,6 @@ export default function EnhancedTemplateEditor({
     loadData();
   }, [user]);
 
-  // Handle save
-  const handleSave = async () => {
-    if (!onSave) return;
-    
-    setIsSaving(true);
-    setSaveMessage(null);
-    
-    try {
-      // Check if user has entered custom HTML content
-      const hasCustomTemplate = template && template.trim() !== '';
-      
-      // If there's custom HTML, treat it as an advanced template regardless of current mode
-      if (hasCustomTemplate) {
-        // User has custom HTML - save as advanced template
-        // Match the gallery behavior: set to advanced mode with appropriate CSS mode
-        setUseStandardLayout(false);
-
-        // Debug: Check positioning data before CSS extraction
-        const hasPositioningData = template.includes('data-positioning-mode') || template.includes('data-pixel-position');
-
-        // MATCH GALLERY TEMPLATE WORKFLOW: Extract CSS from HTML and set disable mode
-        // This is what gallery templates do (lines 1207-1214)
-        const styleMatch = template.match(/<style[^>]*>([\s\S]*?)<\/style>/);
-        let finalTemplate = template;
-        let finalCSS = customCSS;
-
-        if (styleMatch) {
-          // Extract CSS from style tags (like gallery templates)
-          const extractedCSS = styleMatch[1];
-          finalTemplate = template.replace(/<style[^>]*>[\s\S]*?<\/style>/, '').trim();
-
-          // Debug: Check positioning data after CSS extraction
-          const stillHasPositioningData = finalTemplate.includes('data-positioning-mode') || finalTemplate.includes('data-pixel-position');
-
-          if (hasPositioningData && !stillHasPositioningData) {
-            console.error('🚨 [ENHANCED_EDITOR] POSITIONING DATA LOST during CSS extraction!');
-          }
-
-          // Combine with existing CSS
-          if (customCSS && customCSS.trim()) {
-            finalCSS = customCSS + '\n\n/* Extracted from template */\n' + extractedCSS;
-          } else {
-            finalCSS = extractedCSS;
-          }
-
-          // Update state to match what we're saving
-          setTemplate(finalTemplate);
-          setCustomCSS(finalCSS);
-        } else {
-          // No style tags, but still check positioning data preservation
-        }
-        
-        // For custom templates, use 'disable' CSS mode like gallery templates do (line 1214)
-        const advancedCSSMode = 'disable';
-        setCSSMode(advancedCSSMode);
-        
-        // EXACTLY MATCH PREVIEW WORKFLOW: Use compileTemplateForPreview() to set compiledTemplate state
-        // This is the same thing the Preview Pop Up does before opening (lines 554-563)
-        const compiled = await compileTemplateForPreview(true); // Force compile like gallery templates
-        if (!compiled) {
-          setSaveMessage('⚠️ Failed to compile template. Please check your template syntax.');
-          return;
-        }
-
-        // Now save using the final processed template and CSS (matching gallery workflow)
-        await onSave(finalTemplate, finalCSS, compiled, advancedCSSMode, showNavigation);
-        setSaveMessage('✓ Advanced template saved and compiled!');
-        return;
-      }
-      
-      // No custom HTML - save as standard layout
-      if (useStandardLayout) {
-        // For standard layout, we save with empty template to indicate using default layout
-        // Standard layout always shows navigation (showNavigation = true)
-        await onSave('', customCSS, undefined, cssMode, true);
-        setSaveMessage('✓ Standard layout saved!');
-        return;
-      }
-      
-      // Ensure we have compiled template data before saving custom templates
-      if (!compiledTemplate) {
-        console.warn('EnhancedTemplateEditor: No compiled template data available. Make sure to preview the template first.');
-        setSaveMessage('⚠️ Please preview the template first, then save');
-        return;
-      }
-      
-      await onSave(template, customCSS, compiledTemplate, cssMode, showNavigation);
-      setSaveMessage('✓ Template saved successfully');
-      setTimeout(() => setSaveMessage(null), 3000);
-    } catch (error) {
-      setSaveMessage('✗ Failed to save template');
-      console.error('Save error:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   // Handle save requests from preview window
   const handleSaveFromPreview = async (saveData: any) => {
@@ -938,6 +847,93 @@ export default function EnhancedTemplateEditor({
     // Removed the problematic auto-switch from CSS to template tab
     // Users should be able to manually navigate to CSS tab in advanced mode
   }, [useStandardLayout, activeTab, editorMode]);
+
+  // Track changes for auto-save
+  useEffect(() => {
+    setHasUnsavedChanges(true);
+    setSaveState('pending');
+
+    // Clear existing timer
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+    }
+
+    // Set new auto-save timer (3 seconds after last change)
+    autoSaveTimer.current = setTimeout(() => {
+      if (hasUnsavedChanges && saveState === 'pending') {
+        handleAutoSave();
+      }
+    }, 3000);
+
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+    };
+  }, [template, customCSS, useStandardLayout, cssMode, showNavigation]);
+
+  // Warn user about unsaved changes before leaving page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return 'You have unsaved changes. Are you sure you want to leave?';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+
+  // Auto-save function
+  const handleAutoSave = useCallback(async () => {
+    if (!onSave) return;
+
+    setSaveState('saving');
+    try {
+      const compiledTemplateData = compiledTemplate || (await compileTemplateForPreview(true));
+      await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, showNavigation);
+      setSaveState('saved');
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      setSaveState('error');
+      // Auto-retry after 10 seconds
+      setTimeout(() => {
+        if (saveState === 'error') {
+          handleAutoSave();
+        }
+      }, 10000);
+    }
+  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, showNavigation, saveState]);
+
+  // Manual save function (enhanced)
+  const handleManualSave = useCallback(async () => {
+    if (!onSave) return;
+
+    setSaveState('saving');
+    setHasUnsavedChanges(false);
+
+    try {
+      const compiledTemplateData = compiledTemplate || (await compileTemplateForPreview(true));
+      await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, showNavigation);
+      setSaveState('saved');
+      setSaveMessage('✓ Template saved successfully!');
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error) {
+      console.error('Manual save failed:', error);
+      setSaveState('error');
+      setSaveMessage('❌ Save failed - please try again');
+      setTimeout(() => setSaveMessage(null), 5000);
+    }
+  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, showNavigation]);
+
+  // Use the enhanced manual save as handleSave
+  const handleSave = handleManualSave;
 
   // Sample templates - unified Islands approach (matches default exactly)
   const sampleTemplates = {
@@ -1148,16 +1144,39 @@ export default function EnhancedTemplateEditor({
             <span className="text-xs text-blue-600">
               Database: {initialTemplateMode} → {useStandardLayout ? 'enhanced' : 'advanced'}
             </span>
-            <button
-              onClick={useStandardLayout ? loadDefaultTemplate : useStandardLayoutOption}
-              className={`px-2 py-1 text-xs rounded font-medium transition-colors ${
-                useStandardLayout
-                  ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-              }`}
-            >
-              Switch to {useStandardLayout ? 'Custom Template' : 'Standard Layout'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={useStandardLayout ? loadDefaultTemplate : useStandardLayoutOption}
+                className={`px-2 py-1 text-xs rounded font-medium transition-colors ${
+                  useStandardLayout
+                    ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                }`}
+              >
+                Switch to {useStandardLayout ? 'Custom Template' : 'Standard Layout'}
+              </button>
+
+              {/* Save State Indicator */}
+              <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                saveState === 'saved' ? 'bg-green-100 text-green-700' :
+                saveState === 'saving' ? 'bg-blue-100 text-blue-700' :
+                saveState === 'error' ? 'bg-red-100 text-red-700' :
+                'bg-yellow-100 text-yellow-700'
+              }`}>
+                {saveState === 'saved' && (
+                  <><span>✅</span><span>Saved</span></>
+                )}
+                {saveState === 'saving' && (
+                  <><span className="animate-spin">⏳</span><span>Saving...</span></>
+                )}
+                {saveState === 'error' && (
+                  <><span>❌</span><span>Error</span></>
+                )}
+                {saveState === 'pending' && (
+                  <><span>●</span><span>Unsaved</span></>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1800,30 +1819,58 @@ body {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {saveMessage && (
-                    <span className={`text-sm px-2 py-1 rounded ${
-                      saveMessage.includes('✓')
-                        ? 'text-green-700 bg-green-100'
-                        : 'text-red-700 bg-red-100'
-                    }`}>
-                      {saveMessage}
-                    </span>
-                  )}
+                <div className="flex items-center gap-3">
+                  {/* Enhanced Save State Display for Visual Builder */}
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    saveState === 'saved' ? 'bg-green-100 text-green-800 border border-green-200' :
+                    saveState === 'saving' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                    saveState === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+                    'bg-amber-100 text-amber-800 border border-amber-200'
+                  }`}>
+                    {saveState === 'saved' && (
+                      <><span>✅</span><span>All changes saved</span></>
+                    )}
+                    {saveState === 'saving' && (
+                      <><span className="animate-spin">⏳</span><span>Saving changes...</span></>
+                    )}
+                    {saveState === 'error' && (
+                      <><span>❌</span><span>Save failed - retrying...</span></>
+                    )}
+                    {saveState === 'pending' && hasUnsavedChanges && (
+                      <><span className="animate-pulse">●</span><span>Unsaved changes</span></>
+                    )}
+                  </div>
+
                   <button
                     onClick={handleSave}
-                    disabled={isSaving}
-                    className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 transition-all shadow-md hover:shadow-lg text-sm"
+                    disabled={saveState === 'saving'}
+                    className={`px-6 py-2.5 rounded-lg font-medium transition-all shadow-md hover:shadow-lg text-sm ${
+                      saveState === 'error'
+                        ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white'
+                        : hasUnsavedChanges
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                        : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    {isSaving ? (
+                    {saveState === 'saving' ? (
                       <span className="flex items-center gap-2">
                         <span className="animate-spin">⏳</span>
                         Saving...
                       </span>
-                    ) : (
+                    ) : saveState === 'error' ? (
+                      <span className="flex items-center gap-2">
+                        <span>🔄</span>
+                        Retry Save
+                      </span>
+                    ) : hasUnsavedChanges ? (
                       <span className="flex items-center gap-2">
                         <span>💾</span>
-                        Save & Publish
+                        Save Now
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <span>✅</span>
+                        Saved
                       </span>
                     )}
                   </button>
@@ -1908,6 +1955,8 @@ body {
                 onTemplateChange={handleVisualTemplateChange}
                 residentData={residentData || undefined}
                 className="h-full w-full"
+                showNavigation={showNavigation}
+                onNavigationToggle={setShowNavigation}
               />
             </div>
           </div>

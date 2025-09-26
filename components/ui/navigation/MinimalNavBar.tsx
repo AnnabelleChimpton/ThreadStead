@@ -31,21 +31,54 @@ export default function MinimalNavBar() {
       padding: '1rem 2rem',
       borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
       backdropFilter: 'blur(10px)',
-      backgroundColor: 'rgba(0, 0, 0, 0.1)'
+      backgroundColor: 'rgba(0, 0, 0, 0.1)',
+      // Ensure proper rendering on profile pages
+      width: '100%',
+      minWidth: '100%',
+      boxSizing: 'border-box',
+      minHeight: '70px',
+      position: 'relative',
+      margin: 0
     }}>
-      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+      <nav style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        minWidth: '100%',
+        boxSizing: 'border-box'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>ThreadStead</h1>
           <span style={{ opacity: 0.7, fontSize: '0.9rem' }}>@ ThreadStead</span>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+          {/* Main Navigation Links */}
           <div style={{ display: 'flex', gap: '1.5rem' }}>
             <Link href="/" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Home</Link>
-            <Link href="/directory" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Discovery</Link>
+            <Link href="/discover" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Discover</Link>
+            <Link href="/neighborhood/explore/all" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Explore</Link>
+            <Link href="/directory" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Directory</Link>
             <Link href="/threadrings" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>ThreadRings</Link>
-            <Link href="/help" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Help</Link>
+            <Link href="/tr/spool" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Spool</Link>
+            <Link href="/getting-started" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Help</Link>
+            <Link href="/design-tutorial" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Tutorial</Link>
           </div>
+
+          {/* User-specific Links */}
+          {me.loggedIn && (
+            <div style={{ display: 'flex', gap: '1.5rem' }}>
+              <Link href="/feed" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Feed</Link>
+              <Link href="/bookmarks" style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Bookmarks</Link>
+              {me.user?.primaryHandle && (
+                <>
+                  <Link href={`/home/${me.user.primaryHandle.split('@')[0]}`} style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>My Profile</Link>
+                  <Link href={`/resident/${me.user.primaryHandle.split('@')[0]}`} style={{ textDecoration: 'none', color: 'inherit', padding: '0.5rem 1rem', borderRadius: '4px', transition: 'background-color 0.2s' }}>Public Profile</Link>
+                </>
+              )}
+            </div>
+          )}
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {me.loggedIn && (
@@ -81,6 +114,17 @@ export default function MinimalNavBar() {
           </div>
         </div>
       </nav>
+
+      {/* CSS override to ensure full width background coverage */}
+      <style jsx>{`
+        header {
+          /* Force full width background coverage on profile pages */
+          width: 100% !important;
+          min-width: 100% !important;
+          left: 0 !important;
+          right: 0 !important;
+        }
+      `}</style>
     </header>
   );
 }

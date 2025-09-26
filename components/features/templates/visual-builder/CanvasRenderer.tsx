@@ -1643,14 +1643,48 @@ export default function CanvasRenderer({
       const componentSize = component.props?._size;
       const componentCategory = getComponentSizingCategory(component.type);
 
+      // Debug navigation component categorization
+      if (component.type.toLowerCase().includes('navigation')) {
+        console.log('🔍 [CANVAS] Navigation component debug:', {
+          componentType: component.type,
+          componentCategory,
+          componentSize,
+          isFullWidth: componentCategory === 'full-width'
+        });
+      }
+
       // Apply different sizing strategies based on component type
-      if (componentCategory === 'content-driven') {
+      // Special case: Always treat ThreadsteadNavigation as full-width, regardless of other factors
+      const isNavigation = component.type.toLowerCase().includes('navigation');
+
+      if (componentCategory === 'full-width' || isNavigation) {
+        // Full-width components (like navigation) take full canvas width
+        componentStyle = {
+          position: 'absolute',
+          left: 0, // Always align to left edge
+          top: component.position?.y || 0,
+          width: '100%', // Full canvas width
+          minWidth: '100%',
+          height: 'auto', // Let content determine height
+          minHeight: '70px', // Minimum navigation height
+          maxHeight: '100px', // Prevent excessive height
+          zIndex: 100, // Ensure navigation stays above other components
+        };
+
+        // Additional debug for navigation
+        if (isNavigation) {
+          console.log('🎯 [CANVAS] Navigation component forced to full-width:', {
+            componentType: component.type,
+            resultingStyle: componentStyle
+          });
+        }
+      } else if (componentCategory === 'content-driven') {
           // Content-driven components (like Paragraph) should have flexible width to match Profile page
           const userWidth = componentSize?.width ? parseInt(componentSize.width.replace(/px$/, ''), 10) : 200;
           const userHeight = componentSize?.height ? parseInt(componentSize.height.replace(/px$/, ''), 10) : 150;
 
           componentStyle = {
-            position: 'absolute',
+            position: 'absolute' as const,
             left: component.position?.x || 0,
             top: component.position?.y || 0,
             // Use flexible width sizing to match AdvancedProfileRenderer behavior
@@ -1663,13 +1697,13 @@ export default function CanvasRenderer({
         } else {
           // Other components use fixed sizing
           componentStyle = {
-            position: 'absolute',
+            position: 'absolute' as const,
             left: component.position?.x || 0,
             top: component.position?.y || 0,
             // Apply size if specified in props (now properly formatted with units)
             // componentSize.width/height are now strings like '100px', not numbers
-            width: componentSize?.width !== 'auto' ? componentSize?.width : '200px',
-            height: componentSize?.height !== 'auto' ? componentSize?.height : '150px',
+            width: componentSize?.width !== 'auto' ? componentSize?.width : 'auto',
+            height: componentSize?.height !== 'auto' ? componentSize?.height : 'auto',
             minWidth: 50,
             minHeight: 30,
           };
@@ -1678,26 +1712,44 @@ export default function CanvasRenderer({
       const isNewlyAdded = newlyAddedComponents.has(component.id);
       const isRemoving = removingComponents.has(component.id);
 
+      // Special handling for full-width components - completely override dimensions
+      const wrapperStyle: React.CSSProperties = (componentCategory === 'full-width' || isNavigation) ? {
+        position: 'absolute' as const,
+        left: 0, // Always left-aligned
+        top: component.position?.y || 0,
+        width: '100%', // Full width
+        height: 'auto', // Auto height
+        minHeight: '70px',
+        maxHeight: '100px',
+        zIndex: draggedComponentId === component.id ? 10 : (isSelected ? 5 : 100), // Higher z-index for navigation
+        transform: isNewlyAdded ? 'scale(0.8)' : isRemoving ? 'scale(0.8)' : 'scale(1)',
+        opacity: isRemoving ? 0 : 1,
+        ...(isNewlyAdded && {
+          animation: 'scaleInBounce 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards'
+        })
+      } : {
+        ...componentStyle,
+        zIndex: draggedComponentId === component.id ? 10 : (isSelected ? 5 : 1),
+        transform: isNewlyAdded ? 'scale(0.8)' : isRemoving ? 'scale(0.8)' : 'scale(1)',
+        opacity: isRemoving ? 0 : 1,
+        ...(isNewlyAdded && {
+          animation: 'scaleInBounce 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards'
+        })
+      };
+
       return (
         <div
           key={component.id}
           className={`
             absolute cursor-move transition-all duration-300 ease-out
+            ${(componentCategory === 'full-width' || isNavigation) ? 'w-full' : ''} /* Add Tailwind full-width class for navigation */
             ${isTextComponent(component.type) ? 'hover:ring-2 hover:ring-green-300 hover:ring-opacity-50' : ''}
             ${isNewlyAdded ? 'animate-scale-in' : ''}
             ${isRemoving ? 'animate-scale-out' : ''}
             ${isSelected ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
             hover:shadow-lg
           `}
-          style={{
-            ...componentStyle,
-            zIndex: draggedComponentId === component.id ? 10 : (isSelected ? 5 : 1),
-            transform: isNewlyAdded ? 'scale(0.8)' : isRemoving ? 'scale(0.8)' : 'scale(1)',
-            opacity: isRemoving ? 0 : 1,
-            ...(isNewlyAdded && {
-              animation: 'scaleInBounce 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards'
-            })
-          }}
+          style={wrapperStyle}
           onClick={(e) => handleComponentClick(component.id, e)}
           onMouseDown={(e) => handleComponentMouseDown(component.id, e)}
         >
@@ -2016,8 +2068,8 @@ export default function CanvasRenderer({
           style={{
             left: dropZoneState.parentComponent.position?.x || 0,
             top: dropZoneState.parentComponent.position?.y || 0,
-            width: '200px', // Default component width
-            height: '100px', // Default component height
+            width: 'auto', // Let component determine its width
+            height: 'auto', // Let component determine its height
             zIndex: 999,
           }}
         />
@@ -2033,8 +2085,8 @@ export default function CanvasRenderer({
           style={{
             left: dropZoneState.targetContainer.position?.x || 0,
             top: dropZoneState.targetContainer.position?.y || 0,
-            width: '200px', // Default component width
-            height: '150px', // Default component height
+            width: 'auto', // Let component determine its width
+            height: 'auto', // Let component determine its height
             zIndex: 999,
           }}
         >

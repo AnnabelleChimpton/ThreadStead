@@ -50,6 +50,10 @@ export interface SmartToolbarProps {
   isBulkEditOpen?: boolean;
   /** Number of groups */
   groupCount?: number;
+  /** Whether navigation is shown */
+  showNavigation?: boolean;
+  /** Callback to toggle navigation */
+  onToggleNavigation?: () => void;
 }
 
 /**
@@ -220,6 +224,8 @@ export default function SmartToolbar({
   isGroupsOpen = false,
   isBulkEditOpen = false,
   groupCount = 0,
+  showNavigation = false,
+  onToggleNavigation,
 }: SmartToolbarProps) {
   const {
     canUndo,
@@ -340,6 +346,21 @@ export default function SmartToolbar({
             size="sm"
             variant="ghost"
             tooltip="Toggle grid visibility"
+          />
+        )}
+
+        <ToolbarSeparator />
+
+        {/* Navigation Controls */}
+        {onToggleNavigation && (
+          <ToolButton
+            icon="🧭"
+            label={showNavigation ? "Hide Nav" : "Show Nav"}
+            onClick={onToggleNavigation}
+            active={showNavigation}
+            size="sm"
+            variant="ghost"
+            tooltip={showNavigation ? "Hide navigation preview" : "Show navigation preview"}
           />
         )}
 

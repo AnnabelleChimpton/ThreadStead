@@ -124,7 +124,7 @@ function IslandSkeleton({ profileMode, componentType }: IslandSkeletonProps) {
       case 'ProfilePhoto':
         return { width: '120px', height: '120px', borderRadius: '50%' };
       case 'DisplayName':
-        return { width: '200px', height: '32px' };
+        return { width: 'auto', height: '32px' };
       case 'BlogPosts':
         return { width: '100%', height: '200px' };
       case 'Guestbook':

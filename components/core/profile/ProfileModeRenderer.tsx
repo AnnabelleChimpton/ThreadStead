@@ -280,15 +280,6 @@ export default function ProfileModeRenderer({
                   border-bottom: 1px solid rgba(161, 132, 99, 0.3);
                 }
 
-                /* Pure Absolute Positioning Container */
-                .pure-absolute-container {
-                  position: relative;
-                  width: 1200px;
-                  min-height: 800px;
-                  padding: 32px;
-                  box-sizing: border-box;
-                  background-color: #ffffff;
-                }
 
                 /* Legacy grid system support (will be deprecated) */
                 .advanced-template-container.grid-enabled {
@@ -337,8 +328,16 @@ export default function ProfileModeRenderer({
 
               {/* No user CSS here - AdvancedProfileRenderer handles it with proper layering */}
               
-              {/* Show MinimalNavBar when navigation toggle is ON */}
-              {!hideNavigation && <MinimalNavBar />}
+              {/* Show MinimalNavBar when navigation toggle is ON and template doesn't have its own navigation */}
+              {!hideNavigation && (() => {
+                // FIXED: Don't show MinimalNavBar if template contains its own navigation component
+                const compiledTemplate = user.profile?.compiledTemplate as any;
+                const islands = compiledTemplate?.islands || [];
+                const hasTemplateNavigation = islands.some((island: any) =>
+                  island.component.toLowerCase().includes('navigation')
+                );
+                return !hasTemplateNavigation && <MinimalNavBar />;
+              })()}
 
               {/* Wrap in container for CSS isolation */}
               <div
@@ -349,15 +348,18 @@ export default function ProfileModeRenderer({
                     ? extractVisualBuilderClasses(user.profile.customCSS)
                     : [];
 
-                  // Check if the template contains grid positioning
+                  // Check template positioning mode
                   const compiledTemplate = user.profile?.compiledTemplate as any;
                   const templateHtml = compiledTemplate?.staticHTML || '';
+
                   const hasGridPositioning = templateHtml.includes('data-positioning-mode="grid"') ||
                                            templateHtml.includes('template-container grid-container');
 
+                  // REVERTED: Use the working advanced-template-container approach
                   const baseClasses = hasGridPositioning
                     ? 'advanced-template-container grid-enabled'
                     : 'advanced-template-container';
+
 
                   // Combine base classes with Visual Builder classes
                   return visualBuilderClasses.length > 0
@@ -365,15 +367,16 @@ export default function ProfileModeRenderer({
                     : baseClasses;
                 })()}
                 style={(() => {
-                  // Check if the template contains grid positioning
+                  // Check template positioning mode
                   const compiledTemplate = user.profile?.compiledTemplate as any;
                   const templateHtml = compiledTemplate?.staticHTML || '';
+
                   const hasGridPositioning = templateHtml.includes('data-positioning-mode="grid"') ||
                                            templateHtml.includes('template-container grid-container');
 
-                  // Base styles for Visual Builder containers to ensure full-page coverage
+                  // REVERTED: Back to original working approach
                   const baseStyles: React.CSSProperties = isVisualBuilderDisableMode ? {
-                    // Make container fill entire viewport edge-to-edge
+                    // Make container fill entire viewport edge-to-edge (ORIGINAL WORKING APPROACH)
                     position: 'fixed' as const,
                     top: 0,
                     left: 0,
@@ -407,6 +410,8 @@ export default function ProfileModeRenderer({
                 })()}
               >
                 <AdvancedProfileRenderer user={user} residentData={residentData} />
+
+
               </div>
             </>
           );

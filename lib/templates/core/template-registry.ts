@@ -65,6 +65,9 @@ import Show from '@/components/features/templates/conditional/Show';
 import Choose, { When, Otherwise } from '@/components/features/templates/conditional/Choose';
 import IfOwner, { IfVisitor } from '@/components/features/templates/conditional/IfOwner';
 
+// Import navigation component for Visual Builder
+import NavigationPreview from '@/components/features/templates/NavigationPreview';
+
 // Define the shape of prop schemas
 export type PropType = 'string' | 'number' | 'boolean' | 'enum';
 
@@ -1128,5 +1131,26 @@ componentRegistry.register({
     type: 'container',
     acceptsChildren: true,
     childrenLabel: 'Matrix Content'
+  }
+});
+
+// Navigation component for Visual Builder
+componentRegistry.register({
+  name: 'ThreadsteadNavigation',
+  component: NavigationPreview,
+  props: {
+    backgroundColor: { type: 'string', default: 'rgba(0, 0, 0, 0.1)' },
+    textColor: { type: 'string', default: 'inherit' },
+    opacity: { type: 'number', min: 0, max: 1, default: 1 },
+    blur: { type: 'number', min: 0, max: 20, default: 10 },
+    borderColor: { type: 'string', default: 'rgba(255, 255, 255, 0.2)' },
+    borderWidth: { type: 'number', min: 0, max: 10, default: 1 },
+    dropdownBackgroundColor: { type: 'string', default: 'white' },
+    dropdownTextColor: { type: 'string', default: '#374151' },
+    dropdownBorderColor: { type: 'string', default: '#e5e7eb' },
+    dropdownHoverColor: { type: 'string', default: '#f3f4f6' }
+  },
+  relationship: {
+    type: 'leaf' // Navigation cannot have children and cannot be moved
   }
 });

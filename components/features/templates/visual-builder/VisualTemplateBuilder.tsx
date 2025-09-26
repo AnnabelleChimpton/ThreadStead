@@ -45,6 +45,9 @@ interface VisualTemplateBuilderProps {
   onTemplateChange?: (html: string) => void;
   residentData?: ResidentData;
   className?: string;
+  // Navigation state props
+  showNavigation?: boolean;
+  onNavigationToggle?: (show: boolean) => void;
 }
 
 /**
@@ -60,6 +63,8 @@ export default function VisualTemplateBuilder({
     guestbook: []
   },
   className = '',
+  showNavigation = false,
+  onNavigationToggle,
 }: VisualTemplateBuilderProps) {
   // Change tracking to prevent echo/feedback loops
   const isInternalChange = React.useRef(false);
@@ -254,6 +259,36 @@ export default function VisualTemplateBuilder({
   // Store initial components for deep comparison to detect user changes
   const initialComponentsRef = React.useRef(initialComponents);
   const initialComponentCount = React.useRef(initialComponents.length);
+
+  // Navigation management - automatically add/remove navigation component
+  React.useEffect(() => {
+    const NAVIGATION_ID = 'system-navigation';
+    const hasNavigation = originalCanvasState.placedComponents.find(comp => comp.id === NAVIGATION_ID);
+
+    if (showNavigation && !hasNavigation) {
+      // Add navigation component at the top
+      const navigationComponent: ComponentItem = {
+        id: NAVIGATION_ID,
+        type: 'ThreadsteadNavigation',
+        position: { x: 0, y: 0 },
+        positioningMode: 'absolute',
+        props: {
+          size: { width: 'auto', height: 'auto' },
+          locked: true, // Prevent user from moving/deleting
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          textColor: 'inherit',
+          opacity: 1,
+          blur: 10,
+          borderColor: 'rgba(255, 255, 255, 0.2)',
+          borderWidth: 1
+        }
+      };
+      originalCanvasState.addComponent(navigationComponent);
+    } else if (!showNavigation && hasNavigation) {
+      // Remove navigation component
+      originalCanvasState.removeComponent(NAVIGATION_ID);
+    }
+  }, [showNavigation, originalCanvasState]);
 
   const {
     placedComponents,
@@ -852,6 +887,20 @@ ${globalCSS.css}
 
   return (
     <div className={`flex flex-col bg-gray-50 ${className}`} style={{ height: '100vh', overflow: 'hidden' }}>
+      {/* Global CSS for navigation components */}
+      <style jsx global>{`
+        /* Force full width for all navigation components */
+        div[data-component-id*="threadsteadnavigation"],
+        div[data-component-id*="ThreadsteadNavigation"] {
+          width: 100% !important;
+          min-width: 100% !important;
+          height: auto !important;
+          min-height: 70px !important;
+          max-height: 100px !important;
+          left: 0 !important;
+        }
+      `}</style>
+
       {/* Modern Smart Toolbar */}
       <SmartToolbar
         canvasState={canvasState}
@@ -864,6 +913,8 @@ ${globalCSS.css}
         onToggleProperties={handleToggleProperties}
         onToggleComponents={handleToggleComponents}
         onToggleGlobal={handleToggleGlobal}
+        showNavigation={showNavigation}
+        onToggleNavigation={() => onNavigationToggle?.(!showNavigation)}
         onToggleGroups={handleToggleGroups}
         onToggleBulkEdit={handleToggleBulkEdit}
         isPropertiesOpen={isPanelOpen('properties')}
