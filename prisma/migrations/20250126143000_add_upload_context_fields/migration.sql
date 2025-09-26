@@ -13,8 +13,8 @@ CREATE INDEX "Media_userId_isGalleryItem_idx" ON "Media"("userId", "isGalleryIte
 -- Keep featured items as media_collection (intentional gallery items)
 UPDATE "Media" SET
     "uploadContext" = CASE
-        WHEN "featured" = true THEN 'media_collection'::UploadContext
-        ELSE 'post_embed'::UploadContext
+        WHEN "featured" = true THEN 'media_collection'::"UploadContext"
+        ELSE 'post_embed'::"UploadContext"
     END,
     "isGalleryItem" = CASE
         WHEN "featured" = true THEN true
