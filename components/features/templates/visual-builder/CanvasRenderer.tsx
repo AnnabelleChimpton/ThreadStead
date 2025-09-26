@@ -430,6 +430,7 @@ export default function CanvasRenderer({
     removeComponent,
     moveChildToCanvas,
     selectComponent,
+    clearSelection,
     updateComponent,
     updateComponentPosition,
     updateComponentSize,
@@ -558,13 +559,15 @@ export default function CanvasRenderer({
         })
         .map(c => c.id);
 
-      // For now, select the first component in the selection
-      // TODO: Enhance useCanvasState to support multi-select
+      // Multi-select all components in rubber band selection
       if (selectedIds.length > 0) {
-        selectComponent(selectedIds[0]);
+        // Clear existing selection and set new multi-selection
+        clearSelection();
+        // Add each component to selection using multi-select
+        selectedIds.forEach(id => selectComponent(id, true));
       }
     }
-  }, [isRubberBanding, rubberBandStart, placedComponents, selectComponent]);
+  }, [isRubberBanding, rubberBandStart, placedComponents, selectComponent, clearSelection]);
 
   // Canvas mouse up to end rubber band selection
   const handleCanvasMouseUp = useCallback(() => {
@@ -1045,13 +1048,27 @@ export default function CanvasRenderer({
 
       if (isMultiDrag) {
         // Multi-component dragging with unified smart snapping
+        // Calculate movement delta from the primary dragged component
+        const primaryComponent = placedComponents.find(c => c.id === draggedComponentId);
+        if (!primaryComponent) return;
+
+        const originalPrimaryX = primaryComponent.position?.x || 0;
+        const originalPrimaryY = primaryComponent.position?.y || 0;
+
+        // Calculate how much the mouse has moved relative to the original component position
+        const mouseDeltaX = adjustedX - originalPrimaryX;
+        const mouseDeltaY = adjustedY - originalPrimaryY;
+
         const movingComponents = selectedIds
           .map(id => placedComponents.find(c => c.id === id))
           .filter((c): c is NonNullable<typeof c> => c !== undefined)
           .map(c => {
-            // All components use pixel coordinates - no positioning mode distinction
-            const x = c.id === draggedComponentId ? adjustedX : c.position?.x || 0;
-            const y = c.id === draggedComponentId ? adjustedY : c.position?.y || 0;
+            // Apply the same movement delta to all selected components
+            const originalX = c.position?.x || 0;
+            const originalY = c.position?.y || 0;
+
+            const x = originalX + mouseDeltaX;
+            const y = originalY + mouseDeltaY;
             const width = parseInt(c.props?._size?.width || '200', 10) || 200;
             const height = parseInt(c.props?._size?.height || '150', 10) || 150;
 

@@ -441,7 +441,7 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
     } else {
       setSelectedComponentIds(new Set([id]));
     }
-  }, []);
+  }, [selectedComponentIds]);
 
   const clearSelection = useCallback(() => {
     setSelectedComponentIds(new Set());
