@@ -11,7 +11,7 @@ import { componentCategories, componentData } from "@/components/design-tutorial
 
 export default function DesignTutorialPage() {
   const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState('content');
+  const [activeCategory, setActiveCategory] = useState('visual-builder');
   const [currentUser, setCurrentUser] = useState<string | null>(null);
 
   // Set initial category from URL parameter

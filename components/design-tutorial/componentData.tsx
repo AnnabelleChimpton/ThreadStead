@@ -2,6 +2,18 @@ import React from 'react';
 
 export const componentCategories = [
   {
+    id: 'visual-builder',
+    title: 'Visual Builder',
+    icon: '🎨',
+    description: 'Learn to use our flagship drag-and-drop builder with professional workflow features'
+  },
+  {
+    id: 'retro-components',
+    title: 'Retro Components',
+    icon: '📺',
+    description: 'Unique retro components including CRT monitors, VHS tapes, arcade buttons, and more'
+  },
+  {
     id: 'content',
     title: 'Content',
     icon: 'Content',
@@ -34,12 +46,378 @@ export const componentCategories = [
   {
     id: 'css-classes',
     title: 'CSS Classes',
-    icon: '🎨',
+    icon: '💻',
     description: 'CSS class reference and styling guide for customizing your components'
   }
 ];
 
 export const componentData = {
+  'visual-builder': [
+    {
+      name: 'Getting Started',
+      description: 'Learn the basics of drag-and-drop profile building',
+      props: [],
+      example: `<!-- Visual Builder Tutorial -->
+1. Open Visual Builder from Profile Settings
+2. Browse the Component Palette
+3. Drag components onto the canvas
+4. Click to customize properties
+5. Save your beautiful template!`,
+      preview: <div className="text-center p-4 bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded">
+        <div className="text-2xl mb-2">🎨</div>
+        <div className="font-bold">Visual Builder</div>
+        <div className="text-sm text-gray-600">Drag & Drop Design</div>
+      </div>,
+      tutorial: `
+**Step 1: Opening Visual Builder**
+Navigate to Profile Settings → Template Editor → "Switch to Visual Builder"
+
+**Step 2: Understanding the Interface**
+- Left Panel: Component Palette with search and categories
+- Center: Canvas for designing your profile
+- Right Panel: Property editor for selected components
+
+**Step 3: Adding Components**
+- Browse components by category (Content, Retro, Layout, etc.)
+- Drag components from palette to canvas
+- Use visual drop zones for precise placement
+
+**Step 4: Customizing Components**
+- Click any component to select it
+- Edit properties in the right panel
+- See changes in real-time on the canvas
+
+**Step 5: Advanced Features**
+- Ctrl+click for multi-select
+- Drag to create selection rectangles
+- Use Groups panel for organizing components
+- Bulk edit multiple components at once
+      `
+    },
+    {
+      name: 'Component Palette',
+      description: 'Browse and search through all available components',
+      props: [],
+      example: `Search components:
+- Type to filter by name
+- Browse by category
+- Switch between list and grid view
+- Mark favorites for quick access`,
+      preview: <div className="p-3 bg-gray-50 border rounded">
+        <div className="text-sm font-bold mb-2">Components</div>
+        <div className="grid grid-cols-2 gap-1 text-xs">
+          <div className="p-1 bg-white border">📝 Text</div>
+          <div className="p-1 bg-white border">📺 CRT</div>
+          <div className="p-1 bg-white border">🎮 Button</div>
+          <div className="p-1 bg-white border">📱 Card</div>
+        </div>
+      </div>,
+      tutorial: `
+**Component Categories:**
+- **Content**: Profile info, photos, text
+- **Retro**: CRT monitors, VHS tapes, arcade elements
+- **Layout**: Containers, grids, sections
+- **Visual**: Backgrounds, borders, effects
+- **Interactive**: Buttons, links, forms
+
+**Search Features:**
+- Real-time filtering by component name
+- Category-based browsing
+- Favorites system for frequently used components
+- Recently used components section
+
+**Viewing Options:**
+- List view with descriptions
+- Grid view with thumbnails
+- Compact view for space saving
+      `
+    },
+    {
+      name: 'Multi-Select & Bulk Editing',
+      description: 'Professional workflow features for efficient design',
+      props: [],
+      example: `Multi-Select Methods:
+- Ctrl+Click: Add/remove from selection
+- Rubber Band: Drag to select area
+- Shift+Click: Select range
+
+Bulk Operations:
+- Move multiple components together
+- Edit shared properties at once
+- Group related components
+- Delete multiple components`,
+      preview: <div className="p-3 bg-blue-50 border-2 border-blue-200 rounded">
+        <div className="text-sm font-bold mb-2">Multi-Select Active</div>
+        <div className="flex gap-1">
+          <div className="w-8 h-8 bg-purple-200 border-2 border-purple-400"></div>
+          <div className="w-8 h-8 bg-purple-200 border-2 border-purple-400"></div>
+          <div className="w-8 h-8 bg-purple-200 border-2 border-purple-400"></div>
+        </div>
+        <div className="text-xs text-blue-600 mt-1">3 components selected</div>
+      </div>,
+      tutorial: `
+**Selection Methods:**
+1. **Ctrl+Click**: Hold Ctrl and click components to add/remove from selection
+2. **Rubber Band**: Click and drag on empty canvas to select multiple components in a rectangle
+3. **Shift+Click**: Select a range of components
+4. **Select All**: Ctrl+A to select all components
+
+**Bulk Operations:**
+- **Move**: Drag any selected component to move all together
+- **Property Editing**: Change colors, fonts, spacing for all selected components
+- **Grouping**: Create logical groups for better organization
+- **Alignment**: Align multiple components to edges or centers
+- **Distribution**: Evenly space components
+
+**Keyboard Shortcuts:**
+- Delete: Remove selected components
+- Ctrl+G: Group selected components
+- Ctrl+Shift+G: Ungroup
+- Arrow Keys: Nudge selected components
+- Shift+Arrow: Nudge by larger increments
+      `
+    }
+  ],
+  'retro-components': [
+    {
+      name: 'CRTMonitor',
+      description: 'Authentic CRT monitor with scanlines, phosphor glow, and multiple screen colors',
+      props: [
+        { name: 'screenColor', type: 'string', options: ['green', 'amber', 'white', 'blue'], default: 'green', description: 'CRT phosphor color' },
+        { name: 'phosphorGlow', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Enable phosphor glow effect' },
+        { name: 'scanlines', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show CRT scanlines' },
+        { name: 'curvature', type: 'string', options: ['none', 'slight', 'medium', 'strong'], default: 'medium', description: 'Screen curvature effect' },
+        { name: 'content', type: 'string', default: 'CRT Display Content', description: 'Text to display on screen' }
+      ],
+      example: `<CRTMonitor screenColor="green" phosphorGlow="true" scanlines="true" curvature="medium">
+  Terminal Ready...
+</CRTMonitor>
+
+<CRTMonitor screenColor="amber" curvature="slight">
+  Welcome to Threadstead
+</CRTMonitor>`,
+      preview: <div className="relative p-4 bg-gray-800 rounded-lg border-4 border-gray-600">
+        <div className="bg-green-900 p-3 rounded text-green-400 font-mono text-sm relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500 to-transparent opacity-10 animate-pulse"></div>
+          Welcome to Threadstead &gt;_
+        </div>
+      </div>
+    },
+    {
+      name: 'NeonSign',
+      description: 'Animated neon text with glow effects, multiple colors, and animation modes',
+      props: [
+        { name: 'text', type: 'string', default: 'NEON', description: 'Text to display' },
+        { name: 'color', type: 'string', options: ['pink', 'blue', 'green', 'orange', 'purple', 'red'], default: 'pink', description: 'Neon color' },
+        { name: 'animation', type: 'string', options: ['steady', 'flicker', 'pulse', 'buzz'], default: 'steady', description: 'Animation type' },
+        { name: 'intensity', type: 'string', options: ['low', 'medium', 'high'], default: 'medium', description: 'Glow intensity' },
+        { name: 'fontSize', type: 'string', options: ['small', 'medium', 'large', 'xlarge'], default: 'medium', description: 'Text size' }
+      ],
+      example: `<NeonSign text="WELCOME" color="pink" animation="pulse" intensity="high" />
+
+<NeonSign text="RETRO VIBES" color="blue" animation="flicker" fontSize="large" />`,
+      preview: <div className="bg-black p-4 rounded">
+        <div className="text-pink-400 font-bold text-xl text-center" style={{
+          textShadow: '0 0 10px #ec4899, 0 0 20px #ec4899, 0 0 30px #ec4899',
+          fontFamily: 'monospace'
+        }}>
+          THREADSTEAD
+        </div>
+      </div>
+    },
+    {
+      name: 'ArcadeButton',
+      description: 'Chunky retro button with 3D styling, click effects, and multiple shapes',
+      props: [
+        { name: 'text', type: 'string', default: 'PRESS START', description: 'Button text' },
+        { name: 'color', type: 'string', options: ['red', 'blue', 'green', 'yellow', 'purple', 'orange'], default: 'red', description: 'Button color' },
+        { name: 'shape', type: 'string', options: ['round', 'square', 'pill'], default: 'round', description: 'Button shape' },
+        { name: 'size', type: 'string', options: ['small', 'medium', 'large'], default: 'medium', description: 'Button size' },
+        { name: 'glow', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Enable glow effect' },
+        { name: 'href', type: 'string', default: '', description: 'Link URL (optional)' }
+      ],
+      example: `<ArcadeButton text="PLAY GAME" color="red" shape="round" size="large" glow="true" />
+
+<ArcadeButton text="MENU" color="blue" shape="square" href="/menu" />`,
+      preview: <button className="bg-red-500 hover:bg-red-400 text-white font-bold py-3 px-6 rounded-full shadow-lg border-4 border-red-300 transform hover:scale-105 transition-all">
+        PRESS START
+      </button>
+    },
+    {
+      name: 'VHSTape',
+      description: 'Authentic VHS cassette with customizable labels, wear effects, and multiple styles',
+      props: [
+        { name: 'title', type: 'string', default: 'My VHS Tape', description: 'Tape title' },
+        { name: 'labelStyle', type: 'string', options: ['classic', 'rental', 'homemade', 'premium'], default: 'classic', description: 'Label design style' },
+        { name: 'wearLevel', type: 'string', options: ['new', 'used', 'worn', 'vintage'], default: 'used', description: 'Tape condition' },
+        { name: 'showBarcode', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show rental barcode' },
+        { name: 'year', type: 'string', default: '1985', description: 'Year on label' }
+      ],
+      example: `<VHSTape title="Summer Vacation '85" labelStyle="homemade" wearLevel="vintage" year="1985" />
+
+<VHSTape title="BLOCKBUSTER RENTAL" labelStyle="rental" showBarcode="true" />`,
+      preview: <div className="bg-black p-3 rounded">
+        <div className="bg-gradient-to-r from-gray-800 to-gray-600 p-2 rounded border">
+          <div className="bg-white text-black text-xs p-1 text-center">MY VHS TAPE</div>
+          <div className="flex mt-1">
+            <div className="w-4 h-4 bg-gray-700 rounded-full"></div>
+            <div className="flex-1"></div>
+            <div className="w-4 h-4 bg-gray-700 rounded-full"></div>
+          </div>
+        </div>
+      </div>
+    },
+    {
+      name: 'CassetteTape',
+      description: 'Audio cassette with rotating spokes animation, side A/B support, and vintage styling',
+      props: [
+        { name: 'title', type: 'string', default: 'Mix Tape', description: 'Cassette title' },
+        { name: 'side', type: 'string', options: ['A', 'B'], default: 'A', description: 'Tape side' },
+        { name: 'tapeColor', type: 'string', options: ['clear', 'chrome', 'metal', 'black'], default: 'clear', description: 'Tape color variant' },
+        { name: 'rotation', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Animate spokes rotation' },
+        { name: 'labelStyle', type: 'string', options: ['handwritten', 'typed', 'printed'], default: 'handwritten', description: 'Label style' }
+      ],
+      example: `<CassetteTape title="Road Trip Mix" side="A" tapeColor="chrome" rotation="true" />
+
+<CassetteTape title="Study Music" side="B" labelStyle="typed" />`,
+      preview: <div className="bg-gray-100 p-3 rounded">
+        <div className="bg-gray-800 p-2 rounded">
+          <div className="flex justify-between items-center">
+            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+              <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+            </div>
+            <div className="text-white text-xs">MIX TAPE</div>
+            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+              <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    },
+    {
+      name: 'Boombox',
+      description: '80s stereo system with equalizer visualization, cassette deck, and LED indicators',
+      props: [
+        { name: 'playing', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Show as playing music' },
+        { name: 'equalizerBars', type: 'number', options: ['5', '7', '10'], default: '7', description: 'Number of EQ bars' },
+        { name: 'showRadio', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show radio display' },
+        { name: 'cassetteLoaded', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show cassette in deck' },
+        { name: 'ledColor', type: 'string', options: ['red', 'green', 'blue'], default: 'red', description: 'LED indicator color' }
+      ],
+      example: `<Boombox playing="true" equalizerBars="10" showRadio="true" ledColor="green" />
+
+<Boombox cassetteLoaded="false" equalizerBars="5" />`,
+      preview: <div className="bg-gray-800 p-4 rounded-lg">
+        <div className="flex justify-center mb-2">
+          <div className="flex gap-1">
+            {[1,2,3,4,5].map(i => <div key={i} className="w-2 bg-green-400" style={{height: `${Math.random() * 20 + 10}px`}}></div>)}
+          </div>
+        </div>
+        <div className="bg-black text-green-400 text-xs text-center p-1 font-mono">88.5 FM</div>
+      </div>
+    },
+    {
+      name: 'MatrixRain',
+      description: 'Animated falling code background with customizable characters and effects',
+      props: [
+        { name: 'characters', type: 'string', options: ['katakana', 'latin', 'numbers', 'mixed'], default: 'katakana', description: 'Character set to use' },
+        { name: 'speed', type: 'string', options: ['slow', 'medium', 'fast'], default: 'medium', description: 'Animation speed' },
+        { name: 'density', type: 'string', options: ['sparse', 'medium', 'dense'], default: 'medium', description: 'Column density' },
+        { name: 'glowEffect', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Enable glow effect' },
+        { name: 'fadeEffect', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Fade trail effect' }
+      ],
+      example: `<MatrixRain characters="katakana" speed="medium" density="dense" glowEffect="true" />
+
+<MatrixRain characters="numbers" speed="fast" density="sparse" />`,
+      preview: <div className="bg-black p-4 rounded relative overflow-hidden h-24">
+        <div className="absolute inset-0 text-green-400 font-mono text-xs opacity-70">
+          {Array.from({length: 8}).map((_, i) => (
+            <div key={i} className="absolute animate-pulse" style={{left: `${i * 12}%`, animationDelay: `${i * 0.2}s`}}>
+              {Array.from({length: 6}).map((_, j) => (
+                <div key={j} className="mb-1">ア</div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    },
+    {
+      name: 'RetroTV',
+      description: 'CRT television with scanlines, static effects, multiple TV styles, and channel display',
+      props: [
+        { name: 'tvStyle', type: 'string', options: ['crt', 'vintage', 'portable'], default: 'crt', description: 'TV design style' },
+        { name: 'screenColor', type: 'string', options: ['color', 'green', 'amber', 'blue'], default: 'color', description: 'Screen type' },
+        { name: 'staticLevel', type: 'string', options: ['none', 'light', 'medium', 'heavy'], default: 'light', description: 'Static interference' },
+        { name: 'showChannel', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show channel display' },
+        { name: 'antenna', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Show antenna' },
+        { name: 'content', type: 'string', default: 'Channel 3', description: 'Screen content' }
+      ],
+      example: `<RetroTV tvStyle="vintage" screenColor="color" staticLevel="medium" showChannel="true">
+  Welcome to Threadstead TV
+</RetroTV>
+
+<RetroTV tvStyle="portable" screenColor="green" antenna="false" />`,
+      preview: <div className="bg-gray-600 p-4 rounded-lg relative">
+        <div className="bg-gray-800 p-2 rounded">
+          <div className="bg-gray-900 p-3 rounded text-white text-xs text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white to-transparent opacity-5 animate-pulse"></div>
+            CHANNEL 3
+          </div>
+        </div>
+        <div className="text-center mt-1 text-xs text-gray-300">📺</div>
+      </div>
+    },
+    {
+      name: 'PixelArtFrame',
+      description: '8-bit style borders and containers with corner decorations and pixel-perfect rendering',
+      props: [
+        { name: 'frameStyle', type: 'string', options: ['classic', 'ornate', 'simple', 'thick'], default: 'classic', description: 'Frame border style' },
+        { name: 'cornerStyle', type: 'string', options: ['none', 'dots', 'crosses', 'stars'], default: 'dots', description: 'Corner decoration' },
+        { name: 'color', type: 'string', options: ['black', 'brown', 'gold', 'silver'], default: 'brown', description: 'Frame color' },
+        { name: 'pixelSize', type: 'string', options: ['1px', '2px', '3px'], default: '2px', description: 'Pixel border thickness' },
+        { name: 'content', type: 'string', default: 'Framed Content', description: 'Content inside frame' }
+      ],
+      example: `<PixelArtFrame frameStyle="ornate" cornerStyle="stars" color="gold">
+  Important Message Here
+</PixelArtFrame>
+
+<PixelArtFrame frameStyle="simple" color="black" pixelSize="1px">
+  Profile Photo
+</PixelArtFrame>`,
+      preview: <div className="p-4">
+        <div className="border-4 border-amber-600 bg-amber-50 p-3 relative" style={{imageRendering: 'pixelated'}}>
+          <div className="absolute top-0 left-0 w-2 h-2 bg-amber-800"></div>
+          <div className="absolute top-0 right-0 w-2 h-2 bg-amber-800"></div>
+          <div className="absolute bottom-0 left-0 w-2 h-2 bg-amber-800"></div>
+          <div className="absolute bottom-0 right-0 w-2 h-2 bg-amber-800"></div>
+          <div className="text-center text-sm">Pixel Art Frame</div>
+        </div>
+      </div>
+    },
+    {
+      name: 'RetroGrid',
+      description: 'Synthwave/outrun perspective grids with multiple theme variants and animations',
+      props: [
+        { name: 'theme', type: 'string', options: ['synthwave', 'outrun', 'cyberpunk', 'vaporwave', 'neon', 'classic'], default: 'synthwave', description: 'Grid theme' },
+        { name: 'animation', type: 'string', options: ['none', 'scroll', 'pulse', 'wave'], default: 'scroll', description: 'Animation type' },
+        { name: 'perspective', type: 'string', options: ['flat', 'slight', 'medium', 'strong'], default: 'medium', description: '3D perspective effect' },
+        { name: 'gridSize', type: 'string', options: ['small', 'medium', 'large'], default: 'medium', description: 'Grid line spacing' },
+        { name: 'opacity', type: 'string', options: ['0.3', '0.5', '0.7', '0.9'], default: '0.5', description: 'Grid opacity' }
+      ],
+      example: `<RetroGrid theme="synthwave" animation="scroll" perspective="strong" />
+
+<RetroGrid theme="cyberpunk" animation="wave" gridSize="large" opacity="0.7" />`,
+      preview: <div className="bg-gradient-to-b from-purple-900 to-pink-900 p-4 rounded relative overflow-hidden h-24">
+        <div className="absolute inset-0 opacity-50">
+          <div className="h-full w-full" style={{
+            backgroundImage: 'linear-gradient(0deg, rgba(255,0,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,0,255,0.3) 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+            transform: 'perspective(100px) rotateX(45deg)'
+          }}></div>
+        </div>
+      </div>
+    }
+  ],
   content: [
     {
       name: 'DisplayName',

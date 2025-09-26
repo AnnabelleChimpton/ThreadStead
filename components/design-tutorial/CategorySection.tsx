@@ -8,7 +8,7 @@ interface ComponentInfo {
   props?: Array<{
     name: string;
     type: string;
-    options: string[];
+    options?: string[];
     default: string;
     description: string;
   }> | string[];

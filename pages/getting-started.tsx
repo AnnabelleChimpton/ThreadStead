@@ -12,7 +12,7 @@ interface GettingStartedProps {
 }
 
 export default function GettingStarted({ siteConfig }: GettingStartedProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "threadrings" | "profiles" | "pixel-homes" | "social" | "content">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "visual-builder" | "threadrings" | "profiles" | "pixel-homes" | "social" | "content">("overview");
   const { user } = useCurrentUser();
 
   const TabButton = ({ 
@@ -20,8 +20,8 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
     label, 
     icon 
   }: { 
-    tabId: typeof activeTab; 
-    label: string; 
+    tabId: typeof activeTab;
+    label: string;
     icon: string;
   }) => (
     <button
@@ -96,6 +96,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
         <div className="bg-white border border-black shadow-[2px_2px_0_#000] p-4">
           <div className="flex flex-wrap gap-2 justify-center">
             <TabButton tabId="overview" label="Quick Start" icon="⚡" />
+            <TabButton tabId="visual-builder" label="Visual Builder" icon="🎨" />
             <TabButton tabId="threadrings" label="ThreadRings" icon="🧵" />
             <TabButton tabId="profiles" label="Your Profile" icon="👤" />
             <TabButton tabId="pixel-homes" label="Pixel Homes" icon="🏠" />
@@ -183,12 +184,12 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <div className="space-y-3">
                       <h3 className="font-bold text-lg">Customize</h3>
                       <div className="space-y-2">
-                        <Link 
-                          href="/settings/profile" 
-                          className="block p-3 bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 transition-colors"
+                        <Link
+                          href="/settings/profile"
+                          className="block p-3 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors"
                         >
-                          <div className="font-medium">🎨 Edit Profile</div>
-                          <div className="text-sm text-gray-600">Update your info and theme</div>
+                          <div className="font-medium">🎨 Visual Builder</div>
+                          <div className="text-sm text-gray-600">Drag-and-drop profile designer</div>
                         </Link>
                         {user ? (
                           <Link 
@@ -207,12 +208,12 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                             <div className="text-sm text-gray-600">Sign up to create your 8-bit house</div>
                           </Link>
                         )}
-                        <Link 
-                          href="/design-tutorial" 
-                          className="block p-3 bg-pink-50 border border-pink-200 hover:bg-pink-100 transition-colors"
+                        <Link
+                          href="/design-tutorial"
+                          className="block p-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
                         >
-                          <div className="font-medium">💅 Custom CSS</div>
-                          <div className="text-sm text-gray-600">Style your profile</div>
+                          <div className="font-medium">📚 Design Tutorial</div>
+                          <div className="text-sm text-gray-600">Visual Builder & CSS guides</div>
                         </Link>
                       </div>
                     </div>
@@ -259,6 +260,230 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <div>
                       <h3 className="font-bold mb-1">Retro Charm</h3>
                       <p className="text-sm text-gray-600">Experience the creativity of the early internet, modernized.</p>
+                    </div>
+                  </div>
+                </div>
+              </RetroCard>
+            </div>
+          )}
+
+          {activeTab === "visual-builder" && (
+            <div className="space-y-6">
+              <RetroCard title="🎨 Visual Template Builder - Our Flagship Feature">
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-l-4 border-purple-400 p-4 rounded">
+                    <h3 className="font-bold text-purple-800 mb-2">🚀 Design Without Code</h3>
+                    <p className="text-purple-700 leading-relaxed">
+                      Threadstead&apos;s Visual Builder brings together retro aesthetics and modern drag-and-drop design.
+                      Create stunning, professional profiles without writing a single line of CSS!
+                    </p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="border border-green-300 p-4 bg-green-50 rounded">
+                      <h4 className="font-bold text-green-800 mb-2">✨ Drag & Drop Magic</h4>
+                      <ul className="text-sm text-green-700 space-y-1">
+                        <li>• Intuitive drag-and-drop interface</li>
+                        <li>• Smart drop zones with visual feedback</li>
+                        <li>• Live preview as you build</li>
+                        <li>• Grid and absolute positioning</li>
+                        <li>• Professional keyboard shortcuts</li>
+                      </ul>
+                    </div>
+
+                    <div className="border border-blue-300 p-4 bg-blue-50 rounded">
+                      <h4 className="font-bold text-blue-800 mb-2">🎮 Retro Component Library</h4>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• CRT Monitors with authentic scanlines</li>
+                        <li>• Neon Signs with glow effects</li>
+                        <li>• Arcade Buttons with 3D styling</li>
+                        <li>• VHS Tapes and Cassette Players</li>
+                        <li>• Matrix Rain backgrounds</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <h3 className="font-bold text-yellow-800 mb-2">🔧 Professional Workflow</h3>
+                    <p className="text-sm text-yellow-700 mb-3">
+                      Built for both beginners and power users with advanced features:
+                    </p>
+                    <div className="grid md:grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <strong className="text-yellow-800">Multi-Select:</strong>
+                        <div className="text-yellow-700">Ctrl+click, rubber band selection</div>
+                      </div>
+                      <div>
+                        <strong className="text-yellow-800">Bulk Editing:</strong>
+                        <div className="text-yellow-700">Change multiple components at once</div>
+                      </div>
+                      <div>
+                        <strong className="text-yellow-800">Grouping:</strong>
+                        <div className="text-yellow-700">Organize related components</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </RetroCard>
+
+              <RetroCard title="Getting Started with Visual Builder">
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 p-4 rounded">
+                    <h3 className="font-bold text-green-800 mb-3">🎯 Quick Start Guide</h3>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-start gap-3">
+                        <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span>
+                        <div>
+                          <strong className="text-green-800">Open Visual Builder:</strong>
+                          <p className="text-green-700">Go to Profile Settings → Template Editor → &quot;Switch to Visual Builder&quot;</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">2</span>
+                        <div>
+                          <strong className="text-green-800">Browse Components:</strong>
+                          <p className="text-green-700">Search the component palette for content, retro effects, and layouts</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">3</span>
+                        <div>
+                          <strong className="text-green-800">Drag & Drop:</strong>
+                          <p className="text-green-700">Drag components onto the canvas and position them exactly where you want</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">4</span>
+                        <div>
+                          <strong className="text-green-800">Customize:</strong>
+                          <p className="text-green-700">Click components to edit colors, text, styles, and effects in real-time</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">5</span>
+                        <div>
+                          <strong className="text-green-800">Publish:</strong>
+                          <p className="text-green-700">Click &quot;Save Template&quot; and your beautiful profile goes live instantly!</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center">
+                    {user ? (
+                      <Link
+                        href="/settings/profile"
+                        className="inline-block border border-black px-6 py-3 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-bold"
+                      >
+                        🎨 Open Visual Builder
+                      </Link>
+                    ) : (
+                      <Link
+                        href="/onboarding"
+                        className="inline-block border border-black px-6 py-3 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-bold"
+                      >
+                        🎨 Sign Up to Try Visual Builder
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </RetroCard>
+
+              <RetroCard title="Why Visual Builder?">
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-bold mb-3 text-green-700">✅ Visual Builder Benefits</h4>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span><strong>No coding required</strong> - Anyone can create beautiful profiles</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span><strong>Instant results</strong> - See changes in real-time</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span><strong>Professional quality</strong> - Polished, responsive designs</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span><strong>Retro components</strong> - Authentic vintage design elements</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span><strong>Fast workflow</strong> - Multi-select, bulk editing, and shortcuts</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-bold mb-3 text-blue-700">⚙️ For Advanced Users</h4>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600">•</span>
+                          <span><strong>CSS Export</strong> - Generate clean CSS from your visual design</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600">•</span>
+                          <span><strong>Code View</strong> - Switch between visual and code editing</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600">•</span>
+                          <span><strong>Custom CSS</strong> - Add your own styles and overrides</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600">•</span>
+                          <span><strong>Component Inspector</strong> - See generated HTML and styles</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600">•</span>
+                          <span><strong>Template Sharing</strong> - Export and import template files</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4 rounded">
+                    <h3 className="font-bold text-pink-800 mb-2">🎭 Express Your Digital Identity</h3>
+                    <p className="text-sm text-pink-700">
+                      The Visual Builder brings back the creative freedom of the early web, where personal expression
+                      mattered more than conformity. Create something uniquely yours with authentic retro components
+                      and modern design tools.
+                    </p>
+                  </div>
+                </div>
+              </RetroCard>
+
+              <RetroCard title="Need Help Getting Started?">
+                <div className="space-y-4">
+                  <p className="text-gray-700">
+                    New to visual design tools? No problem! We&apos;ve made the Visual Builder intuitive and beginner-friendly.
+                  </p>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="border border-blue-300 p-4 bg-blue-50 rounded">
+                      <h4 className="font-bold text-blue-800 mb-2">📚 Learn More</h4>
+                      <p className="text-sm text-blue-700 mb-3">
+                        Check out our comprehensive design tutorial for detailed guides and component references.
+                      </p>
+                      <Link
+                        href="/design-tutorial?category=visual-builder"
+                        className="block text-center border border-black px-3 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000] text-sm"
+                      >
+                        View Design Tutorial
+                      </Link>
+                    </div>
+
+                    <div className="border border-green-300 p-4 bg-green-50 rounded">
+                      <h4 className="font-bold text-green-800 mb-2">💡 Still Prefer CSS?</h4>
+                      <p className="text-sm text-green-700 mb-3">
+                        Power users can still edit CSS directly. The Visual Builder and CSS editor work together seamlessly.
+                      </p>
+                      <div className="text-center text-sm bg-gray-100 border px-3 py-2">
+                        Available in Profile Settings
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -403,10 +628,27 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     you have complete creative control over how it looks and what it contains.
                   </p>
 
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-400 p-4">
+                    <h3 className="font-bold text-purple-800 mb-2">🎨 Design Your Profile</h3>
+                    <p className="text-sm text-purple-700 mb-3">
+                      Choose between our intuitive Visual Builder or direct CSS editing for complete creative control:
+                    </p>
+                    <div className="grid md:grid-cols-2 gap-3 text-sm">
+                      <div className="bg-white p-3 border border-purple-200 rounded">
+                        <strong className="text-purple-800">Visual Builder (Recommended)</strong>
+                        <div className="text-purple-700">Drag-and-drop design with retro components</div>
+                      </div>
+                      <div className="bg-white p-3 border border-purple-200 rounded">
+                        <strong className="text-purple-800">CSS Editor (Advanced)</strong>
+                        <div className="text-purple-700">Direct code editing for power users</div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                     <h3 className="font-bold text-yellow-800 mb-2">Profile Features</h3>
                     <ul className="text-sm text-yellow-700 space-y-1">
-                      <li>• <strong>Custom CSS:</strong> Style your page however you want</li>
+                      <li>• <strong>Visual Design:</strong> Drag-and-drop builder with unique retro components</li>
                       <li>• <strong>Photo Gallery:</strong> Share your favorite images</li>
                       <li>• <strong>Music Player:</strong> Add MIDI files to create a soundtrack for your profile</li>
                       <li>• <strong>Guestbook:</strong> Let visitors leave messages</li>
@@ -456,47 +698,68 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 </div>
               </RetroCard>
 
-              <RetroCard title="Customization Power">
+              <RetroCard title="Design Your Profile Your Way">
                 <div className="space-y-4">
-                  <div className="bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-200 p-4 rounded">
-                    <h3 className="font-bold mb-2">Express Yourself</h3>
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 p-4 rounded">
+                    <h3 className="font-bold mb-2">🎨 Visual Builder - The Easy Way</h3>
                     <p className="text-sm mb-3">
-                      Threadstead brings back the creative freedom of personal websites. Start with a default theme 
-                      or use CSS to create anything from minimalist modern designs to flashy retro masterpieces.
+                      Our flagship Visual Builder brings back the creative freedom of personal websites with modern ease.
+                      Drag retro components, customize colors, and create anything from minimalist designs to flashy masterpieces!
                     </p>
-                    <div className="text-xs bg-white p-2 border font-mono">
-                      <div>body {"{background: linear-gradient(...)}"}</div>
-                      <div>.profile {"{animation: sparkle 2s infinite;}"}</div>
+                    <div className="grid md:grid-cols-3 gap-2 text-xs">
+                      <div className="bg-white p-2 border text-center">📺 CRT Monitors</div>
+                      <div className="bg-white p-2 border text-center">💾 VHS Tapes</div>
+                      <div className="bg-white p-2 border text-center">🕹️ Arcade Buttons</div>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-bold mb-2">🎯 Visual Builder (Recommended)</h4>
+                      <div className="space-y-2 text-sm">
+                        <Link
+                          href="/settings/profile"
+                          className="block border border-black px-3 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] text-center"
+                        >
+                          🎨 Open Visual Builder
+                        </Link>
+                        <p className="text-gray-600 text-xs">
+                          Drag-and-drop interface with retro components, real-time preview, and professional results.
+                          Perfect for beginners and experienced designers alike.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-bold mb-2">⚙️ CSS Editor (Advanced)</h4>
+                      <div className="space-y-2 text-sm">
+                        <Link
+                          href="/design-tutorial"
+                          className="block text-center border border-black px-3 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000]"
+                        >
+                          📚 CSS Tutorial
+                        </Link>
+                        <p className="text-gray-600 text-xs">
+                          Direct code editing for maximum control. Write custom CSS, animations, and advanced styling.
+                          For users comfortable with web development.
+                        </p>
+                      </div>
                     </div>
                   </div>
 
                   <div>
                     <h4 className="font-bold mb-2">Profile Settings</h4>
                     <div className="space-y-2 text-sm">
-                      <Link 
-                        href="/settings/profile" 
-                        className="block border border-black px-3 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000] text-center"
+                      <Link
+                        href="/settings/profile"
+                        className="block border border-black px-3 py-2 bg-green-100 hover:bg-green-200 shadow-[1px_1px_0_#000] text-center"
                       >
-                        Edit Profile Settings
+                        ⚙️ Edit Profile Settings
                       </Link>
                       <p className="text-gray-600 text-xs">
-                        Our updated profile editor makes it easy to update your display name, bio, avatar, 
-                        theme selection, and add background music with MIDI files.
+                        Update your display name, bio, avatar, theme selection, and add background music with MIDI files.
                       </p>
                     </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-bold mb-2">CSS Editor</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Access the full CSS editor to customize every aspect of your profile&apos;s appearance.
-                    </p>
-                    <Link 
-                      href="/design-tutorial" 
-                      className="block text-center border border-black px-3 py-1 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] text-sm"
-                    >
-                      Design Tutorial
-                    </Link>
                   </div>
                 </div>
               </RetroCard>

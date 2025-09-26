@@ -7,7 +7,7 @@ interface ComponentCardProps {
   props?: Array<{
     name: string;
     type: string;
-    options: string[];
+    options?: string[];
     default: string;
     description: string;
   }> | string[];
@@ -96,19 +96,21 @@ export default function ComponentCard({
                         </div>
                       </div>
                       <p className="text-gray-800 mb-2 text-sm">{prop.description}</p>
-                      <div className="mt-2">
-                        <div className="text-xs font-bold text-gray-700 mb-1">Available options:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {prop.options.map((option) => (
-                            <code 
-                              key={option}
-                              className="bg-cyan-200 text-gray-800 px-2 py-1 text-xs rounded font-mono"
-                            >
-                              {option}
-                            </code>
-                          ))}
+                      {prop.options && prop.options.length > 0 && (
+                        <div className="mt-2">
+                          <div className="text-xs font-bold text-gray-700 mb-1">Available options:</div>
+                          <div className="flex flex-wrap gap-1">
+                            {prop.options.map((option) => (
+                              <code
+                                key={option}
+                                className="bg-cyan-200 text-gray-800 px-2 py-1 text-xs rounded font-mono"
+                              >
+                                {option}
+                              </code>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
