@@ -272,8 +272,14 @@ export default function EnhancedTemplateEditor({
   };
   const [isLoading, setIsLoading] = useState(true);
   const [compiledTemplate, setCompiledTemplate] = useState<CompiledTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState<'template' | 'css' | 'visual'>('template');
+  // Smart default tab selection based on layout mode
+  const [activeTab, setActiveTab] = useState<'template' | 'css' | 'visual'>(() => {
+    // If starting in standard layout mode, default to CSS tab since there's no HTML template to edit
+    return useStandardLayout ? 'css' : 'template';
+  });
   const [editorMode, setEditorMode] = useState<'code' | 'visual'>('code');
+  // Set to true to always show welcome on Visual Builder open (for testing)
+  const [showVisualBuilderWelcome, setShowVisualBuilderWelcome] = useState(true);
 
   // Handle template changes from visual builder
   const handleVisualTemplateChange = useCallback((html: string) => {
@@ -923,6 +929,16 @@ export default function EnhancedTemplateEditor({
     }
   }, [template, useStandardLayout]); // Removed compileTemplateForPreview from deps to avoid recreation issues
 
+  // Auto-switch tabs when switching between layout modes
+  useEffect(() => {
+    if (useStandardLayout && activeTab === 'template') {
+      // Switch to CSS tab when switching to standard layout (no HTML template to edit)
+      setActiveTab('css');
+    }
+    // Removed the problematic auto-switch from CSS to template tab
+    // Users should be able to manually navigate to CSS tab in advanced mode
+  }, [useStandardLayout, activeTab, editorMode]);
+
   // Sample templates - unified Islands approach (matches default exactly)
   const sampleTemplates = {
     basic: `<RetroCard>
@@ -1076,7 +1092,76 @@ export default function EnhancedTemplateEditor({
   };
 
   return (
-    <div className="enhanced-template-editor w-full">
+    <>
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        .animate-slideUp {
+          animation: slideUp 0.4s ease-out;
+        }
+      `}</style>
+
+      <div className="enhanced-template-editor w-full">
+      {/* Unified Mode Status Indicator */}
+      <div className="px-4 py-2 bg-blue-50 border-b border-blue-200 text-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-blue-900">Profile Mode:</span>
+              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                useStandardLayout
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-purple-100 text-purple-800'
+              }`}>
+                {useStandardLayout ? 'Standard Layout' : 'Custom Template'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-blue-900">CSS Mode:</span>
+              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                cssMode === 'inherit'
+                  ? 'bg-green-100 text-green-800'
+                  : cssMode === 'override'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {cssMode}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-blue-600">
+              Database: {initialTemplateMode} → {useStandardLayout ? 'enhanced' : 'advanced'}
+            </span>
+            <button
+              onClick={useStandardLayout ? loadDefaultTemplate : useStandardLayoutOption}
+              className={`px-2 py-1 text-xs rounded font-medium transition-colors ${
+                useStandardLayout
+                  ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              }`}
+            >
+              Switch to {useStandardLayout ? 'Custom Template' : 'Standard Layout'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Mode Selector */}
       <div className="flex justify-between items-center px-4 py-2 bg-thread-cream border-b border-thread-sage">
         <div className="flex gap-1">
@@ -1088,21 +1173,40 @@ export default function EnhancedTemplateEditor({
                 : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-paper'
             }`}
           >
-            Code Editor
+            {useStandardLayout ? 'CSS Editor' : 'Code Editor'}
           </button>
           <button
-            onClick={() => handleModeSwitch('visual')}
-            className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+            onClick={() => {
+              // If in standard layout, upgrade to custom template first
+              if (useStandardLayout) {
+                loadDefaultTemplate(); // This switches to custom template mode
+                setTimeout(() => handleModeSwitch('visual'), 100); // Then open Visual Builder
+              } else {
+                handleModeSwitch('visual');
+              }
+            }}
+            className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all transform hover:scale-105 ${
               editorMode === 'visual'
-                ? 'bg-thread-sage text-white'
-                : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-paper'
+                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
+                : 'bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 shadow-md hover:shadow-lg'
             }`}
           >
-            Visual Builder
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✨</span>
+              <div className="flex flex-col items-start">
+                <span className="font-semibold">Visual Builder</span>
+                <span className="text-xs opacity-90">{useStandardLayout ? 'Unlock full design' : 'Design visually'}</span>
+              </div>
+            </div>
           </button>
         </div>
         <div className="text-xs text-thread-sage">
-          {editorMode === 'visual' ? 'Drag & drop visual editing' : 'Direct HTML/CSS editing'}
+          {useStandardLayout
+            ? 'Customize the standard layout with CSS'
+            : editorMode === 'visual'
+            ? 'Drag & drop visual editing'
+            : 'Direct HTML/CSS editing'
+          }
         </div>
       </div>
 
@@ -1110,16 +1214,18 @@ export default function EnhancedTemplateEditor({
       <div className="flex gap-1 px-4">
         {editorMode === 'code' ? (
           <>
-            <button
-              onClick={() => setActiveTab('template')}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                activeTab === 'template'
-                  ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
-                  : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
-              }`}
-            >
-              HTML
-            </button>
+            {!useStandardLayout && (
+              <button
+                onClick={() => setActiveTab('template')}
+                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                  activeTab === 'template'
+                    ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
+                    : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
+                }`}
+              >
+                HTML Template
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('css')}
               className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
@@ -1128,7 +1234,7 @@ export default function EnhancedTemplateEditor({
                   : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
               }`}
             >
-              CSS
+              {useStandardLayout ? 'CSS Styling' : 'CSS Styles'}
             </button>
           </>
         ) : (
@@ -1152,178 +1258,160 @@ export default function EnhancedTemplateEditor({
           <div className="w-full flex flex-col">
             {/* Editor Toolbar - matching original seamless style */}
             <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-3 -mt-px">
-              {/* Getting Started Guide - only show when NOT in standard layout */}
-              {!useStandardLayout && (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h3 className="font-semibold text-purple-900">Advanced Layout Mode</h3>
-                    <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">Full HTML Control</span>
-                  </div>
-                
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                    <button
-                      onClick={useStandardLayoutOption}
-                      className="p-4 rounded-lg border bg-white border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-left transition-all"
-                    >
-                      <div className="font-semibold">
-                        🎨 Switch to Fresh Start
-                      </div>
-                      <div className="text-sm mt-1 opacity-80">
-                        Use CSS styling instead
-                      </div>
-                    </button>
-                    
-                    <div className="p-4 rounded-lg border bg-purple-50 border-purple-200 text-left">
-                      <div className="font-semibold text-purple-800">
-                        Pick a Theme
-                      </div>
-                      <div className="text-sm mt-1 text-purple-700">
-                        Choose from templates below
+
+              {/* Template Gallery with Progressive Disclosure */}
+              <details className="mb-4">
+                <summary className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
+                  <span className="font-semibold text-thread-pine">
+                    {useStandardLayout ? '🎨 CSS Theme Gallery' : '📦 HTML Template Gallery'}
+                  </span>
+                  <span className="text-xs text-gray-500 ml-auto">Click to expand</span>
+                </summary>
+
+                <div className="mt-3 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  {useStandardLayout ? (
+                    <div className="space-y-4">
+                      <div>
+                        <h5 className="font-medium text-thread-charcoal mb-2">CSS Themes for Standard Layout</h5>
+                        <p className="text-sm text-gray-600 mb-3">
+                          These themes add beautiful styling to your standard layout without changing the structure.
+                        </p>
+                        <div className="flex gap-2">
+                          <select
+                            onChange={(e) => {
+                              if (e.target.value === '') return;
+                              showDataLossWarning(
+                                "Apply CSS Theme",
+                                `This will replace your current CSS with the theme. Any unsaved changes will be lost.`,
+                                () => {
+                                  const templateCSS = getDefaultProfileTemplate(e.target.value as any);
+                                  setCustomCSS(templateCSS);
+                                  setCSSMode('inherit'); // Themes work with inherit mode
+                                }
+                              );
+                              e.target.value = '';
+                            }}
+                            className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50"
+                          >
+                            <option value="">Choose a CSS theme...</option>
+                            <option value="abstract-art">🎨 Abstract Art</option>
+                            <option value="charcoal-nights">🖤 Charcoal Nights</option>
+                            <option value="pixel-petals">🌸 Pixel Petals</option>
+                            <option value="retro-social">📱 Retro Social</option>
+                            <option value="classic-linen">🧵 Classic Linen</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="bg-purple-100 rounded-lg p-3 text-sm text-purple-900">
-                    <strong>Advanced Mode:</strong> Full control! You can modify the page structure and use our components.
-                  </div>
-                </div>
-              )}
+                  ) : (
+                    <div className="space-y-4">
+                      <div>
+                        <h5 className="font-medium text-thread-charcoal mb-2">Modern HTML Templates</h5>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Complete templates with HTML structure and styling using ThreadStead components.
+                        </p>
+                        <select
+                          onChange={(e) => {
+                            const selectedTemplate = TEMPLATE_EXAMPLES[e.target.value as keyof typeof TEMPLATE_EXAMPLES];
+                            if (selectedTemplate) {
+                              showDataLossWarning(
+                                "Load Modern Template",
+                                `This will replace your current HTML and CSS with the "${selectedTemplate.name || e.target.value}" template. Any unsaved changes will be lost.`,
+                                () => {
+                                  setUseStandardLayout(false);
+                                  setTemplate(selectedTemplate.template);
+                                  setCustomCSS(selectedTemplate.css);
+                                  setCSSMode('disable');
+                                }
+                              );
+                              e.target.value = '';
+                            }
+                          }}
+                          className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 w-full"
+                          defaultValue=""
+                        >
+                          <option value="">Choose a modern template...</option>
+                          {Object.entries(TEMPLATE_EXAMPLES).map(([key, template]) => (
+                            <option key={key} value={key}>
+                              {template.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-              {/* Fresh Start Guide - only show when in standard layout */}
-              {useStandardLayout && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h3 className="font-semibold text-blue-900">Fresh Start Mode</h3>
-                    <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">New to profile building? Start here! ⭐</span>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                    <button
-                      onClick={loadDefaultTemplate}
-                      disabled={loadingDefault}
-                      className="p-4 rounded-lg border bg-white border-gray-300 hover:border-green-400 hover:bg-green-50 text-left transition-all"
-                    >
-                      <div className="font-semibold">
-                        ⚙️ Advanced Layouts
-                      </div>
-                      <div className="text-sm mt-1 opacity-80">
-                        {loadingDefault ? 'Loading...' : 'Edit HTML structure directly'}
-                      </div>
-                    </button>
-                    
-                    <div className="p-4 rounded-lg border bg-blue-50 border-blue-200 text-left">
-                      <div className="font-semibold text-blue-800">
-                        Pick a Theme
-                      </div>
-                      <div className="text-sm mt-1 text-blue-700">
-                        Choose from CSS templates below
+                      <div>
+                        <h5 className="font-medium text-thread-charcoal mb-2">Classic HTML Templates</h5>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Legacy templates with complete HTML and CSS for reference and starting points.
+                        </p>
+                        <select
+                          onChange={(e) => {
+                            const templateId = e.target.value;
+                            if (templateId) {
+                              const htmlTemplate = getHTMLTemplate(templateId);
+                              const templateName = HTML_TEMPLATES.find(t => t.id === templateId)?.name || templateId;
+
+                              showDataLossWarning(
+                                "Load Classic Template",
+                                `This will replace your current HTML and CSS with the "${templateName}" template. Any unsaved changes will be lost.`,
+                                () => {
+                                  const styleMatch = htmlTemplate.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+                                  const css = styleMatch ? styleMatch[1] : '';
+                                  const html = htmlTemplate.replace(/<style[^>]*>[\s\S]*?<\/style>/, '').trim();
+
+                                  setUseStandardLayout(false);
+                                  setTemplate(html);
+                                  setCustomCSS(css);
+                                  setCSSMode('disable');
+                                }
+                              );
+                              e.target.value = '';
+                            }
+                          }}
+                          className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 w-full"
+                          defaultValue=""
+                        >
+                          <option value="">Choose a classic template...</option>
+                          {HTML_TEMPLATES.map(template => (
+                            <option key={template.id} value={template.id}>
+                            {template.name}
+                          </option>
+                        ))}
+                        </select>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="bg-blue-100 rounded-lg p-3 text-sm text-blue-900">
-                    <strong>Fresh Start Mode:</strong> Perfect for CSS styling! The page layout is handled for you - just add your custom styles in the CSS tab.
-                    Great for beginners and those who want to focus on colors, fonts, and visual design.
+                  )}
+
+                  <div className="mt-4 pt-4 border-t border-gray-300">
+                    <p className="text-xs text-gray-600">
+                      💡 Templates provide starting points - customize them to match your style!
+                    </p>
                   </div>
                 </div>
-              )}
+              </details>
 
-              {/* Template Gallery */}
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <h4 className="font-semibold mb-2 text-thread-pine">
-                    Template Gallery
-                  </h4>
-                  <div className="flex gap-2">
-                    <select
-                      onChange={(e) => {
-                        const selectedTemplate = TEMPLATE_EXAMPLES[e.target.value as keyof typeof TEMPLATE_EXAMPLES];
-                        if (selectedTemplate) {
-                          showDataLossWarning(
-                            "Load Component Template",
-                            `This will replace your current HTML and CSS with the "${selectedTemplate.name || e.target.value}" template. Any unsaved changes will be lost.`,
-                            () => {
-                              setUseStandardLayout(false); // Switch to custom template mode
-                              setTemplate(selectedTemplate.template);
-                              setCustomCSS(selectedTemplate.css);
-                              setCSSMode('disable');
-                            }
-                          );
-                          e.target.value = ''; // Reset selector
-                        }
-                      }}
-                      className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                      defaultValue=""
-                    >
-                      <option value="">Modern Templates</option>
-                      {Object.entries(TEMPLATE_EXAMPLES).map(([key, template]) => (
-                        <option key={key} value={key}>
-                          {template.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <select
-                      onChange={(e) => {
-                        const templateId = e.target.value;
-                        if (templateId) {
-                          const htmlTemplate = getHTMLTemplate(templateId);
-                          const templateName = HTML_TEMPLATES.find(t => t.id === templateId)?.name || templateId;
-                          
-                          showDataLossWarning(
-                            "Load Legacy Template",
-                            `This will replace your current HTML and CSS with the "${templateName}" template. Any unsaved changes will be lost.`,
-                            () => {
-                              // Parse out the CSS from the HTML template
-                              const styleMatch = htmlTemplate.match(/<style[^>]*>([\s\S]*?)<\/style>/);
-                              const css = styleMatch ? styleMatch[1] : '';
-                              const html = htmlTemplate.replace(/<style[^>]*>[\s\S]*?<\/style>/, '').trim();
-                              
-                              setUseStandardLayout(false); // Switch to custom template mode
-                              setTemplate(html);
-                              setCustomCSS(css);
-                              setCSSMode('disable'); // HTML templates use disable mode
-                            }
-                          );
-                          e.target.value = ''; // Reset selector
-                        }
-                      }}
-                      className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                      defaultValue=""
-                    >
-                      <option value="">Classic Templates</option>
-                      {HTML_TEMPLATES.map(template => (
-                        <option key={template.id} value={template.id}>
-                          {template.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Pick a template to get started quickly, then customize it to your liking!
-                  </p>
-                </div>
+              {/* Action Bar */}
+              <div className="flex items-center justify-between">
+                <a
+                  href="/design-tutorial"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
+                >
+                  📚 Design Guide
+                </a>
 
                 <div className="flex items-center gap-3">
-                  <a 
-                    href="/design-tutorial" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-800 rounded-lg text-sm font-medium hover:bg-purple-200 transition-colors"
-                  >
-                    Need Help?
-                  </a>
-                  
                   {saveMessage && (
                     <span className={`text-sm font-medium px-3 py-2 rounded-lg ${
-                      saveMessage.includes('✓') 
-                        ? 'text-green-700 bg-green-100' 
+                      saveMessage.includes('✓')
+                        ? 'text-green-700 bg-green-100'
                         : 'text-red-700 bg-red-100'
                     }`}>
                       {saveMessage}
                     </span>
                   )}
-                  
+
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
@@ -1338,50 +1426,25 @@ export default function EnhancedTemplateEditor({
             {/* HTML Code Editor - matching original style */}
             <div className="w-full">
               <div className="px-4 py-4">
-                {useStandardLayout ? (
-                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
-                    <div className="flex">
-                      <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">
-                          Standard Layout Mode
-                        </h3>
-                        <div className="mt-2 text-sm text-blue-700">
-                          <p>Your profile uses ThreadStead&apos;s default layout with navigation, blog tabs, guestbook, and all standard components.</p>
-                          <p className="mt-2"><strong>Navigation and site styling will work perfectly</strong> - no CSS loading issues!</p>
-                          <p className="mt-2">To customize colors, fonts, or spacing, use the <strong>CSS tab</strong> to add your styles, then check the <strong>Preview CSS tab</strong> to see how it looks!</p>
-                          <p className="mt-2 text-xs text-blue-600">Switch to &quot;Custom Template&quot; only if you need to modify the HTML structure or component layout.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
+                {!useStandardLayout && (
                   <>
                     <label className="block mb-3">
                       <span className="thread-label text-lg">Custom Template HTML</span>
                       <span className="text-sm text-thread-sage ml-2">Use Tab/Shift+Tab for indentation</span>
                     </label>
-                    <div className="mb-3 text-sm text-thread-sage bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
-                      <strong>Custom Template Mode:</strong> You can modify the HTML structure using Islands components. 
-                      This creates an editable version of the default layout that you can customize.
-                    </div>
                     
-                    {/* Navigation Toggle for Custom Templates */}
-                    <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          id="showNavigation"
-                          checked={showNavigation}
-                          onChange={(e) => setShowNavigation(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <label htmlFor="showNavigation" className="text-sm font-medium text-blue-800">
-                          Show Site Navigation
-                        </label>
-                      </div>
-                      <p className="text-xs text-blue-600 mt-1 ml-7">
-                        Check this to show the site navigation bar above your template. Uncheck for full template control.
-                      </p>
+                    {/* Navigation Toggle */}
+                    <div className="mb-3 flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="showNavigation"
+                        checked={showNavigation}
+                        onChange={(e) => setShowNavigation(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <label htmlFor="showNavigation" className="text-sm text-thread-sage">
+                        Show site navigation
+                      </label>
                     </div>
                     <textarea
                       value={template}
@@ -1478,8 +1541,7 @@ export default function EnhancedTemplateEditor({
                     <select
                       value={cssMode}
                       onChange={(e) => setCSSMode(e.target.value as 'inherit' | 'override' | 'disable')}
-                      className="text-xs px-2 py-1 border border-thread-sage rounded bg-thread-paper hover:bg-thread-cream"
-                      disabled={useStandardLayout} // Standard layout should always inherit
+                      className="text-xs px-2 py-1 border border-thread-sage rounded bg-thread-paper hover:bg-thread-cream focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
                     >
                       <option value="inherit">Inherit (add styles to site defaults)</option>
                       <option value="override">Override (your CSS takes precedence)</option>
@@ -1586,46 +1648,59 @@ export default function EnhancedTemplateEditor({
                   })()}
                 </label>
                 
-                {/* CSS Mode Explanation */}
-                <div className={`mb-3 text-sm p-3 rounded border-l-4 ${
-                  cssMode === 'inherit' 
-                    ? 'bg-green-50 border-green-400 text-green-700'
+                {/* Enhanced CSS Mode Explainer */}
+                <div className={`mb-3 text-sm p-4 rounded-lg border-2 ${
+                  cssMode === 'inherit'
+                    ? 'bg-green-50 border-green-300 text-green-800'
                     : cssMode === 'override'
-                    ? 'bg-yellow-50 border-yellow-400 text-yellow-700' 
-                    : 'bg-red-50 border-red-400 text-red-700'
+                    ? 'bg-yellow-50 border-yellow-300 text-yellow-800'
+                    : 'bg-red-50 border-red-300 text-red-800'
                 }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold text-base">
+                      {cssMode === 'inherit' && '✅ Inherit Mode'}
+                      {cssMode === 'override' && '⚠️ Override Mode'}
+                      {cssMode === 'disable' && '🚫 Disable Mode'}
+                    </span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      cssMode === 'inherit'
+                        ? 'bg-green-100 text-green-700'
+                        : cssMode === 'override'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {useStandardLayout ? 'Standard Layout' : 'Custom Template'}
+                    </span>
+                  </div>
+
                   {cssMode === 'inherit' && (
-                    <>
-                      <strong>Inherit Mode:</strong> Your CSS will extend the site&apos;s default styles. 
-                      Navigation, colors, and typography will use ThreadStead&apos;s design system. 
-                      {useStandardLayout ? ' Perfect for styling the standard layout.' : ' Great for custom templates that want to feel integrated.'}
-                    </>
+                    <div className="space-y-2">
+                      <p><strong>How it works:</strong> Your CSS adds to ThreadStead&apos;s base styles</p>
+                      <p><strong>Best for:</strong> {useStandardLayout ? 'Styling the standard layout with colors, fonts, and effects' : 'Custom templates that want to feel integrated with the site'}</p>
+                      <p><strong>Result:</strong> Navigation, buttons, and layout components keep their ThreadStead styling while your customizations are applied on top</p>
+                    </div>
                   )}
+
                   {cssMode === 'override' && (
-                    <>
-                      <strong>⚠️ Override Mode:</strong> Your CSS takes precedence over site styles. 
-                      You can completely change colors, fonts, and layout while keeping navigation functional.
-                      {useStandardLayout && ' Note: This affects the entire profile page appearance.'}
-                      {!useStandardLayout && (
-                        <>
-                          <br/><br/>
-                          <strong>💡 Styling Help:</strong> See the <a href="/examples/advanced-template-styling-guide.md" target="_blank" className="text-blue-600 hover:text-blue-800 underline">Advanced Template Styling Guide</a> for examples of how to style ThreadStead components.
-                        </>
-                      )}
-                    </>
+                    <div className="space-y-2">
+                      <p><strong>How it works:</strong> Your CSS takes priority over ThreadStead&apos;s styles</p>
+                      <p><strong>Best for:</strong> Major visual redesigns while keeping site functionality</p>
+                      <p><strong>Result:</strong> You can completely change colors, fonts, and layout appearance. Navigation remains functional but styled by you</p>
+                      {useStandardLayout && <p className="text-yellow-900"><strong>Note:</strong> This affects the entire profile page appearance including navigation</p>}
+                    </div>
                   )}
+
                   {cssMode === 'disable' && (
-                    <>
-                      <strong>🚫 Disable Mode:</strong> Complete CSS control - site styles are disabled. 
-                      You must style everything from scratch. Consider hiding navigation for full template control.
-                      {useStandardLayout && ' Warning: Standard layout requires site CSS to function properly.'}
-                      {!useStandardLayout && (
-                        <>
-                          <br/><br/>
-                          <strong>💡 Styling Help:</strong> Check out our <a href="/examples/advanced-template-styling-guide.md" target="_blank" className="text-blue-600 hover:text-blue-800 underline">styling guide</a> and <a href="/examples/threadstead-component-styling.css" target="_blank" className="text-blue-600 hover:text-blue-800 underline">CSS examples</a> for ThreadStead components.
-                        </>
+                    <div className="space-y-2">
+                      <p><strong>How it works:</strong> All ThreadStead CSS is disabled - you style everything</p>
+                      <p><strong>Best for:</strong> {useStandardLayout ? 'NOT RECOMMENDED for standard layout' : 'Custom templates with complete visual control (Visual Builder uses this mode)'}</p>
+                      <p><strong>Result:</strong> You must style buttons, navigation, layouts from scratch. Complete creative freedom but more work</p>
+                      {useStandardLayout && (
+                        <div className="bg-red-100 border border-red-200 rounded p-2 mt-2">
+                          <p className="text-red-900 font-medium">⚠️ Warning: Standard layout needs ThreadStead CSS to function properly. Consider switching to Custom Template mode instead.</p>
+                        </div>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
                 <textarea
@@ -1680,43 +1755,159 @@ body {
           </div>
         )}
 
-        {/* Visual Builder Tab */}
+        {/* Visual Builder Tab - Premium Full-Screen Experience */}
         {activeTab === 'visual' && editorMode === 'visual' && (
-          <div className="fixed inset-0 bg-white flex flex-col" style={{ zIndex: 10002 }}>
-            {/* Visual Builder Header */}
-            <div className="flex justify-between items-center px-4 py-2 bg-thread-cream border-b border-thread-sage">
-              <div className="flex items-center gap-4">
-                <h2 className="text-lg font-semibold text-thread-charcoal">Visual Template Builder</h2>
-                <div className="text-sm text-thread-charcoal/70 bg-white px-3 py-1 rounded border">
-                  💡 Drag components from the left palette to the canvas to build your template
+          <div className="fixed inset-0 bg-gradient-to-br from-purple-50 via-white to-blue-50 flex flex-col z-[9999]">
+            {/* Premium Visual Builder Header */}
+            <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-purple-200 px-6 py-3 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => handleModeSwitch('code')}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all text-sm font-medium"
+                  >
+                    <span>←</span>
+                    <span>Exit Builder</span>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">✨</span>
+                    <div>
+                      <h3 className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+                        Visual Template Builder
+                      </h3>
+                      <span className="text-xs text-gray-600">Professional design tools at your fingertips</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                      30+ Components
+                    </span>
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                      Responsive Design
+                    </span>
+                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                      Live Preview
+                    </span>
+                    {/* Dev Testing Button - Remove in production */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <button
+                        onClick={() => setShowVisualBuilderWelcome(true)}
+                        className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium hover:bg-yellow-200"
+                        title="Show welcome modal again (dev only)"
+                      >
+                        🔄 Show Welcome
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleModeSwitch('code')}
-                  className="px-3 py-1 text-sm bg-thread-sage text-white rounded hover:bg-thread-charcoal transition-colors"
-                >
-                  ← Back to Code Editor
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={onSave ? () => onSave(template, customCSS, compiledTemplate || undefined, cssMode, showNavigation) : undefined}
-                  disabled={isSaving}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors text-sm"
-                >
-                  {isSaving ? 'Saving...' : 'Save Template'}
-                </button>
+                <div className="flex items-center gap-2">
+                  {saveMessage && (
+                    <span className={`text-sm px-2 py-1 rounded ${
+                      saveMessage.includes('✓')
+                        ? 'text-green-700 bg-green-100'
+                        : 'text-red-700 bg-red-100'
+                    }`}>
+                      {saveMessage}
+                    </span>
+                  )}
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 transition-all shadow-md hover:shadow-lg text-sm"
+                  >
+                    {isSaving ? (
+                      <span className="flex items-center gap-2">
+                        <span className="animate-spin">⏳</span>
+                        Saving...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <span>💾</span>
+                        Save & Publish
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Visual Builder Content */}
-            <div className="flex-1 overflow-hidden">
+            {/* Welcome Modal for First-Time Users - Press 'W' key to show again in dev mode */}
+            {showVisualBuilderWelcome && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] animate-fadeIn">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden animate-slideUp">
+                  <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
+                    <div className="flex items-center gap-3">
+                      <span className="text-4xl">✨</span>
+                      <div>
+                        <h2 className="text-2xl font-bold">Welcome to Visual Builder Pro</h2>
+                        <p className="opacity-90">Design your perfect profile - no coding required</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="text-center">
+                        <div className="text-3xl mb-2">🎨</div>
+                        <h3 className="font-semibold mb-1">Drag & Drop</h3>
+                        <p className="text-sm text-gray-600">Simply drag components onto your canvas</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl mb-2">⚡</div>
+                        <h3 className="font-semibold mb-1">Live Preview</h3>
+                        <p className="text-sm text-gray-600">See changes instantly as you design</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl mb-2">📱</div>
+                        <h3 className="font-semibold mb-1">Responsive</h3>
+                        <p className="text-sm text-gray-600">Automatically adapts to all screen sizes</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+                      <h4 className="font-semibold text-purple-900 mb-2">Quick Start Options:</h4>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="start" defaultChecked className="text-purple-600" />
+                          <span className="text-sm">Start with a professional template</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="start" className="text-purple-600" />
+                          <span className="text-sm">Start from scratch</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowVisualBuilderWelcome(false)}
+                        className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+                      >
+                        Get Started
+                      </button>
+                      <button
+                        onClick={() => setShowVisualBuilderWelcome(false)}
+                        className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                      >
+                        Skip for now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Visual Builder - Full Screen Space */}
+            <div className={`flex-1 min-h-0 overflow-hidden transition-all ${
+              showVisualBuilderWelcome ? 'blur-sm pointer-events-none' : ''
+            }`}>
               <VisualTemplateBuilder
                 initialTemplate={customCSS && customCSS.trim() && !customCSS.includes('/* Add your custom CSS here */')
                   ? `<style>\n${customCSS}\n</style>\n${template}`
                   : template}
                 onTemplateChange={handleVisualTemplateChange}
                 residentData={residentData || undefined}
-                className="h-full"
+                className="h-full w-full"
               />
             </div>
           </div>
@@ -1773,5 +1964,6 @@ body {
         message={warningDialog.message}
       />
     </div>
+    </>
   );
 }
