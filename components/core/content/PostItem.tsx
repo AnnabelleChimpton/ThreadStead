@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
-import { TextWithEmojis, HtmlWithEmojis, markdownToSafeHtmlWithEmojis, processHtmlWithEmojis } from "@/lib/comment-markup";
+import { TextWithEmojis, HtmlWithEmojis, MarkdownWithEmojis, markdownToSafeHtmlWithEmojis, processHtmlWithEmojis } from "@/lib/comment-markup";
 import hljs from "highlight.js"; // Ensure highlight.js is imported
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../../ui/forms/NewCommentForm";
@@ -444,8 +444,10 @@ const countLabel = hasServerCount
                 )}
 
                 {/* Post Content */}
-                <div className={isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}>
-                  {post.bodyHtml ? (
+                <div className={`thread-content ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}`}>
+                  {post.bodyMarkdown ? (
+                    <MarkdownWithEmojis markdown={post.bodyMarkdown} />
+                  ) : post.bodyHtml ? (
                     <HtmlWithEmojis html={post.bodyHtml} />
                   ) : post.bodyText ? (
                     <p><TextWithEmojis text={post.bodyText} /></p>

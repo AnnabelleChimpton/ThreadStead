@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/router";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { markdownToSafeHtmlWithEmojis, processHtmlWithEmojis, loadEmojiMap } from "@/lib/comment-markup";
 import CommentList, { CommentWire } from "./CommentList";
@@ -48,6 +49,7 @@ type FeedPostProps = {
 
 export default function FeedPost({ post, showActivity = false }: FeedPostProps) {
   const { me } = useMe();
+  const router = useRouter();
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentsVersion, setCommentsVersion] = useState(0);
   const [actualCommentCount, setActualCommentCount] = useState<number | null>(null);
@@ -63,12 +65,12 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
     async function processContent() {
       try {
         let html: string;
-        if (post.bodyHtml) {
+        if (post.bodyMarkdown) {
+          html = await markdownToSafeHtmlWithEmojis(post.bodyMarkdown);
+        } else if (post.bodyHtml) {
           html = cleanAndNormalizeHtml(post.bodyHtml);
           await loadEmojiMap();
           html = processHtmlWithEmojis(html);
-        } else if (post.bodyMarkdown) {
-          html = await markdownToSafeHtmlWithEmojis(post.bodyMarkdown);
         } else if (post.bodyText) {
           html = post.bodyText.replace(/\n/g, "<br>");
           await loadEmojiMap();
@@ -85,10 +87,10 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
         if (!cancelled) {
           // Fallback to original processing
           let fallbackHtml: string;
-          if (post.bodyHtml) {
-            fallbackHtml = cleanAndNormalizeHtml(post.bodyHtml);
-          } else if (post.bodyMarkdown) {
+          if (post.bodyMarkdown) {
             fallbackHtml = markdownToSafeHtml(post.bodyMarkdown);
+          } else if (post.bodyHtml) {
+            fallbackHtml = cleanAndNormalizeHtml(post.bodyHtml);
           } else if (post.bodyText) {
             fallbackHtml = post.bodyText.replace(/\n/g, "<br>");
           } else {
@@ -141,7 +143,14 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
     setActualCommentCount(count);
   };
 
-  // Post actions (for now, just basic delete - FeedPost doesn't support editing)
+  // Post actions
+  function handleEdit() {
+    // Navigate to edit page
+    if (post.authorUsername) {
+      router.push(`/resident/${post.authorUsername}/post/${post.id}/edit`);
+    }
+  }
+
   async function mintPostCap(): Promise<string> {
     const capRes = await fetch("/api/cap/post", { method: "POST" });
     if (capRes.status === 401) throw new Error("Please log in.");
@@ -257,9 +266,9 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
           }}
           isOwner={isOwner}
           isAdmin={isAdmin}
+          onEdit={handleEdit}
           onDelete={deletePost}
           onAdminDelete={adminDeletePost}
-          // Note: FeedPost doesn't support editing, so no onEdit
         />
       </header>
 

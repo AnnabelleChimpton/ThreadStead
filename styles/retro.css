@@ -186,6 +186,280 @@ a:hover {
   padding: 0;
 }
 
+/* Markdown content styling */
+.thread-content ul,
+.thread-content ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  list-style-position: outside;
+}
+
+.thread-content ul {
+  list-style-type: disc;
+}
+
+.thread-content ol {
+  list-style-type: decimal;
+}
+
+.thread-content li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+  display: list-item;
+}
+
+.thread-content li > ul,
+.thread-content li > ol {
+  margin: 0.5rem 0;
+}
+
+/* Ensure lists work properly even when they follow headers */
+.thread-content h1 + ul,
+.thread-content h2 + ul,
+.thread-content h3 + ul,
+.thread-content h4 + ul,
+.thread-content h5 + ul,
+.thread-content h6 + ul,
+.thread-content p + ul {
+  margin-top: 0.5rem;
+}
+
+/* Custom numbered items (for user's reverse ranking) */
+.thread-content p {
+  margin: 0.5rem 0;
+}
+
+/* Ensure escaped periods render correctly for custom numbering */
+.thread-content p:has-text("\.") {
+  font-weight: normal;
+}
+
+.thread-content strong,
+.thread-content b {
+  font-weight: 600;
+  color: #2E4B3F;
+}
+
+.thread-content em,
+.thread-content i {
+  font-style: italic;
+}
+
+.thread-content a {
+  color: #2E4B3F;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s ease;
+}
+
+.thread-content a:hover {
+  color: #1d3025;
+  text-decoration-thickness: 2px;
+}
+
+.thread-content img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(46, 75, 63, 0.15);
+}
+
+.thread-content hr {
+  border: none;
+  border-top: 2px solid rgba(161, 132, 99, 0.3);
+  margin: 2rem 0;
+}
+
+/* Markdown Tables */
+.thread-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  background: #F5E9D4;
+  border: 1px solid rgba(161, 132, 99, 0.3);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(46, 75, 63, 0.08);
+}
+
+.thread-content th,
+.thread-content td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(161, 132, 99, 0.2);
+  border-right: 1px solid rgba(161, 132, 99, 0.2);
+  line-height: 1.5;
+}
+
+.thread-content th:last-child,
+.thread-content td:last-child {
+  border-right: none;
+}
+
+.thread-content th {
+  background: rgba(46, 75, 63, 0.05);
+  font-weight: 600;
+  color: #2E4B3F;
+  border-bottom: 2px solid rgba(161, 132, 99, 0.3);
+}
+
+.thread-content tr:last-child td {
+  border-bottom: none;
+}
+
+.thread-content tr:nth-child(even) {
+  background: rgba(161, 132, 99, 0.03);
+}
+
+.thread-content tr:hover {
+  background: rgba(161, 132, 99, 0.08);
+}
+
+/* Responsive tables for mobile */
+@media (max-width: 640px) {
+  .thread-content table {
+    font-size: 0.875rem;
+    margin: 1rem 0;
+  }
+
+  .thread-content th,
+  .thread-content td {
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Make tables horizontally scrollable on mobile */
+  .thread-content table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .thread-content thead,
+  .thread-content tbody,
+  .thread-content tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+}
+
+/* Task Lists / Checkboxes */
+.thread-content .task-list-item {
+  list-style: none;
+  margin: 0.25rem 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding-left: 0;
+}
+
+.thread-content .task-list-item-checkbox {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #A18463;
+  border-radius: 3px;
+  background: #F5E9D4;
+  cursor: pointer;
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.thread-content .task-list-item-checkbox:checked {
+  background: #2E4B3F;
+  border-color: #2E4B3F;
+}
+
+.thread-content .task-list-item-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: -2px;
+  left: 1px;
+  color: #F5E9D4;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.thread-content .task-list-item-checkbox:hover {
+  border-color: #2E4B3F;
+  box-shadow: 0 0 0 2px rgba(46, 75, 63, 0.1);
+}
+
+.thread-content .task-list-item-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* GitHub-style task list styling */
+.thread-content ul.contains-task-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.thread-content ul.contains-task-list li {
+  list-style: none;
+}
+
+/* Footnotes styling */
+.thread-content .footnotes {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(161, 132, 99, 0.3);
+  font-size: 0.9rem;
+  color: #5A5A5A;
+}
+
+.thread-content .footnotes hr {
+  display: none; /* Hide the default hr since we have our own border */
+}
+
+.thread-content .footnotes ol {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.thread-content .footnotes li {
+  margin: 0.5rem 0;
+  line-height: 1.5;
+  padding: 0.25rem 0;
+}
+
+.thread-content .footnote-ref {
+  color: #2E4B3F;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 0 2px;
+  transition: background-color 0.2s ease;
+}
+
+.thread-content .footnote-ref:hover {
+  background-color: rgba(161, 132, 99, 0.1);
+  text-decoration: none;
+}
+
+.thread-content .footnote-backref {
+  color: #A18463;
+  text-decoration: none;
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.thread-content .footnote-backref:hover {
+  opacity: 1;
+  text-decoration: none;
+}
+
+/* Smooth scrolling for footnote navigation */
+html {
+  scroll-behavior: smooth;
+}
+
 /* Accessibility with warm focus */
 :focus-visible {
   outline: 2px solid #4FAF6D;

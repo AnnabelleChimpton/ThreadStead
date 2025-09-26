@@ -19,7 +19,7 @@ const Preview = ({ content }: { content: string }) => {
 
   return (
     <div
-      className="preview-content"
+      className="thread-content preview-content"
       dangerouslySetInnerHTML={{ __html: htmlContent }}
     />
   );

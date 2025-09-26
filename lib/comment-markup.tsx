@@ -93,7 +93,7 @@ function parseInline(text: string): (string | ParsedContent)[] {
         parts.push(current);
         current = '';
       }
-      
+
       const endMatch = rest.slice(2).match(/^(.*?)\*\*/);
       if (endMatch && endMatch[1]) {
         parts.push({
@@ -104,14 +104,14 @@ function parseInline(text: string): (string | ParsedContent)[] {
         continue;
       }
     }
-    
+
     // Italic: *text* (but not if it's part of **)
     else if (char === '*' && nextChar !== '*' && text[i - 1] !== '*') {
       if (current) {
         parts.push(current);
         current = '';
       }
-      
+
       const endMatch = rest.slice(1).match(/^(.*?)\*/);
       if (endMatch && endMatch[1]) {
         parts.push({
@@ -122,7 +122,7 @@ function parseInline(text: string): (string | ParsedContent)[] {
         continue;
       }
     }
-    
+
     // Links: [text](url)
     else if (char === '[') {
       const linkMatch = rest.match(/^\[([^\]]+)\]\(([^\)]+)\)/);
@@ -131,7 +131,7 @@ function parseInline(text: string): (string | ParsedContent)[] {
           parts.push(current);
           current = '';
         }
-        
+
         const [fullMatch, linkText, linkUrl] = linkMatch;
         if (isValidUrl(linkUrl)) {
           parts.push({
@@ -147,20 +147,20 @@ function parseInline(text: string): (string | ParsedContent)[] {
         continue;
       }
     }
-    
+
     // Emojis: :emojiName:
     else if (char === ':') {
       const emojiMatch = rest.match(/^:([a-zA-Z0-9_-]+):/);
       if (emojiMatch) {
         const [fullMatch, emojiName] = emojiMatch;
         const emojiUrl = emojiMap.get(emojiName);
-        
+
         if (emojiUrl) {
           if (current) {
             parts.push(current);
             current = '';
           }
-          
+
           parts.push({
             type: 'emoji',
             content: fullMatch,
@@ -185,6 +185,47 @@ function parseInline(text: string): (string | ParsedContent)[] {
   return parts;
 }
 
+// React component for markdown rendering with emoji support
+export function MarkdownWithEmojis({ markdown }: { markdown: string }): React.ReactNode {
+  const [processedHtml, setProcessedHtml] = React.useState<string>("");
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function processMarkdown() {
+      try {
+        const html = await markdownToSafeHtmlWithEmojis(markdown);
+        if (!cancelled) {
+          setProcessedHtml(html);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Failed to process markdown with emojis:', error);
+        if (!cancelled) {
+          // Fall back to regular markdown processing
+          const { markdownToSafeHtml } = await import('@/lib/utils/sanitization/html');
+          const fallbackHtml = markdownToSafeHtml(markdown);
+          setProcessedHtml(fallbackHtml);
+          setIsLoading(false);
+        }
+      }
+    }
+
+    processMarkdown();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [markdown]);
+
+  if (isLoading) {
+    return <div className="text-gray-500">Loading...</div>;
+  }
+
+  return <div dangerouslySetInnerHTML={{ __html: processedHtml }} />;
+}
+
 // Process HTML content for emoji replacements
 export function processHtmlWithEmojis(html: string): string {
   // First load emojis if needed
@@ -206,7 +247,7 @@ export async function markdownToSafeHtmlWithEmojis(markdown: string): Promise<st
   // First convert markdown to HTML
   const { markdownToSafeHtml } = await import('@/lib/utils/sanitization/html');
   const html = markdownToSafeHtml(markdown);
-  
+
   // Then process emojis
   await loadEmojiMap();
   return processHtmlWithEmojis(html);
@@ -215,7 +256,7 @@ export async function markdownToSafeHtmlWithEmojis(markdown: string): Promise<st
 // Parse a single line and determine its type
 function parseLine(line: string): ParsedContent | string {
   const trimmed = line.trim();
-  
+
   // Quote: > text
   if (trimmed.startsWith('> ')) {
     return {
@@ -224,7 +265,7 @@ function parseLine(line: string): ParsedContent | string {
       children: parseInline(trimmed.slice(2)) as ParsedContent[],
     };
   }
-  
+
   // Bullet points: - text or * text
   if (trimmed.match(/^[\-\*] /)) {
     return {
@@ -233,13 +274,13 @@ function parseLine(line: string): ParsedContent | string {
       children: parseInline(trimmed.slice(2)) as ParsedContent[],
     };
   }
-  
+
   // Regular text with inline markup
   const inlineParts = parseInline(line);
   if (inlineParts.length === 1 && typeof inlineParts[0] === 'string') {
     return inlineParts[0];
   }
-  
+
   return {
     type: 'text',
     content: line,
@@ -264,38 +305,38 @@ export async function parseCommentMarkupWithEmojis(text: string): Promise<(Parse
 export function renderParsedContent(content: (ParsedContent | string)[], keyPrefix = 0): React.ReactNode {
   return content.map((item, index) => {
     const itemKey = `${keyPrefix}-${index}`;
-    
+
     if (typeof item === 'string') {
       return <span key={itemKey}>{item}</span>;
     }
-    
+
     switch (item.type) {
       case 'bold':
         return <strong key={itemKey} className="font-bold">{item.content}</strong>;
-        
+
       case 'italic':
         return <em key={itemKey} className="italic">{item.content}</em>;
-        
+
       case 'link':
         return (
-          <a 
+          <a
             key={itemKey}
-            href={item.url} 
-            target="_blank" 
+            href={item.url}
+            target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800 underline"
           >
             {item.content}
           </a>
         );
-        
+
       case 'quote':
         return (
           <blockquote key={itemKey} className="border-l-4 border-gray-300 pl-4 py-2 my-2 bg-gray-50 italic">
             {item.children ? renderParsedContent(item.children, index + 100) : item.content}
           </blockquote>
         );
-        
+
       case 'list-item':
         return (
           <div key={itemKey} className="flex items-start gap-2 my-1">
@@ -303,25 +344,25 @@ export function renderParsedContent(content: (ParsedContent | string)[], keyPref
             <span>{item.children ? renderParsedContent(item.children, index + 200) : item.content}</span>
           </div>
         );
-        
+
       case 'text':
         return (
           <span key={itemKey}>
             {item.children ? renderParsedContent(item.children, index + 300) : item.content}
           </span>
         );
-        
+
       case 'emoji':
         return (
-          <img 
+          <img
             key={itemKey}
-            src={item.emojiUrl} 
+            src={item.emojiUrl}
             alt={item.content}
             title={item.content}
             className="inline-block mx-1 align-text-bottom"
-            style={{ 
-              width: '20px', 
-              height: '20px', 
+            style={{
+              width: '20px',
+              height: '20px',
               display: 'inline-block',
               objectFit: 'contain',
               imageRendering: '-webkit-optimize-contrast',
@@ -337,7 +378,7 @@ export function renderParsedContent(content: (ParsedContent | string)[], keyPref
             }}
           />
         );
-        
+
       default:
         return <span key={itemKey}>{item.content}</span>;
     }
@@ -527,23 +568,23 @@ function parseEmojiText(text: string): React.ReactNode {
       if (emojiMatch) {
         const [fullMatch, emojiName] = emojiMatch;
         const emojiUrl = emojiMap.get(emojiName);
-        
+
         if (emojiUrl) {
           if (current) {
             parts.push(current);
             current = '';
           }
-          
+
           parts.push(
-            <img 
+            <img
               key={key++}
-              src={emojiUrl} 
+              src={emojiUrl}
               alt={fullMatch}
               title={fullMatch}
               className="inline-block mx-1 align-text-bottom"
-              style={{ 
-                width: '20px', 
-                height: '20px', 
+              style={{
+                width: '20px',
+                height: '20px',
                 display: 'inline-block',
                 objectFit: 'contain',
                 imageRendering: '-webkit-optimize-contrast',

@@ -75,6 +75,9 @@ const TOOLBAR_ITEMS = [
   { label: "Image", icon: "📷", action: "image", markdown: "![alt](url)" },
   { label: "Bullet List", icon: "•", action: "ul", markdown: "- " },
   { label: "Numbered List", icon: "1.", action: "ol", markdown: "1. " },
+  { label: "Task List", icon: "☑", action: "tasklist", markdown: "- [ ] " },
+  { label: "Table", icon: "⊞", action: "table", markdown: "| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |" },
+  { label: "Footnote", icon: "¹", action: "footnote", markdown: "[^1]" },
   { label: "Horizontal Rule", icon: "—", action: "hr", markdown: "---" },
 ];
 
@@ -446,6 +449,32 @@ export default function PostEditor({
       case "image":
         newValue = value.substring(0, start) + "![alt text](image-url)" + value.substring(end);
         newCursorPos = start + 2;
+        break;
+
+      case "tasklist":
+        const taskLineStart = value.lastIndexOf("\n", start - 1) + 1;
+        newValue = value.substring(0, taskLineStart) + "- [ ] " + value.substring(taskLineStart);
+        newCursorPos = taskLineStart + 6;
+        break;
+
+      case "table":
+        const tableMarkdown = "\n| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |\n";
+        newValue = value.substring(0, start) + tableMarkdown + value.substring(end);
+        newCursorPos = start + 11; // Position cursor after "| Header 1"
+        break;
+
+      case "footnote":
+        if (selectedText) {
+          // If text is selected, create both reference and definition
+          const footnoteRef = `[^1]`;
+          const footnoteDefinition = `\n\n[^1]: ${selectedText}`;
+          newValue = value.substring(0, start) + footnoteRef + value.substring(end) + footnoteDefinition;
+          newCursorPos = start + footnoteRef.length;
+        } else {
+          // Just insert a footnote reference
+          newValue = value.substring(0, start) + "[^1]" + value.substring(end);
+          newCursorPos = start + 3; // Position cursor after "[^1"
+        }
         break;
 
       case "hr":
