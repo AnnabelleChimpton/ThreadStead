@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { TextWithEmojis, HtmlWithEmojis, markdownToSafeHtmlWithEmojis, processHtmlWithEmojis } from "@/lib/comment-markup";
 import hljs from "highlight.js"; // Ensure highlight.js is imported
@@ -16,8 +17,6 @@ import { useWelcomeRingTracking } from "@/hooks/useWelcomeRingTracking";
 import { useViewportTracking, trackEngagement } from "@/hooks/usePostView";
 
 type Visibility = "public" | "followers" | "friends" | "private";
-type Mode = "text" | "markdown" | "html";
-type View = "write" | "preview";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 
@@ -72,23 +71,7 @@ export type Post = {
   };
 };
 
-const VIS_OPTS: { v: Visibility; label: string }[] = [
-  { v: "public", label: "Public" },
-  { v: "followers", label: "Followers" },
-  { v: "friends", label: "Friends" },
-  { v: "private", label: "Only Me" },
-];
 
-function escapeHtml(s: string) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function textToHtml(text: string) {
-  return `<p>${escapeHtml(text).replace(/\n/g, "<br/>")}</p>`;
-}
 
 export default function PostItem({
   post,
@@ -117,7 +100,7 @@ export default function PostItem({
   isUserMember?: boolean;
   viewContext?: 'feed' | 'profile' | 'ring' | 'widget';
 }) {
-  const initialMode: Mode = post.bodyHtml ? "html" : "text";
+  const router = useRouter();
 
   // Helper function to check if post has spoiler content from any source
   const isSpoilerPost = () => {
@@ -131,12 +114,6 @@ export default function PostItem({
     return post.contentWarning || post.ringHubData?.metadata?.contentWarning || null;
   };
 
-  const [editing, setEditing] = useState(false);
-  const [mode, setMode] = useState<Mode>(initialMode);
-  const [view, setView] = useState<View>("write");
-  const [title, setTitle] = useState<string>(post.title ?? "");
-  const [text, setText] = useState<string>(post.bodyHtml ?? post.bodyText ?? "");
-  const [vis, setVis] = useState<Visibility>(post.visibility);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(initialCommentsOpen);
@@ -201,62 +178,9 @@ const countLabel = hasServerCount
   ? String((commentCount ?? 0) + optimistic.length)
   : (optimistic.length ? `${optimistic.length}+` : "…");
 
-  // Convert text to HTML when necessary (with emoji processing state)
-  const [previewHtml, setPreviewHtml] = useState("<p class='opacity-60'>(Nothing to preview)</p>");
-  
-  useEffect(() => {
-    let cancelled = false;
-    
-    async function updatePreview() {
-      if (!text.trim()) {
-        setPreviewHtml("<p class='opacity-60'>(Nothing to preview)</p>");
-        return;
-      }
-      
-      try {
-        let html: string;
-        if (mode === "markdown") {
-          html = await markdownToSafeHtmlWithEmojis(text);
-        } else if (mode === "html") {
-          html = cleanAndNormalizeHtml(text);
-        } else {
-          html = textToHtml(text);
-        }
-        
-        // Process emojis for HTML and text content
-        if (mode === "html" || mode === "text") {
-          const { loadEmojiMap } = await import("@/lib/comment-markup");
-          await loadEmojiMap();
-          html = processHtmlWithEmojis(html);
-        }
-        
-        if (!cancelled) {
-          setPreviewHtml(html);
-        }
-      } catch (error) {
-        console.error('Failed to process post content:', error);
-        if (!cancelled) {
-          // Fallback to original processing without emojis
-          let fallbackHtml: string;
-          if (mode === "markdown") fallbackHtml = markdownToSafeHtml(text);
-          else if (mode === "html") fallbackHtml = cleanAndNormalizeHtml(text);
-          else fallbackHtml = textToHtml(text);
-          setPreviewHtml(fallbackHtml);
-        }
-      }
-    }
-    
-    updatePreview();
-    
-    return () => {
-      cancelled = true;
-    };
-  }, [text, mode]);
 
   // Function to apply syntax highlighting
   const highlightCodeBlocks = () => {
-    if (mode === "text") return; // Do not apply highlighting if in text mode
-
     const blocks = document.querySelectorAll("pre code");
     blocks.forEach((block) => {
       // Remove the highlighted state before applying highlighting again
@@ -267,10 +191,10 @@ const countLabel = hasServerCount
     });
   };
 
-  // UseEffect to apply highlighting whenever the content changes
+  // UseEffect to apply highlighting on mount
   useEffect(() => {
     highlightCodeBlocks();
-  }, [previewHtml, text, mode]);
+  }, []);
 
   async function mintPostCap(): Promise<string> {
     const capRes = await fetch("/api/cap/post", { method: "POST" });
@@ -280,34 +204,11 @@ const countLabel = hasServerCount
     return token;
   }
 
-  async function save() {
-    setBusy(true);
-    setErr(null);
-    try {
-      const token = await mintPostCap();
-      const payload: Record<string, any> = { id: post.id, visibility: vis, cap: token };
-      if (title.trim()) payload.title = title.trim();
-      if (mode === "markdown") payload.bodyMarkdown = text;
-      else if (mode === "html") payload.bodyHtml = text;
-      else payload.bodyText = text;
-
-      const res = await fetch("/api/posts/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(`save ${res.status}`);
-
-      setEditing(false);
-      setView("write");
-      await onChanged?.();
-      
-      // Force highlight code blocks after saving, just like switching to preview
-      highlightCodeBlocks();
-    } catch (e: any) {
-      setErr(e?.message || "Failed to save");
-    } finally {
-      setBusy(false);
+  function handleEdit() {
+    // Navigate to edit page
+    const authorUsername = post.author?.primaryHandle?.split('@')[0];
+    if (authorUsername) {
+      router.push(`/resident/${authorUsername}/post/${post.id}/edit`);
     }
   }
 
@@ -323,12 +224,9 @@ const countLabel = hasServerCount
         body: JSON.stringify({ id: post.id, cap: token }),
       });
       if (!res.ok) throw new Error(`delete ${res.status}`);
-      
+
       // Notify parent component that the post was removed
       await onChanged?.();
-
-      // Reapply highlighting after deleting and re-rendering
-      highlightCodeBlocks();
     } catch (e: any) {
       setErr(e?.message || "Failed to delete");
     } finally {
@@ -357,15 +255,6 @@ const countLabel = hasServerCount
     }
   }
 
-  function cancelEdit() {
-    setEditing(false);
-    setMode(initialMode);
-    setTitle(post.title ?? "");
-    setText(post.bodyHtml ?? post.bodyText ?? "");
-    setVis(post.visibility);
-    setView("write");
-    setErr(null);
-  }
 
   async function handlePinToggle() {
     if (!threadRingContext || !canModerateRing) return;
@@ -434,113 +323,38 @@ const countLabel = hasServerCount
         </div>
 
         <div className="blog-post-actions flex items-center gap-2">
-          {!editing ? (
-            <>
-              {/* Check if this is a fork notification - if so, don't show actions dropdown */}
-              {(() => {
-                const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
-                                          (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
-                
-                return !isForkNotification && (
-                  <PostActionsDropdown
-                    post={post}
-                    isOwner={isOwner}
-                    isAdmin={isAdmin}
-                    busy={busy}
-                    threadRingContext={threadRingContext}
-                    canModerateRing={canModerateRing}
-                    onEdit={() => setEditing(true)}
-                    onDelete={remove}
-                    onAdminDelete={adminDelete}
-                    onPinToggle={handlePinToggle}
-                    onRemoveFromRing={handleRemoveFromRing}
-                  />
-                );
-              })()}
-            </>
-          ) : (
-            <>
-              {/* Write / Preview toggle */}
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className={`px-2 py-0.5 border border-black text-xs shadow-[2px_2px_0_#000] ${view === "write" ? "bg-yellow-200" : "bg-white"}`}
-                  onClick={() => setView("write")}
-                >
-                  Write
-                </button>
-                <button
-                  type="button"
-                  className={`px-2 py-0.5 border border-black text-xs shadow-[2px_2px_0_#000] ${view === "preview" ? "bg-yellow-200" : "bg-white"}`}
-                  onClick={() => setView("preview")}
-                >
-                  Preview
-                </button>
-              </div>
+          {/* Check if this is a fork notification - if so, don't show actions dropdown */}
+          {(() => {
+            const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
+                                      (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
 
-              <select
-                className="border border-black bg-white px-2 py-1 text-xs"
-                value={vis}
-                onChange={(e) => setVis(e.target.value as Visibility)}
-                disabled={busy}
-                aria-label="Visibility"
-              >
-                {VIS_OPTS.map((o) => (
-                  <option key={o.v} value={o.v}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="border border-black bg-white px-2 py-1 text-xs"
-                value={mode}
-                onChange={(e) => setMode(e.target.value as Mode)}
-                disabled={busy}
-                aria-label="Mode"
-              >
-                <option value="text">Plain text</option>
-                <option value="markdown">Markdown</option>
-                <option value="html">Raw HTML</option>
-              </select>
-
-              <button
-                className="border border-black px-2 py-0.5 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] text-xs"
-                onClick={save}
-                disabled={busy}
-              >
-                {busy ? "Saving…" : "Save"}
-              </button>
-              <button
-                className="border border-black px-2 py-0.5 bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] text-xs"
-                onClick={cancelEdit}
-                disabled={busy}
-              >
-                Cancel
-              </button>
-              <button
-                className="border border-black px-2 py-0.5 bg-white hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs"
-                onClick={remove}
-                disabled={busy}
-              >
-                Delete
-              </button>
-            </>
-          )}
+            return !isForkNotification && (
+              <PostActionsDropdown
+                post={post}
+                isOwner={isOwner}
+                isAdmin={isAdmin}
+                busy={busy}
+                threadRingContext={threadRingContext}
+                canModerateRing={canModerateRing}
+                onEdit={handleEdit}
+                onDelete={remove}
+                onAdminDelete={adminDelete}
+                onPinToggle={handlePinToggle}
+                onRemoveFromRing={handleRemoveFromRing}
+              />
+            );
+          })()}
         </div>
       </div>
 
       <div className="blog-post-content">
-        {!editing ? (
-          <>
-            {/* Check for fork notification */}
-            {(() => {
-              // Check both metadata.type and notificationType for fork notifications
-              const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
-                                        (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
-              
-              return isForkNotification;
-            })() ? (
+        {/* Check for fork notification */}
+        {(() => {
+          const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
+                                    (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
+
+          if (isForkNotification) {
+            return (
               <div className="border border-black bg-white p-4 shadow-[2px_2px_0_#000]">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-8 h-8 bg-yellow-200 border border-black rounded-full flex items-center justify-center">
@@ -598,8 +412,11 @@ const countLabel = hasServerCount
                   </div>
                 </div>
               </div>
-            ) : (
-              <>
+            );
+          }
+
+          return (
+            <>
                 {/* Spoiler Warning - Works for both local and external posts */}
                 {isSpoilerPost() && !spoilerRevealed && (
                   <div className="mb-4 p-4 spoiler-warning rounded-lg">
@@ -636,69 +453,38 @@ const countLabel = hasServerCount
                     <div className="italic opacity-70">(No content)</div>
                   )}
                 </div>
-              </>
-            )}
-            
-            {/* ThreadRing badges */}
-            {post.threadRings && post.threadRings.length > 0 && (
-              <div className="mt-3 pt-2 border-t border-gray-200">
-                <div className="flex flex-wrap gap-2 items-center">
-                  <span className="text-xs text-gray-600 font-medium">Posted to:</span>
-                  {post.threadRings
-                    .filter((association) => association && association.threadRing && association.threadRing.id)
-                    .map((association) => (
-                      <ThreadRingBadge
-                        key={association.threadRing.id}
-                        threadRing={association.threadRing}
-                        size="small"
-                      />
-                    ))}
-                </div>
-              </div>
-            )}
 
-            {/* Ring Hub moderation actions */}
-            {showRingHubModeration && (
-              <PostModerationActions
-                postId={post.ringHubPostId!}
-                currentStatus={post.moderationStatus}
-                isPinned={post.isPinned}
-                canModerate={moderationPermissions.canModerate}
-                onModerationAction={handleRingHubModerationAction}
-              />
-            )}
-          </>
-        ) : view === "write" ? (
-          <div className="space-y-2">
-            <input
-              type="text"
-              className="w-full border border-black p-2 bg-white font-sans text-lg font-semibold"
-              placeholder="Post title (optional)"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              disabled={busy}
-            />
-            <textarea
-              className="blog-post-editor w-full border border-black p-2 bg-white font-sans"
-              rows={mode === "html" ? 10 : mode === "markdown" ? 8 : 5}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              disabled={busy}
-            />
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {title.trim() && (
-              <div className="text-xl font-semibold text-black border-b border-gray-300 pb-2">
-                {title}
-              </div>
-            )}
-            <div
-              className="blog-post-preview border border-black p-3 bg-white min-h-[120px]"
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
-            />
-          </div>
-        )}
+                {/* ThreadRing badges */}
+                {post.threadRings && post.threadRings.length > 0 && (
+                  <div className="mt-3 pt-2 border-t border-gray-200">
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="text-xs text-gray-600 font-medium">Posted to:</span>
+                      {post.threadRings
+                        .filter((association) => association && association.threadRing && association.threadRing.id)
+                        .map((association) => (
+                          <ThreadRingBadge
+                            key={association.threadRing.id}
+                            threadRing={association.threadRing}
+                            size="small"
+                          />
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Ring Hub moderation actions */}
+                {showRingHubModeration && (
+                  <PostModerationActions
+                    postId={post.ringHubPostId!}
+                    currentStatus={post.moderationStatus}
+                    isPinned={post.isPinned}
+                    canModerate={moderationPermissions.canModerate}
+                    onModerationAction={handleRingHubModerationAction}
+                  />
+                )}
+            </>
+          );
+        })()}
       </div>
 
       {err && <div className="text-red-700 text-sm mt-2">{err}</div>}
