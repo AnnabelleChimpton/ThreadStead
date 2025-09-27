@@ -4,9 +4,13 @@ import DecorationIcon from './DecorationIcon'
 import DecorationSVG from './DecorationSVG'
 import ThemePicker from './ThemePicker'
 import TouchDecorationPlacer from './TouchDecorationPlacer'
-import MobileItemPalette from './MobileItemPalette'
+import DecorationPalette from './DecorationPalette'
+import DecorationGridOverlay, { MagneticGridOverlay } from './DecorationGridOverlay'
+import AnimatedDecoration, { DeletionAnimation, ActionFeedback } from './DecorationAnimations'
 import useIsMobile, { useIsTouch, usePrefersReducedMotion } from '../../hooks/useIsMobile'
+import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping'
 import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
+import { DEFAULT_DECORATION_GRID, DecorationGridConfig } from '@/lib/pixel-homes/decoration-grid-utils'
 
 // Import palette colors to convert themes to explicit colors
 const PALETTE_COLORS = {
@@ -60,12 +64,17 @@ interface DecorationModeProps {
 
 interface DecorationItem {
   id: string
-  type: 'plant' | 'path' | 'feature' | 'seasonal' | 'house_custom' | 'house_color'
-  zone: 'front_yard' | 'house_facade' | 'background'
-  position: { x: number; y: number; layer?: number }
+  name: string
+  type: 'plant' | 'path' | 'feature' | 'seasonal' | 'furniture' | 'lighting' | 'water' | 'structure' | 'house_custom' | 'house_color'
+  zone?: 'front_yard' | 'house_facade' | 'background'
+  position?: { x: number; y: number; layer?: number }
   variant?: string
   size?: 'small' | 'medium' | 'large'
   color?: string  // For house color items
+  gridPosition?: { gridX: number; gridY: number; width: number; height: number }
+  section?: string
+  isDefault?: boolean
+  [key: string]: any
 }
 
 // Type alias for decorations compatible with EnhancedHouseCanvas
@@ -84,15 +93,21 @@ interface AtmosphereSettings {
   timeOfDay: 'morning' | 'midday' | 'evening' | 'night'
 }
 
-// Beta item collection - simple starter items
+// Comprehensive decoration collection with all new items
 const BETA_ITEMS = {
   plants: [
     { id: 'roses_red', name: 'Red Roses', type: 'plant', zone: 'front_yard' },
+    { id: 'roses_pink', name: 'Pink Roses', type: 'plant', zone: 'front_yard' },
+    { id: 'roses_white', name: 'White Roses', type: 'plant', zone: 'front_yard' },
     { id: 'daisies_white', name: 'White Daisies', type: 'plant', zone: 'front_yard' },
+    { id: 'daisies_yellow', name: 'Yellow Daisies', type: 'plant', zone: 'front_yard' },
     { id: 'small_tree', name: 'Small Tree', type: 'plant', zone: 'front_yard' },
+    { id: 'tree_oak', name: 'Oak Tree', type: 'plant', zone: 'front_yard' },
+    { id: 'tree_pine', name: 'Pine Tree', type: 'plant', zone: 'front_yard' },
     { id: 'sunflowers', name: 'Sunflowers', type: 'plant', zone: 'front_yard' },
     { id: 'lavender', name: 'Lavender', type: 'plant', zone: 'front_yard' },
-    { id: 'flower_pot', name: 'Flower Pot', type: 'plant', zone: 'front_yard' }
+    { id: 'flower_pot', name: 'Flower Pot', type: 'plant', zone: 'front_yard' },
+    { id: 'planter_box', name: 'Planter Box', type: 'furniture', zone: 'front_yard' }
   ],
   paths: [
     { id: 'stone_path', name: 'Stone Path', type: 'path', zone: 'front_yard' },
@@ -105,6 +120,29 @@ const BETA_ITEMS = {
     { id: 'garden_gnome', name: 'Garden Gnome', type: 'feature', zone: 'front_yard' },
     { id: 'decorative_fence', name: 'Decorative Fence', type: 'feature', zone: 'front_yard' },
     { id: 'wind_chimes', name: 'Wind Chimes', type: 'feature', zone: 'front_yard' }
+  ],
+  furniture: [
+    { id: 'garden_bench', name: 'Garden Bench', type: 'furniture', zone: 'front_yard' },
+    { id: 'outdoor_table', name: 'Outdoor Table', type: 'furniture', zone: 'front_yard' },
+    { id: 'mailbox', name: 'Mailbox', type: 'furniture', zone: 'front_yard' },
+    { id: 'planter_box', name: 'Planter Box', type: 'furniture', zone: 'front_yard' },
+    { id: 'picnic_table', name: 'Picnic Table', type: 'furniture', zone: 'front_yard' }
+  ],
+  lighting: [
+    { id: 'garden_lantern', name: 'Garden Lantern', type: 'lighting', zone: 'front_yard' },
+    { id: 'string_lights', name: 'String Lights', type: 'lighting', zone: 'front_yard' },
+    { id: 'torch', name: 'Garden Torch', type: 'lighting', zone: 'front_yard' },
+    { id: 'spotlight', name: 'Spotlight', type: 'lighting', zone: 'front_yard' }
+  ],
+  water: [
+    { id: 'fountain', name: 'Garden Fountain', type: 'water', zone: 'front_yard' },
+    { id: 'pond', name: 'Small Pond', type: 'water', zone: 'front_yard' },
+    { id: 'rain_barrel', name: 'Rain Barrel', type: 'water', zone: 'front_yard' }
+  ],
+  structures: [
+    { id: 'gazebo', name: 'Garden Gazebo', type: 'structure', zone: 'front_yard' },
+    { id: 'trellis', name: 'Garden Trellis', type: 'structure', zone: 'front_yard' },
+    { id: 'garden_arch', name: 'Garden Arch', type: 'structure', zone: 'front_yard' }
   ],
   atmosphere: [
     { id: 'sunny_sky', name: 'Sunny Day', type: 'sky', zone: 'background' },
@@ -192,6 +230,100 @@ export default function DecorationMode({
     future: DecorationItem[][]
   }>({ past: [], present: [], future: [] })
   const [showThemeConfirm, setShowThemeConfirm] = useState<{show: boolean, template: HouseTemplate, palette: ColorPalette}>({show: false, template: 'cottage_v1', palette: 'thread_sage'})
+
+  // Grid system state
+  const [gridConfig, setGridConfig] = useState<DecorationGridConfig>(DEFAULT_DECORATION_GRID)
+  const [mousePosition, setMousePosition] = useState<{x: number, y: number} | undefined>()
+
+  // Animation and feedback state
+  const [animatedDecorations, setAnimatedDecorations] = useState<Map<string, 'place' | 'remove' | 'select' | 'hover'>>(new Map())
+  const [deletionAnimations, setDeletionAnimations] = useState<Array<{id: string, position: {x: number, y: number}}>>([])
+  const [actionFeedback, setActionFeedback] = useState<Array<{
+    id: string,
+    type: 'success' | 'error' | 'info' | 'warning',
+    position: {x: number, y: number},
+    message: string
+  }>>([])
+  const [recentlyPlaced, setRecentlyPlaced] = useState<Set<string>>(new Set())
+
+  // Initialize snapping system
+  const {
+    snapDecoration,
+    updatePreview,
+    clearPreview,
+    isSnapping,
+    toggleSnapping,
+    previewPosition: snapPreview
+  } = useDecorationSnapping({
+    gridConfig,
+    decorations: placedDecorations.filter(d => !['house_custom', 'house_color'].includes(d.type)) as Array<{
+      id: string
+      type: 'plant' | 'path' | 'feature' | 'seasonal' | 'furniture' | 'lighting' | 'water' | 'structure'
+      zone: 'front_yard' | 'house_facade' | 'background'
+      position: { x: number; y: number; layer?: number }
+      variant?: string
+      size?: 'small' | 'medium' | 'large'
+      gridPosition?: { gridX: number; gridY: number; width: number; height: number }
+    }>,
+    enableSnapping: true,
+    enableSpacingSuggestions: true
+  })
+
+  // Grid toggle functionality
+  const toggleGrid = () => {
+    setGridConfig(prev => ({ ...prev, showGrid: !prev.showGrid }))
+  }
+
+  // Animation and feedback helpers
+  const addActionFeedback = (type: 'success' | 'error' | 'info' | 'warning', position: {x: number, y: number}, message: string) => {
+    if (prefersReducedMotion) return // Skip animations for reduced motion preference
+
+    const feedbackId = `feedback_${Date.now()}_${Math.random()}`
+    const newFeedback = { id: feedbackId, type, position, message }
+
+    setActionFeedback(prev => [...prev, newFeedback])
+
+    // Auto-remove after animation duration
+    setTimeout(() => {
+      setActionFeedback(prev => prev.filter(f => f.id !== feedbackId))
+    }, 2000)
+  }
+
+  const addDeletionAnimation = (position: {x: number, y: number}) => {
+    if (prefersReducedMotion) return // Skip animations for reduced motion preference
+
+    const animationId = `deletion_${Date.now()}_${Math.random()}`
+    const newAnimation = { id: animationId, position }
+
+    setDeletionAnimations(prev => [...prev, newAnimation])
+
+    // Auto-remove after animation duration
+    setTimeout(() => {
+      setDeletionAnimations(prev => prev.filter(a => a.id !== animationId))
+    }, 600)
+  }
+
+  const setDecorationAnimation = (decorationId: string, animationType: 'place' | 'remove' | 'select' | 'hover') => {
+    if (prefersReducedMotion) return // Skip animations for reduced motion preference
+
+    setAnimatedDecorations(prev => new Map(prev.set(decorationId, animationType)))
+
+    // Auto-remove animation state after duration
+    if (animationType === 'place') {
+      setTimeout(() => {
+        setAnimatedDecorations(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(decorationId)
+          return newMap
+        })
+        setRecentlyPlaced(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(decorationId)
+          return newSet
+        })
+      }, 800)
+    }
+  }
 
   // Load initial decorations when component mounts
   useEffect(() => {
@@ -328,31 +460,46 @@ export default function DecorationMode({
 
   const handleCanvasClick = (event: React.MouseEvent) => {
     if ((!isPlacing || !selectedItem) && !draggedItem) return
-    
+
     const rect = event.currentTarget.getBoundingClientRect()
     const x = event.clientX - rect.left
     const y = event.clientY - rect.top
-    
-    // Adjust coordinates to be relative to the canvas container
-    const adjustedX = Math.max(0, Math.min(x - 12, 500 - 24)) // Account for decoration size
-    const adjustedY = Math.max(0, Math.min(y - 12, 350 - 24))
-    
+
     const itemToPlace = draggedItem || selectedItem
     if (!itemToPlace || itemToPlace.type === 'sky' || itemToPlace.type === 'house_custom' || itemToPlace.type === 'house_template' || itemToPlace.type === 'house_color') return
-    
+
+    // Use snapping system for positioning
+    const snapResult = snapDecoration(
+      x,
+      y,
+      itemToPlace.type,
+      itemToPlace.id,
+      itemToPlace.size || 'medium'
+    )
+
     const newDecoration: DecorationItem = {
       id: `${itemToPlace.id}_${Date.now()}`,
+      name: itemToPlace.name || itemToPlace.id,
       type: itemToPlace.type,
       zone: itemToPlace.zone,
-      position: { x: adjustedX, y: adjustedY },
+      position: {
+        x: snapResult.position.pixelX,
+        y: snapResult.position.pixelY
+      },
       variant: itemToPlace.variant || 'default',
-      size: 'medium'
+      size: itemToPlace.size || 'medium'
     }
-    
+
     const newDecorations = [...placedDecorations, newDecoration]
     updateHistory(newDecorations)
-    
-    // Clear drag state
+
+    // Add placement animation and feedback
+    setDecorationAnimation(newDecoration.id, 'place')
+    setRecentlyPlaced(prev => new Set(prev.add(newDecoration.id)))
+    addActionFeedback('success', { x: snapResult.position.pixelX + 12, y: snapResult.position.pixelY - 20 }, 'Placed!')
+
+    // Clear preview and drag state
+    clearPreview()
     if (draggedItem) {
       setDraggedItem(null)
       setIsDragging(false)
@@ -362,23 +509,29 @@ export default function DecorationMode({
   // Touch placement handler for mobile
   const handleTouchPlace = (x: number, y: number) => {
     if (!selectedItem || selectedItem.type === 'sky' || selectedItem.type === 'house_custom' || selectedItem.type === 'house_template' || selectedItem.type === 'house_color') return
-    
+
     // Constrain to canvas bounds
     const adjustedX = Math.max(0, Math.min(x - 12, 500 - 24))
     const adjustedY = Math.max(0, Math.min(y - 12, 350 - 24))
-    
+
     const newDecoration: DecorationItem = {
       id: `${selectedItem.id}_${Date.now()}`,
+      name: selectedItem.name || selectedItem.id,
       type: selectedItem.type,
       zone: selectedItem.zone,
       position: { x: adjustedX, y: adjustedY },
       variant: selectedItem.variant || 'default',
       size: selectedItem.size || 'medium'
     }
-    
+
     const newDecorations = [...placedDecorations, newDecoration]
     updateHistory(newDecorations)
-    
+
+    // Add placement animation and feedback for mobile
+    setDecorationAnimation(newDecoration.id, 'place')
+    setRecentlyPlaced(prev => new Set(prev.add(newDecoration.id)))
+    addActionFeedback('success', { x: adjustedX + 12, y: adjustedY - 20 }, 'Placed!')
+
     // Clear selection after placement on mobile for easier workflow
     setSelectedItem(null)
     setIsPlacing(false)
@@ -386,8 +539,18 @@ export default function DecorationMode({
 
   const handleDecorationClick = (decorationId: string, event: React.MouseEvent) => {
     event.stopPropagation()
-    
+
     if (isDeleting) {
+      const decorationToDelete = placedDecorations.find(item => item.id === decorationId)
+      if (decorationToDelete && decorationToDelete.position) {
+        // Add deletion animation and feedback
+        addDeletionAnimation(decorationToDelete.position)
+        addActionFeedback('info', {
+          x: decorationToDelete.position.x + 12,
+          y: decorationToDelete.position.y - 20
+        }, 'Deleted!')
+      }
+
       const newDecorations = placedDecorations.filter(item => item.id !== decorationId)
       updateHistory(newDecorations)
       return
@@ -401,11 +564,13 @@ export default function DecorationMode({
           newSet.delete(decorationId)
         } else {
           newSet.add(decorationId)
+          setDecorationAnimation(decorationId, 'select')
         }
         return newSet
       })
     } else {
       setSelectedDecorations(new Set([decorationId]))
+      setDecorationAnimation(decorationId, 'select')
     }
   }
   
@@ -422,7 +587,7 @@ export default function DecorationMode({
     
     // Start dragging
     const decoration = placedDecorations.find(d => d.id === decorationId)
-    if (decoration) {
+    if (decoration && decoration.position) {
       const rect = event.currentTarget.getBoundingClientRect()
       const canvasRect = event.currentTarget.closest('.relative')?.getBoundingClientRect()
       if (canvasRect) {
@@ -556,14 +721,32 @@ export default function DecorationMode({
           }
           break
           
-        // Category shortcuts (1-7)
+        // Category shortcuts (1-9+)
         case '1': setSelectedCategory('plants'); break
         case '2': setSelectedCategory('paths'); break
         case '3': setSelectedCategory('features'); break
-        case '4': setSelectedCategory('atmosphere'); break
-        case '5': setSelectedCategory('house'); break
-        case '6': setSelectedCategory('templates'); break
-        case '7': setSelectedCategory('colors'); break
+        case '4': setSelectedCategory('furniture'); break
+        case '5': setSelectedCategory('lighting'); break
+        case '6': setSelectedCategory('water'); break
+        case '7': setSelectedCategory('structures'); break
+        case '8': setSelectedCategory('atmosphere'); break
+        case '9': setSelectedCategory('house'); break
+
+        // Grid system shortcuts
+        case 'g':
+        case 'G':
+          event.preventDefault()
+          toggleGrid()
+          break
+
+        case 's':
+        case 'S':
+          // Only toggle snapping if not already used for save
+          if (!event.ctrlKey && !event.metaKey) {
+            event.preventDefault()
+            toggleSnapping()
+          }
+          break
       }
     }
     
@@ -581,7 +764,25 @@ export default function DecorationMode({
   
   const handleDeleteSelected = () => {
     if (selectedDecorations.size === 0) return
-    
+
+    // Add deletion animations for all selected decorations
+    placedDecorations.forEach(decoration => {
+      if (selectedDecorations.has(decoration.id) && decoration.position) {
+        addDeletionAnimation(decoration.position)
+      }
+    })
+
+    // Add feedback for bulk deletion
+    if (selectedDecorations.size > 1) {
+      const firstSelected = placedDecorations.find(d => selectedDecorations.has(d.id))
+      if (firstSelected && firstSelected.position) {
+        addActionFeedback('info', {
+          x: firstSelected.position.x + 12,
+          y: firstSelected.position.y - 40
+        }, `Deleted ${selectedDecorations.size} items!`)
+      }
+    }
+
     const newDecorations = placedDecorations.filter(item => !selectedDecorations.has(item.id))
     updateHistory(newDecorations)
     setSelectedDecorations(new Set())
@@ -596,24 +797,37 @@ export default function DecorationMode({
   }
 
   const handleCanvasMouseMove = (event: React.MouseEvent) => {
-    if ((!isPlacing || !selectedItem) && !isDragging) {
-      setPreviewPosition(null)
-      return
-    }
-    
     const rect = event.currentTarget.getBoundingClientRect()
     const x = event.clientX - rect.left
     const y = event.clientY - rect.top
-    
-    // Adjust coordinates to be relative to the canvas container
-    const adjustedX = Math.max(0, Math.min(x - 12, 500 - 24))
-    const adjustedY = Math.max(0, Math.min(y - 12, 350 - 24))
-    
-    setPreviewPosition({ x: adjustedX, y: adjustedY })
+
+    // Update mouse position for magnetic grid visualization
+    setMousePosition({ x, y })
+
+    if ((!isPlacing || !selectedItem) && !isDragging) {
+      clearPreview()
+      return
+    }
+
+    const itemToPreview = draggedItem || selectedItem
+    if (!itemToPreview || itemToPreview.type === 'sky' || itemToPreview.type === 'house_custom' || itemToPreview.type === 'house_template' || itemToPreview.type === 'house_color') {
+      clearPreview()
+      return
+    }
+
+    // Update snap preview
+    updatePreview(
+      x,
+      y,
+      itemToPreview.type,
+      itemToPreview.id,
+      itemToPreview.size || 'medium'
+    )
   }
 
   const handleCanvasMouseLeave = () => {
-    setPreviewPosition(null)
+    setMousePosition(undefined)
+    clearPreview()
   }
   
   const handleDragStart = (item: any) => {
@@ -635,42 +849,51 @@ export default function DecorationMode({
   const handleDrop = (event: React.DragEvent) => {
     event.preventDefault()
     if (!draggedItem) return
-    
+
     const rect = event.currentTarget.getBoundingClientRect()
     const x = event.clientX - rect.left
     const y = event.clientY - rect.top
-    
+
     // Adjust coordinates to be relative to the canvas container
     const adjustedX = Math.max(0, Math.min(x - 12, 500 - 24))
     const adjustedY = Math.max(0, Math.min(y - 12, 350 - 24))
-    
+
     const newDecoration: DecorationItem = {
       id: `${draggedItem.id}_${Date.now()}`,
+      name: draggedItem.name || draggedItem.id,
       type: draggedItem.type,
       zone: draggedItem.zone,
       position: { x: adjustedX, y: adjustedY },
       variant: draggedItem.variant || 'default',
       size: 'medium'
     }
-    
+
     const newDecorations = [...placedDecorations, newDecoration]
     updateHistory(newDecorations)
+
+    // Add placement animation and feedback for drag and drop
+    setDecorationAnimation(newDecoration.id, 'place')
+    setRecentlyPlaced(prev => new Set(prev.add(newDecoration.id)))
+    addActionFeedback('success', { x: adjustedX + 12, y: adjustedY - 20 }, 'Dropped!')
+
     handleDragEnd()
   }
 
   const handleSave = async () => {
     try {
       // Transform decorations to the format expected by the API
-      const decorationData = placedDecorations.map(item => ({
-        decorationType: item.type,
-        decorationId: item.id.split('_').slice(0, -1).join('_'), // Remove timestamp
-        zone: item.zone,
-        positionX: item.position.x,
-        positionY: item.position.y,
-        layer: item.position.layer || 1,
-        variant: item.variant || 'default',
-        size: item.size || 'medium'
-      }));
+      const decorationData = placedDecorations
+        .filter(item => item.position) // Only include items with valid positions
+        .map(item => ({
+          decorationType: item.type,
+          decorationId: item.id.split('_').slice(0, -1).join('_'), // Remove timestamp
+          zone: item.zone,
+          positionX: item.position!.x,
+          positionY: item.position!.y,
+          layer: item.position!.layer || 1,
+          variant: item.variant || 'default',
+          size: item.size || 'medium'
+        }));
 
       const response = await fetch('/api/home/decorations/save', {
         method: 'POST',
@@ -903,6 +1126,32 @@ export default function DecorationMode({
               >
                 🔄 Reset
               </button>
+
+              {/* Grid controls */}
+              <div className="flex items-center gap-2 border-l border-gray-300 pl-2">
+                <button
+                  onClick={toggleGrid}
+                  className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                    gridConfig.showGrid
+                      ? 'bg-blue-500 text-white hover:bg-blue-600'
+                      : 'border border-blue-500 text-blue-500 hover:bg-blue-50'
+                  }`}
+                  title="Toggle grid overlay"
+                >
+                  ⊞ Grid
+                </button>
+                <button
+                  onClick={toggleSnapping}
+                  className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                    isSnapping
+                      ? 'bg-green-500 text-white hover:bg-green-600'
+                      : 'border border-green-500 text-green-500 hover:bg-green-50'
+                  }`}
+                  title="Toggle magnetic snapping"
+                >
+                  🧲 Snap
+                </button>
+              </div>
             </>
           )}
           
@@ -949,15 +1198,65 @@ export default function DecorationMode({
           <EnhancedHouseCanvas
             template={currentTemplate}
             palette={currentPalette}
-            decorations={placedDecorations.filter(d => ['plant', 'path', 'feature', 'seasonal'].includes(d.type)) as CanvasDecorationItem[]}
+            decorations={placedDecorations.filter(d => ['plant', 'path', 'feature', 'seasonal', 'furniture', 'lighting', 'water', 'structure'].includes(d.type)) as CanvasDecorationItem[]}
             houseCustomizations={houseCustomizations}
             atmosphere={atmosphere}
             isDecorationMode={true}
             onDecorationClick={handleDecorationClick}
             onDecorationMouseDown={!isMobile ? handleDecorationMouseDown : undefined}
             className="shadow-2xl"
+            animatedDecorations={animatedDecorations}
+            recentlyPlaced={recentlyPlaced}
+            selectedDecorations={selectedDecorations}
+            onAnimationComplete={(decorationId) => {
+              setAnimatedDecorations(prev => {
+                const newMap = new Map(prev)
+                newMap.delete(decorationId)
+                return newMap
+              })
+              setRecentlyPlaced(prev => {
+                const newSet = new Set(prev)
+                newSet.delete(decorationId)
+                return newSet
+              })
+            }}
           />
-          
+
+          {/* Grid overlay */}
+          {!isMobile && (
+            <MagneticGridOverlay
+              config={gridConfig}
+              visible={gridConfig.showGrid}
+              mousePosition={mousePosition}
+              className="absolute inset-0"
+            />
+          )}
+
+
+          {/* Deletion animations */}
+          {deletionAnimations.map((animation) => (
+            <DeletionAnimation
+              key={animation.id}
+              position={animation.position}
+              onComplete={() => {
+                setDeletionAnimations(prev => prev.filter(a => a.id !== animation.id))
+              }}
+            />
+          ))}
+
+          {/* Action feedback */}
+          {actionFeedback.map((feedback) => (
+            <ActionFeedback
+              key={feedback.id}
+              type={feedback.type}
+              position={feedback.position}
+              message={feedback.message}
+              onComplete={() => {
+                setActionFeedback(prev => prev.filter(f => f.id !== feedback.id))
+              }}
+            />
+          ))}
+
           {/* Touch Decoration Placer for Mobile */}
           {isMobile && (
             <TouchDecorationPlacer
@@ -966,12 +1265,50 @@ export default function DecorationMode({
               canvasWidth={500}
               canvasHeight={350}
               className="touch-decoration-overlay"
+              onTouchSelect={(decorationIds) => {
+                setSelectedDecorations(new Set(decorationIds))
+                // Add selection animation for first decoration
+                if (decorationIds.length > 0) {
+                  setDecorationAnimation(decorationIds[0], 'select')
+                }
+              }}
+              onTouchDelete={(decorationId) => {
+                const decorationToDelete = placedDecorations.find(item => item.id === decorationId)
+                if (decorationToDelete && decorationToDelete.position) {
+                  addDeletionAnimation(decorationToDelete.position)
+                  addActionFeedback('info', {
+                    x: decorationToDelete.position.x + 12,
+                    y: decorationToDelete.position.y - 20
+                  }, 'Deleted!')
+                }
+                const newDecorations = placedDecorations.filter(item => item.id !== decorationId)
+                updateHistory(newDecorations)
+              }}
+              onTouchMove={(decorationId, x, y) => {
+                const newDecorations = placedDecorations.map(decoration => {
+                  if (decoration.id === decorationId) {
+                    return {
+                      ...decoration,
+                      position: { ...decoration.position, x, y }
+                    }
+                  }
+                  return decoration
+                })
+                setPlacedDecorations(newDecorations)
+              }}
+              decorations={placedDecorations
+                .filter(d => d.position)
+                .map(d => ({
+                  id: d.id,
+                  position: d.position!
+                }))}
+              isDeleteMode={isDeleting}
             />
           )}
           
           {/* Enhanced selection indicators with animation */}
           {placedDecorations.map(decoration => {
-            if (!selectedDecorations.has(decoration.id)) return null
+            if (!selectedDecorations.has(decoration.id) || !decoration.position) return null
             return (
               <div
                 key={`selection-${decoration.id}`}
@@ -998,16 +1335,16 @@ export default function DecorationMode({
             )
           })}
           
-          {/* Preview decoration with enhanced animation */}
-          {previewPosition && (selectedItem || draggedItem) && (
+          {/* Enhanced preview decoration with snap feedback */}
+          {(snapPreview || previewPosition) && (selectedItem || draggedItem) && (
             <div
               className={`absolute pointer-events-none decoration-item ${isDragging ? 'placing' : ''} ${prefersReducedMotion ? 'reduce-motion' : ''}`}
               style={{
-                left: previewPosition.x,
-                top: previewPosition.y,
+                left: snapPreview?.position.pixelX || previewPosition?.x || 0,
+                top: snapPreview?.position.pixelY || previewPosition?.y || 0,
                 zIndex: 20,
-                opacity: isDragging ? 0.9 : 0.7,
-                transform: `scale(${isDragging ? 1.1 : 1})`,
+                opacity: isDragging ? 0.9 : (snapPreview?.valid === false ? 0.4 : 0.7),
+                transform: `scale(${isDragging ? 1.1 : (snapPreview?.snapType !== 'none' ? 1.05 : 1)})`,
                 transition: prefersReducedMotion ? 'none' : 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
             >
@@ -1020,11 +1357,40 @@ export default function DecorationMode({
                       decorationType={previewItem.type}
                       decorationId={previewItem.id}
                       variant="default"
-                      size="medium"
-                      className="drop-shadow-lg filter brightness-110"
+                      size={previewItem.size || "medium"}
+                      className={`drop-shadow-lg ${snapPreview?.valid === false ? 'filter grayscale' : 'filter brightness-110'}`}
                     />
-                    {/* Placement hint circle */}
-                    <div className="absolute inset-0 border-2 border-blue-400 border-dashed rounded-full opacity-50 animate-spin" style={{ animationDuration: '3s' }} />
+                    {/* Snap indicator */}
+                    {snapPreview?.snapType !== 'none' && (
+                      <div className={`absolute inset-0 border-2 rounded-full opacity-70 ${
+                        snapPreview?.snapType === 'grid' ? 'border-blue-400' :
+                        snapPreview?.snapType === 'spacing' ? 'border-green-400' :
+                        'border-purple-400'
+                      }`}>
+                        {snapPreview?.snapType === 'grid' && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs">⊞</span>
+                          </div>
+                        )}
+                        {snapPreview?.snapType === 'spacing' && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs">↔</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* Invalid placement indicator */}
+                    {snapPreview?.valid === false && (
+                      <div className="absolute inset-0 border-2 border-red-400 border-dashed rounded-full opacity-70">
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">✕</span>
+                        </div>
+                      </div>
+                    )}
+                    {/* Fallback placement hint for non-snapped items */}
+                    {snapPreview?.snapType === 'none' && snapPreview?.valid !== false && (
+                      <div className="absolute inset-0 border-2 border-blue-400 border-dashed rounded-full opacity-50 animate-spin" style={{ animationDuration: '3s' }} />
+                    )}
                   </>
                 )
               })()
@@ -1072,391 +1438,93 @@ export default function DecorationMode({
         )}
       </div>
 
-      {/* Bottom Decoration Palette - Mobile Responsive */}
+      {/* Bottom Decoration Palette - Unified Component */}
       <div className={`bg-white border-t border-gray-200 shadow-lg ${
-        isMobile ? 'h-80' : 'max-h-96 min-h-0 overflow-y-auto'
+        isMobile ? 'h-80' : 'h-96'
       }`}>
-        {isMobile ? (
-          /* Mobile Item Palette */
-          <MobileItemPalette
-            items={allAvailableItems}
+        {selectedCategory === 'themes' ? (
+          <div className="h-full p-4 overflow-y-auto">
+            <ThemePicker
+              onSelection={handleThemeSelection}
+              initialTemplate={currentTemplate}
+              initialPalette={currentPalette}
+              showExplanation={false}
+              showPreview={false}
+              immediateSelection={true}
+              className="space-y-4"
+            />
+          </div>
+        ) : selectedCategory === 'text' ? (
+          <div className="h-full p-4 overflow-y-auto">
+            <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
+              <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 flex items-center gap-2">
+                📝 House Text Settings
+              </h3>
+
+              {/* House Text Settings */}
+              <div className="space-y-4">
+                {/* House Title */}
+                <div>
+                  <label className="block text-sm font-medium text-thread-pine mb-2">
+                    🏷️ House Title
+                    <span className="text-xs text-thread-sage ml-2">(Appears above your house description - max 50 characters)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={houseCustomizations.houseTitle || ''}
+                    onChange={(e) => {
+                      const value = e.target.value.slice(0, 50) // Limit to 50 chars
+                      setHouseCustomizations(prev => ({
+                        ...prev,
+                        houseTitle: value
+                      }))
+                    }}
+                    placeholder="A Cozy Corner of ThreadStead (e.g., 'My Creative Space', 'Welcome to My World')"
+                    maxLength={50}
+                    className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent"
+                  />
+                  <div className="text-xs text-thread-sage text-right mt-1">
+                    {(houseCustomizations.houseTitle || '').length}/50 characters
+                  </div>
+                </div>
+
+                {/* House Sign Text */}
+                <div>
+                  <label className="block text-sm font-medium text-thread-pine mb-2">
+                    🪧 House Sign
+                    <span className="text-xs text-thread-sage ml-2">(Short text for your front door sign - max 20 characters)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={houseCustomizations.houseBoardText || ''}
+                    onChange={(e) => {
+                      const value = e.target.value.slice(0, 20) // Limit to 20 chars for sign
+                      setHouseCustomizations(prev => ({
+                        ...prev,
+                        houseBoardText: value
+                      }))
+                    }}
+                    placeholder="@{username} (e.g., 'Welcome!' or '@yourname')"
+                    maxLength={20}
+                    className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent"
+                  />
+                  <div className="text-xs text-thread-sage text-right mt-1">
+                    {(houseCustomizations.houseBoardText || '').length}/20 characters
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <DecorationPalette
+            items={BETA_ITEMS as unknown as Record<string, DecorationItem[]>}
             selectedItem={selectedItem}
             onItemSelect={handleItemSelect}
+            isMobile={isMobile}
             className="h-full"
           />
-        ) : (
-          /* Desktop Category Tabs and Items */
-          <>
-            {/* Category Tabs */}
-            <div className="flex border-b border-gray-200 px-4">
-          <button
-            onClick={() => setSelectedCategory('themes')}
-            className={`py-3 px-6 text-sm font-medium capitalize whitespace-nowrap transition-all ${
-              selectedCategory === 'themes'
-                ? 'border-b-2 border-thread-sage text-thread-pine bg-thread-cream'
-                : 'text-thread-sage hover:text-thread-pine hover:bg-thread-paper'
-            }`}
-          >
-            🎨 Themes
-          </button>
-          <button
-            onClick={() => setSelectedCategory('text')}
-            className={`py-3 px-6 text-sm font-medium capitalize whitespace-nowrap transition-all ${
-              selectedCategory === 'text'
-                ? 'border-b-2 border-thread-sage text-thread-pine bg-thread-cream'
-                : 'text-thread-sage hover:text-thread-pine hover:bg-thread-paper'
-            }`}
-          >
-            📝 Text
-          </button>
-          {Object.keys(BETA_ITEMS).map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category as keyof typeof BETA_ITEMS)}
-              className={`py-3 px-6 text-sm font-medium capitalize whitespace-nowrap transition-all ${
-                selectedCategory === category
-                  ? 'border-b-2 border-thread-sage text-thread-pine bg-thread-cream'
-                  : 'text-thread-sage hover:text-thread-pine hover:bg-thread-paper'
-              }`}
-            >
-              {category === 'house' ? '🏠 House' : 
-               category === 'plants' ? '🌱 Plants' :
-               category === 'paths' ? '🛤️ Paths' :
-               category === 'features' ? '✨ Features' :
-               category === 'atmosphere' ? '🌤️ Sky' : 
-               category === 'templates' ? '🏘️ Templates' :
-               category === 'colors' ? '🎨 Colors' : category}
-            </button>
-          ))}
-        </div>
-
-        {/* Decoration Grid - Larger previews */}
-        <div className="p-4">
-          {selectedCategory === 'themes' ? (
-            <div className="max-w-4xl mx-auto">
-              <ThemePicker 
-                onSelection={handleThemeSelection}
-                initialTemplate={currentTemplate}
-                initialPalette={currentPalette}
-                showExplanation={false}
-                showPreview={false}
-                immediateSelection={true}
-                className="space-y-4"
-              />
-            </div>
-          ) : selectedCategory === 'text' ? (
-            <div className="max-w-4xl mx-auto space-y-6">
-              <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
-                <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 flex items-center gap-2">
-                  📝 House Text Settings
-                </h3>
-                
-                {/* House Text Settings */}
-                <div className="space-y-4">
-                  {/* House Title */}
-                  <div>
-                    <label className="block text-sm font-medium text-thread-pine mb-2">
-                      🏷️ House Title
-                      <span className="text-xs text-thread-sage ml-2">(Appears above your house description - max 50 characters)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={houseCustomizations.houseTitle || ''}
-                      onChange={(e) => {
-                        const value = e.target.value.slice(0, 50) // Limit to 50 chars
-                        setHouseCustomizations(prev => ({
-                          ...prev,
-                          houseTitle: value
-                        }))
-                      }}
-                      placeholder="A Cozy Corner of ThreadStead (e.g., 'My Creative Space', 'Welcome to My World')"
-                      maxLength={50}
-                      className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent"
-                    />
-                    <div className="text-xs text-thread-sage text-right mt-1">
-                      {(houseCustomizations.houseTitle || '').length}/50 characters
-                    </div>
-                  </div>
-                  
-                  {/* House Description */}
-                  <div>
-                    <label className="block text-sm font-medium text-thread-pine mb-2">
-                      🏠 House Description
-                      <span className="text-xs text-thread-sage ml-2">(Appears below your house - max 200 characters)</span>
-                    </label>
-                    <textarea
-                      value={houseCustomizations.houseDescription || ''}
-                      onChange={(e) => {
-                        const value = e.target.value.slice(0, 200) // Limit to 200 chars
-                        setHouseCustomizations(prev => ({
-                          ...prev,
-                          houseDescription: value
-                        }))
-                      }}
-                      placeholder="Describe your cozy home... (e.g., 'A welcoming place where stories are shared and friendships bloom.')"
-                      rows={3}
-                      maxLength={200}
-                      className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent resize-none"
-                    />
-                    <div className="text-xs text-thread-sage text-right mt-1">
-                      {(houseCustomizations.houseDescription || '').length}/200 characters
-                    </div>
-                  </div>
-                  
-                  {/* House Board Text */}
-                  <div>
-                    <label className="block text-sm font-medium text-thread-pine mb-2">
-                      🪧 House Sign Text
-                      <span className="text-xs text-thread-sage ml-2">(Appears on your house sign/board - max 30 characters)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={houseCustomizations.houseBoardText || ''}
-                      onChange={(e) => {
-                        const value = e.target.value.slice(0, 30) // Limit to 30 chars
-                        setHouseCustomizations(prev => ({
-                          ...prev,
-                          houseBoardText: value
-                        }))
-                      }}
-                      placeholder="Welcome! (e.g., 'Welcome Friends', 'Casa de Code', 'Home Sweet Home')"
-                      maxLength={30}
-                      className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent"
-                    />
-                    <div className="text-xs text-thread-sage text-right mt-1">
-                      {(houseCustomizations.houseBoardText || '').length}/30 characters
-                    </div>
-                  </div>
-                  
-                  {/* Preview Section */}
-                  <div className="mt-6 p-4 bg-thread-cream bg-opacity-30 rounded-lg border border-thread-sage border-opacity-30">
-                    <h4 className="text-sm font-semibold text-thread-pine mb-3">📋 Text Preview</h4>
-                    <div className="space-y-3 text-sm">
-                      <div>
-                        <span className="font-medium text-thread-pine">House Title:</span>
-                        <div className="mt-1 p-3 bg-white border border-gray-200 rounded text-center text-xl font-headline font-semibold text-thread-pine">
-                          {houseCustomizations.houseTitle || 'A Cozy Corner of ThreadStead'}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="font-medium text-thread-pine">House Description:</span>
-                        <div className="mt-1 p-3 bg-white border border-gray-200 rounded text-thread-sage leading-relaxed">
-                          {houseCustomizations.houseDescription || 'Your house description will appear here below the house display...'}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="font-medium text-thread-pine">House Sign:</span>
-                        <div className="mt-1 p-2 bg-white border border-gray-200 rounded text-center font-medium text-thread-pine italic">
-                          {houseCustomizations.houseBoardText || 'Your house sign text will appear here...'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Tips */}
-                  <div className="mt-4 p-3 bg-thread-sky bg-opacity-10 rounded-lg border border-thread-sky border-opacity-30">
-                    <h5 className="text-sm font-semibold text-thread-pine mb-2">💡 Tips</h5>
-                    <ul className="text-xs text-thread-sage space-y-1">
-                      <li>• Keep your house sign short and memorable</li>
-                      <li>• Use your description to share what makes your home special</li>
-                      <li>• Both texts help visitors understand your personality</li>
-                      <li>• Changes are saved automatically when you save your decorations</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : selectedCategory === 'house' ? (
-            // House tab with organized sections
-            <div className="space-y-4">
-                {/* Group items by section */}
-                {['doors', 'windows', 'roof'].map((section) => {
-                  const sectionItems = BETA_ITEMS[selectedCategory].filter(item => 
-                    'section' in item && item.section === section
-                  )
-                  
-                  if (sectionItems.length === 0) return null
-                  
-                  const sectionTitles = {
-                    doors: 'Doors',
-                    windows: 'Windows', 
-                    roof: 'Roof Trim'
-                  }
-                  
-                  return (
-                    <div key={section} className="bg-white rounded-lg p-3 border border-gray-100">
-                      <h4 className="text-sm font-semibold text-thread-pine mb-3 px-1 flex items-center">
-                        <span className="w-2 h-2 bg-thread-sage rounded-full mr-2"></span>
-                        {sectionTitles[section as keyof typeof sectionTitles]}
-                      </h4>
-                      <div className="flex gap-2 flex-wrap">
-                        {sectionItems.map((item) => (
-                          <button
-                            key={item.id}
-                            onClick={() => handleItemSelect(item)}
-                            className={`p-3 rounded-lg border-2 text-center transition-all duration-200 flex-shrink-0 group ${
-                              selectedItem?.id === item.id
-                                ? 'border-thread-sage bg-thread-cream text-thread-pine shadow-md ring-1 ring-thread-sage ring-opacity-30'
-                                : 'border-gray-200 hover:border-thread-sage hover:bg-thread-paper hover:shadow-sm'
-                            } cursor-pointer ${
-                              'isDefault' in item && item.isDefault 
-                                ? 'border-thread-sky border-opacity-50 bg-thread-sky bg-opacity-5' 
-                                : ''
-                            }`}
-                            style={{ minWidth: '90px', width: 'auto', height: '90px', maxWidth: '120px' }}
-                          >
-                            <div className="flex items-center justify-center mb-1 h-12 relative">
-                              <DecorationIcon 
-                                type={item.type} 
-                                id={item.id} 
-                                size={36}
-                                className={`drop-shadow-sm pointer-events-none transition-transform duration-200 group-hover:scale-110 ${
-                                  selectedItem?.id === item.id ? 'filter brightness-110' : ''
-                                }`}
-                                color={'color' in item ? item.color as string : undefined}
-                              />
-                              {/* Default indicator */}
-                              {'isDefault' in item && item.isDefault && (
-                                <div className="absolute -top-1 -right-1 bg-thread-sky text-white text-xs px-1 py-0.5 rounded-full text-[8px] font-medium">
-                                  DEFAULT
-                                </div>
-                              )}
-                              {/* Sparkle effect for selected items */}
-                              {selectedItem?.id === item.id && (
-                                <div className="absolute inset-0 animate-pulse">
-                                  <div className="absolute top-0 right-0 text-yellow-400 text-xs">✨</div>
-                                  <div className="absolute bottom-0 left-0 text-yellow-400 text-xs">✨</div>
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-xs font-medium leading-tight text-center px-2 pointer-events-none break-words">
-                              {item.name}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-            </div>
-          ) : (
-            // Other categories (decorations, templates, sky) with original layout
-            <div className="flex gap-3 min-w-max">
-              {BETA_ITEMS[selectedCategory].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleItemSelect(item)}
-                draggable={item.type !== 'sky' && item.type !== 'house_template' && item.type !== 'house_color'}
-                onDragStart={() => handleDragStart(item)}
-                onDragEnd={handleDragEnd}
-                className={`p-4 rounded-xl border-2 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1 flex-shrink-0 group ${
-                  selectedItem?.id === item.id
-                    ? 'border-thread-sage bg-thread-cream text-thread-pine shadow-lg transform scale-105 -translate-y-1 ring-2 ring-thread-sage ring-opacity-50'
-                    : 'border-gray-200 hover:border-thread-sage hover:bg-thread-paper hover:shadow-md'
-                } ${
-                  item.type !== 'sky' && item.type !== 'house_template' && item.type !== 'house_color'
-                    ? 'cursor-grab active:cursor-grabbing hover:cursor-grab' 
-                    : 'cursor-pointer'
-                }`}
-                style={{ width: '120px', height: '120px' }}
-              >
-                <div className="flex items-center justify-center mb-2 h-16 relative">
-                  <DecorationIcon 
-                    type={item.type} 
-                    id={item.id} 
-                    size={48}
-                    className={`drop-shadow-sm pointer-events-none transition-transform duration-200 group-hover:scale-110 ${
-                      selectedItem?.id === item.id ? 'filter brightness-110' : ''
-                    }`}
-                    color={'color' in item ? item.color as string : undefined}
-                  />
-                  {/* Sparkle effect for selected items */}
-                  {selectedItem?.id === item.id && (
-                    <div className="absolute inset-0 animate-pulse">
-                      <div className="absolute top-0 right-0 text-yellow-400 text-xs">✨</div>
-                      <div className="absolute bottom-0 left-0 text-yellow-400 text-xs">✨</div>
-                    </div>
-                  )}
-                </div>
-                <div className="text-xs font-medium leading-tight text-center px-1 pointer-events-none">
-                  {item.name}
-                </div>
-              </button>
-            ))}
-            </div>
-          )}
-        </div>
-
-        {/* Instructions Bar */}
-        <div className="px-4 py-3 bg-thread-cream border-t border-gray-200">
-          <div className="text-sm text-thread-sage max-w-4xl">
-            {draggedDecoration ? (
-              <div className="flex items-center text-blue-600">
-                <span className="animate-pulse mr-2">✋</span>
-                Dragging decoration - release to place it in new position
-              </div>
-            ) : selectedDecorations.size > 0 ? (
-              <div className="flex items-center text-blue-600">
-                <span className="mr-2">✅</span>
-                {selectedDecorations.size} decoration{selectedDecorations.size !== 1 ? 's' : ''} selected. 
-                Click and drag to move, Ctrl+click to multi-select, or use toolbar buttons.
-              </div>
-            ) : isPlacing ? (
-              <div className="flex items-center text-thread-pine">
-                <span className="animate-pulse mr-2">🎯</span>
-                Click on the canvas to place your {selectedItem?.name}
-              </div>
-            ) : isDeleting ? (
-              <div className="flex items-center text-red-600">
-                <span className="animate-pulse mr-2">🗑️</span>
-                Click on decorations to delete them
-              </div>
-            ) : selectedItem?.type === 'house_template' ? (
-              <div className="flex items-center text-thread-pine">
-                <span className="mr-2">🏡</span>
-                Switched to {selectedItem?.name} style! Your house customizations have been reset.
-              </div>
-            ) : selectedItem?.type === 'house_color' ? (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center text-thread-pine">
-                  <span className="mr-2">🎨</span>
-                  Choose a color for {selectedItem?.name?.toLowerCase()}:
-                </div>
-                <input
-                  type="color"
-                  value={selectedItem?.color || '#A18463'}
-                  onChange={(e) => handleColorChange(e.target.value)}
-                  className="w-12 h-8 border border-gray-300 rounded cursor-pointer"
-                />
-                <span className="text-xs text-thread-sage">
-                  Click to pick a custom color
-                </span>
-              </div>
-            ) : selectedItem?.type === 'house_custom' ? (
-              <div className="flex items-center text-thread-pine">
-                <span className="mr-2">🏠</span>
-                {selectedItem?.name} applied to your house! Try another style or add decorations.
-              </div>
-            ) : selectedItem?.type === 'sky' ? (
-              <div className="flex items-center text-thread-pine">
-                <span className="mr-2">🌤️</span>
-                {selectedItem?.name} applied! Your house atmosphere has been updated.
-              </div>
-            ) : (
-              <div className="flex items-center justify-between w-full">
-                <span>
-                  Select a decoration above to place it, customize your house, or click decorations to select and move them. 
-                  <strong>Drag and drop</strong> decorations from the palette onto the canvas for quick placement!
-                </span>
-                <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded hidden sm:block">
-                  <strong>Shortcuts:</strong> Esc (deselect) • Del (delete) • Ctrl+A (select all) • Ctrl+Z/Y (undo/redo) • 1-7 (categories)
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-            </>
         )}
+
       </div>
 
       {/* Theme Confirmation Modal */}
@@ -1472,15 +1540,13 @@ export default function DecorationMode({
             <div className="flex gap-3">
               <button
                 onClick={handleThemeConfirmApply}
-                className="flex-1 px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors font-medium"
-              >
+                className="flex-1 px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors font-medium">
                 Apply Theme Colors
               </button>
               <button
                 onClick={handleThemeConfirmKeep}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
-              >
-                Keep Custom Colors
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium">
+                Keep My Colors
               </button>
             </div>
           </div>

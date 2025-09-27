@@ -5,14 +5,24 @@ export type ColorPalette = 'thread_sage' | 'charcoal_nights' | 'pixel_petals' | 
 
 export interface HouseCustomizations {
   windowStyle?: 'default' | 'round' | 'arched' | 'bay'
-  doorStyle?: 'default' | 'arched' | 'double' | 'cottage'  
+  doorStyle?: 'default' | 'arched' | 'double' | 'cottage'
   roofTrim?: 'default' | 'ornate' | 'scalloped' | 'gabled'
+
+  // New base pattern variations
+  foundationStyle?: 'default' | 'stone' | 'brick' | 'raised'
+  wallPattern?: 'default' | 'shingles' | 'board_batten' | 'stone_veneer'
+  windowTreatments?: 'default' | 'shutters' | 'flower_boxes' | 'awnings'
+  roofMaterial?: 'default' | 'shingles' | 'tile' | 'metal' | 'thatch'
+  chimneyStyle?: 'default' | 'brick' | 'stone' | 'none'
+
   // Color overrides - when provided, override palette colors
   wallColor?: string      // Override base color
-  roofColor?: string      // Override primary color  
+  roofColor?: string      // Override primary color
   trimColor?: string      // Override secondary color
   windowColor?: string    // Override accent color
   detailColor?: string    // Override detail color
+  foundationColor?: string // Override foundation color
+
   // Text customizations
   houseTitle?: string        // Custom title (max 50 chars)
   houseDescription?: string  // Custom description (max 200 chars)
@@ -163,7 +173,7 @@ const renderRoofTrim = (roofTrim: string = 'default', colors: any, roofPath: str
       return (
         <>
           <path d={roofPath} fill={colors.primary} stroke={colors.secondary} strokeWidth="2"/>
-          <path d="M40 110 Q50 105 60 110 Q70 105 80 110 Q90 105 100 110 Q110 105 120 110 Q130 105 140 110 Q150 105 160 110" 
+          <path d="M40 110 Q50 105 60 110 Q70 105 80 110 Q90 105 100 110 Q110 105 120 110 Q130 105 140 110 Q150 105 160 110"
                 fill="none" stroke={colors.secondary} strokeWidth="1.5"/>
           <circle cx="60" cy="110" r="2" fill={colors.secondary}/>
           <circle cx="100" cy="110" r="2" fill={colors.secondary}/>
@@ -175,7 +185,7 @@ const renderRoofTrim = (roofTrim: string = 'default', colors: any, roofPath: str
       return (
         <>
           <path d={roofPath} fill={colors.primary} stroke={colors.secondary} strokeWidth="2"/>
-          <path d="M40 112 Q50 105 60 112 Q70 105 80 112 Q90 105 100 112 Q110 105 120 112 Q130 105 140 112 Q150 105 160 112 L160 118 L40 118 Z" 
+          <path d="M40 112 Q50 105 60 112 Q70 105 80 112 Q90 105 100 112 Q110 105 120 112 Q130 105 140 112 Q150 105 160 112 L160 118 L40 118 Z"
                 fill={colors.secondary} stroke={colors.primary} strokeWidth="0.5"/>
           <circle cx="55" cy="110" r="1" fill={colors.primary}/>
           <circle cx="85" cy="110" r="1" fill={colors.primary}/>
@@ -200,33 +210,333 @@ const renderRoofTrim = (roofTrim: string = 'default', colors: any, roofPath: str
   }
 }
 
-const CottageTemplate: React.FC<{ colors: typeof PALETTE_COLORS.thread_sage, customizations?: HouseCustomizations }> = ({ colors, customizations = {} }) => (
-  <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-    {/* Base */}
-    <rect x="40" y="120" width="120" height="50" fill={colors.base} stroke={colors.primary} strokeWidth="2"/>
-    
-    {/* Roof - dynamic with trim */}
-    {renderRoofTrim(customizations.roofTrim, colors, "M30 120 L100 60 L170 120 Z")}
-    
-    {/* Door - dynamic */}
-    {renderDoor(customizations.doorStyle, colors, {x: 90, y: 140, w: 20, h: 30})}
-    
-    {/* Windows - dynamic */}
-    {renderWindows(customizations.windowStyle, colors, 
-      {x: 55, y: 135, w: 15, h: 15}, 
-      {x: 130, y: 135, w: 15, h: 15}
-    )}
-    
-    {/* Chimney */}
-    <rect x="130" y="70" width="12" height="30" fill={colors.secondary} stroke={colors.primary} strokeWidth="1"/>
-    
-    {/* Details */}
-    <rect x="75" y="100" width="50" height="20" fill={colors.detail} stroke={colors.primary} strokeWidth="1"/>
-    <text x="100" y="112" textAnchor="middle" fontSize="8" fill={colors.base} fontFamily="serif">
-      {customizations.houseBoardText || "~home~"}
-    </text>
-  </svg>
-)
+// New foundation rendering function
+const renderFoundation = (foundationStyle: string = 'default', colors: any, bounds: {x: number, y: number, width: number, height: number}) => {
+  const foundationColor = colors.foundationColor || colors.secondary
+
+  switch (foundationStyle) {
+    case 'stone':
+      return (
+        <>
+          <rect x={bounds.x} y={bounds.y + bounds.height - 8} width={bounds.width} height="8" fill={foundationColor} />
+          {/* Stone pattern */}
+          <rect x={bounds.x + 2} y={bounds.y + bounds.height - 6} width="8" height="3" fill={colors.primary} opacity="0.3" />
+          <rect x={bounds.x + 12} y={bounds.y + bounds.height - 7} width="6" height="4" fill={colors.primary} opacity="0.3" />
+          <rect x={bounds.x + 20} y={bounds.y + bounds.height - 5} width="7" height="2" fill={colors.primary} opacity="0.3" />
+          <rect x={bounds.x + bounds.width - 15} y={bounds.y + bounds.height - 6} width="8" height="3" fill={colors.primary} opacity="0.3" />
+        </>
+      )
+    case 'brick':
+      return (
+        <>
+          <rect x={bounds.x} y={bounds.y + bounds.height - 8} width={bounds.width} height="8" fill="#8B4513" />
+          {/* Brick pattern */}
+          {Array.from({length: Math.floor(bounds.width / 8)}, (_, i) => (
+            <rect key={i} x={bounds.x + i * 8} y={bounds.y + bounds.height - 8} width="7" height="3" fill="#A0522D" stroke="#654321" strokeWidth="0.2" />
+          ))}
+          {Array.from({length: Math.floor(bounds.width / 8)}, (_, i) => (
+            <rect key={i} x={bounds.x + i * 8 + 4} y={bounds.y + bounds.height - 5} width="7" height="3" fill="#A0522D" stroke="#654321" strokeWidth="0.2" />
+          ))}
+        </>
+      )
+    case 'raised':
+      return (
+        <>
+          <rect x={bounds.x - 2} y={bounds.y + bounds.height - 10} width={bounds.width + 4} height="10" fill={foundationColor} />
+          <rect x={bounds.x - 1} y={bounds.y + bounds.height - 9} width={bounds.width + 2} height="8" fill={colors.base} />
+          {/* Support posts */}
+          <rect x={bounds.x + 10} y={bounds.y + bounds.height - 8} width="2" height="6" fill={colors.secondary} />
+          <rect x={bounds.x + bounds.width - 12} y={bounds.y + bounds.height - 8} width="2" height="6" fill={colors.secondary} />
+        </>
+      )
+    default:
+      return <rect x={bounds.x} y={bounds.y + bounds.height - 4} width={bounds.width} height="4" fill={foundationColor} />
+  }
+}
+
+// Wall pattern rendering function
+const renderWallPattern = (wallPattern: string = 'default', colors: any, bounds: {x: number, y: number, width: number, height: number}) => {
+  switch (wallPattern) {
+    case 'shingles':
+      return (
+        <>
+          {Array.from({length: Math.floor(bounds.height / 6)}, (_, row) => (
+            <g key={row}>
+              {Array.from({length: Math.floor(bounds.width / 8)}, (_, col) => (
+                <path
+                  key={col}
+                  d={`M${bounds.x + col * 8 + (row % 2) * 4} ${bounds.y + row * 6}
+                      L${bounds.x + col * 8 + (row % 2) * 4 + 8} ${bounds.y + row * 6}
+                      L${bounds.x + col * 8 + (row % 2) * 4 + 6} ${bounds.y + row * 6 + 4}
+                      L${bounds.x + col * 8 + (row % 2) * 4 + 2} ${bounds.y + row * 6 + 4} Z`}
+                  fill={colors.base}
+                  stroke={colors.secondary}
+                  strokeWidth="0.3"
+                />
+              ))}
+            </g>
+          ))}
+        </>
+      )
+    case 'board_batten':
+      return (
+        <>
+          {Array.from({length: Math.floor(bounds.width / 8)}, (_, i) => (
+            <rect key={i} x={bounds.x + i * 8} y={bounds.y} width="6" height={bounds.height} fill={colors.base} stroke={colors.secondary} strokeWidth="0.5" />
+          ))}
+          {Array.from({length: Math.floor(bounds.width / 8)}, (_, i) => (
+            <rect key={i} x={bounds.x + i * 8 + 6} y={bounds.y} width="2" height={bounds.height} fill={colors.secondary} />
+          ))}
+        </>
+      )
+    case 'stone_veneer':
+      return (
+        <>
+          {Array.from({length: 15}, (_, i) => (
+            <ellipse
+              key={i}
+              cx={bounds.x + Math.random() * bounds.width}
+              cy={bounds.y + Math.random() * bounds.height}
+              rx={3 + Math.random() * 3}
+              ry={2 + Math.random() * 2}
+              fill={colors.secondary}
+              opacity="0.4"
+            />
+          ))}
+        </>
+      )
+    default:
+      return null
+  }
+}
+
+// Window treatments rendering function
+const renderWindowTreatments = (treatments: string = 'default', colors: any, windowPositions: Array<{x: number, y: number, w: number, h: number}>) => {
+  switch (treatments) {
+    case 'shutters':
+      return (
+        <>
+          {windowPositions.map((win, i) => (
+            <g key={i}>
+              {/* Left shutter */}
+              <rect x={win.x - 4} y={win.y} width="3" height={win.h} fill={colors.detail} stroke={colors.secondary} strokeWidth="0.5" />
+              <line x1={win.x - 3} y1={win.y + 2} x2={win.x - 3} y2={win.y + win.h - 2} stroke={colors.secondary} strokeWidth="0.3" />
+              {/* Right shutter */}
+              <rect x={win.x + win.w + 1} y={win.y} width="3" height={win.h} fill={colors.detail} stroke={colors.secondary} strokeWidth="0.5" />
+              <line x1={win.x + win.w + 2.5} y1={win.y + 2} x2={win.x + win.w + 2.5} y2={win.y + win.h - 2} stroke={colors.secondary} strokeWidth="0.3" />
+            </g>
+          ))}
+        </>
+      )
+    case 'flower_boxes':
+      return (
+        <>
+          {windowPositions.map((win, i) => (
+            <g key={i}>
+              {/* Flower box */}
+              <rect x={win.x - 2} y={win.y + win.h} width={win.w + 4} height="3" fill="#8B4513" />
+              <rect x={win.x - 1} y={win.y + win.h + 1} width={win.w + 2} height="2" fill="#A0522D" />
+              {/* Flowers */}
+              <circle cx={win.x + 2} cy={win.y + win.h - 1} r="1" fill="#FF69B4" />
+              <circle cx={win.x + win.w - 2} cy={win.y + win.h - 1} r="1" fill="#DA70D6" />
+              <circle cx={win.x + win.w/2} cy={win.y + win.h - 1} r="1" fill="#FFB6C1" />
+            </g>
+          ))}
+        </>
+      )
+    case 'awnings':
+      return (
+        <>
+          {windowPositions.map((win, i) => (
+            <g key={i}>
+              {/* Awning */}
+              <path d={`M${win.x - 3} ${win.y - 2} L${win.x + win.w + 3} ${win.y - 2} L${win.x + win.w + 1} ${win.y + 3} L${win.x - 1} ${win.y + 3} Z`}
+                    fill={colors.detail} stroke={colors.secondary} strokeWidth="0.5" />
+              {/* Awning stripes */}
+              <line x1={win.x} y1={win.y - 2} x2={win.x + 2} y2={win.y + 3} stroke={colors.secondary} strokeWidth="0.5" />
+              <line x1={win.x + win.w/2} y1={win.y - 2} x2={win.x + win.w/2 + 2} y2={win.y + 3} stroke={colors.secondary} strokeWidth="0.5" />
+              <line x1={win.x + win.w} y1={win.y - 2} x2={win.x + win.w + 2} y2={win.y + 3} stroke={colors.secondary} strokeWidth="0.5" />
+            </g>
+          ))}
+        </>
+      )
+    default:
+      return null
+  }
+}
+
+// Roof material rendering function
+const renderRoofMaterial = (material: string = 'default', colors: any, roofPath: string, bounds: {x: number, y: number, width: number, height: number}) => {
+  const roofElement = <path d={roofPath} fill={colors.primary} stroke={colors.secondary} strokeWidth="2"/>
+
+  switch (material) {
+    case 'shingles':
+      return (
+        <>
+          {roofElement}
+          {/* Shingle pattern overlay */}
+          {Array.from({length: 8}, (_, row) => (
+            <g key={row}>
+              {Array.from({length: 12}, (_, col) => (
+                <rect
+                  key={col}
+                  x={bounds.x + col * 10 + (row % 2) * 5}
+                  y={bounds.y + row * 4}
+                  width="8"
+                  height="3"
+                  fill={colors.secondary}
+                  opacity="0.3"
+                />
+              ))}
+            </g>
+          ))}
+        </>
+      )
+    case 'tile':
+      return (
+        <>
+          {roofElement}
+          {/* Tile pattern overlay */}
+          {Array.from({length: 6}, (_, row) => (
+            <g key={row}>
+              {Array.from({length: 15}, (_, col) => (
+                <ellipse
+                  key={col}
+                  cx={bounds.x + col * 8}
+                  cy={bounds.y + row * 6}
+                  rx="3"
+                  ry="2"
+                  fill={colors.secondary}
+                  opacity="0.4"
+                />
+              ))}
+            </g>
+          ))}
+        </>
+      )
+    case 'metal':
+      return (
+        <>
+          {roofElement}
+          {/* Metal ridges */}
+          {Array.from({length: 8}, (_, i) => (
+            <line
+              key={i}
+              x1={bounds.x + i * 15}
+              y1={bounds.y}
+              x2={bounds.x + i * 15}
+              y2={bounds.y + bounds.height}
+              stroke={colors.secondary}
+              strokeWidth="1"
+              opacity="0.6"
+            />
+          ))}
+        </>
+      )
+    case 'thatch':
+      return (
+        <>
+          <path d={roofPath} fill="#DEB887" stroke="#D2B48C" strokeWidth="2"/>
+          {/* Thatch texture */}
+          {Array.from({length: 20}, (_, i) => (
+            <line
+              key={i}
+              x1={bounds.x + Math.random() * bounds.width}
+              y1={bounds.y + Math.random() * bounds.height}
+              x2={bounds.x + Math.random() * bounds.width}
+              y2={bounds.y + Math.random() * bounds.height}
+              stroke="#8B7355"
+              strokeWidth="0.5"
+              opacity="0.7"
+            />
+          ))}
+        </>
+      )
+    default:
+      return roofElement
+  }
+}
+
+const CottageTemplate: React.FC<{ colors: typeof PALETTE_COLORS.thread_sage, customizations?: HouseCustomizations }> = ({ colors, customizations = {} }) => {
+  // Enhanced colors with foundation support
+  const enhancedColors = {
+    ...colors,
+    foundationColor: customizations.foundationColor || colors.secondary
+  };
+
+  const wallBounds = {x: 40, y: 120, width: 120, height: 50};
+  const roofBounds = {x: 30, y: 60, width: 140, height: 60};
+  const windowPositions = [
+    {x: 55, y: 135, w: 15, h: 15},
+    {x: 130, y: 135, w: 15, h: 15}
+  ];
+
+  return (
+    <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Foundation - enhanced */}
+      {renderFoundation(customizations.foundationStyle, enhancedColors, wallBounds)}
+
+      {/* Base */}
+      <rect x="40" y="120" width="120" height="50" fill={enhancedColors.base} stroke={enhancedColors.primary} strokeWidth="2"/>
+
+      {/* Wall pattern overlay */}
+      {renderWallPattern(customizations.wallPattern, enhancedColors, wallBounds)}
+
+      {/* Roof - enhanced with material support */}
+      {renderRoofMaterial(customizations.roofMaterial, enhancedColors, "M30 120 L100 60 L170 120 Z", roofBounds)}
+
+      {/* Roof trim overlay */}
+      {customizations.roofTrim && customizations.roofTrim !== 'default' &&
+        renderRoofTrim(customizations.roofTrim, enhancedColors, "M30 120 L100 60 L170 120 Z")
+      }
+
+      {/* Chimney - enhanced with style support */}
+      {customizations.chimneyStyle !== 'none' && (
+        <>
+          <rect x="130" y="70" width="12" height="30"
+                fill={customizations.chimneyStyle === 'stone' ? '#8B7355' :
+                      customizations.chimneyStyle === 'brick' ? '#B22222' : enhancedColors.secondary}
+                stroke={enhancedColors.primary} strokeWidth="1"/>
+          {customizations.chimneyStyle === 'brick' && (
+            <>
+              {Array.from({length: 4}, (_, i) => (
+                <rect key={i} x="131" y={72 + i * 6} width="5" height="2" fill="#A0522D" stroke="#654321" strokeWidth="0.2"/>
+              ))}
+              {Array.from({length: 4}, (_, i) => (
+                <rect key={i} x="133" y={75 + i * 6} width="5" height="2" fill="#A0522D" stroke="#654321" strokeWidth="0.2"/>
+              ))}
+            </>
+          )}
+          {customizations.chimneyStyle === 'stone' && (
+            <>
+              <ellipse cx="133" cy="75" rx="2" ry="1.5" fill="#A8A8A8" opacity="0.6"/>
+              <ellipse cx="137" cy="82" rx="1.5" ry="1" fill="#A8A8A8" opacity="0.6"/>
+              <ellipse cx="134" cy="88" rx="2" ry="1.5" fill="#A8A8A8" opacity="0.6"/>
+            </>
+          )}
+        </>
+      )}
+
+      {/* Door - dynamic */}
+      {renderDoor(customizations.doorStyle, enhancedColors, {x: 90, y: 140, w: 20, h: 30})}
+
+      {/* Windows - dynamic */}
+      {renderWindows(customizations.windowStyle, enhancedColors,
+        windowPositions[0],
+        windowPositions[1]
+      )}
+
+      {/* Window treatments overlay */}
+      {renderWindowTreatments(customizations.windowTreatments, enhancedColors, windowPositions)}
+
+      {/* Details */}
+      <rect x="75" y="100" width="50" height="20" fill={enhancedColors.detail} stroke={enhancedColors.primary} strokeWidth="1"/>
+      <text x="100" y="112" textAnchor="middle" fontSize="8" fill={enhancedColors.base} fontFamily="serif">
+        {customizations.houseBoardText || "~home~"}
+      </text>
+    </svg>
+  );
+}
 
 const TownhouseTemplate: React.FC<{ colors: typeof PALETTE_COLORS.thread_sage, customizations?: HouseCustomizations }> = ({ colors, customizations = {} }) => (
   <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg">

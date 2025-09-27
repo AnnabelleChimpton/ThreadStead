@@ -1,6 +1,7 @@
 import React from 'react'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
+import AnimatedDecoration from './DecorationAnimations'
 
 interface EnhancedHouseCanvasProps {
   template: HouseTemplate
@@ -12,6 +13,11 @@ interface EnhancedHouseCanvasProps {
   isDecorationMode?: boolean
   onDecorationClick?: (decorationId: string, event: React.MouseEvent) => void
   onDecorationMouseDown?: (decorationId: string, event: React.MouseEvent) => void
+  // Animation props
+  animatedDecorations?: Map<string, 'place' | 'remove' | 'select' | 'hover'>
+  recentlyPlaced?: Set<string>
+  selectedDecorations?: Set<string>
+  onAnimationComplete?: (decorationId: string) => void
 }
 
 interface DecorationItem {
@@ -69,7 +75,11 @@ export default function EnhancedHouseCanvas({
   atmosphere = { sky: 'sunny', weather: 'clear', timeOfDay: 'midday' },
   isDecorationMode = false,
   onDecorationClick,
-  onDecorationMouseDown
+  onDecorationMouseDown,
+  animatedDecorations,
+  recentlyPlaced,
+  selectedDecorations,
+  onAnimationComplete
 }: EnhancedHouseCanvasProps) {
 
   const renderBackground = () => {
@@ -131,27 +141,64 @@ export default function EnhancedHouseCanvas({
   const renderDecorations = () => {
     return (
       <div className="absolute inset-0" style={{ zIndex: 10 }}>
-        {decorations.map(item => (
-          <div
-            key={item.id}
-            className={`absolute ${onDecorationClick || onDecorationMouseDown ? 'cursor-pointer hover:scale-110 transition-transform' : ''}`}
-            style={{
-              left: item.position.x,
-              top: item.position.y,
-              zIndex: item.position.layer || 10
-            }}
-            onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
-            onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
-          >
-            <DecorationSVG
-              decorationType={item.type}
-              decorationId={item.id.split('_').slice(0, -1).join('_')} // Extract base decoration ID by removing timestamp
-              variant={item.variant}
-              size={item.size}
-              className="drop-shadow-sm"
-            />
-          </div>
-        ))}
+        {decorations.map(item => {
+          // Determine if this decoration should be animated
+          const hasAnimations = animatedDecorations || recentlyPlaced || selectedDecorations
+          const animationType = recentlyPlaced?.has(item.id) ? 'place' :
+                              selectedDecorations?.has(item.id) ? 'select' :
+                              animatedDecorations?.get(item.id) || undefined
+
+          // Use AnimatedDecoration if animations are available and this decoration needs animation
+          if (hasAnimations && animationType) {
+            return (
+              <div
+                key={item.id}
+                className="absolute"
+                style={{
+                  left: item.position.x,
+                  top: item.position.y,
+                  zIndex: item.position.layer || 10
+                }}
+                onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
+                onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
+              >
+                <AnimatedDecoration
+                  decorationType={item.type}
+                  decorationId={item.id.split('_').slice(0, -1).join('_')} // Remove timestamp
+                  variant={item.variant}
+                  size={item.size}
+                  position={{x: 0, y: 0}} // Position is handled by parent div
+                  animationType={animationType}
+                  onAnimationComplete={() => onAnimationComplete?.(item.id)}
+                  className={`cursor-pointer ${onDecorationClick || onDecorationMouseDown ? 'hover:scale-110 transition-transform' : ''}`}
+                />
+              </div>
+            )
+          }
+
+          // Use static decoration for non-animated items
+          return (
+            <div
+              key={item.id}
+              className={`absolute ${onDecorationClick || onDecorationMouseDown ? 'cursor-pointer hover:scale-110 transition-transform' : ''}`}
+              style={{
+                left: item.position.x,
+                top: item.position.y,
+                zIndex: item.position.layer || 10
+              }}
+              onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
+              onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
+            >
+              <DecorationSVG
+                decorationType={item.type}
+                decorationId={item.id.split('_').slice(0, -1).join('_')} // Extract base decoration ID by removing timestamp
+                variant={item.variant}
+                size={item.size}
+                className="drop-shadow-sm"
+              />
+            </div>
+          )
+        })}
       </div>
     )
   }

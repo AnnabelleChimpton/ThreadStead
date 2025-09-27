@@ -382,3 +382,425 @@
   70% { transform: scale(0.9); }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* ===============================================
+   Enhanced Decoration Animations
+   =============================================== */
+
+/* Gentle bounce for placement */
+@keyframes bounce-gentle {
+  0% {
+    transform: scale(0.8) translateY(0px);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1.1) translateY(-8px);
+    opacity: 0.8;
+  }
+  60% {
+    transform: scale(0.95) translateY(-4px);
+    opacity: 0.9;
+  }
+  80% {
+    transform: scale(1.05) translateY(-2px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(0px);
+    opacity: 1;
+  }
+}
+
+.animate-bounce-gentle {
+  animation: bounce-gentle 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Subtle bounce for hover states */
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 1.5s ease-in-out infinite;
+}
+
+/* Soft pulse for selection */
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 1.5s ease-in-out infinite;
+}
+
+/* Gentle pulse for ambient effects */
+@keyframes pulse-gentle {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse-gentle {
+  animation: pulse-gentle 2s ease-in-out infinite;
+}
+
+/* Enhanced sparkle effect for placement */
+@keyframes sparkle-enhanced {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(180deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0) rotate(360deg);
+  }
+}
+
+.animate-sparkle {
+  animation: sparkle-enhanced 0.6s ease-in-out;
+}
+
+/* Ripple effect for placement */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.animate-ripple {
+  animation: ripple 0.6s ease-out;
+}
+
+.animate-ripple-delayed {
+  animation: ripple 0.6s ease-out 0.2s;
+}
+
+/* Glow pulse effect */
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 1s ease-in-out;
+}
+
+/* Floating particles */
+@keyframes float-up {
+  0% {
+    opacity: 1;
+    transform: translateY(0px) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) rotate(180deg);
+  }
+}
+
+.animate-float-up {
+  animation: float-up 1.5s ease-out;
+}
+
+/* Explosion effect for deletion */
+@keyframes explosion {
+  0% {
+    opacity: 1;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+.animate-explosion {
+  animation: explosion 0.6s ease-out;
+}
+
+/* Flash effect */
+@keyframes flash {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-flash {
+  animation: flash 0.3s ease-out;
+}
+
+/* Smoke puff */
+@keyframes smoke-puff {
+  0% {
+    opacity: 0.4;
+    transform: scale(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+.animate-smoke-puff {
+  animation: smoke-puff 0.8s ease-out;
+}
+
+/* Action feedback popup */
+@keyframes feedback-popup {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.8);
+  }
+}
+
+.animate-feedback-popup {
+  animation: feedback-popup 2s ease-out;
+}
+
+/* Twinkle effect for water */
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-twinkle {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+/* Flicker effect for lights */
+@keyframes flicker {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.animate-flicker {
+  animation: flicker 3s ease-in-out infinite;
+}
+
+/* Spooky glow for Halloween items */
+@keyframes spooky-glow {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  33% {
+    opacity: 0.4;
+    transform: scale(1.1);
+  }
+  66% {
+    opacity: 0.3;
+    transform: scale(0.95);
+  }
+}
+
+.animate-spooky-glow {
+  animation: spooky-glow 4s ease-in-out infinite;
+}
+
+/* Hover lift effect */
+.decoration-hover-lift {
+  transition: transform 0.2s ease-out, filter 0.2s ease-out;
+}
+
+.decoration-hover-lift:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.1) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+}
+
+/* Selection ring animation */
+@keyframes selection-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+}
+
+.animate-selection-ring {
+  animation: selection-ring 0.3s ease-out;
+}
+
+/* Grid snap indication */
+@keyframes grid-snap {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+}
+
+.animate-grid-snap {
+  animation: grid-snap 0.4s ease-out;
+}
+
+/* Magnetic attraction effect */
+@keyframes magnetic-pull {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-magnetic-pull {
+  animation: magnetic-pull 0.5s ease-in-out;
+}
+
+/* Success placement effect */
+@keyframes placement-success {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(-180deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-placement-success {
+  animation: placement-success 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Error shake effect */
+@keyframes error-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+.animate-error-shake {
+  animation: error-shake 0.5s ease-in-out;
+}
+
+/* Enhanced decoration base utilities */
+.decoration-animated {
+  transform-origin: center;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Performance optimizations for animations */
+.decoration-animated,
+.decoration-hover-lift,
+[class*="animate-"] {
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Reduced motion support for enhanced animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce-gentle,
+  .animate-bounce-subtle,
+  .animate-pulse-soft,
+  .animate-pulse-gentle,
+  .animate-sparkle,
+  .animate-ripple,
+  .animate-ripple-delayed,
+  .animate-glow-pulse,
+  .animate-float-up,
+  .animate-twinkle,
+  .animate-flicker,
+  .animate-spooky-glow {
+    animation: none;
+  }
+
+  .decoration-hover-lift:hover {
+    transform: none;
+    filter: brightness(1.05);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .animate-sparkle,
+  .animate-glow-pulse,
+  .animate-twinkle {
+    filter: contrast(2);
+  }
+}

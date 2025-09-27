@@ -1,7 +1,7 @@
 import React from 'react'
 
 interface DecorationIconProps {
-  type: 'plant' | 'path' | 'feature' | 'seasonal' | 'sky' | 'house_custom' | 'house_template' | 'house_color'
+  type: 'plant' | 'path' | 'feature' | 'seasonal' | 'sky' | 'house_custom' | 'house_template' | 'house_color' | 'furniture' | 'lighting' | 'water' | 'structure'
   id: string
   size?: number
   className?: string
@@ -142,6 +142,76 @@ export default function DecorationIcon({
               <circle cx="10" cy="8" r="1.5" fill="#DC2626" />
               <circle cx="14" cy="8" r="1.5" fill="#2563EB" />
               <circle cx="12" cy="6" r="1.5" fill="#F59E0B" />
+            </svg>
+          )
+        case 'roses_pink':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <ellipse cx="12" cy="20" rx="8" ry="3" fill="#4A5D23" />
+              <rect x="11" y="14" width="2" height="6" fill="#2D5016" />
+              <circle cx="12" cy="12" r="3" fill="#EC4899" />
+              <circle cx="12" cy="12" r="1" fill="#9D174D" />
+            </svg>
+          )
+        case 'roses_white':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <ellipse cx="12" cy="20" rx="8" ry="3" fill="#4A5D23" />
+              <rect x="11" y="14" width="2" height="6" fill="#2D5016" />
+              <circle cx="12" cy="12" r="3" fill="#FFFFFF" />
+              <circle cx="12" cy="12" r="1" fill="#FCD34D" />
+            </svg>
+          )
+        case 'daisies_yellow':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <ellipse cx="12" cy="20" rx="6" ry="2" fill="#4A5D23" />
+              <rect x="11" y="12" width="2" height="8" fill="#2D5016" />
+              <g>
+                {[0, 90, 180, 270].map(angle => (
+                  <ellipse
+                    key={angle}
+                    cx="12"
+                    cy="10"
+                    rx="2"
+                    ry="1"
+                    fill="#FEF3C7"
+                    transform={`rotate(${angle} 12 10)`}
+                  />
+                ))}
+                <circle cx="12" cy="10" r="1.5" fill="#F59E0B" />
+              </g>
+            </svg>
+          )
+        case 'tree_oak':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="11" y="16" width="2" height="6" fill="#8B4513" />
+              <circle cx="12" cy="12" r="6" fill="#16A34A" />
+              <circle cx="12" cy="10" r="4" fill="#22C55E" opacity="0.8" />
+              <circle cx="8" cy="12" r="2" fill="#059669" opacity="0.6" />
+              <circle cx="16" cy="12" r="2" fill="#059669" opacity="0.6" />
+            </svg>
+          )
+        case 'tree_pine':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="11" y="18" width="2" height="4" fill="#8B4513" />
+              <path d="M12 4 L8 12 L16 12 Z" fill="#0F4C3A" />
+              <path d="M12 7 L9 14 L15 14 Z" fill="#16A34A" />
+              <path d="M12 10 L10 16 L14 16 Z" fill="#22C55E" />
+            </svg>
+          )
+        case 'planter_box':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="6" y="14" width="12" height="6" fill="#8B4513" stroke="#654321" strokeWidth="1" />
+              <rect x="7" y="12" width="2" height="8" fill="#16A34A" />
+              <rect x="11" y="10" width="2" height="10" fill="#16A34A" />
+              <rect x="15" y="12" width="2" height="8" fill="#16A34A" />
+              <circle cx="8" cy="10" r="1" fill="#DC2626" />
+              <circle cx="12" cy="8" r="1" fill="#F59E0B" />
+              <circle cx="16" cy="10" r="1" fill="#2563EB" />
             </svg>
           )
         default:
@@ -493,6 +563,202 @@ export default function DecorationIcon({
           <circle cx="18" cy="6" r="1" fill={color || '#A18463'}/>
         </svg>
       )
+
+    case 'furniture':
+      switch (id) {
+        case 'garden_bench':
+        case 'garden_bench_blue':
+        case 'garden_bench_green':
+          const benchColor = id === 'garden_bench_blue' ? '#3B82F6' : id === 'garden_bench_green' ? '#16A34A' : '#8B4513'
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="4" y="14" width="16" height="3" fill={benchColor} rx="1" />
+              <rect x="4" y="10" width="2" height="7" fill={benchColor} />
+              <rect x="18" y="10" width="2" height="7" fill={benchColor} />
+              <rect x="4" y="10" width="16" height="2" fill={benchColor} rx="1" />
+            </svg>
+          )
+        case 'outdoor_table':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <ellipse cx="12" cy="12" rx="8" ry="4" fill="#8B4513" stroke="#654321" strokeWidth="1" />
+              <rect x="6" y="12" width="2" height="6" fill="#654321" />
+              <rect x="10" y="12" width="2" height="6" fill="#654321" />
+              <rect x="12" y="12" width="2" height="6" fill="#654321" />
+              <rect x="16" y="12" width="2" height="6" fill="#654321" />
+            </svg>
+          )
+        case 'mailbox':
+        case 'mailbox_red':
+        case 'mailbox_blue':
+          const mailboxColor = id === 'mailbox_red' ? '#DC2626' : id === 'mailbox_blue' ? '#2563EB' : '#6B7280'
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="18" y="8" width="2" height="10" fill="#8B4513" />
+              <rect x="4" y="8" width="12" height="6" fill={mailboxColor} rx="2" />
+              <rect x="5" y="10" width="8" height="3" fill="#FFFFFF" stroke={mailboxColor} strokeWidth="0.5" />
+              <circle cx="13" cy="11" r="0.5" fill="#FFD700" />
+            </svg>
+          )
+        case 'picnic_table':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="2" y="11" width="20" height="2" fill="#8B4513" rx="1" />
+              <rect x="4" y="15" width="16" height="1.5" fill="#8B4513" rx="0.5" />
+              <rect x="6" y="13" width="2" height="5" fill="#654321" />
+              <rect x="16" y="13" width="2" height="5" fill="#654321" />
+              <rect x="11" y="8" width="2" height="10" fill="#654321" />
+            </svg>
+          )
+        default:
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="4" y="4" width="16" height="16" fill="#8B4513" rx="2" />
+              <text x="12" y="16" textAnchor="middle" fontSize="10" fill="white">🪑</text>
+            </svg>
+          )
+      }
+
+    case 'lighting':
+      switch (id) {
+        case 'garden_lantern':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="11" y="16" width="2" height="4" fill="#8B4513" />
+              <rect x="8" y="8" width="8" height="8" fill="#FFD700" stroke="#D97706" strokeWidth="1" rx="2" />
+              <rect x="9" y="9" width="6" height="6" fill="#FEF3C7" rx="1" />
+              <circle cx="12" cy="12" r="2" fill="#FBBF24" opacity="0.8" />
+              <rect x="10" y="6" width="4" height="2" fill="#8B4513" rx="1" />
+            </svg>
+          )
+        case 'string_lights':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <path d="M2 8 Q12 12 22 8" stroke="#8B4513" strokeWidth="1" fill="none" />
+              <circle cx="6" cy="9" r="1.5" fill="#FCD34D" />
+              <circle cx="12" cy="10" r="1.5" fill="#F87171" />
+              <circle cx="18" cy="9" r="1.5" fill="#60A5FA" />
+              <circle cx="9" cy="9.5" r="1" fill="#34D399" />
+              <circle cx="15" cy="9.5" r="1" fill="#A78BFA" />
+            </svg>
+          )
+        case 'torch':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="11" y="12" width="2" height="8" fill="#8B4513" />
+              <ellipse cx="12" cy="8" rx="3" ry="4" fill="#F59E0B" />
+              <ellipse cx="12" cy="6" rx="2" ry="3" fill="#FBBF24" />
+              <ellipse cx="12" cy="4" rx="1" ry="2" fill="#FEF3C7" />
+            </svg>
+          )
+        case 'spotlight':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="11" y="14" width="2" height="6" fill="#374151" />
+              <circle cx="12" cy="10" r="4" fill="#6B7280" stroke="#374151" strokeWidth="1" />
+              <circle cx="12" cy="10" r="2" fill="#FEF3C7" />
+              <path d="M12 6 L8 2 L16 2 Z" fill="#FBBF24" opacity="0.6" />
+            </svg>
+          )
+        default:
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <circle cx="12" cy="12" r="8" fill="#FCD34D" />
+              <text x="12" y="16" textAnchor="middle" fontSize="10" fill="white">💡</text>
+            </svg>
+          )
+      }
+
+    case 'water':
+      switch (id) {
+        case 'fountain':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <ellipse cx="12" cy="18" rx="8" ry="3" fill="#3B82F6" opacity="0.6" />
+              <rect x="10" y="12" width="4" height="6" fill="#9CA3AF" rx="1" />
+              <circle cx="12" cy="8" r="3" fill="#60A5FA" opacity="0.8" />
+              <circle cx="12" cy="6" r="1" fill="#DBEAFE" />
+              <circle cx="10" cy="7" r="0.5" fill="#DBEAFE" />
+              <circle cx="14" cy="7" r="0.5" fill="#DBEAFE" />
+            </svg>
+          )
+        case 'pond':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <ellipse cx="12" cy="12" rx="8" ry="4" fill="#3B82F6" opacity="0.7" />
+              <ellipse cx="12" cy="12" rx="6" ry="3" fill="#60A5FA" opacity="0.5" />
+              <circle cx="8" cy="12" r="1" fill="#DBEAFE" opacity="0.8" />
+              <circle cx="16" cy="13" r="0.5" fill="#DBEAFE" opacity="0.8" />
+              <ellipse cx="12" cy="10" rx="2" ry="1" fill="#FFFFFF" opacity="0.6" />
+            </svg>
+          )
+        case 'rain_barrel':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="8" y="8" width="8" height="12" fill="#8B4513" stroke="#654321" strokeWidth="1" rx="1" />
+              <ellipse cx="12" cy="8" rx="4" ry="1" fill="#6B7280" />
+              <rect x="9" y="10" width="6" height="1" fill="#654321" />
+              <rect x="9" y="13" width="6" height="1" fill="#654321" />
+              <rect x="9" y="16" width="6" height="1" fill="#654321" />
+              <circle cx="14" cy="12" r="1" fill="#3B82F6" opacity="0.7" />
+            </svg>
+          )
+        default:
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <circle cx="12" cy="12" r="8" fill="#3B82F6" />
+              <text x="12" y="16" textAnchor="middle" fontSize="10" fill="white">💧</text>
+            </svg>
+          )
+      }
+
+    case 'structure':
+      switch (id) {
+        case 'gazebo':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <path d="M4 16 L12 8 L20 16 Z" fill="#8B4513" stroke="#654321" strokeWidth="1" />
+              <rect x="6" y="16" width="2" height="4" fill="#654321" />
+              <rect x="10" y="16" width="2" height="4" fill="#654321" />
+              <rect x="12" y="16" width="2" height="4" fill="#654321" />
+              <rect x="16" y="16" width="2" height="4" fill="#654321" />
+              <rect x="4" y="16" width="16" height="1" fill="#8B4513" />
+            </svg>
+          )
+        case 'trellis':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="4" y="4" width="2" height="16" fill="#8B4513" />
+              <rect x="18" y="4" width="2" height="16" fill="#8B4513" />
+              <rect x="4" y="8" width="16" height="1" fill="#8B4513" />
+              <rect x="4" y="12" width="16" height="1" fill="#8B4513" />
+              <rect x="4" y="16" width="16" height="1" fill="#8B4513" />
+              <circle cx="8" cy="10" r="1" fill="#16A34A" />
+              <circle cx="12" cy="6" r="1" fill="#16A34A" />
+              <circle cx="16" cy="10" r="1" fill="#16A34A" />
+            </svg>
+          )
+        case 'garden_arch':
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="4" y="12" width="2" height="8" fill="#8B4513" />
+              <rect x="18" y="12" width="2" height="8" fill="#8B4513" />
+              <path d="M6 12 Q12 4 18 12" stroke="#8B4513" strokeWidth="2" fill="none" />
+              <circle cx="8" cy="10" r="0.5" fill="#16A34A" />
+              <circle cx="12" cy="8" r="0.5" fill="#DC2626" />
+              <circle cx="16" cy="10" r="0.5" fill="#16A34A" />
+              <circle cx="10" cy="9" r="0.3" fill="#F59E0B" />
+              <circle cx="14" cy="9" r="0.3" fill="#F59E0B" />
+            </svg>
+          )
+        default:
+          return (
+            <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
+              <rect x="4" y="4" width="16" height="16" fill="#8B4513" rx="2" />
+              <text x="12" y="16" textAnchor="middle" fontSize="10" fill="white">🏗️</text>
+            </svg>
+          )
+      }
 
     default:
       return (
