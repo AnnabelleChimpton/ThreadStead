@@ -15,7 +15,7 @@ interface SignupPageProps {
   betaKey?: string | null;
 }
 
-type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'profile' | 'template' | 'finale';
+type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'guidelines' | 'profile' | 'template' | 'finale';
 type AuthMethod = 'password' | 'seedphrase';
 
 export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
@@ -58,6 +58,9 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [bio, setBio] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
+
+  // Community Guidelines Agreement
+  const [agreedToGuidelines, setAgreedToGuidelines] = useState(false);
 
   // Step 5: Complete
   const [accountCreated, setAccountCreated] = useState(false);
@@ -190,10 +193,19 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
     setCurrentStep('email');
   }
 
+  function handleGuidelinesAgreement() {
+    if (!agreedToGuidelines) {
+      setError('Please agree to the Terms of Service, Privacy Policy, and Community Guidelines to continue');
+      return;
+    }
+    setError(null);
+    setCurrentStep('profile');
+  }
+
   async function handleEmailSetup() {
     if (!email.trim()) {
       // Skip email step
-      setCurrentStep('profile');
+      setCurrentStep('guidelines');
       return;
     }
 
@@ -208,15 +220,15 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
       });
 
       if (response.ok) {
-        setCurrentStep('profile');
+        setCurrentStep('guidelines');
       } else {
         const error = await response.json();
         setError(error.error || 'Failed to set email');
       }
     } catch (err) {
       setError('Failed to set email. You can add it later in settings.');
-      // Continue to profile setup even if email fails
-      setTimeout(() => setCurrentStep('profile'), 2000);
+      // Continue to guidelines even if email fails
+      setTimeout(() => setCurrentStep('guidelines'), 2000);
     } finally {
       setIsLoading(false);
     }
@@ -397,37 +409,44 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
           {/* Progress Indicator */}
           <div className="mb-8">
             <div className="flex items-center justify-center gap-2 text-sm">
-              <div className={`flex items-center gap-2 ${currentStep === 'welcome' ? 'text-blue-600 font-medium' : ['seed-phrase', 'email', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'welcome' ? 'bg-blue-100' : ['seed-phrase', 'email', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
+              <div className={`flex items-center gap-2 ${currentStep === 'welcome' ? 'text-blue-600 font-medium' : ['seed-phrase', 'email', 'guidelines', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'welcome' ? 'bg-blue-100' : ['seed-phrase', 'email', 'guidelines', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
                   1
                 </span>
                 Username
               </div>
               <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'seed-phrase' ? 'text-blue-600 font-medium' : ['email', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'seed-phrase' ? 'bg-blue-100' : ['email', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
+              <div className={`flex items-center gap-2 ${currentStep === 'seed-phrase' ? 'text-blue-600 font-medium' : ['email', 'guidelines', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'seed-phrase' ? 'bg-blue-100' : ['email', 'guidelines', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
                   2
                 </span>
                 Backup
               </div>
               <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'email' ? 'text-blue-600 font-medium' : ['profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'email' ? 'bg-blue-100' : ['profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
+              <div className={`flex items-center gap-2 ${currentStep === 'email' ? 'text-blue-600 font-medium' : ['guidelines', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'email' ? 'bg-blue-100' : ['guidelines', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
                   3
                 </span>
                 Email
               </div>
               <div className="w-6 h-px bg-gray-300"></div>
+              <div className={`flex items-center gap-2 ${currentStep === 'guidelines' ? 'text-blue-600 font-medium' : ['profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'guidelines' ? 'bg-blue-100' : ['profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  4
+                </span>
+                Agreements
+              </div>
+              <div className="w-6 h-px bg-gray-300"></div>
               <div className={`flex items-center gap-2 ${currentStep === 'profile' ? 'text-blue-600 font-medium' : ['template', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
                 <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'profile' ? 'bg-blue-100' : ['template', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  4
+                  5
                 </span>
                 Profile
               </div>
               <div className="w-6 h-px bg-gray-300"></div>
               <div className={`flex items-center gap-2 ${currentStep === 'template' ? 'text-blue-600 font-medium' : currentStep === 'finale' ? 'text-green-600' : 'text-gray-400'}`}>
                 <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'template' ? 'bg-blue-100' : currentStep === 'finale' ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  5
+                  6
                 </span>
                 Template
               </div>
@@ -811,7 +830,7 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
                   
                   {email.trim() && (
                     <button
-                      onClick={() => setCurrentStep('profile')}
+                      onClick={() => setCurrentStep('guidelines')}
                       className="text-sm text-gray-600 hover:text-gray-800 underline"
                     >
                       Skip for now
@@ -938,6 +957,112 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
                 
                 {error && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Community Guidelines Agreement */}
+          {currentStep === 'guidelines' && (
+            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+              <div className="text-center mb-8">
+                <span className="text-6xl mb-4 block">📋</span>
+                <h2 className="text-3xl font-bold mb-2">Legal & Community Agreements</h2>
+                <p className="text-gray-600 max-w-lg mx-auto">
+                  Before joining our community, please review and agree to our Terms of Service,
+                  Privacy Policy, and Community Guidelines.
+                </p>
+              </div>
+
+              {/* TODO: Make community guidelines content configurable via admin portal */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6 max-h-64 overflow-y-auto">
+                <h3 className="font-bold text-lg mb-3">Our Core Values:</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2">
+                    <span className="text-yellow-500">🎨</span>
+                    <span><strong>Be Creative:</strong> Express yourself authentically and celebrate creativity in all forms.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500">💚</span>
+                    <span><strong>Be Kind:</strong> Treat others with respect and empathy.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-500">🌟</span>
+                    <span><strong>Be Yourself:</strong> Your unique perspective makes our community special.</span>
+                  </div>
+                </div>
+
+                <h3 className="font-bold text-lg mt-4 mb-3">Key Rules:</h3>
+                <div className="space-y-1 text-sm text-gray-700">
+                  <div>• No harassment, bullying, or hate speech</div>
+                  <div>• Share original content and respect others&apos; work</div>
+                  <div>• Keep content appropriate for all ages</div>
+                  <div>• Report issues to help maintain a safe space</div>
+                </div>
+
+                <div className="mt-4 text-center">
+                  <a
+                    href="/community-guidelines"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline text-sm"
+                  >
+                    Read Full Guidelines →
+                  </a>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreedToGuidelines}
+                    onChange={(e) => setAgreedToGuidelines(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">
+                    I have read and agree to the{' '}
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Terms of Service
+                    </a>
+                    ,{' '}
+                    <a
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Privacy Policy
+                    </a>
+                    , and{' '}
+                    <a
+                      href="/community-guidelines"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Community Guidelines
+                    </a>
+                  </span>
+                </label>
+
+                <button
+                  onClick={handleGuidelinesAgreement}
+                  disabled={!agreedToGuidelines}
+                  className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {agreedToGuidelines ? "Continue to Profile Setup" : "Please agree to all terms to continue"}
+                </button>
+
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
                     {error}
                   </div>
                 )}

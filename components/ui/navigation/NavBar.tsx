@@ -106,6 +106,33 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
     return () => document.removeEventListener("click", handleClickOutside);
   }, [setActiveDropdown]);
 
+  // Icon mapping for navigation items
+  const getItemIcon = (label: string): string => {
+    const iconMap: { [key: string]: string } = {
+      // My Space items
+      'Bookmarks': '🔖',
+      'Feed': '📰',
+      'My Pixel Home': '🏠',
+      'My Profile': '👤',
+
+      // Explore items
+      'All Homes': '🏘️',
+      'Recent Activity': '⚡',
+      'Directory': '📚',
+      'ThreadRings': '💍',
+      'The Spool': '🧵',
+      'Genealogy': '🌳',
+      'Community Index': '📋',
+      'Engagement': '💬',
+
+      // Help items
+      'Getting Started': '🚀',
+      'Design Tutorial': '🎨',
+      'Design CSS Tutorial': '💻'
+    };
+    return iconMap[label] || '•';
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -120,20 +147,20 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
         id={`dropdown-button-${dropdownKey}`}
       >
         {title}
-        <svg 
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
           aria-hidden="true"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      
+
       {isOpen && (
-        <div 
-          className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[10000] dropdown-animated"
+        <div
+          className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[10000] dropdown-animated"
           role="menu"
           aria-labelledby={`dropdown-button-${dropdownKey}`}
           onMouseLeave={() => setActiveDropdown(null)}
@@ -142,14 +169,17 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
             <Link
               key={index}
               href={item.href}
-              className="block px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
+              className="flex items-center gap-3 px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
               role="menuitem"
               tabIndex={isOpen ? 0 : -1}
               onClick={() => {
                 setTimeout(() => setActiveDropdown(null), 50);
               }}
             >
-              {item.label}
+              <span className="text-sm" role="img" aria-hidden="true">
+                {getItemIcon(item.label)}
+              </span>
+              <span>{item.label}</span>
             </Link>
           ))}
         </div>
@@ -232,49 +262,41 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/">Home</Link>
               <Link className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline" href="/discover">Discover</Link>
 
-              {/* My Space dropdown - personal content */}
-              {me && (
-                <DropdownMenu
-                  title="My Space"
-                  dropdownKey="myspace"
-                  activeDropdown={activeDropdown}
-                  setActiveDropdown={setActiveDropdown}
-                  items={[
-                    { href: "/bookmarks", label: "Bookmarks" },
-                    { href: "/feed", label: "Feed" },
-                    ...(isClient && me?.loggedIn && me?.user?.primaryHandle ? [
-                      { href: `/home/${me.user.primaryHandle.split('@')[0]}`, label: "My Pixel Home" },
-                      { href: `/resident/${me.user.primaryHandle.split('@')[0]}`, label: "My Profile" }
-                    ] : [])
-                  ]}
-                />
-              )}
-
-              {/* Community dropdown - social features */}
+              {/* Explore dropdown - consolidated community and personal features */}
               <DropdownMenu
-                title="Community"
-                dropdownKey="community"
+                title="Explore"
+                dropdownKey="explore"
                 activeDropdown={activeDropdown}
                 setActiveDropdown={setActiveDropdown}
                 items={[
+                  // Core community features (always visible)
                   { href: "/neighborhood/explore/all", label: "All Homes" },
-                  { href: "/neighborhood/explore/recent", label: "Recent Activity" },
                   { href: "/directory", label: "Directory" },
                   { href: "/threadrings", label: "ThreadRings" },
                   { href: "/tr/spool", label: "The Spool" },
-                  { href: "/threadrings/genealogy", label: "Genealogy" },
-                  ...discoveryPages.map(page => ({
+                  // Personal features (for logged-in users)
+                  ...(me?.loggedIn ? [
+                    { href: "/feed", label: "Feed" },
+                    { href: "/bookmarks", label: "Bookmarks" },
+                    ...(isClient && me?.user?.primaryHandle ? [
+                      { href: `/home/${me.user.primaryHandle.split('@')[0]}`, label: "My Pixel Home" },
+                      { href: `/resident/${me.user.primaryHandle.split('@')[0]}`, label: "My Profile" }
+                    ] : [])
+                  ] : []),
+                  // Additional features
+                  { href: "/neighborhood/explore/recent", label: "Recent Activity" },
+                  ...discoveryPages.slice(0, 2).map(page => ({ // Limit to 2 most important
                     href: `/page/${page.slug}`,
                     label: page.title
                   })),
-                  ...threadRingsPages.map(page => ({
+                  ...threadRingsPages.slice(0, 2).map(page => ({ // Limit to 2 most important
                     href: `/page/${page.slug}`,
                     label: page.title
                   }))
                 ]}
               />
 
-              {/* Help dropdown - resources and tutorials */}
+              {/* Simplified Help dropdown - core resources only */}
               <DropdownMenu
                 title="Help"
                 dropdownKey="help"
@@ -283,15 +305,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 items={[
                   { href: "/getting-started", label: "Getting Started" },
                   { href: "/design-tutorial", label: "Design Tutorial" },
-                  { href: "/design-css-tutorial", label: "Design CSS Tutorial" },
-                  ...helpPages.map(page => ({
-                    href: `/page/${page.slug}`,
-                    label: page.title
-                  })),
-                  ...topLevelPages.map(page => ({
-                    href: `/page/${page.slug}`,
-                    label: page.title
-                  }))
+                  ...(helpPages.length > 0 ? [{ href: `/page/${helpPages[0].slug}`, label: "FAQ" }] : []) // First help page as FAQ
                 ]}
               />
             </div>
@@ -364,71 +378,18 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               Discover
             </Link>
 
-            {/* My Space dropdown - personal content */}
-            {me && (
-              <div>
-                <button
-                  className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between"
-                  onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'myspace' ? null : 'myspace')}
-                >
-                  <span>My Space</span>
-                  <svg
-                    className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'myspace' ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {mobileDropdownOpen === 'myspace' && (
-                  <div className="ml-6 mt-2 space-y-2">
-                    <Link
-                      href="/bookmarks"
-                      className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Bookmarks
-                    </Link>
-                    <Link
-                      href="/feed"
-                      className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Feed
-                    </Link>
-                    {isClient && me?.loggedIn && me?.user?.primaryHandle && (
-                      <>
-                        <Link
-                          href={`/home/${me.user.primaryHandle.split('@')[0]}`}
-                          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          My Pixel Home
-                        </Link>
-                        <Link
-                          href={`/resident/${me.user.primaryHandle.split('@')[0]}`}
-                          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          My Profile
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Community dropdown - community features */}
+            {/* Explore dropdown - consolidated community and personal features */}
             <div>
               <button
                 className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between"
-                onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'community' ? null : 'community')}
+                onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'explore' ? null : 'explore')}
               >
-                <span>Community</span>
+                <span className="flex items-center gap-2">
+                  <span>🌍</span>
+                  <span>Explore</span>
+                </span>
                 <svg
-                  className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'community' ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'explore' ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -436,96 +397,110 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              {mobileDropdownOpen === 'community' && (
-                <div className="ml-6 mt-2 space-y-2">
+              {mobileDropdownOpen === 'explore' && (
+                <div className="ml-6 mt-2 space-y-1">
+                  {/* Core community features */}
                   <Link
                     href="/neighborhood/explore/all"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    All Homes
-                  </Link>
-                  <Link
-                    href="/neighborhood/explore/recent"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Recent Activity
+                    <span>🏘️</span>
+                    <span>All Homes</span>
                   </Link>
                   <Link
                     href="/directory"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Directory
+                    <span>📚</span>
+                    <span>Directory</span>
                   </Link>
                   <Link
                     href="/threadrings"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    ThreadRings
+                    <span>💍</span>
+                    <span>ThreadRings</span>
                   </Link>
                   <Link
                     href="/tr/spool"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    The Spool
+                    <span>🧵</span>
+                    <span>The Spool</span>
                   </Link>
+
+                  {/* Personal features for logged-in users */}
+                  {me?.loggedIn && (
+                    <>
+                      <div className="border-t border-thread-sage my-2 pt-2">
+                        <div className="px-3 py-1 text-xs text-thread-sage font-medium">Your Space</div>
+                      </div>
+                      <Link
+                        href="/feed"
+                        className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <span>📰</span>
+                        <span>Feed</span>
+                      </Link>
+                      <Link
+                        href="/bookmarks"
+                        className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <span>🔖</span>
+                        <span>Bookmarks</span>
+                      </Link>
+                      {isClient && me?.user?.primaryHandle && (
+                        <>
+                          <Link
+                            href={`/home/${me.user.primaryHandle.split('@')[0]}`}
+                            className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <span>🏠</span>
+                            <span>My Pixel Home</span>
+                          </Link>
+                          <Link
+                            href={`/resident/${me.user.primaryHandle.split('@')[0]}`}
+                            className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <span>👤</span>
+                            <span>My Profile</span>
+                          </Link>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {/* Additional features - limited to most important */}
                   <Link
-                    href="/threadrings/genealogy"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                    href="/neighborhood/explore/recent"
+                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Genealogy
+                    <span>⚡</span>
+                    <span>Recent Activity</span>
                   </Link>
-                  <Link
-                    href="/community-index/validate"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Community Index
-                  </Link>
-                  <Link
-                    href="/engagement"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Engagement
-                  </Link>
-                  {/* Dynamic pages */}
-                  {discoveryPages.map(page => (
-                    <Link
-                      key={page.id}
-                      href={`/page/${page.slug}`}
-                      className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {page.title}
-                    </Link>
-                  ))}
-                  {threadRingsPages.map(page => (
-                    <Link
-                      key={page.id}
-                      href={`/page/${page.slug}`}
-                      className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {page.title}
-                    </Link>
-                  ))}
                 </div>
               )}
             </div>
             
-            {/* Help dropdown - resources and support */}
+            {/* Simplified Help dropdown - core resources only */}
             <div>
               <button
                 className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between"
                 onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'help' ? null : 'help')}
               >
-                <span>Help</span>
+                <span className="flex items-center gap-2">
+                  <span>❓</span>
+                  <span>Help</span>
+                </span>
                 <svg
                   className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'help' ? 'rotate-180' : ''}`}
                   fill="none"
@@ -536,49 +511,33 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 </svg>
               </button>
               {mobileDropdownOpen === 'help' && (
-                <div className="ml-6 mt-2 space-y-2">
+                <div className="ml-6 mt-2 space-y-1">
                   <Link
                     href="/getting-started"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Getting Started
+                    <span>🚀</span>
+                    <span>Getting Started</span>
                   </Link>
                   <Link
                     href="/design-tutorial"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Design Tutorial
+                    <span>🎨</span>
+                    <span>Design Tutorial</span>
                   </Link>
-                  <Link
-                    href="/design-css-tutorial"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Design CSS Tutorial
-                  </Link>
-                  {/* Dynamic top-level and help pages */}
-                  {topLevelPages.map(page => (
+                  {helpPages.length > 0 && (
                     <Link
-                      key={page.id}
-                      href={`/page/${page.slug}`}
-                      className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                      href={`/page/${helpPages[0].slug}`}
+                      className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      {page.title}
+                      <span>📋</span>
+                      <span>FAQ</span>
                     </Link>
-                  ))}
-                  {helpPages.map(page => (
-                    <Link
-                      key={page.id}
-                      href={`/page/${page.slug}`}
-                      className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {page.title}
-                    </Link>
-                  ))}
+                  )}
                 </div>
               )}
             </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { getTemplatePreviewStyle, TEMPLATE_PREVIEW_STYLES } from '@/lib/templates/rendering/template-preview-styles';
 import { ProfileTemplateType } from '@/lib/templates/default-profile-templates';
 import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
@@ -77,11 +78,11 @@ export default function WelcomeHomeOverlay({
       />
 
       {/* Welcome Home message */}
-      <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div 
-          className={`max-w-4xl w-full transition-all duration-1000 transform ${
-            showWelcome 
-              ? 'opacity-100 scale-100 translate-y-0' 
+      <div className="absolute inset-0 flex items-center justify-center p-4 pt-20">
+        <div
+          className={`max-w-3xl w-full transition-all duration-1000 transform ${
+            showWelcome
+              ? 'opacity-100 scale-100 translate-y-0'
               : 'opacity-0 scale-95 translate-y-4'
           }`}
         >
@@ -89,7 +90,7 @@ export default function WelcomeHomeOverlay({
             {/* Close button */}
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 z-10 p-3 rounded-full transition-all hover:scale-110 pointer-events-auto"
+              className="absolute top-2 right-2 z-10 p-2 rounded-full transition-all hover:scale-110 pointer-events-auto"
               style={{
                 background: `${backgroundColor}90`,
                 border: `2px solid ${primaryColor}40`,
@@ -97,77 +98,138 @@ export default function WelcomeHomeOverlay({
               }}
               aria-label="Close welcome message"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
-            
+
             {/* Main welcome text with enhanced visibility */}
-            <div 
-              className="inline-block px-12 py-8 rounded-3xl shadow-2xl border-4 backdrop-blur-md mb-4 w-full"
-              style={{
-                background: `linear-gradient(135deg, ${backgroundColor}95 0%, ${primaryColor}15 50%, ${secondaryColor}15 100%)`,
-                borderColor: primaryColor + '60',
-                boxShadow: `0 25px 50px ${primaryColor}40, 0 0 0 1px ${primaryColor}30`
-              }}
-            >
-              <h1 
-                className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-4 tracking-wide text-center"
-                style={{ 
-                  color: primaryColor,
-                  textShadow: `3px 3px 6px ${primaryColor}50, 0 0 30px ${primaryColor}30`
-                }}
+            <div className="bg-white border border-black rounded-none p-6 shadow-[4px_4px_0_#000] mb-3 w-full">
+              <h1
+                className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 tracking-wide text-center"
+                style={{ color: primaryColor }}
               >
                 Welcome Home
               </h1>
-              
+
               {/* Subtitle */}
-              <p 
-                className="text-2xl sm:text-3xl md:text-4xl font-semibold text-center mb-6"
-                style={{ 
-                  color: secondaryColor,
-                  textShadow: `2px 2px 4px ${secondaryColor}50, 0 0 15px ${secondaryColor}30`
-                }}
+              <p
+                className="text-lg sm:text-xl md:text-2xl font-semibold text-center mb-3"
+                style={{ color: secondaryColor }}
               >
                 @{username}
               </p>
               
               {/* Founder's Note */}
               {foundersNote && (
-                <div 
-                  className="mt-8 p-6 rounded-2xl mx-auto max-w-2xl"
+                <div
+                  className="mt-4 p-4 rounded-xl mx-auto max-w-xl"
                   style={{
                     background: `${backgroundColor}80`,
                     border: `1px solid ${primaryColor}30`
                   }}
                 >
-                  <h3 
-                    className="text-lg font-semibold mb-3 flex items-center justify-center gap-2"
+                  <h3
+                    className="text-sm font-semibold mb-2 flex items-center justify-center gap-2"
                     style={{ color: primaryColor }}
                   >
                     <span>💌</span> A Note from the Founder
                   </h3>
-                  <p 
-                    className="text-base sm:text-lg leading-relaxed text-center"
+                  <p
+                    className="text-sm leading-relaxed text-center"
                     style={{ color: primaryColor + 'DD' }}
                   >
                     {foundersNote}
                   </p>
                 </div>
               )}
-              
+
+              {/* First Steps Action Items */}
+              <div
+                className="mt-4 p-4 rounded-xl mx-auto max-w-xl"
+                style={{
+                  background: `${secondaryColor}15`,
+                  border: `1px solid ${secondaryColor}30`
+                }}
+              >
+                <h3
+                  className="text-base font-bold mb-3 text-center flex items-center justify-center gap-2"
+                  style={{ color: secondaryColor }}
+                >
+                  <span>✨</span> Your First Steps
+                </h3>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href="/post/new"
+                    className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                    style={{
+                      background: `${backgroundColor}90`,
+                      border: `1px solid ${primaryColor}40`,
+                      color: primaryColor
+                    }}
+                    onClick={handleClose}
+                  >
+                    <span className="text-lg">📝</span>
+                    <div className="text-xs font-medium">Make Your First Post</div>
+                  </Link>
+
+                  <Link
+                    href="/neighborhood/explore/all"
+                    className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                    style={{
+                      background: `${backgroundColor}90`,
+                      border: `1px solid ${primaryColor}40`,
+                      color: primaryColor
+                    }}
+                    onClick={handleClose}
+                  >
+                    <span className="text-lg">🏘️</span>
+                    <div className="text-xs font-medium">Explore Homes</div>
+                  </Link>
+
+                  <Link
+                    href="/threadrings"
+                    className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                    style={{
+                      background: `${backgroundColor}90`,
+                      border: `1px solid ${primaryColor}40`,
+                      color: primaryColor
+                    }}
+                    onClick={handleClose}
+                  >
+                    <span className="text-lg">💍</span>
+                    <div className="text-xs font-medium">Join a ThreadRing</div>
+                  </Link>
+
+                  <Link
+                    href={`/home/${username}`}
+                    className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                    style={{
+                      background: `${backgroundColor}90`,
+                      border: `1px solid ${primaryColor}40`,
+                      color: primaryColor
+                    }}
+                    onClick={handleClose}
+                  >
+                    <span className="text-lg">🎨</span>
+                    <div className="text-xs font-medium">Customize Home</div>
+                  </Link>
+                </div>
+              </div>
+
               {/* Welcome Ring Invitation - Compact */}
-              <div 
-                className="mt-6 p-4 rounded-xl mx-auto max-w-lg text-center"
+              <div
+                className="mt-3 p-3 rounded-lg mx-auto max-w-sm text-center"
                 style={{
                   background: `${primaryColor}10`,
                   border: `1px solid ${primaryColor}30`
                 }}
               >
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span>🎓</span>
-                  <span 
-                    className="font-semibold"
+                <div className="flex items-center justify-center gap-1 mb-2">
+                  <span className="text-sm">🎓</span>
+                  <span
+                    className="text-sm font-semibold"
                     style={{ color: primaryColor }}
                   >
                     New to ThreadRings?
@@ -176,7 +238,7 @@ export default function WelcomeHomeOverlay({
                 <div className="flex gap-2 justify-center">
                   <button
                     onClick={() => window.location.href = '/tr/welcome'}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-all hover:scale-105 pointer-events-auto"
+                    className="px-3 py-1 text-xs font-medium rounded transition-all hover:scale-105 pointer-events-auto"
                     style={{
                       background: primaryColor,
                       color: 'white',
@@ -187,7 +249,7 @@ export default function WelcomeHomeOverlay({
                   </button>
                   <button
                     onClick={() => window.location.href = '/threadrings'}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-all hover:scale-105 pointer-events-auto"
+                    className="px-3 py-1 text-xs font-medium rounded transition-all hover:scale-105 pointer-events-auto"
                     style={{
                       background: 'transparent',
                       color: primaryColor,
@@ -201,10 +263,10 @@ export default function WelcomeHomeOverlay({
             </div>
             
             {/* Sparkle effects around the text */}
-            <div className="absolute -top-4 -right-4 text-2xl sm:text-4xl animate-bounce">✨</div>
-            <div className="absolute -bottom-2 -left-4 text-xl sm:text-3xl animate-pulse">🏡</div>
-            <div className="absolute top-1/2 -right-8 text-lg sm:text-2xl animate-ping">🌟</div>
-            <div className="absolute bottom-1/4 -left-8 text-sm sm:text-xl animate-bounce" style={{ animationDelay: '0.5s' }}>✦</div>
+            <div className="absolute -top-2 -right-2 text-lg animate-bounce">✨</div>
+            <div className="absolute -bottom-1 -left-2 text-base animate-pulse">🏡</div>
+            <div className="absolute top-1/2 -right-4 text-sm animate-ping">🌟</div>
+            <div className="absolute bottom-1/4 -left-4 text-xs animate-bounce" style={{ animationDelay: '0.5s' }}>✦</div>
             
             {/* Floating theme-colored particles */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
