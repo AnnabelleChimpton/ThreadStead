@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import PixelHomeScene from './PixelHomeScene'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
-import InteractiveHouseSVG from './InteractiveHouseSVG'
+import HouseSVG from './HouseSVG'
 import VisitorTrail from './VisitorTrail'
 import ThreadbookModal from './ThreadbookModal'
 // import DecorationMode from './DecorationMode' // Now handled by dedicated page
@@ -41,6 +41,7 @@ interface ProfileBadge {
   title: string
   backgroundColor: string
   textColor: string
+  imageUrl?: string
   threadRing: {
     name: string
     slug: string
@@ -140,7 +141,7 @@ export default function PixelHomePage({
   const handleMailboxClick = async () => {
     trackModalOpen('guestbook', username)
     setShowGuestbook(true)
-    
+
     // Mark guestbook notifications as read if user is the owner
     if (isOwner && hasUnreadGuestbook) {
       try {
@@ -157,11 +158,6 @@ export default function PixelHomePage({
   const handleThreadbookClick = () => {
     trackModalOpen('threadbook', username)
     setShowThreadbook(true)
-  }
-
-  const handleFlagClick = () => {
-    // Navigate to user's ring memberships
-    router.push(`/resident/${username}?tab=rings`)
   }
 
   const handleDecorationMode = () => {
@@ -254,13 +250,31 @@ export default function PixelHomePage({
                     {badges.slice(0, 6).map((badge) => (
                       <div
                         key={badge.id}
-                        className="w-8 h-8 rounded-full shadow-sm border-2 border-white"
-                        style={{ backgroundColor: badge.backgroundColor }}
+                        className="w-8 h-8 shadow-sm border-2 border-white rounded-sm hover:scale-110 transition-transform"
                         title={`${badge.threadRing.name}: ${badge.title}`}
-                      />
+                      >
+                        {badge.imageUrl ? (
+                          <img
+                            src={badge.imageUrl}
+                            alt={badge.title}
+                            className="w-full h-full object-contain"
+                            style={{ imageRendering: 'pixelated' }}
+                          />
+                        ) : (
+                          <div
+                            className="w-full h-full rounded-sm flex items-center justify-center text-xs font-bold"
+                            style={{
+                              backgroundColor: badge.backgroundColor,
+                              color: badge.textColor
+                            }}
+                          >
+                            {badge.title.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
                     ))}
                     {badges.length > 6 && (
-                      <div className="w-8 h-8 rounded-full bg-thread-sage text-white text-xs font-bold flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-sm bg-thread-sage text-white text-xs font-bold flex items-center justify-center border-2 border-white shadow-sm">
                         +{badges.length - 6}
                       </div>
                     )}
@@ -298,7 +312,7 @@ export default function PixelHomePage({
                 </button>
                 
                 <button
-                  onClick={handleFlagClick}
+                  onClick={() => router.push(`/resident/${username}?tab=rings`)}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
                   <span>View Ring Memberships</span>
@@ -358,7 +372,6 @@ export default function PixelHomePage({
                     decorations={decorations}
                     houseCustomizations={config.houseCustomizations as HouseCustomizations}
                     atmosphere={atmosphere}
-                    hasUnreadGuestbook={hasUnreadGuestbook}
                     className="w-full max-w-xl drop-shadow-2xl transform hover:scale-105 transition-transform duration-500"
                   />
                   
@@ -377,10 +390,28 @@ export default function PixelHomePage({
                               }}
                             >
                               <div
-                                className="w-4 h-4 rounded-full shadow-lg border-2 border-white"
-                                style={{ backgroundColor: badge.backgroundColor }}
+                                className="w-4 h-4 shadow-lg border-2 border-white rounded-sm"
                                 title={`${badge.threadRing.name} badge`}
-                              />
+                              >
+                                {badge.imageUrl ? (
+                                  <img
+                                    src={badge.imageUrl}
+                                    alt={badge.title}
+                                    className="w-full h-full object-contain"
+                                    style={{ imageRendering: 'pixelated' }}
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-full h-full rounded-sm flex items-center justify-center text-[8px] font-bold"
+                                    style={{
+                                      backgroundColor: badge.backgroundColor,
+                                      color: badge.textColor
+                                    }}
+                                  >
+                                    {badge.title.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ))}
                           

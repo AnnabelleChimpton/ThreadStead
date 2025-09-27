@@ -1,15 +1,11 @@
 import React from 'react'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
-import InteractiveHouseSVG from './InteractiveHouseSVG'
 import DecorationSVG from './DecorationSVG'
 
 interface EnhancedHouseCanvasProps {
   template: HouseTemplate
   palette: ColorPalette
   className?: string
-  hasUnreadGuestbook?: boolean
-  isPlayingMusic?: boolean
-  isUserOnline?: boolean
   decorations?: DecorationItem[]
   houseCustomizations?: HouseCustomizations
   atmosphere?: AtmosphereSettings
@@ -68,9 +64,6 @@ export default function EnhancedHouseCanvas({
   template,
   palette,
   className = '',
-  hasUnreadGuestbook = false,
-  isPlayingMusic = false,
-  isUserOnline = false,
   decorations = [],
   houseCustomizations = {},
   atmosphere = { sky: 'sunny', weather: 'clear', timeOfDay: 'midday' },
@@ -193,26 +186,12 @@ export default function EnhancedHouseCanvas({
             zIndex: 5
           }}
         >
-          {isDecorationMode ? (
-            <div className="w-full h-full">
-              <HouseSVG
-                template={template}
-                palette={palette}
-                customizations={houseCustomizations}
-                className="w-full h-full"
-              />
-            </div>
-          ) : (
-            <InteractiveHouseSVG
-              template={template}
-              palette={palette}
-              customizations={houseCustomizations}
-              hasUnreadGuestbook={hasUnreadGuestbook}
-              isPlayingMusic={isPlayingMusic}
-              isUserOnline={isUserOnline}
-              className="drop-shadow-lg"
-            />
-          )}
+          <HouseSVG
+            template={template}
+            palette={palette}
+            customizations={houseCustomizations}
+            className="w-full h-full drop-shadow-lg"
+          />
         </div>
         
         {/* Decoration Mode Overlay */}

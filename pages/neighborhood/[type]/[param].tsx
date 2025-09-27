@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { transformRingDescriptorToThreadRing, transformRingMemberWithUserResolution } from '@/lib/api/ringhub/ringhub-transformers'
+import { weatherWidget } from '@/components/widgets/examples/WeatherWidget'
 
 // Neighborhood member data structure
 interface NeighborhoodMember {
@@ -99,6 +100,8 @@ export default function UnifiedNeighborhood({
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const [templateFilter, setTemplateFilter] = useState<string>('')
   const [paletteFilter, setPaletteFilter] = useState<string>('')
+  const [weatherData, setWeatherData] = useState<any>(null)
+  const [weatherLoading, setWeatherLoading] = useState(true)
   
   // Load user's preferred view mode from localStorage
   useEffect(() => {
@@ -106,6 +109,23 @@ export default function UnifiedNeighborhood({
     if (savedMode && ['street', 'grid', 'map'].includes(savedMode)) {
       setViewMode(savedMode)
     }
+  }, [])
+
+  // Load weather data
+  useEffect(() => {
+    const loadWeather = async () => {
+      try {
+        setWeatherLoading(true)
+        const data = await weatherWidget.fetchData()
+        setWeatherData(data)
+      } catch (error) {
+        console.error('Failed to load weather data:', error)
+      } finally {
+        setWeatherLoading(false)
+      }
+    }
+
+    loadWeather()
   }, [])
   
   // Save view mode preference
@@ -383,9 +403,30 @@ export default function UnifiedNeighborhood({
               )}
             </div>
           </div>
-          
+
           {/* Neighborhood View */}
           <div className="relative">
+            {/* Weather Overlay - Top Left Corner for explore pages */}
+            {type === 'explore' && (
+              <div className="absolute top-4 left-4 z-30">
+                <div className="bg-thread-paper bg-opacity-95 border border-thread-sage rounded-lg px-3 py-2 shadow-lg">
+                  {weatherLoading ? (
+                    <div className="flex items-center gap-2 text-xs text-thread-sage">
+                      <div className="animate-spin rounded-full h-3 w-3 border-b border-thread-sage"></div>
+                      <span>Loading weather...</span>
+                    </div>
+                  ) : weatherData ? (
+                    <div className="text-xs text-thread-pine">
+                      <span>It's a {weatherData.condition.toLowerCase()} {weatherData.temperature}° day in the neighborhood</span>
+                      <span className="ml-2">{weatherData.emoji}</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-thread-sage">Weather unavailable</div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {viewMode === 'street' && (
               <NeighborhoodStreetView 
                 members={processedMembers}

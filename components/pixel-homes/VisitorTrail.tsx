@@ -60,28 +60,28 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
   return (
     <div className={`visitor-trail absolute ${className}`}>
       {/* Recent Visitors Container - positioned near the house */}
-      <div className="flex flex-col items-end space-y-1">
+      <div className="flex flex-col items-end space-y-2">
         {/* Visitors Label */}
-        <div className="text-xs text-thread-sage bg-thread-paper bg-opacity-90 px-2 py-1 rounded shadow-sm">
-          Recent visitors
+        <div className="text-xs text-thread-sage bg-thread-paper bg-opacity-95 px-3 py-1.5 rounded-lg shadow-md border border-thread-sage border-opacity-20">
+          👥 Recent visitors
         </div>
-        
+
         {/* Visitor Avatars */}
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-2">
           {visitors.map((visitor, index) => (
             <Link
               key={visitor.id}
               href={`/resident/${visitor.username}`}
-              className="group relative transform transition-all duration-200 hover:scale-110"
+              className="group relative transform transition-all duration-300 hover:scale-125 hover:-translate-y-1"
               style={{
                 // Stagger the avatars with slight z-index and position variations
                 zIndex: visitors.length - index,
-                transform: `translateY(${index * -2}px) translateX(${index * -4}px)`,
-                animation: `visitor-fade-in 0.5s ease-out ${index * 0.1}s both`
+                transform: `translateY(${index * -3}px) translateX(${index * -6}px)`,
+                animation: `visitor-fade-in 0.6s ease-out ${index * 0.15}s both`
               }}
               title={`${visitor.displayName || visitor.username} visited ${getTimeAgo(visitor.visitedAt)}`}
             >
-              <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm bg-thread-cream group-hover:border-thread-sage transition-colors">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-3 border-white shadow-lg bg-thread-cream group-hover:border-thread-sage group-hover:shadow-xl transition-all duration-300">
                 {visitor.avatarUrl ? (
                   <img
                     src={visitor.avatarUrl}
@@ -96,13 +96,13 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
               </div>
               
               {/* Hover tooltip */}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                <div className="bg-thread-charcoal text-thread-paper text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg">
-                  {visitor.displayName || `@${visitor.username}`}
-                  <div className="text-thread-sage">
-                    {getTimeAgo(visitor.visitedAt)}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none group-hover:translate-y-1">
+                <div className="bg-gradient-to-br from-thread-charcoal to-thread-pine text-thread-paper text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-xl border border-thread-sage border-opacity-30">
+                  <div className="font-medium">{visitor.displayName || `@${visitor.username}`}</div>
+                  <div className="text-thread-sage text-[10px] mt-0.5">
+                    visited {getTimeAgo(visitor.visitedAt)}
                   </div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-thread-charcoal"></div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-thread-charcoal"></div>
                 </div>
               </div>
             </Link>
@@ -111,7 +111,7 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
 
         {/* Visit counter */}
         {visitors.length > 0 && (
-          <div className="text-xs text-thread-sage opacity-75">
+          <div className="text-xs text-thread-sage bg-thread-paper bg-opacity-80 px-2 py-1 rounded-md shadow-sm border border-thread-sage border-opacity-10">
             {visitors.length} recent {visitors.length === 1 ? 'visitor' : 'visitors'}
           </div>
         )}
@@ -122,25 +122,25 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
         @keyframes visitor-fade-in {
           from {
             opacity: 0;
-            transform: translateY(10px) scale(0.8);
+            transform: translateY(15px) scale(0.7) rotate(-5deg);
           }
           to {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0) scale(1) rotate(0deg);
           }
         }
-        
+
         .visitor-trail {
           /* Subtle floating animation */
-          animation: visitor-float 3s ease-in-out infinite;
+          animation: visitor-float 4s ease-in-out infinite;
         }
-        
+
         @keyframes visitor-float {
           0%, 100% {
             transform: translateY(0px);
           }
           50% {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
           }
         }
       `}</style>
