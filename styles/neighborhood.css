@@ -104,6 +104,56 @@
   }
 }
 
+/* Enhanced window glow for flagship experience */
+.window-glow-enhanced {
+  width: 16px;
+  height: 12px;
+  background: radial-gradient(circle, rgba(255, 220, 120, 0.9), rgba(255, 180, 80, 0.6), transparent);
+  animation: window-glow 3s ease-in-out infinite;
+  border-radius: 2px;
+}
+
+@keyframes window-glow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1.0;
+    transform: scale(1.1);
+  }
+}
+
+/* Chimney smoke animation */
+.chimney-smoke {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(200, 200, 200, 0.7);
+  border-radius: 50%;
+  animation: smoke-rise 4s ease-out infinite;
+}
+
+@keyframes smoke-rise {
+  0% {
+    transform: translateY(0px) translateX(0px) scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-15px) translateX(3px) scale(1.2);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-30px) translateX(-2px) scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Multiple smoke particles */
+.chimney-smoke:nth-child(1) { animation-delay: 0s; }
+.chimney-smoke:nth-child(2) { animation-delay: 1.3s; }
+.chimney-smoke:nth-child(3) { animation-delay: 2.6s; }
+
 /* Street layer */
 .street-layer {
   position: relative;

@@ -125,7 +125,7 @@ const StreetLayer: React.FC<{ scrollOffset: number; totalWidth: number }> = ({ s
     >
       {/* Grass/Ground behind houses - extends to full scrollable width */}
       <div
-        className="absolute bottom-32 left-0 h-64 bg-gradient-to-b from-green-200 via-green-300 to-green-400"
+        className="absolute bottom-20 left-0 h-[220px] bg-gradient-to-b from-green-200 via-green-300 to-green-400"
         style={{ width: `${totalWidth}px` }}
       >
         {/* Grass texture details */}
@@ -185,7 +185,7 @@ const StreetLayer: React.FC<{ scrollOffset: number; totalWidth: number }> = ({ s
 
       {/* Street/Sidewalk - smaller proportion */}
       <div
-        className="h-32 bg-gradient-to-b from-gray-400 to-gray-600 relative"
+        className="h-20 bg-gradient-to-b from-gray-400 to-gray-600 relative"
         style={{ width: `${totalWidth}px` }}
       >
         {/* Sidewalk */}
@@ -214,6 +214,7 @@ const StreetLayer: React.FC<{ scrollOffset: number; totalWidth: number }> = ({ s
             />
           ))}
         </div>
+
       </div>
     </div>
   )
@@ -292,8 +293,8 @@ export default function NeighborhoodStreetView({
   const endIndex = startIndex + HOUSES_PER_STREET
   const currentStreetMembers = members.slice(startIndex, endIndex)
 
-  // Simple, predictable width calculation - increased padding to cover full width
-  const totalWidth = Math.max(1200, currentStreetMembers.length * 380 + 600)
+  // Width calculation updated for new sizing: 285px houses + 64-80px gaps + padding
+  const totalWidth = Math.max(1200, currentStreetMembers.length * 350 + 600)
 
   // Street navigation functions
   const goToNextStreet = () => {
@@ -319,7 +320,7 @@ export default function NeighborhoodStreetView({
   }
   
   return (
-    <div className="neighborhood-street-view relative h-[600px] overflow-hidden bg-gradient-to-b from-sky-100 via-sky-50 to-green-200 z-0">
+    <div className="neighborhood-street-view relative h-[calc(100dvh-200px)] sm:h-[calc(100vh-200px)] max-h-[750px] overflow-hidden bg-gradient-to-b from-sky-100 via-sky-50 to-green-200 z-0">
       {/* Static Sky Background with Sun - outside scrollable area */}
       <div className="absolute inset-0 pointer-events-none">
         <SkyLayer timeOfDay={timeOfDay} totalWidth={0} />
@@ -353,16 +354,16 @@ export default function NeighborhoodStreetView({
             <StreetLayer scrollOffset={scrollOffset} totalWidth={totalWidth} />
           </div>
           
-          {/* Houses Layer - positioned so bottom of canvas aligns with top of sidewalk where grass meets street */}
-          <div className="absolute left-0 right-0 z-20" style={{ bottom: '350px' }}>
+          {/* Houses Layer - positioned closer to street for better viewport usage */}
+          <div className="absolute left-0 right-0 z-20" style={{ bottom: '300px' }}>
             <div
-              className={`house-layer transition-all duration-500 ${isTransitioning ? 'opacity-80 scale-95' : 'opacity-100 scale-100'}`}
+              className={`house-layer motion-safe:transition-all motion-safe:duration-500 ${isTransitioning ? 'opacity-80 scale-95' : 'opacity-100 scale-100'}`}
               style={{
                 transform: `translateX(${-scrollOffset}px)`,
                 transformOrigin: 'bottom center'
               }}
             >
-              <div className="flex gap-8 md:gap-12 px-8">
+              <div className="flex gap-12 sm:gap-16 md:gap-20 px-4 sm:px-8">
                 {currentStreetMembers.map((member) => {
                   // Get visible decorations for this member
                   const visibleDecorations = getVisibleDecorations(member.homeConfig.decorations)
@@ -370,17 +371,35 @@ export default function NeighborhoodStreetView({
                   return (
                     <div
                       key={member.userId}
-                      className="house-container relative cursor-pointer hover-lift group flex-shrink-0"
+                      className="house-container relative cursor-pointer hover-lift group flex-shrink-0 motion-safe:transition-transform"
                       onClick={() => handleHouseClick(member)}
+                      style={{
+                        filter: 'drop-shadow(8px 12px 16px rgba(0,0,0,0.15))'
+                      }}
                     >
+                      {/* Ground shadow */}
+                      <div
+                        className="absolute"
+                        style={{
+                          bottom: '-85px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: '80%',
+                          height: '18px',
+                          background: 'radial-gradient(ellipse, rgba(0,0,0,0.15), transparent)',
+                          borderRadius: '50%',
+                          zIndex: 1
+                        }}
+                      />
+
                       {/* House with decorations container - matches canvas proportions */}
-                      <div className="house-wrapper interactive relative" style={{ width: '320px', height: '224px' }}>
-                        {/* Mini canvas that matches the original 500x350 proportions */}
+                      <div className="house-wrapper interactive relative" style={{ width: '285px', height: '200px', zIndex: 2 }}>
+                        {/* Mini canvas that matches the original 500x350 proportions - scaled to 285x200 */}
                         <div className="relative w-full h-full">
                           {/* Decorations */}
                           {visibleDecorations.map((decoration) => {
-                            // Scale from 500x350 canvas to 320x224 (0.64 scale)
-                            const scale = 0.64
+                            // Scale from 500x350 canvas to 285x200 (0.57 scale)
+                            const scale = 0.57
                             const scaledX = decoration.x * scale
                             const scaledY = decoration.y * scale
                             
@@ -409,10 +428,10 @@ export default function NeighborhoodStreetView({
                           <div 
                             className="absolute"
                             style={{
-                              left: `${150 * 0.64}px`, // 96px - scaled from original x=150
-                              top: `${40 * 0.64}px`,   // 25.6px - scaled from original y=40
-                              width: `${200 * 0.64}px`, // 128px - scaled from original 200px
-                              height: `${180 * 0.64}px`, // 115.2px - scaled from original 180px
+                              left: `${150 * 0.57}px`, // 85.5px - scaled from original x=150
+                              top: `${40 * 0.57}px`,   // 22.8px - scaled from original y=40
+                              width: `${200 * 0.57}px`, // 114px - scaled from original 200px
+                              height: `${180 * 0.57}px`, // 102.6px - scaled from original 180px
                               zIndex: 5
                             }}
                           >
@@ -425,11 +444,24 @@ export default function NeighborhoodStreetView({
                           </div>
                         </div>
                         
-                        {/* Activity indicator */}
+                        {/* Enhanced Activity indicators */}
                         {member.stats.isActive && (
-                          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-20">
-                            <div className="window-light-glow"></div>
-                          </div>
+                          <>
+                            {/* Enhanced window glow */}
+                            <div className="absolute top-1/3 left-1/3 z-20">
+                              <div className="window-glow-enhanced"></div>
+                            </div>
+                            <div className="absolute top-1/3 right-1/3 z-20">
+                              <div className="window-glow-enhanced"></div>
+                            </div>
+
+                            {/* Chimney smoke for cozy feeling */}
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20">
+                              <div className="chimney-smoke"></div>
+                              <div className="chimney-smoke"></div>
+                              <div className="chimney-smoke"></div>
+                            </div>
+                          </>
                         )}
                         
                         {/* Decoration indicator - only show if there are decorations not visible in street view */}
@@ -503,7 +535,7 @@ export default function NeighborhoodStreetView({
                   scrollContainerRef.current.scrollLeft -= 300
                 }
               }}
-              className="p-2 bg-thread-paper bg-opacity-60 rounded-full shadow-md hover:bg-opacity-80 transition-all text-thread-sage hover:text-thread-pine"
+              className="p-3 sm:p-2 bg-thread-paper bg-opacity-60 rounded-full shadow-md hover:bg-opacity-80 transition-all text-thread-sage hover:text-thread-pine min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               ←
             </button>
@@ -515,7 +547,7 @@ export default function NeighborhoodStreetView({
                   scrollContainerRef.current.scrollLeft += 300
                 }
               }}
-              className="p-2 bg-thread-paper bg-opacity-60 rounded-full shadow-md hover:bg-opacity-80 transition-all text-thread-sage hover:text-thread-pine"
+              className="p-3 sm:p-2 bg-thread-paper bg-opacity-60 rounded-full shadow-md hover:bg-opacity-80 transition-all text-thread-sage hover:text-thread-pine min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               →
             </button>
@@ -525,7 +557,7 @@ export default function NeighborhoodStreetView({
       
       {/* Instructions */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
-        <div className="bg-thread-paper bg-opacity-90 px-4 py-2 rounded-full text-sm text-thread-sage">
+        <div className="bg-thread-paper bg-opacity-90 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm text-thread-sage">
           {totalStreets > 1
             ? 'Explore this street • Use street portals to visit other streets • Click houses to visit'
             : 'Scroll to explore the street • Click houses to visit'

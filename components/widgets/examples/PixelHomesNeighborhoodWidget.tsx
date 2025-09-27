@@ -152,9 +152,6 @@ function PixelHomesNeighborhoodWidget({
                   houseCustomizations={home.homeConfig.houseCustomizations}
                   atmosphere={home.homeConfig.atmosphere || { sky: 'sunny', weather: 'clear', timeOfDay: 'midday' }}
                   decorations={home.homeConfig.decorations || []}
-                  hasUnreadGuestbook={false}
-                  isPlayingMusic={false}
-                  isUserOnline={home.stats.isActive}
                 />
               </div>
             </div>

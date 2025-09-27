@@ -212,9 +212,6 @@ function UserPixelHome({ user }: { user: any }) {
             houseCustomizations={sanitizeCustomizations(homeConfig.houseCustomizations)}
             atmosphere={atmosphere}
             decorations={decorations}
-            hasUnreadGuestbook={false}
-            isPlayingMusic={false}
-            isUserOnline={true}
           />
         </div>
       </div>

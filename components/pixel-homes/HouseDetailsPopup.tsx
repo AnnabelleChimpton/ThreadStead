@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/router'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
@@ -158,18 +159,22 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
     connectionLabels.push('follows you')
   }
 
-  return (
-    <div 
-      className="fixed inset-0 flex items-center justify-center p-4"
-      style={{ zIndex: 9999 }}
+  // Only render portal on client-side
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 bg-thread-cream/30 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-[99999]"
       onClick={handleBackdropClick}
     >
-      <div className="bg-thread-paper rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-thread-paper rounded-lg shadow-2xl max-w-full sm:max-w-2xl w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="relative bg-gradient-to-r from-thread-sage to-thread-pine text-thread-paper p-6 rounded-t-lg">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-thread-paper hover:text-thread-cream transition-colors text-2xl"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 text-thread-paper hover:text-thread-cream transition-colors text-3xl sm:text-2xl min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Close"
           >
             ×
@@ -280,6 +285,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

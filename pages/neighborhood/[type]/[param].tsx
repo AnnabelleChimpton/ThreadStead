@@ -176,11 +176,11 @@ export default function UnifiedNeighborhood({
 
       <Layout>
         <div className="min-h-screen bg-gradient-to-b from-thread-paper to-thread-cream">
-          {/* Header */}
+          {/* Header - more compact for street view */}
           <div className="bg-thread-paper border-b border-thread-sage sticky top-0 z-40">
-            <div className="container mx-auto px-4 py-4">
+            <div className="container mx-auto px-4 py-2">
               {/* Breadcrumb */}
-              <div className="flex items-center gap-2 text-sm text-thread-sage mb-3">
+              <div className="flex items-center gap-2 text-sm text-thread-sage mb-2">
                 <Link href="/" className="hover:text-thread-pine transition-colors">
                   Home
                 </Link>
@@ -193,17 +193,17 @@ export default function UnifiedNeighborhood({
               </div>
               
               {/* Unified header with flex layout */}
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
                 <div className="flex-1">
-                  <h1 className="text-2xl font-headline font-bold text-thread-pine mb-2">
+                  <h1 className="text-xl font-headline font-bold text-thread-pine mb-1">
                     {title}
                   </h1>
-                  <p className="text-thread-sage max-w-2xl mb-3">
+                  <p className="text-thread-sage max-w-2xl mb-2 text-sm">
                     {description}
                   </p>
                   
                   {/* Stats */}
-                  <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
                       <span className="font-medium text-thread-pine">{processedMembers.length}</span>
                       <span className="text-thread-sage">homes</span>
@@ -417,7 +417,7 @@ export default function UnifiedNeighborhood({
                     </div>
                   ) : weatherData ? (
                     <div className="text-xs text-thread-pine">
-                      <span>It's a {weatherData.condition.toLowerCase()} {weatherData.temperature}° day in the neighborhood</span>
+                      <span>It&apos;s a {weatherData.condition.toLowerCase()} {weatherData.temperature}° day in the neighborhood</span>
                       <span className="ml-2">{weatherData.emoji}</span>
                     </div>
                   ) : (
