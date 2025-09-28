@@ -54,6 +54,8 @@ export interface SmartToolbarProps {
   showNavigation?: boolean;
   /** Callback to toggle navigation */
   onToggleNavigation?: () => void;
+  /** Callback to open template gallery */
+  onOpenTemplateGallery?: () => void;
 }
 
 /**
@@ -226,6 +228,7 @@ export default function SmartToolbar({
   groupCount = 0,
   showNavigation = false,
   onToggleNavigation,
+  onOpenTemplateGallery,
 }: SmartToolbarProps) {
   const {
     canUndo,
@@ -402,6 +405,17 @@ export default function SmartToolbar({
       }}>
         {/* Panel Controls */}
         <div style={{ display: 'flex', gap: '4px' }}>
+          {onOpenTemplateGallery && (
+            <ToolButton
+              icon="📋"
+              label="Templates"
+              onClick={onOpenTemplateGallery}
+              size="sm"
+              variant="secondary"
+              tooltip="Choose from pre-built templates"
+            />
+          )}
+
           {onToggleComponents && (
             <ToolButton
               icon="🧩"

@@ -253,10 +253,8 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
       component = { ...component, id: `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` };
     }
 
-    // Set positioning mode if not specified
-    if (!component.positioningMode) {
-      component = { ...component, positioningMode };
-    }
+    // Always use grid positioning for consistency
+    component = { ...component, positioningMode: 'grid' };
 
     // Apply default props from registry for any missing props
     const registration = componentRegistry.get(component.type);
@@ -296,7 +294,7 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
       return updatedComponents;
     });
 
-  }, [positioningMode, pixelToGrid, gridConfig]);
+  }, [pixelToGrid, gridConfig]);
 
   const removeComponent = useCallback((id: string) => {
     // Direct state update without history conflicts

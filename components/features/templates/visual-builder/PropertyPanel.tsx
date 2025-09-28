@@ -11,6 +11,7 @@ import {
   getCurrentBreakpoint,
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
+import PropertyPresets from './PropertyPresets';
 import {
   ColorEditor,
   SliderEditor,
@@ -50,7 +51,7 @@ interface PropertyPanelProps {
 }
 
 // Tab definitions for property organization
-type PropertyTab = 'component' | 'style' | 'layout' | 'content' | 'advanced';
+type PropertyTab = 'component' | 'style' | 'layout' | 'content' | 'advanced' | 'presets';
 
 interface TabDefinition {
   id: PropertyTab;
@@ -120,47 +121,64 @@ function PropertyPanel({
   // Success feedback state
   const [successFeedback, setSuccessFeedback] = useState<string | null>(null);
 
-  // Stable property update function with success feedback
-  // Using refs to avoid dependency on selectedComponent which changes frequently
-  const selectedComponentRef = useRef(selectedComponent);
-  useEffect(() => {
-    selectedComponentRef.current = selectedComponent;
-  }, [selectedComponent]);
+  // Optimistic updates state to prevent flashing
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, any>>({});
 
+  // Stable property update function with success feedback and optimistic updates
   const updatePropertyStable = useCallback((key: string, value: any) => {
-    const currentComponent = selectedComponentRef.current;
-    if (!currentComponent) return;
+    if (!selectedComponent) return;
 
-    onComponentUpdate(currentComponent.id, {
+    // Immediately apply optimistic update for instant feedback
+    setOptimisticUpdates(prev => ({ ...prev, [key]: value }));
+
+    // Then apply the actual update
+    onComponentUpdate(selectedComponent.id, {
       props: {
-        ...currentComponent.props,
+        ...selectedComponent.props,
         [key]: value
       }
     });
 
+    // Clear optimistic update after a delay to let real state take over
+    setTimeout(() => {
+      setOptimisticUpdates(prev => {
+        const { [key]: removed, ...rest } = prev;
+        return rest;
+      });
+    }, 100);
+
     // Show success feedback
     setSuccessFeedback(key);
     setTimeout(() => setSuccessFeedback(null), 1000);
-  }, [onComponentUpdate]); // Only depend on onComponentUpdate which should be stable
+  }, [selectedComponent, onComponentUpdate])
 
-  // Individual memoized display values to prevent unnecessary re-renders
+  // Individual memoized display values with optimistic updates
   const displayValues = {
-    backgroundColor: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'backgroundColor') : '',
-      [selectedComponent?.props?.backgroundColor, selectedComponent?.props?.backgroundcolor]
-    ),
-    textColor: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'textColor') : '',
-      [selectedComponent?.props?.textColor, selectedComponent?.props?.color]
-    ),
-    borderColor: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'borderColor') : '',
-      [selectedComponent?.props?.borderColor, selectedComponent?.props?.bordercolor]
-    ),
-    accentColor: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'accentColor') : '',
-      [selectedComponent?.props?.accentColor]
-    ),
+    backgroundColor: useMemo(() => {
+      if (!selectedComponent) return '';
+      // Use optimistic value if available, otherwise use actual prop
+      const optimisticValue = optimisticUpdates.backgroundColor;
+      if (optimisticValue !== undefined) return optimisticValue;
+      return getDisplayValueForStyleProp(selectedComponent.props || {}, 'backgroundColor');
+    }, [selectedComponent?.props?.backgroundColor, selectedComponent?.props?.backgroundcolor, optimisticUpdates.backgroundColor]),
+    textColor: useMemo(() => {
+      if (!selectedComponent) return '';
+      const optimisticValue = optimisticUpdates.textColor;
+      if (optimisticValue !== undefined) return optimisticValue;
+      return getDisplayValueForStyleProp(selectedComponent.props || {}, 'textColor');
+    }, [selectedComponent?.props?.textColor, selectedComponent?.props?.color, optimisticUpdates.textColor]),
+    borderColor: useMemo(() => {
+      if (!selectedComponent) return '';
+      const optimisticValue = optimisticUpdates.borderColor;
+      if (optimisticValue !== undefined) return optimisticValue;
+      return getDisplayValueForStyleProp(selectedComponent.props || {}, 'borderColor');
+    }, [selectedComponent?.props?.borderColor, selectedComponent?.props?.bordercolor, optimisticUpdates.borderColor]),
+    accentColor: useMemo(() => {
+      if (!selectedComponent) return '';
+      const optimisticValue = optimisticUpdates.accentColor;
+      if (optimisticValue !== undefined) return optimisticValue;
+      return getDisplayValueForStyleProp(selectedComponent.props || {}, 'accentColor');
+    }, [selectedComponent?.props?.accentColor, optimisticUpdates.accentColor]),
     fontSize: useMemo(() =>
       selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'fontSize') : '',
       [selectedComponent?.props?.fontSize, selectedComponent?.props?.fontsize]
@@ -231,6 +249,12 @@ function PropertyPanel({
       icon: '⚙️',
       description: 'Technical properties and overrides'
     },
+    {
+      id: 'presets',
+      label: 'Presets',
+      icon: '🎨',
+      description: 'Quick styling combinations and templates'
+    },
   ];
 
   // Toggle section expansion
@@ -253,6 +277,20 @@ function PropertyPanel({
         return renderComponentTab();
       case 'style':
         return renderStyleTab();
+      case 'presets':
+        return (
+          <PropertyPresets
+            selectedComponent={selectedComponent}
+            onApplyPreset={(presetProps) => {
+              if (!selectedComponent) return;
+              Object.entries(presetProps).forEach(([key, value]) => {
+                if (value !== undefined && value !== '') {
+                  updatePropertyStable(key, value);
+                }
+              });
+            }}
+          />
+        );
       case 'layout':
         return renderLayoutTab();
       case 'content':
@@ -1154,16 +1192,7 @@ function PropertyPanel({
           description="Unique identifier (read-only)"
         />
 
-        <SelectEditor
-          label="Positioning Mode"
-          value={selectedComponent.positioningMode || 'absolute'}
-          onChange={(value) => updateProperty('positioningMode', value)}
-          options={[
-            { value: 'absolute', label: 'Absolute', description: 'Pixel-perfect positioning' },
-            { value: 'grid', label: 'Grid', description: 'Responsive grid positioning' },
-          ]}
-          description="How this component is positioned"
-        />
+        {/* Positioning mode removed - now always using grid */}
 
         <TextAreaEditor
           label="Raw Props (JSON)"
@@ -1185,15 +1214,15 @@ function PropertyPanel({
   // Legacy updateProperty function for non-optimized components
   // Memoized to prevent recreation on every render
   const updateProperty = useCallback((key: string, value: any) => {
-    const currentComponent = selectedComponentRef.current;
-    if (!currentComponent) return;
+    if (!selectedComponent) return;
 
-    onComponentUpdate(currentComponent.id, {
+    onComponentUpdate(selectedComponent.id, {
       props: {
+        ...selectedComponent.props,
         [key]: value
       }
     });
-  }, [onComponentUpdate]); // Only depend on onComponentUpdate which should be stable
+  }, [selectedComponent, onComponentUpdate])
 
   // Update size properties in the _size object
   const updateSizeProperty = (dimension: 'width' | 'height', value: string) => {

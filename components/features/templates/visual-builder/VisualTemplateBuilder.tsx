@@ -31,6 +31,7 @@ import { deepEqualsComponentArray } from '@/lib/templates/visual-builder/compone
 import FloatingPanel, { useFloatingPanels } from './FloatingPanel';
 import SmartToolbar from './SmartToolbar';
 import CanvasRenderer from './CanvasRenderer';
+import TemplateGallery, { type TemplatePreset } from './TemplateGallery';
 
 // Legacy components (to be updated)
 import ComponentPalette from './ComponentPalette';
@@ -200,6 +201,9 @@ export default function VisualTemplateBuilder({
 
   // Modern panel management
   const { togglePanel, isPanelOpen } = useFloatingPanels();
+
+  // Template gallery state
+  const [showTemplateGallery, setShowTemplateGallery] = useState(false);
 
 
   // Panel toggle functions
@@ -408,6 +412,38 @@ export default function VisualTemplateBuilder({
     originalRemoveChildComponent(parentId, childId);
   }, [markUserChange, originalRemoveChildComponent]);
 
+  // Handle template selection from gallery
+  const handleTemplateSelect = useCallback((template: TemplatePreset) => {
+    // Clear current canvas
+    resetCanvas();
+
+    // Add template components
+    template.components.forEach(component => {
+      // Generate new IDs to avoid conflicts
+      const newComponent = {
+        ...component,
+        id: `${component.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        // Ensure children also get new IDs
+        children: component.children?.map(child => ({
+          ...child,
+          id: `${child.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        }))
+      };
+      addComponent(newComponent);
+    });
+
+    // Apply global settings if provided
+    if (template.globalSettings) {
+      setGlobalSettings(template.globalSettings);
+    }
+
+    // Mark as user change
+    markUserChange();
+
+    // Close gallery
+    setShowTemplateGallery(false);
+  }, [resetCanvas, addComponent, setGlobalSettings, markUserChange]);
+
   // Create modified canvas state with wrapped functions
   const canvasState = {
     ...restCanvasState,
@@ -462,36 +498,47 @@ export default function VisualTemplateBuilder({
   // Get selected component ID
   const selectedId = selectedComponentIds.size === 1 ? Array.from(selectedComponentIds)[0] : null;
 
-  // Update selected component state ONLY when selection changes (not when components update)
-  useEffect(() => {
-    if (!selectedId) {
-      setSelectedComponentForPanel(null);
-      return;
-    }
+  // Debounced update for selected component to prevent excessive re-renders
+  const debouncedUpdateSelectedComponent = useMemo(() => {
+    let timeoutId: NodeJS.Timeout;
+    return (selectedId: string | null, placedComponents: ComponentItem[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (!selectedId) {
+          setSelectedComponentForPanel(null);
+          return;
+        }
 
-    const comp = findComponentById(placedComponents, selectedId);
-    if (!comp) {
-      setSelectedComponentForPanel(null);
-      return;
-    }
+        const comp = findComponentById(placedComponents, selectedId);
+        if (!comp) {
+          setSelectedComponentForPanel(null);
+          return;
+        }
 
-    // Create the component object
-    const newSelectedComponent: ComponentItem = {
-      id: comp.id,
-      type: comp.type,
-      props: comp.props || {},
-      position: comp.position || { x: 0, y: 0 }, // Provide default position
-      gridPosition: comp.gridPosition ? {
-        column: comp.gridPosition.column,
-        row: comp.gridPosition.row,
-        span: (comp.gridPosition as any).columnSpan || (comp.gridPosition as any).span || 1
-      } : undefined,
-      positioningMode: comp.positioningMode || 'absolute',
-      children: comp.children as ComponentItem[] | undefined
+        // Create the component object
+        const newSelectedComponent: ComponentItem = {
+          id: comp.id,
+          type: comp.type,
+          props: comp.props || {},
+          position: comp.position || { x: 0, y: 0 },
+          gridPosition: comp.gridPosition ? {
+            column: comp.gridPosition.column,
+            row: comp.gridPosition.row,
+            span: (comp.gridPosition as any).columnSpan || (comp.gridPosition as any).span || 1
+          } : undefined,
+          positioningMode: comp.positioningMode || 'absolute',
+          children: comp.children as ComponentItem[] | undefined
+        };
+
+        setSelectedComponentForPanel(newSelectedComponent);
+      }, 50); // 50ms debounce
     };
+  }, []);
 
-    setSelectedComponentForPanel(newSelectedComponent);
-  }, [selectedId]); // ONLY depend on selectedId, not placedComponents!
+  // Update selected component state when selection OR component props change
+  useEffect(() => {
+    debouncedUpdateSelectedComponent(selectedId, placedComponents);
+  }, [selectedId, placedComponents, debouncedUpdateSelectedComponent])
 
   // Get the actual current selected component for other uses (canvas, etc.)
   const selectedComponent = useMemo(() => {
@@ -499,17 +546,18 @@ export default function VisualTemplateBuilder({
     return findComponentById(placedComponents, selectedId);
   }, [selectedId, placedComponents]);
 
-  // Handle component property updates - direct passthrough to avoid unnecessary transformations
+  // Handle component property updates - properly memoized to prevent re-renders
   const handleComponentUpdate = useCallback((componentId: string, updates: Partial<ComponentItem>) => {
+    // Use the wrapped updateComponent that marks user changes
     updateComponent(componentId, updates);
   }, [updateComponent]);
 
   // Memoize the subset of canvasState that PropertyPanel needs
   const propertyPanelCanvasState = useMemo(() => ({
-    gridConfig: canvasState.gridConfig,
-    globalSettings: canvasState.globalSettings,
-    removeComponent: canvasState.removeComponent
-  }), [canvasState.gridConfig, canvasState.globalSettings, canvasState.removeComponent]);
+    gridConfig: gridConfig,
+    globalSettings: globalSettings,
+    removeComponent: removeComponent
+  }), [gridConfig, globalSettings, removeComponent]);
 
   // Convert current canvas state to pure absolute positioning format
   const convertToPureCanvasState = useCallback((): AbsoluteCanvasState => {
@@ -846,13 +894,15 @@ ${globalCSS.css}
     }
   }, [placedComponents, globalSettings, generateHTML, debouncedTemplateChange, hasUserMadeChanges]);
 
-  // Keyboard shortcuts
+  // Enhanced keyboard shortcuts and accessibility
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Skip if typing in input fields
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
         return;
       }
 
+      // Ctrl/Cmd + key combinations
       if (event.ctrlKey || event.metaKey) {
         switch (event.key) {
           case 'z':
@@ -867,23 +917,98 @@ ${globalCSS.css}
             event.preventDefault();
             redo();
             break;
+          case 'd':
+            event.preventDefault();
+            if (selectedComponentIds.size > 0) {
+              removeSelected();
+            }
+            break;
+          case 'a':
+            event.preventDefault();
+            // Select all components
+            placedComponents.forEach(comp => restCanvasState.selectComponent(comp.id, true));
+            break;
         }
       }
-
-      switch (event.key) {
-        case 'Delete':
-        case 'Backspace':
-          if (selectedComponentIds.size > 0) {
+      // Alt + key combinations for panel toggles
+      else if (event.altKey) {
+        switch (event.key) {
+          case 'p':
             event.preventDefault();
-            removeSelected();
+            togglePanel('properties');
+            break;
+          case 'c':
+            event.preventDefault();
+            togglePanel('components');
+            break;
+          case 'g':
+            event.preventDefault();
+            setGridConfig({ showGrid: !gridConfig.showGrid });
+            break;
+        }
+      }
+      // Regular keys
+      else {
+        switch (event.key) {
+          case 'Delete':
+          case 'Backspace':
+            if (selectedComponentIds.size > 0) {
+              event.preventDefault();
+              removeSelected();
+            }
+            break;
+          case 'Escape':
+            event.preventDefault();
+            restCanvasState.clearSelection();
+            break;
+          case 'Tab':
+            if (selectedComponentIds.size === 0 && placedComponents.length > 0) {
+              event.preventDefault();
+              restCanvasState.selectComponent(placedComponents[0].id);
+            } else if (selectedComponentIds.size === 1) {
+              event.preventDefault();
+              const currentId = Array.from(selectedComponentIds)[0];
+              const currentIndex = placedComponents.findIndex(comp => comp.id === currentId);
+              const nextIndex = event.shiftKey
+                ? (currentIndex - 1 + placedComponents.length) % placedComponents.length
+                : (currentIndex + 1) % placedComponents.length;
+              restCanvasState.selectComponent(placedComponents[nextIndex].id);
+            }
+            break;
+        }
+
+        // Arrow key nudging for selected components
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+          event.preventDefault();
+          if (selectedComponentIds.size > 0) {
+            const nudgeDistance = event.shiftKey ? 10 : 1;
+            const dx = event.key === 'ArrowLeft' ? -nudgeDistance :
+                      event.key === 'ArrowRight' ? nudgeDistance : 0;
+            const dy = event.key === 'ArrowUp' ? -nudgeDistance :
+                      event.key === 'ArrowDown' ? nudgeDistance : 0;
+
+            selectedComponentIds.forEach(componentId => {
+              const component = placedComponents.find(c => c.id === componentId);
+              if (component && component.position) {
+                updateComponent(componentId, {
+                  position: {
+                    x: Math.max(0, component.position.x + dx),
+                    y: Math.max(0, component.position.y + dy)
+                  }
+                });
+              }
+            });
           }
-          break;
+        }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, removeSelected, selectedComponentIds.size]);
+  }, [
+    undo, redo, removeSelected, selectedComponentIds, placedComponents,
+    updateComponent, restCanvasState.selectComponent, restCanvasState.clearSelection, togglePanel, setGridConfig
+  ]);
 
   return (
     <div className={`flex flex-col bg-gray-50 ${className}`} style={{ height: '100vh', overflow: 'hidden' }}>
@@ -923,6 +1048,7 @@ ${globalCSS.css}
         isGroupsOpen={isPanelOpen('groups')}
         isBulkEditOpen={isPanelOpen('bulkEdit')}
         groupCount={componentGroups.length}
+        onOpenTemplateGallery={() => setShowTemplateGallery(true)}
       />
 
 
@@ -1054,11 +1180,13 @@ ${globalCSS.css}
             </button>
           </div>
           <div style={{ flex: 1, overflow: 'auto' }}>
-            <PropertyPanel
-              selectedComponent={selectedComponentForPanel}
-              canvasState={propertyPanelCanvasState}
-              onComponentUpdate={handleComponentUpdate}
-            />
+            {selectedComponentForPanel && (
+              <PropertyPanel
+                selectedComponent={selectedComponentForPanel}
+                canvasState={propertyPanelCanvasState}
+                onComponentUpdate={handleComponentUpdate}
+              />
+            )}
           </div>
         </div>
       )}
@@ -1403,6 +1531,14 @@ ${globalCSS.css}
         >
           📄
         </button>
+      )}
+
+      {/* Template Gallery Modal */}
+      {showTemplateGallery && (
+        <TemplateGallery
+          onSelectTemplate={handleTemplateSelect}
+          onClose={() => setShowTemplateGallery(false)}
+        />
       )}
 
     </div>

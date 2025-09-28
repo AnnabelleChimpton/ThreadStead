@@ -18,6 +18,7 @@ import {
 } from '@/lib/templates/visual-builder/grid-utils';
 import { type ResizeDirection } from './ResizeHandle';
 import ResizableComponent from './ResizableComponent';
+import SmartAlignment from './SmartAlignment';
 import type { MeasuredDimensions } from './ResizableComponent';
 import { containerToVisual } from './ResizableComponent';
 import {
@@ -1576,6 +1577,38 @@ export default function CanvasRenderer({
     );
   }, [selectedComponentIds, handleComponentClick, placedComponents, removeChildComponent, moveChildToCanvas]);
 
+  // Enhanced visual feedback state
+  const [hoveredComponentId, setHoveredComponentId] = useState<string | null>(null);
+  const [showAlignmentGuides, setShowAlignmentGuides] = useState(false);
+
+  // Helper to determine component constraints
+  const getComponentConstraints = useCallback((componentType: string) => {
+    const constraints = {
+      canResize: true,
+      canDrag: true,
+      fixedAspectRatio: false,
+      description: ''
+    };
+
+    // Components with limited sizing capabilities
+    const fixedSizeComponents = ['ProfilePhoto', 'NotificationBell', 'FriendBadge', 'FollowButton'];
+    const navigationComponents = ['ThreadsteadNavigation'];
+
+    if (fixedSizeComponents.includes(componentType)) {
+      constraints.canResize = false;
+      constraints.fixedAspectRatio = true;
+      constraints.description = 'Size controlled by properties';
+    }
+
+    if (navigationComponents.includes(componentType)) {
+      constraints.canResize = false;
+      constraints.canDrag = false;
+      constraints.description = 'Fixed navigation bar';
+    }
+
+    return constraints;
+  }, []);
+
   // Direct component rendering (no template transformation)
   const renderComponent = useCallback((component: ComponentItem) => {
 
@@ -1746,13 +1779,43 @@ export default function CanvasRenderer({
             ${isTextComponent(component.type) ? 'hover:ring-2 hover:ring-green-300 hover:ring-opacity-50' : ''}
             ${isNewlyAdded ? 'animate-scale-in' : ''}
             ${isRemoving ? 'animate-scale-out' : ''}
-            ${isSelected ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
+            ${isSelected ? 'ring-2 ring-blue-500 ring-opacity-70 shadow-lg' : ''}
+            ${hoveredComponentId === component.id && !isSelected ? 'ring-2 ring-blue-300 ring-opacity-50 shadow-md' : ''}
             hover:shadow-lg
           `}
-          style={wrapperStyle}
+          style={{
+            ...wrapperStyle,
+            transform: `scale(${
+              isSelected ? '1.01' :
+              hoveredComponentId === component.id ? '1.005' : '1'
+            })`,
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
           onClick={(e) => handleComponentClick(component.id, e)}
           onMouseDown={(e) => handleComponentMouseDown(component.id, e)}
+          onMouseEnter={() => !isDragging && setHoveredComponentId(component.id)}
+          onMouseLeave={() => setHoveredComponentId(null)}
         >
+          {/* Component constraint indicators */}
+          {(() => {
+            const constraints = getComponentConstraints(component.type);
+            if (!constraints.canResize && isSelected) {
+              return (
+                <div
+                  className="absolute -top-6 left-0 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-md shadow-sm z-50 pointer-events-none"
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: '500',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  🔒 {constraints.description}
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {/* ResizableComponent wrapper with Component as child */}
           <ResizableComponent
             component={component}
@@ -2377,6 +2440,17 @@ export default function CanvasRenderer({
             canvasWidth={canvasSize.width}
             canvasHeight={canvasSize.height}
           />
+
+          {/* Enhanced smart alignment */}
+          {draggedComponent && previewPosition && (
+            <SmartAlignment
+              components={placedComponents}
+              draggedComponent={draggedComponent}
+              targetPosition={previewPosition}
+              canvasWidth={canvasSize.width}
+              showGuides={showAlignmentGuides}
+            />
+          )}
 
           {/* Live position indicator */}
           <PositionIndicator
