@@ -44,7 +44,7 @@ export default function WidgetContainer({
   };
 
   return (
-    <div className={`widget-container ${getLayoutClasses()}`}>
+    <div className={`widget-stack ${getLayoutClasses()}`}>
       {widgets.map((widget) => {
         const WidgetComponent = widget.component;
 

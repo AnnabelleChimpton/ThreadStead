@@ -198,7 +198,9 @@ export default function DecorationMode({
   const prefersReducedMotion = usePrefersReducedMotion()
   
   const [placedDecorations, setPlacedDecorations] = useState<DecorationItem[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<keyof typeof BETA_ITEMS | 'themes' | 'text'>('plants')
+  const [availableDecorations, setAvailableDecorations] = useState<Record<string, DecorationItem[]>>({})
+  const [decorationsLoading, setDecorationsLoading] = useState(true)
+  const [selectedCategory, setSelectedCategory] = useState<string>('plants')
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [isPlacing, setIsPlacing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -245,6 +247,31 @@ export default function DecorationMode({
     message: string
   }>>([])
   const [recentlyPlaced, setRecentlyPlaced] = useState<Set<string>>(new Set())
+
+  // Load available decorations from API
+  useEffect(() => {
+    const loadDecorations = async () => {
+      try {
+        const response = await fetch('/api/decorations/available')
+        if (response.ok) {
+          const data = await response.json()
+          setAvailableDecorations(data.decorations)
+        } else {
+          // Fallback to BETA_ITEMS if API fails
+          console.warn('Failed to load decorations from API, using fallback')
+          setAvailableDecorations(BETA_ITEMS as unknown as Record<string, DecorationItem[]>)
+        }
+      } catch (error) {
+        console.error('Error loading decorations:', error)
+        // Fallback to BETA_ITEMS if API fails
+        setAvailableDecorations(BETA_ITEMS as unknown as Record<string, DecorationItem[]>)
+      } finally {
+        setDecorationsLoading(false)
+      }
+    }
+
+    loadDecorations()
+  }, [])
 
   // Initialize snapping system
   const {
@@ -1006,7 +1033,7 @@ export default function DecorationMode({
     const items: any[] = []
     
     // Add regular decoration items
-    Object.entries(BETA_ITEMS).forEach(([category, categoryItems]) => {
+    Object.entries(availableDecorations).forEach(([category, categoryItems]) => {
       categoryItems.forEach(item => {
         items.push({ ...item, category })
       })
@@ -1034,7 +1061,19 @@ export default function DecorationMode({
     )
     
     return items
-  }, [])
+  }, [availableDecorations])
+
+  // Show loading state while decorations are being fetched
+  if (decorationsLoading) {
+    return (
+      <div className="bg-gradient-to-b from-thread-paper to-thread-cream flex flex-col min-h-full items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-thread-pine mx-auto mb-4"></div>
+          <p className="text-thread-sage">Loading decorations...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-gradient-to-b from-thread-paper to-thread-cream flex flex-col min-h-full">
@@ -1164,6 +1203,20 @@ export default function DecorationMode({
             {isMobile ? '🏠' : '🏠 Return to Home Page'}
           </button>
           
+          <button
+            onClick={() => {
+              const code = prompt('Enter claim code:')
+              if (code) {
+                window.location.href = `/claim/${code}`
+              }
+            }}
+            className={`bg-purple-500 text-white hover:bg-purple-600 rounded-lg font-medium ${
+              isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'
+            } ${prefersReducedMotion ? 'reduce-motion' : ''}`}
+          >
+            {isMobile ? '🎁' : '🎁 Claim Code'}
+          </button>
+
           <button
             onClick={handleSave}
             className={`bg-thread-sage text-thread-paper hover:bg-thread-pine rounded-lg font-medium btn-save btn-hover-lift ${
@@ -1517,7 +1570,7 @@ export default function DecorationMode({
           </div>
         ) : (
           <DecorationPalette
-            items={BETA_ITEMS as unknown as Record<string, DecorationItem[]>}
+            items={availableDecorations}
             selectedItem={selectedItem}
             onItemSelect={handleItemSelect}
             isMobile={isMobile}

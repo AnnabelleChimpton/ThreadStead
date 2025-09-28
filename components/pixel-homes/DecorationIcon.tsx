@@ -6,6 +6,7 @@ interface DecorationIconProps {
   size?: number
   className?: string
   color?: string  // For house color items
+  iconSvg?: string  // Custom icon SVG from database
 }
 
 export default function DecorationIcon({
@@ -13,8 +14,19 @@ export default function DecorationIcon({
   id,
   size = 32,
   className = '',
-  color
+  color,
+  iconSvg
 }: DecorationIconProps) {
+  // If custom icon SVG is provided from database, use it
+  if (iconSvg) {
+    return (
+      <div
+        className={className}
+        style={{ width: size, height: size }}
+        dangerouslySetInnerHTML={{ __html: iconSvg }}
+      />
+    )
+  }
   if (type === 'sky') {
     // Special handling for atmosphere/sky items
     switch (id) {

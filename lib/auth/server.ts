@@ -11,7 +11,11 @@ export async function getSessionUser(req: NextApiRequest) {
 
   const session = await db.session.findFirst({
     where: { userId, secret, expiresAt: { gt: new Date() } },
-    include: { user: true },
+    include: {
+      user: {
+        include: { betaKey: true }
+      }
+    },
   });
   if (!session) return null;
   return session.user;

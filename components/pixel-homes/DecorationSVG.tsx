@@ -6,6 +6,7 @@ interface DecorationSVGProps {
   variant?: string
   size?: 'small' | 'medium' | 'large'
   className?: string
+  renderSvg?: string  // Custom SVG from database
 }
 
 // Size multipliers for different decoration sizes
@@ -20,9 +21,21 @@ export default function DecorationSVG({
   decorationId,
   variant = 'default',
   size = 'medium',
-  className = ''
+  className = '',
+  renderSvg
 }: DecorationSVGProps) {
   const scale = SIZE_SCALES[size]
+
+  // If custom SVG is provided from database, use it
+  if (renderSvg) {
+    return (
+      <div
+        className={className}
+        style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
+        dangerouslySetInnerHTML={{ __html: renderSvg }}
+      />
+    )
+  }
   
   const renderPlant = (id: string, variant: string) => {
     // Color variants for roses

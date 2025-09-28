@@ -8,72 +8,74 @@ datasource db {
 }
 
 model User {
-  id                        String             @id @default(cuid())
-  did                       String             @unique
-  createdAt                 DateTime           @default(now())
+  id                        String                        @id @default(cuid())
+  did                       String                        @unique
+  createdAt                 DateTime                      @default(now())
   primaryHandle             String?
   publicBaseUrl             String?
   sharedBaseUrl             String?
   privateBaseUrl            String?
-  role                      UserRole           @default(member)
+  role                      UserRole                      @default(member)
   emailVerifiedAt           DateTime?
   encryptedEmail            String?
-  passwordHash              String?            // For password-based auth
-  encryptedSeedPhrase       String?            // Encrypted with user's password
-  authMethod                AuthMethod         @default(SEED_PHRASE)
+  passwordHash              String? // For password-based auth
+  encryptedSeedPhrase       String? // Encrypted with user's password
+  authMethod                AuthMethod                    @default(SEED_PHRASE)
   betaKey                   BetaKey?
   capabilities              CapabilityGrant[]
-  comments                  Comment[]          @relation("UserComments")
-  followers                 Follow[]           @relation("follows_followee")
-  following                 Follow[]           @relation("follows_follower")
-  guestbook                 GuestbookEntry[]   @relation("EntriesToOwner")
+  comments                  Comment[]                     @relation("UserComments")
+  followers                 Follow[]                      @relation("follows_followee")
+  following                 Follow[]                      @relation("follows_follower")
+  guestbook                 GuestbookEntry[]              @relation("EntriesToOwner")
   handles                   Handle[]
   media                     Media[]
-  notificationsActedOn      Notification[]     @relation("NotificationActor")
-  notificationsReceived     Notification[]     @relation("NotificationRecipient")
-  photoComments             PhotoComment[]     @relation("PhotoCommentAuthor")
+  notificationsActedOn      Notification[]                @relation("NotificationActor")
+  notificationsReceived     Notification[]                @relation("NotificationRecipient")
+  photoComments             PhotoComment[]                @relation("PhotoCommentAuthor")
   installs                  PluginInstall[]
   posts                     Post[]
-  postViews                 PostView[]         @relation("PostViews")
-  postThreadRingAdditions   PostThreadRing[]   @relation("PostThreadRingAdditions")
+  postViews                 PostView[]                    @relation("PostViews")
+  postThreadRingAdditions   PostThreadRing[]              @relation("PostThreadRingAdditions")
   profile                   Profile?
   homeConfig                UserHomeConfig?
-  ringHubOwnerships         RingHubOwnership[] @relation("RingHubOwnerships")
+  ringHubOwnerships         RingHubOwnership[]            @relation("RingHubOwnerships")
   sessions                  Session[]
-  curatedThreadRings        ThreadRing[]       @relation("ThreadRingCurator")
-  threadRingBlocksReceived  ThreadRingBlock[]  @relation("ThreadRingBlockedUsers")
-  threadRingBlocksCreated   ThreadRingBlock[]  @relation("ThreadRingBlockCreators")
-  threadRingForks           ThreadRingFork[]   @relation("ThreadRingForks")
-  threadRingInvitesReceived ThreadRingInvite[] @relation("ThreadRingInvitationsReceived")
-  threadRingInvitesSent     ThreadRingInvite[] @relation("ThreadRingInvitationsSent")
-  threadRingMemberships     ThreadRingMember[] @relation("ThreadRingMemberships")
-  reportsCreated            UserReport[]       @relation("UserReportsCreated")
-  reportsReceived           UserReport[]       @relation("UserReportsReceived") 
-  reportsReviewed           UserReport[]       @relation("UserReportsReviewed")
-  blocksCreated             UserBlock[]        @relation("UserBlocksCreated")
-  blocksReceived            UserBlock[]        @relation("UserBlocksReceived")
-  pixelHomeVisitors         PixelHomeVisitor[] @relation("PixelHomeOwner")
-  pixelHomeVisits           PixelHomeVisitor[] @relation("PixelHomeVisitor")
-  betaInviteCodesGenerated  BetaInviteCode[]     @relation("BetaInviteCodesGenerated")
-  betaInviteCodesUsed       BetaInviteCode[]     @relation("BetaInviteCodesUsed")
-  betaInviteShares          BetaInviteShare[]    @relation("BetaInviteShares")
-  emojisCreated             Emoji[]              @relation("EmojiCreator")
-  siteNewsCreated           SiteNews[]           @relation("SiteNewsAuthor")
-  betaLandingPagesCreated   BetaLandingPage[]    @relation("BetaLandingPagesCreated")
-  betaLandingPagesEnded     BetaLandingPage[]    @relation("BetaLandingPagesEnded")
-  betaLandingSignups        BetaLandingSignup[]  @relation("BetaLandingSignups")
-  ipBlocksCreated           IpSignupTracking[]   @relation("IpBlocksCreated")
-  signupAttempts            SignupAttempt[]      @relation("SignupAttempts")
-  consents                  UserConsent[]        @relation("UserConsents")
-  consentLogs               ConsentLog[]         @relation("ConsentLogs")
-  indexedSiteSubmissions    IndexedSite[]        @relation("IndexedSiteSubmissions")
-  indexedSiteVerifications  IndexedSite[]        @relation("IndexedSiteVerifications")
-  siteVotes                 SiteVote[]           @relation("SiteVotes")
-  siteTagSuggestions        SiteTag[]            @relation("SiteTagSuggestions")
-  discoveryPaths            DiscoveryPath[]      @relation("DiscoveryPaths")
-  siteReviews               SiteReview[]         @relation("SiteReviews")
-  userCollections           UserCollection[]     @relation("UserCollections")
-  userBookmarks             UserBookmark[]       @relation("UserBookmarks")
+  curatedThreadRings        ThreadRing[]                  @relation("ThreadRingCurator")
+  threadRingBlocksReceived  ThreadRingBlock[]             @relation("ThreadRingBlockedUsers")
+  threadRingBlocksCreated   ThreadRingBlock[]             @relation("ThreadRingBlockCreators")
+  threadRingForks           ThreadRingFork[]              @relation("ThreadRingForks")
+  threadRingInvitesReceived ThreadRingInvite[]            @relation("ThreadRingInvitationsReceived")
+  threadRingInvitesSent     ThreadRingInvite[]            @relation("ThreadRingInvitationsSent")
+  threadRingMemberships     ThreadRingMember[]            @relation("ThreadRingMemberships")
+  reportsCreated            UserReport[]                  @relation("UserReportsCreated")
+  reportsReceived           UserReport[]                  @relation("UserReportsReceived")
+  reportsReviewed           UserReport[]                  @relation("UserReportsReviewed")
+  blocksCreated             UserBlock[]                   @relation("UserBlocksCreated")
+  blocksReceived            UserBlock[]                   @relation("UserBlocksReceived")
+  pixelHomeVisitors         PixelHomeVisitor[]            @relation("PixelHomeOwner")
+  pixelHomeVisits           PixelHomeVisitor[]            @relation("PixelHomeVisitor")
+  betaInviteCodesGenerated  BetaInviteCode[]              @relation("BetaInviteCodesGenerated")
+  betaInviteCodesUsed       BetaInviteCode[]              @relation("BetaInviteCodesUsed")
+  betaInviteShares          BetaInviteShare[]             @relation("BetaInviteShares")
+  emojisCreated             Emoji[]                       @relation("EmojiCreator")
+  decorationItemsCreated    DecorationItem[]              @relation("DecorationItemsCreated")
+  decorationClaims          UserDecorationClaim[]         @relation("UserDecorationClaims")
+  siteNewsCreated           SiteNews[]                    @relation("SiteNewsAuthor")
+  betaLandingPagesCreated   BetaLandingPage[]             @relation("BetaLandingPagesCreated")
+  betaLandingPagesEnded     BetaLandingPage[]             @relation("BetaLandingPagesEnded")
+  betaLandingSignups        BetaLandingSignup[]           @relation("BetaLandingSignups")
+  ipBlocksCreated           IpSignupTracking[]            @relation("IpBlocksCreated")
+  signupAttempts            SignupAttempt[]               @relation("SignupAttempts")
+  consents                  UserConsent[]                 @relation("UserConsents")
+  consentLogs               ConsentLog[]                  @relation("ConsentLogs")
+  indexedSiteSubmissions    IndexedSite[]                 @relation("IndexedSiteSubmissions")
+  indexedSiteVerifications  IndexedSite[]                 @relation("IndexedSiteVerifications")
+  siteVotes                 SiteVote[]                    @relation("SiteVotes")
+  siteTagSuggestions        SiteTag[]                     @relation("SiteTagSuggestions")
+  discoveryPaths            DiscoveryPath[]               @relation("DiscoveryPaths")
+  siteReviews               SiteReview[]                  @relation("SiteReviews")
+  userCollections           UserCollection[]              @relation("UserCollections")
+  userBookmarks             UserBookmark[]                @relation("UserBookmarks")
   bookmarkValidations       BookmarkCommunitySubmission[] @relation("BookmarkValidations")
 }
 
@@ -120,15 +122,15 @@ model Profile {
 }
 
 model UserHomeConfig {
-  userId              String  @id
-  houseTemplate       String  @default("cottage_v1")
-  palette             String  @default("thread_sage")
-  bookSkin            String? @default("linen_v1")
-  seasonalOptIn       Boolean @default(false)
-  preferPixelHome     Boolean @default(false)
-  atmosphereSky       String  @default("sunny")   // sunny, cloudy, sunset, night
-  atmosphereWeather   String  @default("clear")   // clear, light_rain, light_snow
-  atmosphereTimeOfDay String  @default("midday")  // morning, midday, evening, night
+  userId              String   @id
+  houseTemplate       String   @default("cottage_v1")
+  palette             String   @default("thread_sage")
+  bookSkin            String?  @default("linen_v1")
+  seasonalOptIn       Boolean  @default(false)
+  preferPixelHome     Boolean  @default(false)
+  atmosphereSky       String   @default("sunny") // sunny, cloudy, sunset, night
+  atmosphereWeather   String   @default("clear") // clear, light_rain, light_snow
+  atmosphereTimeOfDay String   @default("midday") // morning, midday, evening, night
   // House color customizations
   wallColor           String? // Override base color
   roofColor           String? // Override primary color
@@ -136,49 +138,49 @@ model UserHomeConfig {
   windowColor         String? // Override accent color
   detailColor         String? // Override detail color
   // House style customizations
-  windowStyle         String? @default("default") // default, round, arched, bay
-  doorStyle           String? @default("default") // default, arched, double, cottage
-  roofTrim            String? @default("default") // default, ornate, scalloped, gabled
+  windowStyle         String?  @default("default") // default, round, arched, bay
+  doorStyle           String?  @default("default") // default, arched, double, cottage
+  roofTrim            String?  @default("default") // default, ornate, scalloped, gabled
   // House text customizations
   houseTitle          String? // Custom title text shown above house description (max 50 characters)
   houseDescription    String? // Custom description text shown below house (max 200 characters)
   houseBoardText      String? // Custom text shown on house board/sign (max 30 characters)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   decorations UserHomeDecoration[]
 }
 
 model UserHomeDecoration {
   id             String   @id @default(cuid())
   userId         String
-  decorationType String   // plant, path, feature, seasonal
-  decorationId   String   // roses_red, stone_path, bird_bath, etc.
-  zone          String   // front_yard, house_facade, background
-  positionX     Int      // X coordinate on canvas
-  positionY     Int      // Y coordinate on canvas
-  layer         Int      @default(1) // Z-layer for rendering order
-  variant       String?  // color variant, size, etc.
-  size          String?  @default("medium") // small, medium, large
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  decorationType String // plant, path, feature, seasonal
+  decorationId   String // roses_red, stone_path, bird_bath, etc.
+  zone           String // front_yard, house_facade, background
+  positionX      Int // X coordinate on canvas
+  positionY      Int // Y coordinate on canvas
+  layer          Int      @default(1) // Z-layer for rendering order
+  variant        String? // color variant, size, etc.
+  size           String?  @default("medium") // small, medium, large
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
   homeConfig UserHomeConfig @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([userId, zone])
 }
 
 model PixelHomeVisitor {
-  id           String   @id @default(cuid())
-  homeOwnerId  String
-  visitorId    String
-  visitedAt    DateTime @default(now())
-  
+  id          String   @id @default(cuid())
+  homeOwnerId String
+  visitorId   String
+  visitedAt   DateTime @default(now())
+
   homeOwner User @relation("PixelHomeOwner", fields: [homeOwnerId], references: [id], onDelete: Cascade)
   visitor   User @relation("PixelHomeVisitor", fields: [visitorId], references: [id], onDelete: Cascade)
-  
+
   @@unique([homeOwnerId, visitorId])
   @@index([homeOwnerId, visitedAt])
   @@index([visitorId, visitedAt])
@@ -201,9 +203,9 @@ model Post {
   platform          String?          @default("blog")
   publishedAt       DateTime?
   textPreview       String?
-  contentWarning    String?          // Custom spoiler warning text
+  contentWarning    String? // Custom spoiler warning text
   isSpoiler         Boolean          @default(false) // Quick flag for filtering
-  threadRingPostIds Json?            // Store ThreadRing database UUIDs mapped by ring slug
+  threadRingPostIds Json? // Store ThreadRing database UUIDs mapped by ring slug
   comments          Comment[]        @relation("PostComments")
   author            User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
   threadRings       PostThreadRing[] @relation("PostThreadRings")
@@ -215,20 +217,20 @@ model Post {
 }
 
 model PostMetrics {
-  id              String   @id @default(cuid())
-  postId          String   @unique
-  viewCount       Int      @default(0)
-  uniqueViewCount Int      @default(0)
-  commentCount    Int      @default(0)
-  lastViewedAt    DateTime @default(now())
+  id              String    @id @default(cuid())
+  postId          String    @unique
+  viewCount       Int       @default(0)
+  uniqueViewCount Int       @default(0)
+  commentCount    Int       @default(0)
+  lastViewedAt    DateTime  @default(now())
   lastCommentAt   DateTime?
-  trendingScore   Float    @default(0)
-  scoreUpdatedAt  DateTime @default(now())
+  trendingScore   Float     @default(0)
+  scoreUpdatedAt  DateTime  @default(now())
 
   // Velocity tracking (last 6 hours)
-  recentViews     Int      @default(0)
-  recentComments  Int      @default(0)
-  velocityWindow  DateTime @default(now())
+  recentViews    Int      @default(0)
+  recentComments Int      @default(0)
+  velocityWindow DateTime @default(now())
 
   post Post @relation("PostMetrics", fields: [postId], references: [id], onDelete: Cascade)
 
@@ -346,14 +348,14 @@ model BetaKey {
 }
 
 model BetaInviteCode {
-  id          String    @id @default(cuid())
-  code        String    @unique
+  id          String            @id @default(cuid())
+  code        String            @unique
   generatedBy String
   usedBy      String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime          @default(now())
   usedAt      DateTime?
-  generator   User      @relation("BetaInviteCodesGenerated", fields: [generatedBy], references: [id], onDelete: Cascade)
-  user        User?     @relation("BetaInviteCodesUsed", fields: [usedBy], references: [id], onDelete: SetNull)
+  generator   User              @relation("BetaInviteCodesGenerated", fields: [generatedBy], references: [id], onDelete: Cascade)
+  user        User?             @relation("BetaInviteCodesUsed", fields: [usedBy], references: [id], onDelete: SetNull)
   shares      BetaInviteShare[]
 
   @@index([generatedBy])
@@ -387,18 +389,18 @@ model SiteConfig {
 }
 
 model CustomPage {
-  id         String   @id @default(cuid())
-  slug       String   @unique
-  title      String
-  content    String
-  published  Boolean  @default(false)
-  showInNav  Boolean  @default(false)
-  navOrder   Int      @default(0)
-  navDropdown String?  // Which dropdown menu (e.g., "discovery", "help", null for top-level)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  hideNavbar Boolean  @default(false)
-  isHomepage Boolean  @default(false)
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  title         String
+  content       String
+  published     Boolean  @default(false)
+  showInNav     Boolean  @default(false)
+  navOrder      Int      @default(0)
+  navDropdown   String? // Which dropdown menu (e.g., "discovery", "help", null for top-level)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  hideNavbar    Boolean  @default(false)
+  isHomepage    Boolean  @default(false)
   isLandingPage Boolean  @default(false)
 
   @@index([published, showInNav, navOrder])
@@ -408,18 +410,18 @@ model CustomPage {
 }
 
 model CuratedSite {
-  id          String   @id @default(cuid())
-  url         String   @unique
+  id          String    @id @default(cuid())
+  url         String    @unique
   title       String
   description String
   tags        String[] // Array of tags like ['indie', 'blog', 'creative']
-  active      Boolean  @default(true)
-  weight      Int      @default(1) // For weighted random selection (higher = more likely)
-  addedBy     String?  // Track who added it
+  active      Boolean   @default(true)
+  weight      Int       @default(1) // For weighted random selection (higher = more likely)
+  addedBy     String? // Track who added it
   lastChecked DateTime? // For future health checking
-  clickCount  Int      @default(0) // Track popularity
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  clickCount  Int       @default(0) // Track popularity
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([active])
   @@index([tags])
@@ -639,23 +641,23 @@ model RingHubOwnership {
 }
 
 model UserReport {
-  id              String       @id @default(cuid())
-  reporterId      String
-  reportedUserId  String?
-  reportType      ReportType
-  targetId        String       // ID of the reported content (post, comment, etc.)
-  reason          ReportReason
-  customReason    String?
-  description     String?
-  status          ReportStatus @default(pending)
-  reviewedBy      String?
-  reviewedAt      DateTime?
-  resolution      String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  reporter        User         @relation("UserReportsCreated", fields: [reporterId], references: [id], onDelete: Cascade)
-  reportedUser    User?        @relation("UserReportsReceived", fields: [reportedUserId], references: [id], onDelete: Cascade)
-  reviewer        User?        @relation("UserReportsReviewed", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  id             String       @id @default(cuid())
+  reporterId     String
+  reportedUserId String?
+  reportType     ReportType
+  targetId       String // ID of the reported content (post, comment, etc.)
+  reason         ReportReason
+  customReason   String?
+  description    String?
+  status         ReportStatus @default(pending)
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  resolution     String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  reporter       User         @relation("UserReportsCreated", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser   User?        @relation("UserReportsReceived", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reviewer       User?        @relation("UserReportsReviewed", fields: [reviewedBy], references: [id], onDelete: SetNull)
 
   @@index([reporterId])
   @@index([reportedUserId])
@@ -701,8 +703,8 @@ enum UserRole {
 }
 
 enum AuthMethod {
-  SEED_PHRASE  // Traditional seed phrase auth (current users)
-  PASSWORD     // Password-based auth with encrypted seed
+  SEED_PHRASE // Traditional seed phrase auth (current users)
+  PASSWORD // Password-based auth with encrypted seed
 }
 
 enum PostIntent {
@@ -742,11 +744,11 @@ enum NotificationType {
 }
 
 enum UploadContext {
-  media_collection  // Intentional gallery uploads with captions/titles
-  post_embed       // Images embedded in posts
-  profile_photo    // Profile/avatar photos
+  media_collection // Intentional gallery uploads with captions/titles
+  post_embed // Images embedded in posts
+  profile_photo // Profile/avatar photos
   threadring_badge // ThreadRing badge images
-  other           // Other contexts
+  other // Other contexts
 }
 
 enum NotificationStatus {
@@ -838,19 +840,19 @@ model Emoji {
 }
 
 model SiteNews {
-  id          String      @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
   summary     String
-  content     String?     // Optional full content for dedicated news pages
-  url         String?     // Optional custom URL, defaults to /news/{id}
-  publishedAt DateTime    @default(now())
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  type        NewsType    @default(announcement)
+  content     String? // Optional full content for dedicated news pages
+  url         String? // Optional custom URL, defaults to /news/{id}
+  publishedAt DateTime     @default(now())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  type        NewsType     @default(announcement)
   priority    NewsPriority @default(medium)
-  isPublished Boolean     @default(true)
+  isPublished Boolean      @default(true)
   createdBy   String
-  author      User        @relation("SiteNewsAuthor", fields: [createdBy], references: [id], onDelete: Cascade)
+  author      User         @relation("SiteNewsAuthor", fields: [createdBy], references: [id], onDelete: Cascade)
 
   @@index([publishedAt])
   @@index([type])
@@ -873,27 +875,27 @@ enum NewsPriority {
 }
 
 model BetaLandingPage {
-  id             String   @id @default(cuid())
-  name           String   // Admin-friendly name (e.g., "Twitter Campaign", "Reddit Launch")
-  slug           String   @unique // URL slug for the landing page
-  title          String   // Page title shown to users
-  description    String?  // Optional description/subtitle
-  content        String?  // Optional custom HTML content
-  isActive       Boolean  @default(true)
-  isPaused       Boolean  @default(false) // Temporarily disable without deleting
-  signupLimit    Int      @default(50)    // Max signups allowed
-  signupCount    Int      @default(0)     // Current signup count (tracked automatically)
-  limitReached   Boolean  @default(false) // Computed field for quick checks
-  endedAt        DateTime? // When campaign was manually ended
-  endedBy        String?   // Admin who ended the campaign
-  createdBy      String   // Admin who created it
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String    @id @default(cuid())
+  name         String // Admin-friendly name (e.g., "Twitter Campaign", "Reddit Launch")
+  slug         String    @unique // URL slug for the landing page
+  title        String // Page title shown to users
+  description  String? // Optional description/subtitle
+  content      String? // Optional custom HTML content
+  isActive     Boolean   @default(true)
+  isPaused     Boolean   @default(false) // Temporarily disable without deleting
+  signupLimit  Int       @default(50) // Max signups allowed
+  signupCount  Int       @default(0) // Current signup count (tracked automatically)
+  limitReached Boolean   @default(false) // Computed field for quick checks
+  endedAt      DateTime? // When campaign was manually ended
+  endedBy      String? // Admin who ended the campaign
+  createdBy    String // Admin who created it
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  creator User @relation("BetaLandingPagesCreated", fields: [createdBy], references: [id], onDelete: Cascade)
-  ender   User? @relation("BetaLandingPagesEnded", fields: [endedBy], references: [id], onDelete: SetNull)
-  signups BetaLandingSignup[] @relation("BetaLandingPageSignups")
-  attempts SignupAttempt[] @relation("BetaLandingPageAttempts")
+  creator  User                @relation("BetaLandingPagesCreated", fields: [createdBy], references: [id], onDelete: Cascade)
+  ender    User?               @relation("BetaLandingPagesEnded", fields: [endedBy], references: [id], onDelete: SetNull)
+  signups  BetaLandingSignup[] @relation("BetaLandingPageSignups")
+  attempts SignupAttempt[]     @relation("BetaLandingPageAttempts")
 
   @@index([slug])
   @@index([isActive, isPaused])
@@ -902,14 +904,14 @@ model BetaLandingPage {
 }
 
 model BetaLandingSignup {
-  id                String   @id @default(cuid())
+  id                String           @id @default(cuid())
   landingPageId     String
-  userId            String?  // Set when signup completes
-  betaCode          String?  // Which beta code was used
-  signupStartedAt   DateTime @default(now())
+  userId            String? // Set when signup completes
+  betaCode          String? // Which beta code was used
+  signupStartedAt   DateTime         @default(now())
   signupCompletedAt DateTime?
-  ipAddress         String?  // For analytics
-  userAgent         String?  // For analytics
+  ipAddress         String? // For analytics
+  userAgent         String? // For analytics
   status            BetaSignupStatus @default(started)
 
   landingPage BetaLandingPage @relation("BetaLandingPageSignups", fields: [landingPageId], references: [id], onDelete: Cascade)
@@ -921,18 +923,18 @@ model BetaLandingSignup {
 }
 
 model IpSignupTracking {
-  id              String   @id @default(cuid())
-  ipAddress       String   @unique
-  signupAttempts  Int      @default(1)
-  successfulSignups Int    @default(0)
-  firstAttemptAt  DateTime @default(now())
-  lastAttemptAt   DateTime @default(now())
-  isBlocked       Boolean  @default(false)
-  blockedAt       DateTime?
-  blockedBy       String?
-  blockedReason   String?
-  autoBlocked     Boolean  @default(false) // Whether block was automatic
-  unblockAt       DateTime? // When auto-block expires
+  id                String    @id @default(cuid())
+  ipAddress         String    @unique
+  signupAttempts    Int       @default(1)
+  successfulSignups Int       @default(0)
+  firstAttemptAt    DateTime  @default(now())
+  lastAttemptAt     DateTime  @default(now())
+  isBlocked         Boolean   @default(false)
+  blockedAt         DateTime?
+  blockedBy         String?
+  blockedReason     String?
+  autoBlocked       Boolean   @default(false) // Whether block was automatic
+  unblockAt         DateTime? // When auto-block expires
 
   blocker User? @relation("IpBlocksCreated", fields: [blockedBy], references: [id], onDelete: SetNull)
 
@@ -943,16 +945,16 @@ model IpSignupTracking {
 }
 
 model SignupAttempt {
-  id              String   @id @default(cuid())
-  ipAddress       String
-  userAgent       String?
-  landingPageId   String?
-  betaCode        String?
-  attemptedAt     DateTime @default(now())
-  success         Boolean  @default(false)
-  failureReason   String?
-  userId          String?  // Set if signup succeeded
-  suspicious      Boolean  @default(false) // Flagged by detection algorithms
+  id            String   @id @default(cuid())
+  ipAddress     String
+  userAgent     String?
+  landingPageId String?
+  betaCode      String?
+  attemptedAt   DateTime @default(now())
+  success       Boolean  @default(false)
+  failureReason String?
+  userId        String? // Set if signup succeeded
+  suspicious    Boolean  @default(false) // Flagged by detection algorithms
 
   landingPage BetaLandingPage? @relation("BetaLandingPageAttempts", fields: [landingPageId], references: [id], onDelete: SetNull)
   user        User?            @relation("SignupAttempts", fields: [userId], references: [id], onDelete: SetNull)
@@ -964,24 +966,24 @@ model SignupAttempt {
 }
 
 enum BetaSignupStatus {
-  started    // User clicked the landing page
-  completed  // User finished account creation
-  abandoned  // User started but didn't complete (tracked after timeout)
+  started // User clicked the landing page
+  completed // User finished account creation
+  abandoned // User started but didn't complete (tracked after timeout)
 }
 
 model BetaInviteShare {
-  id              String   @id @default(cuid())
-  codeId          String   // Which beta invite code was shared
-  sharedBy        String   // User who shared the code
-  shareMethod     String   // How it was shared: "copy_link", "copy_code", "social_share"
-  sharedAt        DateTime @default(now())
-  ipAddress       String?  // IP of the person sharing
-  userAgent       String?  // Browser info
-  referrer        String?  // Where they shared from
-  platform        String?  // Social platform if applicable
+  id          String   @id @default(cuid())
+  codeId      String // Which beta invite code was shared
+  sharedBy    String // User who shared the code
+  shareMethod String // How it was shared: "copy_link", "copy_code", "social_share"
+  sharedAt    DateTime @default(now())
+  ipAddress   String? // IP of the person sharing
+  userAgent   String? // Browser info
+  referrer    String? // Where they shared from
+  platform    String? // Social platform if applicable
 
-  code       BetaInviteCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
-  sharer     User           @relation("BetaInviteShares", fields: [sharedBy], references: [id], onDelete: Cascade)
+  code   BetaInviteCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  sharer User           @relation("BetaInviteShares", fields: [sharedBy], references: [id], onDelete: Cascade)
 
   @@index([codeId, sharedAt])
   @@index([sharedBy, sharedAt])
@@ -1008,27 +1010,27 @@ model UserConsent {
 
 // Community Index Models
 model IndexedSite {
-  id          String   @id @default(cuid())
-  url         String   @unique
+  id          String  @id @default(cuid())
+  url         String  @unique
   title       String
   description String?
 
   // Discovery metadata
-  submittedBy      String?   // User ID who submitted
-  discoveredAt     DateTime  @default(now())
-  discoveryMethod  String    @default("manual") // search, webring, link, manual, api_seeding
-  discoveryContext String?   // source URL or context
+  submittedBy      String? // User ID who submitted
+  discoveredAt     DateTime @default(now())
+  discoveryMethod  String   @default("manual") // search, webring, link, manual, api_seeding
+  discoveryContext String? // source URL or context
 
   // Content analysis
-  contentSample     String?   // First ~500 chars of content
-  extractedKeywords String[]  @default([])
-  detectedLanguage  String?   // ISO 2-letter code
-  siteType         String?   // blog, portfolio, project, etc.
+  contentSample     String? // First ~500 chars of content
+  extractedKeywords String[] @default([])
+  detectedLanguage  String? // ISO 2-letter code
+  siteType          String? // blog, portfolio, project, etc.
 
   // Technical metadata
   lastCrawled    DateTime?
   crawlStatus    String    @default("pending") // success, failed, pending, blocked
-  contentHash    String?   // Detect content changes
+  contentHash    String? // Detect content changes
   sslEnabled     Boolean?
   responseTimeMs Int?
   lastModified   DateTime?
@@ -1040,22 +1042,22 @@ model IndexedSite {
   featured       Boolean @default(false)
 
   // Seeding specific fields
-  seedingScore        Int?      // Auto-evaluation score 0-100
-  seedingReasons      String[]  @default([]) // Why this was seeded
-  communityValidated  Boolean   @default(false)
-  validationVotes     Int       @default(0)
+  seedingScore       Int? // Auto-evaluation score 0-100
+  seedingReasons     String[] @default([]) // Why this was seeded
+  communityValidated Boolean  @default(false)
+  validationVotes    Int      @default(0)
 
   // Auto-validation fields (Phase 2)
-  autoValidated       Boolean?  // Was this auto-validated by system?
+  autoValidated       Boolean? // Was this auto-validated by system?
   autoValidatedAt     DateTime? // When was it auto-validated?
-  autoValidationScore Int?      // Final score used for auto-validation
+  autoValidationScore Int? // Final score used for auto-validation
 
   // Corporate profile filtering fields
-  indexingPurpose     String?   @default("full_index") // full_index, link_extraction, pending_review, rejected
-  platformType        String?   @default("unknown") // independent, indie_platform, corporate_profile, unknown
-  extractedLinks      String[]  @default([]) // Links extracted from corporate profiles
-  extractionCompleted Boolean   @default(false) // Has link extraction been completed?
-  parentProfileUrl    String?   // URL of corporate profile this was discovered from
+  indexingPurpose     String?  @default("full_index") // full_index, link_extraction, pending_review, rejected
+  platformType        String?  @default("unknown") // independent, indie_platform, corporate_profile, unknown
+  extractedLinks      String[] @default([]) // Links extracted from corporate profiles
+  extractionCompleted Boolean  @default(false) // Has link extraction been completed?
+  parentProfileUrl    String? // URL of corporate profile this was discovered from
 
   // Connectivity
   outboundLinks String[] @default([]) // Sites this links to
@@ -1065,11 +1067,11 @@ model IndexedSite {
   updatedAt DateTime @updatedAt
 
   // Relations
-  submitter User?        @relation("IndexedSiteSubmissions", fields: [submittedBy], references: [id], onDelete: SetNull)
-  verifier  User?        @relation("IndexedSiteVerifications", fields: [verifiedBy], references: [id], onDelete: SetNull)
-  votes     SiteVote[]
-  tags      SiteTag[]
-  reviews   SiteReview[]
+  submitter           User?                         @relation("IndexedSiteSubmissions", fields: [submittedBy], references: [id], onDelete: SetNull)
+  verifier            User?                         @relation("IndexedSiteVerifications", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  votes               SiteVote[]
+  tags                SiteTag[]
+  reviews             SiteReview[]
   bookmarkSubmissions BookmarkCommunitySubmission[] @relation("BookmarkIndexedSites")
 
   @@index([url])
@@ -1085,11 +1087,11 @@ model IndexedSite {
 }
 
 model SiteVote {
-  id      String @id @default(cuid())
-  siteId  String
-  userId  String
-  voteType String // upvote, quality, interesting, helpful, creative, broken, spam
-  comment String?
+  id        String   @id @default(cuid())
+  siteId    String
+  userId    String
+  voteType  String // upvote, quality, interesting, helpful, creative, broken, spam
+  comment   String?
   createdAt DateTime @default(now())
 
   site IndexedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
@@ -1102,11 +1104,11 @@ model SiteVote {
 }
 
 model SiteTag {
-  id          String @id @default(cuid())
+  id          String   @id @default(cuid())
   siteId      String
   tag         String
   suggestedBy String
-  votes       Int    @default(1)
+  votes       Int      @default(1)
   createdAt   DateTime @default(now())
 
   site      IndexedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
@@ -1119,13 +1121,13 @@ model SiteTag {
 }
 
 model DiscoveryPath {
-  id             String @id @default(cuid())
-  fromSite       String? // URL or "search" or "surprise"
-  toSite         String  // URL from IndexedSite
-  discoveredBy   String  // User ID
+  id              String   @id @default(cuid())
+  fromSite        String? // URL or "search" or "surprise"
+  toSite          String // URL from IndexedSite
+  discoveredBy    String // User ID
   discoveryMethod String // link_click, search_result, webring, random
-  sessionId      String?
-  createdAt      DateTime @default(now())
+  sessionId       String?
+  createdAt       DateTime @default(now())
 
   discoverer User @relation("DiscoveryPaths", fields: [discoveredBy], references: [id], onDelete: Cascade)
 
@@ -1138,9 +1140,9 @@ model DiscoveryPath {
 
 model SiteRelationship {
   id               String   @id @default(cuid())
-  siteA            String   // URL
-  siteB            String   // URL
-  relationshipType String   // links_to, same_author, webring_member, similar_content
+  siteA            String // URL
+  siteB            String // URL
+  relationshipType String // links_to, same_author, webring_member, similar_content
   strength         Int      @default(1) // How many people discovered this connection
   discoveredBy     String[] @default([]) // User IDs who found this relationship
   createdAt        DateTime @default(now())
@@ -1168,14 +1170,14 @@ model CrawlQueue {
 }
 
 model DiscoveryLink {
-  id             String    @id @default(cuid())
-  sourceUrl      String    // Corporate profile URL
-  sourcePlatform String    // youtube, twitter, etc.
-  targetUrl      String    // Discovered indie site
-  linkLocation   String    // Where link was found (bio, description, etc.)
-  discoveredAt   DateTime  @default(now())
-  confidence     Float     @default(0.5) // How confident we are this is their site
-  processed      Boolean   @default(false) // Has this been added to crawl queue?
+  id             String   @id @default(cuid())
+  sourceUrl      String // Corporate profile URL
+  sourcePlatform String // youtube, twitter, etc.
+  targetUrl      String // Discovered indie site
+  linkLocation   String // Where link was found (bio, description, etc.)
+  discoveredAt   DateTime @default(now())
+  confidence     Float    @default(0.5) // How confident we are this is their site
+  processed      Boolean  @default(false) // Has this been added to crawl queue?
 
   @@index([sourceUrl])
   @@index([targetUrl])
@@ -1184,8 +1186,8 @@ model DiscoveryLink {
 }
 
 model DiscoveredSite {
-  id          String   @id @default(cuid())
-  url         String   @unique
+  id          String  @id @default(cuid())
+  url         String  @unique
   title       String
   description String?
 
@@ -1196,31 +1198,31 @@ model DiscoveredSite {
   discoveredFrom   String? // URL that linked to this site
 
   // Quality assessment
-  qualityScore   Int
-  qualityReasons String[]
+  qualityScore      Int
+  qualityReasons    String[]
   suggestedCategory String?
 
   // Content analysis
   contentSample     String?
-  extractedKeywords String[] @default([])
+  extractedKeywords String[]  @default([])
   detectedLanguage  String?
   lastCrawled       DateTime?
-  crawlStatus       String   @default("success")
+  crawlStatus       String    @default("success")
   contentHash       String?
   sslEnabled        Boolean?
   responseTimeMs    Int?
-  outboundLinks     String[] @default([])
+  outboundLinks     String[]  @default([])
 
   // Review status
-  reviewStatus   String    @default("pending") // pending, approved, rejected, needs_review
-  reviewedBy     String?   // User ID who reviewed
-  reviewedAt     DateTime?
-  reviewNotes    String?
+  reviewStatus String    @default("pending") // pending, approved, rejected, needs_review
+  reviewedBy   String? // User ID who reviewed
+  reviewedAt   DateTime?
+  reviewNotes  String?
 
   // Promotion to main index
   promotedToIndex Boolean   @default(false)
   promotedAt      DateTime?
-  indexedSiteId   String?   // Reference to IndexedSite if promoted
+  indexedSiteId   String? // Reference to IndexedSite if promoted
 
   @@index([reviewStatus, qualityScore])
   @@index([discoveredAt])
@@ -1233,7 +1235,7 @@ model SiteReview {
   userId    String
   title     String?
   content   String
-  rating    Int?     // 1-5 star rating (optional)
+  rating    Int? // 1-5 star rating (optional)
   helpful   Int      @default(0) // How many found this review helpful
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1249,15 +1251,15 @@ model SiteReview {
 }
 
 model ConsentLog {
-  id        String      @id @default(cuid())
+  id        String        @id @default(cuid())
   userId    String
   type      ConsentType
   action    ConsentAction
-  granted   Boolean?    // null for withdrawal actions
-  timestamp DateTime    @default(now())
+  granted   Boolean? // null for withdrawal actions
+  timestamp DateTime      @default(now())
   ipAddress String?
   userAgent String?
-  version   String      @default("1.0")
+  version   String        @default("1.0")
 
   user User @relation("ConsentLogs", fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1266,18 +1268,19 @@ model ConsentLog {
 }
 
 enum ConsentType {
-  ESSENTIAL     // Essential cookies/functionality
-  ANALYTICS     // Analytics and performance tracking
-  MARKETING     // Marketing and advertising
-  PREFERENCES   // User preferences and settings
+  ESSENTIAL // Essential cookies/functionality
+  ANALYTICS // Analytics and performance tracking
+  MARKETING // Marketing and advertising
+  PREFERENCES // User preferences and settings
 }
 
 enum ConsentAction {
-  GRANTED       // User explicitly granted consent
-  WITHDRAWN     // User explicitly withdrew consent
-  UPDATED       // User updated existing consent
-  EXPIRED       // Consent expired due to time limit
+  GRANTED // User explicitly granted consent
+  WITHDRAWN // User explicitly withdrew consent
+  UPDATED // User updated existing consent
+  EXPIRED // Consent expired due to time limit
 }
+
 // Universal Save System Models
 
 enum BookmarkSourceType {
@@ -1307,74 +1310,154 @@ enum BookmarkSubmissionStatus {
 }
 
 model UserCollection {
-  id          String              @id @default(cuid())
+  id          String               @id @default(cuid())
   userId      String
   name        String
   description String?
   visibility  CollectionVisibility @default(private)
-  isDefault   Boolean             @default(false)
+  isDefault   Boolean              @default(false)
 
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user        User                @relation("UserCollections", fields: [userId], references: [id], onDelete: Cascade)
-  bookmarks   UserBookmark[]      @relation("CollectionBookmarks")
+  user      User           @relation("UserCollections", fields: [userId], references: [id], onDelete: Cascade)
+  bookmarks UserBookmark[] @relation("CollectionBookmarks")
 
   @@unique([userId, name])
 }
 
 model UserBookmark {
-  id           String            @id @default(cuid())
+  id           String  @id @default(cuid())
   userId       String
-  collectionId String?           // NULL = default collection
+  collectionId String? // NULL = default collection
 
   // Universal fields for any saved item
-  url          String
-  title        String
-  description  String?
-  faviconUrl   String?
+  url         String
+  title       String
+  description String?
+  faviconUrl  String?
 
   // Source tracking
   sourceType     BookmarkSourceType
-  sourceMetadata Json?           // Engine info, search query, content type, etc.
+  sourceMetadata Json? // Engine info, search query, content type, etc.
 
   // Organization
-  tags         String[]          @default([])
-  notes        String?           // User's personal notes
+  tags  String[] @default([])
+  notes String? // User's personal notes
 
   // Engagement tracking
-  visitsCount    Int             @default(0)
-  lastVisitedAt  DateTime?
+  visitsCount   Int       @default(0)
+  lastVisitedAt DateTime?
 
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user         User              @relation("UserBookmarks", fields: [userId], references: [id], onDelete: Cascade)
-  collection   UserCollection?   @relation("CollectionBookmarks", fields: [collectionId], references: [id], onDelete: SetNull)
+  user                User                         @relation("UserBookmarks", fields: [userId], references: [id], onDelete: Cascade)
+  collection          UserCollection?              @relation("CollectionBookmarks", fields: [collectionId], references: [id], onDelete: SetNull)
   communitySubmission BookmarkCommunitySubmission? @relation("BookmarkSubmissions")
 
   @@unique([userId, url])
 }
 
 model BookmarkCommunitySubmission {
-  id              String                    @id @default(cuid())
-  bookmarkId      String                    @unique
-  indexedSiteId   String?                   // NULL until validated and indexed
+  id            String  @id @default(cuid())
+  bookmarkId    String  @unique
+  indexedSiteId String? // NULL until validated and indexed
 
   // Auto-submission details
-  submissionReason   BookmarkSubmissionReason
-  submissionScore    Int                   @default(0)  // Based on user reputation, engagement, etc.
+  submissionReason BookmarkSubmissionReason
+  submissionScore  Int                      @default(0) // Based on user reputation, engagement, etc.
 
-  status          BookmarkSubmissionStatus  @default(pending)
-  validatedAt     DateTime?
-  validatedBy     String?
+  status      BookmarkSubmissionStatus @default(pending)
+  validatedAt DateTime?
+  validatedBy String?
 
-  createdAt       DateTime                  @default(now())
+  createdAt DateTime @default(now())
 
   // Relations
-  bookmark        UserBookmark              @relation("BookmarkSubmissions", fields: [bookmarkId], references: [id], onDelete: Cascade)
-  indexedSite     IndexedSite?              @relation("BookmarkIndexedSites", fields: [indexedSiteId], references: [id], onDelete: SetNull)
-  validator       User?                     @relation("BookmarkValidations", fields: [validatedBy], references: [id], onDelete: SetNull)
+  bookmark    UserBookmark @relation("BookmarkSubmissions", fields: [bookmarkId], references: [id], onDelete: Cascade)
+  indexedSite IndexedSite? @relation("BookmarkIndexedSites", fields: [indexedSiteId], references: [id], onDelete: SetNull)
+  validator   User?        @relation("BookmarkValidations", fields: [validatedBy], references: [id], onDelete: SetNull)
+}
+
+// ========================================
+// DECORATION MANAGEMENT SYSTEM
+// ========================================
+
+model DecorationItem {
+  id       String @id @default(cuid())
+  itemId   String @unique // roses_red, stone_path, etc.
+  name     String // "Red Roses"
+  type     String // plant, furniture, etc.
+  category String // plants, paths, etc.
+  zone     String // front_yard, house_facade, etc.
+
+  // Visual assets
+  iconSvg   String? // SVG code for palette icon
+  renderSvg String? // SVG code for canvas rendering
+  imagePath String? // Path to uploaded image asset
+
+  // Grid behavior
+  gridWidth  Int @default(1)
+  gridHeight Int @default(1)
+
+  // Availability control
+  isActive    Boolean     @default(true)
+  releaseType ReleaseType @default(PUBLIC)
+
+  // Limited-time releases
+  releaseStartAt DateTime?
+  releaseEndAt   DateTime?
+  claimCode      String?   @unique // Special code for limited releases
+  maxClaims      Int? // Max users who can claim
+  claimCount     Int       @default(0)
+
+  // Metadata
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String? // Admin user ID (optional for system items)
+
+  // Relations
+  creator    User?                 @relation("DecorationItemsCreated", fields: [createdBy], references: [id])
+  userClaims UserDecorationClaim[]
+
+  @@index([releaseType])
+  @@index([releaseStartAt, releaseEndAt])
+  @@index([claimCode])
+  @@index([isActive])
+  @@index([itemId])
+}
+
+model UserDecorationClaim {
+  id           String      @id @default(cuid())
+  userId       String
+  decorationId String
+  claimedAt    DateTime    @default(now())
+  claimMethod  ClaimMethod @default(DIRECT) // DIRECT, CODE, ADMIN_GRANT
+
+  user       User           @relation("UserDecorationClaims", fields: [userId], references: [id])
+  decoration DecorationItem @relation(fields: [decorationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, decorationId])
+  @@index([userId])
+  @@index([decorationId])
+}
+
+enum ReleaseType {
+  DEFAULT // Always available to everyone, no claiming needed
+  PUBLIC // Available to all users (can track claims)
+  LIMITED_TIME // Available during specific timeframe
+  CLAIM_CODE // Requires special code to unlock
+  ADMIN_ONLY // Only admin can grant access
+  BETA_USERS // Only beta users
+}
+
+enum ClaimMethod {
+  DIRECT // Standard public access
+  CODE // Claimed via special code
+  ADMIN_GRANT // Manually granted by admin
+  BETA_ACCESS // Access via beta status
 }

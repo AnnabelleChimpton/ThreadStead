@@ -27,6 +27,7 @@ interface DecorationItem {
   position: { x: number; y: number; layer?: number }
   variant?: string
   size?: 'small' | 'medium' | 'large'
+  renderSvg?: string
 }
 
 interface AtmosphereSettings {
@@ -195,6 +196,7 @@ export default function EnhancedHouseCanvas({
                 variant={item.variant}
                 size={item.size}
                 className="drop-shadow-sm"
+                renderSvg={item.renderSvg}
               />
             </div>
           )

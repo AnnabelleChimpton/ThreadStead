@@ -9,6 +9,13 @@ interface DecorationItem {
   section?: string
   isDefault?: boolean
   color?: string
+  iconSvg?: string
+  renderSvg?: string
+  isLimitedTime?: boolean
+  isUserClaimed?: boolean
+  isNew?: boolean
+  expiresAt?: string
+  releaseType?: string
   [key: string]: any
 }
 
@@ -270,6 +277,7 @@ export default function DecorationPalette({
                     size={isMobile ? 28 : 32}
                     className="drop-shadow-sm"
                     color={item.color}
+                    iconSvg={item.iconSvg}
                   />
                 </div>
 
@@ -289,6 +297,34 @@ export default function DecorationPalette({
                 {item.isDefault && (
                   <div className="absolute -top-1 -left-1 bg-blue-600 text-white text-xs px-1 py-0.5 rounded text-[8px] font-medium">
                     DEFAULT
+                  </div>
+                )}
+
+                {/* Limited Time Indicator */}
+                {item.isLimitedTime && (
+                  <div className="absolute -top-1 -left-1 bg-orange-500 text-white text-xs px-1 py-0.5 rounded text-[8px] font-medium animate-pulse">
+                    LIMITED
+                  </div>
+                )}
+
+                {/* Exclusive/Claimed Indicator */}
+                {item.isUserClaimed && (
+                  <div className="absolute -bottom-1 -right-1 bg-purple-500 text-white text-xs px-1 py-0.5 rounded text-[8px] font-medium">
+                    CLAIMED
+                  </div>
+                )}
+
+                {/* Default Item Indicator */}
+                {item.isDefault && (
+                  <div className="absolute -top-1 -left-1 bg-yellow-400 text-yellow-900 text-xs px-1 py-0.5 rounded text-[8px] font-bold border border-yellow-600">
+                    ⭐
+                  </div>
+                )}
+
+                {/* New Item Indicator */}
+                {item.isNew && (
+                  <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded text-[8px] font-medium">
+                    NEW!
                   </div>
                 )}
               </button>
