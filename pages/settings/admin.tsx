@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import { useMe } from "@/hooks/useMe";
@@ -1140,7 +1141,23 @@ export default function AdminPage() {
 
         {/* CONTENT MANAGEMENT */}
         <CollapsibleSection title="Content Management" defaultOpen={false} icon="📝">
-          
+
+          {/* Pixel Home Decorations */}
+          <div className="border border-gray-300 rounded p-4 bg-gray-50 mb-4">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              🎨 Pixel Home Decorations
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Manage decorations for user pixel homes. Create new decorations, set release types, generate claim codes, and track usage analytics.
+            </p>
+            <Link
+              href="/admin/decorations"
+              className="inline-block border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] text-sm font-medium"
+            >
+              🏠 Manage Decorations
+            </Link>
+          </div>
+
           {/* Custom Pages */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
@@ -2016,12 +2033,60 @@ We collect information you provide when creating an account..."
         {/* SITE CONTENT MANAGEMENT */}
         <CollapsibleSection title="Site Content Management" defaultOpen={false} icon="📰">
           <SiteNewsSection />
+
+          {/* Community Index Management */}
+          <div className="border border-gray-300 rounded p-4 bg-gray-50 mt-4">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              🏘️ Community Index Seeding
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Manage community index data and seeding processes. Configure neighborhood data, user assignments, and community structure.
+            </p>
+            <Link
+              href="/admin/community-index"
+              className="inline-block border border-black px-4 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] text-sm font-medium"
+            >
+              🌱 Manage Community Index
+            </Link>
+          </div>
+
+          {/* Curated Sites Management */}
+          <div className="border border-gray-300 rounded p-4 bg-gray-50 mt-4">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              🌐 Curated Sites Management
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Manage curated external sites and links. Add, edit, or remove featured websites and resources for the community.
+            </p>
+            <Link
+              href="/admin/curated-sites"
+              className="inline-block border border-black px-4 py-2 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] text-sm font-medium"
+            >
+              🔗 Manage Curated Sites
+            </Link>
+          </div>
         </CollapsibleSection>
 
         {/* CONTENT MODERATION */}
         <CollapsibleSection title="Content Moderation" defaultOpen={false} icon="🛡️">
           <ReportsSection />
           <PostsSection />
+
+          {/* Auto-Validation Settings */}
+          <div className="border border-gray-300 rounded p-4 bg-gray-50 mt-4">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              🤖 Auto-Validation Settings
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Configure automated content validation rules and moderation settings. Set up filters, thresholds, and automatic actions for content review.
+            </p>
+            <Link
+              href="/admin/auto-validation"
+              className="inline-block border border-black px-4 py-2 bg-orange-200 hover:bg-orange-100 shadow-[2px_2px_0_#000] text-sm font-medium"
+            >
+              ⚙️ Manage Auto-Validation
+            </Link>
+          </div>
         </CollapsibleSection>
 
         {/* USER & ACCESS MANAGEMENT */}
