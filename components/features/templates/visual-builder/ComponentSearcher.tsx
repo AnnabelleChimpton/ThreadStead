@@ -261,6 +261,14 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     tags: ['matrix', 'rain', 'code', 'falling', 'background', 'digital', 'cyber', 'effect', 'animation'],
     popularity: 61
   },
+  'CustomHTML': {
+    name: 'Custom HTML',
+    description: 'Insert raw HTML code with full styling control',
+    icon: '💻',
+    category: 'Advanced',
+    tags: ['html', 'custom', 'code', 'raw', 'advanced', 'developer', 'markup'],
+    popularity: 75
+  },
 };
 
 /**
@@ -310,7 +318,35 @@ export default function ComponentSearcher({
     saveFavorites(newFavorites);
   };
 
-  const { startDrag, endDrag } = canvasState;
+  const { startDrag, endDrag, addComponent } = canvasState;
+
+  // Handle component click - special case for Custom HTML
+  const handleComponentClick = (component: ComponentSuggestion) => {
+    if (component.type === 'CustomHTML') {
+      // Create Custom HTML component immediately with placeholder content
+      const customHTMLComponent: ComponentItem = {
+        id: `custom_html_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'CustomHTMLElement',
+        position: { x: 100, y: 100 },
+        positioningMode: 'grid',
+        props: {
+          content: '<div>Double-click to edit HTML content</div>',
+          tagName: 'div',
+          className: '',
+        }
+      };
+
+      addComponent(customHTMLComponent);
+
+      // Add to recent components
+      const newRecent = [component.type, ...recentComponents.filter(id => id !== component.type)].slice(0, 8);
+      setRecentComponents(newRecent);
+      localStorage.setItem('vb-recent-components', JSON.stringify(newRecent));
+
+      return;
+    }
+    // For other components, this will be handled by drag/drop
+  };
 
   // Get all available components with enhanced data
   const availableComponents = useMemo(() => {
@@ -417,12 +453,15 @@ export default function ComponentSearcher({
             p-2 border rounded text-center transition-all duration-200 relative
             ${isRecent ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300' : 'bg-white'}
             ${isAvailable
-              ? 'border-gray-200 cursor-grab hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5'
+              ? component.type === 'CustomHTML'
+                ? 'border-gray-200 cursor-pointer hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5'
+                : 'border-gray-200 cursor-grab hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5'
               : 'border-red-200 bg-red-50 opacity-50 cursor-not-allowed'
             }
           `}
           style={{ minHeight: '100px' }}
-          draggable={isAvailable}
+          draggable={isAvailable && component.type !== 'CustomHTML'}
+          onClick={() => handleComponentClick(component)}
           onDragStart={(e) => {
             if (!isAvailable) return;
             e.dataTransfer.setData('application/json', JSON.stringify({
@@ -471,11 +510,14 @@ export default function ComponentSearcher({
           p-3 border rounded transition-all duration-200 relative
           ${isRecent ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300' : 'bg-white'}
           ${isAvailable
-            ? 'border-gray-200 cursor-grab hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5'
+            ? component.type === 'CustomHTML'
+              ? 'border-gray-200 cursor-pointer hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5'
+              : 'border-gray-200 cursor-grab hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5'
             : 'border-red-200 bg-red-50 opacity-50 cursor-not-allowed'
           }
         `}
-        draggable={isAvailable}
+        draggable={isAvailable && component.type !== 'CustomHTML'}
+        onClick={() => handleComponentClick(component)}
         onDragStart={(e) => {
           if (!isAvailable) return;
           e.dataTransfer.setData('application/json', JSON.stringify({
@@ -520,6 +562,11 @@ export default function ComponentSearcher({
               <span className="text-xs px-2 py-0.5 bg-gray-100 rounded text-gray-600">
                 {component.category}
               </span>
+              {component.type === 'CustomHTML' && (
+                <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                  Click to add
+                </span>
+              )}
             </div>
           </div>
         </div>

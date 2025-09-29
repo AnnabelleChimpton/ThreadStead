@@ -59,6 +59,7 @@ import MatrixRain from '@/components/features/templates/MatrixRain';
 import TextElement from '@/components/features/templates/TextElement';
 import Heading from '@/components/features/templates/Heading';
 import Paragraph from '@/components/features/templates/Paragraph';
+import CustomHTMLElement from '@/components/features/templates/CustomHTMLElement';
 
 // Import conditional rendering components
 import Show from '@/components/features/templates/conditional/Show';
@@ -155,9 +156,20 @@ export function validateAndCoerceProps(
   const result: Record<string, unknown> = {};
   const warnings: string[] = [];
 
+  // Normalize prop names for case sensitivity issues (especially for CustomHTMLElement)
+  const normalizedAttrs: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(attrs)) {
+    // Handle lowercase cssrendermode -> cssRenderMode conversion
+    if (key.toLowerCase() === 'cssrendermode') {
+      normalizedAttrs['cssRenderMode'] = value;
+    } else {
+      normalizedAttrs[key] = value;
+    }
+  }
+
 
   // Validate provided attrs
-  for (const [key, value] of Object.entries(attrs)) {
+  for (const [key, value] of Object.entries(normalizedAttrs)) {
     const schema = propSchemas[key];
     if (!schema) {
       // Allow special props to pass through for all components without warning
@@ -1131,6 +1143,23 @@ componentRegistry.register({
     type: 'container',
     acceptsChildren: true,
     childrenLabel: 'Matrix Content'
+  }
+});
+
+// Custom HTML component
+componentRegistry.register({
+  name: 'CustomHTMLElement',
+  component: CustomHTMLElement,
+  props: mergeWithUniversalProps({
+    tagName: { type: 'enum', values: ['div', 'span', 'section', 'article', 'aside', 'header', 'footer', 'main'], default: 'div' },
+    innerHTML: { type: 'string', default: '' },
+    content: { type: 'string', default: '' }, // Alias for innerHTML (used by CanvasRenderer)
+    className: { type: 'string', default: '' },
+    cssRenderMode: { type: 'enum', values: ['auto', 'inherit', 'custom'] }, // No default - let component handle it
+  }, 'container'),
+  relationship: {
+    type: 'container',
+    acceptsChildren: [], // Uses innerHTML instead of React children
   }
 });
 

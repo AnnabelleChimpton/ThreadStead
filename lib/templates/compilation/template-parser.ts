@@ -50,6 +50,7 @@ function createCustomSchema() {
 
         // Core Styling Props
         'backgroundcolor', 'backgroundColor', 'style', 'customcss', 'customCSS', // Critical missing props
+        'cssrendermode', 'cssRenderMode', // CSS render mode for CustomHTMLElement
         'fontfamily', 'fontFamily',
         'fontsize', 'fontSize',
         'fontweight', 'fontWeight',
@@ -147,7 +148,9 @@ function createCustomSchema() {
         'volume',
         // Component-specific props - MatrixRain
         'speed', 'density', 'characters', 'customcharacters', 'customCharacters',
-        'fadeeffect', 'fadeEffect', 'gloweffect', 'glowEffect', 'backgroundopacity', 'backgroundOpacity'
+        'fadeeffect', 'fadeEffect', 'gloweffect', 'glowEffect', 'backgroundopacity', 'backgroundOpacity',
+        // Component-specific props - CustomHTMLElement
+        'tagname', 'tagName', 'innerhtml', 'innerHTML', 'content'
       ];
       
       schema.attributes[tagName] = allAttributes;

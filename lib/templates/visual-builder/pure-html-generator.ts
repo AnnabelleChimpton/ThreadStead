@@ -202,7 +202,10 @@ export class PureHtmlGenerator {
       // Component-specific props - MatrixRain
       'customCharacters': 'customcharacters',
       'fadeEffect': 'fadeeffect',
-      'backgroundOpacity': 'backgroundopacity'
+      'backgroundOpacity': 'backgroundopacity',
+      // Component-specific props - CustomHTMLElement
+      'tagName': 'tagname',
+      'innerHTML': 'innerhtml'
     };
 
     // Remove legacy props when universal equivalent exists

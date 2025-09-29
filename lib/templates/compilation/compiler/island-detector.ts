@@ -206,6 +206,9 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'customcharacters': 'customCharacters',
           'fadeeffect': 'fadeEffect',
           'backgroundopacity': 'backgroundOpacity',
+          // Component-specific props - CustomHTMLElement
+          'tagname': 'tagName',
+          'innerhtml': 'innerHTML',
           // Legacy CSS props - keep as lowercase
           'text-decoration': 'textdecoration',
           'font-style': 'fontstyle',
@@ -343,6 +346,7 @@ export function identifyIslands(ast: TemplateNode): Island[] {
           validateAndCoerceProps(node.properties, registration.props, {
             componentType: node.tagName
           }) : {};
+
         
         // Create island configuration
         const island: Island = {

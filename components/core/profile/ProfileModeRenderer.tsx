@@ -115,9 +115,9 @@ export default function ProfileModeRenderer({
   // Feature flag check for islands - bypass if we have compiled template data
   const featureFlagResult = featureFlags.templateIslands({ id: user.id, role: 'member' });
   const hasCompiledTemplate = !!user.profile?.compiledTemplate;
-  const shouldUseIslands = useIslands && 
-                          mode === 'advanced' && 
-                          (featureFlagResult || hasCompiledTemplate); // Allow if feature flag OR compiled template exists
+  const shouldUseIslands = useIslands &&
+                          mode === 'advanced' &&
+                          hasCompiledTemplate; // Always allow islands if compiled template exists
                           
   
   React.useEffect(() => {

@@ -1513,13 +1513,18 @@ export default function CanvasRenderer({
         <ChildComponent
           {...(child.props || {})}
           _isInVisualBuilder={true}
-          _onContentChange={(content: string) => {
+          _onContentChange={(content: string, cssRenderMode?: string) => {
             // Update the child component's content property
+            const updatedProps: any = {
+              ...child.props,
+              content: content
+            };
+            // Update cssRenderMode if provided
+            if (cssRenderMode !== undefined) {
+              updatedProps.cssRenderMode = cssRenderMode;
+            }
             updateChildComponent(findParentOfChild(child.id, placedComponents)?.id || '', child.id, {
-              props: {
-                ...child.props,
-                content: content
-              }
+              props: updatedProps
             });
           }}
         />
@@ -1833,13 +1838,18 @@ export default function CanvasRenderer({
               _positioningMode={component.positioningMode}
               _size={component.props?._size}
               _isInVisualBuilder={true}
-              _onContentChange={(content: string) => {
-                // Update the component's content property
+              _onContentChange={(content: string, cssRenderMode?: string) => {
+                // Update the component's content and cssRenderMode properties
+                const updatedProps: any = {
+                  ...component.props,
+                  content: content
+                };
+                // Update cssRenderMode if provided
+                if (cssRenderMode !== undefined) {
+                  updatedProps.cssRenderMode = cssRenderMode;
+                }
                 updateComponent(component.id, {
-                  props: {
-                    ...component.props,
-                    content: content
-                  }
+                  props: updatedProps
                 });
               }}
             >

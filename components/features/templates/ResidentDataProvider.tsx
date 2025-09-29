@@ -1,4 +1,5 @@
 import React, { createContext, useContext } from 'react';
+import type { ComponentCSSRenderMode } from '@/lib/utils/css/css-mode-mapper';
 
 export interface ResidentData {
   owner: {
@@ -65,6 +66,8 @@ export interface ResidentData {
       slug: string;
     };
   }>;
+  // CSS configuration for template components
+  cssRenderMode?: ComponentCSSRenderMode;
 }
 
 const ResidentDataContext = createContext<ResidentData | null>(null);
@@ -88,4 +91,9 @@ export function useResidentData(): ResidentData {
     throw new Error('useResidentData must be used within a ResidentDataProvider');
   }
   return context;
+}
+
+export function useResidentCSSRenderMode(): ComponentCSSRenderMode | undefined {
+  const context = useContext(ResidentDataContext);
+  return context?.cssRenderMode;
 }

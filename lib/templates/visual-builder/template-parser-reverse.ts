@@ -927,7 +927,10 @@ export class TemplateParserReverse {
       // Component-specific props - MatrixRain
       'customcharacters': 'customCharacters',
       'fadeeffect': 'fadeEffect',
-      'backgroundopacity': 'backgroundOpacity'
+      'backgroundopacity': 'backgroundOpacity',
+      // Component-specific props - CustomHTMLElement
+      'tagname': 'tagName',
+      'innerhtml': 'innerHTML'
     };
 
     // Apply mappings

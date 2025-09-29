@@ -300,7 +300,7 @@ export function processUniversalStyles(
  */
 export function getComponentStyleCategory(componentType: string): ComponentStyleCategory {
   const textComponents = ['TextElement', 'Heading', 'Paragraph', 'DisplayName', 'Bio'];
-  const containerComponents = ['GradientBox', 'CenteredBox', 'NeonBorder', 'RevealBox'];
+  const containerComponents = ['GradientBox', 'CenteredBox', 'NeonBorder', 'RevealBox', 'CustomHTMLElement'];
   const mediaComponents = ['ProfilePhoto', 'UserImage', 'MediaGrid'];
   const interactiveComponents = ['FollowButton', 'ContactCard', 'Tabs'];
 

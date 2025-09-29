@@ -19,6 +19,7 @@ import ProfileModeRenderer from "@/components/core/profile/ProfileModeRenderer";
 import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer";
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
+import { mapProfileCSSModeToComponentMode } from "@/lib/utils/css/css-mode-mapper";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useRouter } from "next/router";
 import dynamic from 'next/dynamic';
@@ -147,11 +148,11 @@ export default function ProfilePage({
   
   const currentCSSMode = extractCSSMode(customCSS);
 
-  // Templates with "Inherit" CSS mode should use the standard layout with site styling
-  // This includes "Load Default Template" results which are designed to recreate the standard profile
-  const shouldUseStandardLayout = currentCSSMode === 'inherit' || templateMode !== 'advanced';
+  // Advanced templates always use the advanced renderer for consistent behavior
+  // Only non-advanced templates use the standard layout
+  const shouldUseStandardLayout = templateMode !== 'advanced';
 
-  // Use advanced renderer only for templates that need full control (override or disable CSS modes)
+  // Use advanced renderer for all advanced templates
   if (templateMode === 'advanced' && residentData && !shouldUseStandardLayout) {
     // Create ProfileUser object with Islands data
     const profileUser: ProfileUser = {
@@ -226,12 +227,6 @@ export default function ProfilePage({
         />
       );
     }
-  } else if (templateMode === 'advanced' && currentCSSMode === 'inherit' && residentData) {
-    // For inherit mode advanced templates (like "Load Default Template"), treat as enhanced mode
-    // This ensures navigation and site CSS load properly
-    // Note: This effectively treats the template as "enhanced" mode while preserving the islands data
-    
-    // We'll fall through to the default profile rendering which uses ProfileLayout
   }
 
   // built-in tabs
@@ -539,9 +534,31 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   let customTemplateAst: TemplateNode | undefined;
   let residentData: ResidentData | undefined;
 
+  // Extract CSS mode BEFORE template loading to avoid scope issues
+  const extractCSSModeFromProfile = (css: string | null | undefined): 'inherit' | 'override' | 'disable' => {
+    if (!css) return 'inherit';
+
+    // Check for explicit CSS_MODE comment
+    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
+    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
+      return modeMatch[1] as 'inherit' | 'override' | 'disable';
+    }
+
+    // Check for Visual Builder CSS (matches client-side logic)
+    const hasVisualBuilderCSS = css.includes('/* Visual Builder Generated CSS */') ||
+                               (css.includes('.vb-theme-') && css.includes('--global-bg-color'));
+    if (hasVisualBuilderCSS) {
+      return 'disable';
+    }
+
+    return data.profile?.includeSiteCSS === false ? 'disable' : 'inherit';
+  };
+
+  const cssMode = extractCSSModeFromProfile(data.profile?.customCSS);
+
   // Load custom template data for advanced mode (legacy AST or Islands compilation)
-  if (data.profile?.templateMode === 'advanced' && 
-      (data.profile?.customTemplateAst || data.profile?.compiledTemplate) && 
+  if (data.profile?.templateMode === 'advanced' &&
+      (data.profile?.customTemplateAst || data.profile?.compiledTemplate) &&
       data.profile?.templateEnabled) {
     try {
       // Parse the stored AST (if available - legacy compatibility)
@@ -670,6 +687,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         },
         featuredFriends,
         websites,
+        // Map profile CSS mode to component CSS render mode
+        cssRenderMode: mapProfileCSSModeToComponentMode(cssMode),
       };
     } catch (error) {
       console.error('Error preparing custom template:', error);
@@ -703,23 +722,17 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   }
   if (data.profile?.templateIslands != null) props.templateIslands = data.profile.templateIslands;
   if (data.profile?.templateCompiledAt != null) props.templateCompiledAt = new Date(data.profile.templateCompiledAt).toISOString();
-  
+
   // CSS Priority based on template mode and CSS mode
   const templateMode = data.profile?.templateMode || 'default';
-  const extractCSSModeFromProfile = (css: string | null | undefined): 'inherit' | 'override' | 'disable' => {
-    if (!css) return 'inherit';
-    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
-    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
-      return modeMatch[1] as 'inherit' | 'override' | 'disable';
-    }
-    return data.profile?.includeSiteCSS === false ? 'disable' : 'inherit';
-  };
-  
-  const cssMode = extractCSSModeFromProfile(data.profile?.customCSS);
-  props.cssMode = cssMode;
+
+  // TEMPORARILY restore forced disable mode for advanced templates until CSS mode propagation is properly tested
+  // This ensures advanced templates continue to work while we fix the CSS mode system
+  const finalCSSMode = templateMode === 'advanced' ? 'disable' : cssMode;
+  props.cssMode = finalCSSMode;
   
   // Ensure includeSiteCSS is properly set based on CSS mode
-  if (cssMode === 'inherit') {
+  if (finalCSSMode === 'inherit') {
     // Inherit mode must always load site CSS
     props.includeSiteCSS = true;
   } else if (data.profile?.includeSiteCSS != null) {
@@ -737,12 +750,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
       props.customCSS = adminDefaultCSS;
     }
-  } else if (templateMode === 'advanced' && cssMode === 'inherit' && data.profile?.customCSS != null) {
-    // Advanced template with inherit mode (like "Load Default Template") - treat like enhanced mode
-    // This ensures proper CSS handling while preserving islands data
-    props.customCSS = data.profile.customCSS;
   } else if (templateMode === 'advanced' && data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
-    // Advanced template mode - use user's custom CSS (for override/disable modes)
+    // Advanced template mode - always use user's custom CSS (cssMode forced to disable)
     props.customCSS = data.profile.customCSS;
   } else if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
     // Fallback to admin default CSS if available

@@ -647,7 +647,10 @@ function StaticHTMLWithIslands({
               // Component-specific props - MatrixRain
               'customcharacters': 'customCharacters',
               'fadeeffect': 'fadeEffect',
-              'backgroundopacity': 'backgroundOpacity'
+              'backgroundopacity': 'backgroundOpacity',
+              // Component-specific props - CustomHTMLElement
+              'tagname': 'tagName',
+              'innerhtml': 'innerHTML'
             };
 
             // Copy attributes as props
@@ -1078,7 +1081,10 @@ function domToReact(
       // Component-specific props - MatrixRain
       'customcharacters': 'customCharacters',
       'fadeeffect': 'fadeEffect',
-      'backgroundopacity': 'backgroundOpacity'
+      'backgroundopacity': 'backgroundOpacity',
+      // Component-specific props - CustomHTMLElement
+      'tagname': 'tagName',
+      'innerhtml': 'innerHTML'
     };
 
     for (let i = 0; i < element.attributes.length; i++) {
