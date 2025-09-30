@@ -1,20 +1,24 @@
 import React from "react";
+import { UniversalCSSProps, applyCSSProps, separateCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-interface GridLayoutProps {
+interface GridLayoutProps extends UniversalCSSProps {
   columns?: 1 | 2 | 3 | 4 | 5 | 6;
-  gap?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  gapSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'; // Renamed to avoid conflict with UniversalCSSProps.gap
   responsive?: boolean;
   children: React.ReactNode;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-export default function GridLayout({ 
-  columns = 2,
-  gap = 'md',
-  responsive = true,
-  children,
-  onClick
-}: GridLayoutProps) {
+export default function GridLayout(props: GridLayoutProps) {
+  // Separate CSS properties from component-specific properties
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    columns = 2,
+    gapSize = 'md',
+    responsive = true,
+    children,
+    onClick
+  } = componentProps;
   const baseGridClass = {
     1: 'grid-cols-1',
     2: 'grid-cols-2',
@@ -39,10 +43,21 @@ export default function GridLayout({
     'md': 'gap-4',
     'lg': 'gap-6',
     'xl': 'gap-8'
-  }[gap];
+  }[gapSize];
+
+  // Apply CSS properties as inline styles
+  const appliedStyles = applyCSSProps(cssProps);
+
+  // Handle potential conflict between component gap and CSS gap
+  const shouldUseCSSGap = cssProps.gap !== undefined || cssProps.rowGap !== undefined || cssProps.columnGap !== undefined;
+  const gapClassToUse = shouldUseCSSGap ? '' : gapClass;
 
   return (
-    <div className={`grid ${responsiveClass} ${gapClass}`} onClick={onClick}>
+    <div
+      className={`grid ${responsiveClass} ${gapClassToUse}`.trim()}
+      style={appliedStyles}
+      onClick={onClick}
+    >
       {children}
     </div>
   );

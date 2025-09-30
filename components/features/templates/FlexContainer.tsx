@@ -1,26 +1,30 @@
 import React from "react";
+import { UniversalCSSProps, applyCSSProps, separateCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-interface FlexContainerProps {
+interface FlexContainerProps extends UniversalCSSProps {
   direction?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
   align?: 'start' | 'center' | 'end' | 'stretch';
   justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
   wrap?: boolean;
-  gap?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  gapSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'; // Renamed to avoid conflict with UniversalCSSProps.gap
   responsive?: boolean;
   children: React.ReactNode;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-export default function FlexContainer({ 
-  direction = 'row',
-  align = 'start',
-  justify = 'start',
-  wrap = false,
-  gap = 'md',
-  responsive = true,
-  children,
-  onClick
-}: FlexContainerProps) {
+export default function FlexContainer(props: FlexContainerProps) {
+  // Separate CSS properties from component-specific properties
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    direction = 'row',
+    align = 'start',
+    justify = 'start',
+    wrap = false,
+    gapSize = 'md',
+    responsive = true,
+    children,
+    onClick
+  } = componentProps;
   const baseDirectionClass = {
     'row': 'flex-row',
     'column': 'flex-col',
@@ -55,12 +59,27 @@ export default function FlexContainer({
     'md': 'gap-4',
     'lg': 'gap-6',
     'xl': 'gap-8'
-  }[gap];
+  }[gapSize];
 
   const wrapClass = wrap ? 'flex-wrap' : '';
 
+  // Apply CSS properties as inline styles
+  const appliedStyles = applyCSSProps(cssProps);
+
+
+  // Handle potential conflict between component gap and CSS gap
+  const finalStyles = { ...appliedStyles };
+
+  // If CSS gap is provided, it overrides the Tailwind gap class
+  const shouldUseCSSGap = cssProps.gap !== undefined;
+  const gapClassToUse = shouldUseCSSGap ? '' : gapClass;
+
   return (
-    <div className={`flex ${directionClass} ${alignClass} ${justifyClass} ${gapClass} ${wrapClass}`.trim()} onClick={onClick}>
+    <div
+      className={`flex ${directionClass} ${alignClass} ${justifyClass} ${gapClassToUse} ${wrapClass}`.trim()}
+      style={finalStyles}
+      onClick={onClick}
+    >
       {children}
     </div>
   );

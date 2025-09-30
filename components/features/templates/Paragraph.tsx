@@ -1,8 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import FloatingToolbar from './visual-builder/FloatingToolbar';
-import { useUniversalStyles, type UniversalStyleProps, separateUniversalStyleProps } from '@/lib/templates/visual-builder/universal-styling';
+import { UniversalCSSProps, applyCSSProps, separateCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface ParagraphProps extends UniversalStyleProps {
+export interface ParagraphProps extends UniversalCSSProps {
   content?: string;
   style?: React.CSSProperties | string; // Accept both object and JSON string
   className?: string;
@@ -20,40 +20,24 @@ export interface ParagraphProps extends UniversalStyleProps {
  * Provides semantic paragraph element with editable content
  * Supports inline editing when in visual builder mode
  */
-export default function Paragraph({
-  content,
-  style,
-  className = '',
-  children,
-  _positioningMode,
-  _size,
-  _isInVisualBuilder = false,
-  _onContentChange,
-  ...rest
-}: ParagraphProps) {
+export default function Paragraph(props: ParagraphProps) {
+  // Separate CSS properties from component-specific properties
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    content,
+    style,
+    className = '',
+    children,
+    _positioningMode,
+    _size,
+    _isInVisualBuilder = false,
+    _onContentChange,
+    ...otherProps
+  } = componentProps;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingContent, setEditingContent] = useState(content);
   const editRef = useRef<HTMLParagraphElement>(null);
-
-  // Separate styling props from DOM props to prevent invalid HTML attributes
-  console.log('🎨 [PARAGRAPH DEBUG] rest props before separation:', {
-    rest,
-    restKeys: Object.keys(rest),
-    hasBackgroundColor: 'backgroundColor' in rest,
-    hasTextColor: 'textColor' in rest,
-    backgroundColorValue: rest.backgroundColor,
-    textColorValue: rest.textColor
-  });
-
-  const { styleProps, otherProps } = separateUniversalStyleProps(rest);
-
-  console.log('🎨 [PARAGRAPH DEBUG] after separation:', {
-    styleProps,
-    stylePropsKeys: Object.keys(styleProps),
-    otherProps,
-    otherPropsKeys: Object.keys(otherProps)
-  });
 
   // Parse existing style prop if it's a JSON string
   const existingStyle = React.useMemo(() => {
@@ -68,8 +52,14 @@ export default function Paragraph({
     return style && typeof style === 'object' ? style : {};
   }, [style]);
 
-  // Process universal styling props with existing style as base
-  const processedStyle = useUniversalStyles(styleProps, 'Paragraph', existingStyle);
+  // Apply CSS properties as inline styles
+  const appliedCSSStyles = applyCSSProps(cssProps);
+
+  // Merge existing styles with CSS props (CSS props take priority)
+  const processedStyle = {
+    ...existingStyle,
+    ...appliedCSSStyles
+  };
 
   // Apply height-aware pattern for absolute positioning
   const isAbsolutePositioned = _positioningMode === 'absolute';

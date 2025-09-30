@@ -199,9 +199,29 @@ export function getComponentCurrentSize(component: ComponentItem, breakpoint: Gr
       return value || defaultValue;
     };
 
+    // Use larger defaults for container components to match their visual rendering
+    let defaultWidth = 200;
+    let defaultHeight = 150;
+
+    // Check if this is a container component that needs larger defaults
+    const componentRegistration = componentRegistry.get(component.type);
+    const isContainer = componentRegistration?.relationship?.type === 'container' &&
+                       (componentRegistration?.relationship?.acceptsChildren === true ||
+                        Array.isArray(componentRegistration?.relationship?.acceptsChildren));
+
+    if (component.type === 'Grid') {
+      // Grid containers need extra space for grid layout
+      defaultWidth = 400;
+      defaultHeight = 300;
+    } else if (isContainer) {
+      // Other containers also need reasonable space for children
+      defaultWidth = 300;
+      defaultHeight = 200;
+    }
+
     return {
-      width: parseSize(sizeProps?.width, 200),
-      height: parseSize(sizeProps?.height, 150),
+      width: parseSize(sizeProps?.width, defaultWidth),
+      height: parseSize(sizeProps?.height, defaultHeight),
       unit: 'px'
     };
   }

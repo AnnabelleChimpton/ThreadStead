@@ -29,9 +29,15 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 1, y: 1 },
         positioningMode: 'grid',
         gridPosition: { column: 1, row: 1, span: 2 },
-        props: {
+        publicProps: {
           size: 'lg',
           shape: 'circle'
+        },
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
         }
       },
       {
@@ -40,10 +46,16 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 3, y: 1 },
         positioningMode: 'grid',
         gridPosition: { column: 3, row: 1, span: 4 },
-        props: {
+        publicProps: {
           as: 'h1',
           fontSize: '32px',
           fontWeight: 'bold'
+        },
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
         }
       },
       {
@@ -52,7 +64,13 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 3, y: 2 },
         positioningMode: 'grid',
         gridPosition: { column: 3, row: 2, span: 4 },
-        props: {}
+        publicProps: {},
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
+        }
       },
       {
         id: 'prof-follow-1',
@@ -60,7 +78,13 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 7, y: 1 },
         positioningMode: 'grid',
         gridPosition: { column: 7, row: 1, span: 2 },
-        props: {}
+        publicProps: {},
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
+        }
       }
     ]
   },
@@ -76,10 +100,16 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 1, y: 1 },
         positioningMode: 'grid',
         gridPosition: { column: 1, row: 1, span: 8 },
-        props: {
+        publicProps: {
           colors: ['#667eea', '#764ba2'],
           direction: 45,
           children: []
+        },
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
         },
         children: [
           {
@@ -87,9 +117,15 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
             type: 'ProfilePhoto',
             position: { x: 20, y: 20 },
             positioningMode: 'absolute',
-            props: {
+            publicProps: {
               size: 'lg',
               shape: 'square'
+            },
+            visualBuilderState: {
+              isSelected: false,
+              isLocked: false,
+              isHidden: false,
+              lastModified: Date.now()
             }
           },
           {
@@ -97,9 +133,15 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
             type: 'DisplayName',
             position: { x: 20, y: 200 },
             positioningMode: 'absolute',
-            props: {
+            publicProps: {
               as: 'h2',
-              textColor: 'white'
+              color: 'white'
+            },
+            visualBuilderState: {
+              isSelected: false,
+              isLocked: false,
+              isHidden: false,
+              lastModified: Date.now()
             }
           }
         ]
@@ -110,7 +152,13 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 1, y: 2 },
         positioningMode: 'grid',
         gridPosition: { column: 1, row: 2, span: 8 },
-        props: {}
+        publicProps: {},
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
+        }
       }
     ]
   },
@@ -126,10 +174,16 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 1, y: 1 },
         positioningMode: 'grid',
         gridPosition: { column: 1, row: 1, span: 8 },
-        props: {
+        publicProps: {
           as: 'h1',
           fontSize: '48px',
           textAlign: 'center'
+        },
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
         }
       },
       {
@@ -138,8 +192,14 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 2, y: 2 },
         positioningMode: 'grid',
         gridPosition: { column: 2, row: 2, span: 6 },
-        props: {
+        publicProps: {
           textAlign: 'center'
+        },
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
         }
       },
       {
@@ -148,9 +208,15 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 4, y: 3 },
         positioningMode: 'grid',
         gridPosition: { column: 4, row: 3, span: 2 },
-        props: {
+        publicProps: {
           size: 'md',
           shape: 'circle'
+        },
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
         }
       }
     ]
@@ -167,9 +233,15 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 1, y: 1 },
         positioningMode: 'grid',
         gridPosition: { column: 1, row: 1, span: 2 },
-        props: {
+        publicProps: {
           size: 'md',
           shape: 'circle'
+        },
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
         }
       },
       {
@@ -178,7 +250,13 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 3, y: 1 },
         positioningMode: 'grid',
         gridPosition: { column: 3, row: 1, span: 3 },
-        props: {}
+        publicProps: {},
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
+        }
       },
       {
         id: 'social-follow-1',
@@ -186,7 +264,13 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 6, y: 1 },
         positioningMode: 'grid',
         gridPosition: { column: 6, row: 1, span: 2 },
-        props: {}
+        publicProps: {},
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
+        }
       },
       {
         id: 'social-friends-1',
@@ -194,7 +278,13 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 1, y: 2 },
         positioningMode: 'grid',
         gridPosition: { column: 1, row: 2, span: 4 },
-        props: {}
+        publicProps: {},
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
+        }
       },
       {
         id: 'social-guestbook-1',
@@ -202,7 +292,13 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 5, y: 2 },
         positioningMode: 'grid',
         gridPosition: { column: 5, row: 2, span: 3 },
-        props: {}
+        publicProps: {},
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
+        }
       },
       {
         id: 'social-posts-1',
@@ -210,7 +306,13 @@ const TEMPLATE_PRESETS: TemplatePreset[] = [
         position: { x: 1, y: 3 },
         positioningMode: 'grid',
         gridPosition: { column: 1, row: 3, span: 7 },
-        props: {}
+        publicProps: {},
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
+        }
       }
     ]
   }

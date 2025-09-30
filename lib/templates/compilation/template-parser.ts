@@ -46,6 +46,9 @@ function createCustomSchema() {
         'padding', 'rounded', 'colors', 'opacity', 'limit', 'maxWidth', 'animation', 'position',
         'yearsExperience', 'className', 'class',
 
+        // NEW: Internal system props for standardized components
+        '__visualBuilder', '__visualbuilder',
+
         // COMPREHENSIVE STYLING ATTRIBUTES FOR MAXIMUM CREATIVE EXPRESSION
 
         // Core Styling Props
@@ -82,6 +85,11 @@ function createCustomSchema() {
         'alignself', 'alignSelf', 'aligncontent', 'alignContent',
         'gridtemplate', 'gridTemplate', 'gridcolumn', 'gridColumn',
         'gridrow', 'gridRow', 'gap', 'columngap', 'columnGap', 'rowgap', 'rowGap',
+        // NEW: Additional CSS Grid properties for standardized components
+        'gridtemplatecolumns', 'gridTemplateColumns', 'gridtemplaterows', 'gridTemplateRows',
+        'gridtemplateareas', 'gridTemplateAreas', 'gridautocolumns', 'gridAutoColumns',
+        'gridautorows', 'gridAutoRows', 'gridautoflow', 'gridAutoFlow', 'gridarea', 'gridArea',
+        'justifyitems', 'justifyItems', 'justifyself', 'justifySelf',
 
         // Text & Typography
         'lineheight', 'lineHeight', 'letterspacing', 'letterSpacing',

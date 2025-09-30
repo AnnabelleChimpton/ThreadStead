@@ -1,8 +1,17 @@
 // Component registry for user templates
 import React from 'react';
 
-// Import universal styling system
+// Import universal styling system (DEPRECATED - for backward compatibility)
 import { mergeWithUniversalProps } from '@/lib/templates/visual-builder/universal-styling';
+
+// Import new standardized component interfaces
+import {
+  StandardComponentProps,
+  TextContentProps,
+  ContainerProps,
+  MediaProps,
+  InteractiveProps,
+} from '@/lib/templates/core/standard-component-interface';
 
 // Import template components
 import ProfilePhoto from '@/components/features/templates/ProfilePhoto';
@@ -22,6 +31,7 @@ import SiteBranding from '@/components/features/templates/SiteBranding';
 import Breadcrumb from '@/components/features/templates/Breadcrumb';
 import FlexContainer from '@/components/features/templates/FlexContainer';
 import GridLayout from '@/components/features/templates/GridLayout';
+import { Grid, GridItem } from '@/components/features/templates/layout/Grid';
 import SplitLayout from '@/components/features/templates/SplitLayout';
 import CenteredBox from '@/components/features/templates/CenteredBox';
 import GradientBox from '@/components/features/templates/GradientBox';
@@ -104,6 +114,33 @@ export interface ComponentRegistration {
   relationship?: ComponentRelationship; // Parent-child relationship metadata
 }
 
+/**
+ * NEW: Standardized component registration using web-standard interfaces
+ * This replaces the old PropSchema system with CSS-native prop interfaces
+ */
+export interface StandardizedComponentRegistration<T extends StandardComponentProps = StandardComponentProps> {
+  name: string;
+  component: React.ComponentType<T>;
+  category: 'layout' | 'content' | 'media' | 'interactive' | 'decorative';
+  description?: string;
+  // No prop schema needed - TypeScript interface defines the props
+  relationship?: ComponentRelationship;
+  visualBuilderCapabilities?: {
+    resizable?: boolean;
+    positionable?: boolean;
+    editable?: boolean;
+    draggable?: boolean;
+  };
+  // Examples for the Visual Builder property panel
+  examples?: {
+    [propName: string]: Array<{
+      label: string;
+      value: any;
+      description?: string;
+    }>;
+  };
+}
+
 // Prop validation and coercion utilities
 export function validateAndCoerceProp(value: unknown, schema: PropSchema): unknown {
   if (value === undefined || value === null) {
@@ -145,6 +182,44 @@ export function validateAndCoerceProp(value: unknown, schema: PropSchema): unkno
   }
 }
 
+/**
+ * Basic CSS value validation for legacy components (reused from standardized validation)
+ */
+function validateCSSValueForLegacy(propName: string, value: unknown): unknown {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  const stringValue = String(value);
+
+  // Color properties
+  if (propName.toLowerCase().includes('color') || propName === 'backgroundColor') {
+    // Allow hex colors, rgb, rgba, hsl, named colors
+    if (/^(#[0-9a-fA-F]{3,8}|rgb|rgba|hsl|hsla|\w+)/.test(stringValue)) {
+      return stringValue;
+    }
+  }
+
+  // Size/length properties
+  if (['fontSize', 'width', 'height', 'padding', 'margin', 'gap', 'top', 'left', 'right', 'bottom'].includes(propName)) {
+    // Allow CSS length units: px, rem, em, %, vh, vw, etc.
+    if (/^-?\d*\.?\d+(px|rem|em|%|vh|vw|vmin|vmax|ch|ex|in|cm|mm|pt|pc)$/.test(stringValue) || stringValue === 'auto') {
+      return stringValue;
+    }
+  }
+
+  // Numeric properties
+  if (['zIndex', 'opacity', 'fontWeight'].includes(propName)) {
+    const num = Number(value);
+    if (!isNaN(num)) {
+      return num;
+    }
+  }
+
+  // For other properties, just return the value as-is (allow flexibility)
+  return stringValue;
+}
+
 export function validateAndCoerceProps(
   attrs: Record<string, unknown>,
   propSchemas: Record<string, PropSchema>,
@@ -168,16 +243,53 @@ export function validateAndCoerceProps(
   }
 
 
+  // Universal CSS properties that should be allowed on all components
+  const universalCSSProperties = [
+    // Standard HTML attributes
+    'className', 'id', 'title', 'role', 'aria-label', 'aria-labelledby', 'aria-describedby',
+
+    // Standard CSS properties as props
+    'backgroundColor', 'color', 'fontSize', 'fontFamily', 'fontWeight', 'textAlign', 'lineHeight',
+    'padding', 'margin', 'border', 'borderRadius', 'boxShadow', 'opacity',
+    'position', 'top', 'right', 'bottom', 'left', 'width', 'height', 'minWidth', 'minHeight', 'maxWidth', 'maxHeight', 'zIndex',
+    'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap',
+    'gridTemplateColumns', 'gridTemplateRows', 'gridColumn', 'gridRow', 'gridArea',
+    'gridAutoColumns', 'gridAutoRows', 'gridAutoFlow', 'rowGap', 'columnGap',
+    'alignContent', 'justifyItems', 'justifySelf', 'alignSelf',
+    'overflow', 'overflowX', 'overflowY',
+
+    // Text decoration and styling
+    'textDecoration', 'fontStyle', 'textTransform', 'letterSpacing', 'wordSpacing',
+    'textIndent', 'whiteSpace', 'wordBreak', 'wordWrap', 'textOverflow',
+
+    // Border styling
+    'borderColor', 'borderWidth', 'borderStyle', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft',
+    'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
+    'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+    'borderTopStyle', 'borderRightStyle', 'borderBottomStyle', 'borderLeftStyle',
+
+    // Legacy props that need to pass through during migration
+    'contentEditable', 'tabIndex'
+  ];
+
   // Validate provided attrs
   for (const [key, value] of Object.entries(normalizedAttrs)) {
     const schema = propSchemas[key];
     if (!schema) {
       // Allow special props to pass through for all components without warning
-      if (key === 'className' || key.startsWith('_')) {
-        // Allow className and internal props (like _size, _positioningMode, etc.)
+      if (key === 'className' || key.startsWith('_') || key.startsWith('data-')) {
+        // Allow className, internal props (like _size, _positioningMode, etc.), and data attributes
         result[key] = value;
         continue;
       }
+
+      // NEW: Allow universal CSS properties to pass through for legacy components
+      if (universalCSSProperties.includes(key)) {
+        // Apply basic CSS value validation (same as standardized components)
+        result[key] = validateCSSValueForLegacy(key, value);
+        continue;
+      }
+
       warnings.push(`Unknown prop: ${key}`);
       continue;
     }
@@ -216,19 +328,132 @@ export function validateAndCoerceProps(
   return result;
 }
 
+/**
+ * NEW: Validation function for standardized components
+ * This replaces the old schema-based validation for components using CSS property interfaces
+ */
+export function validateStandardizedProps(
+  attrs: Record<string, unknown>,
+  componentType: string
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  const warnings: string[] = [];
+
+  // For standardized components, we accept CSS property names and standard HTML attributes
+  const allowedCSSProperties = [
+    // Standard HTML attributes
+    'className', 'id', 'title', 'role', 'aria-label', 'aria-labelledby', 'aria-describedby',
+
+    // Standard CSS properties as props
+    'backgroundColor', 'color', 'fontSize', 'fontFamily', 'fontWeight', 'textAlign', 'lineHeight',
+    'padding', 'margin', 'border', 'borderRadius', 'boxShadow', 'opacity',
+    'position', 'top', 'right', 'bottom', 'left', 'width', 'height', 'minWidth', 'minHeight', 'maxWidth', 'maxHeight', 'zIndex',
+    'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap',
+    'gridTemplateColumns', 'gridTemplateRows', 'gridColumn', 'gridRow', 'gridArea',
+    'gridAutoColumns', 'gridAutoRows', 'gridAutoFlow', 'rowGap', 'columnGap',
+    'alignContent', 'justifyItems', 'justifySelf', 'alignSelf',
+
+    // Component-specific props that should be allowed
+    'content', 'editable', 'placeholder', 'contentEditable',
+    'src', 'alt', 'loading', 'objectFit', 'objectPosition',
+    'disabled', 'onClick', 'onFocus', 'onBlur', 'tabIndex',
+    'overflow', 'overflowX', 'overflowY',
+
+    // Legacy props that need to pass through during migration
+    '_positioning', '_size', '_isInVisualBuilder', '_positioningMode', '_onContentChange'
+  ];
+
+  // Validate and coerce each property
+  for (const [key, value] of Object.entries(attrs)) {
+    // Allow internal props (prefixed with _) to pass through
+    if (key.startsWith('_')) {
+      result[key] = value;
+      continue;
+    }
+
+    // Allow data attributes to pass through
+    if (key.startsWith('data-')) {
+      result[key] = value;
+      continue;
+    }
+
+    // Check if it's a known CSS property or HTML attribute
+    if (allowedCSSProperties.includes(key)) {
+      // Basic CSS value validation
+      result[key] = validateCSSValue(key, value);
+    } else {
+      // Unknown property - warn but allow (for component-specific props)
+      warnings.push(`Unknown prop for standardized component ${componentType}: ${key}`);
+      result[key] = value;
+    }
+  }
+
+  if (warnings.length > 0) {
+    console.warn('Standardized component prop validation warnings:', warnings);
+  }
+
+  return result;
+}
+
+/**
+ * Basic CSS value validation
+ */
+function validateCSSValue(propName: string, value: unknown): unknown {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  const stringValue = String(value);
+
+  // Color properties
+  if (propName.toLowerCase().includes('color') || propName === 'backgroundColor') {
+    // Allow hex colors, rgb, rgba, hsl, named colors
+    if (/^(#[0-9a-fA-F]{3,8}|rgb|rgba|hsl|hsla|\w+)/.test(stringValue)) {
+      return stringValue;
+    }
+  }
+
+  // Size/length properties
+  if (['fontSize', 'width', 'height', 'padding', 'margin', 'gap', 'top', 'left', 'right', 'bottom'].includes(propName)) {
+    // Allow CSS length units: px, rem, em, %, vh, vw, etc.
+    if (/^-?\d*\.?\d+(px|rem|em|%|vh|vw|vmin|vmax|ch|ex|in|cm|mm|pt|pc)$/.test(stringValue) || stringValue === 'auto') {
+      return stringValue;
+    }
+  }
+
+  // Numeric properties
+  if (['zIndex', 'opacity', 'fontWeight'].includes(propName)) {
+    const num = Number(value);
+    if (!isNaN(num)) {
+      return num;
+    }
+  }
+
+  // For everything else, return as string
+  return stringValue;
+}
+
 // Component registry class
 export class ComponentRegistry {
   private components = new Map<string, ComponentRegistration>();
+  private standardizedComponents = new Map<string, StandardizedComponentRegistration<any>>();
 
   register(registration: ComponentRegistration) {
     this.components.set(registration.name, registration);
+  }
+
+  /**
+   * NEW: Register standardized components using web-standard interfaces
+   */
+  registerStandardized<T extends StandardComponentProps>(registration: StandardizedComponentRegistration<T>) {
+    this.standardizedComponents.set(registration.name, registration);
   }
 
   get(name: string): ComponentRegistration | undefined {
     // First try exact match
     const registration = this.components.get(name);
     if (registration) return registration;
-    
+
     // Try case-insensitive match for template compatibility
     const lowerName = name.toLowerCase();
     for (const [key, value] of this.components.entries()) {
@@ -236,15 +461,73 @@ export class ComponentRegistry {
         return value;
       }
     }
-    
+
+    return undefined;
+  }
+
+  /**
+   * NEW: Get standardized component registration
+   */
+  getStandardized(name: string): StandardizedComponentRegistration | undefined {
+    // First try exact match
+    const registration = this.standardizedComponents.get(name);
+    if (registration) return registration;
+
+    // Try case-insensitive match for template compatibility
+    const lowerName = name.toLowerCase();
+    for (const [key, value] of this.standardizedComponents.entries()) {
+      if (key.toLowerCase() === lowerName) {
+        return value;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Get any component (standardized or legacy) - checks both registries
+   */
+  getAnyComponent(name: string): { type: 'standardized'; registration: StandardizedComponentRegistration } | { type: 'legacy'; registration: ComponentRegistration } | undefined {
+    // Check standardized components first (preferred)
+    const standardized = this.getStandardized(name);
+    if (standardized) {
+      return { type: 'standardized', registration: standardized };
+    }
+
+    // Fall back to legacy components
+    const legacy = this.get(name);
+    if (legacy) {
+      return { type: 'legacy', registration: legacy };
+    }
+
     return undefined;
   }
 
   getAllowedTags(): string[] {
-    return Array.from(this.components.keys());
+    // Combine both legacy and standardized component names
+    const legacyTags = Array.from(this.components.keys());
+    const standardizedTags = Array.from(this.standardizedComponents.keys());
+    return [...legacyTags, ...standardizedTags];
   }
 
   getAllowedAttributes(tagName: string): string[] {
+    // First check for standardized component
+    const standardized = this.getStandardized(tagName);
+    if (standardized) {
+      // For standardized components, return common CSS/HTML attributes
+      return [
+        // Standard HTML attributes
+        'className', 'id', 'title', 'role', 'aria-label',
+        // Standard CSS properties as props
+        'backgroundColor', 'color', 'fontSize', 'fontFamily', 'fontWeight', 'textAlign',
+        'padding', 'margin', 'border', 'borderRadius', 'boxShadow', 'opacity',
+        'position', 'top', 'right', 'bottom', 'left', 'width', 'height', 'zIndex',
+        'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap',
+        'gridTemplateColumns', 'gridTemplateRows', 'gridColumn', 'gridRow'
+      ];
+    }
+
+    // Fall back to legacy component
     const registration = this.components.get(tagName);
     if (!registration) return [];
     return Object.keys(registration.props);
@@ -315,10 +598,10 @@ export const componentRegistry = new ComponentRegistry();
 componentRegistry.register({
   name: 'TextElement',
   component: TextElement,
-  props: {
+  props: mergeWithUniversalProps({
     content: { type: 'string', default: 'Edit this text' },
     tag: { type: 'enum', values: ['div', 'span', 'p'], default: 'div' }
-  },
+  }, 'text'),
   relationship: {
     type: 'text',
     acceptsChildren: true,
@@ -329,10 +612,10 @@ componentRegistry.register({
 componentRegistry.register({
   name: 'Heading',
   component: Heading,
-  props: {
+  props: mergeWithUniversalProps({
     content: { type: 'string', default: 'Heading Text' },
     level: { type: 'enum', values: ['1', '2', '3', '4', '5', '6'], default: '2' }
-  },
+  }, 'text'),
   relationship: {
     type: 'text',
     acceptsChildren: true,
@@ -367,16 +650,16 @@ componentRegistry.register({
 componentRegistry.register({
   name: 'DisplayName',
   component: DisplayName,
-  props: {
+  props: mergeWithUniversalProps({
     as: { type: 'enum', values: ['h1', 'h2', 'h3', 'span', 'div'], default: 'h2' },
     showLabel: { type: 'boolean', default: false }
-  }
+  }, 'text')
 });
 
 componentRegistry.register({
   name: 'Bio',
   component: Bio,
-  props: {}
+  props: mergeWithUniversalProps({}, 'text')
 });
 
 componentRegistry.register({
@@ -475,7 +758,7 @@ componentRegistry.register({
   name: 'GridLayout',
   component: GridLayout,
   props: {
-    columns: { type: 'enum', values: ['1', '2', '3', '4', '5', '6'], default: '2' },
+    columns: { type: 'number', min: 1, max: 6, default: 2 },
     gap: { type: 'enum', values: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
     responsive: { type: 'boolean', default: true }
   },
@@ -483,6 +766,64 @@ componentRegistry.register({
     type: 'container',
     acceptsChildren: true, // Can accept any children
     childrenLabel: 'Grid Items'
+  }
+});
+
+// PHASE 4.3: CSS Grid Component (Standardized)
+componentRegistry.register({
+  name: 'Grid',
+  component: Grid,
+  props: {
+    // CSS Grid template properties
+    gridTemplateColumns: { type: 'string', default: 'repeat(3, 1fr)' },
+    gridTemplateRows: { type: 'string', default: 'auto' },
+    gridTemplateAreas: { type: 'string' },
+    gap: { type: 'string', default: '1rem' },
+    rowGap: { type: 'string' },
+    columnGap: { type: 'string' },
+    // Alignment properties
+    alignItems: { type: 'enum', values: ['start', 'end', 'center', 'stretch'], default: 'stretch' },
+    justifyItems: { type: 'enum', values: ['start', 'end', 'center', 'stretch'], default: 'stretch' },
+    alignContent: { type: 'enum', values: ['start', 'end', 'center', 'stretch', 'space-between', 'space-around', 'space-evenly'] },
+    justifyContent: { type: 'enum', values: ['start', 'end', 'center', 'stretch', 'space-between', 'space-around', 'space-evenly'] },
+    // Convenience shorthand
+    columns: { type: 'number', min: 1, max: 12, default: 3 }, // Shorthand for repeat(n, 1fr)
+    rows: { type: 'number', min: 1, max: 12 }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: ['GridItem'], // Prefer GridItem children, but can accept others
+    childrenLabel: 'Grid Cells',
+    defaultChildren: [
+      { type: 'GridItem', props: {} },
+      { type: 'GridItem', props: {} },
+      { type: 'GridItem', props: {} }
+    ]
+  }
+});
+
+// PHASE 4.3: CSS Grid Item Component (Standardized)
+componentRegistry.register({
+  name: 'GridItem',
+  component: GridItem,
+  props: {
+    // CSS Grid item properties
+    gridColumn: { type: 'string' },
+    gridRow: { type: 'string' },
+    gridArea: { type: 'string' },
+    justifySelf: { type: 'enum', values: ['start', 'end', 'center', 'stretch'] },
+    alignSelf: { type: 'enum', values: ['start', 'end', 'center', 'stretch'] },
+    // Convenience shorthand
+    column: { type: 'number', min: 1 },
+    row: { type: 'number', min: 1 },
+    colSpan: { type: 'number', min: 1, default: 1 },
+    rowSpan: { type: 'number', min: 1, default: 1 }
+  },
+  relationship: {
+    type: 'child',
+    requiresParent: 'Grid',
+    acceptsChildren: true,
+    childrenLabel: 'Cell Content'
   }
 });
 
@@ -1183,3 +1524,119 @@ componentRegistry.register({
     type: 'leaf' // Navigation cannot have children and cannot be moved
   }
 });
+
+/**
+ * NOTE: Grid and GridItem are now registered above using the legacy register() method
+ * in Phase 4.3. The standardized registration approach will be used in future phases.
+ */
+
+/*
+// FUTURE: When standardized registration is fully implemented, use this approach:
+// Additional examples for when other components are ready:
+// Example: Register standardized FlexContainer
+componentRegistry.registerStandardized<ContainerProps>({
+  name: 'FlexContainer',
+  component: FlexContainer,
+  category: 'layout',
+  description: 'CSS Flexbox container with web-standard properties',
+  relationship: {
+    type: 'container',
+    acceptsChildren: true,
+    childrenLabel: 'Flex Items'
+  },
+  visualBuilderCapabilities: {
+    resizable: true,
+    positionable: true,
+    draggable: true
+  },
+  examples: {
+    flexDirection: [
+      { label: 'Row', value: 'row', description: 'Items flow horizontally' },
+      { label: 'Column', value: 'column', description: 'Items flow vertically' },
+      { label: 'Row Reverse', value: 'row-reverse' },
+      { label: 'Column Reverse', value: 'column-reverse' }
+    ],
+    justifyContent: [
+      { label: 'Start', value: 'flex-start' },
+      { label: 'Center', value: 'center' },
+      { label: 'End', value: 'flex-end' },
+      { label: 'Space Between', value: 'space-between' },
+      { label: 'Space Around', value: 'space-around' },
+      { label: 'Space Evenly', value: 'space-evenly' }
+    ],
+    gap: [
+      { label: 'None', value: '0' },
+      { label: 'Small', value: '0.5rem' },
+      { label: 'Medium', value: '1rem' },
+      { label: 'Large', value: '2rem' }
+    ]
+  }
+});
+
+// Example: Register standardized Paragraph
+componentRegistry.registerStandardized<TextContentProps>({
+  name: 'Paragraph',
+  component: Paragraph,
+  category: 'content',
+  description: 'Enhanced HTML paragraph element with editable content',
+  relationship: {
+    type: 'text',
+    acceptsChildren: true,
+    childrenLabel: 'Text Content'
+  },
+  visualBuilderCapabilities: {
+    resizable: false,
+    positionable: true,
+    editable: true,
+    draggable: true
+  },
+  examples: {
+    fontSize: [
+      { label: 'Small', value: '0.875rem' },
+      { label: 'Base', value: '1rem' },
+      { label: 'Large', value: '1.125rem' },
+      { label: 'XL', value: '1.25rem' }
+    ],
+    color: [
+      { label: 'Black', value: '#000000' },
+      { label: 'Gray', value: '#6b7280' },
+      { label: 'Blue', value: '#3b82f6' }
+    ]
+  }
+});
+
+// Example: Register standardized Grid
+componentRegistry.registerStandardized<ContainerProps>({
+  name: 'Grid',
+  component: Grid,
+  category: 'layout',
+  description: 'CSS Grid container with web-standard properties',
+  relationship: {
+    type: 'container',
+    acceptsChildren: true, // Accept any component - will auto-wrap in GridItem
+    childrenLabel: 'Grid Items',
+    defaultChildren: [
+      { type: 'GridItem', props: { gridColumn: '1', children: 'Item 1' } },
+      { type: 'GridItem', props: { gridColumn: '2', children: 'Item 2' } }
+    ]
+  },
+  visualBuilderCapabilities: {
+    resizable: true,
+    positionable: true,
+    draggable: true
+  },
+  examples: {
+    gridTemplateColumns: [
+      { label: '2 Equal Columns', value: 'repeat(2, 1fr)' },
+      { label: '3 Equal Columns', value: 'repeat(3, 1fr)' },
+      { label: 'Sidebar + Content', value: '200px 1fr' },
+      { label: 'Auto Fit', value: 'repeat(auto-fit, minmax(250px, 1fr))' }
+    ],
+    gap: [
+      { label: 'Small', value: '0.5rem' },
+      { label: 'Medium', value: '1rem' },
+      { label: 'Large', value: '2rem' }
+    ]
+  }
+});
+*/

@@ -155,6 +155,7 @@ export class PureHtmlGenerator {
    * This prevents both backgroundColor AND backgroundcolor from appearing in HTML
    */
   private removeDuplicateStylingProps(props: Record<string, any>): Record<string, any> {
+    const originalKeys = Object.keys(props);
     const deduplicated = { ...props };
 
     // Universal to legacy mappings - if both exist, keep universal and remove legacy

@@ -6,6 +6,7 @@
 import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import type { ComponentItem, UseCanvasStateResult } from '@/hooks/useCanvasState';
 import { componentRegistry } from '@/lib/templates/core/template-registry';
+import { separateSystemProps, type VisualBuilderContext } from '@/lib/templates/core/standard-component-interface';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import {
@@ -36,6 +37,7 @@ import PositionIndicator, { usePositionIndicator } from './PositionIndicator';
 import type { GlobalSettings } from './GlobalSettingsPanel';
 import { generatePatternCSS, generateGradientCSS } from '@/lib/templates/visual-builder/background-patterns';
 import { generateCSSFromGlobalSettings } from '@/lib/templates/visual-builder/css-class-generator';
+import CSSGridOverlay, { GridCellHighlight } from './CSSGridOverlay';
 
 /**
  * Generate CSS custom properties from global settings
@@ -104,12 +106,188 @@ function generateGlobalCSSProperties(globalSettings: GlobalSettings | null): Rea
 }
 
 /**
+ * NEW: Helper function to prepare props for component rendering with the new standardized system
+ * This handles both legacy and new prop structures during the transition
+ */
+function prepareComponentProps(
+  component: ComponentItem,
+  isSelected: boolean,
+  onContentChange: (content: string, cssRenderMode?: string) => void,
+  isNested: boolean = false
+): Record<string, any> {
+  // Check if component uses new standardized prop structure or publicProps
+  // CRITICAL: Heading and TextElement should ALWAYS use LEGACY path even if they have publicProps
+  // This is because PropertyPanel routes their CSS props to 'props', not 'publicProps'
+  const legacyComponentTypes = ['Heading', 'TextElement'];
+  const isLegacyComponentType = legacyComponentTypes.includes(component.type);
+
+  const hasPublicProps = component.publicProps && Object.keys(component.publicProps).length > 0;
+  const isStandardizedComponent = hasPublicProps && !isLegacyComponentType;
+
+  if (isStandardizedComponent) {
+    // NEW: Use separated prop structure
+    const visualBuilderContext: VisualBuilderContext = {
+      isInVisualBuilder: true,
+      isSelected: isSelected,
+      isHovered: false, // This would be managed by hover state
+      onContentChange: onContentChange,
+      // For nested components, positioning mode should be 'normal' to avoid conflicting absolute positioning
+      positioningMode: isNested ? 'normal' : (component.positioningMode === 'absolute' ? 'absolute' : 'normal'),
+      size: component.visualBuilderState?.size || component.props?._size
+    };
+
+    // Use publicProps directly for rendering
+    const baseProps: any = { ...component.publicProps };
+
+    // CRITICAL FIX: Clean up legacy lowercase properties from publicProps
+    // If we find 'backgroundcolor', normalize it to 'backgroundColor'
+    if (baseProps.backgroundcolor && !baseProps.backgroundColor) {
+      baseProps.backgroundColor = baseProps.backgroundcolor;
+      delete baseProps.backgroundcolor;
+    }
+
+    return {
+      ...baseProps,
+      __visualBuilder: visualBuilderContext
+    };
+  } else {
+    // LEGACY: Use old prop structure for backward compatibility
+    // CRITICAL FIX: Merge both props and publicProps for components that have both
+    // This handles cases where PropertyPanel saves CSS to publicProps but we need to read from both
+    const finalProps = {
+      ...(component.props || {}),
+      ...(component.publicProps || {})  // publicProps takes precedence
+    };
+
+    // Extract CSS properties from legacy props for conversion to inline styles
+    // This ensures universal CSS styling works for all components, not just standardized ones
+    const cssProperties = [
+      'backgroundColor', 'color', 'textColor', 'borderColor', 'accentColor',
+      'fontSize', 'fontFamily', 'fontWeight', 'textAlign', 'lineHeight',
+      'padding', 'margin', 'border', 'borderRadius', 'borderWidth', 'boxShadow',
+      'opacity', 'position', 'top', 'right', 'bottom', 'left', 'width', 'height',
+      'minWidth', 'minHeight', 'maxWidth', 'maxHeight', 'zIndex', 'display',
+      'flexDirection', 'justifyContent', 'alignItems', 'alignSelf', 'gap',
+      'rowGap', 'columnGap', 'gridTemplateColumns', 'gridTemplateRows',
+      'gridColumn', 'gridRow', 'gridArea', 'customCSS'
+    ];
+
+    // Map of legacy lowercase property names to correct camelCase names
+    const legacyPropertyMap: Record<string, string> = {
+      'backgroundcolor': 'backgroundColor',
+      'textcolor': 'textColor',
+      'bordercolor': 'borderColor',
+      'accentcolor': 'accentColor',
+      'fontsize': 'fontSize',
+      'fontfamily': 'fontFamily',
+      'fontweight': 'fontWeight',
+      'textalign': 'textAlign',
+      'lineheight': 'lineHeight',
+      'borderradius': 'borderRadius',
+      'borderwidth': 'borderWidth',
+      'boxshadow': 'boxShadow',
+      'minwidth': 'minWidth',
+      'minheight': 'minHeight',
+      'maxwidth': 'maxWidth',
+      'maxheight': 'maxHeight',
+      'zindex': 'zIndex',
+      'flexdirection': 'flexDirection',
+      'justifycontent': 'justifyContent',
+      'alignitems': 'alignItems',
+      'alignself': 'alignSelf',
+      'rowgap': 'rowGap',
+      'columngap': 'columnGap',
+      'gridtemplatecolumns': 'gridTemplateColumns',
+      'gridtemplaterows': 'gridTemplateRows',
+      'gridcolumn': 'gridColumn',
+      'gridrow': 'gridRow',
+      'gridarea': 'gridArea',
+      'customcss': 'customCSS'
+    };
+
+    // Separate CSS properties from other props with legacy name normalization
+    const extractedCSSProps: any = {};
+    const remainingProps: any = {};
+
+    Object.keys(finalProps).forEach(key => {
+      // Check if this is a legacy lowercase CSS property and normalize it
+      const normalizedKey = legacyPropertyMap[key.toLowerCase()] || key;
+
+      if (cssProperties.includes(normalizedKey)) {
+        // Extract CSS property with normalized camelCase name
+        extractedCSSProps[normalizedKey] = (finalProps as any)[key];
+      } else {
+        // Keep non-CSS properties
+        remainingProps[key] = (finalProps as any)[key];
+      }
+    });
+
+    // Convert CSS properties to inline styles
+    const cssInlineStyles: React.CSSProperties = {};
+    if (extractedCSSProps.backgroundColor) cssInlineStyles.backgroundColor = extractedCSSProps.backgroundColor;
+    if (extractedCSSProps.color) cssInlineStyles.color = extractedCSSProps.color;
+    if (extractedCSSProps.textColor) cssInlineStyles.color = extractedCSSProps.textColor; // textColor is alias
+    if (extractedCSSProps.borderColor) cssInlineStyles.borderColor = extractedCSSProps.borderColor;
+    if (extractedCSSProps.fontSize) cssInlineStyles.fontSize = extractedCSSProps.fontSize;
+    if (extractedCSSProps.fontFamily) cssInlineStyles.fontFamily = extractedCSSProps.fontFamily;
+    if (extractedCSSProps.fontWeight) cssInlineStyles.fontWeight = extractedCSSProps.fontWeight;
+    if (extractedCSSProps.textAlign) cssInlineStyles.textAlign = extractedCSSProps.textAlign;
+    if (extractedCSSProps.lineHeight) cssInlineStyles.lineHeight = extractedCSSProps.lineHeight;
+    if (extractedCSSProps.padding) cssInlineStyles.padding = extractedCSSProps.padding;
+    if (extractedCSSProps.margin) cssInlineStyles.margin = extractedCSSProps.margin;
+    if (extractedCSSProps.border) cssInlineStyles.border = extractedCSSProps.border;
+    if (extractedCSSProps.borderRadius) cssInlineStyles.borderRadius = extractedCSSProps.borderRadius;
+    if (extractedCSSProps.borderWidth) cssInlineStyles.borderWidth = extractedCSSProps.borderWidth;
+    if (extractedCSSProps.boxShadow) cssInlineStyles.boxShadow = extractedCSSProps.boxShadow;
+    if (extractedCSSProps.opacity) cssInlineStyles.opacity = extractedCSSProps.opacity;
+    if (extractedCSSProps.display) cssInlineStyles.display = extractedCSSProps.display;
+    if (extractedCSSProps.flexDirection) cssInlineStyles.flexDirection = extractedCSSProps.flexDirection;
+    if (extractedCSSProps.justifyContent) cssInlineStyles.justifyContent = extractedCSSProps.justifyContent;
+    if (extractedCSSProps.alignItems) cssInlineStyles.alignItems = extractedCSSProps.alignItems;
+    if (extractedCSSProps.alignSelf) cssInlineStyles.alignSelf = extractedCSSProps.alignSelf;
+    if (extractedCSSProps.gap) cssInlineStyles.gap = extractedCSSProps.gap;
+    if (extractedCSSProps.rowGap) cssInlineStyles.rowGap = extractedCSSProps.rowGap;
+    if (extractedCSSProps.columnGap) cssInlineStyles.columnGap = extractedCSSProps.columnGap;
+    if (extractedCSSProps.gridTemplateColumns) cssInlineStyles.gridTemplateColumns = extractedCSSProps.gridTemplateColumns;
+    if (extractedCSSProps.gridTemplateRows) cssInlineStyles.gridTemplateRows = extractedCSSProps.gridTemplateRows;
+
+    // Merge CSS inline styles with existing style prop
+    const existingStyle = remainingProps.style || {};
+    const mergedStyle = { ...existingStyle, ...cssInlineStyles };
+
+    const preparedProps = {
+      ...remainingProps,
+      style: mergedStyle, // Inject converted CSS as inline styles
+      _isInVisualBuilder: true,
+      // For nested components, use 'grid' positioning mode for better layout behavior
+      _positioningMode: isNested ? 'grid' : component.positioningMode,
+      _size: component.props?._size,
+      _onContentChange: onContentChange
+    };
+
+    return preparedProps;
+  }
+}
+
+/**
  * Helper function to check if a component is a container that can accept children
  */
 function isContainerComponent(componentType: string): boolean {
+  // PHASE 4.3: Explicit list of known container components (defensive check)
+  const knownContainers = ['FlexContainer', 'GridLayout', 'Grid', 'GridItem', 'SplitLayout', 'CenteredBox',
+                           'GradientBox', 'NeonBorder', 'RetroTerminal', 'PolaroidFrame'];
+
+  if (knownContainers.includes(componentType)) {
+    return true;
+  }
+
+  // Fallback to registry check for other components
   const registration = componentRegistry.get(componentType);
-  return registration?.relationship?.type === 'container' &&
-         registration?.relationship?.acceptsChildren === true;
+  const acceptsChildren = registration?.relationship?.acceptsChildren;
+  const isContainer = registration?.relationship?.type === 'container' &&
+                     (acceptsChildren === true || Array.isArray(acceptsChildren));
+
+  return isContainer;
 }
 
 /**
@@ -165,13 +343,18 @@ function findContainerAtPosition(
 
       containerWidth = currentSize.width;
       containerHeight = currentSize.height;
+
     } catch (error) {
       // Fall back to defaults if size calculation fails
-      console.warn('Failed to calculate container size, using defaults:', error);
     }
 
-    if (x >= containerX && x <= containerX + containerWidth &&
-        y >= containerY && y <= containerY + containerHeight) {
+    // Enhanced tolerance zone for easier dropping
+    // Larger tolerance for Grid containers to make them easier to target
+    const tolerance = container.type === 'Grid' ? 15 : 10;
+    const hitTest = x >= containerX - tolerance && x <= containerX + containerWidth + tolerance &&
+                   y >= containerY - tolerance && y <= containerY + containerHeight + tolerance;
+
+    if (hitTest) {
       return container;
     }
   }
@@ -301,11 +484,13 @@ function ResponsiveGridOverlay({ gridConfig, canvasWidth, canvasHeight }: {
   );
 }
 
+export type ResponsiveBreakpoint = 'desktop' | 'tablet' | 'mobile';
+
 interface CanvasRendererProps {
   canvasState: UseCanvasStateResult;
   residentData: ResidentData;
   className?: string;
-  previewBreakpoint?: string | null; // For responsive preview controls
+  activeBreakpoint?: ResponsiveBreakpoint; // For responsive preview controls
 }
 
 /**
@@ -315,7 +500,7 @@ export default function CanvasRenderer({
   canvasState,
   residentData,
   className = '',
-  previewBreakpoint = null,
+  activeBreakpoint = 'desktop',
 }: CanvasRendererProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -355,14 +540,24 @@ export default function CanvasRenderer({
 
   // Full-screen responsive canvas sizing
   const [canvasSize, setCanvasSize] = useState(() => {
-    // Get initial size based on current breakpoint or preview
-    const targetBreakpoint = previewBreakpoint
-      ? GRID_BREAKPOINTS.find(bp => bp.name === previewBreakpoint) || getCurrentBreakpoint()
-      : getCurrentBreakpoint();
+    // PHASE 4.2: Get canvas width based on active breakpoint
+    const getBreakpointWidth = (bp: ResponsiveBreakpoint) => {
+      if (typeof window === 'undefined') {
+        return bp === 'mobile' ? 375 : bp === 'tablet' ? 768 : 1200;
+      }
 
-    // Full-screen approach - maximize available space
-    const baseWidth = targetBreakpoint.minWidth || (typeof window !== 'undefined' ? window.innerWidth : 1024);
-    const targetWidth = Math.min(baseWidth + 300, 1600); // Even wider for better experience
+      switch (bp) {
+        case 'mobile': return 375;
+        case 'tablet': return 768;
+        case 'desktop':
+          // For desktop, use full available width (accounting for typical panel widths + padding)
+          // Panels are usually 350px-400px, so subtract a safe estimate
+          const availableWidth = window.innerWidth - 400; // Conservative estimate for side panels
+          return Math.max(availableWidth, 1200); // Minimum 1200px for desktop
+      }
+    };
+
+    const targetWidth = getBreakpointWidth(activeBreakpoint);
 
     // Start with a generous height that feels like a real webpage
     const availableHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 1400;
@@ -371,37 +566,41 @@ export default function CanvasRenderer({
     return {
       width: targetWidth,
       height: targetHeight,
-      breakpoint: targetBreakpoint,
+      breakpoint: getCurrentBreakpoint(),
       minHeight: 1400 // Professional minimum height
     };
   });
 
-  // Update canvas size on window resize or preview breakpoint change
+  // PHASE 4.2: Update canvas size when active breakpoint changes
   useEffect(() => {
-    const updateCanvasSize = () => {
-      // Use preview breakpoint if set, otherwise current breakpoint
-      const targetBreakpoint = previewBreakpoint
-        ? GRID_BREAKPOINTS.find(bp => bp.name === previewBreakpoint) || getCurrentBreakpoint()
-        : getCurrentBreakpoint();
+    const getBreakpointWidth = (bp: ResponsiveBreakpoint) => {
+      switch (bp) {
+        case 'mobile': return 375;
+        case 'tablet': return 768;
+        case 'desktop':
+          // For desktop, use full available width (accounting for typical panel widths + padding)
+          // Panels are usually 350px-400px, so subtract a safe estimate
+          const availableWidth = window.innerWidth - 400; // Conservative estimate for side panels
+          return Math.max(availableWidth, 1200); // Minimum 1200px for desktop
+      }
+    };
 
-      // Full-screen responsive sizing - maximize the experience
-      const baseWidth = previewBreakpoint
-        ? targetBreakpoint.minWidth + 300 // More generous preview margin
-        : Math.min(window.innerWidth - 200, 1600); // Account for floating panels
+    const updateCanvasSize = () => {
+      const targetWidth = getBreakpointWidth(activeBreakpoint);
 
       // Use more of the available height for immersive experience
       const availableHeight = window.innerHeight - 200; // Account for toolbar
       const baseHeight = Math.max(availableHeight, 1400); // Professional minimum
 
       const newSize = {
-        width: Math.min(baseWidth, 1600), // Increased max width for modern screens
+        width: targetWidth,
         height: baseHeight,
-        breakpoint: targetBreakpoint,
+        breakpoint: getCurrentBreakpoint(),
         minHeight: 1400 // Consistent professional minimum
       };
 
       setCanvasSize(prev => {
-        if (prev.width !== newSize.width || prev.height !== newSize.height || prev.breakpoint.name !== newSize.breakpoint.name) {
+        if (prev.width !== newSize.width || prev.height !== newSize.height) {
           return newSize;
         }
         return prev;
@@ -412,7 +611,7 @@ export default function CanvasRenderer({
     updateCanvasSize(); // Initial call
 
     return () => window.removeEventListener('resize', updateCanvasSize);
-  }, [previewBreakpoint]); // Re-run when preview breakpoint changes
+  }, [activeBreakpoint]); // Re-run when active breakpoint changes
 
   const {
     placedComponents,
@@ -421,6 +620,7 @@ export default function CanvasRenderer({
     isDragging,
     previewPosition,
     gridConfig,
+    setGridConfig,
     componentGroups,
     selectedGroupId,
     getComponentGroup,
@@ -434,6 +634,7 @@ export default function CanvasRenderer({
     clearSelection,
     updateComponent,
     updateComponentPosition,
+    updatePositionForActiveBreakpoint, // PHASE 4.2
     updateComponentSize,
     snapToGrid,
     startDrag,
@@ -441,12 +642,33 @@ export default function CanvasRenderer({
     endDrag,
   } = canvasState;
 
+  // PHASE 4.2: Sync gridConfig with activeBreakpoint selection
+  useEffect(() => {
+    // Map activeBreakpoint to actual grid breakpoint data
+    const breakpointMapping = {
+      'desktop': GRID_BREAKPOINTS.find(bp => bp.name === 'desktop')!,
+      'tablet': GRID_BREAKPOINTS.find(bp => bp.name === 'tablet')!,
+      'mobile': GRID_BREAKPOINTS.find(bp => bp.name === 'mobile')!
+    };
+
+    const targetBreakpoint = breakpointMapping[activeBreakpoint];
+
+    // Update grid config with the selected breakpoint
+    setGridConfig({
+      currentBreakpoint: targetBreakpoint,
+      columns: targetBreakpoint.columns,
+      rowHeight: targetBreakpoint.rowHeight,
+      gap: targetBreakpoint.gap
+    });
+  }, [activeBreakpoint, setGridConfig]);
+
   // Multi-select and rubber band selection state
   const [isRubberBanding, setIsRubberBanding] = useState(false);
   const [rubberBandStart, setRubberBandStart] = useState<{ x: number; y: number } | null>(null);
   const [rubberBandEnd, setRubberBandEnd] = useState<{ x: number; y: number } | null>(null);
   const [draggedComponentId, setDraggedComponentId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Removed dragging position state - was causing logic order issues
 
   // Enhanced component click handler with multi-select support
   const handleComponentClick = useCallback((componentId: string, event: React.MouseEvent) => {
@@ -577,8 +799,8 @@ export default function CanvasRenderer({
       setRubberBandStart(null);
       setRubberBandEnd(null);
     }
-    setDraggedComponentId(null);
-  }, [isRubberBanding]);
+    // Note: Don't clear draggedComponentId here to avoid interfering with handleComponentMouseUp
+  }, [isRubberBanding, draggedComponentId]);
 
   // Add global mouse event listeners for rubber band selection
   useEffect(() => {
@@ -598,6 +820,7 @@ export default function CanvasRenderer({
         setIsRubberBanding(false);
         setRubberBandStart(null);
         setRubberBandEnd(null);
+        // Note: Don't clear draggedComponentId here to avoid interfering with handleComponentMouseUp
       };
 
       document.addEventListener('mousemove', handleGlobalMouseMove);
@@ -713,14 +936,65 @@ export default function CanvasRenderer({
     const targetContainer = findContainerAtPosition(finalX, finalY, placedComponents, undefined, canvasSize.width);
 
     if (targetContainer) {
-      // Add component as child to the container
-      const newChild: ComponentItem = {
-        id: `${componentToPlace.type}_${Date.now()}`,
-        type: componentToPlace.type,
-        position: { x: 0, y: 0 }, // Children use relative positioning within container
-        positioningMode: 'absolute',
-        props: componentToPlace.props || {},
-      };
+      // Check if this is a Grid container that needs auto-wrapping
+      const isGrid = targetContainer.type === 'Grid';
+      const isGridItem = componentToPlace.type === 'GridItem';
+
+      let newChild: ComponentItem;
+
+      if (isGrid && !isGridItem) {
+        // Auto-wrap non-GridItem components in GridItem when dropping into Grid
+        const wrappedComponentId = `${componentToPlace.type}_${Date.now()}`;
+        newChild = {
+          id: `GridItem_${Date.now()}`,
+          type: 'GridItem',
+          position: { x: 0, y: 0 },
+          positioningMode: 'absolute',
+          publicProps: {
+            // Auto-assign grid column based on existing children count
+            gridColumn: String((targetContainer.children?.length || 0) + 1)
+          },
+          visualBuilderState: {
+            isSelected: false,
+            isLocked: false,
+            isHidden: false,
+            lastModified: Date.now()
+          },
+          children: [{
+            id: wrappedComponentId,
+            type: componentToPlace.type,
+            position: { x: 0, y: 0 },
+            positioningMode: 'absolute',
+            publicProps: componentToPlace.publicProps || componentToPlace.props || {},
+            visualBuilderState: {
+              isSelected: false,
+              isLocked: false,
+              isHidden: false,
+              lastModified: Date.now()
+            }
+          }]
+        };
+      } else {
+        // For non-Grid containers or GridItem components, add directly
+        if (!componentRegistry.canAcceptChild(targetContainer.type, componentToPlace.type)) {
+          console.warn(`Container ${targetContainer.type} cannot accept child of type ${componentToPlace.type}`);
+          return;
+        }
+
+        newChild = {
+          id: `${componentToPlace.type}_${Date.now()}`,
+          type: componentToPlace.type,
+          position: { x: 0, y: 0 }, // Children use relative positioning within container
+          positioningMode: 'absolute',
+          publicProps: componentToPlace.publicProps || componentToPlace.props || {},
+          visualBuilderState: {
+            isSelected: false,
+            isLocked: false,
+            isHidden: false,
+            lastModified: Date.now()
+          }
+        };
+      }
 
       addChildComponent(targetContainer.id, newChild);
     } else if (relationship?.type === 'child' && relationship?.requiresParent) {
@@ -728,13 +1002,25 @@ export default function CanvasRenderer({
       const parentFound = findSuitableParentAtPosition(finalX, finalY, relationship.requiresParent, placedComponents);
 
       if (parentFound) {
+        // Validate that the parent can accept this child type
+        if (!componentRegistry.canAcceptChild(parentFound.type, componentToPlace.type)) {
+          console.warn(`Parent ${parentFound.type} cannot accept child of type ${componentToPlace.type}`);
+          return;
+        }
+
         // Add as child to existing parent
         const newChild: ComponentItem = {
           id: `${componentToPlace.type}_${Date.now()}`,
           type: componentToPlace.type,
           position: { x: 0, y: 0 }, // Children use relative positioning
           positioningMode: 'absolute',
-          props: componentToPlace.props || {},
+          publicProps: componentToPlace.publicProps || componentToPlace.props || {},
+          visualBuilderState: {
+            isSelected: false,
+            isLocked: false,
+            isHidden: false,
+            lastModified: Date.now()
+          }
         };
 
         addChildComponent(parentFound.id, newChild);
@@ -751,13 +1037,25 @@ export default function CanvasRenderer({
             type: parentType,
             position: { x: finalX, y: finalY },
             positioningMode: 'absolute',
-            props: {},
+            publicProps: {},
+            visualBuilderState: {
+              isSelected: false,
+              isLocked: false,
+              isHidden: false,
+              lastModified: Date.now()
+            },
             children: [{
               id: `${componentToPlace.type}_${Date.now()}`,
               type: componentToPlace.type,
               position: { x: 0, y: 0 },
               positioningMode: 'absolute',
-              props: componentToPlace.props || {},
+              publicProps: componentToPlace.publicProps || componentToPlace.props || {},
+              visualBuilderState: {
+                isSelected: false,
+                isLocked: false,
+                isHidden: false,
+                lastModified: Date.now()
+              }
             }]
           };
 
@@ -766,12 +1064,34 @@ export default function CanvasRenderer({
       }
     } else {
       // Normal component drop on canvas - unified absolute positioning
+      const componentProps = { ...(componentToPlace.props || {}) };
+
+      // Set proper default sizes for container components to match their visual appearance
+      if (componentToPlace.type === 'Grid') {
+        componentProps._size = {
+          width: '400px',
+          height: '300px'
+        };
+      } else if (isContainerComponent(componentToPlace.type)) {
+        // Other containers also need reasonable default sizes
+        componentProps._size = componentProps._size || {
+          width: '300px',
+          height: '200px'
+        };
+      }
+
       const newComponent: ComponentItem = {
         id: `${componentToPlace.type}_${Date.now()}`,
         type: componentToPlace.type,
         position: { x: finalX, y: finalY },
         positioningMode: 'absolute',
-        props: componentToPlace.props || {},
+        publicProps: componentProps,
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
+        }
       };
 
       addComponent(newComponent);
@@ -792,6 +1112,15 @@ export default function CanvasRenderer({
     targetContainer: null,
     dropAction: 'normal',
   });
+
+  // PHASE 4.3: CSS Grid cell highlight state
+  const [gridCellHighlight, setGridCellHighlight] = useState<{
+    gridComponent: ComponentItem | null;
+    column: number;
+    row: number;
+    colSpan?: number;
+    rowSpan?: number;
+  } | null>(null);
 
   // Animation state for component lifecycle
   const [newlyAddedComponents, setNewlyAddedComponents] = useState<Set<string>>(new Set());
@@ -816,13 +1145,6 @@ export default function CanvasRenderer({
           return updated;
         });
       }, 300); // Match CSS animation duration
-    }
-
-    // Find removed components (for future use)
-    const removedIds = new Set([...previousIds].filter(id => !currentIds.has(id)));
-    if (removedIds.size > 0) {
-      // Components are already removed, but we could trigger exit animations here
-      console.log('Components removed:', removedIds);
     }
 
     previousComponentIds.current = currentIds;
@@ -878,11 +1200,13 @@ export default function CanvasRenderer({
     const targetContainer = findContainerAtPosition(snappedPosition.x, snappedPosition.y, placedComponents, undefined, canvasSize.width);
 
     if (targetContainer) {
+      // Check if the container can accept this child type
+      const canAccept = componentRegistry.canAcceptChild(targetContainer.type, componentToPlace.type);
       setDropZoneState({
-        isValidDrop: true,
+        isValidDrop: canAccept,
         parentComponent: null,
         targetContainer: targetContainer,
-        dropAction: 'add-to-container',
+        dropAction: canAccept ? 'add-to-container' : 'invalid',
       });
     } else if (relationship?.type === 'child' && relationship?.requiresParent) {
       // Check for suitable parent at this position (for components that specifically require parents)
@@ -894,11 +1218,13 @@ export default function CanvasRenderer({
       );
 
       if (parentFound) {
+        // Check if the parent can accept this child type
+        const canAccept = componentRegistry.canAcceptChild(parentFound.type, componentToPlace.type);
         setDropZoneState({
-          isValidDrop: true,
+          isValidDrop: canAccept,
           parentComponent: parentFound,
           targetContainer: null,
-          dropAction: 'add-to-parent',
+          dropAction: canAccept ? 'add-to-parent' : 'invalid',
         });
       } else {
         // Will auto-create parent
@@ -1017,6 +1343,77 @@ export default function CanvasRenderer({
     const x = event.clientX - rect.left - dragOffset.x;
     const y = event.clientY - rect.top - dragOffset.y;
 
+    // Get mouse position for container detection
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    // ===============================================
+    // CONTAINER DETECTION PRIORITY SYSTEM
+    // ===============================================
+    // Check for container drops FIRST (before any position calculations)
+    // This ensures container detection takes precedence over snapping
+    const targetContainer = findContainerAtPosition(mouseX, mouseY, placedComponents, draggedComponentId, canvasSize.width);
+
+    if (targetContainer) {
+      // Find the dragged component to validate child type compatibility
+      const draggedComponent = placedComponents.find(comp => comp.id === draggedComponentId);
+      const canAccept = draggedComponent ?
+        componentRegistry.canAcceptChild(targetContainer.type, draggedComponent.type) : false;
+
+      setDropZoneState({
+        isValidDrop: canAccept,
+        parentComponent: null,
+        targetContainer: targetContainer,
+        dropAction: canAccept ? 'add-to-container' : 'invalid',
+      });
+      setPreviewPosition({ x: mouseX, y: mouseY });
+
+      // PHASE 4.3: Detect CSS Grid cell for highlighting
+      if (targetContainer.type === 'Grid') {
+        const gridProps: any = targetContainer.publicProps || targetContainer.props || {};
+        const columns = gridProps.columns || 3;
+        const gridTemplateRows = gridProps.gridTemplateRows || 'auto';
+
+        // Calculate relative position within grid
+        const gridX = targetContainer.position?.x || 0;
+        const gridY = targetContainer.position?.y || 0;
+        const gridWidth = parseInt(targetContainer.props?._size?.width || '800', 10) || 800;
+        const gridHeight = parseInt(targetContainer.props?._size?.height || '400', 10) || 400;
+
+        const relativeX = mouseX - gridX;
+        const relativeY = mouseY - gridY;
+
+        // Simple cell calculation (assumes equal columns)
+        const cellWidth = gridWidth / columns;
+        const column = Math.floor(relativeX / cellWidth) + 1; // 1-indexed
+        const row = Math.floor(relativeY / 150) + 1; // Assume ~150px row height for now
+
+        setGridCellHighlight({
+          gridComponent: targetContainer,
+          column: Math.max(1, Math.min(column, columns)),
+          row: Math.max(1, row),
+          colSpan: 1,
+          rowSpan: 1
+        });
+      } else {
+        setGridCellHighlight(null);
+      }
+
+      // Continue updating position even when over a container for smooth dragging
+      // The actual drop will happen on mouseUp
+    } else {
+      // Not over a container, clear drop zone state
+      setDropZoneState({
+        isValidDrop: true,
+        parentComponent: null,
+        targetContainer: null,
+        dropAction: 'normal',
+      });
+      setPreviewPosition(null);
+      setGridCellHighlight(null);
+    }
+
+    // Only update canvas position if NOT hovering over a valid container
     // Constrain to canvas bounds
     const adjustedX = Math.max(0, Math.min(x, canvasSize.width - 50));
     const adjustedY = Math.max(0, Math.min(y, canvasSize.height - 50));
@@ -1031,8 +1428,46 @@ export default function CanvasRenderer({
     let finalPosition: { x: number; y: number };
     let multiComponentResult: any = null;
 
-    // Apply smart snapping if enabled
-    if (smartSnapping) {
+    // ===============================================
+    // POSITION CALCULATION PRIORITY SYSTEM
+    // ===============================================
+    // Priority 1: Container detection (raw position, no snapping)
+    // Priority 2: Smart snapping (when not over container)
+    // Priority 3: Grid snapping fallback
+    //
+    // This prevents smart snapping from interfering with container drop detection
+    const isOverValidContainer = targetContainer &&
+      placedComponents.find(comp => comp.id === draggedComponentId) &&
+      componentRegistry.canAcceptChild(targetContainer.type, placedComponents.find(comp => comp.id === draggedComponentId)!.type);
+
+    if (isOverValidContainer) {
+      // When over a valid container, use raw position (no snapping) for smooth container targeting
+      finalPosition = { x: adjustedX, y: adjustedY };
+
+      // Clear any existing snap feedback
+      setSnapResult(null);
+      alignmentGuides.hideGuides();
+
+      // Show special container targeting feedback
+      const componentWidth = parseInt(draggedComponent.props?._size?.width || '200', 10) || 200;
+      const componentHeight = parseInt(draggedComponent.props?._size?.height || '150', 10) || 150;
+      const mousePosition = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+
+      positionIndicator.showPosition(
+        {
+          x: finalPosition.x,
+          y: finalPosition.y,
+          width: componentWidth,
+          height: componentHeight,
+          isSnapped: false,
+          snapInfo: `Drop into ${targetContainer.type}`
+        },
+        'drag',
+        mousePosition
+      );
+
+    } else if (smartSnapping) {
+      // Apply smart snapping only when NOT over a container
       // Update snapping config based on current settings
       smartSnapping.updateConfig({
         componentSnapping: snapConfig.componentSnapping,
@@ -1116,12 +1551,25 @@ export default function CanvasRenderer({
         const componentWidth = parseInt(draggedComponent.props?._size?.width || '200', 10) || 200;
         const componentHeight = parseInt(draggedComponent.props?._size?.height || '150', 10) || 150;
 
+        // PHASE 4.3: Extract Grid components for CSS Grid snapping
+        const gridComponents = placedComponents
+          .filter(c => c.type === 'Grid')
+          .map(c => ({
+            id: c.id,
+            x: c.position?.x || 0,
+            y: c.position?.y || 0,
+            width: parseInt(c.props?._size?.width || '800', 10) || 800,
+            height: parseInt(c.props?._size?.height || '400', 10) || 400,
+            props: c.publicProps || c.props
+          }));
+
         const snapResult = smartSnapping.calculateSnap(
           { x: adjustedX, y: adjustedY, width: componentWidth, height: componentHeight },
           otherComponents,
           canvasSize.width,
           canvasSize.height,
-          gridConfig.currentBreakpoint
+          gridConfig.currentBreakpoint,
+          gridComponents
         );
 
         finalPosition = { x: snapResult.x, y: snapResult.y };
@@ -1166,7 +1614,7 @@ export default function CanvasRenderer({
         }
       }
     } else {
-      // Fallback to grid snapping if smart snapping is disabled
+      // Fallback when smart snapping is disabled and not over container
       finalPosition = snapToGrid(adjustedX, adjustedY, canvasSize.width);
       setSnapResult(null);
       alignmentGuides.hideGuides();
@@ -1194,41 +1642,20 @@ export default function CanvasRenderer({
       }
     }
 
-    // Update component position - ALL components now use smart snapping pixel coordinates
+    // PHASE 4.2: Update component position - use breakpoint-aware update
     if (isMultiDrag && multiComponentResult) {
       // Update all selected components during multi-drag with exact smart snapping coordinates
       multiComponentResult.components.forEach((compResult: any) => {
-        updateComponentPosition(compResult.id, { x: compResult.x, y: compResult.y });
+        updatePositionForActiveBreakpoint(compResult.id, { x: compResult.x, y: compResult.y }, activeBreakpoint);
       });
     } else {
       // Single component update with exact smart snapping coordinates
-      updateComponentPosition(draggedComponentId, finalPosition);
+      updatePositionForActiveBreakpoint(draggedComponentId, finalPosition, activeBreakpoint);
     }
 
-    // Check for container drops and update drop zone state
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    const targetContainer = findContainerAtPosition(mouseX, mouseY, placedComponents, draggedComponentId, canvasSize.width);
+    // Container detection and drop zone state is now handled at the beginning of this function
 
-    if (targetContainer) {
-      setDropZoneState({
-        isValidDrop: true,
-        parentComponent: null,
-        targetContainer: targetContainer,
-        dropAction: 'add-to-container',
-      });
-      setPreviewPosition({ x: mouseX, y: mouseY });
-    } else {
-      setDropZoneState({
-        isValidDrop: true,
-        parentComponent: null,
-        targetContainer: null,
-        dropAction: 'normal',
-      });
-      setPreviewPosition(null);
-    }
-
-  }, [draggedComponentId, dragOffset, updateComponentPosition, placedComponents, setDropZoneState, setPreviewPosition, smartSnapping, alignmentGuides, positionIndicator, canvasSize.width, canvasSize.height]);
+  }, [draggedComponentId, dragOffset, updatePositionForActiveBreakpoint, activeBreakpoint, placedComponents, setDropZoneState, setPreviewPosition, smartSnapping, alignmentGuides, positionIndicator, canvasSize.width, canvasSize.height, componentRegistry]);
 
   const handleComponentMouseUp = useCallback((event: MouseEvent) => {
     if (draggedComponentId && canvasRef.current) {
@@ -1240,22 +1667,64 @@ export default function CanvasRenderer({
       const targetContainer = findContainerAtPosition(dropX, dropY, placedComponents, draggedComponentId, canvasSize.width);
 
       if (targetContainer) {
+
         // Find the dragged component
         const draggedComponent = placedComponents.find(comp => comp.id === draggedComponentId);
 
+
         if (draggedComponent) {
-          // Move the component into the container
-          const newChild: ComponentItem = {
-            ...draggedComponent,
-            position: { x: 0, y: 0 }, // Reset position for container child
-            positioningMode: 'absolute',
-          };
+          // Check if this is a Grid container that needs auto-wrapping
+          const isGrid = targetContainer.type === 'Grid';
+          const isGridItem = draggedComponent.type === 'GridItem';
+
+
+          let newChild: ComponentItem;
+
+          if (isGrid && !isGridItem) {
+            // Auto-wrap non-GridItem components in GridItem when moving into Grid
+            newChild = {
+              id: `GridItem_${Date.now()}`,
+              type: 'GridItem',
+              position: { x: 0, y: 0 },
+              positioningMode: 'absolute',
+              publicProps: {
+                // Auto-assign grid column based on existing children count
+                gridColumn: String((targetContainer.children?.length || 0) + 1)
+              },
+              visualBuilderState: {
+                isSelected: false,
+                isLocked: false,
+                isHidden: false,
+                lastModified: Date.now()
+              },
+              children: [{
+                ...draggedComponent,
+                position: { x: 0, y: 0 },
+                positioningMode: 'absolute',
+              }]
+            };
+          } else {
+            // For non-Grid containers or GridItem components, validate and move directly
+            const canAccept = componentRegistry.canAcceptChild(targetContainer.type, draggedComponent.type);
+
+            if (!canAccept) {
+              return;
+            }
+
+            newChild = {
+              ...draggedComponent,
+              position: { x: 0, y: 0 }, // Reset position for container child
+              positioningMode: 'absolute',
+            };
+          }
+
 
           // Add to container and remove from canvas
           addChildComponent(targetContainer.id, newChild);
 
           // Remove from canvas state using the existing removeComponent function
           removeComponent(draggedComponentId);
+
         }
       }
 
@@ -1511,23 +1980,45 @@ export default function CanvasRenderer({
         }}
       >
         <ChildComponent
-          {...(child.props || {})}
-          _isInVisualBuilder={true}
-          _onContentChange={(content: string, cssRenderMode?: string) => {
-            // Update the child component's content property
-            const updatedProps: any = {
-              ...child.props,
-              content: content
-            };
-            // Update cssRenderMode if provided
-            if (cssRenderMode !== undefined) {
-              updatedProps.cssRenderMode = cssRenderMode;
-            }
-            updateChildComponent(findParentOfChild(child.id, placedComponents)?.id || '', child.id, {
-              props: updatedProps
-            });
-          }}
-        />
+          {...prepareComponentProps(
+            child,
+            selectedComponentIds.has(child.id),
+            (content: string, cssRenderMode?: string) => {
+              // Update using new prop structure if available, otherwise fall back to legacy
+              if (child.publicProps || child.visualBuilderState) {
+                // NEW: Update public props
+                const updatedPublicProps = {
+                  ...child.publicProps,
+                  content: content
+                };
+                if (cssRenderMode !== undefined) {
+                  updatedPublicProps.cssRenderMode = cssRenderMode;
+                }
+                updateChildComponent(findParentOfChild(child.id, placedComponents)?.id || '', child.id, {
+                  publicProps: updatedPublicProps
+                });
+              } else {
+                // LEGACY: Update old props structure
+                const updatedProps: any = {
+                  ...child.props,
+                  content: content
+                };
+                if (cssRenderMode !== undefined) {
+                  updatedProps.cssRenderMode = cssRenderMode;
+                }
+                updateChildComponent(findParentOfChild(child.id, placedComponents)?.id || '', child.id, {
+                  props: updatedProps
+                });
+              }
+            },
+            true // isNested = true for nested components
+          )}
+        >
+          {/* Recursively render children if this child is also a container */}
+          {isContainerComponent(child.type) && child.children?.map((grandChild) => {
+            return renderNestedComponent(grandChild);
+          })}
+        </ChildComponent>
 
         {/* Nested child indicator */}
         <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
@@ -1623,14 +2114,19 @@ export default function CanvasRenderer({
       return null;
     }
 
+    // PHASE 4.2: Use responsive position based on active breakpoint
+    const effectivePos = canvasState.getEffectivePosition(component, activeBreakpoint);
+    const currentPosition = { x: effectivePos.x, y: effectivePos.y };
+    const currentSize = { width: effectivePos.width, height: effectivePos.height };
+
     // Always render a test div to verify the component array is working
     const testDiv = (
       <div
         key={component.id}
         className="absolute bg-green-100 border-2 border-green-500 p-2 text-green-700 text-sm cursor-move"
         style={{
-          left: component.position?.x || 0,
-          top: component.position?.y || 0,
+          left: currentPosition.x,
+          top: currentPosition.y,
           width: 150,
           height: 80,
           zIndex: 2,
@@ -1640,7 +2136,7 @@ export default function CanvasRenderer({
       >
         <div className="font-bold text-xs">{component.type || 'Unknown'}</div>
         <div className="text-xs">ID: {component.id?.slice(-6) || 'none'}</div>
-        <div className="text-xs">Pos: {component.position?.x || 0},{component.position?.y || 0}</div>
+        <div className="text-xs">Pos: {currentPosition.x},{currentPosition.y}</div>
         <div className="text-xs">✅ VISIBLE</div>
       </div>
     );
@@ -1654,8 +2150,8 @@ export default function CanvasRenderer({
           key={component.id}
           className="absolute bg-red-100 border-2 border-red-500 p-2 text-red-700 text-sm cursor-move"
           style={{
-            left: component.position?.x || 0,
-            top: component.position?.y || 0,
+            left: currentPosition.x,
+            top: currentPosition.y,
             width: 150,
             height: 80,
             zIndex: 2,
@@ -1678,18 +2174,10 @@ export default function CanvasRenderer({
       let componentStyle: React.CSSProperties;
 
       // All components now use unified absolute positioning with component-specific sizing logic for WYSIWYG consistency
-      const componentSize = component.props?._size;
+      // PHASE 4.2 FIX: Don't force sizing from effectivePos - only use for POSITION
+      // Let component categories determine their own sizing (matches AdvancedProfileRenderer)
+      const componentSize = component.visualBuilderState.size || component.props?._size;
       const componentCategory = getComponentSizingCategory(component.type);
-
-      // Debug navigation component categorization
-      if (component.type.toLowerCase().includes('navigation')) {
-        console.log('🔍 [CANVAS] Navigation component debug:', {
-          componentType: component.type,
-          componentCategory,
-          componentSize,
-          isFullWidth: componentCategory === 'full-width'
-        });
-      }
 
       // Apply different sizing strategies based on component type
       // Special case: Always treat ThreadsteadNavigation as full-width, regardless of other factors
@@ -1700,7 +2188,7 @@ export default function CanvasRenderer({
         componentStyle = {
           position: 'absolute',
           left: 0, // Always align to left edge
-          top: component.position?.y || 0,
+          top: currentPosition.y,
           width: '100%', // Full canvas width
           minWidth: '100%',
           height: 'auto', // Let content determine height
@@ -1708,14 +2196,6 @@ export default function CanvasRenderer({
           maxHeight: '100px', // Prevent excessive height
           zIndex: 100, // Ensure navigation stays above other components
         };
-
-        // Additional debug for navigation
-        if (isNavigation) {
-          console.log('🎯 [CANVAS] Navigation component forced to full-width:', {
-            componentType: component.type,
-            resultingStyle: componentStyle
-          });
-        }
       } else if (componentCategory === 'content-driven') {
           // Content-driven components (like Paragraph) should have flexible width to match Profile page
           const userWidth = componentSize?.width ? parseInt(componentSize.width.replace(/px$/, ''), 10) : 200;
@@ -1723,8 +2203,8 @@ export default function CanvasRenderer({
 
           componentStyle = {
             position: 'absolute' as const,
-            left: component.position?.x || 0,
-            top: component.position?.y || 0,
+            left: currentPosition.x,
+            top: currentPosition.y,
             // Use flexible width sizing to match AdvancedProfileRenderer behavior
             minWidth: `${userWidth}px`,
             minHeight: `${userHeight}px`,
@@ -1736,8 +2216,8 @@ export default function CanvasRenderer({
           // Other components use fixed sizing
           componentStyle = {
             position: 'absolute' as const,
-            left: component.position?.x || 0,
-            top: component.position?.y || 0,
+            left: currentPosition.x,
+            top: currentPosition.y,
             // Apply size if specified in props (now properly formatted with units)
             // componentSize.width/height are now strings like '100px', not numbers
             width: componentSize?.width !== 'auto' ? componentSize?.width : 'auto',
@@ -1747,6 +2227,58 @@ export default function CanvasRenderer({
           };
       }
 
+      // PHASE 4.1 FIX: Merge user-set CSS positioning properties from PropertyPanel
+      // These properties override the default positioning to show what user configured
+      const getCSSProp = (key: string) => {
+        // Check both props and publicProps for CSS properties
+        if (component.publicProps && component.publicProps[key as keyof typeof component.publicProps] !== undefined) {
+          return component.publicProps[key as keyof typeof component.publicProps];
+        }
+        if (component.props && component.props[key] !== undefined) {
+          return component.props[key];
+        }
+        return undefined;
+      };
+
+      // Apply user-set CSS positioning properties (they take precedence over defaults)
+      const userPosition = getCSSProp('position');
+      const userTop = getCSSProp('top');
+      const userRight = getCSSProp('right');
+      const userBottom = getCSSProp('bottom');
+      const userLeft = getCSSProp('left');
+      const userZIndex = getCSSProp('zIndex');
+      const userMinWidth = getCSSProp('minWidth');
+      const userMaxWidth = getCSSProp('maxWidth');
+      const userMinHeight = getCSSProp('minHeight');
+      const userMaxHeight = getCSSProp('maxHeight');
+
+      // Override position mode if user set it (unless it's navigation which must stay absolute)
+      if (userPosition && !isNavigation) {
+        // PHASE 4.1 FIX: Convert 'fixed' to 'absolute' in visual builder to prevent canvas overflow
+        // Fixed positioning positions relative to viewport, which escapes canvas boundaries (bad UX)
+        // In visual builder, we show 'absolute' for containment (looks identical within canvas)
+        // Profile page will still render as true 'fixed' positioning
+        const visualBuilderPosition = userPosition === 'fixed' ? 'absolute' : userPosition;
+        componentStyle.position = visualBuilderPosition as any;
+      }
+
+      // Override coordinates if user set them
+      if (userTop !== undefined) componentStyle.top = userTop;
+      if (userRight !== undefined) componentStyle.right = userRight;
+      if (userBottom !== undefined) componentStyle.bottom = userBottom;
+      if (userLeft !== undefined) componentStyle.left = userLeft;
+
+      // Override z-index if user set it (navigation default z-index can be overridden)
+      if (userZIndex !== undefined) {
+        componentStyle.zIndex = Number(userZIndex);
+      }
+
+      // Override size constraints if user set them
+      if (userMinWidth) componentStyle.minWidth = userMinWidth;
+      if (userMaxWidth) componentStyle.maxWidth = userMaxWidth;
+      if (userMinHeight) componentStyle.minHeight = userMinHeight;
+      if (userMaxHeight) componentStyle.maxHeight = userMaxHeight;
+
       const isNewlyAdded = newlyAddedComponents.has(component.id);
       const isRemoving = removingComponents.has(component.id);
 
@@ -1754,7 +2286,7 @@ export default function CanvasRenderer({
       const wrapperStyle: React.CSSProperties = (componentCategory === 'full-width' || isNavigation) ? {
         position: 'absolute' as const,
         left: 0, // Always left-aligned
-        top: component.position?.y || 0,
+        top: currentPosition.y,
         width: '100%', // Full width
         height: 'auto', // Auto height
         minHeight: '70px',
@@ -1834,24 +2366,38 @@ export default function CanvasRenderer({
             onMeasuredDimensions={(dimensions) => handleMeasuredDimensionsWithId(component.id, dimensions)}
           >
             <Component
-              {...(component.props || {})}
-              _positioningMode={component.positioningMode}
-              _size={component.props?._size}
-              _isInVisualBuilder={true}
-              _onContentChange={(content: string, cssRenderMode?: string) => {
-                // Update the component's content and cssRenderMode properties
-                const updatedProps: any = {
-                  ...component.props,
-                  content: content
-                };
-                // Update cssRenderMode if provided
-                if (cssRenderMode !== undefined) {
-                  updatedProps.cssRenderMode = cssRenderMode;
+              {...prepareComponentProps(
+                component,
+                selectedComponentIds.has(component.id),
+                (content: string, cssRenderMode?: string) => {
+                  // Update using new prop structure if available, otherwise fall back to legacy
+                  if (component.publicProps || component.visualBuilderState) {
+                    // NEW: Update public props
+                    const updatedPublicProps = {
+                      ...component.publicProps,
+                      content: content
+                    };
+                    if (cssRenderMode !== undefined) {
+                      updatedPublicProps.cssRenderMode = cssRenderMode;
+                    }
+                    updateComponent(component.id, {
+                      publicProps: updatedPublicProps
+                    });
+                  } else {
+                    // LEGACY: Update old props structure
+                    const updatedProps: any = {
+                      ...component.props,
+                      content: content
+                    };
+                    if (cssRenderMode !== undefined) {
+                      updatedProps.cssRenderMode = cssRenderMode;
+                    }
+                    updateComponent(component.id, {
+                      props: updatedProps
+                    });
+                  }
                 }
-                updateComponent(component.id, {
-                  props: updatedProps
-                });
-              }}
+              )}
             >
               {/* Render children based on component type */}
               {component.children?.map((child) => {
@@ -1870,19 +2416,8 @@ export default function CanvasRenderer({
                   );
                 }
 
-                // For container components, render children as actual React components
-                if (isContainerComponent(component.type)) {
-                  return renderNestedComponent(child);
-                }
-
-                // For other child types, render with generic data attributes
-                return (
-                  <div
-                    key={child.id}
-                    data-child-type={child.type}
-                    data-child-id={child.id}
-                  />
-                );
+                // Render nested components as actual React components
+                return renderNestedComponent(child);
               })}
 
               {/* Empty state for container components with no children */}
@@ -1976,6 +2511,34 @@ export default function CanvasRenderer({
                 {component.children.length}
               </div>
             )}
+
+            {/* Positioning mode indicator (Phase 4.1) */}
+            {isSelected && (() => {
+              const positionMode = getCSSProp('position');
+              const zIndex = getCSSProp('zIndex');
+
+              // Only show indicator for non-default positioning
+              if (!positionMode || positionMode === 'static') return null;
+
+              const positionInfo: Record<string, { emoji: string; color: string; label: string }> = {
+                'relative': { emoji: '↔️', color: 'bg-indigo-500', label: 'Relative positioning' },
+                'absolute': { emoji: '📍', color: 'bg-red-500', label: 'Absolute positioning' },
+                'fixed': { emoji: '📌', color: 'bg-pink-500', label: 'Fixed positioning (shown as absolute in editor)' },
+                'sticky': { emoji: '📎', color: 'bg-yellow-500', label: 'Sticky positioning' }
+              };
+
+              const info = positionInfo[positionMode as string];
+              if (!info) return null;
+
+              return (
+                <div
+                  className={`absolute -bottom-2 -right-2 ${info.color} text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold z-10 border-2 border-white shadow-sm`}
+                  title={`${info.label}${zIndex !== undefined ? ` • z-index: ${zIndex}` : ''}`}
+                >
+                  {info.emoji}
+                </div>
+              );
+            })()}
             {/* Selection indicator - positioned to wrap actual component content */}
             {isSelected && (() => {
               const measuredDims = componentDimensions.get(component.id);
@@ -2100,7 +2663,7 @@ export default function CanvasRenderer({
       // Fall back to test div if component fails to render
       return testDiv;
     }
-  }, [selectedComponentIds, handleComponentClick, draggedComponentId, handleComponentMouseDown, resizingComponentId, resizePreview, handleResizeStart, handleResize, handleResizeEnd, canvasSize.width, updateComponentSize]);
+  }, [selectedComponentIds, handleComponentClick, draggedComponentId, handleComponentMouseDown, resizingComponentId, resizePreview, handleResizeStart, handleResize, handleResizeEnd, canvasSize.width, updateComponentSize, activeBreakpoint, canvasState.getEffectivePosition]);
 
   // Preview component rendering
   const renderPreview = useCallback(() => {
@@ -2301,7 +2864,7 @@ export default function CanvasRenderer({
         className={`relative border border-gray-200 overflow-hidden ${className}`}
         key={`canvas-${placedComponents.length}`}
         style={{
-          width: `${canvasSize.width}px`,
+          width: activeBreakpoint === 'desktop' ? '100%' : `${canvasSize.width}px`,
           height: `${canvasSize.height}px`,
           maxWidth: '100%',
           maxHeight: '100%'
@@ -2314,7 +2877,7 @@ export default function CanvasRenderer({
             isDragOver ? 'cursor-crosshair' : 'cursor-default'
           } ${globalCSS.classNames.join(' ')}`}
           style={{
-            width: canvasSize.width,
+            width: activeBreakpoint === 'desktop' ? '100%' : canvasSize.width,
             height: canvasSize.height,
             boxSizing: 'border-box',
             // Apply global settings (includes background, typography, effects)
@@ -2386,14 +2949,32 @@ export default function CanvasRenderer({
             canvasHeight={canvasSize.height}
           />
 
-          {/* Minimal canvas info - only show essentials */}
-          {previewBreakpoint && (
+          {/* PHASE 4.3: CSS Grid overlay for Grid components */}
+          <CSSGridOverlay
+            gridComponents={placedComponents.filter(c => c.type === 'Grid')}
+            canvasWidth={canvasSize.width}
+            canvasHeight={canvasSize.height}
+          />
+
+          {/* PHASE 4.3: CSS Grid cell highlight during drag */}
+          {gridCellHighlight && gridCellHighlight.gridComponent && (
+            <GridCellHighlight
+              gridComponent={gridCellHighlight.gridComponent}
+              column={gridCellHighlight.column}
+              row={gridCellHighlight.row}
+              colSpan={gridCellHighlight.colSpan}
+              rowSpan={gridCellHighlight.rowSpan}
+            />
+          )}
+
+          {/* PHASE 4.2: Responsive breakpoint indicator */}
+          {activeBreakpoint !== 'desktop' && (
             <div className="absolute top-4 right-4 bg-purple-500 text-white px-3 py-2 rounded-lg shadow-lg z-10">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <span>📱</span>
-                <span>Previewing {previewBreakpoint}</span>
+                <span>{activeBreakpoint === 'mobile' ? '📱' : '📱'}</span>
+                <span>Preview: {activeBreakpoint.charAt(0).toUpperCase() + activeBreakpoint.slice(1)}</span>
                 <span className="text-purple-200">•</span>
-                <span>{canvasSize.breakpoint.columns} cols</span>
+                <span>{canvasSize.width}px</span>
               </div>
             </div>
           )}

@@ -238,34 +238,57 @@ export class HTMLGenerator {
     // Check if this is a text component
     const isTextComponent = ['TextElement', 'Heading', 'Paragraph'].includes(component.type);
 
-    // Add component props as attributes
-    Object.entries(component.props).forEach(([key, value]) => {
-      // Skip special props
-      if (key === 'children') return;
+    // Universal CSS properties that should be preserved as attributes
+    const universalCSSProperties = [
+      'backgroundColor', 'color', 'textColor', 'borderColor', 'accentColor',
+      'fontSize', 'fontFamily', 'fontWeight', 'textAlign', 'lineHeight',
+      'padding', 'margin', 'border', 'borderRadius', 'borderWidth', 'boxShadow',
+      'opacity', 'position', 'top', 'right', 'bottom', 'left', 'width', 'height',
+      'minWidth', 'minHeight', 'maxWidth', 'maxHeight', 'zIndex', 'display',
+      'flexDirection', 'justifyContent', 'alignItems', 'gap', 'rowGap', 'columnGap',
+      'gridTemplateColumns', 'gridTemplateRows', 'customCSS'
+    ];
 
-      // Skip content prop for text components (it becomes the element's text content)
-      if (isTextComponent && key === 'content') return;
+    // Helper function to process props from either props or publicProps
+    const processPropsObject = (propsObject: Record<string, any>) => {
+      Object.entries(propsObject).forEach(([key, value]) => {
+        // Skip special props
+        if (key === 'children') return;
 
-      // Convert prop value to attribute
-      if (value !== undefined && value !== null) {
-        if (typeof value === 'boolean') {
-          if (value) {
-            attributes[key] = key; // boolean attribute
-          }
-        } else if (typeof value === 'string') {
-          attributes[key] = value;
-        } else if (typeof value === 'number') {
-          attributes[key] = value.toString();
-        } else {
-          // Complex objects - serialize as JSON
-          try {
-            attributes[key] = JSON.stringify(value);
-          } catch (error) {
-            this.warnings.push(`Failed to serialize prop ${key} for component ${component.type}`);
+        // Skip content prop for text components (it becomes the element's text content)
+        if (isTextComponent && key === 'content') return;
+
+        // Convert prop value to attribute
+        if (value !== undefined && value !== null) {
+          if (typeof value === 'boolean') {
+            if (value) {
+              attributes[key] = key; // boolean attribute
+            }
+          } else if (typeof value === 'string') {
+            attributes[key] = value;
+          } else if (typeof value === 'number') {
+            attributes[key] = value.toString();
+          } else {
+            // Complex objects - serialize as JSON
+            try {
+              attributes[key] = JSON.stringify(value);
+            } catch (error) {
+              this.warnings.push(`Failed to serialize prop ${key} for component ${component.type}`);
+            }
           }
         }
-      }
-    });
+      });
+    };
+
+    // Process component props (legacy structure)
+    if (component.props) {
+      processPropsObject(component.props);
+    }
+
+    // Process publicProps (new standardized structure) - these take precedence
+    if ((component as any).publicProps) {
+      processPropsObject((component as any).publicProps);
+    }
 
     // Add layout attributes if enabled
     if (this.options.includeLayoutAttributes) {

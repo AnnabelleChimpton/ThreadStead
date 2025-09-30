@@ -21,6 +21,13 @@ import {
   TextAreaEditor,
   SpacingEditor,
 } from './VisualPropertyControls';
+import {
+  CSSLengthEditor,
+  CSSColorEditor,
+  CSSFlexboxEditor,
+  CSSBoxShadowEditor,
+  CSS_SUGGESTIONS
+} from './CSSPropertyEditors';
 import StyleControls from './StyleControls';
 import StyleErrorBoundary from './StyleErrorBoundary';
 
@@ -38,16 +45,24 @@ function debounce<T extends (...args: any[]) => void>(
 }
 
 
+export type ResponsiveBreakpoint = 'desktop' | 'tablet' | 'mobile';
+
 interface PropertyPanelProps {
   selectedComponent: ComponentItem | null;
   canvasState: {
     gridConfig: UseCanvasStateResult['gridConfig'];
     globalSettings: UseCanvasStateResult['globalSettings'];
     removeComponent: (componentId: string) => void;
+    // PHASE 4.2: Responsive positioning methods
+    updateResponsivePosition?: UseCanvasStateResult['updateResponsivePosition'];
+    getEffectivePosition?: UseCanvasStateResult['getEffectivePosition'];
+    copyPositionToBreakpoint?: UseCanvasStateResult['copyPositionToBreakpoint'];
   };
   onComponentUpdate: (componentId: string, updates: Partial<ComponentItem>) => void;
   className?: string;
   style?: React.CSSProperties;
+  // PHASE 4.2: Active breakpoint for responsive editing
+  activeBreakpoint?: ResponsiveBreakpoint;
 }
 
 // Tab definitions for property organization
@@ -69,6 +84,7 @@ function PropertyPanel({
   onComponentUpdate,
   className = '',
   style = {},
+  activeBreakpoint = 'desktop',
 }: PropertyPanelProps) {
   // Add styles to document head for scrollbar and animations
   React.useEffect(() => {
@@ -115,7 +131,7 @@ function PropertyPanel({
     };
   }, []);
   const [activeTab, setActiveTab] = useState<PropertyTab>('component');
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['visual-styling', 'advanced-css']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['visual-styling', 'advanced-css', 'flexbox']));
   const { gridConfig } = canvasState;
 
   // Success feedback state
@@ -124,98 +140,208 @@ function PropertyPanel({
   // Optimistic updates state to prevent flashing
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, any>>({});
 
-  // Stable property update function with success feedback and optimistic updates
-  const updatePropertyStable = useCallback((key: string, value: any) => {
-    if (!selectedComponent) return;
+  // Removed problematic useEffect that was causing infinite rerenders
 
-    // Immediately apply optimistic update for instant feedback
+  // EMERGENCY FIX: Simplified property reading - no complex dependency loops
+  const getComponentProperty = useCallback((component: ComponentItem, key: string): any => {
+    // Check optimistic updates first
+    if (optimisticUpdates[key] !== undefined) {
+      return optimisticUpdates[key];
+    }
+
+    // Simple strategy: Check the specific property exists in either structure
+    // Try legacy props first, then publicProps as fallback
+    if (component.props && component.props[key] !== undefined) {
+      return component.props[key];
+    }
+
+    if (component.publicProps && (component.publicProps as any)[key] !== undefined) {
+      return (component.publicProps as any)[key];
+    }
+
+    return undefined;
+  }, [optimisticUpdates]);
+
+  // Debounced update ref - persists across renders
+  const debouncedUpdateRef = useRef<ReturnType<typeof debounce> | undefined>(undefined);
+
+  // Create debounced update function once
+  useEffect(() => {
+    debouncedUpdateRef.current = debounce((componentId: string, targetLocation: 'props' | 'publicProps', key: string, value: any, isCSSProperty: boolean, componentType: string) => {
+      const updates = targetLocation === 'props'
+        ? { props: { ...selectedComponent?.props, [key]: value } }
+        : { publicProps: { ...selectedComponent?.publicProps, [key]: value } };
+
+      onComponentUpdate(componentId, updates);
+
+      // Debug: Confirm update was called
+      if (isCSSProperty) {
+        console.log(`✅ [PropertyPanel] onComponentUpdate CALLED (debounced) for ${componentType}:`, {
+          componentId,
+          targetLocation,
+          updates
+        });
+      }
+    }, 150); // 150ms debounce to prevent rapid re-renders
+  }, [onComponentUpdate, selectedComponent?.props, selectedComponent?.publicProps]);
+
+  // EMERGENCY FIX: Simplified property update - no complex routing logic
+  const updatePropertyStable = useCallback((key: string, value: any) => {
+    if (!selectedComponent) {
+      return;
+    }
+
+    // Immediately apply optimistic update for instant feedback (NO FLASHING!)
     setOptimisticUpdates(prev => ({ ...prev, [key]: value }));
 
-    // Then apply the actual update
-    onComponentUpdate(selectedComponent.id, {
-      props: {
-        ...selectedComponent.props,
-        [key]: value
-      }
-    });
+    // Define CSS properties that should be routed properly
+    const cssProperties = [
+      'backgroundColor', 'color', 'textColor', 'borderColor', 'accentColor',
+      'fontSize', 'fontFamily', 'fontWeight', 'textAlign', 'lineHeight',
+      'padding', 'margin', 'border', 'borderRadius', 'borderWidth', 'boxShadow',
+      'opacity', 'position', 'top', 'right', 'bottom', 'left', 'width', 'height',
+      'minWidth', 'minHeight', 'maxWidth', 'maxHeight', 'zIndex', 'display',
+      'flexDirection', 'justifyContent', 'alignItems', 'gap', 'customCSS',
+      'gridTemplateColumns', 'gridTemplateRows', 'gridColumnGap', 'gridRowGap',
+      'justifyItems'
+    ];
 
-    // Clear optimistic update after a delay to let real state take over
-    setTimeout(() => {
-      setOptimisticUpdates(prev => {
-        const { [key]: removed, ...rest } = prev;
-        return rest;
+    // Check if this is a CSS property
+    const isCSSProperty = cssProperties.includes(key);
+
+    // Determine component type: Check if component truly uses new standardized structure
+    // Only consider a component standardized if it actually uses the CSS system properly
+    const knownStandardizedComponents = ['FlexContainer', 'GridLayout', 'Paragraph'];
+    const isStandardizedComponent = knownStandardizedComponents.includes(selectedComponent.type);
+
+    // CRITICAL FIX: If component has publicProps, we should update publicProps for CSS properties
+    // This ensures HTML generation (which merges props + publicProps) gets the latest values
+    const hasPublicProps = selectedComponent.publicProps && Object.keys(selectedComponent.publicProps).length > 0;
+
+    let targetLocation: 'props' | 'publicProps';
+
+    if (isCSSProperty) {
+      // CSS properties routing strategy:
+      if (isStandardizedComponent || hasPublicProps) {
+        // Standardized components OR components with publicProps: CSS props go to publicProps
+        // This ensures HTML generation picks up the latest CSS values
+        targetLocation = 'publicProps';
+      } else {
+        // Legacy components without publicProps: CSS props go to props
+        targetLocation = 'props';
+      }
+    } else {
+      // Non-CSS properties: Use existing logic (check where property already exists)
+      if (selectedComponent.props && selectedComponent.props[key] !== undefined) {
+        targetLocation = 'props';
+      } else {
+        targetLocation = 'publicProps';
+      }
+    }
+
+    // Enhanced debug logging for CSS property routing
+    if (isCSSProperty) {
+      console.log(`🎨 [PropertyPanel] CSS Property Update (optimistic):`, {
+        property: key,
+        value: value,
+        componentType: selectedComponent.type,
+        isStandardized: isStandardizedComponent,
+        routingTo: targetLocation,
+        componentId: selectedComponent.id,
+        currentProps: selectedComponent.props ? Object.keys(selectedComponent.props) : [],
+        currentPublicProps: selectedComponent.publicProps ? Object.keys(selectedComponent.publicProps) : [],
+        hasVisualBuilderState: !!selectedComponent.visualBuilderState
       });
-    }, 100);
+    }
+
+    // Debounced actual update (prevents flashing!)
+    if (debouncedUpdateRef.current) {
+      debouncedUpdateRef.current(
+        selectedComponent.id,
+        targetLocation,
+        key,
+        value,
+        isCSSProperty,
+        selectedComponent.type
+      );
+    }
 
     // Show success feedback
     setSuccessFeedback(key);
     setTimeout(() => setSuccessFeedback(null), 1000);
-  }, [selectedComponent, onComponentUpdate])
+  }, [selectedComponent]);
 
-  // Individual memoized display values with optimistic updates
-  const displayValues = {
-    backgroundColor: useMemo(() => {
-      if (!selectedComponent) return '';
-      // Use optimistic value if available, otherwise use actual prop
-      const optimisticValue = optimisticUpdates.backgroundColor;
-      if (optimisticValue !== undefined) return optimisticValue;
-      return getDisplayValueForStyleProp(selectedComponent.props || {}, 'backgroundColor');
-    }, [selectedComponent?.props?.backgroundColor, selectedComponent?.props?.backgroundcolor, optimisticUpdates.backgroundColor]),
-    textColor: useMemo(() => {
-      if (!selectedComponent) return '';
-      const optimisticValue = optimisticUpdates.textColor;
-      if (optimisticValue !== undefined) return optimisticValue;
-      return getDisplayValueForStyleProp(selectedComponent.props || {}, 'textColor');
-    }, [selectedComponent?.props?.textColor, selectedComponent?.props?.color, optimisticUpdates.textColor]),
-    borderColor: useMemo(() => {
-      if (!selectedComponent) return '';
-      const optimisticValue = optimisticUpdates.borderColor;
-      if (optimisticValue !== undefined) return optimisticValue;
-      return getDisplayValueForStyleProp(selectedComponent.props || {}, 'borderColor');
-    }, [selectedComponent?.props?.borderColor, selectedComponent?.props?.bordercolor, optimisticUpdates.borderColor]),
-    accentColor: useMemo(() => {
-      if (!selectedComponent) return '';
-      const optimisticValue = optimisticUpdates.accentColor;
-      if (optimisticValue !== undefined) return optimisticValue;
-      return getDisplayValueForStyleProp(selectedComponent.props || {}, 'accentColor');
-    }, [selectedComponent?.props?.accentColor, optimisticUpdates.accentColor]),
-    fontSize: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'fontSize') : '',
-      [selectedComponent?.props?.fontSize, selectedComponent?.props?.fontsize]
-    ),
-    fontWeight: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'fontWeight') : '',
-      [selectedComponent?.props?.fontWeight, selectedComponent?.props?.fontweight]
-    ),
-    textAlign: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'textAlign') : '',
-      [selectedComponent?.props?.textAlign, selectedComponent?.props?.textalign]
-    ),
-    opacity: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'opacity') : '',
-      [selectedComponent?.props?.opacity]
-    ),
-    borderRadius: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'borderRadius') : '',
-      [selectedComponent?.props?.borderRadius, selectedComponent?.props?.borderradius]
-    ),
-    borderWidth: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'borderWidth') : '',
-      [selectedComponent?.props?.borderWidth]
-    ),
-    padding: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'padding') : '',
-      [selectedComponent?.props?.padding]
-    ),
-    margin: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'margin') : '',
-      [selectedComponent?.props?.margin]
-    ),
-    customCSS: useMemo(() =>
-      selectedComponent ? getDisplayValueForStyleProp(selectedComponent.props || {}, 'customCSS') : '',
-      [selectedComponent?.props?.customCSS]
-    ),
-  };
+  // Handle flexbox property updates efficiently
+  const handleFlexPropsChange = useCallback((flexProps: {
+    flexDirection?: string;
+    justifyContent?: string;
+    alignItems?: string;
+    gap?: string;
+  }) => {
+    // Update multiple properties at once
+    Object.entries(flexProps).forEach(([key, value]) => {
+      if (value !== undefined) {
+        updatePropertyStable(key, value);
+      }
+    });
+  }, [updatePropertyStable]);
+
+  // EMERGENCY FIX: Simplified display values - no circular dependencies, direct property access
+  const displayValues = useMemo(() => {
+    if (!selectedComponent) return {
+      backgroundColor: '', textColor: '', borderColor: '', accentColor: '',
+      fontSize: '', fontWeight: '', textAlign: '', opacity: '',
+      borderRadius: '', borderWidth: '', padding: '', margin: '', customCSS: '',
+      boxShadow: ''
+    };
+
+    // Direct property access with simple fallback logic
+    const getValue = (key: string, fallbackKey?: string) => {
+      // Check optimistic updates first
+      if (optimisticUpdates[key] !== undefined) {
+        return optimisticUpdates[key];
+      }
+
+      // Try legacy props first
+      if (selectedComponent.props && selectedComponent.props[key] !== undefined) {
+        return selectedComponent.props[key];
+      }
+
+      // Try fallback key in legacy props
+      if (fallbackKey && selectedComponent.props && selectedComponent.props[fallbackKey] !== undefined) {
+        return selectedComponent.props[fallbackKey];
+      }
+
+      // Try publicProps
+      if (selectedComponent.publicProps && (selectedComponent.publicProps as any)[key] !== undefined) {
+        return (selectedComponent.publicProps as any)[key];
+      }
+
+      // Try fallback key in publicProps
+      if (fallbackKey && selectedComponent.publicProps && (selectedComponent.publicProps as any)[fallbackKey] !== undefined) {
+        return (selectedComponent.publicProps as any)[fallbackKey];
+      }
+
+      return '';
+    };
+
+    return {
+      backgroundColor: getDisplayValueForStyleProp({ backgroundColor: getValue('backgroundColor', 'backgroundcolor') }, 'backgroundColor'),
+      textColor: getDisplayValueForStyleProp({ textColor: getValue('textColor', 'color') }, 'textColor'),
+      borderColor: getDisplayValueForStyleProp({ borderColor: getValue('borderColor', 'bordercolor') }, 'borderColor'),
+      accentColor: getDisplayValueForStyleProp({ accentColor: getValue('accentColor') }, 'accentColor'),
+      fontSize: getDisplayValueForStyleProp({ fontSize: getValue('fontSize', 'fontsize') }, 'fontSize'),
+      fontWeight: getDisplayValueForStyleProp({ fontWeight: getValue('fontWeight', 'fontweight') }, 'fontWeight'),
+      textAlign: getDisplayValueForStyleProp({ textAlign: getValue('textAlign', 'textalign') }, 'textAlign'),
+      opacity: getDisplayValueForStyleProp({ opacity: getValue('opacity') }, 'opacity'),
+      borderRadius: getDisplayValueForStyleProp({ borderRadius: getValue('borderRadius', 'borderradius') }, 'borderRadius'),
+      borderWidth: getDisplayValueForStyleProp({ borderWidth: getValue('borderWidth') }, 'borderWidth'),
+      padding: getDisplayValueForStyleProp({ padding: getValue('padding') }, 'padding'),
+      margin: getDisplayValueForStyleProp({ margin: getValue('margin') }, 'margin'),
+      customCSS: getDisplayValueForStyleProp({ customCSS: getValue('customCSS') }, 'customCSS'),
+      boxShadow: getDisplayValueForStyleProp({ boxShadow: getValue('boxShadow') }, 'boxShadow')
+    };
+  }, [selectedComponent, optimisticUpdates]);
 
   // Tab definitions
   const tabs: TabDefinition[] = [
@@ -304,6 +430,8 @@ function PropertyPanel({
 
   // Style tab with unified visual styling controls
   const renderStyleTab = () => {
+    if (!selectedComponent) return null;
+
     const sections = [];
 
     // Unified Visual Styling section - works for all components
@@ -357,7 +485,7 @@ function PropertyPanel({
         isExpanded={expandedSections.has('size')}
         onToggle={() => toggleSection('size')}
       >
-        {renderSizeProperties()}
+        {renderSizeProperties}
       </PropertySection>
     );
 
@@ -372,6 +500,54 @@ function PropertyPanel({
         {renderSpacingProperties()}
       </PropertySection>
     );
+
+    // Add Flexbox section for container components (especially FlexContainer)
+    const styleCategory = getComponentStyleCategory(selectedComponent!.type);
+    const isContainer = ['container', 'decorative'].includes(styleCategory);
+
+    if (isContainer) {
+      sections.push(
+        <PropertySection
+          key="flexbox"
+          title="Flexbox Layout"
+          icon="🔄"
+          isExpanded={expandedSections.has('flexbox')}
+          onToggle={() => toggleSection('flexbox')}
+        >
+          {renderFlexboxProperties()}
+        </PropertySection>
+      );
+    }
+
+    // Add Grid Positioning section when component uses grid positioning mode
+    if (selectedComponent!.positioningMode === 'grid' || selectedComponent!.gridPosition) {
+      sections.push(
+        <PropertySection
+          key="grid-position"
+          title="Grid Positioning"
+          icon="🔲"
+          isExpanded={expandedSections.has('grid-position')}
+          onToggle={() => toggleSection('grid-position')}
+        >
+          {renderGridPositioningProperties()}
+        </PropertySection>
+      );
+    }
+
+    // Add CSS Grid Layout section for Grid component specifically
+    if (selectedComponent!.type === 'Grid' || selectedComponent!.type === 'GridLayout') {
+      sections.push(
+        <PropertySection
+          key="grid-layout"
+          title="CSS Grid Properties"
+          icon="📊"
+          isExpanded={expandedSections.has('grid-layout')}
+          onToggle={() => toggleSection('grid-layout')}
+        >
+          {renderCSSGridProperties()}
+        </PropertySection>
+      );
+    }
 
     return (
       <div style={{
@@ -433,7 +609,9 @@ function PropertyPanel({
   const renderComponentTab = () => {
     if (!selectedComponent) return null;
 
+
     const registration = componentRegistry.get(selectedComponent.type);
+
     if (!registration) {
       return (
         <div style={{
@@ -628,36 +806,43 @@ function PropertyPanel({
             🎨 Colors
           </div>
 
-          <ColorEditor
+          {/* PHASE 3: New CSS-native color editors */}
+          <CSSColorEditor
             label="Background Color"
             value={displayValues.backgroundColor || ''}
             onChange={(value) => updatePropertyStable('backgroundColor', value)}
             description="Component background color"
+            format="hex"
+            showAlpha={true}
           />
 
           {isText && (
-            <ColorEditor
+            <CSSColorEditor
               label="Text Color"
               value={displayValues.textColor || ''}
               onChange={(value) => updatePropertyStable('textColor', value)}
               description="Text color"
+              format="hex"
             />
           )}
 
           {isContainer && (
-            <ColorEditor
+            <CSSColorEditor
               label="Border Color"
               value={displayValues.borderColor || ''}
               onChange={(value) => updatePropertyStable('borderColor', value)}
               description="Border color"
+              format="hex"
             />
           )}
 
-          <ColorEditor
+          <CSSColorEditor
             label="Accent Color"
             value={displayValues.accentColor || ''}
             onChange={(value) => updatePropertyStable('accentColor', value)}
             description="Accent color for highlights"
+            format="hex"
+            showAlpha={true}
           />
         </div>
 
@@ -765,6 +950,22 @@ function PropertyPanel({
               description="Border thickness"
             />
           )}
+
+          <CSSBoxShadowEditor
+            label="Box Shadow"
+            value={displayValues.boxShadow || 'none'}
+            onChange={(value) => updatePropertyStable('boxShadow', value)}
+            description="Add depth with shadows"
+            presets={[
+              { name: 'None', value: 'none' },
+              { name: 'Small', value: '0 1px 3px rgba(0, 0, 0, 0.12)' },
+              { name: 'Medium', value: '0 4px 6px rgba(0, 0, 0, 0.12)' },
+              { name: 'Large', value: '0 10px 15px rgba(0, 0, 0, 0.12)' },
+              { name: 'XL', value: '0 20px 25px rgba(0, 0, 0, 0.15)' },
+              { name: 'Inner', value: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)' },
+              { name: 'Glow', value: '0 0 15px rgba(59, 130, 246, 0.5)' }
+            ]}
+          />
         </div>
 
         {/* Spacing Section */}
@@ -781,18 +982,27 @@ function PropertyPanel({
             📏 Spacing
           </div>
 
-          <TextEditor
+          {/* PHASE 3: New CSS-native length editors */}
+          <CSSLengthEditor
             label="Padding"
             value={displayValues.padding || ''}
             onChange={(value) => updatePropertyStable('padding', value)}
-            description="Internal spacing (e.g., 16px, 8px 16px)"
+            description="Internal spacing"
+            docProperty="padding"
+            units={['px', 'rem', 'em']}
+            suggestions={CSS_SUGGESTIONS.padding}
+            allowNegative={false}
           />
 
-          <TextEditor
+          <CSSLengthEditor
             label="Margin"
             value={displayValues.margin || ''}
             onChange={(value) => updatePropertyStable('margin', value)}
-            description="External spacing (e.g., 16px, 8px 16px)"
+            description="External spacing"
+            docProperty="margin"
+            units={['px', 'rem', 'em']}
+            suggestions={CSS_SUGGESTIONS.margin}
+            allowNegative={true}
           />
         </div>
       </div>
@@ -858,8 +1068,8 @@ function PropertyPanel({
       <div>
         <ColorEditor
           label="Background Color"
-          value={selectedComponent.props?.backgroundcolor || ''}
-          onChange={(value) => updateProperty('backgroundcolor', value)}
+          value={selectedComponent.props?.backgroundColor || ''}
+          onChange={(value) => updateProperty('backgroundColor', value)}
           description="Set the background color of the component"
         />
 
@@ -991,7 +1201,7 @@ function PropertyPanel({
           fallbackMessage="Error in CSS styling controls. Please check your CSS values."
         >
           <StyleControls
-            styles={selectedComponent.props?.style || {}}
+            styles={getComponentProperty(selectedComponent, 'style') || {}}
             onStyleChange={handleStyleChange}
           />
         </StyleErrorBoundary>
@@ -1006,12 +1216,13 @@ function PropertyPanel({
     const content = [];
 
     // Content editor for text components
-    if (selectedComponent.props?.content !== undefined) {
+    const contentValue = getComponentProperty(selectedComponent, 'content');
+    if (contentValue !== undefined) {
       content.push(
         <TextAreaEditor
           key="content"
           label="Text Content"
-          value={selectedComponent.props.content}
+          value={contentValue}
           onChange={(value) => updateProperty('content', value)}
           description="The text content of this component"
         />
@@ -1024,12 +1235,93 @@ function PropertyPanel({
     return <div>{content}</div>;
   };
 
-  // Render size and position properties
-  const renderSizeProperties = () => {
+  // Render size and position properties (MEMOIZED to prevent flashing)
+  const renderSizeProperties = useMemo(() => {
     if (!selectedComponent) return null;
+
+    // Get current CSS position mode from component props
+    const currentPositionMode = getComponentProperty(selectedComponent, 'position') || 'absolute';
+    const currentZIndex = getComponentProperty(selectedComponent, 'zIndex') || 1;
 
     return (
       <div>
+        {/* CSS Position Mode Selector */}
+        <div style={{ marginBottom: '24px' }}>
+          <h4 style={{
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#374151',
+            marginBottom: '8px',
+          }}>
+            Position Mode
+          </h4>
+          <p style={{
+            fontSize: '12px',
+            color: '#6b7280',
+            marginBottom: '12px',
+            lineHeight: '1.5'
+          }}>
+            {currentPositionMode === 'static' && 'Normal document flow, no positioning applied'}
+            {currentPositionMode === 'relative' && 'Positioned relative to normal position'}
+            {currentPositionMode === 'absolute' && 'Positioned relative to canvas (current mode)'}
+            {currentPositionMode === 'fixed' && 'Positioned relative to viewport (scrolls with page)'}
+            {currentPositionMode === 'sticky' && 'Switches between relative and fixed on scroll'}
+          </p>
+          <SelectEditor
+            key={`${selectedComponent.id}-position-mode`}
+            label=""
+            value={currentPositionMode}
+            onChange={(value) => updatePropertyStable('position', value)}
+            options={[
+              { value: 'static', label: 'Static (Default)' },
+              { value: 'relative', label: 'Relative' },
+              { value: 'absolute', label: 'Absolute' },
+              { value: 'fixed', label: 'Fixed' },
+              { value: 'sticky', label: 'Sticky' }
+            ]}
+          />
+        </div>
+
+        {/* Z-Index Control */}
+        <div style={{ marginBottom: '24px' }}>
+          <h4 style={{
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#374151',
+            marginBottom: '12px',
+          }}>
+            Layer Order (Z-Index)
+          </h4>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ flex: 1 }}>
+              <SliderEditor
+                key={`${selectedComponent.id}-zindex-slider`}
+                label=""
+                value={Number(currentZIndex)}
+                onChange={(value) => updatePropertyStable('zIndex', value)}
+                min={-100}
+                max={100}
+                step={1}
+                unit=""
+              />
+            </div>
+            <TextEditor
+              key={`${selectedComponent.id}-zindex-text`}
+              label=""
+              value={String(currentZIndex)}
+              onChange={(value) => updatePropertyStable('zIndex', Number(value) || 0)}
+              description=""
+            />
+          </div>
+          <p style={{
+            fontSize: '11px',
+            color: '#6b7280',
+            marginTop: '8px'
+          }}>
+            Higher values appear on top. Typical range: 0-100
+          </p>
+        </div>
+
         <div style={{ marginBottom: '24px' }}>
           <h4 style={{
             fontSize: '14px',
@@ -1042,18 +1334,21 @@ function PropertyPanel({
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <TextEditor
+              key={`${selectedComponent.id}-width`}
               label="Width"
-              value={selectedComponent.props?._size?.width || 'auto'}
+              value={getComponentProperty(selectedComponent, '_size')?.width || 'auto'}
               onChange={(value) => updateSizeProperty('width', value)}
             />
             <TextEditor
+              key={`${selectedComponent.id}-height`}
               label="Height"
-              value={selectedComponent.props?._size?.height || 'auto'}
+              value={getComponentProperty(selectedComponent, '_size')?.height || 'auto'}
               onChange={(value) => updateSizeProperty('height', value)}
             />
           </div>
         </div>
 
+        {/* Size Constraints */}
         <div style={{ marginBottom: '24px' }}>
           <h4 style={{
             fontSize: '14px',
@@ -1061,33 +1356,260 @@ function PropertyPanel({
             color: '#374151',
             marginBottom: '12px',
           }}>
-            Position
+            Size Constraints
           </h4>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <SliderEditor
-              label="X Position"
-              value={selectedComponent.position?.x || 0}
-              onChange={(value) => updatePosition('x', value)}
-              min={0}
-              max={1000}
-              step={1}
-              unit="px"
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <CSSLengthEditor
+              key={`${selectedComponent.id}-minWidth`}
+              label="Min Width"
+              value={getComponentProperty(selectedComponent, 'minWidth') || ''}
+              onChange={(value) => updatePropertyStable('minWidth', value)}
+              docProperty="min-width"
+              units={['px', '%', 'rem', 'em', 'vw']}
+              suggestions={['0px', '100px', '200px', '50%', '100%']}
+              allowNegative={false}
             />
-            <SliderEditor
-              label="Y Position"
-              value={selectedComponent.position?.y || 0}
-              onChange={(value) => updatePosition('y', value)}
-              min={0}
-              max={1000}
-              step={1}
-              unit="px"
+            <CSSLengthEditor
+              key={`${selectedComponent.id}-maxWidth`}
+              label="Max Width"
+              value={getComponentProperty(selectedComponent, 'maxWidth') || ''}
+              onChange={(value) => updatePropertyStable('maxWidth', value)}
+              docProperty="max-width"
+              units={['px', '%', 'rem', 'em', 'vw']}
+              suggestions={['100%', '500px', '800px', '1200px', 'none']}
+              allowNegative={false}
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <CSSLengthEditor
+              key={`${selectedComponent.id}-minHeight`}
+              label="Min Height"
+              value={getComponentProperty(selectedComponent, 'minHeight') || ''}
+              onChange={(value) => updatePropertyStable('minHeight', value)}
+              docProperty="min-height"
+              units={['px', '%', 'rem', 'em', 'vh']}
+              suggestions={['0px', '50px', '100px', '200px']}
+              allowNegative={false}
+            />
+            <CSSLengthEditor
+              key={`${selectedComponent.id}-maxHeight`}
+              label="Max Height"
+              value={getComponentProperty(selectedComponent, 'maxHeight') || ''}
+              onChange={(value) => updatePropertyStable('maxHeight', value)}
+              docProperty="max-height"
+              units={['px', '%', 'rem', 'em', 'vh']}
+              suggestions={['100%', '500px', '800px', 'none']}
+              allowNegative={false}
             />
           </div>
         </div>
+
+        {/* Advanced Coordinate Inputs - Show for non-static positioning */}
+        {currentPositionMode !== 'static' && (
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#374151',
+              marginBottom: '12px',
+            }}>
+              Position Coordinates
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <CSSLengthEditor
+                key={`${selectedComponent.id}-top`}
+                label="Top"
+                value={getComponentProperty(selectedComponent, 'top') || ''}
+                onChange={(value) => updatePropertyStable('top', value)}
+                docProperty="top"
+                units={['px', '%', 'rem', 'em', 'vh']}
+                suggestions={['0px', '10px', '20px', '50%', 'auto']}
+                allowNegative={true}
+              />
+              <CSSLengthEditor
+                key={`${selectedComponent.id}-right`}
+                label="Right"
+                value={getComponentProperty(selectedComponent, 'right') || ''}
+                onChange={(value) => updatePropertyStable('right', value)}
+                docProperty="right"
+                units={['px', '%', 'rem', 'em', 'vw']}
+                suggestions={['0px', '10px', '20px', '50%', 'auto']}
+                allowNegative={true}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <CSSLengthEditor
+                key={`${selectedComponent.id}-bottom`}
+                label="Bottom"
+                value={getComponentProperty(selectedComponent, 'bottom') || ''}
+                onChange={(value) => updatePropertyStable('bottom', value)}
+                docProperty="bottom"
+                units={['px', '%', 'rem', 'em', 'vh']}
+                suggestions={['0px', '10px', '20px', '50%', 'auto']}
+                allowNegative={true}
+              />
+              <CSSLengthEditor
+                key={`${selectedComponent.id}-left`}
+                label="Left"
+                value={getComponentProperty(selectedComponent, 'left') || ''}
+                onChange={(value) => updatePropertyStable('left', value)}
+                docProperty="left"
+                units={['px', '%', 'rem', 'em', 'vw']}
+                suggestions={['0px', '10px', '20px', '50%', 'auto']}
+                allowNegative={true}
+              />
+            </div>
+            <p style={{
+              fontSize: '11px',
+              color: '#6b7280',
+              marginTop: '8px'
+            }}>
+              💡 Use &apos;auto&apos; to unset. Negative values are supported.
+            </p>
+          </div>
+        )}
+
+        {/* PHASE 4.2: Responsive Canvas Position */}
+        {selectedComponent.position && (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px'
+            }}>
+              <h4 style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                margin: 0
+              }}>
+                Canvas Position
+              </h4>
+              {activeBreakpoint !== 'desktop' && (
+                <div style={{
+                  fontSize: '11px',
+                  padding: '4px 8px',
+                  backgroundColor: activeBreakpoint === 'tablet' ? '#dbeafe' : '#fce7f3',
+                  color: activeBreakpoint === 'tablet' ? '#1e40af' : '#9f1239',
+                  borderRadius: '4px',
+                  fontWeight: '600'
+                }}>
+                  {activeBreakpoint.toUpperCase()}
+                </div>
+              )}
+            </div>
+
+            {/* Breakpoint indicator and copy button */}
+            {activeBreakpoint !== 'desktop' && (
+              <div style={{
+                marginBottom: '12px',
+                padding: '8px 12px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '6px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <p style={{
+                  fontSize: '11px',
+                  color: '#6b7280',
+                  marginBottom: '8px',
+                  lineHeight: '1.4'
+                }}>
+                  Editing {activeBreakpoint} position. Desktop position: ({selectedComponent.position.x}px, {selectedComponent.position.y}px)
+                </p>
+                <button
+                  onClick={() => {
+                    if (canvasState.copyPositionToBreakpoint) {
+                      canvasState.copyPositionToBreakpoint(
+                        selectedComponent.id,
+                        'desktop',
+                        activeBreakpoint as 'tablet' | 'mobile'
+                      );
+                    }
+                  }}
+                  style={{
+                    fontSize: '11px',
+                    padding: '4px 8px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    color: '#374151',
+                    fontWeight: '500'
+                  }}
+                >
+                  📋 Copy from Desktop
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <SliderEditor
+                key={`${selectedComponent.id}-${activeBreakpoint}-x-position`}
+                label="X Position"
+                value={
+                  activeBreakpoint === 'desktop'
+                    ? selectedComponent.position?.x || 0
+                    : (selectedComponent.responsivePositions?.[activeBreakpoint]?.x ?? selectedComponent.position?.x) || 0
+                }
+                onChange={(value) => {
+                  if (activeBreakpoint === 'desktop') {
+                    updatePosition('x', value);
+                  } else if (canvasState.updateResponsivePosition) {
+                    const currentPos = canvasState.getEffectivePosition?.(selectedComponent, activeBreakpoint) || {
+                      x: value,
+                      y: selectedComponent.position?.y || 0,
+                      width: 200,
+                      height: 100
+                    };
+                    canvasState.updateResponsivePosition(
+                      selectedComponent.id,
+                      activeBreakpoint as 'tablet' | 'mobile',
+                      { ...currentPos, x: value }
+                    );
+                  }
+                }}
+                min={0}
+                max={2000}
+                step={1}
+                unit="px"
+              />
+              <SliderEditor
+                key={`${selectedComponent.id}-${activeBreakpoint}-y-position`}
+                label="Y Position"
+                value={
+                  activeBreakpoint === 'desktop'
+                    ? selectedComponent.position?.y || 0
+                    : (selectedComponent.responsivePositions?.[activeBreakpoint]?.y ?? selectedComponent.position?.y) || 0
+                }
+                onChange={(value) => {
+                  if (activeBreakpoint === 'desktop') {
+                    updatePosition('y', value);
+                  } else if (canvasState.updateResponsivePosition) {
+                    const currentPos = canvasState.getEffectivePosition?.(selectedComponent, activeBreakpoint) || {
+                      x: selectedComponent.position?.x || 0,
+                      y: value,
+                      width: 200,
+                      height: 100
+                    };
+                    canvasState.updateResponsivePosition(
+                      selectedComponent.id,
+                      activeBreakpoint as 'tablet' | 'mobile',
+                      { ...currentPos, y: value }
+                    );
+                  }
+                }}
+                min={0}
+                max={2000}
+                step={1}
+                unit="px"
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
-  };
+  }, [selectedComponent?.id, selectedComponent?.position, selectedComponent?.props, selectedComponent?.publicProps, selectedComponent?.responsivePositions, activeBreakpoint, canvasState.updateResponsivePosition, canvasState.getEffectivePosition, canvasState.copyPositionToBreakpoint]);
 
   // Render spacing properties
   const renderSpacingProperties = () => {
@@ -1097,7 +1619,7 @@ function PropertyPanel({
       <div>
         <SpacingEditor
           label="Padding"
-          value={selectedComponent.props?.padding || '0px 0px 0px 0px'}
+          value={getComponentProperty(selectedComponent, 'padding') || '0px 0px 0px 0px'}
           onChange={(value) => updateProperty('padding', value)}
           type="padding"
           description="Inner spacing around content"
@@ -1105,11 +1627,216 @@ function PropertyPanel({
 
         <SpacingEditor
           label="Margin"
-          value={selectedComponent.props?.margin || '0px 0px 0px 0px'}
+          value={getComponentProperty(selectedComponent, 'margin') || '0px 0px 0px 0px'}
           onChange={(value) => updateProperty('margin', value)}
           type="margin"
           description="Outer spacing around component"
         />
+      </div>
+    );
+  };
+
+  // Render flexbox layout properties
+  const renderFlexboxProperties = () => {
+    if (!selectedComponent) return null;
+
+    return (
+      <div>
+        <CSSFlexboxEditor
+          label="Flexbox Layout"
+          description="Configure flex container layout properties"
+          flexDirection={getComponentProperty(selectedComponent, 'flexDirection') || 'row'}
+          justifyContent={getComponentProperty(selectedComponent, 'justifyContent') || 'flex-start'}
+          alignItems={getComponentProperty(selectedComponent, 'alignItems') || 'flex-start'}
+          gap={getComponentProperty(selectedComponent, 'gap') || '0px'}
+          onFlexPropsChange={handleFlexPropsChange}
+        />
+      </div>
+    );
+  };
+
+  // Render grid positioning properties
+  const renderGridPositioningProperties = () => {
+    if (!selectedComponent) return null;
+
+    const gridPosition = selectedComponent.gridPosition || { column: 1, row: 1, span: 1 };
+
+    return (
+      <div>
+        <h4 style={{
+          fontSize: '13px',
+          fontWeight: '600',
+          color: '#374151',
+          marginBottom: '12px',
+        }}>
+          Grid Cell Position
+        </h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <TextEditor
+            label="Column"
+            value={String(gridPosition.column)}
+            onChange={(value) => {
+              const newGridPosition = { ...gridPosition, column: Number(value) || 1 };
+              onComponentUpdate(selectedComponent.id, { gridPosition: newGridPosition });
+            }}
+            description="Starting column (1-based)"
+          />
+          <TextEditor
+            label="Row"
+            value={String(gridPosition.row)}
+            onChange={(value) => {
+              const newGridPosition = { ...gridPosition, row: Number(value) || 1 };
+              onComponentUpdate(selectedComponent.id, { gridPosition: newGridPosition });
+            }}
+            description="Starting row (1-based)"
+          />
+          <TextEditor
+            label="Span"
+            value={String(gridPosition.span)}
+            onChange={(value) => {
+              const newGridPosition = { ...gridPosition, span: Number(value) || 1 };
+              onComponentUpdate(selectedComponent.id, { gridPosition: newGridPosition });
+            }}
+            description="Columns to span"
+          />
+        </div>
+        <p style={{
+          fontSize: '11px',
+          color: '#6b7280',
+          lineHeight: '1.5'
+        }}>
+          💡 Drag components on canvas to visually adjust position. These values fine-tune placement.
+        </p>
+      </div>
+    );
+  };
+
+  // Render CSS Grid layout properties (for Grid component)
+  const renderCSSGridProperties = () => {
+    if (!selectedComponent) return null;
+
+    return (
+      <div>
+        <h4 style={{
+          fontSize: '13px',
+          fontWeight: '600',
+          color: '#374151',
+          marginBottom: '12px',
+        }}>
+          Grid Template
+        </h4>
+        <div style={{ marginBottom: '16px' }}>
+          <CSSLengthEditor
+            label="Grid Template Columns"
+            value={getComponentProperty(selectedComponent, 'gridTemplateColumns') || 'repeat(3, 1fr)'}
+            onChange={(value) => updatePropertyStable('gridTemplateColumns', value)}
+            docProperty="grid-template-columns"
+            units={['fr', 'px', '%', 'auto']}
+            suggestions={[
+              'repeat(2, 1fr)',
+              'repeat(3, 1fr)',
+              'repeat(4, 1fr)',
+              '1fr 2fr',
+              '200px 1fr',
+              'auto 1fr auto'
+            ]}
+            description="Define column structure"
+            allowNegative={false}
+          />
+        </div>
+        <div style={{ marginBottom: '16px' }}>
+          <CSSLengthEditor
+            label="Grid Template Rows"
+            value={getComponentProperty(selectedComponent, 'gridTemplateRows') || 'auto'}
+            onChange={(value) => updatePropertyStable('gridTemplateRows', value)}
+            docProperty="grid-template-rows"
+            units={['fr', 'px', '%', 'auto']}
+            suggestions={[
+              'auto',
+              'repeat(2, 1fr)',
+              'repeat(3, 100px)',
+              '100px auto',
+              'minmax(100px, auto)'
+            ]}
+            description="Define row structure"
+            allowNegative={false}
+          />
+        </div>
+
+        <h4 style={{
+          fontSize: '13px',
+          fontWeight: '600',
+          color: '#374151',
+          marginBottom: '12px',
+          marginTop: '20px'
+        }}>
+          Grid Spacing
+        </h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <CSSLengthEditor
+            label="Column Gap"
+            value={getComponentProperty(selectedComponent, 'gridColumnGap') || getComponentProperty(selectedComponent, 'gap') || '0px'}
+            onChange={(value) => updatePropertyStable('gridColumnGap', value)}
+            docProperty="column-gap"
+            units={['px', 'rem', 'em']}
+            suggestions={['0px', '8px', '12px', '16px', '24px', '1rem']}
+            allowNegative={false}
+          />
+          <CSSLengthEditor
+            label="Row Gap"
+            value={getComponentProperty(selectedComponent, 'gridRowGap') || getComponentProperty(selectedComponent, 'gap') || '0px'}
+            onChange={(value) => updatePropertyStable('gridRowGap', value)}
+            docProperty="row-gap"
+            units={['px', 'rem', 'em']}
+            suggestions={['0px', '8px', '12px', '16px', '24px', '1rem']}
+            allowNegative={false}
+          />
+        </div>
+
+        <h4 style={{
+          fontSize: '13px',
+          fontWeight: '600',
+          color: '#374151',
+          marginBottom: '12px',
+          marginTop: '20px'
+        }}>
+          Grid Alignment
+        </h4>
+        <div style={{ marginBottom: '12px' }}>
+          <SelectEditor
+            label="Justify Items"
+            value={getComponentProperty(selectedComponent, 'justifyItems') || 'stretch'}
+            onChange={(value) => updatePropertyStable('justifyItems', value)}
+            options={[
+              { value: 'start', label: 'Start' },
+              { value: 'end', label: 'End' },
+              { value: 'center', label: 'Center' },
+              { value: 'stretch', label: 'Stretch' }
+            ]}
+          />
+        </div>
+        <div style={{ marginBottom: '12px' }}>
+          <SelectEditor
+            label="Align Items"
+            value={getComponentProperty(selectedComponent, 'alignItems') || 'stretch'}
+            onChange={(value) => updatePropertyStable('alignItems', value)}
+            options={[
+              { value: 'start', label: 'Start' },
+              { value: 'end', label: 'End' },
+              { value: 'center', label: 'Center' },
+              { value: 'stretch', label: 'Stretch' }
+            ]}
+          />
+        </div>
+
+        <p style={{
+          fontSize: '11px',
+          color: '#6b7280',
+          marginTop: '12px',
+          lineHeight: '1.5'
+        }}>
+          💡 Learn more about CSS Grid: <a href="https://css-tricks.com/snippets/css/complete-guide-grid/" target="_blank" rel="noopener" style={{ color: '#3b82f6', textDecoration: 'underline' }}>CSS Grid Guide</a>
+        </p>
       </div>
     );
   };
@@ -1125,8 +1852,14 @@ function PropertyPanel({
     // Known style/layout properties to exclude
     const knownProps = ['color', 'backgroundColor', 'fontSize', 'fontWeight', 'textAlign', 'borderRadius', 'opacity', 'content', 'padding', 'margin'];
 
+    // Get all properties from both new and legacy structures
+    const allProps = {
+      ...(selectedComponent.props || {}),
+      ...(selectedComponent.publicProps || {})
+    };
+
     // Filter to only show custom properties not handled elsewhere
-    const dataProps = Object.entries(selectedComponent.props || {})
+    const dataProps = Object.entries(allProps)
       .filter(([key]) => {
         // Exclude internal props (starting with _)
         if (key.startsWith('_')) return false;
@@ -1196,49 +1929,76 @@ function PropertyPanel({
 
         <TextAreaEditor
           label="Raw Props (JSON)"
-          value={JSON.stringify(selectedComponent.props || {}, null, 2)}
+          value={JSON.stringify({
+            ...(selectedComponent.props || {}),
+            ...(selectedComponent.publicProps || {})
+          }, null, 2)}
           onChange={(value) => {
             try {
               const parsed = JSON.parse(value);
-              onComponentUpdate(selectedComponent.id, { props: parsed });
+              // FIXED: Proper routing logic based on which structure has actual data
+              const hasRealPublicProps = selectedComponent.publicProps &&
+                Object.keys(selectedComponent.publicProps).length > 0;
+              const hasLegacyProps = selectedComponent.props &&
+                Object.keys(selectedComponent.props).length > 0;
+
+              if (hasLegacyProps) {
+                onComponentUpdate(selectedComponent.id, { props: parsed });
+              } else {
+                onComponentUpdate(selectedComponent.id, { publicProps: parsed });
+              }
             } catch (e) {
               // Invalid JSON - ignore
             }
           }}
-          description="Raw component properties as JSON"
+          description="Raw component properties as JSON (combines both legacy and new props)"
         />
       </div>
     );
   };
 
-  // Legacy updateProperty function for non-optimized components
-  // Memoized to prevent recreation on every render
+  // EMERGENCY FIX: Simplified legacy updateProperty function
   const updateProperty = useCallback((key: string, value: any) => {
-    if (!selectedComponent) return;
+    if (!selectedComponent) {
+      return;
+    }
 
-    onComponentUpdate(selectedComponent.id, {
-      props: {
-        ...selectedComponent.props,
-        [key]: value
-      }
-    });
+    // Simple strategy: Update the structure where the property already exists, or default to publicProps
+    if (selectedComponent.props && selectedComponent.props[key] !== undefined) {
+      // Property exists in legacy props - update there
+      onComponentUpdate(selectedComponent.id, {
+        props: {
+          ...selectedComponent.props,
+          [key]: value
+        }
+      });
+    } else {
+      // Property doesn't exist in legacy props or legacy props is empty - use publicProps
+      onComponentUpdate(selectedComponent.id, {
+        publicProps: {
+          ...selectedComponent.publicProps,
+          [key]: value
+        }
+      });
+    }
   }, [selectedComponent, onComponentUpdate])
 
   // Update size properties in the _size object
-  const updateSizeProperty = (dimension: 'width' | 'height', value: string) => {
+  // MOVED BEFORE renderSizeProperties - these were causing "Cannot access before initialization" error
+  const updateSizeProperty = useCallback((dimension: 'width' | 'height', value: string) => {
     if (!selectedComponent) return;
 
-    const currentSize = selectedComponent.props?._size || {};
+    const currentSize = getComponentProperty(selectedComponent, '_size') || {};
     const updatedSize = {
       ...currentSize,
       [dimension]: value,
     };
 
     updateProperty('_size', updatedSize);
-  };
+  }, [selectedComponent, getComponentProperty, updateProperty]);
 
   // Update position
-  const updatePosition = (axis: 'x' | 'y', value: number) => {
+  const updatePosition = useCallback((axis: 'x' | 'y', value: number) => {
     if (!selectedComponent) return;
 
     const currentPosition = selectedComponent.position || { x: 0, y: 0 };
@@ -1250,7 +2010,7 @@ function PropertyPanel({
     onComponentUpdate(selectedComponent.id, {
       position: updatedPosition,
     });
-  };
+  }, [selectedComponent, onComponentUpdate]);
 
   // Render component-specific properties based on registry
   const renderComponentSpecificProperties = (registration: any) => {
@@ -1267,11 +2027,13 @@ function PropertyPanel({
     const propElements: React.ReactNode[] = [];
 
     Object.entries(registration.props).forEach(([propKey, propSchema]: [string, any]) => {
+
       // Skip universal styling props - they belong in the Style tab
       if (universalStyleProps.includes(propKey)) {
         return;
       }
-      const currentValue = selectedComponent.props?.[propKey];
+      const currentValue = getComponentProperty(selectedComponent, propKey);
+
       const isRequired = propSchema.required;
       const hasDefault = propSchema.default !== undefined;
 
@@ -1310,11 +2072,13 @@ function PropertyPanel({
           break;
 
         case 'number':
+          const numberValue = currentValue !== undefined ? Number(currentValue) : (propSchema.default || 0);
+
           propElements.push(
             <div key={propKey} style={{ marginBottom: '16px' }}>
               <SliderEditor
                 label={`${propKey.replace(/([A-Z])/g, ' $1').trim()}${isRequired ? ' *' : ''}`}
-                value={currentValue !== undefined ? Number(currentValue) : (propSchema.default || 0)}
+                value={numberValue}
                 onChange={(value) => updateProperty(propKey, value)}
                 min={propSchema.min || 0}
                 max={propSchema.max || 100}
@@ -1705,65 +2469,5 @@ function PropertyPanel({
   );
 }
 
-// Memoize PropertyPanel to prevent unnecessary re-renders
-// Custom comparison to prevent re-renders when props haven't meaningfully changed
-// IMPORTANT: Return true when props are EQUAL (to skip re-render), false when DIFFERENT
-export default React.memo(PropertyPanel, (prevProps, nextProps) => {
-  // Quick reference check - if the same object, definitely skip re-render
-  if (prevProps.selectedComponent === nextProps.selectedComponent &&
-      prevProps.onComponentUpdate === nextProps.onComponentUpdate &&
-      prevProps.canvasState === nextProps.canvasState) {
-    return true; // Exact same props, skip re-render
-  }
-
-  // Check if selectedComponent changed meaningfully
-  if (prevProps.selectedComponent?.id !== nextProps.selectedComponent?.id) {
-    return false; // Component ID changed, re-render needed
-  }
-
-  // Check if component props changed
-  if (prevProps.selectedComponent && nextProps.selectedComponent) {
-    const prevCompProps = prevProps.selectedComponent.props || {};
-    const nextCompProps = nextProps.selectedComponent.props || {};
-
-    // Deep comparison of props
-    const prevKeys = Object.keys(prevCompProps);
-    const nextKeys = Object.keys(nextCompProps);
-
-    if (prevKeys.length !== nextKeys.length) {
-      return false; // Props count changed, re-render needed
-    }
-
-    for (const key of prevKeys) {
-      // Deep comparison for objects like _size
-      const prevVal = prevCompProps[key];
-      const nextVal = nextCompProps[key];
-
-      if (typeof prevVal === 'object' && typeof nextVal === 'object' && prevVal !== null && nextVal !== null) {
-        if (JSON.stringify(prevVal) !== JSON.stringify(nextVal)) {
-          return false; // Object prop changed, re-render needed
-        }
-      } else if (prevVal !== nextVal) {
-        return false; // Primitive prop changed, re-render needed
-      }
-    }
-  }
-
-  // Check if onComponentUpdate reference changed (it shouldn't if properly memoized)
-  if (prevProps.onComponentUpdate !== nextProps.onComponentUpdate) {
-    return false; // Callback changed, re-render needed
-  }
-
-  // Check specific canvasState properties instead of the whole object
-  // Only check the properties that PropertyPanel actually uses
-  if (prevProps.canvasState.gridConfig !== nextProps.canvasState.gridConfig) {
-    return false; // Grid config changed, re-render needed
-  }
-
-  if (prevProps.canvasState.globalSettings !== nextProps.canvasState.globalSettings) {
-    return false; // Global settings changed, re-render needed
-  }
-
-  // If we get here, props are effectively the same - skip re-render
-  return true;
-});
+// EMERGENCY FIX: React.memo was blocking ALL updates - removed completely
+export default PropertyPanel;

@@ -1,6 +1,6 @@
 // Island detection for template compilation
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
-import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/template-registry';
+import { componentRegistry, validateAndCoerceProps, validateStandardizedProps } from '@/lib/templates/core/template-registry';
 import type { Island } from './types';
 
 // Generate unique island ID based on component type and path
@@ -248,14 +248,31 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           rawProps._positioning = positioningData;
         }
 
-        const props = validateAndCoerceProps(rawProps, registration.props, {
-          componentType: node.tagName,
-          hasChildren: childIslands.length > 0
-        });
+        // NEW: Check if this is a standardized component or legacy component
+        const componentInfo = componentRegistry.getAnyComponent(node.tagName);
+        let props: Record<string, unknown>;
 
-        // Debug: Check if positioning data survived validation
-        if (rawProps._positioning && !props._positioning) {
-          console.error('🚨 [ISLAND_DETECTOR] Positioning data was filtered out during prop validation!');
+        if (componentInfo?.type === 'standardized') {
+          // Handle standardized component with CSS property validation
+          props = validateStandardizedProps(rawProps, node.tagName);
+        } else if (componentInfo?.type === 'legacy') {
+          // Handle legacy component with old schema validation
+          props = validateAndCoerceProps(rawProps, componentInfo.registration.props, {
+            componentType: node.tagName,
+            hasChildren: childIslands.length > 0
+          });
+        } else {
+          // Fallback: try legacy validation (for backward compatibility)
+          const registration = componentRegistry.get(node.tagName);
+          if (registration) {
+            props = validateAndCoerceProps(rawProps, registration.props, {
+              componentType: node.tagName,
+              hasChildren: childIslands.length > 0
+            });
+          } else {
+            // Component not found in either registry
+            props = rawProps; // Use raw props as fallback
+          }
         }
 
         // Create island configuration with children
@@ -293,6 +310,50 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           if (node.properties['data-pixel-position'] || node.properties['dataPixelPosition']) {
             preservedProperties['data-pixel-position'] =
               node.properties['data-pixel-position'] || node.properties['dataPixelPosition'];
+          }
+
+          // NEW: Preserve CSS styling properties in static HTML placeholder
+          // This ensures CSS styling appears in both static HTML and hydrated components
+          const cssProperties = [
+            'backgroundColor', 'background-color', 'backgroundcolor',
+            'color', 'textColor', 'text-color', 'textcolor',
+            'fontSize', 'font-size', 'fontsize',
+            'fontFamily', 'font-family', 'fontfamily',
+            'fontWeight', 'font-weight', 'fontweight',
+            'textAlign', 'text-align', 'textalign',
+            'padding', 'margin',
+            'border', 'borderRadius', 'border-radius', 'borderradius',
+            'width', 'height', 'minWidth', 'min-width', 'minwidth',
+            'maxWidth', 'max-width', 'maxwidth', 'minHeight', 'min-height', 'minheight',
+            'maxHeight', 'max-height', 'maxheight',
+            'gap', 'rowGap', 'row-gap', 'rowgap', 'columnGap', 'column-gap', 'columngap',
+            'opacity', 'display', 'position', 'top', 'right', 'bottom', 'left', 'zIndex', 'z-index', 'zindex',
+            'gridTemplateColumns', 'grid-template-columns', 'gridtemplatecolumns',
+            'gridTemplateRows', 'grid-template-rows', 'gridtemplaterows',
+            'justifyContent', 'justify-content', 'justifycontent',
+            'alignItems', 'align-items', 'alignitems',
+            'flexDirection', 'flex-direction', 'flexdirection'
+          ];
+
+          // Build inline style string from CSS properties
+          const styleValues: string[] = [];
+
+          for (const cssProp of cssProperties) {
+            const value = node.properties[cssProp];
+            if (value && typeof value === 'string') {
+              // Convert camelCase to kebab-case for CSS
+              const cssProperty = cssProp
+                .replace(/([A-Z])/g, '-$1')
+                .toLowerCase()
+                .replace(/^-/, ''); // Remove leading dash
+
+              styleValues.push(`${cssProperty}: ${value}`);
+            }
+          }
+
+          // Apply styles to placeholder if any CSS properties were found
+          if (styleValues.length > 0) {
+            preservedProperties['style'] = styleValues.join('; ');
           }
         }
 

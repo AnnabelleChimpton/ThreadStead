@@ -17,6 +17,7 @@ import {
   getComponentSizingCategory,
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
+import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
 // Extended Island type with htmlStructure for runtime rendering
 interface ExtendedIsland extends Island {
@@ -485,15 +486,44 @@ function StaticHTMLWithIslands({
                 // PROPS-BASED POSITIONING: Get positioning data directly from island props
                 const positioningData = island.props._positioning;
 
+                // CRITICAL FIX: Add CSS properties to the style prop for legacy components
+                // while keeping them as flat props for standardized components
+                //
+                // Legacy components (Heading, TextElement) expect CSS in 'style' prop
+                // Standardized components (GridLayout, Paragraph) use separateCSSProps internally
+                const { cssProps, componentProps: otherProps } = separateCSSProps(island.props);
+                const generatedStyles = applyCSSProps(cssProps);
+
+                // Merge with existing style prop (user may have custom styles in the style prop)
+                const existingStyle = (island.props.style as React.CSSProperties) || {};
+                const finalStyles = {
+                  ...existingStyle,
+                  ...generatedStyles
+                };
+
+                // Debug logging for CSS prop conversion
+                if (Object.keys(cssProps).length > 0 && process.env.NODE_ENV === 'development') {
+                  console.log(`🎨 [ProfileRenderer] Converting CSS props for ${island.component}:`, {
+                    componentId: island.id,
+                    extractedCSS: cssProps,
+                    generatedStyles: generatedStyles
+                  });
+                }
 
                 // Create base component with props and set positioning mode
-                const componentProps = { ...island.props };
-
+                // KEEP both flat CSS props AND merged style for compatibility:
+                // - Standardized components will use separateCSSProps and ignore flat CSS props
+                // - Legacy components will use the style prop
+                const componentProps: any = {
+                  ...island.props, // Keep all original props including flat CSS props
+                  style: finalStyles // Add/override with merged styles for legacy components
+                };
 
                 // Set positioning mode for components that have positioning data
                 if (positioningData) {
                   componentProps._positioningMode = 'absolute';
                 }
+
                 const renderedElement = (
                   <ResidentDataProvider key={island.id} data={residentData}>
                     <Component
@@ -504,12 +534,17 @@ function StaticHTMLWithIslands({
                   </ResidentDataProvider>
                 );
 
-                // Apply positioning if present - handle both old and new formats
+                // Apply positioning if present - handle legacy, simple absolute, and responsive formats
                 // CRITICAL FIX: Only apply positioning wrapper to top-level components
                 // Nested components should render naturally within their parent containers
+
+                // Check for ResponsivePosition format (has breakpoints property)
+                const isResponsivePosition = positioningData && 'breakpoints' in positioningData;
+
                 const shouldApplyPositioning = !isNestedComponent && positioningData && (
-                  positioningData.mode === 'absolute' ||  // Old format
-                  positioningData.isResponsive === false  // New pure positioning format
+                  positioningData.mode === 'absolute' ||    // Old format
+                  positioningData.isResponsive === false || // Simple absolute format
+                  isResponsivePosition                      // PHASE 4.2: Responsive format
                 );
 
                 if (shouldApplyPositioning) {
@@ -523,17 +558,39 @@ function StaticHTMLWithIslands({
                     return 0;
                   };
 
+                  // PHASE 4.2: Extract position data based on format
+                  let effectivePosition: { x: number; y: number; zIndex?: number };
+
+                  if (isResponsivePosition) {
+                    // ResponsivePosition format: use desktop breakpoint position
+                    // Note: For Phase 4.2, we default to desktop. Future phases may use CSS media queries
+                    // or client-side breakpoint detection for truly responsive positioning
+                    const breakpointData = positioningData.breakpoints.desktop;
+                    effectivePosition = {
+                      x: parsePositionValue(breakpointData.x),
+                      y: parsePositionValue(breakpointData.y),
+                      zIndex: breakpointData.zIndex
+                    };
+                  } else {
+                    // Legacy or simple absolute format
+                    effectivePosition = {
+                      x: parsePositionValue(positioningData.x),
+                      y: parsePositionValue(positioningData.y),
+                      zIndex: positioningData.zIndex
+                    };
+                  }
+
                   // Smart sizing detection based on component type
                   const componentType = island.component.toLowerCase();
 
                   // FIXED: Remove forced width/height constraints - let components size naturally
                   const containerStyle: React.CSSProperties = {
                     position: 'absolute',
-                    left: `${parsePositionValue(positioningData.x)}px`,
-                    top: `${parsePositionValue(positioningData.y)}px`,
+                    left: `${effectivePosition.x}px`,
+                    top: `${effectivePosition.y}px`,
                     zIndex: componentType === 'threadsteadnavigation'
                       ? 999998  // Navigation gets highest z-index so dropdowns render above other components
-                      : (positioningData.zIndex || 1)
+                      : (effectivePosition.zIndex || 1)
                     // Removed forced width/height - components will use their natural size
                   };
 

@@ -210,8 +210,9 @@ function getGuideDashArray(strength: 'strong' | 'medium' | 'weak'): string {
 
 /**
  * Get snap point color based on type
+ * PHASE 4.3: Added 'css-grid' type for CSS Grid snapping
  */
-function getSnapPointColor(type: 'edge' | 'center' | 'grid' | 'spacing'): string {
+function getSnapPointColor(type: 'edge' | 'center' | 'grid' | 'spacing' | 'css-grid'): string {
   switch (type) {
     case 'edge':
       return '#3B82F6'; // Blue for edge snaps
@@ -219,6 +220,8 @@ function getSnapPointColor(type: 'edge' | 'center' | 'grid' | 'spacing'): string
       return '#10B981'; // Green for center snaps
     case 'grid':
       return '#8B5CF6'; // Purple for grid snaps
+    case 'css-grid':
+      return '#22C55E'; // Green for CSS Grid snaps (Phase 4.3)
     case 'spacing':
       return '#F59E0B'; // Orange for spacing snaps
     default:

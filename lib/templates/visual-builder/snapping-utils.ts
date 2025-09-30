@@ -6,7 +6,7 @@
 export interface SnapPoint {
   x?: number;
   y?: number;
-  type: 'edge' | 'center' | 'grid' | 'spacing';
+  type: 'edge' | 'center' | 'grid' | 'spacing' | 'css-grid';
   componentId?: string;
   edge?: 'left' | 'right' | 'top' | 'bottom' | 'center-x' | 'center-y';
 
@@ -17,6 +17,14 @@ export interface SnapPoint {
     value: number; // spacing distance
     direction: 'horizontal' | 'vertical';
     referenceComponent?: string; // component this spacing relates to
+  };
+
+  // PHASE 4.3: CSS Grid snapping properties
+  cssGrid?: {
+    gridId: string; // ID of the Grid component
+    column?: number; // Grid column number (1-indexed)
+    row?: number; // Grid row number (1-indexed)
+    type: 'column-line' | 'row-line' | 'cell-start' | 'cell-end';
   };
 }
 
@@ -273,6 +281,193 @@ export class SmartSnapping {
     }
 
     return snapPoints;
+  }
+
+  /**
+   * PHASE 4.3: Generate CSS Grid snap points for Grid components
+   * Parses CSS Grid template and generates snap points for grid lines and cells
+   */
+  generateCSSGridSnapPoints(gridComponents: Array<{
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    props?: any;
+  }>): SnapPoint[] {
+    const snapPoints: SnapPoint[] = [];
+
+    gridComponents.forEach(gridComponent => {
+      const props = gridComponent.props || {};
+
+      // Get grid template values
+      const gridTemplateColumns = props.gridTemplateColumns ||
+                                   (props.columns ? `repeat(${props.columns}, 1fr)` : 'repeat(3, 1fr)');
+      const gridTemplateRows = props.gridTemplateRows || 'auto';
+      const gap = parseInt(props.gap || '1rem', 10) || 16;
+
+      // Parse grid tracks (simplified version of CSSGridOverlay parsing)
+      const columnTracks = this.parseCSSGridTemplate(gridTemplateColumns);
+      const rowTracks = this.parseCSSGridTemplate(gridTemplateRows);
+
+      // Calculate track positions
+      const columnPositions = this.calculateGridTrackPositions(
+        columnTracks,
+        gridComponent.width,
+        gap
+      );
+      const rowPositions = this.calculateGridTrackPositions(
+        rowTracks,
+        gridComponent.height,
+        gap
+      );
+
+      // Generate column line snap points
+      columnPositions.forEach((pos, index) => {
+        snapPoints.push({
+          x: gridComponent.x + pos.position,
+          type: 'css-grid',
+          componentId: gridComponent.id,
+          priority: 8, // High priority for CSS Grid lines
+          magneticPull: 0.75,
+          cssGrid: {
+            gridId: gridComponent.id,
+            column: pos.lineNumber,
+            type: 'column-line'
+          }
+        });
+      });
+
+      // Generate row line snap points
+      rowPositions.forEach((pos, index) => {
+        snapPoints.push({
+          y: gridComponent.y + pos.position,
+          type: 'css-grid',
+          componentId: gridComponent.id,
+          priority: 8, // High priority for CSS Grid lines
+          magneticPull: 0.75,
+          cssGrid: {
+            gridId: gridComponent.id,
+            row: pos.lineNumber,
+            type: 'row-line'
+          }
+        });
+      });
+    });
+
+    return snapPoints;
+  }
+
+  /**
+   * PHASE 4.3: Parse CSS Grid template into tracks (simplified)
+   */
+  private parseCSSGridTemplate(template: string): Array<{ size: number; type: string; value: string }> {
+    if (!template) return [{ size: 1, type: 'fr', value: '1fr' }];
+
+    // Handle repeat() syntax
+    if (template.includes('repeat(')) {
+      const repeatMatch = template.match(/repeat\((\d+),\s*([^)]+)\)/);
+      if (repeatMatch) {
+        const count = parseInt(repeatMatch[1], 10);
+        const trackValue = repeatMatch[2].trim();
+        const tracks = [];
+        for (let i = 0; i < count; i++) {
+          tracks.push(this.parseTrackValue(trackValue));
+        }
+        return tracks;
+      }
+    }
+
+    // Split by spaces
+    const parts = template.split(/\s+/);
+    return parts.map(part => this.parseTrackValue(part));
+  }
+
+  /**
+   * PHASE 4.3: Parse individual track value
+   */
+  private parseTrackValue(value: string): { size: number; type: string; value: string } {
+    if (value.endsWith('fr')) {
+      return { size: parseFloat(value), type: 'fr', value };
+    }
+    if (value.endsWith('px')) {
+      return { size: parseInt(value, 10), type: 'px', value };
+    }
+    if (value.endsWith('%')) {
+      return { size: parseInt(value, 10), type: '%', value };
+    }
+    if (value === 'auto') {
+      return { size: 100, type: 'auto', value };
+    }
+    return { size: 1, type: 'fr', value: '1fr' };
+  }
+
+  /**
+   * PHASE 4.3: Calculate pixel positions for grid tracks
+   */
+  private calculateGridTrackPositions(
+    tracks: Array<{ size: number; type: string; value: string }>,
+    containerSize: number,
+    gap: number
+  ): Array<{ position: number; lineNumber: number }> {
+    const positions = [{ position: 0, lineNumber: 1 }];
+
+    // Calculate total fr units
+    const totalFr = tracks
+      .filter(t => t.type === 'fr')
+      .reduce((sum, t) => sum + t.size, 0);
+
+    // Calculate fixed space
+    const totalGaps = (tracks.length - 1) * gap;
+    let fixedSpace = totalGaps;
+
+    tracks.forEach(track => {
+      if (track.type === 'px') {
+        fixedSpace += track.size;
+      } else if (track.type === '%') {
+        fixedSpace += (track.size / 100) * containerSize;
+      } else if (track.type === 'auto') {
+        fixedSpace += 100; // Estimated
+      }
+    });
+
+    // Remaining space for fr units
+    const frSpace = Math.max(0, containerSize - fixedSpace);
+    const frUnitSize = totalFr > 0 ? frSpace / totalFr : 0;
+
+    // Calculate each track position
+    let currentPosition = 0;
+
+    tracks.forEach((track, index) => {
+      let trackSize = 0;
+
+      switch (track.type) {
+        case 'fr':
+          trackSize = track.size * frUnitSize;
+          break;
+        case 'px':
+          trackSize = track.size;
+          break;
+        case '%':
+          trackSize = (track.size / 100) * containerSize;
+          break;
+        case 'auto':
+          trackSize = 100; // Estimated
+          break;
+      }
+
+      currentPosition += trackSize;
+      if (index < tracks.length - 1) {
+        currentPosition += gap;
+      }
+
+      positions.push({
+        position: currentPosition,
+        lineNumber: index + 2
+      });
+    });
+
+    return positions;
   }
 
   /**
@@ -561,13 +756,15 @@ export class SmartSnapping {
 
   /**
    * Enhanced calculate snapping with magnetic zones and spacing detection
+   * PHASE 4.3: Added gridComponents parameter for CSS Grid snapping
    */
   calculateSnap(
     movingComponent: { x: number; y: number; width: number; height: number },
     otherComponents: Array<{ id: string; x: number; y: number; width: number; height: number }>,
     canvasWidth: number = 1200,
     canvasHeight: number = 800,
-    currentBreakpoint?: any
+    currentBreakpoint?: any,
+    gridComponents?: Array<{ id: string; x: number; y: number; width: number; height: number; props?: any }>
   ): SnapResult {
     // Input validation
     if (!this.config.enabled || !movingComponent || !otherComponents) {
@@ -617,6 +814,11 @@ export class SmartSnapping {
     // Spacing snap points
     if (this.config.spacingDetection && validComponents.length > 0) {
       allSnapPoints.push(...this.generateSpacingSnapPoints(movingComponent, validComponents));
+    }
+
+    // PHASE 4.3: CSS Grid snap points
+    if (gridComponents && gridComponents.length > 0) {
+      allSnapPoints.push(...this.generateCSSGridSnapPoints(gridComponents));
     }
 
     // Enhanced snap candidate processing with magnetic zones and priority

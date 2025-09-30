@@ -100,8 +100,15 @@ export function deepEqualsComponent(comp1: ComponentItem, comp2: ComponentItem):
   // Check grid position
   if (!deepEqualsObject(comp1.gridPosition, comp2.gridPosition)) return false;
 
-  // Check props (most important for our use case)
+  // Check props (legacy structure - most important for our use case)
   if (!deepEqualsComponentProps(comp1.props, comp2.props)) return false;
+
+  // CRITICAL FIX: Check publicProps (new standardized structure)
+  // This was missing and prevented CSS property changes from triggering HTML regeneration!
+  if (!deepEqualsComponentProps(comp1.publicProps, comp2.publicProps)) return false;
+
+  // Check visualBuilderState for internal changes (like selection, locking)
+  if (!deepEqualsObject(comp1.visualBuilderState, comp2.visualBuilderState)) return false;
 
   // Check children
   if (!deepEqualsComponentArray(comp1.children, comp2.children)) return false;
@@ -137,17 +144,27 @@ export function deepEqualsComponentArray(
  */
 export function wouldComponentChange(
   component: ComponentItem,
-  updates: Partial<ComponentItem>
+  updates: Partial<Omit<ComponentItem, 'visualBuilderState'>> & { visualBuilderState?: Partial<import('@/hooks/useCanvasState').VisualBuilderComponentState> }
 ): boolean {
   // Create the hypothetical updated component
+  const { visualBuilderState: updatedVisualBuilderState, ...otherUpdates } = updates;
   const updatedComponent: ComponentItem = {
     ...component,
-    ...updates
+    ...otherUpdates
   };
 
   // Handle props merging specially
   if (updates.props && component.props) {
     updatedComponent.props = { ...component.props, ...updates.props };
+  }
+
+  // Handle visualBuilderState merging specially
+  if (updatedVisualBuilderState && component.visualBuilderState) {
+    updatedComponent.visualBuilderState = {
+      ...component.visualBuilderState,
+      ...updatedVisualBuilderState,
+      lastModified: Date.now()
+    };
   }
 
   // Compare with original

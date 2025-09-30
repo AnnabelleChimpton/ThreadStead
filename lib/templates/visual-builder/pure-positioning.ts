@@ -282,9 +282,28 @@ export class PositioningMigration {
   static convertLegacyComponent(legacyComponent: any): AbsoluteComponent {
     let positioning: ComponentPositioning;
 
-    if (legacyComponent.positioningMode === 'absolute' && legacyComponent.position) {
+    // PHASE 4.2: Check for responsive positioning first
+    if (legacyComponent.responsivePositions && (legacyComponent.responsivePositions.tablet || legacyComponent.responsivePositions.mobile)) {
+      // Component has responsive positioning - create ResponsivePosition
+      const size = legacyComponent.visualBuilderState?.size || legacyComponent.props?._size || { width: 200, height: 150 };
+      const desktopPos = {
+        x: legacyComponent.position.x,
+        y: legacyComponent.position.y,
+        width: size.width,
+        height: size.height
+      };
+
+      positioning = {
+        breakpoints: {
+          desktop: desktopPos,
+          tablet: legacyComponent.responsivePositions.tablet || desktopPos,
+          mobile: legacyComponent.responsivePositions.mobile || desktopPos
+        },
+        scalingBehavior: 'fixed'
+      };
+    } else if (legacyComponent.positioningMode === 'absolute' && legacyComponent.position) {
       // Convert legacy absolute positioning
-      const size = legacyComponent.props?._size || { width: 200, height: 150 };
+      const size = legacyComponent.visualBuilderState?.size || legacyComponent.props?._size || { width: 200, height: 150 };
       positioning = AbsolutePositioningUtils.createSimplePosition(
         legacyComponent.position.x,
         legacyComponent.position.y,
@@ -309,14 +328,21 @@ export class PositioningMigration {
       positioning = AbsolutePositioningUtils.createSimplePosition(0, 0, 200, 150);
     }
 
+    // CRITICAL FIX: Merge both props and publicProps for HTML generation
+    // This ensures CSS properties set in PropertyPanel are persisted to templates
+    const mergedProps = {
+      ...(legacyComponent.props || {}),
+      ...(legacyComponent.publicProps || {})  // publicProps take precedence for CSS properties
+    };
+
     return {
       id: legacyComponent.id,
       type: legacyComponent.type,
-      props: legacyComponent.props || {},
+      props: mergedProps, // Use merged props instead of just legacy props
       positioning,
-      children: legacyComponent.children?.map(this.convertLegacyComponent) || [],
-      locked: legacyComponent.props?._locked,
-      hidden: legacyComponent.props?._hidden
+      children: legacyComponent.children?.map(PositioningMigration.convertLegacyComponent) || [],
+      locked: legacyComponent.props?._locked || legacyComponent.visualBuilderState?.isLocked,
+      hidden: legacyComponent.props?._hidden || legacyComponent.visualBuilderState?.isHidden
     };
   }
 }

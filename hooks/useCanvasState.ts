@@ -17,6 +17,7 @@ import {
 import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/template-registry';
 import type { GlobalSettings } from '@/components/features/templates/visual-builder/GlobalSettingsPanel';
 import { deepEqualsComponent, wouldComponentChange, optimizeComponentArrayUpdate } from '@/lib/templates/visual-builder/component-equality';
+import { StandardComponentProps } from '@/lib/templates/core/standard-component-interface';
 
 // Component group for organizing multiple components
 export interface ComponentGroup {
@@ -29,20 +30,54 @@ export interface ComponentGroup {
   createdAt: number;      // Timestamp for sorting
 }
 
-// Enhanced component item with grid and absolute positioning support
+// Visual Builder internal state for components
+export interface VisualBuilderComponentState {
+  isSelected: boolean;
+  isLocked: boolean;
+  isHidden: boolean;
+  groupId?: string;
+  size?: { width: number; height: number };
+  lastModified: number;
+  // Track whether specific props have been explicitly set by user
+  hasUserSetColumns?: boolean;
+  // Legacy props support during migration
+  legacyProps?: Record<string, any>;
+}
+
+// Responsive position data for a single breakpoint
+export interface ResponsivePositionData {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// Enhanced component item with separated public/internal props
 export interface ComponentItem {
   id: string;
   type: string;
-  position: { x: number; y: number }; // Absolute positioning (pixels)
+  position: { x: number; y: number }; // Absolute positioning (pixels) - Desktop default
   gridPosition?: {
     column: number;     // Starting column (1-based)
     span: number;       // Number of columns to span
     row: number;        // Row position (1-based)
   };
   positioningMode: 'absolute' | 'grid';
-  props?: Record<string, any>;  // ALL component properties go here, including size, locked, hidden, etc.
+
+  // NEW: Responsive positioning support
+  responsivePositions?: {
+    tablet?: ResponsivePositionData;
+    mobile?: ResponsivePositionData;
+  };
+
+  // NEW: Separated prop structure for standardization
+  publicProps: StandardComponentProps;        // Only public component props
+  visualBuilderState: VisualBuilderComponentState;  // Internal VB state
+
   children?: ComponentItem[];   // Child components for parent-child relationships
-  groupId?: string;             // ID of group this component belongs to
+
+  // Backward compatibility support
+  props?: Record<string, any>;  // DEPRECATED: Will be migrated to publicProps
 }
 
 // Enhanced grid configuration for responsive canvas
@@ -87,11 +122,18 @@ export interface UseCanvasStateResult {
   updateComponent: (id: string, updates: Partial<ComponentItem>) => void;
   updateComponentPosition: (id: string, position: { x: number; y: number }) => void;
   updateComponentGridPosition: (id: string, gridPosition: { column: number; span: number; row: number }) => void;
+  // PHASE 4.2: Breakpoint-aware position update
+  updatePositionForActiveBreakpoint: (id: string, position: { x: number; y: number }, activeBreakpoint: 'desktop' | 'tablet' | 'mobile') => void;
 
   // Resize operations
   updateComponentSize: (id: string, size: { width: number; height: number }) => void;
   updateComponentGridSpan: (id: string, span: number) => void;
   resizeComponent: (id: string, size: { width: number; height: number }, position?: { x: number; y: number }) => void;
+
+  // NEW: Responsive positioning operations
+  updateResponsivePosition: (id: string, breakpoint: 'tablet' | 'mobile', position: ResponsivePositionData) => void;
+  getEffectivePosition: (component: ComponentItem, breakpoint: 'desktop' | 'tablet' | 'mobile') => { x: number; y: number; width: number; height: number };
+  copyPositionToBreakpoint: (id: string, fromBreakpoint: 'desktop' | 'tablet' | 'mobile', toBreakpoint: 'tablet' | 'mobile') => void;
 
   // Child component management
   addChildComponent: (parentId: string, child: ComponentItem) => void;
@@ -134,6 +176,91 @@ export interface UseCanvasStateResult {
 
   // Canvas operations
   resetCanvas: () => void;
+
+  // NEW: Component prop migration utilities
+  migrateComponentProps: (component: ComponentItem) => ComponentItem;
+  ensureComponentPropsStructure: (component: Partial<ComponentItem>) => ComponentItem;
+}
+
+/**
+ * Utility functions for component prop migration
+ */
+
+// Migrate component from old props format to new separated format
+function migrateComponentToNewFormat(component: ComponentItem): ComponentItem {
+  // If component already has new format, return as-is
+  if (component.publicProps && component.visualBuilderState) {
+    return component;
+  }
+
+  // If component has old props format, migrate it
+  if (component.props) {
+    // Extract Visual Builder specific props
+    const {
+      _isInVisualBuilder,
+      _positioningMode,
+      _size,
+      _locked,
+      _hidden,
+      _onContentChange,
+      _isSelected,
+      groupId,
+      // Remove internal props from public props
+      ...publicProps
+    } = component.props;
+
+    // Create new format
+    const migratedComponent: ComponentItem = {
+      ...component,
+      publicProps: publicProps as StandardComponentProps,
+      visualBuilderState: {
+        isSelected: _isSelected || false,
+        isLocked: _locked || false,
+        isHidden: _hidden || false,
+        groupId: groupId || component.visualBuilderState?.groupId,
+        size: _size,
+        lastModified: Date.now(),
+        legacyProps: component.props // Keep original for backward compatibility
+      },
+      // Remove old props field
+      props: undefined
+    };
+
+    return migratedComponent;
+  }
+
+  // If no props at all, create minimal structure
+  return {
+    ...component,
+    publicProps: {},
+    visualBuilderState: {
+      isSelected: false,
+      isLocked: false,
+      isHidden: false,
+      lastModified: Date.now()
+    }
+  };
+}
+
+// Ensure component has the required prop structure (for new components)
+function ensureComponentHasPropsStructure(component: Partial<ComponentItem>): ComponentItem {
+  const now = Date.now();
+
+  return {
+    id: component.id || `comp-${now}`,
+    type: component.type || 'Unknown',
+    position: component.position || { x: 0, y: 0 },
+    positioningMode: component.positioningMode || 'absolute',
+    publicProps: component.publicProps || {},
+    visualBuilderState: component.visualBuilderState || {
+      isSelected: false,
+      isLocked: false,
+      isHidden: false,
+      lastModified: now
+    },
+    children: component.children || [],
+    ...component
+  };
 }
 
 /**
@@ -247,42 +374,53 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
 
   // Enhanced component operations with auto-spanning support
   const addComponent = useCallback((component: ComponentItem) => {
+    // NEW: Ensure component has proper prop structure
+    let processedComponent = ensureComponentHasPropsStructure(component);
+
+    // Migrate any legacy props to new format
+    processedComponent = migrateComponentToNewFormat(processedComponent);
 
     // Ensure component has an ID and positioning mode
-    if (!component.id) {
-      component = { ...component, id: `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` };
+    if (!processedComponent.id) {
+      processedComponent = {
+        ...processedComponent,
+        id: `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      };
     }
 
     // Always use grid positioning for consistency
-    component = { ...component, positioningMode: 'grid' };
+    processedComponent = { ...processedComponent, positioningMode: 'grid' };
 
     // Apply default props from registry for any missing props
-    const registration = componentRegistry.get(component.type);
+    const registration = componentRegistry.get(processedComponent.type);
     if (registration) {
-      const currentProps = component.props || {};
-      const defaultProps = validateAndCoerceProps(currentProps, registration.props, {
+      // For backward compatibility, still validate against legacy props if they exist
+      const currentProps = processedComponent.visualBuilderState.legacyProps || processedComponent.publicProps;
+      const defaultProps = validateAndCoerceProps(currentProps as Record<string, unknown>, registration.props, {
         hasChildren: false,
-        componentType: component.type
+        componentType: processedComponent.type
       });
-      component = {
-        ...component,
-        props: defaultProps
+
+      // Update public props with validated/defaulted values
+      processedComponent = {
+        ...processedComponent,
+        publicProps: { ...processedComponent.publicProps, ...defaultProps }
       };
     }
 
     // Enhanced grid positioning with auto-spanning
-    if (component.positioningMode === 'grid') {
-      if (!component.gridPosition) {
-        const { column, row } = pixelToGrid(component.position.x, component.position.y);
+    if (processedComponent.positioningMode === 'grid') {
+      if (!processedComponent.gridPosition) {
+        const { column, row } = pixelToGrid(processedComponent.position.x, processedComponent.position.y);
 
         // Use auto-spanning if enabled
         let span = 1;
         if (gridConfig.autoSpanning) {
-          span = getOptimalSpan(component.type, gridConfig.currentBreakpoint.name, gridConfig.columns);
+          span = getOptimalSpan(processedComponent.type, gridConfig.currentBreakpoint.name, gridConfig.columns);
         }
 
-        component = {
-          ...component,
+        processedComponent = {
+          ...processedComponent,
           gridPosition: { column, row, span }
         };
       }
@@ -290,7 +428,7 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
 
     // Update the placed components state
     setPlacedComponents(prevComponents => {
-      const updatedComponents = [...prevComponents, component];
+      const updatedComponents = [...prevComponents, processedComponent];
       return updatedComponents;
     });
 
@@ -312,27 +450,81 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
   }, []); // No dependencies to avoid stale closures
 
   // Optimized helper function to update component by ID (including children)
-  const updateComponentRecursively = (components: ComponentItem[], targetId: string, updates: Partial<ComponentItem>): ComponentItem[] => {
+  const updateComponentRecursively = (components: ComponentItem[], targetId: string, updates: Partial<Omit<ComponentItem, 'visualBuilderState'>> & { visualBuilderState?: Partial<VisualBuilderComponentState> }): ComponentItem[] => {
     let hasChanges = false;
 
     const newComponents = components.map(component => {
       if (component.id === targetId) {
-        // Found the target component - check if update would actually change it
-        if (!wouldComponentChange(component, updates)) {
-          // No actual change needed, return original component
-          return component;
+        // EMERGENCY FIX: wouldComponentChange is blocking all updates!
+        // Temporarily disable this check to restore functionality
+        // EMERGENCY FIX: wouldComponentChange was blocking all updates
+
+        // NEW: Handle both old and new prop structures during migration
+        const { visualBuilderState: updatedVisualBuilderState, ...otherUpdates } = updates;
+        let updatedComponent: ComponentItem = { ...component, ...otherUpdates };
+
+        // Update legacy props if provided (for backward compatibility)
+        if (updates.props) {
+          if (component.props) {
+            updatedComponent.props = { ...component.props, ...updates.props };
+          } else {
+            updatedComponent.props = updates.props;
+          }
+
+          // Check if columns prop was updated for GridLayout components and set tracking flag
+          if (component.type === 'GridLayout' && 'columns' in updates.props) {
+            if (!updatedComponent.visualBuilderState) {
+              updatedComponent.visualBuilderState = {
+                isSelected: false,
+                isLocked: false,
+                isHidden: false,
+                lastModified: Date.now(),
+                hasUserSetColumns: true
+              };
+            } else {
+              updatedComponent.visualBuilderState = {
+                ...updatedComponent.visualBuilderState,
+                hasUserSetColumns: true,
+                lastModified: Date.now()
+              };
+            }
+          }
         }
 
-        // Create updated component
-        let updatedComponent: ComponentItem;
-        if (updates.props && component.props) {
-          updatedComponent = {
-            ...component,
-            ...updates,
-            props: { ...component.props, ...updates.props }
+        // Update new public props structure
+        if (updates.publicProps) {
+          updatedComponent.publicProps = {
+            ...component.publicProps,
+            ...updates.publicProps
           };
-        } else {
-          updatedComponent = { ...component, ...updates };
+
+          // Check if columns prop was updated for GridLayout components and set tracking flag
+          if (component.type === 'GridLayout' && 'columns' in updates.publicProps) {
+            if (!updatedComponent.visualBuilderState) {
+              updatedComponent.visualBuilderState = {
+                isSelected: false,
+                isLocked: false,
+                isHidden: false,
+                lastModified: Date.now(),
+                hasUserSetColumns: true
+              };
+            } else {
+              updatedComponent.visualBuilderState = {
+                ...updatedComponent.visualBuilderState,
+                hasUserSetColumns: true,
+                lastModified: Date.now()
+              };
+            }
+          }
+        }
+
+        // Update visual builder state
+        if (updatedVisualBuilderState) {
+          updatedComponent.visualBuilderState = {
+            ...component.visualBuilderState,
+            ...updatedVisualBuilderState,
+            lastModified: Date.now()
+          };
         }
 
         hasChanges = true;
@@ -382,6 +574,40 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
       return prevComponents.map(comp =>
         comp.id === id ? { ...comp, gridPosition } : comp
       );
+    });
+  }, []);
+
+  // PHASE 4.2: Breakpoint-aware position update for drag/drop
+  const updatePositionForActiveBreakpoint = useCallback((
+    id: string,
+    position: { x: number; y: number },
+    activeBreakpoint: 'desktop' | 'tablet' | 'mobile'
+  ) => {
+    setPlacedComponents(prevComponents => {
+      return prevComponents.map(comp => {
+        if (comp.id === id) {
+          if (activeBreakpoint === 'desktop') {
+            // Update desktop position
+            return { ...comp, position };
+          } else {
+            // Update responsive position for tablet/mobile
+            const currentSize = comp.visualBuilderState?.size || { width: 200, height: 100 };
+            return {
+              ...comp,
+              responsivePositions: {
+                ...comp.responsivePositions,
+                [activeBreakpoint]: {
+                  x: position.x,
+                  y: position.y,
+                  width: currentSize.width,
+                  height: currentSize.height
+                }
+              }
+            };
+          }
+        }
+        return comp;
+      });
     });
   }, []);
 
@@ -534,8 +760,8 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
   const deleteGroup = useCallback((groupId: string) => {
     // Remove group reference from components
     setPlacedComponents(prev => prev.map(comp =>
-      comp.groupId === groupId
-        ? { ...comp, groupId: undefined }
+      comp.visualBuilderState?.groupId === groupId
+        ? { ...comp, visualBuilderState: { ...comp.visualBuilderState, groupId: undefined } }
         : comp
     ));
 
@@ -604,9 +830,9 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
 
   const getComponentGroup = useCallback((componentId: string): ComponentGroup | undefined => {
     const component = placedComponents.find(comp => comp.id === componentId);
-    if (!component?.groupId) return undefined;
+    if (!component?.visualBuilderState?.groupId) return undefined;
 
-    return componentGroups.find(group => group.id === component.groupId);
+    return componentGroups.find(group => group.id === component.visualBuilderState.groupId);
   }, [placedComponents, componentGroups]);
 
   // Child component management methods
@@ -723,6 +949,18 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
   const updateComponentSize = useCallback((id: string, size: { width: number; height: number }) => {
     setPlacedComponents(prev => {
       return updateComponentRecursively(prev, id, {
+        // NEW: Update visual builder state for size
+        visualBuilderState: {
+          isSelected: false, // Will be merged with existing state
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now(),
+          size: {
+            width: size.width,
+            height: size.height
+          }
+        },
+        // Keep legacy props for backward compatibility
         props: {
           _size: {
             width: size.width,
@@ -757,6 +995,13 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
   ) => {
     setPlacedComponents(prev => {
       return updateComponentRecursively(prev, id, {
+        visualBuilderState: {
+          size: {
+            width: size.width,
+            height: size.height
+          }
+        },
+        // DEPRECATED: Also update props for backward compatibility
         props: {
           _size: {
             width: size.width,
@@ -767,6 +1012,64 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
       });
     });
   }, []);
+
+  // NEW: Responsive positioning operations
+  const updateResponsivePosition = useCallback((id: string, breakpoint: 'tablet' | 'mobile', position: ResponsivePositionData) => {
+    setPlacedComponents(prev => prev.map(comp => {
+      if (comp.id === id) {
+        return {
+          ...comp,
+          responsivePositions: {
+            ...comp.responsivePositions,
+            [breakpoint]: position
+          }
+        };
+      }
+      return comp;
+    }));
+  }, []);
+
+  const getEffectivePosition = useCallback((component: ComponentItem, breakpoint: 'desktop' | 'tablet' | 'mobile'): { x: number; y: number; width: number; height: number } => {
+    // Desktop always uses the main position
+    if (breakpoint === 'desktop') {
+      return {
+        x: component.position.x,
+        y: component.position.y,
+        width: component.visualBuilderState.size?.width || 200,
+        height: component.visualBuilderState.size?.height || 100
+      };
+    }
+
+    // Tablet/mobile: use responsive position if set, otherwise fall back to desktop
+    const responsivePos = component.responsivePositions?.[breakpoint];
+    if (responsivePos) {
+      return responsivePos;
+    }
+
+    // Fallback to desktop position
+    return {
+      x: component.position.x,
+      y: component.position.y,
+      width: component.visualBuilderState.size?.width || 200,
+      height: component.visualBuilderState.size?.height || 100
+    };
+  }, []);
+
+  const copyPositionToBreakpoint = useCallback((id: string, fromBreakpoint: 'desktop' | 'tablet' | 'mobile', toBreakpoint: 'tablet' | 'mobile') => {
+    setPlacedComponents(prev => prev.map(comp => {
+      if (comp.id === id) {
+        const sourcePosition = getEffectivePosition(comp, fromBreakpoint);
+        return {
+          ...comp,
+          responsivePositions: {
+            ...comp.responsivePositions,
+            [toBreakpoint]: sourcePosition
+          }
+        };
+      }
+      return comp;
+    }));
+  }, [getEffectivePosition]);
 
   return {
     // State
@@ -796,11 +1099,17 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
     updateComponent,
     updateComponentPosition,
     updateComponentGridPosition,
+    updatePositionForActiveBreakpoint,
 
     // Resize operations
     updateComponentSize,
     updateComponentGridSpan,
     resizeComponent,
+
+    // Responsive positioning operations
+    updateResponsivePosition,
+    getEffectivePosition,
+    copyPositionToBreakpoint,
 
     // Child management
     addChildComponent,
@@ -843,5 +1152,9 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
 
     // Canvas
     resetCanvas,
+
+    // NEW: Component prop migration utilities
+    migrateComponentProps: migrateComponentToNewFormat,
+    ensureComponentPropsStructure: ensureComponentHasPropsStructure,
   };
 }

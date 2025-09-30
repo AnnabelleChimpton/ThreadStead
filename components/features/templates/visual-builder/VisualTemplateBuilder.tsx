@@ -21,7 +21,7 @@ import {
   type AbsoluteCanvasState,
   DEFAULT_CANVAS_CONTAINER
 } from '@/lib/templates/visual-builder/pure-positioning';
-import { generatePureHTML } from '@/lib/templates/visual-builder/pure-html-generator';
+import { generatePureHTML, generateResponsiveCSS } from '@/lib/templates/visual-builder/pure-html-generator';
 import type { CanvasComponent } from '@/lib/templates/visual-builder/types';
 import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
 import { generateCSSFromGlobalSettings } from '@/lib/templates/visual-builder/css-class-generator';
@@ -32,6 +32,7 @@ import FloatingPanel, { useFloatingPanels } from './FloatingPanel';
 import SmartToolbar from './SmartToolbar';
 import CanvasRenderer from './CanvasRenderer';
 import TemplateGallery, { type TemplatePreset } from './TemplateGallery';
+import BreakpointSwitcher, { type ResponsiveBreakpoint } from './BreakpointSwitcher';
 
 // Legacy components (to be updated)
 import ComponentPalette from './ComponentPalette';
@@ -117,6 +118,43 @@ export default function VisualTemplateBuilder({
     }
 
     try {
+      // Helper function to recursively convert CanvasComponent children to ComponentItem format
+      const convertCanvasComponentToItemRecursively = (canvasComponents: any[]): ComponentItem[] => {
+        return canvasComponents.map(canvasComp => {
+          const componentItem: ComponentItem = {
+            id: canvasComp.id,
+            type: canvasComp.type,
+            position: canvasComp.position || { x: 0, y: 0 },
+            positioningMode: (canvasComp.positioningMode === 'flow' ? 'grid' : canvasComp.positioningMode) || 'grid',
+            publicProps: canvasComp.props || {},
+            visualBuilderState: {
+              isSelected: false,
+              isLocked: false,
+              isHidden: false,
+              lastModified: Date.now(),
+              // Track if columns was explicitly set in HTML for GridLayout components
+              hasUserSetColumns: canvasComp.type === 'GridLayout' && canvasComp.props && 'columns' in canvasComp.props
+            }
+          };
+
+          // Add grid position if available
+          if (canvasComp.gridPosition) {
+            componentItem.gridPosition = {
+              column: canvasComp.gridPosition.column,
+              row: canvasComp.gridPosition.row,
+              span: canvasComp.gridPosition.columnSpan || 1,
+            };
+          }
+
+          // Recursively convert children
+          if (canvasComp.children && canvasComp.children.length > 0) {
+            componentItem.children = convertCanvasComponentToItemRecursively(canvasComp.children);
+          }
+
+          return componentItem;
+        });
+      };
+
       // Parse the HTML template using existing parser
       const parseResult = parseExistingTemplate(initialTemplate);
 
@@ -127,7 +165,15 @@ export default function VisualTemplateBuilder({
           type: canvasComp.type,
           position: canvasComp.position || { x: 0, y: 0 },
           positioningMode: (canvasComp.positioningMode === 'flow' ? 'grid' : canvasComp.positioningMode) || 'grid',
-          props: canvasComp.props || {},
+          publicProps: canvasComp.props || {},
+          visualBuilderState: {
+            isSelected: false,
+            isLocked: false,
+            isHidden: false,
+            lastModified: Date.now(),
+            // Track if columns was explicitly set in HTML for GridLayout components
+            hasUserSetColumns: canvasComp.type === 'GridLayout' && canvasComp.props && 'columns' in canvasComp.props
+          }
         };
 
         // Add grid position if available
@@ -139,19 +185,28 @@ export default function VisualTemplateBuilder({
           };
         }
 
-        // Add children if available
+        // Add children if available - recursively convert nested children
         if (canvasComp.children && canvasComp.children.length > 0) {
           componentItem.children = canvasComp.children.map(child => ({
             id: child.id,
             type: child.type,
             position: child.position || { x: 0, y: 0 },
             positioningMode: (child.positioningMode === 'flow' ? 'grid' : child.positioningMode) || 'grid',
-            props: child.props || {},
+            publicProps: child.props || {},
+            visualBuilderState: {
+              isSelected: false,
+              isLocked: false,
+              isHidden: false,
+              lastModified: Date.now()
+            },
             gridPosition: child.gridPosition ? {
               column: child.gridPosition.column,
               row: child.gridPosition.row,
               span: child.gridPosition.columnSpan || 1,
             } : undefined,
+            // Recursively handle grandchildren
+            children: child.children && child.children.length > 0 ?
+              convertCanvasComponentToItemRecursively(child.children) : undefined
           }));
         }
 
@@ -165,6 +220,7 @@ export default function VisualTemplateBuilder({
       return [];
     }
   }, [initialTemplate]);
+
 
   // Separate useEffect to handle loading state updates (moved from useMemo)
   React.useEffect(() => {
@@ -253,9 +309,9 @@ export default function VisualTemplateBuilder({
   }, [initialTemplate, hasLoadedInitialSettings]); // Removed function dependency
 
   // Breakpoint preview controls
-  const [previewBreakpoint, setPreviewBreakpoint] = useState<string | null>(null);
+  const [activeBreakpoint, setActiveBreakpoint] = useState<ResponsiveBreakpoint>('desktop');
   const currentBreakpoint = getCurrentBreakpoint();
-  const effectiveBreakpoint = previewBreakpoint || currentBreakpoint.name;
+  const effectiveBreakpoint = activeBreakpoint;
 
   // Track if user has made changes to prevent overwriting original template
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
@@ -276,15 +332,21 @@ export default function VisualTemplateBuilder({
         type: 'ThreadsteadNavigation',
         position: { x: 0, y: 0 },
         positioningMode: 'absolute',
-        props: {
-          size: { width: 'auto', height: 'auto' },
-          locked: true, // Prevent user from moving/deleting
+        publicProps: {
+          width: 'auto',
+          height: 'auto',
           backgroundColor: 'rgba(0, 0, 0, 0.1)',
-          textColor: 'inherit',
+          color: 'inherit',
           opacity: 1,
           blur: 10,
           borderColor: 'rgba(255, 255, 255, 0.2)',
           borderWidth: 1
+        },
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: true, // Prevent user from moving/deleting
+          isHidden: false,
+          lastModified: Date.now()
         }
       };
       originalCanvasState.addComponent(navigationComponent);
@@ -492,53 +554,26 @@ export default function VisualTemplateBuilder({
     return null;
   };
 
-  // Separate state for selected component to avoid re-renders when placedComponents changes
-  const [selectedComponentForPanel, setSelectedComponentForPanel] = useState<ComponentItem | null>(null);
-
   // Get selected component ID
   const selectedId = selectedComponentIds.size === 1 ? Array.from(selectedComponentIds)[0] : null;
 
-  // Debounced update for selected component to prevent excessive re-renders
-  const debouncedUpdateSelectedComponent = useMemo(() => {
-    let timeoutId: NodeJS.Timeout;
-    return (selectedId: string | null, placedComponents: ComponentItem[]) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        if (!selectedId) {
-          setSelectedComponentForPanel(null);
-          return;
-        }
+  // EMERGENCY FIX: Direct component selection without blocking optimizations
+  // Always create a new object to ensure PropertyPanel receives updates
+  const selectedComponentForPanel = useMemo(() => {
+    if (!selectedId) return null;
 
-        const comp = findComponentById(placedComponents, selectedId);
-        if (!comp) {
-          setSelectedComponentForPanel(null);
-          return;
-        }
+    const comp = findComponentById(placedComponents, selectedId);
 
-        // Create the component object
-        const newSelectedComponent: ComponentItem = {
-          id: comp.id,
-          type: comp.type,
-          props: comp.props || {},
-          position: comp.position || { x: 0, y: 0 },
-          gridPosition: comp.gridPosition ? {
-            column: comp.gridPosition.column,
-            row: comp.gridPosition.row,
-            span: (comp.gridPosition as any).columnSpan || (comp.gridPosition as any).span || 1
-          } : undefined,
-          positioningMode: comp.positioningMode || 'absolute',
-          children: comp.children as ComponentItem[] | undefined
-        };
+    if (!comp) return null;
 
-        setSelectedComponentForPanel(newSelectedComponent);
-      }, 50); // 50ms debounce
+    // CRITICAL FIX: Don't destroy props by spreading empty objects!
+    // Create new references while preserving actual data
+    return {
+      ...comp,
+      props: comp.props || {},  // Use existing props or empty if undefined
+      publicProps: comp.publicProps || {},  // Use existing publicProps or empty if undefined
     };
-  }, []);
-
-  // Update selected component state when selection OR component props change
-  useEffect(() => {
-    debouncedUpdateSelectedComponent(selectedId, placedComponents);
-  }, [selectedId, placedComponents, debouncedUpdateSelectedComponent])
+  }, [selectedId, placedComponents])
 
   // Get the actual current selected component for other uses (canvas, etc.)
   const selectedComponent = useMemo(() => {
@@ -556,8 +591,12 @@ export default function VisualTemplateBuilder({
   const propertyPanelCanvasState = useMemo(() => ({
     gridConfig: gridConfig,
     globalSettings: globalSettings,
-    removeComponent: removeComponent
-  }), [gridConfig, globalSettings, removeComponent]);
+    removeComponent: removeComponent,
+    // PHASE 4.2: Add responsive positioning methods
+    updateResponsivePosition: restCanvasState.updateResponsivePosition,
+    getEffectivePosition: restCanvasState.getEffectivePosition,
+    copyPositionToBreakpoint: restCanvasState.copyPositionToBreakpoint
+  }), [gridConfig, globalSettings, removeComponent, restCanvasState.updateResponsivePosition, restCanvasState.getEffectivePosition, restCanvasState.copyPositionToBreakpoint]);
 
   // Convert current canvas state to pure absolute positioning format
   const convertToPureCanvasState = useCallback((): AbsoluteCanvasState => {
@@ -600,6 +639,9 @@ export default function VisualTemplateBuilder({
       console.warn('Pure HTML generation warnings:', result.warnings);
     }
 
+    // PHASE 4.2: Generate responsive CSS for components with responsive positioning
+    const responsiveCSS = generateResponsiveCSS(pureCanvasState.components);
+
     // Add global settings as CSS classes (CSS already generated in memoized globalCSS)
     let finalHTML = result.html;
     if (globalSettings && globalCSS.classNames.length > 0) {
@@ -611,10 +653,16 @@ export default function VisualTemplateBuilder({
       );
     }
 
+    // Combine global CSS with responsive CSS
+    let combinedCSS = globalCSS.css || '';
+    if (responsiveCSS && responsiveCSS.trim()) {
+      combinedCSS += '\n\n/* Responsive Positioning */\n' + responsiveCSS;
+    }
+
     // Add the CSS styles to the document (only if not already present)
-    if (globalCSS.css && globalCSS.css.trim()) {
+    if (combinedCSS && combinedCSS.trim()) {
       // Validate CSS is not empty and has proper structure
-      if (globalCSS.css.includes('{') && globalCSS.css.includes('}')) {
+      if (combinedCSS.includes('{') && combinedCSS.includes('}')) {
         // Always inject CSS for Visual Builder - we handle CSS merging at the EnhancedTemplateEditor level
         // This ensures CSS is always included in the HTML output for proper extraction
         const shouldInjectCSS = true;
@@ -622,7 +670,7 @@ export default function VisualTemplateBuilder({
         if (shouldInjectCSS) {
           // Inject/update CSS - allows theme changes while preserving user customizations
           const styleTag = `<style>
-${globalCSS.css}
+${combinedCSS}
 </style>`;
 
           // Insert style tag at the beginning of the HTML
@@ -1051,6 +1099,27 @@ ${globalCSS.css}
         onOpenTemplateGallery={() => setShowTemplateGallery(true)}
       />
 
+      {/* Breakpoint Switcher */}
+      <div style={{
+        padding: '12px 16px',
+        borderBottom: '1px solid #e5e7eb',
+        backgroundColor: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px'
+      }}>
+        <span style={{
+          fontSize: '13px',
+          fontWeight: '500',
+          color: '#6b7280'
+        }}>
+          Preview:
+        </span>
+        <BreakpointSwitcher
+          activeBreakpoint={activeBreakpoint}
+          onBreakpointChange={setActiveBreakpoint}
+        />
+      </div>
 
       {/* Template Loading Status */}
       {templateLoadingState.loading && (
@@ -1094,12 +1163,15 @@ ${globalCSS.css}
           marginLeft: isPanelOpen('components') ? '350px' : '0', // Make space for fixed sidebar
         }}
       >
-        <div className="min-h-full flex justify-center items-start" style={{ padding: '24px' }}>
+        <div
+          className={`min-h-full flex items-start ${activeBreakpoint === 'desktop' ? '' : 'justify-center'}`}
+          style={{ padding: activeBreakpoint === 'desktop' ? '24px 24px' : '24px' }}
+        >
           <CanvasRenderer
             canvasState={canvasState}
             residentData={residentData}
             className="shadow-2xl rounded-xl border border-gray-200"
-            previewBreakpoint={previewBreakpoint}
+            activeBreakpoint={activeBreakpoint}
           />
         </div>
       </div>
@@ -1185,6 +1257,7 @@ ${globalCSS.css}
                 selectedComponent={selectedComponentForPanel}
                 canvasState={propertyPanelCanvasState}
                 onComponentUpdate={handleComponentUpdate}
+                activeBreakpoint={activeBreakpoint}
               />
             )}
           </div>

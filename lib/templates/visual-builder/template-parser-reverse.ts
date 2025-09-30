@@ -649,7 +649,7 @@ export class TemplateParserReverse {
   /**
    * Recursively extract template components from DOM tree
    */
-  private extractComponentsRecursively(element: Element, components: CanvasComponent[]): void {
+  private extractComponentsRecursively(element: Element, components: CanvasComponent[], isTopLevel: boolean = true): void {
     const tagName = element.tagName;
 
     // Check if this is a template component (registered in component registry)
@@ -676,12 +676,26 @@ export class TemplateParserReverse {
 
         }
 
-        components.push(component);
+        // Only add to top-level components array if this is a top-level component
+        // Nested components are already handled by elementToComponent's children processing
+        if (isTopLevel) {
+          components.push(component);
+        }
+
+        // For container components, don't recursively process their children again
+        // since elementToComponent already handled them
+        const isContainerComponent = componentRegistration?.relationship?.acceptsChildren;
+        if (!isContainerComponent) {
+          // For non-container components, still check their children for nested components
+          Array.from(element.children).forEach(child => {
+            this.extractComponentsRecursively(child, components, false);
+          });
+        }
       }
     } else if (isHTMLContainer) {
-      // This is an HTML container - recursively examine its children
+      // This is an HTML container - recursively examine its children as top-level components
       Array.from(element.children).forEach(child => {
-        this.extractComponentsRecursively(child, components);
+        this.extractComponentsRecursively(child, components, isTopLevel);
       });
     } else {
       this.warnings.push(`Unknown element skipped: ${tagName}`);
@@ -771,13 +785,21 @@ export class TemplateParserReverse {
     const size = this.extractSize(element);
     const locked = this.extractBooleanAttribute(element, 'data-locked');
     const hidden = this.extractBooleanAttribute(element, 'data-hidden');
+    // PHASE 4.2: Extract responsive positioning
+    const responsivePositions = this.extractResponsivePositions(element);
 
-    // Process children
+    // Process children - only process direct template component children
     const children: CanvasComponent[] = [];
     Array.from(element.children).forEach(childElement => {
-      const childComponent = this.elementToComponent(childElement);
-      if (childComponent) {
-        children.push(childComponent);
+      const childTagName = childElement.tagName;
+      const childRegistration = componentRegistry.get(childTagName);
+
+      // Only process direct template component children
+      if (childRegistration) {
+        const childComponent = this.elementToComponent(childElement);
+        if (childComponent) {
+          children.push(childComponent);
+        }
       }
     });
 
@@ -831,6 +853,10 @@ export class TemplateParserReverse {
     }
     if (hidden) {
       component.hidden = hidden;
+    }
+    // PHASE 4.2: Add responsive positions if present
+    if (responsivePositions) {
+      (component as any).responsivePositions = responsivePositions;
     }
 
     return component;
@@ -962,7 +988,12 @@ export class TemplateParserReverse {
     if (purePositioningAttr) {
       try {
         const pureData = JSON.parse(purePositioningAttr);
-        if (pureData.x !== undefined && pureData.y !== undefined) {
+        // PHASE 4.2: Check if this is a ResponsivePosition (has breakpoints)
+        if (pureData.breakpoints && pureData.breakpoints.desktop) {
+          // This is responsive positioning - extract desktop position for backward compat
+          return { x: pureData.breakpoints.desktop.x, y: pureData.breakpoints.desktop.y };
+        } else if (pureData.x !== undefined && pureData.y !== undefined) {
+          // This is simple absolute positioning
           return { x: pureData.x, y: pureData.y };
         }
       } catch (error) {
@@ -1220,6 +1251,55 @@ export class TemplateParserReverse {
         return JSON.parse(sizeAttr) as ComponentSize;
       } catch (error) {
         this.warnings.push(`Invalid size data: ${sizeAttr}`);
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * PHASE 4.2: Extract responsive positioning data from data-pure-positioning attribute
+   */
+  private extractResponsivePositions(element: Element): { tablet?: any; mobile?: any } | undefined {
+    if (!this.options.preserveLayoutAttributes) {
+      return undefined;
+    }
+
+    const purePositioningAttr = element.getAttribute('data-pure-positioning');
+    if (purePositioningAttr) {
+      try {
+        const pureData = JSON.parse(purePositioningAttr);
+        // Check if this is a ResponsivePosition (has breakpoints)
+        if (pureData.breakpoints) {
+          const responsivePositions: { tablet?: any; mobile?: any } = {};
+
+          // Extract tablet position if different from desktop
+          if (pureData.breakpoints.tablet) {
+            responsivePositions.tablet = {
+              x: pureData.breakpoints.tablet.x,
+              y: pureData.breakpoints.tablet.y,
+              width: pureData.breakpoints.tablet.width,
+              height: pureData.breakpoints.tablet.height
+            };
+          }
+
+          // Extract mobile position if different from desktop
+          if (pureData.breakpoints.mobile) {
+            responsivePositions.mobile = {
+              x: pureData.breakpoints.mobile.x,
+              y: pureData.breakpoints.mobile.y,
+              width: pureData.breakpoints.mobile.width,
+              height: pureData.breakpoints.mobile.height
+            };
+          }
+
+          // Only return if we have at least one responsive position
+          if (responsivePositions.tablet || responsivePositions.mobile) {
+            return responsivePositions;
+          }
+        }
+      } catch (error) {
+        this.warnings.push(`Failed to extract responsive positions: ${error}`);
       }
     }
 

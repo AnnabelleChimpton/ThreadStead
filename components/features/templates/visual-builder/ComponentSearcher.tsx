@@ -97,11 +97,19 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
   },
   'GridLayout': {
     name: 'Grid Layout',
-    description: 'CSS Grid layout system',
+    description: 'CSS Grid layout system (legacy)',
     icon: '⬜',
     category: 'Layout',
     tags: ['grid', 'layout', 'columns', 'responsive'],
-    popularity: 75
+    popularity: 60
+  },
+  'Grid': {
+    name: 'CSS Grid',
+    description: 'Standard CSS Grid with native properties',
+    icon: '▦',
+    category: 'Layout',
+    tags: ['grid', 'layout', 'css', 'columns', 'rows', 'standardized'],
+    popularity: 85
   },
   'CenteredBox': {
     name: 'Centered Box',
@@ -329,10 +337,16 @@ export default function ComponentSearcher({
         type: 'CustomHTMLElement',
         position: { x: 100, y: 100 },
         positioningMode: 'grid',
-        props: {
+        publicProps: {
           content: '<div>Double-click to edit HTML content</div>',
           tagName: 'div',
           className: '',
+        },
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
         }
       };
 

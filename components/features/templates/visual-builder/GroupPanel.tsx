@@ -56,7 +56,7 @@ export default function GroupPanel({
 
   // Get components that are not in any group
   const ungroupedComponents = useMemo(() => {
-    return placedComponents.filter(comp => !comp.groupId);
+    return placedComponents.filter(comp => !comp.visualBuilderState?.groupId);
   }, [placedComponents]);
 
   // Handle creating a new group

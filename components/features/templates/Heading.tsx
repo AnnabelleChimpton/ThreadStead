@@ -7,6 +7,20 @@ export interface HeadingProps {
   style?: React.CSSProperties;
   className?: string;
   children?: React.ReactNode;
+  // Background CSS properties
+  backgroundColor?: string;
+  backgroundcolor?: string; // Legacy lowercase version
+  // Text CSS properties (passed as flat props, will be merged into style)
+  fontSize?: string;
+  fontFamily?: string;
+  fontWeight?: string | number;
+  textAlign?: 'left' | 'center' | 'right' | 'justify';
+  textColor?: string;
+  lineHeight?: string | number;
+  textDecoration?: string;
+  fontStyle?: string;
+  textTransform?: string;
+  letterSpacing?: string;
   // Internal props for visual builder
   _positioningMode?: 'absolute' | 'grid';
   _size?: { width: string; height: string };
@@ -26,12 +40,32 @@ export default function Heading({
   style,
   className = '',
   children,
+  backgroundColor,  // Explicitly destructure to prevent it from being in ...rest
+  backgroundcolor,  // Legacy lowercase version
+  // Text CSS properties (destructure to merge into style)
+  fontSize,
+  fontFamily,
+  fontWeight,
+  textAlign,
+  textColor,
+  lineHeight,
+  textDecoration,
+  fontStyle,
+  textTransform,
+  letterSpacing,
   _positioningMode,
   _size,
   _isInVisualBuilder = false,
   _onContentChange,
   ...rest
 }: HeadingProps) {
+
+  // CRITICAL FIX: If backgroundColor wasn't in style but was passed as a prop, add it to style
+  // This handles cases where CSS extraction in CanvasRenderer didn't work
+  const normalizedBackgroundColor = backgroundColor || backgroundcolor;
+  if (normalizedBackgroundColor && !style?.backgroundColor) {
+    style = { ...style, backgroundColor: normalizedBackgroundColor };
+  }
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingContent, setEditingContent] = useState(content);
@@ -152,51 +186,77 @@ export default function Heading({
     }
   }, [isEditing]);
 
-  // Build classes with appropriate heading styles
-  const baseClasses = {
+  // FIXED: Only use Tailwind classes that don't conflict with user CSS
+  // Check if user has set fontSize or fontWeight to avoid Tailwind conflicts
+  const hasUserFontSize = style?.fontSize;
+  const hasUserFontWeight = style?.fontWeight;
+
+  // Default heading styles (only applied if user hasn't set custom styles)
+  const defaultHeadingStyles = !hasUserFontSize && !hasUserFontWeight ? {
     1: 'text-4xl font-bold',
     2: 'text-3xl font-bold',
     3: 'text-2xl font-semibold',
     4: 'text-xl font-semibold',
     5: 'text-lg font-medium',
     6: 'text-base font-medium',
+  } : {
+    // When user has custom font styles, only use non-conflicting classes
+    1: '', 2: '', 3: '', 4: '', 5: '', 6: ''
   };
 
   const classes = [
-    baseClasses[level],
+    defaultHeadingStyles[level], // Only if no user font styles
     'break-words', // Ensure text wrapping at word boundaries
     'hyphens-auto', // Enable automatic hyphenation
     className,
     isAbsolutePositioned && _size ? 'h-full flex items-center justify-start' : '',
-    // Add editing indicators
-    _isInVisualBuilder && isEditing ? 'outline outline-2 outline-blue-500 bg-blue-50' : '',
-    _isInVisualBuilder && !isEditing ? 'hover:outline hover:outline-1 hover:outline-gray-300 cursor-pointer' : '',
+    // REMOVED outline classes that conflict with CSS outline - use inline styles instead
+    _isInVisualBuilder && !isEditing ? 'hover:ring-1 hover:ring-gray-300 cursor-pointer' : '',
   ].filter(Boolean).join(' ');
 
-  // Merge styles with consistent text wrapping behavior
+  // FIXED: Merge styles with proper priority - user CSS properties come LAST
   const finalStyle: React.CSSProperties = {
-    ...style,
-    // Apply custom size if in absolute positioning mode
+    // Base positioning and size styles first (lowest priority)
     ...(isAbsolutePositioned && _size ? {
       width: _size.width,
       height: _size.height,
     } : {}),
-    // Add minimum styling for visual builder
+
+    // Non-conflicting Visual Builder base styles (don't override user CSS)
     ...(_isInVisualBuilder ? {
       minHeight: '1.5em',
       minWidth: '80px',
-      padding: '4px',
+      // REMOVED padding: '4px' - was overriding user CSS padding!
     } : {}),
-    // Add editing styles
-    ...(isEditing ? {
-      minHeight: '1.5em', // Ensure minimum height when editing
-    } : {}),
-    // CRITICAL: Ensure consistent text wrapping behavior across both contexts
+
+    // Consistent text wrapping behavior (non-conflicting)
     wordWrap: 'break-word',
     overflowWrap: 'break-word',
     hyphens: 'auto',
-    // Prevent text from overflowing horizontally
     overflowX: 'hidden',
+
+    // TEXT CSS PROPERTIES from flat props (merge before style prop)
+    ...(fontSize ? { fontSize } : {}),
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(fontWeight ? { fontWeight } : {}),
+    ...(textAlign ? { textAlign: textAlign as React.CSSProperties['textAlign'] } : {}),
+    ...(textColor ? { color: textColor } : {}), // textColor maps to 'color' CSS property
+    ...(lineHeight ? { lineHeight } : {}),
+    ...(textDecoration ? { textDecoration: textDecoration as React.CSSProperties['textDecoration'] } : {}),
+    ...(fontStyle ? { fontStyle: fontStyle as React.CSSProperties['fontStyle'] } : {}),
+    ...(textTransform ? { textTransform: textTransform as React.CSSProperties['textTransform'] } : {}),
+    ...(letterSpacing ? { letterSpacing } : {}),
+
+    // USER CSS PROPERTIES COME LAST (highest priority)
+    // Inline styles automatically have higher specificity than CSS classes,
+    // so we don't need !important (which doesn't work in React inline styles anyway)
+    ...style,
+
+    // Only non-conflicting editing indicators (don't override user CSS)
+    ...(isEditing ? {
+      outline: '2px solid #3b82f6',
+      outlineOffset: '2px',
+    } : {}),
   };
 
   // Create the heading element dynamically based on level
