@@ -1,25 +1,32 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface MediaGridProps {
+interface MediaGridProps extends UniversalCSSProps {
   className?: string;
 }
 
-export default function MediaGrid({ className: customClassName }: MediaGridProps) {
+export default function MediaGrid(props: MediaGridProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { className: customClassName } = componentProps;
   const { images, owner } = useResidentData();
-  
+
   // Handle className being passed as array or string
-  const normalizedCustomClassName = Array.isArray(customClassName) 
+  const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-  
-  const containerClassName = normalizedCustomClassName 
-    ? `media-grid profile-tab-content space-y-6 ${normalizedCustomClassName}`
-    : "media-grid profile-tab-content space-y-6";
+
+  const baseClasses = "media-grid profile-tab-content space-y-6";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const containerClassName = normalizedCustomClassName
+    ? `${filteredClasses} ${normalizedCustomClassName}`
+    : filteredClasses;
 
   if (!images || images.length === 0) {
     return (
-      <div className={containerClassName}>
+      <div className={containerClassName} style={style}>
         <div className="text-center py-12">
           <div className="text-6xl mb-4">🖼️</div>
           <h3 className="text-lg font-medium text-thread-pine mb-2">No featured photos</h3>
@@ -38,7 +45,7 @@ export default function MediaGrid({ className: customClassName }: MediaGridProps
   const displayImages = sortedImages.slice(0, 6);
 
   return (
-    <div className={containerClassName}>
+    <div className={containerClassName} style={style}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

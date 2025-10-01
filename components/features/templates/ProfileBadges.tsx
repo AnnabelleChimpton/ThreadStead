@@ -1,32 +1,46 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
 import ThreadRing88x31Badge from '../../core/threadring/ThreadRing88x31Badge';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface ProfileBadgesProps {
+interface ProfileBadgesProps extends UniversalCSSProps {
   showTitle?: boolean;
   layout?: 'grid' | 'list';
   className?: string;
 }
 
-export default function ProfileBadges({ 
-  showTitle = false, 
-  layout = 'grid',
-  className: customClassName 
-}: ProfileBadgesProps) {
+export default function ProfileBadges(props: ProfileBadgesProps) {
+  // Separate CSS properties from component-specific properties
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    showTitle = false,
+    layout = 'grid',
+    className: customClassName
+  } = componentProps;
+
   const { owner, badges } = useResidentData();
-  
+
   // Handle className being passed as array or string
-  const normalizedCustomClassName = Array.isArray(customClassName) 
+  const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-  
-  const containerClassName = normalizedCustomClassName 
-    ? `profile-badges profile-tab-content space-y-6 ${normalizedCustomClassName}`
-    : "profile-badges profile-tab-content space-y-6";
+
+  // Base container classes
+  const baseContainerClasses = "profile-badges profile-tab-content space-y-6";
+
+  // Remove Tailwind classes that conflict with CSS props - USER STYLING IS QUEEN
+  const filteredContainerClasses = removeTailwindConflicts(baseContainerClasses, cssProps);
+
+  const containerClassName = normalizedCustomClassName
+    ? `${filteredContainerClasses} ${normalizedCustomClassName}`
+    : filteredContainerClasses;
+
+  // Apply CSS properties as inline styles
+  const appliedStyles = applyCSSProps(cssProps);
 
   if (!badges || badges.length === 0) {
     return (
-      <div className={containerClassName}>
+      <div className={containerClassName} style={appliedStyles}>
         <div className="text-center py-12">
           <div className="text-6xl mb-4">🏆</div>
           <h3 className="text-lg font-medium text-thread-pine mb-2">No badges yet</h3>
@@ -61,7 +75,7 @@ export default function ProfileBadges({
   ));
 
   return (
-    <div className={containerClassName}>
+    <div className={containerClassName} style={appliedStyles}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -92,7 +106,7 @@ export default function ProfileBadges({
           </p>
         </div>
       )}
-      
+
       {/* Link to full collection (non-functional in preview) */}
       {displayBadges.length > 0 && (
         <div className="text-center">

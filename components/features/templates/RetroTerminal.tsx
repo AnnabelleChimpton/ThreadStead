@@ -1,25 +1,27 @@
 import React from "react";
 import { useGridCompatibilityContext } from './GridCompatibleWrapper';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface RetroTerminalProps {
+interface RetroTerminalProps extends UniversalCSSProps {
   variant?: 'green' | 'amber' | 'blue' | 'white';
   showHeader?: boolean | string;
-  padding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  containerPadding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   children: React.ReactNode;
 
   // Internal prop from visual builder
   _positioningMode?: 'grid' | 'absolute';
 }
 
-export default function RetroTerminal({
-  variant = 'green',
-  showHeader = true,
-  padding = 'md',
-  children,
+export default function RetroTerminal(props: RetroTerminalProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    variant = 'green',
+    showHeader = true,
+    containerPadding = 'md',
+    children,
+    _positioningMode
+  } = componentProps;
 
-  // Internal props
-  _positioningMode
-}: RetroTerminalProps) {
   const { isInGrid } = useGridCompatibilityContext();
 
   // Override grid detection if component is in absolute positioning mode
@@ -61,15 +63,15 @@ export default function RetroTerminal({
     'md': 'p-3',
     'lg': 'p-4',
     'xl': 'p-6'
-  }[padding] : {
+  }[containerPadding] : {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
     'lg': 'p-8',
     'xl': 'p-12'
-  }[padding];
+  }[containerPadding];
 
-  const containerClasses = [
+  const baseContainerClasses = [
     variantStyles.bg,
     variantStyles.border,
     'border-2',
@@ -80,8 +82,11 @@ export default function RetroTerminal({
     _positioningMode === 'absolute' ? 'h-full flex flex-col' : ''
   ].filter(Boolean).join(' ');
 
+  const filteredClasses = removeTailwindConflicts(baseContainerClasses, cssProps);
+  const appliedStyles = applyCSSProps(cssProps);
+
   return (
-    <div className={containerClasses}>
+    <div className={filteredClasses} style={appliedStyles}>
       {shouldShowHeader && (
         <div className={`${variantStyles.text} border-b ${variantStyles.border} px-4 py-2 text-sm flex items-center gap-2`}>
           <span className="inline-block w-3 h-3 bg-red-500 rounded-full"></span>

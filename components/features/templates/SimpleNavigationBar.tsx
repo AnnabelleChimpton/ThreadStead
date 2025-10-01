@@ -1,15 +1,27 @@
 import React from "react";
 import Link from "next/link";
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface SimpleNavigationBarProps {
+interface SimpleNavigationBarProps extends UniversalCSSProps {
   className?: string;
   fullWidth?: boolean;
 }
 
-export default function SimpleNavigationBar({ className = "", fullWidth = false }: SimpleNavigationBarProps) {
+export default function SimpleNavigationBar(props: SimpleNavigationBarProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { className = "", fullWidth = false } = componentProps;
+
+  const baseClasses = "site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const headerClassName = className
+    ? `${filteredClasses} ${className}`
+    : filteredClasses;
+
   // Static component with no dynamic behavior - safe for compilation
   return (
-    <header className={`site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative ${className}`}>
+    <header className={headerClassName} style={style}>
       <nav className={`site-navigation ${fullWidth ? 'w-full px-2 sm:px-4' : 'mx-auto max-w-5xl'} flex items-center justify-between`}>
         <div className="site-branding flex-shrink-0">
           <Link href="/" className="no-underline">

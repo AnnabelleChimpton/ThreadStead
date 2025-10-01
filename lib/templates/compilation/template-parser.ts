@@ -10,7 +10,12 @@ function createCustomSchema() {
   const schema = {
     tagNames: [...(defaultSchema.tagNames || [])],
     attributes: { ...(defaultSchema.attributes || {}) },
-    protocols: { ...(defaultSchema.protocols || {}) }
+    protocols: { ...(defaultSchema.protocols || {}) },
+    // CRITICAL: Allow inline CSS properties in style attributes
+    // Without this, rehype-sanitize strips ALL inline styles
+    properties: {
+      style: ['*'] // Allow all CSS properties
+    }
   };
   
   // Allow placeholder URLs like "#"
@@ -118,8 +123,11 @@ function createCustomSchema() {
         // Add positioning data attributes for visual builder (both kebab-case and camelCase)
         'data-position', 'data-pixel-position', 'data-positioning-mode', 'data-grid-position',
         'dataPosition', 'dataPixelPosition', 'dataPositioningMode', 'dataGridPosition',
-        // Add new pure positioning attributes
+        // Add new pure positioning attributes (old JSON format)
         'data-pure-positioning', 'dataPurePositioning',
+        // Add new pure positioning attributes (human-readable individual attributes)
+        'data-x', 'data-y', 'data-width', 'data-height', 'data-responsive', 'data-breakpoints',
+        'dataX', 'dataY', 'dataWidth', 'dataHeight', 'dataResponsive', 'dataBreakpoints',
         // Add grid-specific attributes
         'data-grid-column', 'data-grid-row', 'data-grid-span',
         'dataGridColumn', 'dataGridRow', 'dataGridSpan',

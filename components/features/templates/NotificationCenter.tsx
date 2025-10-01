@@ -2,8 +2,15 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import type { NotificationData } from "../../ui/feedback/NotificationList";
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-export default function NotificationCenter() {
+interface NotificationCenterProps extends UniversalCSSProps {
+  className?: string;
+}
+
+export default function NotificationCenter(props: NotificationCenterProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { className: customClassName } = componentProps;
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
@@ -100,8 +107,16 @@ export default function NotificationCenter() {
 
   if (!isLoggedIn) return null;
 
+  const baseClasses = "relative";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const containerClassName = customClassName
+    ? `${filteredClasses} ${customClassName}`
+    : filteredClasses;
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className={containerClassName} style={style} ref={dropdownRef}>
       <button
         onClick={() => {
           setIsOpen(!isOpen);

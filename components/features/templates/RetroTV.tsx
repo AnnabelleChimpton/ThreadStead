@@ -3,9 +3,9 @@
  */
 
 import React from 'react';
-import { ComponentProps } from '@/lib/templates/types';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface RetroTVProps extends ComponentProps {
+export interface RetroTVProps extends UniversalCSSProps {
   screenColor?: 'green' | 'amber' | 'white' | 'blue' | 'red';
   tvStyle?: 'crt' | 'vintage' | 'portable' | 'console';
   channelNumber?: string;
@@ -14,57 +14,35 @@ export interface RetroTVProps extends ComponentProps {
   curvature?: 'none' | 'slight' | 'medium' | 'heavy';
   brightness?: number;
   contrast?: number;
+  className?: string;
+  children?: React.ReactNode;
   _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
 
-export default function RetroTV({
-  screenColor = 'green',
-  tvStyle = 'crt',
-  channelNumber = '3',
-  showStatic = false,
-  showScanlines = true,
-  curvature = 'medium',
-  brightness = 100,
-  contrast = 100,
-  className: customClassName = '',
-  style = {},
-  children,
-  _isInVisualBuilder = false,
-  _positioningMode = 'normal',
-  _isInGrid = false
-}: RetroTVProps) {
+export default function RetroTV(props: RetroTVProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    screenColor = 'green',
+    tvStyle = 'crt',
+    channelNumber = '3',
+    showStatic = false,
+    showScanlines = true,
+    curvature = 'medium',
+    brightness = 100,
+    contrast = 100,
+    className: customClassName,
+    children,
+    _isInVisualBuilder = false,
+    _positioningMode = 'normal',
+    _isInGrid = false
+  } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Handle style being passed as array or object, and normalize array values
-  const normalizedStyle = React.useMemo(() => {
-    if (!style) return {};
-
-    let mergedStyle = {};
-
-    if (Array.isArray(style)) {
-      // If style is an array, merge all objects
-      mergedStyle = style.reduce((acc, styleObj) => ({ ...acc, ...styleObj }), {});
-    } else {
-      mergedStyle = style;
-    }
-
-    // Normalize any array values within the style object
-    const normalizedEntries = Object.entries(mergedStyle).map(([key, value]) => {
-      if (Array.isArray(value)) {
-        // Convert array values to strings (join with space for multiple values)
-        return [key, value.join(' ')];
-      }
-      return [key, value];
-    });
-
-    return Object.fromEntries(normalizedEntries);
-  }, [style]);
 
   // Use prop-based grid detection instead of context hook
   const isInGrid = _isInGrid;
@@ -150,19 +128,28 @@ export default function RetroTV({
     heavy: '10px'
   };
 
+  // Component default styles
+  const componentStyle: React.CSSProperties = {
+    display: 'inline-block',
+    position: _positioningMode === 'absolute' ? 'relative' : 'static',
+    ...(isInGrid && {
+      width: '100%',
+      height: '100%',
+      minHeight: '300px'
+    })
+  };
+
+  // Merge component styles with CSS props (CSS props win)
+  const containerStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
+
+  const containerClassName = normalizedCustomClassName
+    ? `retro-tv-container ${normalizedCustomClassName}`
+    : 'retro-tv-container';
+
   return (
     <div
-      className={`retro-tv-container ${normalizedCustomClassName}`}
-      style={{
-        ...normalizedStyle,
-        display: 'inline-block',
-        position: _positioningMode === 'absolute' ? 'relative' : 'static',
-        ...(isInGrid && {
-          width: '100%',
-          height: '100%',
-          minHeight: '300px'
-        })
-      }}
+      className={containerClassName}
+      style={containerStyle}
     >
       <style jsx>{`
         .retro-tv-shell {

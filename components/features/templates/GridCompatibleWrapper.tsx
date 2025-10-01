@@ -11,8 +11,9 @@ import {
   isGridOverlay,
   type ComponentGridBehavior
 } from '@/lib/templates/visual-builder/grid-compatibility';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-interface GridCompatibleWrapperProps {
+interface GridCompatibleWrapperProps extends UniversalCSSProps {
   componentType: string;
   children?: React.ReactNode;
   className?: string;
@@ -104,15 +105,19 @@ function useGridContext(elementRef: React.RefObject<HTMLElement | null>) {
 /**
  * Grid Compatible Wrapper Component
  */
-export default function GridCompatibleWrapper({
-  componentType,
-  children,
-  className = '',
-  style = {},
-  gridPosition,
-  forceGridMode = false,
-  disableGridAdaptation = false,
-}: GridCompatibleWrapperProps) {
+export default function GridCompatibleWrapper(props: GridCompatibleWrapperProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    componentType,
+    children,
+    className = '',
+    gridPosition,
+    forceGridMode = false,
+    disableGridAdaptation = false,
+  } = componentProps;
+
+  // Apply CSS props as inline styles
+  const style = applyCSSProps(cssProps);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { isInGrid, gridInfo } = useGridContext(wrapperRef);
 

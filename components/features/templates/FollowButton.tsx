@@ -1,11 +1,30 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
 import OriginalFollowButton from '../../core/social/FollowButton';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-export default function Guestbook() {
+interface FollowButtonProps extends UniversalCSSProps {
+  className?: string;
+}
+
+export default function FollowButton(props: FollowButtonProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { className: customClassName } = componentProps;
   const { owner } = useResidentData();
 
+  // Apply CSS properties as inline styles to wrapper
+  const style = applyCSSProps(cssProps);
+
+  const baseClasses = 'follow-button-wrapper';
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+
+  const wrapperClassName = customClassName
+    ? `${filteredClasses} ${customClassName}`
+    : filteredClasses;
+
   return (
-    <OriginalFollowButton username={owner.handle} />
+    <div className={wrapperClassName} style={style}>
+      <OriginalFollowButton username={owner.handle} />
+    </div>
   );
 }

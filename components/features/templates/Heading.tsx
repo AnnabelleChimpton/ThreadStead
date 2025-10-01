@@ -1,26 +1,25 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import FloatingToolbar from './visual-builder/FloatingToolbar';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-export interface HeadingProps {
+export interface HeadingProps extends UniversalCSSProps {
   content?: string;
   level?: 1 | 2 | 3 | 4 | 5 | 6;
-  style?: React.CSSProperties;
   className?: string;
   children?: React.ReactNode;
-  // Background CSS properties
-  backgroundColor?: string;
-  backgroundcolor?: string; // Legacy lowercase version
-  // Text CSS properties (passed as flat props, will be merged into style)
-  fontSize?: string;
-  fontFamily?: string;
-  fontWeight?: string | number;
-  textAlign?: 'left' | 'center' | 'right' | 'justify';
-  textColor?: string;
-  lineHeight?: string | number;
-  textDecoration?: string;
-  fontStyle?: string;
-  textTransform?: string;
-  letterSpacing?: string;
+  // Legacy text CSS properties (kept for backward compatibility) - renamed to avoid conflicts
+  headingBackgroundColor?: string;
+  headingBackgroundcolor?: string; // Legacy lowercase version
+  headingFontSize?: string;
+  headingFontFamily?: string;
+  headingFontWeight?: string | number;
+  headingTextAlign?: 'left' | 'center' | 'right' | 'justify';
+  headingTextColor?: string;
+  headingLineHeight?: string | number;
+  headingTextDecoration?: string;
+  headingFontStyle?: string;
+  headingTextTransform?: string;
+  headingLetterSpacing?: string;
   // Internal props for visual builder
   _positioningMode?: 'absolute' | 'grid';
   _size?: { width: string; height: string };
@@ -34,38 +33,30 @@ export interface HeadingProps {
  * Provides semantic heading elements (h1-h6) with editable content
  * Supports inline editing when in visual builder mode
  */
-export default function Heading({
-  content,
-  level = 2,
-  style,
-  className = '',
-  children,
-  backgroundColor,  // Explicitly destructure to prevent it from being in ...rest
-  backgroundcolor,  // Legacy lowercase version
-  // Text CSS properties (destructure to merge into style)
-  fontSize,
-  fontFamily,
-  fontWeight,
-  textAlign,
-  textColor,
-  lineHeight,
-  textDecoration,
-  fontStyle,
-  textTransform,
-  letterSpacing,
-  _positioningMode,
-  _size,
-  _isInVisualBuilder = false,
-  _onContentChange,
-  ...rest
-}: HeadingProps) {
-
-  // CRITICAL FIX: If backgroundColor wasn't in style but was passed as a prop, add it to style
-  // This handles cases where CSS extraction in CanvasRenderer didn't work
-  const normalizedBackgroundColor = backgroundColor || backgroundcolor;
-  if (normalizedBackgroundColor && !style?.backgroundColor) {
-    style = { ...style, backgroundColor: normalizedBackgroundColor };
-  }
+export default function Heading(props: HeadingProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    content,
+    level = 2,
+    className,
+    children,
+    headingBackgroundColor,
+    headingBackgroundcolor,
+    headingFontSize,
+    headingFontFamily,
+    headingFontWeight,
+    headingTextAlign,
+    headingTextColor,
+    headingLineHeight,
+    headingTextDecoration,
+    headingFontStyle,
+    headingTextTransform,
+    headingLetterSpacing,
+    _positioningMode,
+    _size,
+    _isInVisualBuilder = false,
+    _onContentChange
+  } = componentProps;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingContent, setEditingContent] = useState(content);
@@ -186,10 +177,9 @@ export default function Heading({
     }
   }, [isEditing]);
 
-  // FIXED: Only use Tailwind classes that don't conflict with user CSS
-  // Check if user has set fontSize or fontWeight to avoid Tailwind conflicts
-  const hasUserFontSize = style?.fontSize;
-  const hasUserFontWeight = style?.fontWeight;
+  // FIXED: Only use Tailwind classes that don't conflict with CSS props
+  const hasUserFontSize = cssProps.fontSize || headingFontSize;
+  const hasUserFontWeight = cssProps.fontWeight || headingFontWeight;
 
   // Default heading styles (only applied if user hasn't set custom styles)
   const defaultHeadingStyles = !hasUserFontSize && !hasUserFontWeight ? {
@@ -204,18 +194,23 @@ export default function Heading({
     1: '', 2: '', 3: '', 4: '', 5: '', 6: ''
   };
 
-  const classes = [
+  const baseClasses = [
     defaultHeadingStyles[level], // Only if no user font styles
     'break-words', // Ensure text wrapping at word boundaries
     'hyphens-auto', // Enable automatic hyphenation
-    className,
     isAbsolutePositioned && _size ? 'h-full flex items-center justify-start' : '',
     // REMOVED outline classes that conflict with CSS outline - use inline styles instead
     _isInVisualBuilder && !isEditing ? 'hover:ring-1 hover:ring-gray-300 cursor-pointer' : '',
   ].filter(Boolean).join(' ');
 
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+
+  const classes = className
+    ? `${filteredClasses} ${className}`
+    : filteredClasses;
+
   // FIXED: Merge styles with proper priority - user CSS properties come LAST
-  const finalStyle: React.CSSProperties = {
+  const componentStyle: React.CSSProperties = {
     // Base positioning and size styles first (lowest priority)
     ...(isAbsolutePositioned && _size ? {
       width: _size.width,
@@ -226,7 +221,6 @@ export default function Heading({
     ...(_isInVisualBuilder ? {
       minHeight: '1.5em',
       minWidth: '80px',
-      // REMOVED padding: '4px' - was overriding user CSS padding!
     } : {}),
 
     // Consistent text wrapping behavior (non-conflicting)
@@ -235,22 +229,18 @@ export default function Heading({
     hyphens: 'auto',
     overflowX: 'hidden',
 
-    // TEXT CSS PROPERTIES from flat props (merge before style prop)
-    ...(fontSize ? { fontSize } : {}),
-    ...(fontFamily ? { fontFamily } : {}),
-    ...(fontWeight ? { fontWeight } : {}),
-    ...(textAlign ? { textAlign: textAlign as React.CSSProperties['textAlign'] } : {}),
-    ...(textColor ? { color: textColor } : {}), // textColor maps to 'color' CSS property
-    ...(lineHeight ? { lineHeight } : {}),
-    ...(textDecoration ? { textDecoration: textDecoration as React.CSSProperties['textDecoration'] } : {}),
-    ...(fontStyle ? { fontStyle: fontStyle as React.CSSProperties['fontStyle'] } : {}),
-    ...(textTransform ? { textTransform: textTransform as React.CSSProperties['textTransform'] } : {}),
-    ...(letterSpacing ? { letterSpacing } : {}),
-
-    // USER CSS PROPERTIES COME LAST (highest priority)
-    // Inline styles automatically have higher specificity than CSS classes,
-    // so we don't need !important (which doesn't work in React inline styles anyway)
-    ...style,
+    // Legacy text CSS properties (backward compatibility)
+    ...(headingBackgroundColor || headingBackgroundcolor ? { backgroundColor: headingBackgroundColor || headingBackgroundcolor } : {}),
+    ...(headingFontSize ? { fontSize: headingFontSize } : {}),
+    ...(headingFontFamily ? { fontFamily: headingFontFamily } : {}),
+    ...(headingFontWeight ? { fontWeight: headingFontWeight } : {}),
+    ...(headingTextAlign ? { textAlign: headingTextAlign as React.CSSProperties['textAlign'] } : {}),
+    ...(headingTextColor ? { color: headingTextColor } : {}),
+    ...(headingLineHeight ? { lineHeight: headingLineHeight } : {}),
+    ...(headingTextDecoration ? { textDecoration: headingTextDecoration as React.CSSProperties['textDecoration'] } : {}),
+    ...(headingFontStyle ? { fontStyle: headingFontStyle as React.CSSProperties['fontStyle'] } : {}),
+    ...(headingTextTransform ? { textTransform: headingTextTransform as React.CSSProperties['textTransform'] } : {}),
+    ...(headingLetterSpacing ? { letterSpacing: headingLetterSpacing } : {}),
 
     // Only non-conflicting editing indicators (don't override user CSS)
     ...(isEditing ? {
@@ -258,6 +248,9 @@ export default function Heading({
       outlineOffset: '2px',
     } : {}),
   };
+
+  // Merge with UniversalCSSProps (CSS props win)
+  const finalStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
 
   // Create the heading element dynamically based on level
   const HeadingTag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
@@ -275,8 +268,7 @@ export default function Heading({
           onDoubleClick: handleDoubleClick,
           onBlur: isEditing ? handleEndEdit : undefined,
           onKeyDown: isEditing ? handleKeyDown : undefined,
-          onInput: undefined,
-          ...rest
+          onInput: undefined
         },
         (() => {
           // Handle children vs content priority with validation

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface TabsProps {
+interface TabsProps extends UniversalCSSProps {
   children: React.ReactNode;
+  className?: string;
 }
 
 interface TabProps {
@@ -15,7 +17,9 @@ export function Tab({ title, children }: TabProps) {
   return <div data-tab-title={title}>{children}</div>;
 }
 
-export default function Tabs({ children }: TabsProps) {
+export default function Tabs(props: TabsProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { children, className: customClassName } = componentProps;
   // Handle both direct Tab components and children from Islands rendering
   const childArray = React.Children.toArray(children);
   
@@ -107,16 +111,24 @@ export default function Tabs({ children }: TabsProps) {
 
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const baseClasses = "profile-tabs-wrapper";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const wrapperClassName = customClassName
+    ? `${filteredClasses} ${customClassName}`
+    : filteredClasses;
+
   if (tabs.length === 0) {
     return (
-      <div className="profile-tabs-empty text-thread-sage italic p-4">
+      <div className={`profile-tabs-empty text-thread-sage italic p-4 ${wrapperClassName}`} style={style}>
         No tabs to display (received {childArray.length} children)
       </div>
     );
   }
 
   return (
-    <div className="profile-tabs-wrapper">
+    <div className={wrapperClassName} style={style}>
       <div className="profile-tabs thread-module p-0 overflow-hidden">
         <div role="tablist" aria-label="Profile sections" className="profile-tab-list flex md:flex-wrap border-b border-thread-sage/30">
           {tabs.map((tab, index) => {

@@ -1,27 +1,26 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import FloatingToolbar from './visual-builder/FloatingToolbar';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-export interface TextElementProps {
+export interface TextElementProps extends UniversalCSSProps {
   content?: string;
   tag?: 'div' | 'span' | 'p';
-  style?: React.CSSProperties;
   className?: string;
   children?: React.ReactNode;
-  // Background CSS properties
-  backgroundColor?: string;
-  backgroundcolor?: string; // Legacy lowercase version
-  // Text CSS properties (passed as flat props, will be merged into style)
-  fontSize?: string;
-  fontFamily?: string;
-  fontWeight?: string | number;
-  textAlign?: 'left' | 'center' | 'right' | 'justify';
-  textColor?: string;
-  lineHeight?: string | number;
-  textDecoration?: string;
-  fontStyle?: string;
-  textTransform?: string;
-  letterSpacing?: string;
+  // Legacy text CSS properties (kept for backward compatibility) - renamed to avoid conflicts
+  textBackgroundColor?: string;
+  textBackgroundcolor?: string; // Legacy lowercase version
+  textFontSize?: string;
+  textFontFamily?: string;
+  textFontWeight?: string | number;
+  textTextAlign?: 'left' | 'center' | 'right' | 'justify';
+  textTextColor?: string;
+  textLineHeight?: string | number;
+  textTextDecoration?: string;
+  textFontStyle?: string;
+  textTextTransform?: string;
+  textLetterSpacing?: string;
   // Internal props for visual builder
   _positioningMode?: 'absolute' | 'grid';
   _size?: { width: string; height: string };
@@ -35,38 +34,30 @@ export interface TextElementProps {
  * Provides editable text content that can be placed anywhere
  * Supports inline editing when in visual builder mode
  */
-export default function TextElement({
-  content,
-  tag = 'div',
-  style,
-  className = '',
-  children,
-  backgroundColor,  // Explicitly destructure to prevent it from being in ...rest
-  backgroundcolor,  // Legacy lowercase version
-  // Text CSS properties (destructure to merge into style)
-  fontSize,
-  fontFamily,
-  fontWeight,
-  textAlign,
-  textColor,
-  lineHeight,
-  textDecoration,
-  fontStyle,
-  textTransform,
-  letterSpacing,
-  _positioningMode,
-  _size,
-  _isInVisualBuilder = false,
-  _onContentChange,
-  ...rest
-}: TextElementProps) {
-
-  // CRITICAL FIX: If backgroundColor wasn't in style but was passed as a prop, add it to style
-  // This handles cases where CSS extraction in CanvasRenderer didn't work
-  const normalizedBackgroundColor = backgroundColor || backgroundcolor;
-  if (normalizedBackgroundColor && !style?.backgroundColor) {
-    style = { ...style, backgroundColor: normalizedBackgroundColor };
-  }
+export default function TextElement(props: TextElementProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    content,
+    tag = 'div',
+    className,
+    children,
+    textBackgroundColor,
+    textBackgroundcolor,
+    textFontSize,
+    textFontFamily,
+    textFontWeight,
+    textTextAlign,
+    textTextColor,
+    textLineHeight,
+    textTextDecoration,
+    textFontStyle,
+    textTextTransform,
+    textLetterSpacing,
+    _positioningMode,
+    _size,
+    _isInVisualBuilder = false,
+    _onContentChange
+  } = componentProps;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingContent, setEditingContent] = useState(content);
@@ -188,17 +179,22 @@ export default function TextElement({
   }, [isEditing]);
 
   // FIXED: Build classes without conflicting outline styles
-  const classes = [
+  const baseClasses = [
     'break-words', // Ensure text wrapping at word boundaries
     'hyphens-auto', // Enable automatic hyphenation
-    className,
     isAbsolutePositioned && _size ? 'h-full flex items-center justify-start' : '',
     // REMOVED outline classes that conflict with CSS outline - use inline styles instead
     _isInVisualBuilder && !isEditing ? 'hover:ring-1 hover:ring-gray-300 cursor-pointer' : '',
   ].filter(Boolean).join(' ');
 
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+
+  const classes = className
+    ? `${filteredClasses} ${className}`
+    : filteredClasses;
+
   // FIXED: Merge styles with proper priority - user CSS properties come LAST
-  const finalStyle: React.CSSProperties = {
+  const componentStyle: React.CSSProperties = {
     // Base positioning and size styles first (lowest priority)
     ...(isAbsolutePositioned && _size ? {
       width: _size.width,
@@ -209,7 +205,6 @@ export default function TextElement({
     ...(_isInVisualBuilder ? {
       minHeight: '1.5em',
       minWidth: '60px',
-      // REMOVED padding: '4px' - was overriding user CSS padding!
     } : {}),
 
     // Consistent text wrapping behavior (non-conflicting)
@@ -218,22 +213,18 @@ export default function TextElement({
     hyphens: 'auto',
     overflowX: 'hidden',
 
-    // TEXT CSS PROPERTIES from flat props (merge before style prop)
-    ...(fontSize ? { fontSize } : {}),
-    ...(fontFamily ? { fontFamily } : {}),
-    ...(fontWeight ? { fontWeight } : {}),
-    ...(textAlign ? { textAlign: textAlign as React.CSSProperties['textAlign'] } : {}),
-    ...(textColor ? { color: textColor } : {}), // textColor maps to 'color' CSS property
-    ...(lineHeight ? { lineHeight } : {}),
-    ...(textDecoration ? { textDecoration: textDecoration as React.CSSProperties['textDecoration'] } : {}),
-    ...(fontStyle ? { fontStyle: fontStyle as React.CSSProperties['fontStyle'] } : {}),
-    ...(textTransform ? { textTransform: textTransform as React.CSSProperties['textTransform'] } : {}),
-    ...(letterSpacing ? { letterSpacing } : {}),
-
-    // USER CSS PROPERTIES COME LAST (highest priority)
-    // Inline styles automatically have higher specificity than CSS classes,
-    // so we don't need !important (which doesn't work in React inline styles anyway)
-    ...style,
+    // Legacy text CSS properties (backward compatibility)
+    ...(textBackgroundColor || textBackgroundcolor ? { backgroundColor: textBackgroundColor || textBackgroundcolor } : {}),
+    ...(textFontSize ? { fontSize: textFontSize } : {}),
+    ...(textFontFamily ? { fontFamily: textFontFamily } : {}),
+    ...(textFontWeight ? { fontWeight: textFontWeight } : {}),
+    ...(textTextAlign ? { textAlign: textTextAlign as React.CSSProperties['textAlign'] } : {}),
+    ...(textTextColor ? { color: textTextColor } : {}),
+    ...(textLineHeight ? { lineHeight: textLineHeight } : {}),
+    ...(textTextDecoration ? { textDecoration: textTextDecoration as React.CSSProperties['textDecoration'] } : {}),
+    ...(textFontStyle ? { fontStyle: textFontStyle as React.CSSProperties['fontStyle'] } : {}),
+    ...(textTextTransform ? { textTransform: textTextTransform as React.CSSProperties['textTransform'] } : {}),
+    ...(textLetterSpacing ? { letterSpacing: textLetterSpacing } : {}),
 
     // Only non-conflicting editing indicators (don't override user CSS)
     ...(isEditing ? {
@@ -241,6 +232,9 @@ export default function TextElement({
       outlineOffset: '2px',
     } : {}),
   };
+
+  // Merge with UniversalCSSProps (CSS props win)
+  const finalStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
 
   // Debug logging for WYSIWYG validation
   const getContentLength = () => {
@@ -265,7 +259,6 @@ export default function TextElement({
         onBlur={isEditing ? handleEndEdit : undefined}
         onKeyDown={isEditing ? handleKeyDown : undefined}
         onInput={undefined}
-        {...rest}
       >
         {(() => {
           // Handle children vs content priority with validation

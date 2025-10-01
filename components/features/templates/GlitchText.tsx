@@ -1,32 +1,40 @@
 import React from "react";
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-interface GlitchTextProps {
+interface GlitchTextProps extends UniversalCSSProps {
   text: string;
   intensity?: 'low' | 'medium' | 'high';
-  color?: string;
+  glitchColor?: string; // Renamed to avoid collision with UniversalCSSProps.color
   glitchColor1?: string;
   glitchColor2?: string;
+  className?: string;
 }
 
-export default function GlitchText({ 
-  text,
-  intensity = 'medium',
-  color = 'currentColor',
-  glitchColor1 = '#ff0000',
-  glitchColor2 = '#00ffff'
-}: GlitchTextProps) {
+export default function GlitchText(props: GlitchTextProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    text,
+    intensity = 'medium',
+    glitchColor = 'currentColor',
+    glitchColor1 = '#ff0000',
+    glitchColor2 = '#00ffff',
+    className: customClassName
+  } = componentProps;
   const intensityValues = {
     'low': { duration: '3s', offset: '2px' },
     'medium': { duration: '2s', offset: '3px' },
     'high': { duration: '1s', offset: '5px' }
   }[intensity];
 
+  // Apply CSS props as inline styles
+  const style = applyCSSProps(cssProps);
+
   return (
     <>
       <style jsx>{`
         .glitch {
           position: relative;
-          color: ${color};
+          color: ${glitchColor};
           font-weight: bold;
           animation: glitch ${intensityValues.duration} infinite;
         }
@@ -77,7 +85,7 @@ export default function GlitchText({
           80% { transform: translate(${intensityValues.offset}, ${intensityValues.offset}); }
         }
       `}</style>
-      <span className="glitch">
+      <span className={customClassName ? `glitch ${customClassName}` : 'glitch'} style={style}>
         {text}
       </span>
     </>

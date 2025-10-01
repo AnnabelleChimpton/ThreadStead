@@ -3,40 +3,43 @@
  */
 
 import React from 'react';
-import { ComponentProps } from '@/lib/templates/types';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface NeonSignProps extends ComponentProps {
+export interface NeonSignProps extends UniversalCSSProps {
   text?: string;
-  color?: 'blue' | 'pink' | 'green' | 'purple' | 'cyan' | 'yellow' | 'red' | 'white';
+  neonColor?: 'blue' | 'pink' | 'green' | 'purple' | 'cyan' | 'yellow' | 'red' | 'white';
   intensity?: 'dim' | 'bright' | 'blazing';
   animation?: 'steady' | 'flicker' | 'pulse' | 'buzz';
-  fontSize?: 'small' | 'medium' | 'large' | 'xl';
-  fontWeight?: 'normal' | 'bold' | 'black';
+  textSize?: 'small' | 'medium' | 'large' | 'xl';
+  textWeight?: 'normal' | 'bold' | 'black';
   uppercase?: boolean;
   outline?: boolean;
   background?: boolean;
+  className?: string;
+  children?: React.ReactNode;
   _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
 
-export default function NeonSign({
-  text = 'NEON SIGN',
-  color = 'blue',
-  intensity = 'bright',
-  animation = 'steady',
-  fontSize = 'medium',
-  fontWeight = 'bold',
-  uppercase = true,
-  outline = true,
-  background = false,
-  className: customClassName = '',
-  style = {},
-  children,
-  _isInVisualBuilder = false,
-  _positioningMode = 'normal',
-  _isInGrid = false
-}: NeonSignProps) {
+export default function NeonSign(props: NeonSignProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    text = 'NEON SIGN',
+    neonColor = 'blue',
+    intensity = 'bright',
+    animation = 'steady',
+    textSize = 'medium',
+    textWeight = 'bold',
+    uppercase = true,
+    outline = true,
+    background = false,
+    className: customClassName,
+    children,
+    _isInVisualBuilder = false,
+    _positioningMode = 'normal',
+    _isInGrid = false
+  } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
@@ -46,7 +49,7 @@ export default function NeonSign({
   // Use prop-based grid detection instead of context hook
   const isInGrid = _isInGrid;
 
-  const getColorValues = (color: string, intensity: string) => {
+  const getColorValues = (neonColor: string, intensity: string) => {
     const baseColors = {
       blue: { primary: '#00bfff', secondary: '#0080ff', shadow: '#004080' },
       pink: { primary: '#ff1493', secondary: '#ff69b4', shadow: '#8b0030' },
@@ -64,7 +67,7 @@ export default function NeonSign({
       blazing: { glow: 1.4, brightness: 1.3, shadowBlur: 35 }
     };
 
-    const colors = baseColors[color as keyof typeof baseColors] || baseColors.blue;
+    const colors = baseColors[neonColor as keyof typeof baseColors] || baseColors.blue;
     const multiplier = intensityMultipliers[intensity as keyof typeof intensityMultipliers];
 
     return {
@@ -75,9 +78,9 @@ export default function NeonSign({
     };
   };
 
-  const { primary, secondary, shadow, glow, brightness, shadowBlur } = getColorValues(color, intensity);
+  const { primary, secondary, shadow, glow, brightness, shadowBlur } = getColorValues(neonColor, intensity);
 
-  const fontSizeMap = {
+  const fontSizeMap: Record<'small' | 'medium' | 'large' | 'xl', string> = {
     small: '24px',
     medium: '36px',
     large: '48px',
@@ -138,17 +141,26 @@ export default function NeonSign({
 
   const displayText = uppercase ? (children || text).toString().toUpperCase() : (children || text);
 
+  // Component default styles
+  const componentStyle = {
+    position: 'relative' as const,
+    display: 'inline-block',
+    padding: background ? '20px 40px' : '10px',
+    background: background ? `radial-gradient(ellipse at center, ${shadow}20 0%, transparent 70%)` : 'transparent',
+    borderRadius: background ? '15px' : '0'
+  };
+
+  // Merge component styles with CSS props (CSS props win)
+  const mergedStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
+
+  const containerClassName = normalizedCustomClassName
+    ? `neon-sign-container ${normalizedCustomClassName}`
+    : 'neon-sign-container';
+
   return (
     <div
-      className={`neon-sign-container ${normalizedCustomClassName}`}
-      style={{
-        ...style,
-        position: 'relative',
-        display: 'inline-block',
-        padding: background ? '20px 40px' : '10px',
-        background: background ? `radial-gradient(ellipse at center, ${shadow}20 0%, transparent 70%)` : 'transparent',
-        borderRadius: background ? '15px' : '0'
-      }}
+      className={containerClassName}
+      style={mergedStyle}
     >
       {/* Background glow */}
       {background && (
@@ -172,8 +184,8 @@ export default function NeonSign({
       <div
         style={{
           position: 'relative',
-          fontSize: fontSizeMap[fontSize],
-          fontWeight: fontWeight === 'black' ? 900 : fontWeight === 'bold' ? 700 : 400,
+          fontSize: fontSizeMap[textSize],
+          fontWeight: textWeight === 'black' ? 900 : textWeight === 'bold' ? 700 : 400,
           fontFamily: '"Arial Black", Arial, sans-serif',
           color: primary,
           textShadow: `
@@ -201,8 +213,8 @@ export default function NeonSign({
               top: 0,
               left: 0,
               right: 0,
-              fontSize: fontSizeMap[fontSize],
-              fontWeight: fontWeight === 'black' ? 900 : fontWeight === 'bold' ? 700 : 400,
+              fontSize: fontSizeMap[textSize],
+              fontWeight: textWeight === 'black' ? 900 : textWeight === 'bold' ? 700 : 400,
               fontFamily: '"Arial Black", Arial, sans-serif',
               color: 'transparent',
               WebkitTextStroke: `1px ${shadow}`,
@@ -221,11 +233,11 @@ export default function NeonSign({
       <div
         style={{
           position: 'absolute',
-          bottom: `-${parseInt(fontSizeMap[fontSize]) * 0.1}px`,
+          bottom: `-${parseInt(fontSizeMap[textSize]) * 0.1}px`,
           left: 0,
           right: 0,
-          fontSize: fontSizeMap[fontSize],
-          fontWeight: fontWeight === 'black' ? 900 : fontWeight === 'bold' ? 700 : 400,
+          fontSize: fontSizeMap[textSize],
+          fontWeight: textWeight === 'black' ? 900 : textWeight === 'bold' ? 700 : 400,
           fontFamily: '"Arial Black", Arial, sans-serif',
           color: primary,
           opacity: 0.2,

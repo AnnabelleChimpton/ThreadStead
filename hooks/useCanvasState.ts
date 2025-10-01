@@ -388,8 +388,11 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
       };
     }
 
-    // Always use grid positioning for consistency
-    processedComponent = { ...processedComponent, positioningMode: 'grid' };
+    // Respect the positioning mode set by the caller (don't force grid mode)
+    // Only default to grid if no positioning mode was specified
+    if (!processedComponent.positioningMode) {
+      processedComponent = { ...processedComponent, positioningMode: 'grid' };
+    }
 
     // Apply default props from registry for any missing props
     const registration = componentRegistry.get(processedComponent.type);

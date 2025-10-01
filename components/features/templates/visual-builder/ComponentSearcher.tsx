@@ -481,7 +481,7 @@ export default function ComponentSearcher({
             e.dataTransfer.setData('application/json', JSON.stringify({
               id: `${component.type}_${Date.now()}`,
               type: component.type,
-              position: { x: 0, y: 0 },
+              // Position is determined by drop coordinates in handleDrop, not hardcoded here
               positioningMode: 'absolute',
               props: {},
             }));
@@ -537,7 +537,7 @@ export default function ComponentSearcher({
           e.dataTransfer.setData('application/json', JSON.stringify({
             id: `${component.type}_${Date.now()}`,
             type: component.type,
-            position: { x: 0, y: 0 },
+            // Position is determined by drop coordinates in handleDrop, not hardcoded here
             positioningMode: 'absolute',
             props: {},
           }));

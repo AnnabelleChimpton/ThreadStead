@@ -5,8 +5,9 @@ import ProfilePhoto from './ProfilePhoto';
 import FollowButton from './FollowButton';
 import FriendBadge from './FriendBadge';
 import MutualFriends from './MutualFriends';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface ProfileHeaderProps {
+interface ProfileHeaderProps extends UniversalCSSProps {
   showPhoto?: boolean;
   showBio?: boolean;
   showActions?: boolean;
@@ -14,26 +15,32 @@ interface ProfileHeaderProps {
   className?: string;
 }
 
-export default function ProfileHeader({
-  showPhoto = true,
-  showBio = true,
-  showActions = true,
-  photoSize = 'md',
-  className: customClassName
-}: ProfileHeaderProps) {
+export default function ProfileHeader(props: ProfileHeaderProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    showPhoto = true,
+    showBio = true,
+    showActions = true,
+    photoSize = 'md',
+    className: customClassName
+  } = componentProps;
   const { owner, viewer, capabilities } = useResidentData();
-  
+
   // Handle className being passed as array or string
-  const normalizedCustomClassName = Array.isArray(customClassName) 
+  const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-  
-  const wrapperClassName = normalizedCustomClassName 
-    ? `ts-profile-header ${normalizedCustomClassName}`
-    : "ts-profile-header";
+
+  const baseClasses = "ts-profile-header";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const wrapperClassName = normalizedCustomClassName
+    ? `${filteredClasses} ${normalizedCustomClassName}`
+    : filteredClasses;
 
   return (
-    <div className={wrapperClassName} data-component="profile-header">
+    <div className={wrapperClassName} style={style} data-component="profile-header">
       <div className="ts-profile-header-layout flex flex-col sm:flex-row sm:items-start sm:gap-6">
         {showPhoto && (
           <div className="ts-profile-photo-section">

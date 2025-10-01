@@ -3,9 +3,9 @@
  */
 
 import React from 'react';
-import { ComponentProps } from '@/lib/templates/types';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface VHSTapeProps extends ComponentProps {
+export interface VHSTapeProps extends UniversalCSSProps {
   title?: string;
   year?: string;
   genre?: 'Action' | 'Comedy' | 'Drama' | 'Horror' | 'Sci-Fi' | 'Romance' | 'Thriller' | 'Documentary';
@@ -14,57 +14,35 @@ export interface VHSTapeProps extends ComponentProps {
   labelStyle?: 'classic' | 'rental' | 'homemade' | 'premium';
   wear?: 'mint' | 'good' | 'worn' | 'damaged';
   showBarcode?: boolean;
+  className?: string;
+  children?: React.ReactNode;
   _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
 
-export default function VHSTape({
-  title = 'HOME VIDEO',
-  year = '1985',
-  genre = 'Action',
-  duration = '120 min',
-  tapeColor = 'black',
-  labelStyle = 'classic',
-  wear = 'good',
-  showBarcode = true,
-  className: customClassName = '',
-  style = {},
-  children,
-  _isInVisualBuilder = false,
-  _positioningMode = 'normal',
-  _isInGrid = false
-}: VHSTapeProps) {
+export default function VHSTape(props: VHSTapeProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    title = 'HOME VIDEO',
+    year = '1985',
+    genre = 'Action',
+    duration = '120 min',
+    tapeColor = 'black',
+    labelStyle = 'classic',
+    wear = 'good',
+    showBarcode = true,
+    className: customClassName,
+    children,
+    _isInVisualBuilder = false,
+    _positioningMode = 'normal',
+    _isInGrid = false
+  } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Handle style being passed as array or object, and normalize array values
-  const normalizedStyle = React.useMemo(() => {
-    if (!style) return {};
-
-    let mergedStyle = {};
-
-    if (Array.isArray(style)) {
-      // If style is an array, merge all objects
-      mergedStyle = style.reduce((acc, styleObj) => ({ ...acc, ...styleObj }), {});
-    } else {
-      mergedStyle = style;
-    }
-
-    // Normalize any array values within the style object
-    const normalizedEntries = Object.entries(mergedStyle).map(([key, value]) => {
-      if (Array.isArray(value)) {
-        // Convert array values to strings (join with space for multiple values)
-        return [key, value.join(' ')];
-      }
-      return [key, value];
-    });
-
-    return Object.fromEntries(normalizedEntries);
-  }, [style]);
 
   // Use prop-based grid detection instead of context hook
   const isInGrid = _isInGrid;
@@ -126,20 +104,29 @@ export default function VHSTape({
   const currentLabelStyle = labelStyles[labelStyle];
   const currentWear = wearEffects[wear];
 
+  // Component default styles
+  const componentStyle: React.CSSProperties = {
+    display: 'inline-block',
+    position: _positioningMode === 'absolute' ? 'relative' : 'static',
+    opacity: currentWear.opacity,
+    ...(isInGrid && {
+      width: '100%',
+      height: '100%',
+      minHeight: '120px'
+    })
+  };
+
+  // Merge component styles with CSS props (CSS props win)
+  const containerStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
+
+  const containerClassName = normalizedCustomClassName
+    ? `vhs-tape-container ${normalizedCustomClassName}`
+    : 'vhs-tape-container';
+
   return (
     <div
-      className={`vhs-tape-container ${normalizedCustomClassName}`}
-      style={{
-        ...normalizedStyle,
-        display: 'inline-block',
-        position: _positioningMode === 'absolute' ? 'relative' : 'static',
-        opacity: currentWear.opacity,
-        ...(isInGrid && {
-          width: '100%',
-          height: '100%',
-          minHeight: '120px'
-        })
-      }}
+      className={containerClassName}
+      style={containerStyle}
     >
       <style jsx>{`
         .vhs-tape-shell {

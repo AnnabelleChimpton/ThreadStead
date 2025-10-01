@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface SkillChartProps {
+interface SkillChartProps extends UniversalCSSProps {
   title?: string;
-  display?: 'bars' | 'radial' | 'bubbles' | 'tags';
+  displayMode?: 'bars' | 'radial' | 'bubbles' | 'tags';
   theme?: 'modern' | 'neon' | 'professional' | 'minimal';
   layout?: 'grid' | 'columns' | 'flow';
   showValues?: boolean;
   showCategories?: boolean;
   sortBy?: 'proficiency' | 'category' | 'name' | 'custom';
   maxDisplay?: number;
-  size?: 'sm' | 'md' | 'lg';
+  chartSize?: 'sm' | 'md' | 'lg';
   children?: React.ReactNode;
   className?: string;
 }
@@ -60,19 +61,22 @@ interface SkillData {
   percentage: number;
 }
 
-export default function SkillChart({
-  title = 'Skills',
-  display = 'bars',
-  theme = 'modern',
-  layout = 'grid',
-  showValues = true,
-  showCategories = true,
-  sortBy = 'proficiency',
-  maxDisplay,
-  size = 'md',
-  children,
-  className: customClassName
-}: SkillChartProps) {
+export default function SkillChart(props: SkillChartProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    title = 'Skills',
+    displayMode = 'bars',
+    theme = 'modern',
+    layout = 'grid',
+    showValues = true,
+    showCategories = true,
+    sortBy = 'proficiency',
+    maxDisplay,
+    chartSize = 'md',
+    children,
+    className: customClassName
+  } = componentProps;
+
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
@@ -248,7 +252,7 @@ export default function SkillChart({
     lg: { container: 'text-lg', icon: 'text-lg', bar: 'h-4' }
   };
 
-  const currentSize = sizeClasses[size];
+  const currentSize = sizeClasses[chartSize];
 
   if (skills.length === 0) {
     return (
@@ -265,7 +269,7 @@ export default function SkillChart({
     const isHovered = hoveredSkill === skill.name;
     
     const skillContent = () => {
-      switch (display) {
+      switch (displayMode) {
         case 'bars':
           return (
             <div className="space-y-2">
@@ -415,27 +419,33 @@ export default function SkillChart({
   // Layout classes
   const getLayoutClasses = () => {
     const baseClasses = {
-      grid: display === 'radial' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' :
-            display === 'bubbles' ? 'flex flex-wrap gap-4 justify-center' :
-            display === 'tags' ? 'flex flex-wrap gap-2' : 'space-y-4',
-      columns: display === 'radial' ? 'columns-2 md:columns-3 gap-4 space-y-4' :
-               display === 'tags' ? 'flex flex-wrap gap-2' : 'space-y-4',
+      grid: displayMode === 'radial' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' :
+            displayMode === 'bubbles' ? 'flex flex-wrap gap-4 justify-center' :
+            displayMode === 'tags' ? 'flex flex-wrap gap-2' : 'space-y-4',
+      columns: displayMode === 'radial' ? 'columns-2 md:columns-3 gap-4 space-y-4' :
+               displayMode === 'tags' ? 'flex flex-wrap gap-2' : 'space-y-4',
       flow: 'flex flex-wrap gap-3'
     };
     return baseClasses[layout];
   };
 
-  const containerClassName = [
+  const baseClasses = [
     'ts-skill-chart',
     currentTheme.container,
     'rounded-lg',
     'overflow-hidden',
-    currentSize.container,
-    normalizedCustomClassName
+    currentSize.container
   ].filter(Boolean).join(' ');
 
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const containerClassName = normalizedCustomClassName
+    ? `${filteredClasses} ${normalizedCustomClassName}`
+    : filteredClasses;
+
   return (
-    <div className={containerClassName}>
+    <div className={containerClassName} style={style}>
       {/* Header */}
       <div className={`ts-skill-chart-header ${currentTheme.header} px-4 py-3`}>
         <h3 className={`ts-skill-chart-title font-semibold ${currentTheme.text}`}>{title}</h3>
@@ -487,7 +497,7 @@ export default function SkillChart({
 
       {/* Screen reader announcements */}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        Showing {skills.length} skills in {display} format, theme: {theme}
+        Showing {skills.length} skills in {displayMode} format, theme: {theme}
       </div>
     </div>
   );

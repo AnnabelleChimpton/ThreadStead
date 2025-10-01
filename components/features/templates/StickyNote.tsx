@@ -1,8 +1,9 @@
 import React from "react";
 import { useGridCompatibilityContext } from './GridCompatibleWrapper';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface StickyNoteProps {
-  color?: 'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple';
+interface StickyNoteProps extends UniversalCSSProps {
+  noteColor?: 'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple';
   size?: 'sm' | 'md' | 'lg';
   rotation?: number;
   children: React.ReactNode;
@@ -11,15 +12,16 @@ interface StickyNoteProps {
   _positioningMode?: 'grid' | 'absolute';
 }
 
-export default function StickyNote({
-  color = 'yellow',
-  size = 'md',
-  rotation = 0,
-  children,
+export default function StickyNote(props: StickyNoteProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    noteColor = 'yellow',
+    size = 'md',
+    rotation = 0,
+    children,
+    _positioningMode
+  } = componentProps;
 
-  // Internal props
-  _positioningMode
-}: StickyNoteProps) {
   const colorClasses = {
     'yellow': 'bg-yellow-200 border-yellow-300',
     'pink': 'bg-pink-200 border-pink-300',
@@ -27,7 +29,7 @@ export default function StickyNote({
     'green': 'bg-green-200 border-green-300',
     'orange': 'bg-orange-200 border-orange-300',
     'purple': 'bg-purple-200 border-purple-300'
-  }[color];
+  }[noteColor];
 
   const { isInGrid } = useGridCompatibilityContext();
 
@@ -51,17 +53,24 @@ export default function StickyNote({
     _positioningMode === 'absolute' ? 'h-full' : ''
   ].filter(Boolean).join(' ');
 
+  const filteredClasses = removeTailwindConflicts(baseContainerClasses, cssProps);
+  const appliedStyles = applyCSSProps(cssProps);
+
+  // Merge component styles with CSS props (CSS props win)
+  const mergedStyles = {
+    transform: `rotate(${rotation}deg)`,
+    transformOrigin: 'center',
+    ...appliedStyles
+  };
+
   return (
     <div
-      className={baseContainerClasses}
-      style={{
-        transform: `rotate(${rotation}deg)`,
-        transformOrigin: 'center'
-      }}
+      className={filteredClasses}
+      style={mergedStyles}
     >
       {/* Tape effect */}
       <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-4 bg-white bg-opacity-70 border border-gray-300 rounded-sm"></div>
-      
+
       <div className={`relative z-10 ${
         _positioningMode === 'absolute' ? 'h-full flex flex-col justify-center' : ''
       }`}>

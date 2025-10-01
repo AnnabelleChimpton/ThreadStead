@@ -106,6 +106,39 @@ function generateGlobalCSSProperties(globalSettings: GlobalSettings | null): Rea
 }
 
 /**
+ * Helper function to strip positioning CSS from a style string or object
+ * Used in Visual Builder to prevent double positioning
+ */
+function stripPositioningFromStyle(style: string | React.CSSProperties | undefined): string | React.CSSProperties | undefined {
+  if (!style) return style;
+
+  // If style is a string, parse it and remove positioning properties
+  if (typeof style === 'string') {
+    const declarations = style.split(';').map(d => d.trim()).filter(Boolean);
+    const cleanedDeclarations = declarations.filter(declaration => {
+      const property = declaration.split(':')[0]?.trim().toLowerCase();
+      // Remove positioning-related properties
+      return !['position', 'top', 'right', 'bottom', 'left', 'z-index'].includes(property);
+    });
+    return cleanedDeclarations.join('; ');
+  }
+
+  // If style is an object, create a copy without positioning properties
+  if (typeof style === 'object') {
+    const cleaned = { ...style };
+    delete cleaned.position;
+    delete cleaned.top;
+    delete cleaned.right;
+    delete cleaned.bottom;
+    delete cleaned.left;
+    delete cleaned.zIndex;
+    return cleaned;
+  }
+
+  return style;
+}
+
+/**
  * NEW: Helper function to prepare props for component rendering with the new standardized system
  * This handles both legacy and new prop structures during the transition
  */
@@ -144,6 +177,22 @@ function prepareComponentProps(
     if (baseProps.backgroundcolor && !baseProps.backgroundColor) {
       baseProps.backgroundColor = baseProps.backgroundcolor;
       delete baseProps.backgroundcolor;
+    }
+
+    // CRITICAL FIX: Strip positioning props to prevent double positioning
+    // The CanvasRenderer wrapper div handles all positioning in Visual Builder
+    // Components should render at 0,0 relative to their wrapper
+    delete baseProps.position;
+    delete baseProps.top;
+    delete baseProps.right;
+    delete baseProps.bottom;
+    delete baseProps.left;
+
+    // CRITICAL FIX: Also strip positioning from style prop (string or object)
+    // separateCSSProps() parses the style prop and extracts positioning from it
+    // We need to clean the style prop to prevent double positioning
+    if (baseProps.style) {
+      baseProps.style = stripPositioningFromStyle(baseProps.style);
     }
 
     return {
@@ -251,9 +300,43 @@ function prepareComponentProps(
     if (extractedCSSProps.gridTemplateColumns) cssInlineStyles.gridTemplateColumns = extractedCSSProps.gridTemplateColumns;
     if (extractedCSSProps.gridTemplateRows) cssInlineStyles.gridTemplateRows = extractedCSSProps.gridTemplateRows;
 
-    // Merge CSS inline styles with existing style prop
-    const existingStyle = remainingProps.style || {};
-    const mergedStyle = { ...existingStyle, ...cssInlineStyles };
+    // CRITICAL FIX: DO NOT include positioning props in Visual Builder rendering
+    // The CanvasRenderer wrapper div handles all positioning - components render at 0,0 relative to wrapper
+    // This prevents double positioning bug where components were positioned twice
+    // Note: We still extracted these props above (they're in extractedCSSProps) but we intentionally
+    // don't add them to cssInlineStyles so they don't get applied to the component
+
+    // CRITICAL FIX: Clean the existing style prop before merging
+    // Handle both string and object style props from HTML parser
+    let existingStyleObj: React.CSSProperties = {};
+    if (remainingProps.style) {
+      if (typeof remainingProps.style === 'string') {
+        // Parse string style and convert to object, stripping positioning
+        const cleanedStyleString = stripPositioningFromStyle(remainingProps.style) as string;
+        // Parse the cleaned string into an object
+        cleanedStyleString.split(';').forEach(declaration => {
+          const [property, value] = declaration.split(':').map(s => s.trim());
+          if (property && value) {
+            // Convert kebab-case to camelCase
+            const camelProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+            (existingStyleObj as any)[camelProperty] = value;
+          }
+        });
+      } else if (typeof remainingProps.style === 'object') {
+        // Clean object style by removing positioning
+        existingStyleObj = stripPositioningFromStyle(remainingProps.style) as React.CSSProperties;
+      }
+    }
+
+    // Merge CSS inline styles with cleaned existing style prop
+    const mergedStyle = { ...existingStyleObj, ...cssInlineStyles };
+
+    // Additional safety: Strip positioning from merged styles (redundant but safe)
+    delete mergedStyle.position;
+    delete mergedStyle.top;
+    delete mergedStyle.right;
+    delete mergedStyle.bottom;
+    delete mergedStyle.left;
 
     const preparedProps = {
       ...remainingProps,
@@ -1066,6 +1149,45 @@ export default function CanvasRenderer({
       // Normal component drop on canvas - unified absolute positioning
       const componentProps = { ...(componentToPlace.props || {}) };
 
+      // CRITICAL FIX: Strip positioning data from palette component props
+      // When placing a component from the palette (especially after loading a template),
+      // the component may have stale positioning data in its props from HTML parsing
+      // This causes newly placed components to save with wrong/contaminated coordinates
+      delete componentProps.style; // Remove style string (contains old positioning)
+      delete componentProps.position;
+      delete componentProps.top;
+      delete componentProps.right;
+      delete componentProps.bottom;
+      delete componentProps.left;
+      delete componentProps.zIndex;
+
+      // CRITICAL FIX: Also strip positioning from publicProps if present
+      // publicProps can carry contaminated positioning from previous template saves
+      const cleanPublicProps: Record<string, any> = { ...(componentToPlace.publicProps || {}) };
+      const positioningProps: string[] = ['position', 'top', 'right', 'bottom', 'left', 'zIndex'];
+      positioningProps.forEach((prop: string) => delete cleanPublicProps[prop]);
+
+      // Strip positioning from style prop in publicProps (string or object)
+      if (cleanPublicProps.style) {
+        if (typeof cleanPublicProps.style === 'string') {
+          const declarations = cleanPublicProps.style.split(';').map(d => d.trim()).filter(Boolean);
+          const cleanedDeclarations = declarations.filter(declaration => {
+            const property = declaration.split(':')[0]?.trim().toLowerCase();
+            return !['position', 'top', 'right', 'bottom', 'left', 'z-index'].includes(property);
+          });
+          cleanPublicProps.style = cleanedDeclarations.join('; ');
+        } else if (typeof cleanPublicProps.style === 'object') {
+          const cleaned = { ...cleanPublicProps.style };
+          delete cleaned.position;
+          delete cleaned.top;
+          delete cleaned.right;
+          delete cleaned.bottom;
+          delete cleaned.left;
+          delete cleaned.zIndex;
+          cleanPublicProps.style = cleaned;
+        }
+      }
+
       // Set proper default sizes for container components to match their visual appearance
       if (componentToPlace.type === 'Grid') {
         componentProps._size = {
@@ -1085,7 +1207,7 @@ export default function CanvasRenderer({
         type: componentToPlace.type,
         position: { x: finalX, y: finalY },
         positioningMode: 'absolute',
-        publicProps: componentProps,
+        publicProps: cleanPublicProps,
         visualBuilderState: {
           isSelected: false,
           isLocked: false,
@@ -2262,11 +2384,18 @@ export default function CanvasRenderer({
         componentStyle.position = visualBuilderPosition as any;
       }
 
-      // Override coordinates if user set them
-      if (userTop !== undefined) componentStyle.top = userTop;
-      if (userRight !== undefined) componentStyle.right = userRight;
-      if (userBottom !== undefined) componentStyle.bottom = userBottom;
-      if (userLeft !== undefined) componentStyle.left = userLeft;
+      // CRITICAL FIX: DO NOT override coordinates from CSS props in Visual Builder
+      // component.position.x/y is the source of truth for Visual Builder positioning
+      // CSS positioning props (top/left/right/bottom) from publicProps are for the final rendered template
+      // They should not affect Visual Builder canvas positioning, which is controlled by drag/drop
+      // If we override with CSS props here, we get double positioning when templates are loaded
+      // (coordinates end up in both component.position AND publicProps, causing confusion)
+      //
+      // Commented out to prevent coordinate overriding:
+      // if (userTop !== undefined) componentStyle.top = userTop;
+      // if (userRight !== undefined) componentStyle.right = userRight;
+      // if (userBottom !== undefined) componentStyle.bottom = userBottom;
+      // if (userLeft !== undefined) componentStyle.left = userLeft;
 
       // Override z-index if user set it (navigation default z-index can be overridden)
       if (userZIndex !== undefined) {

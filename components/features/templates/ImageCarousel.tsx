@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useResidentData } from './ResidentDataProvider';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface ImageCarouselProps {
+interface ImageCarouselProps extends UniversalCSSProps {
   autoplay?: boolean;
   interval?: number;
   showThumbnails?: boolean;
   showDots?: boolean;
   showArrows?: boolean;
-  height?: 'sm' | 'md' | 'lg' | 'xl';
+  carouselHeight?: 'sm' | 'md' | 'lg' | 'xl';
   transition?: 'slide' | 'fade' | 'zoom';
   loop?: boolean;
   controls?: 'arrows' | 'dots' | 'thumbnails' | 'all';
@@ -45,19 +46,22 @@ interface CarouselImageData {
   link?: string;
 }
 
-export default function ImageCarousel({
-  autoplay = false,
-  interval = 5,
-  showThumbnails = true,
-  showDots = true,
-  showArrows = true,
-  height = 'md',
-  transition = 'slide',
-  loop = true,
-  controls = 'all',
-  children,
-  className: customClassName
-}: ImageCarouselProps) {
+export default function ImageCarousel(props: ImageCarouselProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    autoplay = false,
+    interval = 5,
+    showThumbnails = true,
+    showDots = true,
+    showArrows = true,
+    carouselHeight = 'md',
+    transition = 'slide',
+    loop = true,
+    controls = 'all',
+    children,
+    className: customClassName
+  } = componentProps;
+
   const { images } = useResidentData();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoplay);
@@ -65,7 +69,7 @@ export default function ImageCarousel({
   const carouselRef = useRef<HTMLDivElement>(null);
 
   // Handle className being passed as array or string
-  const normalizedCustomClassName = Array.isArray(customClassName) 
+  const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
 
@@ -253,8 +257,12 @@ export default function ImageCarousel({
   const shouldShowThumbnails = (controls === 'all' || controls === 'thumbnails') && showThumbnails;
 
   if (carouselImages.length === 0) {
+    const emptyBaseClasses = "ts-image-carousel-empty bg-gray-100 rounded-lg p-8 text-center text-gray-500";
+    const emptyFilteredClasses = removeTailwindConflicts(emptyBaseClasses, cssProps);
+    const emptyStyle = applyCSSProps(cssProps);
+
     return (
-      <div className="ts-image-carousel-empty bg-gray-100 rounded-lg p-8 text-center text-gray-500">
+      <div className={emptyFilteredClasses} style={emptyStyle}>
         <div className="text-4xl mb-2">🖼️</div>
         <div className="font-medium">No images to display</div>
         <div className="text-sm">Upload some images to create a carousel</div>
@@ -263,20 +271,28 @@ export default function ImageCarousel({
   }
 
   const currentImage = carouselImages[currentIndex];
-  const containerClassName = [
+
+  const baseClasses = [
     'ts-image-carousel',
     'relative',
     'bg-gray-100',
     'rounded-lg',
     'overflow-hidden',
     'focus-within:ring-2',
-    'focus-within:ring-blue-500',
-    normalizedCustomClassName
+    'focus-within:ring-blue-500'
   ].filter(Boolean).join(' ');
 
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const containerClassName = normalizedCustomClassName
+    ? `${filteredClasses} ${normalizedCustomClassName}`
+    : filteredClasses;
+
   return (
-    <div 
+    <div
       ref={carouselRef}
+      style={style}
       className={containerClassName}
       role="region"
       aria-label="Image carousel"
@@ -286,7 +302,7 @@ export default function ImageCarousel({
       onTouchEnd={onTouchEnd}
     >
       {/* Main carousel display */}
-      <div className={`ts-carousel-main relative ${heightClasses[height]} overflow-hidden`}>
+      <div className={`ts-carousel-main relative ${heightClasses[carouselHeight]} overflow-hidden`}>
         {/* Image slides */}
         <div className="relative w-full h-full">
           {carouselImages.map((image, index) => {

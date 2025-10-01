@@ -1,37 +1,50 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
 import PostItem, { Post as PostType } from '../../core/content/PostItem';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface BlogPostsProps {
+interface BlogPostsProps extends UniversalCSSProps {
   limit?: number;
   className?: string;
 }
 
-export default function BlogPosts({ limit = 5, className: customClassName }: BlogPostsProps) {
+export default function BlogPosts(props: BlogPostsProps) {
+  // Separate CSS properties from component-specific properties
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { limit = 5, className: customClassName } = componentProps;
+
   const { posts, owner } = useResidentData();
-  
+
   // Defensive programming: ensure posts is an array and filter out invalid posts
   const safePosts = Array.isArray(posts) ? posts.filter(post => post && post.id) : [];
   const displayPosts = safePosts.slice(0, limit);
 
+  // Apply CSS properties as inline styles
+  const appliedStyles = applyCSSProps(cssProps);
+
   if (displayPosts.length === 0) {
-    const emptyClassName = customClassName ? `blog-posts-empty profile-tab-content italic opacity-70 text-center py-4 ${customClassName}` : "blog-posts-empty profile-tab-content italic opacity-70 text-center py-4";
+    const baseEmptyClasses = "blog-posts-empty profile-tab-content italic opacity-70 text-center py-4";
+    const filteredEmptyClasses = removeTailwindConflicts(baseEmptyClasses, cssProps);
+    const emptyClassName = customClassName ? `${filteredEmptyClasses} ${customClassName}` : filteredEmptyClasses;
+
     return (
-      <div className={emptyClassName}>
+      <div className={emptyClassName} style={appliedStyles}>
         No posts yet.
       </div>
     );
   }
 
-  const containerClassName = customClassName ? `blog-posts profile-tab-content space-y-4 ${customClassName}` : "blog-posts profile-tab-content space-y-4";
+  const baseContainerClasses = "blog-posts profile-tab-content space-y-4";
+  const filteredContainerClasses = removeTailwindConflicts(baseContainerClasses, cssProps);
+  const containerClassName = customClassName ? `${filteredContainerClasses} ${customClassName}` : filteredContainerClasses;
 
   return (
-    <div className={containerClassName}>
+    <div className={containerClassName} style={appliedStyles}>
       <h3 className="blog-posts-title thread-headline text-xl font-bold mb-3">Recent Posts</h3>
       <div className="blog-posts-list space-y-3">
         {displayPosts.map((post) => (
-          <PostItem 
-            key={post.id} 
+          <PostItem
+            key={post.id}
             post={{
               ...post,
               visibility: 'public',
@@ -47,7 +60,7 @@ export default function BlogPosts({ limit = 5, className: customClassName }: Blo
               threadRing: null,
               isBookmarked: false,
               userVote: null
-            } as PostType} 
+            } as PostType}
             isOwner={false} // Template preview is always read-only
             isAdmin={false}
             onChanged={() => {}} // No refresh needed in preview

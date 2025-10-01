@@ -3,11 +3,11 @@
  */
 
 import React, { useState } from 'react';
-import { ComponentProps } from '@/lib/templates/types';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface ArcadeButtonProps extends ComponentProps {
+export interface ArcadeButtonProps extends UniversalCSSProps {
   text?: string;
-  color?: 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange' | 'white' | 'black';
+  buttonColor?: 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange' | 'white' | 'black'; // Renamed to avoid collision
   size?: 'small' | 'medium' | 'large' | 'xl';
   shape?: 'circle' | 'square' | 'rectangle';
   style3D?: boolean;
@@ -16,29 +16,32 @@ export interface ArcadeButtonProps extends ComponentProps {
   sound?: boolean;
   href?: string;
   onClick?: () => void;
+  className?: string;
   _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
+  children?: React.ReactNode;
 }
 
-export default function ArcadeButton({
-  text = 'START',
-  color = 'red',
-  size = 'medium',
-  shape = 'circle',
-  style3D = true,
-  glowing = false,
-  clickEffect = true,
-  sound = false,
-  href,
-  onClick,
-  className: customClassName = '',
-  style = {},
-  children,
-  _isInVisualBuilder = false,
-  _positioningMode = 'normal',
-  _isInGrid = false
-}: ArcadeButtonProps) {
+export default function ArcadeButton(props: ArcadeButtonProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    text = 'START',
+    buttonColor = 'red',
+    size = 'medium',
+    shape = 'circle',
+    style3D = true,
+    glowing = false,
+    clickEffect = true,
+    sound = false,
+    href,
+    onClick,
+    className: customClassName = '',
+    children,
+    _isInVisualBuilder = false,
+    _positioningMode = 'normal',
+    _isInGrid = false
+  } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
@@ -141,7 +144,7 @@ export default function ArcadeButton({
     return base; // circle
   };
 
-  const colors = getColorValues(color);
+  const colors = getColorValues(buttonColor);
   const dimensions = getSizeValues(size, shape);
 
   const handleClick = () => {
@@ -188,7 +191,8 @@ export default function ArcadeButton({
   const buttonContent = hasValidChildren ? children : (text && text.trim() ? text : 'START');
   const isClickable = href || onClick;
 
-  const baseStyles = {
+  // Component-specific styles
+  const componentStyles = {
     position: 'relative' as const,
     display: 'inline-flex',
     alignItems: 'center',
@@ -206,8 +210,13 @@ export default function ArcadeButton({
     transition: 'all 0.1s ease',
     border: 'none',
     outline: 'none',
-    overflow: _isInVisualBuilder ? 'visible' : 'hidden',
-    ...style
+    overflow: _isInVisualBuilder ? 'visible' : 'hidden'
+  };
+
+  // Merge with CSS props (CSS props win)
+  const baseStyles = {
+    ...componentStyles,
+    ...applyCSSProps(cssProps)
   };
 
   const surfaceStyles = {
@@ -285,8 +294,8 @@ export default function ArcadeButton({
         style={{
           position: 'relative',
           zIndex: 1,
-          color: color === 'white' || color === 'yellow' ? '#000' : '#fff',
-          textShadow: color === 'white' || color === 'yellow'
+          color: buttonColor === 'white' || buttonColor === 'yellow' ? '#000' : '#fff',
+          textShadow: buttonColor === 'white' || buttonColor === 'yellow'
             ? '0 1px 2px rgba(0,0,0,0.3)'
             : '0 1px 2px rgba(0,0,0,0.8)',
           padding: `${dimensions.padding}px`,

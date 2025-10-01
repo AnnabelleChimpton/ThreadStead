@@ -65,8 +65,15 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
         // Check positioning mode and handle accordingly (support both kebab-case and camelCase)
         const positioningMode = rawProps['data-positioning-mode'] || rawProps['dataPositioningMode'];
 
-        if (positioningMode === 'absolute') {
-          // Handle absolute pixel positioning from visual builder
+        // NEW FORMAT: Check for individual positioning attributes (data-x, data-y)
+        const hasNewPositioningFormat = rawProps['data-x'] !== undefined || rawProps['dataX'] !== undefined;
+
+        if (hasNewPositioningFormat) {
+          // New positioning format with inline styles already present in the style prop
+          // Just render the component normally - positioning is already in the style attribute
+          return React.createElement(Component, { ...props, key }, ...(children || []));
+        } else if (positioningMode === 'absolute') {
+          // OLD FORMAT: Handle legacy absolute pixel positioning from visual builder
 
           let pixelPosition;
           const pixelPositionData = rawProps['data-pixel-position'] || rawProps['dataPixelPosition'];
@@ -195,8 +202,15 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
           // Check positioning mode for data-component syntax
           const positioningMode = node.properties['data-positioning-mode'];
 
-          if (positioningMode === 'absolute') {
-            // Handle absolute pixel positioning
+          // NEW FORMAT: Check for individual positioning attributes (data-x, data-y)
+          const hasNewPositioningFormat = node.properties['data-x'] !== undefined || node.properties['dataX'] !== undefined;
+
+          if (hasNewPositioningFormat) {
+            // New positioning format with inline styles already present in the style prop
+            // Just render the component normally - positioning is already in the style attribute
+            return React.createElement(Component, { ...validatedProps, key }, ...(children || []));
+          } else if (positioningMode === 'absolute') {
+            // OLD FORMAT: Handle legacy absolute pixel positioning
             let pixelPosition;
             if (node.properties['data-pixel-position']) {
               try {

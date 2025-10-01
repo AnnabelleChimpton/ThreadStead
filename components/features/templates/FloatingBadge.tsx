@@ -1,21 +1,25 @@
 import React from "react";
 import { useGridCompatibilityContext } from './GridCompatibleWrapper';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface FloatingBadgeProps {
-  color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple' | 'pink';
+interface FloatingBadgeProps extends UniversalCSSProps {
+  badgeColor?: 'blue' | 'green' | 'red' | 'yellow' | 'purple' | 'pink';
   size?: 'sm' | 'md' | 'lg';
   animation?: 'bounce' | 'pulse' | 'float' | 'none';
-  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  badgePosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   children: React.ReactNode;
 }
 
-export default function FloatingBadge({ 
-  color = 'blue',
-  size = 'md',
-  animation = 'float',
-  position = 'top-right',
-  children 
-}: FloatingBadgeProps) {
+export default function FloatingBadge(props: FloatingBadgeProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    badgeColor = 'blue',
+    size = 'md',
+    animation = 'float',
+    badgePosition = 'top-right',
+    children
+  } = componentProps;
+
   const colorClasses = {
     'blue': 'bg-blue-500 text-white',
     'green': 'bg-green-500 text-white',
@@ -23,7 +27,7 @@ export default function FloatingBadge({
     'yellow': 'bg-yellow-500 text-black',
     'purple': 'bg-purple-500 text-white',
     'pink': 'bg-pink-500 text-white'
-  }[color];
+  }[badgeColor];
 
   const sizeClasses = {
     'sm': 'text-xs px-2 py-1',
@@ -40,12 +44,12 @@ export default function FloatingBadge({
     'top-right': 'top-1 right-1',
     'bottom-left': 'bottom-1 left-1',
     'bottom-right': 'bottom-1 right-1'
-  }[position] : {
+  }[badgePosition] : {
     'top-left': 'top-2 left-2',
     'top-right': 'top-2 right-2',
     'bottom-left': 'bottom-2 left-2',
     'bottom-right': 'bottom-2 right-2'
-  }[position];
+  }[badgePosition];
 
   const animationClasses = {
     'bounce': 'animate-bounce',
@@ -53,6 +57,15 @@ export default function FloatingBadge({
     'float': 'animate-[float_3s_ease-in-out_infinite]',
     'none': ''
   }[animation];
+
+  const baseWrapperClasses = [
+    isInGrid ? 'absolute' : 'fixed',
+    positionClasses,
+    isInGrid ? 'z-10' : 'z-50'
+  ].filter(Boolean).join(' ');
+
+  const filteredClasses = removeTailwindConflicts(baseWrapperClasses, cssProps);
+  const appliedStyles = applyCSSProps(cssProps);
 
   return (
     <>
@@ -62,7 +75,7 @@ export default function FloatingBadge({
           50% { transform: translateY(-6px); }
         }
       `}</style>
-      <div className={`${isInGrid ? 'absolute' : 'fixed'} ${positionClasses} ${isInGrid ? 'z-10' : 'z-50'}`}>
+      <div className={filteredClasses} style={appliedStyles}>
         <div className={`${colorClasses} ${sizeClasses} ${animationClasses} rounded-full font-semibold shadow-lg border-2 border-white`}>
           {children}
         </div>

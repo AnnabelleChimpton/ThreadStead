@@ -3,39 +3,41 @@
  */
 
 import React from 'react';
-import { ComponentProps } from '@/lib/templates/types';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface CRTMonitorProps extends ComponentProps {
+export interface CRTMonitorProps extends UniversalCSSProps {
   content?: string;
   screenColor?: 'green' | 'amber' | 'blue' | 'white';
   intensity?: 'low' | 'medium' | 'high';
   scanlines?: boolean;
   phosphorGlow?: boolean;
   curvature?: boolean;
-  fontSize?: 'small' | 'medium' | 'large';
-  fontFamily?: 'monospace' | 'terminal';
+  textSize?: 'small' | 'medium' | 'large';
+  textFont?: 'monospace' | 'terminal';
+  className?: string;
+  children?: React.ReactNode;
   _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
 
-export default function CRTMonitor({
-  content = 'System initialized...\n> Ready for input',
-  screenColor = 'green',
-  intensity = 'medium',
-  scanlines = true,
-  phosphorGlow = true,
-  curvature = true,
-  fontSize = 'medium',
-  fontFamily = 'monospace',
-  className: customClassName = '',
-  style = {},
-  children,
-  _isInVisualBuilder = false,
-  _positioningMode = 'normal',
-  _isInGrid = false
-}: CRTMonitorProps) {
-
+export default function CRTMonitor(props: CRTMonitorProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    content = 'System initialized...\n> Ready for input',
+    screenColor = 'green',
+    intensity = 'medium',
+    scanlines = true,
+    phosphorGlow = true,
+    curvature = true,
+    textSize = 'medium',
+    textFont = 'monospace',
+    className: customClassName,
+    children,
+    _isInVisualBuilder = false,
+    _positioningMode = 'normal',
+    _isInGrid = false
+  } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
@@ -73,23 +75,32 @@ export default function CRTMonitor({
     large: '16px'
   };
 
+  // Component default styles
+  const componentStyle = {
+    position: 'relative' as const,
+    display: 'inline-block',
+    padding: '40px',
+    background: 'linear-gradient(145deg, #2a2a2a, #1a1a1a)',
+    borderRadius: '20px',
+    boxShadow: `
+      0 0 0 8px #333,
+      0 0 0 12px #222,
+      0 20px 40px rgba(0,0,0,0.5),
+      inset 0 0 20px rgba(255,255,255,0.05)
+    `
+  };
+
+  // Merge component styles with CSS props (CSS props win)
+  const mergedStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
+
+  const containerClassName = normalizedCustomClassName
+    ? `crt-monitor-container ${normalizedCustomClassName}`
+    : 'crt-monitor-container';
+
   return (
     <div
-      className={`crt-monitor-container ${normalizedCustomClassName}`}
-      style={{
-        ...style,
-        position: 'relative',
-        display: 'inline-block',
-        padding: '40px',
-        background: 'linear-gradient(145deg, #2a2a2a, #1a1a1a)',
-        borderRadius: '20px',
-        boxShadow: `
-          0 0 0 8px #333,
-          0 0 0 12px #222,
-          0 20px 40px rgba(0,0,0,0.5),
-          inset 0 0 20px rgba(255,255,255,0.05)
-        `
-      }}
+      className={containerClassName}
+      style={mergedStyle}
     >
       {/* CRT Screen */}
       <div
@@ -114,8 +125,8 @@ export default function CRTMonitor({
             width: '100%',
             height: '100%',
             padding: '20px',
-            fontFamily: fontFamily === 'terminal' ? '"Courier New", monospace' : 'monospace',
-            fontSize: fontSizeMap[fontSize],
+            fontFamily: textFont === 'terminal' ? '"Courier New", monospace' : 'monospace',
+            fontSize: fontSizeMap[textSize],
             color: primary,
             opacity,
             textShadow: phosphorGlow ? `0 0 ${glow * 10}px ${shadow}` : 'none',

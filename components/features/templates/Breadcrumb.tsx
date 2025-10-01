@@ -1,8 +1,15 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-export default function Breadcrumb() {
+interface BreadcrumbProps extends UniversalCSSProps {
+  className?: string;
+}
+
+export default function Breadcrumb(props: BreadcrumbProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { className: customClassName } = componentProps;
   const router = useRouter();
   
   // Generate breadcrumb items based on current route
@@ -51,8 +58,16 @@ export default function Breadcrumb() {
     return null;
   }
 
+  const baseClasses = "breadcrumb mb-4";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const navClassName = customClassName
+    ? `${filteredClasses} ${customClassName}`
+    : filteredClasses;
+
   return (
-    <nav className="breadcrumb mb-4" data-component="breadcrumb">
+    <nav className={navClassName} style={style} data-component="breadcrumb">
       {breadcrumbs.map((item, index) => (
         <React.Fragment key={index}>
           {index > 0 && (

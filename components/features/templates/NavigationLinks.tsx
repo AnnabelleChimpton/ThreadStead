@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface NavPage {
   id: string;
   title: string;
   slug: string;
+}
+
+interface NavigationLinksProps extends UniversalCSSProps {
+  className?: string;
 }
 
 interface DropdownMenuProps {
@@ -66,7 +71,9 @@ function DropdownMenu({ title, items }: DropdownMenuProps) {
   );
 }
 
-export default function NavigationLinks() {
+export default function NavigationLinks(props: NavigationLinksProps = {}) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { className: customClassName } = componentProps;
   const [navPages, setNavPages] = useState<NavPage[]>([]);
 
   useEffect(() => {
@@ -108,8 +115,16 @@ export default function NavigationLinks() {
     }))
   ];
 
+  const baseClasses = "site-nav-links flex items-center gap-6";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const containerClassName = customClassName
+    ? `${filteredClasses} ${customClassName}`
+    : filteredClasses;
+
   return (
-    <div className="site-nav-links flex items-center gap-6">
+    <div className={containerClassName} style={style}>
       <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/">
         Home
       </Link>

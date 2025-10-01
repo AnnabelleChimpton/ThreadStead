@@ -246,7 +246,7 @@ export function validateAndCoerceProps(
   // Universal CSS properties that should be allowed on all components
   const universalCSSProperties = [
     // Standard HTML attributes
-    'className', 'id', 'title', 'role', 'aria-label', 'aria-labelledby', 'aria-describedby',
+    'className', 'id', 'title', 'style', 'role', 'aria-label', 'aria-labelledby', 'aria-describedby',
 
     // Standard CSS properties as props
     'backgroundColor', 'color', 'fontSize', 'fontFamily', 'fontWeight', 'textAlign', 'lineHeight',

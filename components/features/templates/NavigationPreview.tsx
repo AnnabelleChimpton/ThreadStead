@@ -2,24 +2,23 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Link from 'next/link';
 import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
-import { mergeWithUniversalProps } from '@/lib/templates/visual-builder/universal-styling';
 import { useNavPages } from '@/hooks/useNavPages';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-interface NavigationPreviewProps {
+interface NavigationPreviewProps extends UniversalCSSProps {
   // Visual Builder styling props
-  backgroundColor?: string;
-  textColor?: string;
-  opacity?: number;
-  blur?: number;
-  borderColor?: string;
-  borderWidth?: number;
+  navBackgroundColor?: string; // Renamed to avoid collision
+  navTextColor?: string; // Renamed to avoid collision
+  navOpacity?: number;
+  navBlur?: number;
+  navBorderColor?: string; // Renamed to avoid collision
+  navBorderWidth?: number;
   // Dropdown styling props
   dropdownBackgroundColor?: string;
   dropdownTextColor?: string;
   dropdownBorderColor?: string;
   dropdownHoverColor?: string;
-  // Universal styling props from Visual Builder
-  [key: string]: unknown;
+  className?: string;
 }
 
 /**
@@ -165,59 +164,60 @@ function UnstyledDropdown({
  * This component is non-draggable and fixed to the top position
  */
 export default function NavigationPreview(props: NavigationPreviewProps) {
-  // Extract styling props
+  const { cssProps, componentProps } = separateCSSProps(props);
   const {
-    backgroundColor = 'rgba(0, 0, 0, 0.1)',
-    textColor = 'inherit',
-    opacity = 1,
-    blur = 10,
-    borderColor = 'rgba(255, 255, 255, 0.2)',
-    borderWidth = 1,
+    navBackgroundColor = 'rgba(0, 0, 0, 0.1)',
+    navTextColor = 'inherit',
+    navOpacity = 1,
+    navBlur = 10,
+    navBorderColor = 'rgba(255, 255, 255, 0.2)',
+    navBorderWidth = 1,
     dropdownBackgroundColor = 'white',
     dropdownTextColor = '#374151', // gray-700
     dropdownBorderColor = '#e5e7eb', // gray-200
     dropdownHoverColor = '#f3f4f6', // gray-100
-    ...universalProps
-  } = props;
+    className: customClassName
+  } = componentProps;
 
-  // Merge with universal styling system
-  const mergedProps = mergeWithUniversalProps(universalProps);
-  const { style: universalStyle, className } = mergedProps;
-
-  // Create custom styles for the navigation - optimized for Visual Builder
-  const customHeaderStyle = {
-    backgroundColor,
-    color: textColor,
-    opacity,
-    backdropFilter: `blur(${blur}px)`,
-    borderBottomColor: borderColor,
-    borderBottomWidth: `${borderWidth}px`,
+  // Create component-specific styles
+  const componentStyles: React.CSSProperties = {
+    backgroundColor: navBackgroundColor,
+    color: navTextColor,
+    opacity: navOpacity,
+    backdropFilter: `blur(${navBlur}px)`,
+    borderBottomColor: navBorderColor,
+    borderBottomWidth: `${navBorderWidth}px`,
     borderBottomStyle: 'solid',
     // Visual Builder compatible positioning and sizing
     display: 'block',
     width: '100%',
     minWidth: '100%',
     minHeight: '70px', // Ensure consistent height
-    boxSizing: 'border-box' as const,
-    position: 'relative' as const,
+    boxSizing: 'border-box',
+    position: 'relative',
     zIndex: 1000, // Higher z-index to ensure navigation and dropdowns render above components
     overflow: 'visible', // Ensure content isn't clipped
-    ...universalStyle
+  };
+
+  // Merge with CSS props (CSS props win)
+  const customHeaderStyle = {
+    ...componentStyles,
+    ...applyCSSProps(cssProps)
   };
 
   return (
     <div
-      className={className}
+      className={customClassName}
       style={customHeaderStyle}
       data-component-type="navigation"
     >
       {/* Use a modified version of MinimalNavBar content */}
       <NavigationContent
-        backgroundColor={backgroundColor}
-        textColor={textColor}
-        blur={blur}
-        borderColor={borderColor}
-        borderWidth={borderWidth}
+        backgroundColor={navBackgroundColor}
+        textColor={navTextColor}
+        blur={navBlur}
+        borderColor={navBorderColor}
+        borderWidth={navBorderWidth}
         dropdownBackgroundColor={dropdownBackgroundColor}
         dropdownTextColor={dropdownTextColor}
         dropdownBorderColor={dropdownBorderColor}

@@ -3,10 +3,10 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { ComponentProps } from '@/lib/templates/types';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface MatrixRainProps extends ComponentProps {
-  color?: 'green' | 'blue' | 'red' | 'purple' | 'cyan' | 'white';
+export interface MatrixRainProps extends UniversalCSSProps {
+  matrixColor?: 'green' | 'blue' | 'red' | 'purple' | 'cyan' | 'white';
   speed?: 'slow' | 'medium' | 'fast' | 'ultra';
   density?: 'low' | 'medium' | 'high' | 'extreme';
   characters?: 'katakana' | 'binary' | 'hex' | 'ascii' | 'custom';
@@ -14,13 +14,17 @@ export interface MatrixRainProps extends ComponentProps {
   fadeEffect?: boolean;
   glowEffect?: boolean;
   backgroundOpacity?: number;
+  className?: string;
+  children?: React.ReactNode;
   _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
 
-export default function MatrixRain({
-  color = 'green',
+export default function MatrixRain(props: MatrixRainProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    matrixColor = 'green',
   speed = 'medium',
   density = 'medium',
   characters = 'katakana',
@@ -28,13 +32,12 @@ export default function MatrixRain({
   fadeEffect = true,
   glowEffect = true,
   backgroundOpacity = 95,
-  className: customClassName = '',
-  style = {},
+  className: customClassName,
   children,
   _isInVisualBuilder = false,
   _positioningMode = 'normal',
   _isInGrid = false
-}: MatrixRainProps) {
+  } = componentProps;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
@@ -44,31 +47,6 @@ export default function MatrixRain({
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Handle style being passed as array or object, and normalize array values
-  const normalizedStyle = React.useMemo(() => {
-    if (!style) return {};
-
-    let mergedStyle = {};
-
-    if (Array.isArray(style)) {
-      // If style is an array, merge all objects
-      mergedStyle = style.reduce((acc, styleObj) => ({ ...acc, ...styleObj }), {});
-    } else {
-      mergedStyle = style;
-    }
-
-    // Normalize any array values within the style object
-    const normalizedEntries = Object.entries(mergedStyle).map(([key, value]) => {
-      if (Array.isArray(value)) {
-        // Convert array values to strings (join with space for multiple values)
-        return [key, value.join(' ')];
-      }
-      return [key, value];
-    });
-
-    return Object.fromEntries(normalizedEntries);
-  }, [style]);
 
   // Use prop-based grid detection instead of context hook
   const isInGrid = _isInGrid;
@@ -138,10 +116,27 @@ export default function MatrixRain({
     extreme: 4
   };
 
-  const currentColor = colorThemes[color];
+  const currentColor = colorThemes[matrixColor];
   const currentCharacterSet = characterSets[characters];
   const currentSpeed = speedSettings[speed];
   const currentDensity = densitySettings[density];
+
+  // Component default styles
+  const componentStyle: React.CSSProperties = {
+    position: _positioningMode === 'absolute' ? 'relative' : 'static',
+    ...(isInGrid && {
+      width: '100%',
+      height: '100%',
+      minHeight: '400px'
+    })
+  };
+
+  // Merge component styles with CSS props (CSS props win)
+  const containerStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
+
+  const containerClassName = normalizedCustomClassName
+    ? `matrix-rain-container ${normalizedCustomClassName}`
+    : 'matrix-rain-container';
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -240,7 +235,7 @@ export default function MatrixRain({
       }
       window.removeEventListener('resize', updateCanvasSize);
     };
-  }, [color, speed, density, characters, customCharacters, fadeEffect, glowEffect, backgroundOpacity, isVisible]);
+  }, [matrixColor, speed, density, characters, customCharacters, fadeEffect, glowEffect, backgroundOpacity, isVisible]);
 
   // Pause animation when not visible (performance optimization)
   useEffect(() => {
@@ -254,16 +249,8 @@ export default function MatrixRain({
 
   return (
     <div
-      className={`matrix-rain-container ${normalizedCustomClassName}`}
-      style={{
-        ...normalizedStyle,
-        position: _positioningMode === 'absolute' ? 'relative' : 'static',
-        ...(isInGrid && {
-          width: '100%',
-          height: '100%',
-          minHeight: '400px'
-        })
-      }}
+      className={containerClassName}
+      style={containerStyle}
     >
       <style jsx>{`
         .matrix-rain-wrapper {
@@ -407,7 +394,7 @@ export default function MatrixRain({
 
         {/* Info display */}
         <div className="matrix-info">
-          {color.toUpperCase()} | {speed.toUpperCase()} | {density.toUpperCase()} | {characters.toUpperCase()}
+          {matrixColor.toUpperCase()} | {speed.toUpperCase()} | {density.toUpperCase()} | {characters.toUpperCase()}
         </div>
       </div>
     </div>

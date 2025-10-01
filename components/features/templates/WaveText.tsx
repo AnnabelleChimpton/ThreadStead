@@ -1,18 +1,23 @@
 import React from "react";
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-interface WaveTextProps {
+interface WaveTextProps extends UniversalCSSProps {
   text: string;
   speed?: 'slow' | 'medium' | 'fast';
   amplitude?: 'small' | 'medium' | 'large';
-  color?: string;
+  waveColor?: string; // Renamed to avoid collision with UniversalCSSProps.color
+  className?: string;
 }
 
-export default function WaveText({ 
-  text,
-  speed = 'medium',
-  amplitude = 'medium',
-  color = 'currentColor'
-}: WaveTextProps) {
+export default function WaveText(props: WaveTextProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    text,
+    speed = 'medium',
+    amplitude = 'medium',
+    waveColor = 'currentColor',
+    className: customClassName
+  } = componentProps;
   const speedValues = {
     'slow': '3s',
     'medium': '2s',
@@ -24,6 +29,15 @@ export default function WaveText({
     'medium': '10px',
     'large': '15px'
   }[amplitude];
+
+  // Component-specific styles
+  const componentStyle = { color: waveColor };
+
+  // Merge with CSS props (CSS props win)
+  const mergedStyle = {
+    ...componentStyle,
+    ...applyCSSProps(cssProps)
+  };
 
   return (
     <>
@@ -37,7 +51,7 @@ export default function WaveText({
           animation: wave ${speedValues} ease-in-out infinite;
         }
       `}</style>
-      <span style={{ color }}>
+      <span className={customClassName} style={mergedStyle}>
         {text.split('').map((letter, index) => (
           <span
             key={index}

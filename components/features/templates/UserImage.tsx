@@ -1,17 +1,19 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface ImageProps {
+interface ImageProps extends UniversalCSSProps {
   src?: string;
   data?: string;
   index?: number;
   alt?: string;
-  width?: string;
-  height?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  // Deprecated: Use CSS width/height instead, but keep for backward compatibility
+  imageWidth?: string;
+  imageHeight?: string;
+  imageSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
   rounded?: 'none' | 'sm' | 'md' | 'lg' | 'full';
-  border?: boolean;
-  shadow?: 'none' | 'sm' | 'md' | 'lg';
+  showBorder?: boolean;
+  imageShadow?: 'none' | 'sm' | 'md' | 'lg';
   fit?: 'cover' | 'contain' | 'fill' | 'scale-down';
   fallback?: string;
 }
@@ -23,20 +25,24 @@ function getNestedValue(obj: any, path: string): any {
   }, obj);
 }
 
-export default function UserImage({ 
-  src, 
-  data, 
-  index = 0,
-  alt = '', 
-  width, 
-  height, 
-  size = 'md', 
-  rounded = 'sm',
-  border = false,
-  shadow = 'none',
-  fit = 'cover',
-  fallback = '/assets/default-image.png'
-}: ImageProps) {
+export default function UserImage(props: ImageProps) {
+  // Separate CSS properties from component-specific properties
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    src,
+    data,
+    index = 0,
+    alt = '',
+    imageWidth,  // Deprecated but keep for backward compatibility
+    imageHeight, // Deprecated but keep for backward compatibility
+    imageSize = 'md',
+    rounded = 'sm',
+    showBorder = false,
+    imageShadow = 'none',
+    fit = 'cover',
+    fallback = '/assets/default-image.png'
+  } = componentProps;
+
   const residentData = useResidentData();
   
   // Determine the image source
@@ -104,33 +110,41 @@ export default function UserImage({
     'scale-down': 'object-scale-down'
   };
   
-  // Build classes
-  const classes = [
-    // Size (can be overridden by width/height)
-    !width && !height ? sizeClasses[size] : '',
+  // Build base classes
+  const baseClasses = [
+    // Size (can be overridden by imageWidth/imageHeight or CSS props)
+    !imageWidth && !imageHeight && !cssProps.width && !cssProps.height ? sizeClasses[imageSize] : '',
     // Rounded corners
     roundedClasses[rounded],
     // Border
-    border ? 'border-2 border-gray-300' : '',
+    showBorder ? 'border-2 border-gray-300' : '',
     // Shadow
-    shadowClasses[shadow],
+    shadowClasses[imageShadow],
     // Object fit
     fitClasses[fit],
     // Base classes
     'block'
   ].filter(Boolean).join(' ');
-  
-  // Style object for custom dimensions
-  const style: React.CSSProperties = {};
-  if (width) style.width = width;
-  if (height) style.height = height;
+
+  // Remove Tailwind classes that conflict with CSS props - USER STYLING IS QUEEN
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+
+  // Merge deprecated imageWidth/imageHeight props with CSS props (CSS props take precedence)
+  const mergedCSSProps = {
+    ...(imageWidth && { width: imageWidth }),
+    ...(imageHeight && { height: imageHeight }),
+    ...cssProps  // CSS props override deprecated props
+  };
+
+  // Apply CSS properties as inline styles
+  const style = applyCSSProps(mergedCSSProps);
   
   return (
     <img
       src={imageSrc || fallback}
       alt={alt}
-      className={classes}
-      style={Object.keys(style).length > 0 ? style : undefined}
+      className={filteredClasses}
+      style={style}
       onError={(e) => {
         // Fallback on error
         if ((e.target as HTMLImageElement).src !== fallback) {

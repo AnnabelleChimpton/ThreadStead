@@ -1,8 +1,9 @@
 import React from 'react';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface ProgressTrackerProps {
+interface ProgressTrackerProps extends UniversalCSSProps {
   title?: string;
-  display?: 'bars' | 'stars' | 'circles' | 'dots';
+  displayMode?: 'bars' | 'stars' | 'circles' | 'dots';
   theme?: 'modern' | 'retro' | 'neon' | 'minimal';
   showValues?: boolean;
   layout?: 'vertical' | 'horizontal';
@@ -36,18 +37,21 @@ export function ProgressItem({ label, value, max, color, description }: Progress
   );
 }
 
-export default function ProgressTracker({
-  title,
-  display = 'bars',
-  theme = 'modern',
-  showValues = true,
-  layout = 'vertical',
-  size = 'md',
-  children,
-  className: customClassName
-}: ProgressTrackerProps) {
+export default function ProgressTracker(props: ProgressTrackerProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    title,
+    displayMode = 'bars',
+    theme = 'modern',
+    showValues = true,
+    layout = 'vertical',
+    size = 'md',
+    children,
+    className: customClassName
+  } = componentProps;
+
   // Handle className being passed as array or string
-  const normalizedCustomClassName = Array.isArray(customClassName) 
+  const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
 
@@ -107,9 +111,9 @@ export default function ProgressTracker({
     description?: string;
   }>;
 
-  // Set default max values based on display type
-  const getDefaultMax = (display: string) => {
-    switch (display) {
+  // Set default max values based on displayMode type
+  const getDefaultMax = (displayMode: string) => {
+    switch (displayMode) {
       case 'stars': return 5;
       case 'dots': return 10;
       case 'bars':
@@ -121,7 +125,7 @@ export default function ProgressTracker({
   // Normalize progress items with defaults
   const normalizedItems = progressItems.map(item => ({
     ...item,
-    max: item.max || getDefaultMax(display),
+    max: item.max || getDefaultMax(displayMode),
     color: item.color || 'blue'
   }));
 
@@ -345,7 +349,7 @@ export default function ProgressTracker({
   };
 
   const renderProgressItems = () => {
-    switch (display) {
+    switch (displayMode) {
       case 'stars':
         return normalizedItems.map(renderStarRating);
       case 'circles':
@@ -359,23 +363,33 @@ export default function ProgressTracker({
   };
 
   if (normalizedItems.length === 0) {
+    const emptyBaseClasses = "ts-progress-tracker-empty text-gray-500 italic p-4";
+    const emptyFilteredClasses = removeTailwindConflicts(emptyBaseClasses, cssProps);
+    const emptyStyle = applyCSSProps(cssProps);
+
     return (
-      <div className="ts-progress-tracker-empty text-gray-500 italic p-4">
+      <div className={emptyFilteredClasses} style={emptyStyle}>
         No progress items to display
       </div>
     );
   }
 
-  const containerClassName = [
+  const baseClasses = [
     'ts-progress-tracker',
     sizeClasses[size].container,
     layout === 'horizontal' ? 'flex flex-wrap gap-4' : '',
-    theme === 'neon' ? 'filter drop-shadow-lg' : '',
-    normalizedCustomClassName
+    theme === 'neon' ? 'filter drop-shadow-lg' : ''
   ].filter(Boolean).join(' ');
 
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const containerClassName = normalizedCustomClassName
+    ? `${filteredClasses} ${normalizedCustomClassName}`
+    : filteredClasses;
+
   return (
-    <div className={containerClassName}>
+    <div className={containerClassName} style={style}>
       {title && (
         <h3 className={`ts-progress-tracker-title ${sizeClasses[size].title}`}>
           {title}

@@ -3,40 +3,43 @@
  */
 
 import React from 'react';
-import { ComponentProps } from '@/lib/templates/types';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface RetroGridProps extends ComponentProps {
+export interface RetroGridProps extends UniversalCSSProps {
   gridStyle?: 'synthwave' | 'outrun' | 'cyberpunk' | 'vaporwave' | 'matrix' | 'tron';
   perspective?: 'none' | 'shallow' | 'deep' | 'extreme';
   animation?: 'none' | 'pulse' | 'scroll' | 'wave' | 'glitch';
-  opacity?: 'subtle' | 'medium' | 'strong' | 'intense';
-  size?: 'small' | 'medium' | 'large' | 'xlarge';
+  gridOpacity?: 'subtle' | 'medium' | 'strong' | 'intense';
+  gridSize?: 'small' | 'medium' | 'large' | 'xlarge';
   horizon?: 'high' | 'middle' | 'low' | 'hidden';
   scanlines?: boolean;
   glow?: boolean;
   content?: string;
+  className?: string;
+  children?: React.ReactNode;
   _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
 
-export default function RetroGrid({
-  gridStyle = 'synthwave',
-  perspective = 'deep',
-  animation = 'none',
-  opacity = 'medium',
-  size = 'medium',
-  horizon = 'middle',
-  scanlines = false,
-  glow = true,
-  content = '',
-  className: customClassName = '',
-  style = {},
-  children,
-  _isInVisualBuilder = false,
-  _positioningMode = 'normal',
-  _isInGrid = false
-}: RetroGridProps) {
+export default function RetroGrid(props: RetroGridProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    gridStyle = 'synthwave',
+    perspective = 'deep',
+    animation = 'none',
+    gridOpacity = 'medium',
+    gridSize = 'medium',
+    horizon = 'middle',
+    scanlines = false,
+    glow = true,
+    content = '',
+    className: customClassName,
+    children,
+    _isInVisualBuilder = false,
+    _positioningMode = 'normal',
+    _isInGrid = false
+  } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
@@ -95,24 +98,24 @@ export default function RetroGrid({
     return styleMap[style as keyof typeof styleMap] || styleMap.synthwave;
   };
 
-  const getOpacityValue = (opacity: string) => {
+  const getOpacityValue = (gridOpacity: string) => {
     const opacityMap = {
       subtle: 0.3,
       medium: 0.6,
       strong: 0.8,
       intense: 1.0
     };
-    return opacityMap[opacity as keyof typeof opacityMap] || 0.6;
+    return opacityMap[gridOpacity as keyof typeof opacityMap] || 0.6;
   };
 
-  const getGridSize = (size: string) => {
+  const getGridSize = (gridSize: string) => {
     const sizeMap = {
       small: 20,
       medium: 40,
       large: 60,
       xlarge: 80
     };
-    return sizeMap[size as keyof typeof sizeMap] || 40;
+    return sizeMap[gridSize as keyof typeof sizeMap] || 40;
   };
 
   const getPerspectiveValue = (perspective: string) => {
@@ -136,8 +139,8 @@ export default function RetroGrid({
   };
 
   const colors = getStyleColors(gridStyle);
-  const opacityValue = getOpacityValue(opacity);
-  const gridSize = getGridSize(size);
+  const opacityValue = getOpacityValue(gridOpacity);
+  const gridSizeValue = getGridSize(gridSize);
   const perspectiveValue = getPerspectiveValue(perspective);
   const horizonPosition = getHorizonPosition(horizon);
 
@@ -154,7 +157,7 @@ export default function RetroGrid({
         return `
           @keyframes grid-scroll {
             0% { transform: translateY(0px); }
-            100% { transform: translateY(${gridSize}px); }
+            100% { transform: translateY(${gridSizeValue}px); }
           }
         `;
       case 'wave':
@@ -195,8 +198,8 @@ export default function RetroGrid({
     }
   };
 
-  const containerStyle = {
-    ...style,
+  // Component default styles
+  const componentStyle = {
     position: 'relative' as const,
     width: '100%',
     height: '300px',
@@ -205,6 +208,9 @@ export default function RetroGrid({
     perspective: perspectiveValue !== '0px' ? perspectiveValue : 'none',
     perspectiveOrigin: `center ${horizonPosition}`
   };
+
+  // Merge component styles with CSS props (CSS props win)
+  const containerStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
 
   const gridStyle_computed = {
     position: 'absolute' as const,
@@ -218,15 +224,19 @@ export default function RetroGrid({
       linear-gradient(${colors.grid} 1px, transparent 1px),
       linear-gradient(90deg, ${colors.grid} 1px, transparent 1px)
     `,
-    backgroundSize: `${gridSize}px ${gridSize}px`,
+    backgroundSize: `${gridSizeValue}px ${gridSizeValue}px`,
     opacity: opacityValue,
     animation: getAnimationCSS(),
-    filter: glow ? `drop-shadow(0 0 ${gridSize / 4}px ${colors.glow})` : 'none'
+    filter: glow ? `drop-shadow(0 0 ${gridSizeValue / 4}px ${colors.glow})` : 'none'
   };
+
+  const containerClassName = normalizedCustomClassName
+    ? `retro-grid-container ${normalizedCustomClassName}`
+    : 'retro-grid-container';
 
   return (
     <div
-      className={`retro-grid-container ${normalizedCustomClassName}`}
+      className={containerClassName}
       style={containerStyle}
     >
       {/* Main grid */}

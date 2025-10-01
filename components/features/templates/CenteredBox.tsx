@@ -1,23 +1,26 @@
 import React from "react";
 import { useGridCompatibilityContext } from './GridCompatibleWrapper';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface CenteredBoxProps {
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full' | string;
-  padding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+interface CenteredBoxProps extends UniversalCSSProps {
+  containerMaxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full' | string;
+  containerPadding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   children: React.ReactNode;
 
   // Internal prop from visual builder
   _positioningMode?: 'grid' | 'absolute';
 }
 
-export default function CenteredBox({
-  maxWidth = 'lg',
-  padding = 'md',
-  children,
+export default function CenteredBox(props: CenteredBoxProps) {
+  // Separate CSS properties from component-specific properties
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    containerMaxWidth = 'lg',
+    containerPadding = 'md',
+    children,
+    _positioningMode
+  } = componentProps;
 
-  // Internal props
-  _positioningMode
-}: CenteredBoxProps) {
   const { isInGrid } = useGridCompatibilityContext();
 
   // Override grid detection if component is in absolute positioning mode
@@ -30,7 +33,7 @@ export default function CenteredBox({
     'xl': 'max-w-xl',
     '2xl': 'max-w-2xl',
     'full': 'max-w-full'
-  }[maxWidth as string];
+  }[containerMaxWidth as string];
 
   // Grid-aware padding
   const paddingClass = shouldUseGridClasses ? {
@@ -39,27 +42,27 @@ export default function CenteredBox({
     'md': 'p-3',
     'lg': 'p-4',
     'xl': 'p-6'
-  }[padding] : {
+  }[containerPadding] : {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
     'lg': 'p-8',
     'xl': 'p-12'
-  }[padding];
+  }[containerPadding];
 
-  // Handle custom maxWidth values
+  // Handle custom maxWidth values (merge with CSS props)
   const customStyle: React.CSSProperties = {};
-  if (!maxWidthClass && maxWidth) {
+  if (!maxWidthClass && containerMaxWidth && !cssProps.maxWidth) {
     // Support all valid CSS length units
-    if (maxWidth.match(/^\d*\.?\d+(px|rem|%|em|vw|vh|vmin|vmax|ch|ex|in|cm|mm|pt|pc)$/)) {
-      customStyle.maxWidth = maxWidth;
-    } else if (!isNaN(Number(maxWidth))) {
+    if (containerMaxWidth.match(/^\d*\.?\d+(px|rem|%|em|vw|vh|vmin|vmax|ch|ex|in|cm|mm|pt|pc)$/)) {
+      customStyle.maxWidth = containerMaxWidth;
+    } else if (!isNaN(Number(containerMaxWidth))) {
       // Handle numeric values like "900" as pixels
-      customStyle.maxWidth = `${maxWidth}px`;
+      customStyle.maxWidth = `${containerMaxWidth}px`;
     }
   }
 
-  const containerClasses = [
+  const baseContainerClasses = [
     'mx-auto',
     maxWidthClass || '',
     paddingClass,
@@ -68,10 +71,19 @@ export default function CenteredBox({
     _positioningMode === 'absolute' ? 'h-full' : '' // Fill full height when resized
   ].filter(Boolean).join(' ');
 
+  // Remove Tailwind classes that conflict with CSS props - USER STYLING IS QUEEN
+  const filteredContainerClasses = removeTailwindConflicts(baseContainerClasses, cssProps);
+
+  // Merge custom maxWidth with CSS props (CSS props take precedence)
+  const mergedStyles = {
+    ...customStyle,
+    ...applyCSSProps(cssProps)
+  };
+
   return (
     <div
-      className={containerClasses}
-      style={Object.keys(customStyle).length > 0 ? customStyle : undefined}
+      className={filteredContainerClasses}
+      style={Object.keys(mergedStyles).length > 0 ? mergedStyles : undefined}
     >
       {children}
     </div>

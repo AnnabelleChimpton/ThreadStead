@@ -895,7 +895,8 @@ export class TemplateParserReverse {
     const universalPropMappings: Record<string, string> = {
       // Legacy -> Universal mappings
       'backgroundcolor': 'backgroundColor',
-      'color': 'textColor',
+      'textcolor': 'textColor',  // Lowercase variant from template compilation
+      'color': 'textColor',       // CSS standard name (also maps to textColor)
       'bordercolor': 'borderColor',
       'fontsize': 'fontSize',
       'fontweight': 'fontWeight',
@@ -983,7 +984,17 @@ export class TemplateParserReverse {
       return this.options.inferPositions ? this.inferPosition(element) : undefined;
     }
 
-    // First, try to extract from data-pure-positioning attribute (NEW FORMAT)
+    // NEW FORMAT: Try individual data attributes first (human-readable)
+    const dataX = element.getAttribute('data-x');
+    const dataY = element.getAttribute('data-y');
+    if (dataX !== null && dataY !== null) {
+      return {
+        x: parseFloat(dataX),
+        y: parseFloat(dataY)
+      };
+    }
+
+    // OLD FORMAT: Try data-pure-positioning attribute (backward compatibility)
     const purePositioningAttr = element.getAttribute('data-pure-positioning');
     if (purePositioningAttr) {
       try {
@@ -1157,7 +1168,13 @@ export class TemplateParserReverse {
       return undefined;
     }
 
-    // Check for pure positioning format (NEW FORMAT) - indicates absolute positioning
+    // Check for individual positioning attributes (NEW FORMAT) - indicates absolute positioning
+    const hasNewFormat = element.getAttribute('data-x') !== null || element.getAttribute('data-y') !== null;
+    if (hasNewFormat) {
+      return 'absolute';
+    }
+
+    // Check for old pure positioning format (OLD FORMAT) - indicates absolute positioning
     const purePositioningAttr = element.getAttribute('data-pure-positioning');
     if (purePositioningAttr) {
       return 'absolute';
@@ -1227,7 +1244,18 @@ export class TemplateParserReverse {
       return undefined;
     }
 
-    // First, try to extract size from data-pure-positioning attribute (NEW FORMAT)
+    // NEW FORMAT: Try individual data attributes first (human-readable)
+    const dataWidth = element.getAttribute('data-width');
+    const dataHeight = element.getAttribute('data-height');
+    if (dataWidth !== null && dataHeight !== null) {
+      return {
+        width: parseFloat(dataWidth),
+        height: parseFloat(dataHeight)
+        // Note: Pure positioning always uses pixels (no unit property needed)
+      };
+    }
+
+    // OLD FORMAT: Try data-pure-positioning attribute (backward compatibility)
     const purePositioningAttr = element.getAttribute('data-pure-positioning');
     if (purePositioningAttr) {
       try {
@@ -1258,13 +1286,47 @@ export class TemplateParserReverse {
   }
 
   /**
-   * PHASE 4.2: Extract responsive positioning data from data-pure-positioning attribute
+   * PHASE 4.2: Extract responsive positioning data from data attributes
    */
   private extractResponsivePositions(element: Element): { tablet?: any; mobile?: any } | undefined {
     if (!this.options.preserveLayoutAttributes) {
       return undefined;
     }
 
+    // NEW FORMAT: Try data-breakpoints attribute first
+    const breakpointsAttr = element.getAttribute('data-breakpoints');
+    if (breakpointsAttr) {
+      try {
+        const breakpoints = JSON.parse(breakpointsAttr);
+        const responsivePositions: { tablet?: any; mobile?: any } = {};
+
+        // Extract tablet position if different from desktop
+        if (breakpoints.tablet) {
+          responsivePositions.tablet = {
+            x: breakpoints.tablet.x,
+            y: breakpoints.tablet.y,
+            width: breakpoints.tablet.width,
+            height: breakpoints.tablet.height
+          };
+        }
+
+        // Extract mobile position if different from desktop
+        if (breakpoints.mobile) {
+          responsivePositions.mobile = {
+            x: breakpoints.mobile.x,
+            y: breakpoints.mobile.y,
+            width: breakpoints.mobile.width,
+            height: breakpoints.mobile.height
+          };
+        }
+
+        return Object.keys(responsivePositions).length > 0 ? responsivePositions : undefined;
+      } catch (error) {
+        this.warnings.push(`Invalid breakpoints data: ${breakpointsAttr}`);
+      }
+    }
+
+    // OLD FORMAT: Try data-pure-positioning attribute (backward compatibility)
     const purePositioningAttr = element.getAttribute('data-pure-positioning');
     if (purePositioningAttr) {
       try {

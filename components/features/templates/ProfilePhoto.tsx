@@ -1,7 +1,8 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface ProfilePhotoProps {
+interface ProfilePhotoProps extends UniversalCSSProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   shape?: 'circle' | 'square';
   className?: string;
@@ -15,9 +16,20 @@ interface ProfilePhotoProps {
   imageFit?: 'cover' | 'contain' | 'auto';
 }
 
-export default function ProfilePhoto({ size = 'md', shape = 'circle', className: customClassName, _isInGrid = false, _positioningMode = 'normal', _isInVisualBuilder = false, imageFit = 'auto' }: ProfilePhotoProps) {
-  const { owner } = useResidentData();
+export default function ProfilePhoto(props: ProfilePhotoProps) {
+  // Separate CSS properties from component-specific properties
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    size = 'md',
+    shape = 'circle',
+    className: customClassName,
+    _isInGrid = false,
+    _positioningMode = 'normal',
+    _isInVisualBuilder = false,
+    imageFit = 'auto'
+  } = componentProps;
 
+  const { owner } = useResidentData();
 
   // Use prop-based grid detection instead of context hook to prevent infinite loops
   const isInGrid = _isInGrid;
@@ -82,12 +94,18 @@ export default function ProfilePhoto({ size = 'md', shape = 'circle', className:
     baseWrapperClasses = "profile-photo-wrapper flex flex-col items-center mb-4";
   }
 
+  // Remove Tailwind classes that conflict with CSS props - USER STYLING IS QUEEN
+  const filteredWrapperClasses = removeTailwindConflicts(baseWrapperClasses, cssProps);
+
   const wrapperClassName = normalizedCustomClassName
-    ? `${baseWrapperClasses} ${normalizedCustomClassName}`
-    : baseWrapperClasses;
+    ? `${filteredWrapperClasses} ${normalizedCustomClassName}`
+    : filteredWrapperClasses;
+
+  // Apply CSS properties as inline styles to wrapper
+  const wrapperStyle = applyCSSProps(cssProps);
 
   return (
-    <div className={wrapperClassName}>
+    <div className={wrapperClassName} style={wrapperStyle}>
       <div className={`profile-photo-frame border-4 border-black shadow-[4px_4px_0_#000] bg-white p-1 ${shouldFillContainer ? 'w-full h-full' : ''}`}>
         {owner?.avatarUrl ? (
           <img

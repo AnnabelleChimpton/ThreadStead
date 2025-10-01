@@ -1,10 +1,11 @@
 import React from "react";
 import { useGridCompatibilityContext } from './GridCompatibleWrapper';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface NeonBorderProps {
-  color?: 'blue' | 'pink' | 'green' | 'purple' | 'cyan' | 'yellow';
+interface NeonBorderProps extends UniversalCSSProps {
+  neonColor?: 'blue' | 'pink' | 'green' | 'purple' | 'cyan' | 'yellow';
   intensity?: 'soft' | 'medium' | 'bright';
-  padding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  containerPadding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   rounded?: boolean;
   children: React.ReactNode;
 
@@ -12,16 +13,17 @@ interface NeonBorderProps {
   _positioningMode?: 'grid' | 'absolute';
 }
 
-export default function NeonBorder({
-  color = 'blue',
-  intensity = 'medium',
-  padding = 'md',
-  rounded = true,
-  children,
+export default function NeonBorder(props: NeonBorderProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    neonColor = 'blue',
+    intensity = 'medium',
+    containerPadding = 'md',
+    rounded = true,
+    children,
+    _positioningMode
+  } = componentProps;
 
-  // Internal props
-  _positioningMode
-}: NeonBorderProps) {
   const { isInGrid } = useGridCompatibilityContext();
 
   // Override grid detection if component is in absolute positioning mode
@@ -49,21 +51,38 @@ export default function NeonBorder({
     'md': 'p-3',
     'lg': 'p-4',
     'xl': 'p-6'
-  }[padding] : {
+  }[containerPadding] : {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
     'lg': 'p-8',
     'xl': 'p-12'
-  }[padding];
+  }[containerPadding];
 
   const roundedClass = rounded ? 'rounded-lg' : '';
-  const selectedColor = colorMap[color];
+  const selectedColor = colorMap[neonColor];
 
   const neonStyle = {
     border: `2px solid ${selectedColor}`,
     boxShadow: `${shadowIntensity} ${selectedColor}, inset ${shadowIntensity} ${selectedColor}`,
     animation: 'neonPulse 2s ease-in-out infinite alternate'
+  };
+
+  // Build base classes and apply CSS prop conflict removal
+  const baseClasses = [
+    paddingClass,
+    roundedClass,
+    shouldUseGridClasses ? 'w-full h-full' : '',
+    _positioningMode === 'absolute' ? 'h-full' : ''
+  ].filter(Boolean).join(' ');
+
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const appliedStyles = applyCSSProps(cssProps);
+
+  // Merge component styles with CSS props (CSS props win)
+  const mergedStyles = {
+    ...neonStyle,
+    ...appliedStyles
   };
 
   return (
@@ -79,12 +98,8 @@ export default function NeonBorder({
         }
       `}</style>
       <div
-        className={`${paddingClass} ${roundedClass} ${
-          shouldUseGridClasses ? 'w-full h-full' : ''
-        } ${
-          _positioningMode === 'absolute' ? 'h-full' : ''
-        }`}
-        style={neonStyle}
+        className={filteredClasses}
+        style={mergedStyles}
       >
         {children}
       </div>

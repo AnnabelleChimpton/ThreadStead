@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useGridCompatibilityContext } from './GridCompatibleWrapper';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface ContactCardProps {
+interface ContactCardProps extends UniversalCSSProps {
   expanded?: boolean;
   theme?: 'modern' | 'business' | 'creative' | 'minimal';
   layout?: 'compact' | 'detailed' | 'grid';
@@ -49,17 +50,19 @@ interface ContactMethodData {
   priority: number;
 }
 
-export default function ContactCard({
-  expanded: initialExpanded = false,
-  theme = 'modern',
-  layout = 'compact',
-  showHeader = true,
-  collapsible = true,
-  maxMethods = 3,
-  title = 'Contact Me',
-  children,
-  className: customClassName
-}: ContactCardProps) {
+export default function ContactCard(props: ContactCardProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    expanded: initialExpanded = false,
+    theme = 'modern',
+    layout = 'compact',
+    showHeader = true,
+    collapsible = true,
+    maxMethods = 3,
+    title = 'Contact Me',
+    children,
+    className: customClassName
+  } = componentProps;
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const { isInGrid } = useGridCompatibilityContext();
@@ -260,18 +263,24 @@ export default function ContactCard({
   // Grid-adaptive container styling
   const gridAdaptiveClasses = isInGrid ? 'w-full h-full' : '';
 
-  const containerClassName = [
+  const baseClasses = [
     'ts-contact-card',
     currentTheme.container,
     'rounded-lg',
     'overflow-hidden',
     'relative',
-    gridAdaptiveClasses,
-    normalizedCustomClassName
+    gridAdaptiveClasses
   ].filter(Boolean).join(' ');
 
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const containerClassName = normalizedCustomClassName
+    ? `${filteredClasses} ${normalizedCustomClassName}`
+    : filteredClasses;
+
   return (
-    <div className={containerClassName}>
+    <div className={containerClassName} style={style}>
       {/* Header */}
       {showHeader && (
         <div className={`ts-contact-header ${currentTheme.header} px-4 py-3 flex items-center justify-between`}>

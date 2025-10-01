@@ -3,68 +3,46 @@
  */
 
 import React from 'react';
-import { ComponentProps } from '@/lib/templates/types';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface BoomboxProps extends ComponentProps {
+export interface BoomboxProps extends UniversalCSSProps {
   boomboxStyle?: 'classic' | 'modern' | 'portable' | 'monster';
-  color?: 'black' | 'silver' | 'red' | 'blue' | 'white';
+  boomboxColor?: 'black' | 'silver' | 'red' | 'blue' | 'white';
   showEqualizer?: boolean;
   showCassetteDeck?: boolean;
   showRadio?: boolean;
   isPlaying?: boolean;
   currentTrack?: string;
   volume?: number;
+  className?: string;
+  children?: React.ReactNode;
   _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
 
-export default function Boombox({
-  boomboxStyle = 'classic',
-  color = 'black',
+export default function Boombox(props: BoomboxProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    boomboxStyle = 'classic',
+    boomboxColor = 'black',
   showEqualizer = true,
   showCassetteDeck = true,
   showRadio = true,
   isPlaying = false,
   currentTrack = 'Track 01',
   volume = 75,
-  className: customClassName = '',
-  style = {},
+  className: customClassName,
   children,
   _isInVisualBuilder = false,
   _positioningMode = 'normal',
   _isInGrid = false
-}: BoomboxProps) {
+  } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Handle style being passed as array or object, and normalize array values
-  const normalizedStyle = React.useMemo(() => {
-    if (!style) return {};
-
-    let mergedStyle = {};
-
-    if (Array.isArray(style)) {
-      // If style is an array, merge all objects
-      mergedStyle = style.reduce((acc, styleObj) => ({ ...acc, ...styleObj }), {});
-    } else {
-      mergedStyle = style;
-    }
-
-    // Normalize any array values within the style object
-    const normalizedEntries = Object.entries(mergedStyle).map(([key, value]) => {
-      if (Array.isArray(value)) {
-        // Convert array values to strings (join with space for multiple values)
-        return [key, value.join(' ')];
-      }
-      return [key, value];
-    });
-
-    return Object.fromEntries(normalizedEntries);
-  }, [style]);
 
   // Use prop-based grid detection instead of context hook
   const isInGrid = _isInGrid;
@@ -115,11 +93,11 @@ export default function Boombox({
   }, [boomboxStyle]);
 
   const normalizedColor = React.useMemo(() => {
-    if (Array.isArray(color)) {
-      return color[0] || 'black';
+    if (Array.isArray(boomboxColor)) {
+      return boomboxColor[0] || 'black';
     }
-    return color || 'black';
-  }, [color]);
+    return boomboxColor || 'black';
+  }, [boomboxColor]);
 
   const normalizedCurrentTrack = React.useMemo(() => {
     if (Array.isArray(currentTrack)) {
@@ -202,6 +180,24 @@ export default function Boombox({
   const currentColor = colorThemes[normalizedColor as keyof typeof colorThemes] || colorThemes['black'];
   const currentStyle = boomboxStyles[normalizedBoomboxStyle as keyof typeof boomboxStyles] || boomboxStyles['classic'];
 
+  // Component default styles
+  const componentStyle: React.CSSProperties = {
+    display: 'inline-block',
+    position: _positioningMode === 'absolute' ? 'relative' : 'static',
+    ...(isInGrid && {
+      width: '100%',
+      height: '100%',
+      minHeight: '200px'
+    })
+  };
+
+  // Merge component styles with CSS props (CSS props win)
+  const containerStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
+
+  const containerClassName = normalizedCustomClassName
+    ? `boombox-container ${normalizedCustomClassName}`
+    : 'boombox-container';
+
   // Generate equalizer bars
   const generateEqualizerBars = () => {
     const bars = [];
@@ -223,17 +219,8 @@ export default function Boombox({
 
   return (
     <div
-      className={`boombox-container ${normalizedCustomClassName}`}
-      style={{
-        ...normalizedStyle,
-        display: 'inline-block',
-        position: _positioningMode === 'absolute' ? 'relative' : 'static',
-        ...(isInGrid && {
-          width: '100%',
-          height: '100%',
-          minHeight: '200px'
-        })
-      }}
+      className={containerClassName}
+      style={containerStyle}
     >
       <style jsx>{`
         .boombox-shell {

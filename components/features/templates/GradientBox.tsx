@@ -1,16 +1,17 @@
 import React from "react";
 import { useGridCompatibilityContext } from './GridCompatibleWrapper';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface GradientBoxProps {
+interface GradientBoxProps extends UniversalCSSProps {
   // Legacy props (kept for backward compatibility)
   gradient?: 'sunset' | 'ocean' | 'forest' | 'neon' | 'rainbow' | 'fire';
   direction?: 'r' | 'l' | 'b' | 't' | 'br' | 'bl' | 'tr' | 'tl';
-  padding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  containerPadding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   rounded?: boolean;
 
   // New flexible props
   colors?: string; // e.g., 'white', 'blue-purple', 'sunset'
-  opacity?: string; // e.g., '10', '90'
+  gradientOpacity?: string; // e.g., '10', '90'
   className?: string; // Additional CSS classes
   children: React.ReactNode;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -19,23 +20,22 @@ interface GradientBoxProps {
   _positioningMode?: 'grid' | 'absolute';
 }
 
-export default function GradientBox({
-  // Legacy props
-  gradient = 'sunset',
-  direction = 'br',
-  padding = 'md',
-  rounded = true,
+export default function GradientBox(props: GradientBoxProps) {
+  // Separate CSS properties from component-specific properties
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    gradient = 'sunset',
+    direction = 'br',
+    containerPadding = 'md',
+    rounded = true,
+    colors,
+    gradientOpacity,
+    className,
+    children,
+    onClick,
+    _positioningMode
+  } = componentProps;
 
-  // New props
-  colors,
-  opacity,
-  className,
-  children,
-  onClick,
-
-  // Internal props
-  _positioningMode
-}: GradientBoxProps) {
   const { isInGrid } = useGridCompatibilityContext();
 
   // Override grid detection if component is in absolute positioning mode
@@ -107,31 +107,31 @@ export default function GradientBox({
     backgroundClass = `${directionClass} ${gradientClass}`;
   }
   
-  // Handle opacity prop
-  if (opacity) {
-    opacityClass = `bg-opacity-${opacity}`;
+  // Handle gradientOpacity prop
+  if (gradientOpacity) {
+    opacityClass = `bg-opacity-${gradientOpacity}`;
   }
 
-  // Handle legacy padding (only if no custom className) - adaptive padding: smaller in grid, normal otherwise
+  // Handle legacy containerPadding (only if no custom className) - adaptive padding: smaller in grid, normal otherwise
   const paddingClass = !className ? (shouldUseGridClasses ? {
     'xs': 'p-1',
     'sm': 'p-2',
     'md': 'p-3',
     'lg': 'p-4',
     'xl': 'p-6'
-  }[padding] : {
+  }[containerPadding] : {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
     'lg': 'p-8',
     'xl': 'p-12'
-  }[padding]) : '';
+  }[containerPadding]) : '';
 
   // Handle legacy rounded (only if no custom className)
   const roundedClass = !className && rounded ? 'rounded-lg' : '';
 
-  // Combine all classes
-  const allClasses = [
+  // Combine all base classes
+  const baseClasses = [
     backgroundClass,
     opacityClass,
     paddingClass,
@@ -142,8 +142,14 @@ export default function GradientBox({
     _positioningMode === 'absolute' ? 'w-full h-full' : '' // Fill full width and height when positioned
   ].filter(Boolean).join(' ');
 
+  // Remove Tailwind classes that conflict with CSS props - USER STYLING IS QUEEN
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+
+  // Apply CSS properties as inline styles
+  const appliedStyles = applyCSSProps(cssProps);
+
   return (
-    <div className={allClasses} onClick={onClick}>
+    <div className={filteredClasses} style={appliedStyles} onClick={onClick}>
       {children}
     </div>
   );

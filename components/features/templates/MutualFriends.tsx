@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useResidentData } from './ResidentDataProvider';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 type MFItem = { userId: string; handle: string; avatarUrl: string };
 
-export default function MutualFriends() {
+interface MutualFriendsProps extends UniversalCSSProps {
+  className?: string;
+}
+
+export default function MutualFriends(props: MutualFriendsProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { className: customClassName } = componentProps;
   const { owner, viewer } = useResidentData();
   const [count, setCount] = useState<number>(0);
   const [sample, setSample] = useState<MFItem[]>([]);
@@ -39,8 +46,16 @@ export default function MutualFriends() {
   // Hide if it's your own page, you're anonymous, loading/errored, or there are no mutuals
   if (loading || err || isOwner || isAnonymous || count === 0) return null;
 
+  const baseClasses = "inline-flex flex-col";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const wrapperClassName = customClassName
+    ? `${filteredClasses} ${customClassName}`
+    : filteredClasses;
+
   return (
-    <div className="inline-flex flex-col">
+    <div className={wrapperClassName} style={style}>
       <button
         onClick={() => setExpanded(v => !v)}
         className="inline-flex items-center gap-2 bg-blue-200 border border-black px-2 py-0.5 text-xs font-bold shadow-[2px_2px_0_#000] rounded"

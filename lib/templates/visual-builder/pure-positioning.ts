@@ -277,6 +277,38 @@ export const DEFAULT_CANVAS_CONTAINER: CanvasContainer = {
 export class PositioningMigration {
 
   /**
+   * Strip positioning CSS properties from a style string or object
+   * Prevents positioning props from contaminating HTML generation
+   */
+  private static stripPositioningFromStyle(style: string | React.CSSProperties | undefined): string | React.CSSProperties | undefined {
+    if (!style) return style;
+
+    if (typeof style === 'string') {
+      // Parse style string and remove positioning properties
+      const declarations = style.split(';').map(d => d.trim()).filter(Boolean);
+      const cleanedDeclarations = declarations.filter(declaration => {
+        const property = declaration.split(':')[0]?.trim().toLowerCase();
+        return !['position', 'top', 'right', 'bottom', 'left', 'z-index'].includes(property);
+      });
+      return cleanedDeclarations.join('; ');
+    }
+
+    if (typeof style === 'object') {
+      // Remove positioning properties from style object
+      const cleaned = { ...style };
+      delete cleaned.position;
+      delete cleaned.top;
+      delete cleaned.right;
+      delete cleaned.bottom;
+      delete cleaned.left;
+      delete cleaned.zIndex;
+      return cleaned;
+    }
+
+    return style;
+  }
+
+  /**
    * Convert legacy ComponentItem to AbsoluteComponent
    */
   static convertLegacyComponent(legacyComponent: any): AbsoluteComponent {
@@ -328,17 +360,37 @@ export class PositioningMigration {
       positioning = AbsolutePositioningUtils.createSimplePosition(0, 0, 200, 150);
     }
 
-    // CRITICAL FIX: Merge both props and publicProps for HTML generation
-    // This ensures CSS properties set in PropertyPanel are persisted to templates
+    // CRITICAL FIX: Strip positioning CSS props from both props and publicProps BEFORE merging
+    // These props can contaminate HTML generation and override component.position
+    // (e.g., when user adjusts CSS via PropertyPanel, left/top get written to publicProps)
+    const cleanProps = { ...(legacyComponent.props || {}) };
+    const cleanPublicProps = { ...(legacyComponent.publicProps || {}) };
+
+    // Remove positioning-related CSS props from both sources
+    const positioningCSSProps = ['position', 'top', 'right', 'bottom', 'left', 'zIndex', 'z-index'];
+    positioningCSSProps.forEach(prop => {
+      delete cleanProps[prop];
+      delete cleanPublicProps[prop];
+    });
+
+    // Strip positioning from style prop (string or object) if present
+    if (cleanProps.style) {
+      cleanProps.style = this.stripPositioningFromStyle(cleanProps.style);
+    }
+    if (cleanPublicProps.style) {
+      cleanPublicProps.style = this.stripPositioningFromStyle(cleanPublicProps.style);
+    }
+
+    // Now merge cleaned props - publicProps take precedence for CSS properties
     const mergedProps = {
-      ...(legacyComponent.props || {}),
-      ...(legacyComponent.publicProps || {})  // publicProps take precedence for CSS properties
+      ...cleanProps,
+      ...cleanPublicProps
     };
 
     return {
       id: legacyComponent.id,
       type: legacyComponent.type,
-      props: mergedProps, // Use merged props instead of just legacy props
+      props: mergedProps, // Use merged props with positioning stripped
       positioning,
       children: legacyComponent.children?.map(PositioningMigration.convertLegacyComponent) || [],
       locked: legacyComponent.props?._locked || legacyComponent.visualBuilderState?.isLocked,

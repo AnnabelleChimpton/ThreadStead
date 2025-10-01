@@ -1,26 +1,31 @@
 import React from "react";
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-interface SplitLayoutProps {
+interface SplitLayoutProps extends UniversalCSSProps {
   ratio?: '1:1' | '1:2' | '2:1' | '1:3' | '3:1';
   vertical?: boolean;
-  gap?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  spacing?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   responsive?: boolean;
   children: React.ReactNode;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-export default function SplitLayout({ 
-  ratio = '1:1',
-  vertical = false,
-  gap = 'md',
-  responsive = true,
-  children,
-  onClick
-}: SplitLayoutProps) {
+export default function SplitLayout(props: SplitLayoutProps) {
+  // Separate CSS properties from component-specific properties
+  const { cssProps, componentProps} = separateCSSProps(props);
+  const {
+    ratio = '1:1',
+    vertical = false,
+    spacing = 'md',
+    responsive = true,
+    children,
+    onClick
+  } = componentProps;
+
   const childrenArray = React.Children.toArray(children);
   const firstChild = childrenArray[0];
   const secondChild = childrenArray[1];
-  
+
 
   // Mobile-first: start with stacked layout, add complexity only when needed
   const baseClasses = "w-full flex flex-col";
@@ -28,11 +33,11 @@ export default function SplitLayout({
   // Spacing between children
   const gapClasses = {
     'xs': 'gap-1',
-    'sm': 'gap-2', 
+    'sm': 'gap-2',
     'md': 'gap-4',
     'lg': 'gap-6',
     'xl': 'gap-8'
-  }[gap];
+  }[spacing];
 
   // On larger screens, optionally switch to side-by-side
   let layoutClasses = baseClasses;
@@ -72,8 +77,20 @@ export default function SplitLayout({
 
   const { first: firstWidth, second: secondWidth } = getChildWidths();
 
+  const baseLayoutClasses = `${layoutClasses} ${gapClasses}`;
+
+  // Remove Tailwind classes that conflict with CSS props - USER STYLING IS QUEEN
+  const filteredLayoutClasses = removeTailwindConflicts(baseLayoutClasses, cssProps);
+
+  // Apply CSS properties as inline styles
+  const appliedStyles = applyCSSProps(cssProps);
+
   return (
-    <div className={`${layoutClasses} ${gapClasses}`} onClick={onClick}>
+    <div
+      className={filteredLayoutClasses}
+      style={appliedStyles}
+      onClick={onClick}
+    >
       <div className={firstWidth}>
         {firstChild}
       </div>

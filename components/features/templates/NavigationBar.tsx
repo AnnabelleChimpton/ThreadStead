@@ -84,12 +84,16 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
   );
 }
 
-interface NavigationBarProps {
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
+
+interface NavigationBarProps extends UniversalCSSProps {
   className?: string;
   fullWidth?: boolean;
 }
 
-export default function NavigationBar({ className = "", fullWidth = false }: NavigationBarProps) {
+export default function NavigationBar(props: NavigationBarProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { className = "", fullWidth = false } = componentProps;
   // Initialize with static data for SSR/compilation
   const [config, setConfig] = useState<SiteConfig>({ 
     site_name: "ThreadStead", 
@@ -204,8 +208,16 @@ export default function NavigationBar({ className = "", fullWidth = false }: Nav
     return () => document.removeEventListener('click', handleClickOutside);
   }, [mobileMenuOpen]);
 
+  const baseClasses = "site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const headerClassName = className
+    ? `${filteredClasses} ${className}`
+    : filteredClasses;
+
   return (
-    <header className={`site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative ${className}`}>
+    <header className={headerClassName} style={style}>
       <nav className={`site-navigation ${fullWidth ? 'w-full px-2 sm:px-4' : 'mx-auto max-w-5xl'} flex items-center justify-between`}>
         <div className="site-branding flex-shrink-0">
           <Link href="/" className="no-underline">

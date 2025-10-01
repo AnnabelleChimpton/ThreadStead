@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-export default function NotificationBell() {
+interface NotificationBellProps extends UniversalCSSProps {
+  className?: string;
+}
+
+export default function NotificationBell(props: NotificationBellProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { className: customClassName } = componentProps;
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -52,10 +59,19 @@ export default function NotificationBell() {
     return null;
   }
 
+  const baseClasses = "relative inline-flex items-center gap-2 text-thread-pine hover:text-thread-sunset";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const linkClassName = customClassName
+    ? `${filteredClasses} ${customClassName}`
+    : filteredClasses;
+
   return (
     <Link
       href="/notifications"
-      className="relative inline-flex items-center gap-2 text-thread-pine hover:text-thread-sunset"
+      className={linkClassName}
+      style={style}
       title={`${unreadCount} unread notifications`}
     >
       <div className="relative">

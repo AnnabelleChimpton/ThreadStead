@@ -3,9 +3,9 @@
  */
 
 import React from 'react';
-import { ComponentProps } from '@/lib/templates/types';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface CassetteTapeProps extends ComponentProps {
+export interface CassetteTapeProps extends UniversalCSSProps {
   title?: string;
   artist?: string;
   album?: string;
@@ -16,12 +16,16 @@ export interface CassetteTapeProps extends ComponentProps {
   labelStyle?: 'classic' | 'handwritten' | 'typed' | 'minimal';
   wear?: 'mint' | 'good' | 'worn' | 'damaged';
   showSpokesToRotate?: boolean;
+  className?: string;
+  children?: React.ReactNode;
   _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
 
-export default function CassetteTape({
+export default function CassetteTape(props: CassetteTapeProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
   title = 'MIX TAPE',
   artist = 'Various Artists',
   album = '',
@@ -32,43 +36,17 @@ export default function CassetteTape({
   labelStyle = 'classic',
   wear = 'good',
   showSpokesToRotate = true,
-  className: customClassName = '',
-  style = {},
+  className: customClassName,
   children,
   _isInVisualBuilder = false,
   _positioningMode = 'normal',
   _isInGrid = false
-}: CassetteTapeProps) {
+  } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Handle style being passed as array or object, and normalize array values
-  const normalizedStyle = React.useMemo(() => {
-    if (!style) return {};
-
-    let mergedStyle = {};
-
-    if (Array.isArray(style)) {
-      // If style is an array, merge all objects
-      mergedStyle = style.reduce((acc, styleObj) => ({ ...acc, ...styleObj }), {});
-    } else {
-      mergedStyle = style;
-    }
-
-    // Normalize any array values within the style object
-    const normalizedEntries = Object.entries(mergedStyle).map(([key, value]) => {
-      if (Array.isArray(value)) {
-        // Convert array values to strings (join with space for multiple values)
-        return [key, value.join(' ')];
-      }
-      return [key, value];
-    });
-
-    return Object.fromEntries(normalizedEntries);
-  }, [style]);
 
   // Use prop-based grid detection instead of context hook
   const isInGrid = _isInGrid;
@@ -152,20 +130,29 @@ export default function CassetteTape({
   const currentLabelStyle = labelStyles[labelStyle];
   const currentWear = wearEffects[wear];
 
+  // Component default styles
+  const componentStyle: React.CSSProperties = {
+    display: 'inline-block',
+    position: _positioningMode === 'absolute' ? 'relative' : 'static',
+    opacity: currentWear.opacity,
+    ...(isInGrid && {
+      width: '100%',
+      height: '100%',
+      minHeight: '100px'
+    })
+  };
+
+  // Merge component styles with CSS props (CSS props win)
+  const containerStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
+
+  const containerClassName = normalizedCustomClassName
+    ? `cassette-tape-container ${normalizedCustomClassName}`
+    : 'cassette-tape-container';
+
   return (
     <div
-      className={`cassette-tape-container ${normalizedCustomClassName}`}
-      style={{
-        ...normalizedStyle,
-        display: 'inline-block',
-        position: _positioningMode === 'absolute' ? 'relative' : 'static',
-        opacity: currentWear.opacity,
-        ...(isInGrid && {
-          width: '100%',
-          height: '100%',
-          minHeight: '100px'
-        })
-      }}
+      className={containerClassName}
+      style={containerStyle}
     >
       <style jsx>{`
         .cassette-tape-shell {

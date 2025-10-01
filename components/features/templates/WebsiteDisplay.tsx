@@ -1,15 +1,30 @@
 import React from "react";
 import { useResidentData } from './ResidentDataProvider';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
-export default function WebsiteDisplay() {
+interface WebsiteDisplayProps extends UniversalCSSProps {
+  className?: string;
+}
+
+export default function WebsiteDisplay(props: WebsiteDisplayProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const { className: customClassName } = componentProps;
   const { websites } = useResidentData();
-  
+
   // Filter valid websites first
   const validWebsites = websites?.filter(website => website && website.id) || [];
 
+  const baseClasses = "border border-black p-3 bg-white shadow-[2px_2px_0_#000]";
+  const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
+  const style = applyCSSProps(cssProps);
+
+  const containerClassName = customClassName
+    ? `${filteredClasses} ${customClassName}`
+    : filteredClasses;
+
   if (!websites || websites.length === 0 || validWebsites.length === 0) {
     return (
-      <div className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
+      <div className={containerClassName} style={style}>
         <h4 className="font-bold mb-2">Website Recommendations</h4>
         <p className="text-gray-500 text-sm">No websites added yet.</p>
       </div>
@@ -17,7 +32,7 @@ export default function WebsiteDisplay() {
   }
 
   return (
-    <div className="websites-section border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
+    <div className={`websites-section ${containerClassName}`} style={style}>
       <h4 className="section-heading font-bold mb-3">Website Recommendations</h4>
       <div className="websites-list space-y-3">
         {validWebsites.map((website) => (

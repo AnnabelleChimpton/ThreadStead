@@ -3,9 +3,9 @@
  */
 
 import React from 'react';
-import { ComponentProps } from '@/lib/templates/types';
+import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
-export interface PixelArtFrameProps extends ComponentProps {
+export interface PixelArtFrameProps extends UniversalCSSProps {
   content?: string;
   frameColor?: 'classic' | 'gold' | 'silver' | 'copper' | 'neon' | 'rainbow';
   frameWidth?: 'thin' | 'medium' | 'thick' | 'ultra';
@@ -15,30 +15,33 @@ export interface PixelArtFrameProps extends ComponentProps {
   glowEffect?: boolean;
   animated?: boolean;
   innerPadding?: 'none' | 'small' | 'medium' | 'large';
-  backgroundColor?: string;
+  fillColor?: string;
+  className?: string;
+  children?: React.ReactNode;
   _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
 
-export default function PixelArtFrame({
-  content = '',
-  frameColor = 'classic',
-  frameWidth = 'medium',
-  borderStyle = 'solid',
-  cornerStyle = 'square',
-  shadowEffect = true,
-  glowEffect = false,
-  animated = false,
-  innerPadding = 'medium',
-  backgroundColor = 'transparent',
-  className: customClassName = '',
-  style = {},
-  children,
-  _isInVisualBuilder = false,
-  _positioningMode = 'normal',
-  _isInGrid = false
-}: PixelArtFrameProps) {
+export default function PixelArtFrame(props: PixelArtFrameProps) {
+  const { cssProps, componentProps } = separateCSSProps(props);
+  const {
+    content = '',
+    frameColor = 'classic',
+    frameWidth = 'medium',
+    borderStyle = 'solid',
+    cornerStyle = 'square',
+    shadowEffect = true,
+    glowEffect = false,
+    animated = false,
+    innerPadding = 'medium',
+    fillColor = 'transparent',
+    className: customClassName,
+    children,
+    _isInVisualBuilder = false,
+    _positioningMode = 'normal',
+    _isInGrid = false
+  } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
@@ -175,11 +178,11 @@ export default function PixelArtFrame({
     };
   };
 
-  const containerStyle = {
-    ...style,
+  // Component default styles
+  const componentStyle = {
     position: 'relative' as const,
     display: 'inline-block',
-    backgroundColor: backgroundColor !== 'transparent' ? backgroundColor : 'rgba(0,0,0,0.1)',
+    backgroundColor: fillColor !== 'transparent' ? fillColor : 'rgba(0,0,0,0.1)',
     padding: `${contentPadding}px`,
     ...getPixelBorderStyle(),
     ...getShadowStyle(),
@@ -187,6 +190,9 @@ export default function PixelArtFrame({
     ...getAnimationStyle(),
     overflow: _isInVisualBuilder ? 'visible' : 'hidden'
   };
+
+  // Merge component styles with CSS props (CSS props win)
+  const containerStyle = { ...componentStyle, ...applyCSSProps(cssProps) };
 
   const contentStyle = {
     display: 'block',
@@ -199,9 +205,13 @@ export default function PixelArtFrame({
     whiteSpace: 'pre-wrap' as const
   };
 
+  const containerClassName = normalizedCustomClassName
+    ? `pixel-art-frame-container ${normalizedCustomClassName}`
+    : 'pixel-art-frame-container';
+
   return (
     <div
-      className={`pixel-art-frame-container ${normalizedCustomClassName}`}
+      className={containerClassName}
       style={containerStyle}
     >
       {/* Content area */}
