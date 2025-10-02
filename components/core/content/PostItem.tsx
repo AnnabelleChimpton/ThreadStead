@@ -362,13 +362,13 @@ const countLabel = hasServerCount
 
           if (isForkNotification) {
             return (
-              <div className="border border-black bg-white p-4 shadow-[2px_2px_0_#000]">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-yellow-200 border border-black rounded-full flex items-center justify-center">
-                    <span className="text-sm">🍴</span>
+              <div className="border border-black bg-white p-3 sm:p-4 shadow-[2px_2px_0_#000]">
+                <div className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-yellow-200 border border-black rounded-full flex items-center justify-center">
+                    <span className="text-xs sm:text-sm">🍴</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="mb-2">
+                  <div className="flex-1 w-full sm:min-w-0">
+                    <div className="mb-2 text-sm sm:text-base break-words">
                       <span className="font-semibold">
                         {post.author?.profile?.displayName || post.author?.primaryHandle || 'Someone'}
                       </span>
@@ -377,25 +377,25 @@ const countLabel = hasServerCount
                         // Handle different metadata structures and extract fork ring information
                         const metadata = post.ringHubData?.metadata || {};
                         const forkedRingData = metadata.forkedRing || {};
-                        
+
                         // Try multiple sources for the ring slug and name
                         let slug = forkedRingData.slug || post.ringHubData?.ringSlug;
                         let name = forkedRingData.name || post.threadRings?.[0]?.threadRing?.name;
-                        
+
                         // If we don't have a name but have a slug, try to derive it
                         if (!name && slug) {
                           // Convert slug to readable name (capitalize and replace hyphens with spaces)
                           name = slug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
                         }
-                        
+
                         // Final fallback
                         if (!name) name = 'New Ring';
                         if (!slug) slug = '#'; // Fallback for link
-                        
+
                         return (
-                          <a 
+                          <a
                             href={`/tr/${slug}`}
-                            className="font-semibold hover:underline text-black"
+                            className="font-semibold hover:underline text-black break-words"
                           >
                             {name}
                           </a>
@@ -405,14 +405,14 @@ const countLabel = hasServerCount
                     {(() => {
                       const forkedRingData = post.ringHubData?.metadata?.forkedRing || post.ringHubData?.metadata || {};
                       return forkedRingData.description && (
-                        <div className="text-sm text-gray-700 mb-3 italic">
+                        <div className="text-xs sm:text-sm text-gray-700 mb-3 italic line-clamp-3 sm:line-clamp-none break-words">
                           &quot;{forkedRingData.description}&quot;
                         </div>
                       );
                     })()}
-                    <a 
+                    <a
                       href={`/tr/${post.ringHubData?.metadata?.forkedRing?.slug || post.ringHubData?.ringSlug}`}
-                      className="inline-block text-xs bg-yellow-200 hover:bg-yellow-300 px-3 py-1 border border-black shadow-[1px_1px_0_#000] font-medium"
+                      className="block sm:inline-block w-full sm:w-auto text-center text-xs sm:text-sm bg-yellow-200 hover:bg-yellow-300 px-3 py-2 sm:py-1 border border-black shadow-[1px_1px_0_#000] font-medium"
                     >
                       Visit New Ring
                     </a>

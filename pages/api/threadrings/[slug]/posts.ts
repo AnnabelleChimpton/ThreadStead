@@ -134,10 +134,11 @@ async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
                           post.author.handles[0]?.handle || 'unknown'
           },
           threadRings: post.threadRings?.map(tr => ({
-            id: tr.threadRing.id,
-            name: tr.threadRing.name,
-            slug: tr.threadRing.slug,
-            visibility: tr.threadRing.visibility
+            threadRing: {
+              id: tr.threadRing.id,
+              name: tr.threadRing.name,
+              slug: tr.threadRing.slug
+            }
           })) || [],
           // Include Ring Hub metadata
           ringHubData: {
