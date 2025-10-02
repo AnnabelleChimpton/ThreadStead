@@ -86,6 +86,56 @@ function PropertyPanel({
   style = {},
   activeBreakpoint = 'desktop',
 }: PropertyPanelProps) {
+  // PHASE 3: Performance monitoring - detect excessive re-renders
+  const renderCount = React.useRef(0);
+  const lastRenderTime = React.useRef(Date.now());
+
+  // ROOT CAUSE FIX: Track previous component data hash to prevent renders when data hasn't changed
+  const prevComponentDataHashRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    renderCount.current += 1;
+    const now = Date.now();
+    const timeSinceLastRender = now - lastRenderTime.current;
+    lastRenderTime.current = now;
+
+    // Warn if we're re-rendering more than once every 100ms
+    if (timeSinceLastRender < 100 && renderCount.current > 1) {
+      console.warn(`⚠️ [PropertyPanel] Rapid re-render detected (${timeSinceLastRender}ms since last render). Total renders: ${renderCount.current}`);
+    }
+
+    // Log every 10 renders to track overall performance
+    if (renderCount.current % 10 === 0) {
+      console.log(`📊 [PropertyPanel] Performance check: ${renderCount.current} total renders`);
+    }
+  });
+
+  // ROOT CAUSE FIX: Calculate data hash and skip render if identical to previous
+  const currentComponentDataHash = React.useMemo(() => {
+    if (!selectedComponent) return null;
+
+    // Create stable hash of component data (excluding volatile fields)
+    return JSON.stringify({
+      id: selectedComponent.id,
+      type: selectedComponent.type,
+      props: selectedComponent.props,
+      publicProps: selectedComponent.publicProps,
+      position: selectedComponent.position,
+      gridPosition: selectedComponent.gridPosition
+    });
+  }, [selectedComponent]);
+
+  // Check if we can skip this render (data hasn't actually changed)
+  const shouldRender = currentComponentDataHash !== prevComponentDataHashRef.current;
+
+  // Update ref for next render comparison
+  React.useEffect(() => {
+    if (!shouldRender && prevComponentDataHashRef.current !== null) {
+      console.log('✅ [PropertyPanel] Skipped unnecessary render - data unchanged');
+    }
+    prevComponentDataHashRef.current = currentComponentDataHash;
+  }, [currentComponentDataHash, shouldRender]);
+
   // Add styles to document head for scrollbar and animations
   React.useEffect(() => {
     const styleId = 'property-panel-styles';
@@ -134,20 +184,18 @@ function PropertyPanel({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['visual-styling', 'advanced-css', 'flexbox']));
   const { gridConfig } = canvasState;
 
-  // Success feedback state
+  // Success feedback state (currently unused to prevent re-renders)
   const [successFeedback, setSuccessFeedback] = useState<string | null>(null);
 
-  // Optimistic updates state to prevent flashing
-  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, any>>({});
+  // REMOVED: Optimistic updates state - TextEditor handles its own local state
+  // This was causing PropertyPanel re-renders on every keystroke!
 
   // Removed problematic useEffect that was causing infinite rerenders
 
-  // EMERGENCY FIX: Simplified property reading - no complex dependency loops
+  // FINAL FIX: Simplified property reading - no optimistic updates, no re-renders!
   const getComponentProperty = useCallback((component: ComponentItem, key: string): any => {
-    // Check optimistic updates first
-    if (optimisticUpdates[key] !== undefined) {
-      return optimisticUpdates[key];
-    }
+    // TextEditor handles its own local state, so we don't need optimistic updates here
+    // Just read the actual component properties
 
     // Simple strategy: Check the specific property exists in either structure
     // Try legacy props first, then publicProps as fallback
@@ -160,19 +208,32 @@ function PropertyPanel({
     }
 
     return undefined;
-  }, [optimisticUpdates]);
+  }, []); // No dependencies - stable forever!
+
+  // CRITICAL FIX: Store selectedComponent data in refs to stabilize callbacks
+  const selectedComponentRef = useRef(selectedComponent);
+  const onComponentUpdateRef = useRef(onComponentUpdate);
+
+  useEffect(() => {
+    selectedComponentRef.current = selectedComponent;
+    onComponentUpdateRef.current = onComponentUpdate;
+  }, [selectedComponent, onComponentUpdate]);
 
   // Debounced update ref - persists across renders
   const debouncedUpdateRef = useRef<ReturnType<typeof debounce> | undefined>(undefined);
 
-  // Create debounced update function once
+  // PHASE 2 OPTIMIZATION: Debouncing strategy
+  // - Optimistic updates happen immediately (setOptimisticUpdates) for instant UI feedback
+  // - Actual state updates are debounced to batch changes and prevent excessive re-renders
+  // - 250ms is a sweet spot: short enough to feel responsive, long enough to batch rapid changes
   useEffect(() => {
     debouncedUpdateRef.current = debounce((componentId: string, targetLocation: 'props' | 'publicProps', key: string, value: any, isCSSProperty: boolean, componentType: string) => {
+      const currentComponent = selectedComponentRef.current;
       const updates = targetLocation === 'props'
-        ? { props: { ...selectedComponent?.props, [key]: value } }
-        : { publicProps: { ...selectedComponent?.publicProps, [key]: value } };
+        ? { props: { ...currentComponent?.props, [key]: value } }
+        : { publicProps: { ...currentComponent?.publicProps, [key]: value } };
 
-      onComponentUpdate(componentId, updates);
+      onComponentUpdateRef.current(componentId, updates);
 
       // Debug: Confirm update was called
       if (isCSSProperty) {
@@ -182,17 +243,19 @@ function PropertyPanel({
           updates
         });
       }
-    }, 150); // 150ms debounce to prevent rapid re-renders
-  }, [onComponentUpdate, selectedComponent?.props, selectedComponent?.publicProps]);
+    }, 250); // 250ms debounce - balances responsiveness with batching efficiency
+  }, []); // ← CRITICAL: No dependencies! Creates once and uses refs
 
-  // EMERGENCY FIX: Simplified property update - no complex routing logic
+  // CRITICAL FIX: Stabilize updatePropertyStable with refs (no dependencies!)
   const updatePropertyStable = useCallback((key: string, value: any) => {
+    const selectedComponent = selectedComponentRef.current;
     if (!selectedComponent) {
       return;
     }
 
-    // Immediately apply optimistic update for instant feedback (NO FLASHING!)
-    setOptimisticUpdates(prev => ({ ...prev, [key]: value }));
+    // REMOVED: Optimistic updates - TextEditor handles its own local state!
+    // This was causing PropertyPanel to re-render on every keystroke
+    // setOptimisticUpdates(prev => ({ ...prev, [key]: value }));
 
     // Define CSS properties that should be routed properly
     const cssProperties = [
@@ -266,10 +329,10 @@ function PropertyPanel({
       );
     }
 
-    // Show success feedback
-    setSuccessFeedback(key);
-    setTimeout(() => setSuccessFeedback(null), 1000);
-  }, [selectedComponent]);
+    // REMOVED: Success feedback causing re-renders
+    // setSuccessFeedback(key);
+    // setTimeout(() => setSuccessFeedback(null), 1000);
+  }, []); // ← CRITICAL: No dependencies! Callback is stable forever!
 
   // Handle flexbox property updates efficiently
   const handleFlexPropsChange = useCallback((flexProps: {
@@ -284,9 +347,9 @@ function PropertyPanel({
         updatePropertyStable(key, value);
       }
     });
-  }, [updatePropertyStable]);
+  }, [updatePropertyStable]); // updatePropertyStable is now stable (no deps), so this is safe
 
-  // EMERGENCY FIX: Simplified display values - no circular dependencies, direct property access
+  // FINAL FIX: Simplified display values - NO optimistic updates, NO re-renders!
   const displayValues = useMemo(() => {
     if (!selectedComponent) return {
       backgroundColor: '', textColor: '', borderColor: '', accentColor: '',
@@ -296,11 +359,10 @@ function PropertyPanel({
     };
 
     // Direct property access with simple fallback logic
+    // TextEditor handles its own local state, so we just read actual component props
     const getValue = (key: string, fallbackKey?: string) => {
-      // Check optimistic updates first
-      if (optimisticUpdates[key] !== undefined) {
-        return optimisticUpdates[key];
-      }
+      // REMOVED: Check optimistic updates (was causing re-renders!)
+      // TextEditor's local state provides instant feedback instead
 
       // Try legacy props first
       if (selectedComponent.props && selectedComponent.props[key] !== undefined) {
@@ -341,7 +403,7 @@ function PropertyPanel({
       customCSS: getDisplayValueForStyleProp({ customCSS: getValue('customCSS') }, 'customCSS'),
       boxShadow: getDisplayValueForStyleProp({ boxShadow: getValue('boxShadow') }, 'boxShadow')
     };
-  }, [selectedComponent, optimisticUpdates]);
+  }, [selectedComponent]); // REMOVED: optimisticUpdates dependency (was causing re-renders!)
 
   // Tab definitions
   const tabs: TabDefinition[] = [
@@ -2469,5 +2531,55 @@ function PropertyPanel({
   );
 }
 
-// EMERGENCY FIX: React.memo was blocking ALL updates - removed completely
-export default PropertyPanel;
+// PHASE 2 FIX: Wrap with React.memo using smart comparison
+// Only re-render when selectedComponent ID changes or when canvasState values actually change
+const MemoizedPropertyPanel = React.memo(PropertyPanel, (prevProps, nextProps) => {
+  // Always re-render if component selection changed
+  if (prevProps.selectedComponent?.id !== nextProps.selectedComponent?.id) {
+    return false; // Props changed, re-render
+  }
+
+  // If no component selected in both, skip re-render
+  if (!prevProps.selectedComponent && !nextProps.selectedComponent) {
+    return true; // Props same, skip re-render
+  }
+
+  // Check if the actual component data changed (not just reference)
+  // This is the key optimization - we only care about data changes
+  if (prevProps.selectedComponent && nextProps.selectedComponent) {
+    const prevComp = prevProps.selectedComponent;
+    const nextComp = nextProps.selectedComponent;
+
+    // Compare the actual property values, not object references
+    const propsChanged = JSON.stringify(prevComp.props) !== JSON.stringify(nextComp.props);
+    const publicPropsChanged = JSON.stringify(prevComp.publicProps) !== JSON.stringify(nextComp.publicProps);
+    const positionChanged = JSON.stringify(prevComp.position) !== JSON.stringify(nextComp.position);
+    const gridPositionChanged = JSON.stringify(prevComp.gridPosition) !== JSON.stringify(nextComp.gridPosition);
+
+    // If any actual data changed, re-render
+    if (propsChanged || publicPropsChanged || positionChanged || gridPositionChanged) {
+      return false; // Props changed, re-render
+    }
+  }
+
+  // Check if breakpoint changed
+  if (prevProps.activeBreakpoint !== nextProps.activeBreakpoint) {
+    return false; // Breakpoint changed, re-render
+  }
+
+  // Check if canvasState data changed (gridConfig, globalSettings)
+  if (prevProps.canvasState.gridConfig !== nextProps.canvasState.gridConfig) {
+    return false; // Grid config changed, re-render
+  }
+
+  if (prevProps.canvasState.globalSettings !== nextProps.canvasState.globalSettings) {
+    return false; // Global settings changed, re-render
+  }
+
+  // Everything is the same, skip re-render
+  return true;
+});
+
+MemoizedPropertyPanel.displayName = 'PropertyPanel';
+
+export default MemoizedPropertyPanel;

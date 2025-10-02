@@ -557,23 +557,33 @@ export default function VisualTemplateBuilder({
   // Get selected component ID
   const selectedId = selectedComponentIds.size === 1 ? Array.from(selectedComponentIds)[0] : null;
 
-  // EMERGENCY FIX: Direct component selection without blocking optimizations
-  // Always create a new object to ensure PropertyPanel receives updates
-  const selectedComponentForPanel = useMemo(() => {
+  // ROOT CAUSE FIX: Create hash of ONLY the selected component's data (not entire array!)
+  // This prevents re-renders when OTHER components change
+  const selectedComponentDataHash = useMemo(() => {
     if (!selectedId) return null;
 
     const comp = findComponentById(placedComponents, selectedId);
-
     if (!comp) return null;
 
-    // CRITICAL FIX: Don't destroy props by spreading empty objects!
-    // Create new references while preserving actual data
-    return {
-      ...comp,
-      props: comp.props || {},  // Use existing props or empty if undefined
-      publicProps: comp.publicProps || {},  // Use existing publicProps or empty if undefined
-    };
-  }, [selectedId, placedComponents])
+    // Create hash of only the data that matters for PropertyPanel
+    // Exclude lastModified and other internal state that changes constantly
+    return JSON.stringify({
+      id: comp.id,
+      type: comp.type,
+      props: comp.props,
+      publicProps: comp.publicProps,
+      position: comp.position,
+      gridPosition: comp.gridPosition,
+      responsivePositions: comp.responsivePositions,
+      children: comp.children?.map(c => c.id) // Only track child IDs, not full data
+    });
+  }, [selectedId, placedComponents]);
+
+  // Now only recreate when the HASH changes, not when array reference changes
+  const selectedComponentForPanel = useMemo(() => {
+    if (!selectedId) return null;
+    return findComponentById(placedComponents, selectedId);
+  }, [selectedId, selectedComponentDataHash]) // ← Use hash instead of placedComponents!
 
   // Get the actual current selected component for other uses (canvas, etc.)
   const selectedComponent = useMemo(() => {
@@ -587,16 +597,33 @@ export default function VisualTemplateBuilder({
     updateComponent(componentId, updates);
   }, [updateComponent]);
 
+  // PHASE 1 FIX: Use refs for callbacks to keep propertyPanelCanvasState stable
+  const removeComponentRef = useRef(removeComponent);
+  const updateResponsivePositionRef = useRef(restCanvasState.updateResponsivePosition);
+  const getEffectivePositionRef = useRef(restCanvasState.getEffectivePosition);
+  const copyPositionToBreakpointRef = useRef(restCanvasState.copyPositionToBreakpoint);
+
+  useEffect(() => {
+    removeComponentRef.current = removeComponent;
+    updateResponsivePositionRef.current = restCanvasState.updateResponsivePosition;
+    getEffectivePositionRef.current = restCanvasState.getEffectivePosition;
+    copyPositionToBreakpointRef.current = restCanvasState.copyPositionToBreakpoint;
+  }, [removeComponent, restCanvasState.updateResponsivePosition, restCanvasState.getEffectivePosition, restCanvasState.copyPositionToBreakpoint]);
+
   // Memoize the subset of canvasState that PropertyPanel needs
+  // Now only re-creates when gridConfig or globalSettings actually change
   const propertyPanelCanvasState = useMemo(() => ({
-    gridConfig: gridConfig,
-    globalSettings: globalSettings,
-    removeComponent: removeComponent,
-    // PHASE 4.2: Add responsive positioning methods
-    updateResponsivePosition: restCanvasState.updateResponsivePosition,
-    getEffectivePosition: restCanvasState.getEffectivePosition,
-    copyPositionToBreakpoint: restCanvasState.copyPositionToBreakpoint
-  }), [gridConfig, globalSettings, removeComponent, restCanvasState.updateResponsivePosition, restCanvasState.getEffectivePosition, restCanvasState.copyPositionToBreakpoint]);
+    gridConfig,
+    globalSettings,
+    removeComponent: (id: string) => removeComponentRef.current(id),
+    // PHASE 4.2: Add responsive positioning methods with stable references
+    updateResponsivePosition: (id: string, breakpoint: 'tablet' | 'mobile', position: any) =>
+      updateResponsivePositionRef.current?.(id, breakpoint, position),
+    getEffectivePosition: (component: ComponentItem, breakpoint: 'desktop' | 'tablet' | 'mobile') =>
+      getEffectivePositionRef.current?.(component, breakpoint),
+    copyPositionToBreakpoint: (id: string, from: 'desktop' | 'tablet' | 'mobile', to: 'tablet' | 'mobile') =>
+      copyPositionToBreakpointRef.current?.(id, from, to)
+  }), [gridConfig, globalSettings]);
 
   // Convert current canvas state to pure absolute positioning format
   const convertToPureCanvasState = useCallback((): AbsoluteCanvasState => {

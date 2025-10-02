@@ -565,13 +565,18 @@ export function SelectEditor({ label, value, onChange, description, disabled, op
  * Text input with enhanced styling and local state management
  */
 export function TextEditor({ label, value, onChange, description, disabled }: PropertyEditorProps) {
+  // PHASE 1 FIX: Track focus state to prevent value sync during typing
+  const [isFocused, setIsFocused] = useState(false);
+
   // Local state to manage input value during typing
   const [localValue, setLocalValue] = useState(value || '');
 
-  // Sync local state with prop value when it changes externally
+  // Sync local state with prop value ONLY when not actively typing
   useEffect(() => {
-    setLocalValue(value || '');
-  }, [value]);
+    if (!isFocused) {
+      setLocalValue(value || '');
+    }
+  }, [value, isFocused]);
 
   // Store onChange in a ref to avoid recreating handlers when it changes
   const onChangeRef = useRef(onChange);
@@ -586,23 +591,20 @@ export function TextEditor({ label, value, onChange, description, disabled }: Pr
     const newValue = e.target.value;
     setLocalValue(newValue);
 
-    // Clear existing timer
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-
-    // Set new debounce timer
-    debounceTimer.current = setTimeout(() => {
-      onChangeRef.current(newValue);
-    }, 300); // 300ms debounce delay
+    // FINAL FIX: Don't call onChange while typing!
+    // This was causing component updates → PropertyPanel re-renders → focus loss
+    // Now we only update on blur when user finishes typing
   }, []); // No dependencies - uses refs
 
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
   const handleBlur = useCallback(() => {
-    // Clear any pending debounce timer
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-    // Ensure final value is sent on blur using current local value
+    setIsFocused(false);
+
+    // FINAL FIX: Only send update when user finishes typing (on blur)
+    // This prevents component updates while typing → no re-renders → no focus loss!
     onChangeRef.current(localValue);
   }, [localValue]); // Only depend on localValue
 
@@ -622,7 +624,14 @@ export function TextEditor({ label, value, onChange, description, disabled }: Pr
         type="text"
         value={localValue}
         onChange={handleChange}
-        onBlur={handleBlur}
+        onFocus={(e) => {
+          handleFocus();
+          (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
+        }}
+        onBlur={(e) => {
+          handleBlur();
+          (e.target as HTMLInputElement).style.borderColor = '#d1d5db';
+        }}
         disabled={disabled}
         style={{
           width: '100%',
@@ -633,9 +642,6 @@ export function TextEditor({ label, value, onChange, description, disabled }: Pr
           background: 'white',
           outline: 'none',
           transition: 'border-color 0.2s ease',
-        }}
-        onFocus={(e) => {
-          (e.target as HTMLInputElement).style.borderColor = '#3b82f6';
         }}
       />
 
@@ -657,13 +663,18 @@ export function TextEditor({ label, value, onChange, description, disabled }: Pr
  * Multi-line text area with local state management
  */
 export function TextAreaEditor({ label, value, onChange, description, disabled }: PropertyEditorProps) {
+  // PHASE 1 FIX: Track focus state to prevent value sync during typing
+  const [isFocused, setIsFocused] = useState(false);
+
   // Local state to manage textarea value during typing
   const [localValue, setLocalValue] = useState(value || '');
 
-  // Sync local state with prop value when it changes externally
+  // Sync local state with prop value ONLY when not actively typing
   useEffect(() => {
-    setLocalValue(value || '');
-  }, [value]);
+    if (!isFocused) {
+      setLocalValue(value || '');
+    }
+  }, [value, isFocused]);
 
   // Store onChange in a ref to avoid recreating handlers when it changes
   const onChangeRef = useRef(onChange);
@@ -671,30 +682,24 @@ export function TextAreaEditor({ label, value, onChange, description, disabled }
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  // Debounce timer ref to batch updates
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setLocalValue(newValue);
 
-    // Clear existing timer
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-
-    // Set new debounce timer
-    debounceTimer.current = setTimeout(() => {
-      onChangeRef.current(newValue);
-    }, 300); // 300ms debounce delay
+    // FINAL FIX: Don't call onChange while typing!
+    // This was causing component updates → PropertyPanel re-renders → focus loss
+    // Now we only update on blur when user finishes typing
   }, []); // No dependencies - uses refs
 
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
   const handleBlur = useCallback(() => {
-    // Clear any pending debounce timer
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-    // Ensure final value is sent on blur using current local value
+    setIsFocused(false);
+
+    // FINAL FIX: Only send update when user finishes typing (on blur)
+    // This prevents component updates while typing → no re-renders → no focus loss!
     onChangeRef.current(localValue);
   }, [localValue]); // Only depend on localValue
 
@@ -713,7 +718,14 @@ export function TextAreaEditor({ label, value, onChange, description, disabled }
       <textarea
         value={localValue}
         onChange={handleChange}
-        onBlur={handleBlur}
+        onFocus={(e) => {
+          handleFocus();
+          (e.target as HTMLTextAreaElement).style.borderColor = '#3b82f6';
+        }}
+        onBlur={(e) => {
+          handleBlur();
+          (e.target as HTMLTextAreaElement).style.borderColor = '#d1d5db';
+        }}
         disabled={disabled}
         rows={3}
         style={{
@@ -727,9 +739,6 @@ export function TextAreaEditor({ label, value, onChange, description, disabled }
           transition: 'border-color 0.2s ease',
           resize: 'vertical',
           minHeight: '80px',
-        }}
-        onFocus={(e) => {
-          (e.target as HTMLTextAreaElement).style.borderColor = '#3b82f6';
         }}
       />
 
