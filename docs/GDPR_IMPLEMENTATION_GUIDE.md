@@ -152,10 +152,22 @@ CONSENT_EXPIRY_MONTHS="12"
 - 30-day grace period
 
 ### 4. Right to Data Portability ✅
-**Status:** Implemented
-- JSON export of user data
-- Includes all personal content
-- Machine-readable format
+**Status:** Fully Implemented
+- **API Endpoint:** `/api/user/export/data`
+- **UI Location:** Settings → Privacy & Consent tab
+- **Format:** Comprehensive JSON export
+- **Includes all personal data:**
+  - Posts (content, metadata, visibility settings)
+  - ThreadRing memberships (rings, roles, badges)
+  - Comments & interactions (post comments, photo comments, guestbook)
+  - Media library (photos, MIDI files with URLs)
+  - Profile & customization (bio, CSS, templates, pixel home)
+  - Social connections (followers, following, blocks)
+  - Account data (handles, consents, creation date)
+- **Machine-readable format:** Structured JSON with schema versioning
+- **Rate limiting:** 1 export per hour
+- **GDPR compliant:** Structured, commonly used, interoperable format
+- **Download method:** Direct browser download with timestamped filename
 
 ### 5. Right to Object ✅
 **Status:** Implemented

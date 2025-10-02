@@ -1203,6 +1203,78 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
           {/* Consent Management */}
           <ConsentManager userId={initialUser.id} />
 
+          {/* Data Export */}
+          <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <span>📦</span>
+              Export Your Data
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Download a complete copy of all your data in machine-readable JSON format. This includes posts, ThreadRing memberships, comments, media, profile data, and social connections.
+            </p>
+
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4">
+              <h4 className="font-semibold text-blue-800 mb-2">📋 What&apos;s Included:</h4>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>✓ All posts and content</li>
+                <li>✓ ThreadRing memberships and badges</li>
+                <li>✓ Comments and interactions</li>
+                <li>✓ Media library (photos, MIDI files)</li>
+                <li>✓ Profile and customization settings</li>
+                <li>✓ Social connections (followers, following)</li>
+                <li>✓ Account data and consent records</li>
+              </ul>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded mb-4">
+              <p className="text-sm text-amber-800">
+                <strong>⏱️ Rate Limit:</strong> You can export your data once per hour to prevent abuse.
+              </p>
+            </div>
+
+            <button
+              onClick={async () => {
+                try {
+                  setSaveMessage("Generating your data export...");
+                  const response = await fetch('/api/user/export/data');
+
+                  if (!response.ok) {
+                    const error = await response.json();
+                    setSaveMessage(`Error: ${error.error || 'Failed to export data'}`);
+                    return;
+                  }
+
+                  // Get the JSON data
+                  const blob = await response.blob();
+
+                  // Create download link
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `threadstead-data-export-${Date.now()}.json`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(url);
+
+                  setSaveMessage("Data export downloaded successfully!");
+                  setTimeout(() => setSaveMessage(null), 3000);
+                } catch (error) {
+                  setSaveMessage(`Error: ${error instanceof Error ? error.message : 'Failed to export data'}`);
+                }
+              }}
+              className="px-4 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+            >
+              📥 Export All My Data
+            </button>
+
+            <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded">
+              <p className="text-xs text-gray-600">
+                <strong>GDPR Compliance:</strong> This export provides your personal data in a structured, commonly used, and machine-readable format as required by data protection regulations.
+              </p>
+            </div>
+          </div>
+
           {/* Blocking Management */}
           <div className="bg-blue-50 border border-black rounded-none p-4 shadow-[2px_2px_0_#000]">
             <h3 className="text-lg font-bold mb-2">User & Community Blocking</h3>
