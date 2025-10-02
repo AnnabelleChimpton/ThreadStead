@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { TextWithEmojis, HtmlWithEmojis, MarkdownWithEmojis, markdownToSafeHtmlWithEmojis, processHtmlWithEmojis } from "@/lib/comment-markup";
+import { truncateText, truncateHtml, needsTruncation } from "@/lib/utils/text-truncation";
 import hljs from "highlight.js"; // Ensure highlight.js is imported
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../../ui/forms/NewCommentForm";
@@ -85,7 +86,7 @@ export default function PostItem({
   currentUser,
   userRole,
   isUserMember = false,
-  viewContext = 'feed',
+  viewContext,
 }: {
   post: Post;
   isOwner: boolean;
@@ -121,6 +122,12 @@ export default function PostItem({
   const [commentCount, setCommentCount] = useState<number | null>(null);
   const [optimistic, setOptimistic] = useState<CommentWireList[]>([]);
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Enable truncation for feed/list views, disable for individual post pages
+  // When viewContext is undefined, we're on an individual post page (no truncation)
+  // When viewContext is defined (feed/profile/ring/widget), we're in a list view (truncate)
+  const shouldEnableTruncation = viewContext !== undefined;
 
   // Ring Hub moderation permissions
   const moderationPermissions = useModerationPermissions(userRole, isUserMember);
@@ -445,14 +452,32 @@ const countLabel = hasServerCount
 
                 {/* Post Content */}
                 <div className={`thread-content ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}`}>
-                  {post.bodyMarkdown ? (
-                    <MarkdownWithEmojis markdown={post.bodyMarkdown} />
-                  ) : post.bodyHtml ? (
-                    <HtmlWithEmojis html={post.bodyHtml} />
-                  ) : post.bodyText ? (
-                    <p><TextWithEmojis text={post.bodyText} /></p>
-                  ) : (
-                    <div className="italic opacity-70">(No content)</div>
+                  {(() => {
+                    // Determine content source and check if truncation is needed
+                    const rawContent = post.bodyMarkdown || post.bodyHtml || post.bodyText || "";
+                    const shouldTruncate = shouldEnableTruncation && needsTruncation(rawContent) && !isExpanded;
+
+                    // Render content based on type and truncation state
+                    if (post.bodyMarkdown) {
+                      const displayMarkdown = shouldTruncate ? truncateText(post.bodyMarkdown) : post.bodyMarkdown;
+                      return <MarkdownWithEmojis markdown={displayMarkdown} />;
+                    } else if (post.bodyHtml) {
+                      const displayHtml = shouldTruncate ? truncateHtml(post.bodyHtml) : post.bodyHtml;
+                      return <HtmlWithEmojis html={displayHtml} />;
+                    } else if (post.bodyText) {
+                      const displayText = shouldTruncate ? truncateText(post.bodyText) : post.bodyText;
+                      return <p><TextWithEmojis text={displayText} /></p>;
+                    } else {
+                      return <div className="italic opacity-70">(No content)</div>;
+                    }
+                  })()}
+                  {shouldEnableTruncation && needsTruncation(post.bodyMarkdown || post.bodyHtml || post.bodyText || "") && (
+                    <button
+                      onClick={() => setIsExpanded(!isExpanded)}
+                      className="mt-2 text-sm text-black hover:text-gray-700 font-medium transition-colors underline"
+                    >
+                      {isExpanded ? 'Show less' : 'Read more'}
+                    </button>
                   )}
                 </div>
 

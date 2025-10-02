@@ -526,7 +526,12 @@ export function useCanvasState(initialComponents: ComponentItem[] = []): UseCanv
           updatedComponent.visualBuilderState = {
             ...component.visualBuilderState,
             ...updatedVisualBuilderState,
-            lastModified: Date.now()
+            // ROOT CAUSE FIX: Don't update lastModified on every property change
+            // This was causing the component hash to change even when data didn't
+            // Only update lastModified if explicitly provided in updates
+            ...(updatedVisualBuilderState.lastModified !== undefined
+              ? { lastModified: updatedVisualBuilderState.lastModified }
+              : {})
           };
         }
 

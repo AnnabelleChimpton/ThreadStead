@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { markdownToSafeHtmlWithEmojis, processHtmlWithEmojis, loadEmojiMap } from "@/lib/comment-markup";
+import { truncateText, truncateHtml, needsTruncation } from "@/lib/utils/text-truncation";
 import CommentList, { CommentWire } from "./CommentList";
 import NewCommentForm from "../../ui/forms/NewCommentForm";
 import PostActionsDropdown from "./PostActionsDropdown";
@@ -55,13 +56,15 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
   const [actualCommentCount, setActualCommentCount] = useState<number | null>(null);
   const [optimistic, setOptimistic] = useState<CommentWire[]>([]);
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Determine the content to display
   const [content, setContent] = React.useState("");
+  const [shouldTruncate, setShouldTruncate] = React.useState(false);
   
   React.useEffect(() => {
     let cancelled = false;
-    
+
     async function processContent() {
       try {
         let html: string;
@@ -78,8 +81,11 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
         } else {
           html = "";
         }
-        
+
         if (!cancelled) {
+          // Check if content needs truncation
+          const needsTrunc = needsTruncation(html);
+          setShouldTruncate(needsTrunc);
           setContent(html);
         }
       } catch (error) {
@@ -96,13 +102,15 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
           } else {
             fallbackHtml = "";
           }
+          const needsTrunc = needsTruncation(fallbackHtml);
+          setShouldTruncate(needsTrunc);
           setContent(fallbackHtml);
         }
       }
     }
-    
+
     processContent();
-    
+
     return () => {
       cancelled = true;
     };
@@ -332,7 +340,21 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
       {/* Post Content */}
       <div className={`thread-content mb-4 ${post.isSpoiler && !spoilerRevealed ? 'spoiler-content' : ''}`}>
         {content ? (
-          <div dangerouslySetInnerHTML={{ __html: content }} />
+          <>
+            <div
+              dangerouslySetInnerHTML={{
+                __html: shouldTruncate && !isExpanded ? truncateHtml(content) : content
+              }}
+            />
+            {shouldTruncate && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-2 text-sm text-thread-sunset hover:text-thread-pine font-medium transition-colors underline"
+              >
+                {isExpanded ? 'Show less' : 'Read more'}
+              </button>
+            )}
+          </>
         ) : (
           <p className="text-thread-sage italic">No content available</p>
         )}

@@ -223,9 +223,10 @@ export const getServerSideProps: GetServerSideProps<PostPageProps> = async ({ pa
     // If none of the above, customCSS remains undefined and no CSS is injected
 
     // Add other layout properties
-    if (authorProfile?.profile?.hideNavigation != null) {
-      props.hideNavigation = authorProfile.profile.hideNavigation;
-    }
+    // Temporarily disabled - navigation always shown on post pages
+    // if (authorProfile?.profile?.hideNavigation != null) {
+    //   props.hideNavigation = authorProfile.profile.hideNavigation;
+    // }
     if (authorProfile?.profile?.includeSiteCSS != null) {
       props.includeSiteCSS = authorProfile.profile.includeSiteCSS;
     }
