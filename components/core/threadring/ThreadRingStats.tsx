@@ -74,8 +74,7 @@ export default function ThreadRingStats({
 
   if (loading) {
     return (
-      <div className={`bg-white border border-black p-4 shadow-[2px_2px_0_#000] ${className}`}>
-        <h3 className="font-bold mb-3">ThreadRing Statistics</h3>
+      <div className={`bg-white p-4 ${className}`}>
         <div className="text-sm text-gray-600">Loading statistics...</div>
       </div>
     );
@@ -83,8 +82,7 @@ export default function ThreadRingStats({
 
   if (error || !stats) {
     return (
-      <div className={`bg-white border border-black p-4 shadow-[2px_2px_0_#000] ${className}`}>
-        <h3 className="font-bold mb-3">ThreadRing Statistics</h3>
+      <div className={`bg-white p-4 ${className}`}>
         <div className="text-sm text-red-600">
           {error || "Failed to load statistics"}
         </div>
@@ -93,9 +91,7 @@ export default function ThreadRingStats({
   }
 
   return (
-    <div className={`tr-stats tr-sidebar-widget bg-white border border-black p-4 shadow-[2px_2px_0_#000] ${className}`}>
-      <h3 className="tr-stats-title font-bold mb-4">ThreadRing Statistics</h3>
-      
+    <div className={`tr-stats tr-sidebar-widget bg-white p-4 ${className}`}>
       <div className="tr-stats-content space-y-6 text-sm">
         {/* Overview */}
         <div className="tr-stats-overview">

@@ -84,13 +84,8 @@ export default function RandomMemberDiscovery({
   };
 
   return (
-    <div className="border border-black bg-white shadow-[4px_4px_0_#000] p-6">
-      <h3 className="text-xl font-bold text-thread-pine mb-4 flex items-center">
-        <span className="mr-2">🎲</span>
-        Member Discovery
-      </h3>
-      
-      <p className="text-thread-sage mb-4 text-sm">
+    <div className="bg-white p-4">
+      <p className="text-gray-600 mb-4 text-sm">
         Discover random members from {threadRingName} or explore the extended family tree.
       </p>
 

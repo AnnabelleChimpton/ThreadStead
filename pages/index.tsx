@@ -511,13 +511,6 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
       <Layout siteConfig={siteConfig}>
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#2E4B3F] mb-2 leading-tight">
-            Welcome home{user?.primaryHandle ? `, ${user.primaryHandle.split('@')[0]}` : ''}!
-          </h1>
-          <p className="text-sm sm:text-base text-gray-600 px-2 mb-4">
-            Your personalized portal to the community • News • Neighbors • Activity
-          </p>
-
           {/* Quick Action Buttons - PROMINENT AND CLEAR */}
           <div className="flex flex-wrap justify-center gap-3 mb-4">
             <Link
