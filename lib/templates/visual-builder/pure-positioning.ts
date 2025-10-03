@@ -317,7 +317,12 @@ export class PositioningMigration {
     // PHASE 4.2: Check for responsive positioning first
     if (legacyComponent.responsivePositions && (legacyComponent.responsivePositions.tablet || legacyComponent.responsivePositions.mobile)) {
       // Component has responsive positioning - create ResponsivePosition
-      const size = legacyComponent.visualBuilderState?.size || legacyComponent.props?._size || { width: 200, height: 150 };
+      // FIX: Parse size to handle both number (visualBuilderState.size) and string (props._size) formats
+      const rawSize = legacyComponent.visualBuilderState?.size || legacyComponent.props?._size || { width: 200, height: 150 };
+      const size = {
+        width: typeof rawSize.width === 'number' ? rawSize.width : parseFloat(String(rawSize.width)),
+        height: typeof rawSize.height === 'number' ? rawSize.height : parseFloat(String(rawSize.height))
+      };
       const desktopPos = {
         x: legacyComponent.position.x,
         y: legacyComponent.position.y,
@@ -335,7 +340,12 @@ export class PositioningMigration {
       };
     } else if (legacyComponent.positioningMode === 'absolute' && legacyComponent.position) {
       // Convert legacy absolute positioning
-      const size = legacyComponent.visualBuilderState?.size || legacyComponent.props?._size || { width: 200, height: 150 };
+      // FIX: Parse size to handle both number (visualBuilderState.size) and string (props._size) formats
+      const rawSize = legacyComponent.visualBuilderState?.size || legacyComponent.props?._size || { width: 200, height: 150 };
+      const size = {
+        width: typeof rawSize.width === 'number' ? rawSize.width : parseFloat(String(rawSize.width)),
+        height: typeof rawSize.height === 'number' ? rawSize.height : parseFloat(String(rawSize.height))
+      };
       positioning = AbsolutePositioningUtils.createSimplePosition(
         legacyComponent.position.x,
         legacyComponent.position.y,
@@ -375,10 +385,10 @@ export class PositioningMigration {
 
     // Strip positioning from style prop (string or object) if present
     if (cleanProps.style) {
-      cleanProps.style = this.stripPositioningFromStyle(cleanProps.style);
+      cleanProps.style = PositioningMigration.stripPositioningFromStyle(cleanProps.style);
     }
     if (cleanPublicProps.style) {
-      cleanPublicProps.style = this.stripPositioningFromStyle(cleanPublicProps.style);
+      cleanPublicProps.style = PositioningMigration.stripPositioningFromStyle(cleanPublicProps.style);
     }
 
     // Now merge cleaned props - publicProps take precedence for CSS properties

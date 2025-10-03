@@ -170,6 +170,11 @@ export default function VisualTemplateBuilder({
             isSelected: false,
             isLocked: false,
             isHidden: false,
+            // FIX: Copy size from parsed component to visualBuilderState (extract only width/height as numbers)
+            size: canvasComp.size ? {
+              width: typeof canvasComp.size.width === 'number' ? canvasComp.size.width : 200,
+              height: typeof canvasComp.size.height === 'number' ? canvasComp.size.height : 150
+            } : undefined,
             lastModified: Date.now(),
             // Track if columns was explicitly set in HTML for GridLayout components
             hasUserSetColumns: canvasComp.type === 'GridLayout' && canvasComp.props && 'columns' in canvasComp.props
@@ -197,6 +202,11 @@ export default function VisualTemplateBuilder({
               isSelected: false,
               isLocked: false,
               isHidden: false,
+              // FIX: Copy size from parsed child component to visualBuilderState (extract only width/height as numbers)
+              size: child.size ? {
+                width: typeof child.size.width === 'number' ? child.size.width : 200,
+                height: typeof child.size.height === 'number' ? child.size.height : 150
+              } : undefined,
               lastModified: Date.now()
             },
             gridPosition: child.gridPosition ? {

@@ -218,7 +218,8 @@ function migrateComponentToNewFormat(component: ComponentItem): ComponentItem {
         isLocked: _locked || false,
         isHidden: _hidden || false,
         groupId: groupId || component.visualBuilderState?.groupId,
-        size: _size,
+        // FIX: Check both props._size and top-level component.size (from old CanvasComponent format)
+        size: _size || (component as any).size,
         lastModified: Date.now(),
         legacyProps: component.props // Keep original for backward compatibility
       },
@@ -230,6 +231,7 @@ function migrateComponentToNewFormat(component: ComponentItem): ComponentItem {
   }
 
   // If no props at all, create minimal structure
+  // FIX: Check for top-level size (from old CanvasComponent format)
   return {
     ...component,
     publicProps: {},
@@ -237,6 +239,7 @@ function migrateComponentToNewFormat(component: ComponentItem): ComponentItem {
       isSelected: false,
       isLocked: false,
       isHidden: false,
+      size: (component as any).size, // Import size from old CanvasComponent format if present
       lastModified: Date.now()
     }
   };
