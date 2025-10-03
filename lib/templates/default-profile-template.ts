@@ -167,35 +167,58 @@ export const TEMPLATE_EXAMPLES = {
   </CenteredBox>
 </GradientBox>`,
     css: `/* Glass Morphism Styling */
-body {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+/* Visual Builder Generated CSS - VB_GENERATED_CSS */
+
+:root {
+  --global-bg-color: #667eea;
+  --global-bg-gradient-end: #764ba2;
+  --global-font-family: 'Inter', system-ui, sans-serif;
+  --global-text-color: rgba(255, 255, 255, 0.95);
+}
+
+.vb-theme-glass-morphism {
+  background-color: var(--global-bg-color);
+  font-family: var(--global-font-family);
+  color: var(--global-text-color);
+}
+
+body.vb-pattern-glass-morphism {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   font-family: 'Inter', system-ui, sans-serif;
 }
 
-.thread-module {
-  background: rgba(255, 255, 255, 0.1) !important;
+.vb-theme-glass-morphism [class*="card"],
+.vb-theme-glass-morphism [class*="module"],
+.vb-theme-glass-morphism [class*="container"]:not(.pure-absolute-container) {
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(16px);
-  border-radius: 20px !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
 }
 
-.thread-module:hover {
+.vb-theme-glass-morphism [class*="card"]:hover,
+.vb-theme-glass-morphism [class*="module"]:hover,
+.vb-theme-glass-morphism [class*="container"]:not(.pure-absolute-container):hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
 }
 
-h1, h2, h3 {
-  color: rgba(255, 255, 255, 0.95) !important;
+.vb-theme-glass-morphism h1,
+.vb-theme-glass-morphism h2,
+.vb-theme-glass-morphism h3 {
+  color: rgba(255, 255, 255, 0.95);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-a {
-  color: rgba(255, 255, 255, 0.9) !important;
+.vb-theme-glass-morphism a {
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
 }
 
-a:hover {
-  color: #ffffff !important;
+.vb-theme-glass-morphism a:hover {
+  color: #ffffff;
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 }`,
     cssMode: 'inherit' as const
@@ -228,37 +251,61 @@ a:hover {
   </Tab>
 </Tabs>`,
     css: `/* Neon Cyberspace Styling */
-body {
-  background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 70%) !important;
-  color: #00ff00 !important;
-  font-family: 'Courier New', monospace !important;
+/* Visual Builder Generated CSS - VB_GENERATED_CSS */
+
+:root {
+  --global-bg-color: #0a0a0a;
+  --global-font-family: 'Courier New', monospace;
+  --global-text-color: #00ff00;
+  --global-accent-color: #00ffff;
+  --global-neon-green: #00ff00;
+  --global-neon-cyan: #00ffff;
+  --global-neon-magenta: #ff00ff;
 }
 
-.thread-module {
-  background: #001100 !important;
-  border: 2px solid #00ff00 !important;
-  box-shadow: 0 0 20px #00ff00 !important;
-  color: #00ff00 !important;
+.vb-theme-neon-cyberspace {
+  background-color: var(--global-bg-color);
+  font-family: var(--global-font-family);
+  color: var(--global-text-color);
 }
 
-.profile-tab-button {
-  background: #000 !important;
-  color: #00ff00 !important;
-  border: 1px solid #00ff00 !important;
+body.vb-pattern-neon-cyberspace {
+  background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 70%);
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+}
+
+.vb-theme-neon-cyberspace [class*="card"],
+.vb-theme-neon-cyberspace [class*="module"],
+.vb-theme-neon-cyberspace [class*="container"]:not(.pure-absolute-container) {
+  background: #001100;
+  border: 2px solid #00ff00;
+  box-shadow: 0 0 20px #00ff00;
+  color: #00ff00;
+}
+
+.vb-theme-neon-cyberspace [role="tab"],
+.vb-theme-neon-cyberspace [class*="tab"] {
+  background: #000;
+  color: #00ff00;
+  border: 1px solid #00ff00;
   text-shadow: 0 0 10px #00ff00;
-  font-family: 'Courier New', monospace !important;
+  font-family: 'Courier New', monospace;
 }
 
-.profile-tab-button.active {
-  background: #003300 !important;
-  color: #00ffff !important;
+.vb-theme-neon-cyberspace [role="tab"][aria-selected="true"],
+.vb-theme-neon-cyberspace [class*="tab"].active {
+  background: #003300;
+  color: #00ffff;
   text-shadow: 0 0 15px #00ffff;
 }
 
-h1, h2, h3 {
-  color: #00ffff !important;
+.vb-theme-neon-cyberspace h1,
+.vb-theme-neon-cyberspace h2,
+.vb-theme-neon-cyberspace h3 {
+  color: #00ffff;
   text-shadow: 0 0 15px #00ffff;
-  font-weight: bold !important;
+  font-weight: bold;
   animation: pulse-glow 3s ease-in-out infinite alternate;
 }
 
@@ -267,13 +314,14 @@ h1, h2, h3 {
   100% { text-shadow: 0 0 25px #00ffff, 0 0 35px #00ffff; }
 }
 
-a {
-  color: #ff00ff !important;
+.vb-theme-neon-cyberspace a {
+  color: #ff00ff;
   text-shadow: 0 0 8px #ff00ff;
+  transition: all 0.3s ease;
 }
 
-a:hover {
-  color: #00ffff !important;
+.vb-theme-neon-cyberspace a:hover {
+  color: #00ffff;
   text-shadow: 0 0 15px #00ffff;
 }`,
     cssMode: 'inherit' as const
@@ -315,11 +363,26 @@ a:hover {
   </Tab>
 </Tabs>`,
     css: `/* Retro Memories Styling */
-body {
-  background: linear-gradient(45deg, #ffd700, #ff69b4, #00bfff, #90ee90) !important;
-  background-size: 400% 400% !important;
+/* Visual Builder Generated CSS - VB_GENERATED_CSS */
+
+:root {
+  --global-bg-color: #ffd700;
+  --global-font-family: 'Comic Sans MS', cursive, sans-serif;
+  --global-text-color: #8b0000;
+  --global-accent-color: #ff1493;
+}
+
+.vb-theme-retro-memories {
+  background-color: var(--global-bg-color);
+  font-family: var(--global-font-family);
+  color: var(--global-text-color);
+}
+
+body.vb-pattern-retro-memories {
+  background: linear-gradient(45deg, #ffd700, #ff69b4, #00bfff, #90ee90);
+  background-size: 400% 400%;
   animation: gradient-wave 15s ease infinite;
-  font-family: 'Comic Sans MS', cursive, sans-serif !important;
+  font-family: 'Comic Sans MS', cursive, sans-serif;
 }
 
 @keyframes gradient-wave {
@@ -328,18 +391,25 @@ body {
   100% { background-position: 0% 50%; }
 }
 
-.thread-module {
-  transform: rotate(1deg) !important;
-  transition: transform 0.3s ease !important;
+.vb-theme-retro-memories [class*="card"],
+.vb-theme-retro-memories [class*="module"],
+.vb-theme-retro-memories [class*="container"]:not(.pure-absolute-container) {
+  transform: rotate(1deg);
+  transition: transform 0.3s ease;
 }
 
-.thread-module:hover {
-  transform: rotate(0deg) scale(1.02) !important;
+.vb-theme-retro-memories [class*="card"]:hover,
+.vb-theme-retro-memories [class*="module"]:hover,
+.vb-theme-retro-memories [class*="container"]:not(.pure-absolute-container):hover {
+  transform: rotate(0deg) scale(1.02);
 }
 
-h1, h2, h3, h4 {
-  color: #8b0000 !important;
-  font-weight: bold !important;
+.vb-theme-retro-memories h1,
+.vb-theme-retro-memories h2,
+.vb-theme-retro-memories h3,
+.vb-theme-retro-memories h4 {
+  color: #8b0000;
+  font-weight: bold;
   text-shadow: 2px 2px 0px #ffffff, 4px 4px 0px #ff1493;
   animation: rainbow-blink 3s linear infinite;
 }
@@ -354,18 +424,18 @@ h1, h2, h3, h4 {
   100% { color: #ff0000; }
 }
 
-a {
-  color: #0000ff !important;
-  text-decoration: underline !important;
+.vb-theme-retro-memories a {
+  color: #0000ff;
+  text-decoration: underline;
 }
 
-a:visited {
-  color: #800080 !important;
+.vb-theme-retro-memories a:visited {
+  color: #800080;
 }
 
-a:hover {
-  color: #ff1493 !important;
-  background: #ffff00 !important;
+.vb-theme-retro-memories a:hover {
+  color: #ff1493;
+  background: #ffff00;
   padding: 2px;
 }`,
     cssMode: 'inherit' as const
@@ -393,18 +463,36 @@ a:hover {
   </Tabs>
 </CenteredBox>`,
     css: `/* Minimalist Zen Styling */
-body {
-  background: linear-gradient(to bottom, #fafafa 0%, #f0f0f0 100%) !important;
-  font-family: 'Georgia', 'Times New Roman', serif !important;
-  line-height: 1.8 !important;
-  color: #2c3e50 !important;
+/* Visual Builder Generated CSS - VB_GENERATED_CSS */
+
+:root {
+  --global-bg-color: #fafafa;
+  --global-font-family: 'Georgia', 'Times New Roman', serif;
+  --global-text-color: #2c3e50;
+  --global-accent-color: #3498db;
 }
 
-.thread-module {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border-radius: 2px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-  border-left: 3px solid #3498db !important;
+.vb-theme-minimalist-zen {
+  background-color: var(--global-bg-color);
+  font-family: var(--global-font-family);
+  color: var(--global-text-color);
+  line-height: 1.8;
+}
+
+body.vb-pattern-minimalist-zen {
+  background: linear-gradient(to bottom, #fafafa 0%, #f0f0f0 100%);
+  font-family: 'Georgia', 'Times New Roman', serif;
+  line-height: 1.8;
+  color: #2c3e50;
+}
+
+.vb-theme-minimalist-zen [class*="card"],
+.vb-theme-minimalist-zen [class*="module"],
+.vb-theme-minimalist-zen [class*="container"]:not(.pure-absolute-container) {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-left: 3px solid #3498db;
   animation: gentle-fade 0.8s ease-out;
 }
 
@@ -419,21 +507,23 @@ body {
   }
 }
 
-h1, h2, h3 {
-  color: #2c3e50 !important;
-  font-weight: 300 !important;
+.vb-theme-minimalist-zen h1,
+.vb-theme-minimalist-zen h2,
+.vb-theme-minimalist-zen h3 {
+  color: #2c3e50;
+  font-weight: 300;
   letter-spacing: -0.5px;
 }
 
-a {
-  color: #3498db !important;
-  text-decoration: none !important;
+.vb-theme-minimalist-zen a {
+  color: #3498db;
+  text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: border-color 0.3s ease;
 }
 
-a:hover {
-  border-bottom-color: #3498db !important;
+.vb-theme-minimalist-zen a:hover {
+  border-bottom-color: #3498db;
 }`,
     cssMode: 'inherit' as const
   },
@@ -466,12 +556,28 @@ a:hover {
   </Tabs>
 </CenteredBox>`,
     css: `/* Creative Portfolio Styling */
-body {
-  background: linear-gradient(45deg, #f7f3f0, #ede7e0, #f2ebe4) !important;
-  background-size: 300% 300% !important;
+/* Visual Builder Generated CSS - VB_GENERATED_CSS */
+
+:root {
+  --global-bg-color: #f7f3f0;
+  --global-font-family: 'Georgia', serif;
+  --global-text-color: #3d3d3d;
+  --global-accent-color: #6b5b73;
+  --global-earth-tone: #8b7d6f;
+}
+
+.vb-theme-creative-portfolio {
+  background-color: var(--global-bg-color);
+  font-family: var(--global-font-family);
+  color: var(--global-text-color);
+}
+
+body.vb-pattern-creative-portfolio {
+  background: linear-gradient(45deg, #f7f3f0, #ede7e0, #f2ebe4);
+  background-size: 300% 300%;
   animation: subtle-shift 20s ease-in-out infinite;
-  font-family: 'Georgia', serif !important;
-  color: #3d3d3d !important;
+  font-family: 'Georgia', serif;
+  color: #3d3d3d;
 }
 
 @keyframes subtle-shift {
@@ -479,35 +585,40 @@ body {
   50% { background-position: 100% 50%; }
 }
 
-.frame-collection {
-  border: 5px solid #8b7d6f !important;
-  border-radius: 8px !important;
-  padding: 1rem !important;
-  background: rgba(255, 255, 255, 0.8) !important;
-  box-shadow: inset 0 0 10px rgba(139, 125, 111, 0.1) !important;
+.vb-theme-creative-portfolio .frame-collection {
+  border: 5px solid #8b7d6f;
+  border-radius: 8px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: inset 0 0 10px rgba(139, 125, 111, 0.1);
 }
 
-.thread-module {
-  background: rgba(255, 255, 255, 0.8) !important;
-  border: 1px solid rgba(139, 125, 111, 0.2) !important;
-  box-shadow: 0 4px 15px rgba(139, 125, 111, 0.1) !important;
+.vb-theme-creative-portfolio [class*="card"],
+.vb-theme-creative-portfolio [class*="module"],
+.vb-theme-creative-portfolio [class*="container"]:not(.pure-absolute-container) {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(139, 125, 111, 0.2);
+  box-shadow: 0 4px 15px rgba(139, 125, 111, 0.1);
 }
 
-h1, h2, h3 {
-  color: #6b5b73 !important;
-  font-weight: 300 !important;
+.vb-theme-creative-portfolio h1,
+.vb-theme-creative-portfolio h2,
+.vb-theme-creative-portfolio h3 {
+  color: #6b5b73;
+  font-weight: 300;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-a {
-  color: #9c8b7a !important;
+.vb-theme-creative-portfolio a {
+  color: #9c8b7a;
   border-bottom: 1px solid transparent;
   transition: all 0.3s ease;
+  text-decoration: none;
 }
 
-a:hover {
-  color: #6b5b73 !important;
-  border-bottom-color: #6b5b73 !important;
+.vb-theme-creative-portfolio a:hover {
+  color: #6b5b73;
+  border-bottom-color: #6b5b73;
 }`,
     cssMode: 'inherit' as const
   }

@@ -165,9 +165,17 @@ export default function AdvancedProfileRenderer({
         <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />
       )}
 
-      {/* Render based on template type with proper container handling */}
-      {templateType === 'visual-builder' ? (
-        // Visual Builder: Direct rendering with islands, no wrapper
+      {/* UNIFIED: Minimal wrapper for both template types - non-interfering container for CSS scoping */}
+      <div
+        id={`profile-${user.id}`}
+        className="profile-template-root"
+        style={{
+          position: 'static',    // Don't create positioning context
+          zIndex: 'auto',        // Don't create stacking context
+          overflow: 'visible',   // Don't clip content
+          isolation: 'auto'      // Don't create isolation context
+        }}
+      >
         <ProfileContentRenderer
           compiledTemplate={compiledTemplate}
           islands={islands}
@@ -179,21 +187,7 @@ export default function AdvancedProfileRenderer({
           templateType={templateType}
           profileId={`profile-${user.id}`}
         />
-      ) : (
-        // Legacy: Wrap in advanced-template-container
-        <div id={`profile-${user.id}`} className="advanced-template-container">
-          <ProfileContentRenderer
-            compiledTemplate={compiledTemplate}
-            islands={islands}
-            residentData={residentData}
-            onIslandRender={handleIslandRender}
-            onIslandError={handleIslandError}
-            visualBuilderClasses={visualBuilderClasses}
-            isInVisualBuilder={isInVisualBuilder}
-            templateType={templateType}
-          />
-        </div>
-      )}
+      </div>
 
       {/* Hydration status indicator (dev mode only) */}
       {process.env.NODE_ENV === 'development' && (

@@ -124,7 +124,29 @@ ${nuclearCSS}
       layers.push(`@layer ${CSS_LAYERS.USER_OVERRIDE} {
 /* Advanced Template Mode - Complete Layout Freedom */
 
-/* Remove all container constraints for advanced templates */
+/* Minimal wrapper styles - non-interfering container for CSS scoping */
+.profile-template-root {
+  /* Ensure wrapper doesn't interfere with layout */
+  position: static !important;
+  z-index: auto !important;
+  overflow: visible !important;
+  isolation: auto !important;
+
+  /* Allow wrapper to size based on content */
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Ensure inner containers work correctly */
+.profile-template-root > .pure-absolute-container,
+.profile-template-root > .advanced-template-container {
+  /* These containers handle actual layout */
+  position: relative;
+  min-height: inherit;
+}
+
+/* Remove all container constraints for advanced templates (legacy) */
 .advanced-template-mode {
   /* Reset any inherited container constraints */
   max-width: none !important;
@@ -389,20 +411,26 @@ function scopeCSSToProfile(css: string, profileId: string): string {
     const scopedSelectors = selector.split(',')
       .map((s: string) => {
         const trimmed = s.trim();
-        
-        // Handle body selector specially - apply to profile container
+
+        // Handle body selector specially - apply to profile container (now using unified wrapper class)
         if (trimmed === 'body') {
-          return `#${profileId}`;
+          return `.profile-template-root#${profileId}`;
         } else if (trimmed.startsWith('body ')) {
-          return `#${profileId}${trimmed.substring(4)}`;
+          return `.profile-template-root#${profileId}${trimmed.substring(4)}`;
         } else if (trimmed.startsWith('body.')) {
-          // Handle body.class selectors (like body.vb-pattern-grid) -> #profile.class
-          return `#${profileId}${trimmed.substring(4)}`;
+          // Handle body.class selectors (like body.vb-pattern-grid) -> .profile-template-root#profile.class
+          return `.profile-template-root#${profileId}${trimmed.substring(4)}`;
         } else if (trimmed === ':root') {
           // Root variables should apply to the profile container for proper CSS variable scoping
-          return `#${profileId}`;
+          return `.profile-template-root#${profileId}`;
         }
-        
+
+        // Legacy compatibility: Support old advanced-template-container references
+        if (trimmed.includes('advanced-template-container')) {
+          const updated = trimmed.replace(/advanced-template-container/g, 'profile-template-root');
+          return `#${profileId} ${updated}`;
+        }
+
         // Special handling for Visual Builder classes - they can be on the container itself
         if (trimmed.startsWith('.vb-')) {
           // Generate both direct targeting (for container) and descendant targeting (for children)
