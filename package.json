@@ -22,6 +22,7 @@
     "email:test-encryption": "tsx scripts/test-email-encryption.ts",
     "threadrings:reconcile": "tsx scripts/reconcile-threadring-counters.ts",
     "randomize-pixel-homes": "tsx scripts/randomize-pixel-homes.ts",
+    "backfill-links": "tsx scripts/backfill-discovered-links.ts",
     "seed-neighborhood": "tsx scripts/seed-neighborhood-users.ts",
     "ringhub:test": "tsx scripts/quick-ringhub-test.ts",
     "ringhub:test-full": "tsx scripts/test-ringhub-production.ts",

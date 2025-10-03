@@ -24,7 +24,7 @@ export class ContentExtractor {
   private readonly MAX_SNIPPET_LENGTH = 300;
   private readonly MAX_LINKS = 20;
 
-  async extractFromHtml(html: string, url: string): Promise<ExtractedContent> {
+  async extractFromHtml(html: string, url: string, extractAllLinks = false): Promise<ExtractedContent> {
     const dom = new JSDOM(html);
     const document = dom.window.document;
 
@@ -36,7 +36,7 @@ export class ContentExtractor {
       publishedDate: this.extractPublishedDate(document),
       author: this.extractAuthor(document),
       keywords: this.extractKeywords(document),
-      links: this.extractLinks(document, url),
+      links: this.extractLinks(document, url, extractAllLinks),
       contentLength: this.getContentLength(document),
       hasIndieWebMarkers: this.detectIndieWebMarkers(document),
       techStack: this.detectTechStack(document, html),
@@ -186,14 +186,20 @@ export class ContentExtractor {
     return Array.from(keywords).slice(0, 10); // Limit total keywords
   }
 
-  private extractLinks(document: Document, baseUrl: string): string[] {
+  private extractLinks(document: Document, baseUrl: string, extractAll = false): string[] {
     const links = new Set<string>();
     const linkElements = document.querySelectorAll('a[href]');
+    const maxLinks = extractAll ? Infinity : this.MAX_LINKS;
 
     for (const link of linkElements) {
       try {
         const href = link.getAttribute('href');
         if (!href) continue;
+
+        // Skip anchors and non-http(s) protocols
+        if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+          continue;
+        }
 
         let absoluteUrl;
         if (href.startsWith('http')) {
@@ -205,14 +211,9 @@ export class ContentExtractor {
           absoluteUrl = new URL(href, baseUrl).toString();
         }
 
-        // Only include external links to other domains
-        const currentDomain = new URL(baseUrl).hostname;
-        const linkDomain = new URL(absoluteUrl).hostname;
-
-        if (linkDomain !== currentDomain) {
-          links.add(absoluteUrl);
-          if (links.size >= this.MAX_LINKS) break;
-        }
+        // Include ALL links (both internal and external)
+        links.add(absoluteUrl);
+        if (links.size >= maxLinks) break;
       } catch {
         // Skip invalid URLs
       }

@@ -2087,6 +2087,22 @@ We collect information you provide when creating an account..."
               ⚙️ Manage Auto-Validation
             </Link>
           </div>
+
+          {/* Webcrawler Management */}
+          <div className="border border-gray-300 rounded p-4 bg-gray-50">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              🕷️ Webcrawler Management
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Monitor and manage the automated webcrawler. View crawl queue, add sites to crawl, check logs, and manually trigger crawler runs.
+            </p>
+            <Link
+              href="/admin/crawler"
+              className="inline-block border border-black px-4 py-2 bg-cyan-200 hover:bg-cyan-100 shadow-[2px_2px_0_#000] text-sm font-medium"
+            >
+              🕷️ Manage Webcrawler
+            </Link>
+          </div>
         </CollapsibleSection>
 
         {/* USER & ACCESS MANAGEMENT */}

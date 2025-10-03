@@ -16,6 +16,29 @@ export interface CrawlerWorkerOptions {
   maxReviewQueueAdditions?: number; // Max number of sites to add to review queue per crawl run
 }
 
+export interface DetailedCrawlResult {
+  url: string;
+  status: 'success' | 'failed' | 'rejected';
+  extractedData?: ExtractedContent;
+  qualityScore?: {
+    totalScore: number;
+    breakdown: {
+      indieWeb: number;
+      personalSite: number;
+      contentQuality: number;
+      techStack: number;
+      language: number;
+      freshness: number;
+    };
+    shouldAutoSubmit: boolean;
+    reasons: string[];
+    category: string;
+  };
+  action?: 'added_for_validation' | 'updated_existing' | 'rejected_low_score';
+  errorMessage?: string;
+  crawlTime?: number;
+}
+
 export interface CrawlerStats {
   processed: number;
   successful: number;
@@ -30,6 +53,7 @@ export interface CrawlerStats {
     shouldAutoSubmit: boolean;
     category: string;
   }>;
+  detailedResults: DetailedCrawlResult[];
 }
 
 export class CrawlerWorker {
@@ -69,7 +93,8 @@ export class CrawlerWorker {
       duration: 0,
       errors: [],
       autoSubmitted: 0,
-      qualityScores: []
+      qualityScores: [],
+      detailedResults: []
     };
 
     // NOTE: Removed potentialDiscoveries array - now using immediate processing like seeding
@@ -100,14 +125,15 @@ export class CrawlerWorker {
 
       this.log(`Processing ${pendingItems.length} items from crawl queue`);
 
-      // Extract URLs for crawling
-      const urls = pendingItems.map(item => item.url);
-
       // Mark items as processing
       await this.markAsProcessing(pendingItems.map(item => item.id));
 
-      // Crawl the sites
-      const crawlResults = await this.crawler.crawlMultiple(urls, this.options.concurrency);
+      // Crawl the sites individually to respect extractAllLinks flag
+      const crawlResults = [];
+      for (const item of pendingItems) {
+        const result = await this.crawler.crawlSite(item.url, item.extractAllLinks || false);
+        crawlResults.push(result);
+      }
 
       // Process results
       for (let i = 0; i < crawlResults.length; i++) {
@@ -118,10 +144,11 @@ export class CrawlerWorker {
 
         try {
           if (result.success && result.content) {
-            const crawlStats = await this.handleSuccessfulCrawl(queueItem, result);
+            const crawlStats = await this.handleSuccessfulCrawl(queueItem, result, queueItem.extractAllLinks || false);
             stats.successful++;
             if (crawlStats.autoSubmitted) stats.autoSubmitted++;
             if (crawlStats.qualityScore) stats.qualityScores.push(crawlStats.qualityScore);
+            stats.detailedResults.push(crawlStats.detailedResult);
           } else {
             await this.handleFailedCrawl(queueItem, result);
             if (queueItem.attempts + 1 >= this.options.maxRetries) {
@@ -129,6 +156,14 @@ export class CrawlerWorker {
             } else {
               stats.skipped++; // Will retry later
             }
+
+            // Add detailed result for failed crawl
+            stats.detailedResults.push({
+              url: result.url,
+              status: 'failed',
+              errorMessage: result.error || 'Unknown error',
+              crawlTime: result.crawlTime
+            });
           }
         } catch (error) {
           const errorMessage = `Database error for ${result.url}: ${error instanceof Error ? error.message : 'Unknown'}`;
@@ -138,6 +173,14 @@ export class CrawlerWorker {
           // Mark as failed in database
           await this.markAsFailed(queueItem.id, errorMessage);
           stats.failed++;
+
+          // Add detailed result for database error
+          stats.detailedResults.push({
+            url: result.url,
+            status: 'failed',
+            errorMessage,
+            crawlTime: result.crawlTime
+          });
         }
       }
 
@@ -169,7 +212,8 @@ export class CrawlerWorker {
    */
   private async handleSuccessfulCrawl(
     queueItem: any,
-    result: CrawlResult
+    result: CrawlResult,
+    extractAllLinks: boolean = false
   ): Promise<{
     autoSubmitted: boolean;
     qualityScore?: {
@@ -178,12 +222,14 @@ export class CrawlerWorker {
       shouldAutoSubmit: boolean;
       category: string;
     };
+    detailedResult: DetailedCrawlResult;
   }> {
     const content = result.content!;
 
     // Assess quality for potential auto-submission
     const qualityScore = this.qualityAssessor.assessQuality(content, result.url);
     let autoSubmitted = false;
+    let action: 'added_for_validation' | 'updated_existing' | 'rejected_low_score';
 
     // Update the indexed site with crawled content
     const existingSite = await db.indexedSite.findUnique({
@@ -209,8 +255,9 @@ export class CrawlerWorker {
       });
 
       // Queue discovered links for crawling if they're not already indexed
-      await this.queueDiscoveredLinks(content.links);
+      await this.queueDiscoveredLinks(content.links, extractAllLinks);
 
+      action = 'updated_existing';
       this.log(`✅ Updated site: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
     } else {
       // Site not in index - USE PHASE 2 AUTO-VALIDATION SYSTEM
@@ -218,12 +265,19 @@ export class CrawlerWorker {
         try {
           await this.addToIndexForAutoValidation(result.url, content, qualityScore);
           autoSubmitted = true;
+          action = 'added_for_validation';
+
+          // Queue discovered links for crawling
+          await this.queueDiscoveredLinks(content.links, extractAllLinks);
+
           this.log(`✅ Added for auto-validation: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
         } catch (error) {
           this.log(`❌ Failed to add for auto-validation: ${content.title} (${result.url}) - ${error instanceof Error ? error.message : 'Unknown error'}`);
           autoSubmitted = false;
+          action = 'rejected_low_score';
         }
       } else {
+        action = 'rejected_low_score';
         this.log(`⏭️ Rejected: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100] - below threshold`);
       }
     }
@@ -238,6 +292,21 @@ export class CrawlerWorker {
       }
     });
 
+    const detailedResult: DetailedCrawlResult = {
+      url: result.url,
+      status: 'success',
+      extractedData: content,
+      qualityScore: {
+        totalScore: qualityScore.totalScore,
+        breakdown: qualityScore.breakdown,
+        shouldAutoSubmit: qualityScore.shouldAutoSubmit,
+        reasons: qualityScore.reasons,
+        category: qualityScore.category
+      },
+      action,
+      crawlTime: result.crawlTime
+    };
+
     return {
       autoSubmitted,
       qualityScore: {
@@ -245,7 +314,8 @@ export class CrawlerWorker {
         score: qualityScore.totalScore,
         shouldAutoSubmit: qualityScore.shouldAutoSubmit,
         category: qualityScore.category
-      }
+      },
+      detailedResult
     };
   }
 
@@ -456,11 +526,12 @@ export class CrawlerWorker {
   /**
    * Queue discovered links for crawling if they're not already indexed or queued
    */
-  private async queueDiscoveredLinks(links: string[]): Promise<void> {
+  private async queueDiscoveredLinks(links: string[], extractAllLinks: boolean = false): Promise<void> {
     if (links.length === 0) return;
 
     // Limit discovered links to prevent exponential growth
-    const MAX_LINKS_PER_SITE = 10; // Only queue top 10 links per site
+    // Use higher limit when explicitly extracting all links (e.g., webring pages)
+    const MAX_LINKS_PER_SITE = extractAllLinks ? 100 : 10;
     const linksToCheck = links.slice(0, MAX_LINKS_PER_SITE);
 
     // Filter out links that are already indexed or in the crawl queue
@@ -529,6 +600,294 @@ export class CrawlerWorker {
 
     this.log(`Cleaned up ${result.count} old completed crawl items`);
     return result.count;
+  }
+
+  /**
+   * Get recent crawl activity logs
+   */
+  async getRecentActivity(limit: number = 50, status?: string): Promise<any[]> {
+    const where = status ? { status } : {};
+
+    const items = await db.crawlQueue.findMany({
+      where: {
+        ...where,
+        lastAttempt: { not: null }
+      },
+      orderBy: { lastAttempt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        url: true,
+        status: true,
+        attempts: true,
+        lastAttempt: true,
+        errorMessage: true,
+        priority: true,
+        createdAt: true
+      }
+    });
+
+    return items;
+  }
+
+  /**
+   * Get paginated queue items
+   */
+  async getQueueItems(options: {
+    status?: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: 'priority' | 'scheduledFor' | 'attempts';
+    sortOrder?: 'asc' | 'desc';
+  } = {}): Promise<{
+    items: any[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const {
+      status,
+      page = 1,
+      limit = 50,
+      search,
+      sortBy = 'scheduledFor',
+      sortOrder = 'asc'
+    } = options;
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (search) {
+      where.url = { contains: search, mode: 'insensitive' };
+    }
+
+    const [items, total] = await Promise.all([
+      db.crawlQueue.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          url: true,
+          priority: true,
+          scheduledFor: true,
+          attempts: true,
+          lastAttempt: true,
+          status: true,
+          errorMessage: true,
+          createdAt: true
+        }
+      }),
+      db.crawlQueue.count({ where })
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  }
+
+  /**
+   * Add URL to crawl queue
+   */
+  async addToQueue(
+    url: string,
+    priority: number = 3,
+    scheduledFor?: Date,
+    extractAllLinks: boolean = false
+  ): Promise<{ success: boolean; id?: string; error?: string }> {
+    try {
+      // Check if URL already exists
+      const existing = await db.crawlQueue.findFirst({
+        where: { url }
+      });
+
+      if (existing) {
+        return {
+          success: false,
+          error: 'URL already in queue'
+        };
+      }
+
+      const queueItem = await db.crawlQueue.create({
+        data: {
+          url,
+          priority: Math.max(1, Math.min(5, priority)), // Clamp 1-5
+          scheduledFor: scheduledFor || new Date(),
+          status: 'pending',
+          extractAllLinks
+        }
+      });
+
+      this.log(`Added to queue: ${url} (priority: ${priority}, extractAllLinks: ${extractAllLinks})`);
+
+      return {
+        success: true,
+        id: queueItem.id
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Retry all failed items
+   */
+  async retryFailedItems(): Promise<{
+    success: boolean;
+    retriedCount: number;
+    error?: string;
+  }> {
+    try {
+      const result = await db.crawlQueue.updateMany({
+        where: { status: 'failed' },
+        data: {
+          status: 'pending',
+          scheduledFor: new Date(),
+          attempts: 0,
+          errorMessage: null
+        }
+      });
+
+      this.log(`Retried ${result.count} failed items`);
+
+      return {
+        success: true,
+        retriedCount: result.count
+      };
+    } catch (error) {
+      return {
+        success: false,
+        retriedCount: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Test crawl a single URL without affecting the queue
+   * Returns detailed extraction and quality assessment
+   */
+  async testCrawlUrl(url: string): Promise<DetailedCrawlResult> {
+    try {
+      // Validate URL
+      new URL(url);
+
+      // Crawl the site
+      const result = await this.crawler.crawlSite(url);
+
+      if (!result.success || !result.content) {
+        return {
+          url,
+          status: 'failed',
+          errorMessage: result.error || 'Failed to extract content',
+          crawlTime: result.crawlTime
+        };
+      }
+
+      // Assess quality
+      const qualityScore = this.qualityAssessor.assessQuality(result.content, url);
+
+      // Determine what would happen
+      let action: 'added_for_validation' | 'updated_existing' | 'rejected_low_score';
+      const existingSite = await db.indexedSite.findUnique({
+        where: { url }
+      });
+
+      if (existingSite) {
+        action = 'updated_existing';
+      } else if (qualityScore.shouldAutoSubmit && qualityScore.totalScore >= 40) {
+        action = 'added_for_validation';
+      } else {
+        action = 'rejected_low_score';
+      }
+
+      return {
+        url,
+        status: action === 'rejected_low_score' ? 'rejected' : 'success',
+        extractedData: result.content,
+        qualityScore: {
+          totalScore: qualityScore.totalScore,
+          breakdown: qualityScore.breakdown,
+          shouldAutoSubmit: qualityScore.shouldAutoSubmit,
+          reasons: qualityScore.reasons,
+          category: qualityScore.category
+        },
+        action,
+        crawlTime: result.crawlTime
+      };
+    } catch (error) {
+      return {
+        url,
+        status: 'failed',
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Get enhanced queue statistics with additional metrics
+   */
+  async getEnhancedStats(): Promise<{
+    queue: {
+      pending: number;
+      processing: number;
+      completed: number;
+      failed: number;
+      total: number;
+      oldestPending?: Date;
+      newestCompleted?: Date;
+    };
+    health: {
+      successRate: number;
+      averageCrawlTime: number;
+      recentErrors: string[];
+    };
+  }> {
+    const queueStats = await this.getQueueStats();
+
+    // Calculate success rate from last 100 items
+    const recentItems = await db.crawlQueue.findMany({
+      where: {
+        lastAttempt: { not: null }
+      },
+      orderBy: { lastAttempt: 'desc' },
+      take: 100,
+      select: {
+        status: true,
+        errorMessage: true
+      }
+    });
+
+    const successCount = recentItems.filter(item => item.status === 'completed').length;
+    const successRate = recentItems.length > 0 ? successCount / recentItems.length : 0;
+
+    // Get recent unique error messages
+    const recentErrors = Array.from(
+      new Set(
+        recentItems
+          .filter(item => item.errorMessage)
+          .map(item => item.errorMessage)
+          .slice(0, 5)
+      )
+    ) as string[];
+
+    return {
+      queue: queueStats,
+      health: {
+        successRate,
+        averageCrawlTime: 0, // Can be calculated from actual crawl times if stored
+        recentErrors
+      }
+    };
   }
 
   /**

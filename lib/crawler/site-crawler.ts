@@ -43,7 +43,7 @@ export class SiteCrawler {
     };
   }
 
-  async crawlSite(url: string): Promise<CrawlResult> {
+  async crawlSite(url: string, extractAllLinks = false): Promise<CrawlResult> {
     const startTime = Date.now();
 
     try {
@@ -70,7 +70,7 @@ export class SiteCrawler {
       await this.applyRateLimit(url, robotsRules?.crawlDelay);
 
       // Perform the crawl
-      const crawlResult = await this.performCrawl(url);
+      const crawlResult = await this.performCrawl(url, extractAllLinks);
 
       return {
         ...crawlResult,
@@ -112,7 +112,7 @@ export class SiteCrawler {
     this.domainLastCrawl.set(domain, Date.now());
   }
 
-  private async performCrawl(url: string): Promise<Omit<CrawlResult, 'crawlTime' | 'robotsAllowed'>> {
+  private async performCrawl(url: string, extractAllLinks = false): Promise<Omit<CrawlResult, 'crawlTime' | 'robotsAllowed'>> {
     let attempt = 0;
     let lastError: Error | null = null;
 
@@ -166,7 +166,7 @@ export class SiteCrawler {
         const html = await this.readResponseWithLimit(response);
 
         // Extract content
-        const content = await this.contentExtractor.extractFromHtml(html, url);
+        const content = await this.contentExtractor.extractFromHtml(html, url, extractAllLinks);
 
         return {
           url,

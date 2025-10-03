@@ -69,8 +69,11 @@ export class QualityAssessor {
     let totalScore = Object.values(breakdown).reduce((sum, score) => sum + score, 0);
     totalScore = Math.floor(totalScore * classification.scoreModifier);
 
+    // Domain classification is used to EXCLUDE (corporate/spam), not INCLUDE
+    // If content quality is good, index it regardless of domain uncertainty
     const shouldAutoSubmit = totalScore >= this.AUTO_SUBMIT_THRESHOLD &&
-                             classification.indexingPurpose === 'full_index';
+                             classification.indexingPurpose !== 'link_extraction' &&
+                             classification.indexingPurpose !== 'rejected';
     const reasons = [...this.generateReasons(breakdown, shouldAutoSubmit), ...classification.reasons];
     const category = this.determineCategory(content, breakdown);
 

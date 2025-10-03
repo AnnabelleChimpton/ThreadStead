@@ -1154,15 +1154,16 @@ model SiteRelationship {
 }
 
 model CrawlQueue {
-  id           String    @id @default(cuid())
-  url          String
-  priority     Int       @default(1) // 1=low, 5=high
-  scheduledFor DateTime  @default(now())
-  attempts     Int       @default(0)
-  lastAttempt  DateTime?
-  status       String    @default("pending") // pending, processing, completed, failed
-  errorMessage String?
-  createdAt    DateTime  @default(now())
+  id              String    @id @default(cuid())
+  url             String
+  priority        Int       @default(1) // 1=low, 5=high
+  scheduledFor    DateTime  @default(now())
+  attempts        Int       @default(0)
+  lastAttempt     DateTime?
+  status          String    @default("pending") // pending, processing, completed, failed
+  errorMessage    String?
+  extractAllLinks Boolean   @default(false) // Extract all links (for webring/directory pages)
+  createdAt       DateTime  @default(now())
 
   @@index([status, scheduledFor])
   @@index([priority, scheduledFor])
