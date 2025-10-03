@@ -176,6 +176,295 @@ Bulk Operations:
 - Arrow Keys: Nudge selected components
 - Shift+Arrow: Nudge by larger increments
       `
+    },
+    {
+      name: 'CSS Grid System & Snapping',
+      description: 'Professional CSS Grid layout with visual overlay and smart snapping',
+      props: [],
+      example: `Grid Components:
+- Drag a Grid component onto the canvas
+- See visual grid lines and track numbers
+- Drag components to snap to grid cells
+- Automatic grid cell highlighting
+
+Grid Properties:
+- gridTemplateColumns: "repeat(3, 1fr)"
+- gridTemplateRows: "auto"
+- gap: "1rem"
+- Full CSS Grid support`,
+      preview: <div className="p-3 bg-purple-50 border-2 border-purple-200 rounded">
+        <div className="text-sm font-bold mb-2">CSS Grid</div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="h-8 bg-purple-200 border border-purple-400"></div>
+          <div className="h-8 bg-purple-200 border border-purple-400"></div>
+          <div className="h-8 bg-purple-200 border border-purple-400"></div>
+        </div>
+        <div className="text-xs text-purple-600 mt-2">Visual grid overlay with snapping</div>
+      </div>,
+      tutorial: `
+**CSS Grid Components:**
+- **Grid**: Main container with CSS Grid properties
+- **GridItem**: Child components with positioning (gridColumn, gridRow, colSpan, rowSpan)
+
+**Visual Grid Overlay:**
+- Automatic visual overlay showing grid lines
+- Track numbers displayed on rows and columns
+- Grid lines update when you change grid properties
+- Toggle overlay visibility as needed
+
+**Smart Grid Snapping:**
+- High-priority snapping to grid lines (priority 8)
+- Magnetic pull effect (0.75) for easy alignment
+- Visual cell highlighting during drag
+- Shows target grid cell before dropping
+
+**Grid Properties (Property Panel):**
+- gridTemplateColumns: Define column structure (e.g., "repeat(3, 1fr)", "200px auto 1fr")
+- gridTemplateRows: Define row structure (e.g., "auto", "100px 1fr auto")
+- gridColumnGap/gridRowGap: Space between tracks
+- justifyItems/alignItems: Align items within grid cells
+- Full support for all CSS Grid properties
+
+**Grid Parser:**
+- Automatically parses complex grid templates
+- Supports repeat(), fr units, px, %, auto
+- Calculates exact grid line positions
+- Accounts for gap spacing
+      `
+    },
+    {
+      name: 'Advanced Positioning Controls',
+      description: 'Professional positioning with CSS position modes and constraints',
+      props: [],
+      example: `Position Modes:
+- Static (default flow)
+- Relative (offset from normal position)
+- Absolute (positioned relative to parent)
+- Fixed (viewport positioning)
+- Sticky (scroll-aware positioning)
+
+Advanced Controls:
+- Z-index: Layer stacking (-100 to +100)
+- Coordinates: top, right, bottom, left (with units)
+- Size Constraints: min/max width/height
+- Grid Positioning: column, row, span`,
+      preview: <div className="p-3 bg-indigo-50 border-2 border-indigo-200 rounded space-y-2">
+        <div className="flex gap-2 text-xs">
+          <div className="flex-1 bg-indigo-200 p-2 text-center">Static</div>
+          <div className="relative flex-1 bg-indigo-200 p-2 text-center">
+            Relative
+            <div className="absolute -top-1 -right-1 bg-red-400 text-white px-1 rounded">z:10</div>
+          </div>
+        </div>
+        <div className="text-xs text-indigo-600">17 positioning controls added</div>
+      </div>,
+      tutorial: `
+**CSS Position Modes (Phase 4.1):**
+Select from 5 position modes in the Property Panel:
+- **static**: Normal document flow (default)
+- **relative**: Offset from normal position, preserves space
+- **absolute**: Positioned relative to nearest positioned ancestor
+- **fixed**: Positioned relative to viewport (stays on scroll)
+- **sticky**: Hybrid of relative and fixed based on scroll
+
+**Position Coordinates:**
+- **Top/Right/Bottom/Left**: Precise positioning with CSS units
+- Supports: px, %, rem, em, vh, vw
+- Visual input with unit selector
+- Real-time preview on canvas
+
+**Z-Index Control:**
+- Slider + number input
+- Range: -100 to +100
+- Controls stacking order
+- Higher values appear on top
+
+**Size Constraints:**
+- **minWidth/maxWidth**: Constrain horizontal sizing
+- **minHeight/maxHeight**: Constrain vertical sizing
+- Accepts any CSS length values
+- Responsive behavior with constraints
+
+**Grid Positioning (for Grid children):**
+- **gridColumn/gridRow**: Position in grid
+- **colSpan/rowSpan**: Span multiple cells
+- Visual grid cell selection
+- Automatic span calculation
+
+**Legacy Compatibility:**
+- Old X/Y position system still works
+- Automatically converted to CSS positioning
+- Backward compatible with existing templates
+      `
+    },
+    {
+      name: 'Responsive Breakpoint Preview',
+      description: 'Design for desktop, tablet, and mobile with live preview',
+      props: [],
+      example: `Breakpoint Modes:
+- Desktop: 1200px (full width)
+- Tablet: 768px
+- Mobile: 375px
+
+Features:
+- Switch between breakpoints instantly
+- Per-breakpoint component positioning
+- Canvas automatically resizes
+- Test responsive layouts visually`,
+      preview: <div className="p-3 bg-teal-50 border-2 border-teal-200 rounded">
+        <div className="text-sm font-bold mb-2">Breakpoint Preview</div>
+        <div className="flex gap-2 text-xs mb-2">
+          <button className="px-2 py-1 bg-teal-600 text-white rounded">Desktop</button>
+          <button className="px-2 py-1 bg-gray-200 rounded">Tablet</button>
+          <button className="px-2 py-1 bg-gray-200 rounded">Mobile</button>
+        </div>
+        <div className="text-xs text-teal-600">Canvas: 1200px</div>
+      </div>,
+      tutorial: `
+**Breakpoint Switcher (Phase 4.2):**
+Toggle between device previews in the Visual Builder toolbar:
+
+**Desktop Mode (1200px):**
+- Full canvas width
+- Default design viewport
+- Desktop-first layouts
+
+**Tablet Mode (768px):**
+- Canvas resizes to 768px width
+- Test tablet layouts
+- Medium screen optimization
+
+**Mobile Mode (375px):**
+- Canvas resizes to 375px width
+- Mobile-first testing
+- Phone screen simulation
+
+**Per-Breakpoint Positioning:**
+Each component can have different positions per breakpoint:
+\`\`\`
+component.position = {
+  desktop: { x: 100, y: 50 },
+  tablet: { x: 50, y: 50 },
+  mobile: { x: 20, y: 50 }
+}
+\`\`\`
+
+**Visual Breakpoint Indicator:**
+- Shows current breakpoint mode
+- Displays canvas width
+- Quick switching between modes
+
+**Grid Configuration Sync:**
+- Grid system updates to match breakpoint
+- Responsive column adjustments
+- Gap spacing per breakpoint
+
+**Workflow:**
+1. Design at desktop breakpoint first
+2. Switch to tablet, adjust positioning
+3. Switch to mobile, optimize layout
+4. Test across all breakpoints
+5. Publish responsive template
+      `
+    },
+    {
+      name: 'Universal CSS Styling',
+      description: 'Every component accepts standard CSS properties for complete design control',
+      props: [],
+      example: `CSS Properties on ANY Component:
+- backgroundColor: "#667eea"
+- color: "#ffffff"
+- fontSize: "1.25rem"
+- padding: "1rem 2rem"
+- borderRadius: "0.5rem"
+- boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
+
+ALL 59 components support UniversalCSSProps!`,
+      preview: <div className="p-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg shadow-lg">
+        <div className="text-sm font-bold mb-1">Universal CSS Props</div>
+        <div className="text-xs opacity-90">backgroundColor • fontSize • padding</div>
+        <div className="text-xs opacity-90">borderRadius • boxShadow • more!</div>
+      </div>,
+      tutorial: `
+**UniversalCSSProps System (Phase 5 - Complete):**
+
+**What It Is:**
+Every component in the Visual Builder now extends UniversalCSSProps, which means you can apply standard CSS properties to ANY component, not just specific ones.
+
+**Supported CSS Categories:**
+
+**Colors & Backgrounds:**
+- backgroundColor, color, borderColor
+- background (gradients, images)
+- opacity
+
+**Typography:**
+- fontSize, fontFamily, fontWeight
+- lineHeight, letterSpacing
+- textAlign, textDecoration, textTransform
+
+**Spacing:**
+- padding, margin (all sides or individual)
+- gap (for flex/grid containers)
+
+**Borders & Effects:**
+- border, borderRadius, borderWidth
+- boxShadow
+- outline
+
+**Positioning:**
+- position, top, right, bottom, left
+- zIndex
+- transform, transformOrigin
+
+**Layout:**
+- display
+- width, height, minWidth, maxWidth, minHeight, maxHeight
+- overflow, overflowX, overflowY
+
+**How It Works:**
+1. Select any component
+2. Open Property Panel → Style tab
+3. Use CSS-native property editors:
+   - **CSSLengthEditor**: For sizing, spacing (with unit picker: px, rem, em, %)
+   - **CSSColorEditor**: For colors (hex, rgb, named colors)
+   - **Text inputs**: For any CSS value
+
+**User Styling Is Queen:**
+- CSS props ALWAYS override component defaults
+- Uses \`removeTailwindConflicts()\` to prevent conflicts
+- Smart style merging for animations and transforms
+
+**All 59 Components Migrated:**
+- Content components (DisplayName, Bio, ProfilePhoto, etc.)
+- Layout components (FlexContainer, Grid, CenteredBox, etc.)
+- Decorative components (NeonBorder, GradientBox, StickyNote, etc.)
+- Retro components (CRTMonitor, VHSTape, MatrixRain, etc.)
+- Interactive components (Tabs, NotificationCenter, etc.)
+
+**Example Usage:**
+\`\`\`jsx
+<DisplayName
+  backgroundColor="#667eea"
+  color="white"
+  padding="1rem"
+  borderRadius="0.5rem"
+  fontSize="2rem"
+  fontWeight="bold"
+/>
+\`\`\`
+
+**Property Panel Integration:**
+- Automatic CSS value validation
+- Real-time preview
+- Intelligent autocomplete
+- Error messages for invalid values
+
+**Backward Compatibility:**
+- All existing templates still work
+- Legacy properties preserved
+- Migration layer handles old prop formats
+      `
     }
   ],
   'retro-components': [
@@ -421,16 +710,29 @@ Bulk Operations:
   content: [
     {
       name: 'DisplayName',
-      description: 'Shows your display name with customizable styling and element type',
+      description: 'Shows your display name with customizable styling and element type. ✨ Supports UniversalCSSProps!',
       props: [
         { name: 'as', type: 'string', options: ['h1', 'h2', 'h3', 'h4', 'div', 'span', 'p'], default: 'h2', description: 'HTML element to render as' },
         { name: 'showLabel', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Show "Name:" label before display name' },
-        { name: 'class', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes to apply' }
+        { name: 'class', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes to apply' },
+        { name: '+ UniversalCSSProps', type: 'all CSS properties', options: [], default: '', description: 'ALL CSS styling properties (backgroundColor, fontSize, padding, etc.)' }
       ],
-      example: `<DisplayName as="h1" />
-<DisplayName as="span" showLabel="true" />
-<DisplayName as="h3" class="text-4xl font-bold" />
-<DisplayName as="div" class="custom-style" showLabel="true" />`,
+      example: `<!-- Basic usage -->
+<DisplayName as="h1" />
+
+<!-- With CSS styling props -->
+<DisplayName
+  as="h1"
+  fontSize="3rem"
+  fontWeight="bold"
+  backgroundColor="#667eea"
+  color="white"
+  padding="1rem 2rem"
+  borderRadius="0.5rem"
+/>
+
+<!-- Legacy class approach -->
+<DisplayName as="h3" class="text-4xl font-bold" />`,
       preview: <div className="font-bold text-xl text-purple-600">Your Name</div>,
       stylingGuide: {
         classes: [
@@ -789,33 +1091,203 @@ Bulk Operations:
           }
         ]
       }
+    },
+    {
+      name: '✨ Universal CSS Styling',
+      description: 'ALL content components support UniversalCSSProps for complete styling control',
+      props: [
+        { name: 'backgroundColor', type: 'string', options: [], default: '', description: 'Background color (hex, rgb, named)' },
+        { name: 'color', type: 'string', options: [], default: '', description: 'Text color' },
+        { name: 'fontSize', type: 'string', options: [], default: '', description: 'Font size (px, rem, em)' },
+        { name: 'padding', type: 'string', options: [], default: '', description: 'Padding (all sides or individual)' },
+        { name: 'margin', type: 'string', options: [], default: '', description: 'Margin spacing' },
+        { name: 'borderRadius', type: 'string', options: [], default: '', description: 'Border radius' },
+        { name: 'boxShadow', type: 'string', options: [], default: '', description: 'Drop shadow' },
+        { name: '...and 50+ more', type: 'all CSS', options: [], default: '', description: 'Every CSS property is supported!' }
+      ],
+      example: `<!-- Apply CSS props to ANY content component! -->
+<DisplayName
+  backgroundColor="#667eea"
+  color="white"
+  fontSize="2.5rem"
+  padding="1rem 2rem"
+  borderRadius="0.75rem"
+  boxShadow="0 10px 30px rgba(0,0,0,0.2)"
+/>
+
+<Bio
+  backgroundColor="#f3f4f6"
+  padding="2rem"
+  borderRadius="1rem"
+  fontSize="1.125rem"
+  lineHeight="1.75"
+/>
+
+<ProfilePhoto
+  borderRadius="50%"
+  boxShadow="0 0 20px rgba(102, 126, 234, 0.5)"
+  border="4px solid #667eea"
+/>`,
+      preview: (
+        <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-lg shadow-lg">
+          <div className="text-sm font-bold mb-2">🎨 Universal CSS Props</div>
+          <div className="text-xs space-y-1">
+            <div>✅ All 59 components migrated</div>
+            <div>✅ Standard CSS property names</div>
+            <div>✅ Real-time preview in Visual Builder</div>
+          </div>
+        </div>
+      ),
+      tutorial: `
+**Every Content Component Supports UniversalCSSProps!**
+
+**What This Means:**
+You can apply standard CSS properties to ANY component in the content category (and all other categories too!). No more custom styling classes required.
+
+**Supported Properties:**
+- **Colors**: backgroundColor, color, borderColor, opacity
+- **Typography**: fontSize, fontFamily, fontWeight, lineHeight, letterSpacing, textAlign
+- **Spacing**: padding, margin, gap
+- **Borders**: border, borderRadius, borderWidth, borderStyle
+- **Effects**: boxShadow, transform, filter
+- **Layout**: width, height, minWidth, maxWidth, position, zIndex
+- **And many more!**
+
+**How to Use:**
+1. Select any component in Visual Builder
+2. Open Property Panel → Style tab
+3. Use CSS property editors to set values
+4. See changes in real-time!
+
+**Example - Styled DisplayName:**
+\`\`\`jsx
+<DisplayName
+  as="h1"
+  fontSize="3rem"
+  fontWeight="900"
+  background="linear-gradient(45deg, #667eea, #764ba2)"
+  backgroundClip="text"
+  color="transparent"
+  padding="2rem"
+  textAlign="center"
+/>
+\`\`\`
+
+**Example - Styled Bio:**
+\`\`\`jsx
+<Bio
+  backgroundColor="rgba(255, 255, 255, 0.9)"
+  backdropFilter="blur(10px)"
+  padding="2rem"
+  borderRadius="1.5rem"
+  boxShadow="0 20px 60px rgba(0,0,0,0.15)"
+  fontSize="1.125rem"
+  lineHeight="1.8"
+  maxWidth="600px"
+  margin="0 auto"
+/>
+\`\`\`
+
+**Why This Is Powerful:**
+- No need to write custom CSS
+- Visual property editors with validation
+- Works across all 59 components
+- User styling ALWAYS wins (overrides defaults)
+- Backward compatible with existing templates
+      `
     }
   ],
   layout: [
     {
       name: 'FlexContainer',
-      description: '📦 CONTAINER - Wraps content in flexible box layouts with customizable direction, alignment, and spacing',
+      description: '📦 CONTAINER - Wraps content in flexible box layouts using CSS Flexbox property names',
       props: [
-        { name: 'direction', type: 'string', options: ['row', 'row-reverse', 'column', 'column-reverse'], default: 'row', description: 'Flex direction' },
-        { name: 'align', type: 'string', options: ['start', 'center', 'end', 'stretch', 'baseline'], default: 'start', description: 'Cross-axis alignment' },
-        { name: 'justify', type: 'string', options: ['start', 'center', 'end', 'between', 'around', 'evenly'], default: 'start', description: 'Main axis alignment' },
-        { name: 'wrap', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Allow items to wrap to new lines' },
-        { name: 'gap', type: 'string', options: ['none', 'sm', 'md', 'lg', 'xl'], default: 'md', description: 'Space between items' }
+        { name: 'flexDirection', type: 'string', options: ['row', 'row-reverse', 'column', 'column-reverse'], default: 'row', description: 'CSS flex-direction property' },
+        { name: 'alignItems', type: 'string', options: ['flex-start', 'center', 'flex-end', 'stretch', 'baseline'], default: 'flex-start', description: 'CSS align-items (cross-axis alignment)' },
+        { name: 'justifyContent', type: 'string', options: ['flex-start', 'center', 'flex-end', 'space-between', 'space-around', 'space-evenly'], default: 'flex-start', description: 'CSS justify-content (main axis alignment)' },
+        { name: 'flexWrap', type: 'string', options: ['nowrap', 'wrap', 'wrap-reverse'], default: 'nowrap', description: 'CSS flex-wrap property' },
+        { name: 'gap', type: 'string', options: [], default: '1rem', description: 'Gap between items (CSS length: px, rem, em, %)' }
       ],
-      example: `<FlexContainer direction="row" justify="between" gap="lg">
+      example: `<!-- Standard CSS Flexbox properties -->
+<FlexContainer flexDirection="row" justifyContent="space-between" gap="1rem">
   <div>Left content</div>
   <div>Right content</div>
 </FlexContainer>
-<FlexContainer direction="column" align="center" wrap="true">
+
+<!-- Vertical centering -->
+<FlexContainer flexDirection="column" alignItems="center" gap="0.5rem">
   <div>Item 1</div>
   <div>Item 2</div>
+</FlexContainer>
+
+<!-- Responsive with wrapping -->
+<FlexContainer flexWrap="wrap" gap="2rem" justifyContent="center">
+  <div>Card 1</div>
+  <div>Card 2</div>
+  <div>Card 3</div>
 </FlexContainer>`,
       preview: (
         <div className="flex justify-between items-center gap-2 text-xs bg-blue-50 p-2 rounded">
           <div className="bg-blue-200 p-1">Left</div>
           <div className="bg-blue-200 p-1">Right</div>
         </div>
-      )
+      ),
+      tutorial: `
+**FlexContainer - CSS Flexbox Component:**
+
+**Uses Standard CSS Property Names:**
+This component uses real CSS Flexbox property names, not custom abstractions. If you know CSS Flexbox, you already know how to use this component!
+
+**CSS Properties:**
+- \`flexDirection\`: "row" | "row-reverse" | "column" | "column-reverse"
+- \`justifyContent\`: "flex-start" | "center" | "flex-end" | "space-between" | "space-around" | "space-evenly"
+- \`alignItems\`: "flex-start" | "center" | "flex-end" | "stretch" | "baseline"
+- \`flexWrap\`: "nowrap" | "wrap" | "wrap-reverse"
+- \`gap\`: Any CSS length (1rem, 16px, 1em, 2%, etc.)
+
+**Common Patterns:**
+
+**Horizontal Layout with Spacing:**
+\`\`\`jsx
+<FlexContainer flexDirection="row" gap="1rem">
+  <div>Item 1</div>
+  <div>Item 2</div>
+  <div>Item 3</div>
+</FlexContainer>
+\`\`\`
+
+**Space Between Layout:**
+\`\`\`jsx
+<FlexContainer justifyContent="space-between" alignItems="center">
+  <div>Left</div>
+  <div>Right</div>
+</FlexContainer>
+\`\`\`
+
+**Centered Content:**
+\`\`\`jsx
+<FlexContainer justifyContent="center" alignItems="center" flexDirection="column">
+  <h1>Title</h1>
+  <p>Centered content</p>
+</FlexContainer>
+\`\`\`
+
+**Responsive Card Grid:**
+\`\`\`jsx
+<FlexContainer flexWrap="wrap" gap="2rem" justifyContent="flex-start">
+  <Card />
+  <Card />
+  <Card />
+</FlexContainer>
+\`\`\`
+
+**Plus UniversalCSSProps:**
+Like all components, FlexContainer also accepts all universal CSS properties:
+- backgroundColor, padding, margin
+- borderRadius, boxShadow
+- width, height, minHeight, maxHeight
+- All CSS styling properties
+      `
     },
     {
       name: 'CenteredBox',
@@ -876,6 +1348,236 @@ Bulk Operations:
           <div className="bg-green-200 p-1 text-center">3</div>
         </div>
       )
+    },
+    {
+      name: 'Grid',
+      description: '🎯 NEW - Professional CSS Grid container with visual overlay and complete CSS Grid support',
+      props: [
+        { name: 'gridTemplateColumns', type: 'string', options: [], default: 'repeat(3, 1fr)', description: 'CSS Grid column template (e.g., "repeat(3, 1fr)", "200px auto 1fr")' },
+        { name: 'gridTemplateRows', type: 'string', options: [], default: 'auto', description: 'CSS Grid row template (e.g., "auto", "100px 1fr auto")' },
+        { name: 'gap', type: 'string', options: [], default: '1rem', description: 'Gap between grid cells (CSS length)' },
+        { name: 'rowGap', type: 'string', options: [], default: '', description: 'Gap between rows (overrides gap)' },
+        { name: 'columnGap', type: 'string', options: [], default: '', description: 'Gap between columns (overrides gap)' },
+        { name: 'alignItems', type: 'string', options: ['start', 'end', 'center', 'stretch'], default: 'stretch', description: 'Align items vertically in cells' },
+        { name: 'justifyItems', type: 'string', options: ['start', 'end', 'center', 'stretch'], default: 'stretch', description: 'Align items horizontally in cells' },
+        { name: 'columns', type: 'number', options: [], default: '', description: 'Shorthand: number of equal columns (converts to repeat(n, 1fr))' },
+        { name: 'rows', type: 'number', options: [], default: '', description: 'Shorthand: number of rows (converts to repeat(n, auto))' }
+      ],
+      example: `<!-- Standard CSS Grid -->
+<Grid gridTemplateColumns="repeat(3, 1fr)" gap="1rem">
+  <GridItem>Cell 1</GridItem>
+  <GridItem>Cell 2</GridItem>
+  <GridItem>Cell 3</GridItem>
+</Grid>
+
+<!-- Shorthand for equal columns -->
+<Grid columns={4} gap="2rem">
+  <GridItem>Item 1</GridItem>
+  <GridItem>Item 2</GridItem>
+  <GridItem>Item 3</GridItem>
+  <GridItem>Item 4</GridItem>
+</Grid>
+
+<!-- Advanced: Custom column sizes -->
+<Grid gridTemplateColumns="200px 1fr 1fr" gridTemplateRows="auto 1fr" gap="1.5rem">
+  <GridItem gridColumn="1 / -1">Header spans all columns</GridItem>
+  <GridItem>Sidebar</GridItem>
+  <GridItem>Main content</GridItem>
+  <GridItem>Right panel</GridItem>
+</Grid>`,
+      preview: (
+        <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="bg-purple-200 p-2 text-center border border-purple-400">1</div>
+            <div className="bg-purple-200 p-2 text-center border border-purple-400">2</div>
+            <div className="bg-purple-200 p-2 text-center border border-purple-400">3</div>
+          </div>
+          <div className="text-xs text-purple-600">With visual grid overlay in builder</div>
+        </div>
+      ),
+      tutorial: `
+**CSS Grid Component (NEW):**
+
+**What Makes It Special:**
+- Uses standard CSS Grid property names (no custom abstractions)
+- Visual overlay shows grid lines and track numbers in Visual Builder
+- Smart snapping to grid lines during drag operations
+- Full CSS Grid specification support
+
+**Basic Usage:**
+\`\`\`jsx
+<Grid gridTemplateColumns="repeat(3, 1fr)" gap="1rem">
+  <GridItem>Content 1</GridItem>
+  <GridItem>Content 2</GridItem>
+  <GridItem>Content 3</GridItem>
+</Grid>
+\`\`\`
+
+**Convenience Shortcuts:**
+Instead of writing \`gridTemplateColumns="repeat(3, 1fr)"\`, you can use:
+\`\`\`jsx
+<Grid columns={3} gap="1rem">
+  {/* Creates 3 equal columns */}
+</Grid>
+\`\`\`
+
+**Advanced Grid Templates:**
+\`\`\`jsx
+// Fixed sidebar + fluid content
+<Grid gridTemplateColumns="250px 1fr" gap="2rem">
+
+// Auto-fit responsive columns
+<Grid gridTemplateColumns="repeat(auto-fit, minmax(200px, 1fr))" gap="1rem">
+
+// Complex multi-row layout
+<Grid
+  gridTemplateColumns="1fr 2fr 1fr"
+  gridTemplateRows="auto 1fr auto"
+  gap="1.5rem"
+>
+\`\`\`
+
+**Visual Builder Features:**
+- **Grid Overlay**: See grid lines and track numbers
+- **Smart Snapping**: Components snap to grid cells
+- **Cell Highlighting**: Visual feedback when dragging
+- **Property Panel**: All CSS Grid properties available
+- **Responsive**: Works with breakpoint preview system
+
+**CSS Properties Supported:**
+- gridTemplateColumns, gridTemplateRows, gridTemplateAreas
+- gridAutoColumns, gridAutoRows, gridAutoFlow
+- gap, rowGap, columnGap
+- alignItems, justifyItems, alignContent, justifyContent
+- Plus ALL UniversalCSSProps (backgroundColor, padding, etc.)
+      `
+    },
+    {
+      name: 'GridItem',
+      description: '🎯 NEW - Grid child component with CSS Grid positioning properties',
+      props: [
+        { name: 'gridColumn', type: 'string', options: [], default: '', description: 'CSS Grid column position (e.g., "1 / 3", "span 2")' },
+        { name: 'gridRow', type: 'string', options: [], default: '', description: 'CSS Grid row position (e.g., "1 / 3", "span 2")' },
+        { name: 'gridArea', type: 'string', options: [], default: '', description: 'Grid area name (if using gridTemplateAreas)' },
+        { name: 'justifySelf', type: 'string', options: ['start', 'end', 'center', 'stretch'], default: '', description: 'Horizontal alignment in cell' },
+        { name: 'alignSelf', type: 'string', options: ['start', 'end', 'center', 'stretch'], default: '', description: 'Vertical alignment in cell' },
+        { name: 'column', type: 'number', options: [], default: '', description: 'Shorthand: grid column number' },
+        { name: 'row', type: 'number', options: [], default: '', description: 'Shorthand: grid row number' },
+        { name: 'colSpan', type: 'number', options: [], default: '', description: 'Shorthand: span this many columns' },
+        { name: 'rowSpan', type: 'number', options: [], default: '', description: 'Shorthand: span this many rows' }
+      ],
+      example: `<!-- Span multiple columns -->
+<GridItem gridColumn="1 / 3">
+  Spans columns 1-2
+</GridItem>
+
+<!-- Shorthand for spanning -->
+<GridItem colSpan={2}>
+  Spans 2 columns
+</GridItem>
+
+<!-- Position and span rows -->
+<GridItem gridRow="2 / 4">
+  Spans rows 2-3
+</GridItem>
+
+<!-- Center content in cell -->
+<GridItem justifySelf="center" alignSelf="center">
+  Centered in cell
+</GridItem>`,
+      preview: (
+        <div className="grid grid-cols-3 gap-1 text-xs">
+          <div className="bg-indigo-200 p-2 col-span-2 text-center border border-indigo-400">
+            Spans 2 columns
+          </div>
+          <div className="bg-indigo-200 p-2 text-center border border-indigo-400">1</div>
+          <div className="bg-indigo-200 p-2 text-center border border-indigo-400">2</div>
+          <div className="bg-indigo-200 p-2 text-center border border-indigo-400">3</div>
+          <div className="bg-indigo-200 p-2 text-center border border-indigo-400">4</div>
+        </div>
+      ),
+      tutorial: `
+**GridItem Component (NEW):**
+
+**What It Does:**
+GridItem is a wrapper component that adds CSS Grid positioning properties to its children. Use it inside a Grid component to control placement and spanning.
+
+**Basic Positioning:**
+\`\`\`jsx
+// Standard CSS syntax
+<GridItem gridColumn="1 / 3" gridRow="1">
+  Positioned at column 1-2, row 1
+</GridItem>
+
+// Shorthand syntax
+<GridItem column={1} row={1} colSpan={2}>
+  Same result, easier to write
+</GridItem>
+\`\`\`
+
+**Spanning Cells:**
+\`\`\`jsx
+// Span 2 columns
+<GridItem gridColumn="span 2">Content</GridItem>
+
+// Or use shorthand
+<GridItem colSpan={2}>Content</GridItem>
+
+// Span rows
+<GridItem rowSpan={3}>Tall content</GridItem>
+\`\`\`
+
+**Alignment Within Cell:**
+\`\`\`jsx
+// Center horizontally and vertically
+<GridItem justifySelf="center" alignSelf="center">
+  Centered
+</GridItem>
+
+// Align to end of cell
+<GridItem justifySelf="end" alignSelf="start">
+  Top-right aligned
+</GridItem>
+\`\`\`
+
+**Grid Areas (Advanced):**
+\`\`\`jsx
+<Grid gridTemplateAreas={[
+  "header header header",
+  "sidebar content content",
+  "footer footer footer"
+]}>
+  <GridItem gridArea="header">Header</GridItem>
+  <GridItem gridArea="sidebar">Sidebar</GridItem>
+  <GridItem gridArea="content">Main</GridItem>
+  <GridItem gridArea="footer">Footer</GridItem>
+</Grid>
+\`\`\`
+
+**Visual Builder Features:**
+- **Property Panel**: Edit grid position visually
+- **Snapping**: Automatically snaps to grid cells
+- **Visual Feedback**: See target cell while dragging
+- **Span Controls**: Easy UI for colSpan/rowSpan
+
+**All UniversalCSSProps Supported:**
+Like every component, GridItem also accepts:
+- backgroundColor, padding, margin
+- borderRadius, boxShadow
+- All CSS styling properties
+
+**Common Patterns:**
+\`\`\`jsx
+// Full-width header
+<GridItem gridColumn="1 / -1">Header</GridItem>
+
+// Sidebar that spans multiple rows
+<GridItem gridRow="1 / -1">Sidebar</GridItem>
+
+// Featured item spanning 2x2
+<GridItem colSpan={2} rowSpan={2}>Featured</GridItem>
+\`\`\`
+      `
     },
     {
       name: 'SplitLayout',

@@ -62,6 +62,7 @@ const cssData = {
       name: '👋 Welcome to CSS Customization!',
       description: 'Don\'t worry if you\'re new to CSS! These templates show you exactly how powerful CSS can be. Follow along step-by-step.',
       classes: [
+        { name: '💡 Prefer Visual?', description: 'Check out our Visual Builder (drag-and-drop, no code!) at /design-tutorial' },
         { name: 'Step 1', description: 'Choose a template that speaks to you' },
         { name: 'Step 2', description: 'Copy the CSS code and paste it into your profile editor' },
         { name: 'Step 3', description: 'See the magic happen instantly!' },
