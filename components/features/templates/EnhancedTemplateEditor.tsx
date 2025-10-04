@@ -1402,13 +1402,16 @@ export default function EnhancedTemplateEditor({
             Visual Builder
           </div>
         )}
-        <button
-          onClick={openPopupPreview}
-          className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2 ml-auto"
-        >
-          <span>🔍</span>
-          Open Preview
-        </button>
+        {/* Only show preview button for standard layout (not custom templates) */}
+        {useStandardLayout && (
+          <button
+            onClick={openPopupPreview}
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2 ml-auto"
+          >
+            <span>🔍</span>
+            Open Preview
+          </button>
+        )}
       </div>
 
       {/* Tab Content */}
