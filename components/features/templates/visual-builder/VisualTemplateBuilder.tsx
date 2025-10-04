@@ -9,6 +9,7 @@ import type { ResidentData } from '@/components/features/templates/ResidentDataP
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { parseTemplate, astToJson } from '@/lib/templates/compilation/template-parser';
 import { transformNodeToReact } from '@/lib/templates/rendering/template-renderer';
+import NavigationPreview from '@/components/features/templates/NavigationPreview';
 import {
   getOptimalSpan,
   getCurrentBreakpoint,
@@ -51,8 +52,8 @@ interface VisualTemplateBuilderProps {
   residentData?: ResidentData;
   className?: string;
   // Navigation state props
-  showNavigation?: boolean;
-  onNavigationToggle?: (show: boolean) => void;
+  hideNavigation?: boolean;
+  onNavigationToggle?: (hide: boolean) => void;
 }
 
 /**
@@ -68,7 +69,7 @@ export default function VisualTemplateBuilder({
     guestbook: []
   },
   className = '',
-  showNavigation = false,
+  hideNavigation = false,
   onNavigationToggle,
 }: VisualTemplateBuilderProps) {
   // Change tracking to prevent echo/feedback loops
@@ -119,17 +120,11 @@ export default function VisualTemplateBuilder({
     if (!initialTemplate || initialTemplate.trim() === '') {
       return false;
     }
-    // If template has pure-absolute-container DIV (not just the string in CSS), it's positioned mode
-    // Check for actual HTML div, not CSS class references
-    if (initialTemplate.match(/<div[^>]*class="[^"]*pure-absolute-container[^"]*"/)) {
-      return false;
-    }
-    // Check for flow container components
-    return initialTemplate.includes('<GradientBox') ||
-           initialTemplate.includes('<CenteredBox') ||
-           initialTemplate.includes('<FlexBox') ||
-           initialTemplate.includes('<Card') ||
-           initialTemplate.includes('<RetroCard');
+    // Positioned mode ONLY if template has pure-absolute-container wrapper
+    // Everything else defaults to flow mode (natural document flow)
+    // This matches user expectation: only use positioned mode if explicitly wrapped
+    const hasPositionedContainer = initialTemplate.match(/<div[^>]*class="[^"]*pure-absolute-container[^"]*"/);
+    return !hasPositionedContainer; // Flow mode is the default!
   }, [initialTemplate]);
 
   // Parse initial template into components (pure function - no side effects)
@@ -439,41 +434,22 @@ export default function VisualTemplateBuilder({
     }
   }, [astNodeToHTML]);
 
-  // Navigation management - automatically add/remove navigation component
-  React.useEffect(() => {
-    const NAVIGATION_ID = 'system-navigation';
-    const hasNavigation = originalCanvasState.placedComponents.find(comp => comp.id === NAVIGATION_ID);
+  // Navigation preferences - local only, not persisted
+  const navigationProps = {
+    navBackgroundColor: 'rgba(0, 0, 0, 0.1)',
+    navTextColor: 'inherit',
+    navOpacity: 1,
+    navBlur: 10,
+    navBorderColor: 'rgba(255, 255, 255, 0.2)',
+    navBorderWidth: 1,
+    dropdownBackgroundColor: 'white',
+    dropdownTextColor: '#374151',
+    dropdownBorderColor: '#e5e7eb',
+    dropdownHoverColor: '#f3f4f6'
+  };
 
-    if (showNavigation && !hasNavigation) {
-      // Add navigation component at the top
-      const navigationComponent: ComponentItem = {
-        id: NAVIGATION_ID,
-        type: 'ThreadsteadNavigation',
-        position: { x: 0, y: 0 },
-        positioningMode: 'absolute',
-        publicProps: {
-          width: 'auto',
-          height: 'auto',
-          backgroundColor: 'rgba(0, 0, 0, 0.1)',
-          color: 'inherit',
-          opacity: 1,
-          blur: 10,
-          borderColor: 'rgba(255, 255, 255, 0.2)',
-          borderWidth: 1
-        },
-        visualBuilderState: {
-          isSelected: false,
-          isLocked: true, // Prevent user from moving/deleting
-          isHidden: false,
-          lastModified: Date.now()
-        }
-      };
-      originalCanvasState.addComponent(navigationComponent);
-    } else if (!showNavigation && hasNavigation) {
-      // Remove navigation component
-      originalCanvasState.removeComponent(NAVIGATION_ID);
-    }
-  }, [showNavigation, originalCanvasState]);
+  // Note: Navigation is NO LONGER added to placedComponents
+  // It's rendered as an overlay and NOT saved in HTML
 
   const {
     placedComponents,
@@ -746,7 +722,13 @@ export default function VisualTemplateBuilder({
 
   // Convert current canvas state to pure absolute positioning format
   const convertToPureCanvasState = useCallback((): AbsoluteCanvasState => {
-    const absoluteComponents: AbsoluteComponent[] = placedComponents.map(component => {
+    // Filter out navigation components - they're saved as metadata, not HTML
+    const componentsWithoutNav = placedComponents.filter(component =>
+      component.type !== 'ThreadsteadNavigation' &&
+      component.id !== 'system-navigation'
+    );
+
+    const absoluteComponents: AbsoluteComponent[] = componentsWithoutNav.map(component => {
       return PositioningMigration.convertLegacyComponent(component);
     });
 
@@ -1412,8 +1394,8 @@ ${combinedCSS}
         onToggleProperties={handleToggleProperties}
         onToggleComponents={handleToggleComponents}
         onToggleGlobal={handleToggleGlobal}
-        showNavigation={showNavigation}
-        onToggleNavigation={() => onNavigationToggle?.(!showNavigation)}
+        showNavigation={!hideNavigation}
+        onToggleNavigation={() => onNavigationToggle?.(!hideNavigation)}
         onToggleGroups={handleToggleGroups}
         onToggleBulkEdit={handleToggleBulkEdit}
         isPropertiesOpen={isPanelOpen('properties')}
@@ -1539,22 +1521,55 @@ ${combinedCSS}
           className={`min-h-full flex items-start ${activeBreakpoint === 'desktop' ? '' : 'justify-center'}`}
           style={{ padding: activeBreakpoint === 'desktop' ? '24px 24px' : '24px' }}
         >
-          {isFlowTemplate ? (
-            <DirectTemplateRenderer
-              ref={flowTemplateContainerRef}
-              template={initialTemplate}
-              residentData={residentData}
-              activeBreakpoint={activeBreakpoint}
-              globalSettings={globalSettings}
-            />
-          ) : (
-            <CanvasRenderer
-              canvasState={canvasState}
-              residentData={residentData}
-              className="shadow-2xl rounded-xl border border-gray-200"
-              activeBreakpoint={activeBreakpoint}
-            />
-          )}
+          <div style={{ position: 'relative', width: '100%' }}>
+            {/* Navigation overlay - shown when hideNavigation is false, but NOT included in generated HTML */}
+            {!hideNavigation && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                zIndex: 1000,
+                pointerEvents: 'none', // Allow clicks to pass through in editor
+                opacity: 0.9 // Slight transparency to show it's a preview
+              }}>
+                <NavigationPreview {...navigationProps} positionMode="absolute" />
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  background: 'rgba(59, 130, 246, 0.9)',
+                  color: 'white',
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  borderBottomLeftRadius: '4px'
+                }}>
+                  NAVIGATION PREVIEW (NOT IN HTML)
+                </div>
+              </div>
+            )}
+
+            {/* Add margin-top when navigation is visible to match live profile spacing */}
+            <div style={{ marginTop: !hideNavigation ? '70px' : '0' }}>
+              {isFlowTemplate ? (
+                <DirectTemplateRenderer
+                  ref={flowTemplateContainerRef}
+                  template={initialTemplate}
+                  residentData={residentData}
+                  activeBreakpoint={activeBreakpoint}
+                  globalSettings={globalSettings}
+                />
+              ) : (
+                <CanvasRenderer
+                  canvasState={canvasState}
+                  residentData={residentData}
+                  className="shadow-2xl rounded-xl border border-gray-200"
+                  activeBreakpoint={activeBreakpoint}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

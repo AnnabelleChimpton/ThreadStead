@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
-import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
+import NavigationPreview from '@/components/features/templates/NavigationPreview';
 import VisualTemplateBuilder from './visual-builder/VisualTemplateBuilder';
 import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
 import { extractLegacyValues, generateConvertedTemplate, generateConvertedCSS, generateConvertedTemplateWithCSS, validateExtractedValues, generateConversionSummary, generateGlobalSettingsFromLegacy } from '@/lib/utils/css/legacy-conversion';
@@ -119,7 +119,7 @@ interface StandardLayoutPreviewProps {
   customCSS: string;
   cssMode: 'inherit' | 'override' | 'disable';
   useStandardLayout: boolean;
-  showNavigation: boolean;
+  hideNavigation: boolean;
   residentData: ResidentData;
   onCompile: (compiledTemplate: CompiledTemplate | null) => void;
   onError: (error: string) => void;
@@ -136,7 +136,7 @@ function StandardLayoutPreview({
   customCSS,
   cssMode,
   useStandardLayout,
-  showNavigation,
+  hideNavigation,
   residentData,
   onCompile,
   onError,
@@ -194,7 +194,7 @@ interface EnhancedTemplateEditorProps {
   initialCSSMode?: 'inherit' | 'override' | 'disable';
   initialTemplateMode?: 'default' | 'enhanced' | 'advanced';
   initialShowNavigation?: boolean;
-  onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', showNavigation?: boolean) => void;
+  onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean) => void;
 }
 
 export default function EnhancedTemplateEditor({
@@ -287,8 +287,8 @@ export default function EnhancedTemplateEditor({
   const [loadingDefaultTemplate, setLoadingDefaultTemplate] = useState(false);
   
   // Navigation toggle for custom templates
-  const [showNavigation, setShowNavigation] = useState(initialShowNavigation);
-  
+  const [hideNavigation, setHideNavigation] = useState(!initialShowNavigation);
+
   // Always use islands mode - legacy mode removed
   const [residentData, setResidentData] = useState<ResidentData | null>(null);
   
@@ -471,17 +471,9 @@ export default function EnhancedTemplateEditor({
 
   // Handle mode switching between code and visual
   const handleModeSwitch = useCallback((newMode: 'code' | 'visual') => {
-    // Check for legacy template conversion before opening Visual Builder
-    if (newMode === 'visual' && isLegacyTemplate()) {
-      // Generate conversion summary for the warning dialog
-      const rawExtracted = extractLegacyValues(customCSS);
-      const extractedValues = validateExtractedValues(rawExtracted);
-      const summary = generateConversionSummary(extractedValues);
-
-      setConversionSummary(summary);
-      setShowLegacyWarning(true);
-      return;
-    }
+    // REMOVED: Legacy template conversion to positioned mode
+    // Templates should only use positioned mode if they have pure-absolute-container
+    // All other templates render in flow mode automatically
 
     setEditorMode(newMode);
     if (newMode === 'visual') {
@@ -489,7 +481,7 @@ export default function EnhancedTemplateEditor({
     } else {
       setActiveTab('template');
     }
-  }, [isLegacyTemplate, customCSS]);
+  }, []);
 
   // Handle legacy template conversion confirmation
   const handleLegacyConversion = useCallback(() => {
@@ -685,13 +677,13 @@ export default function EnhancedTemplateEditor({
           cssMode: cssMode,
           compiledTemplate: compiledTemplate,
           templateCompiledAt: new Date(),
-          showNavigation: showNavigation // Add navigation toggle setting
+          hideNavigation: hideNavigation // Add navigation toggle setting
         }
       },
       residentData: residentData,
       customCSS: customCSS,
       useStandardLayout: useStandardLayout,
-      showNavigation: showNavigation, // Also add at top level for easy access
+      hideNavigation: hideNavigation, // Also add at top level for easy access
       template: template, // Add template data for save functionality
       cssMode: cssMode // Add CSS mode for save functionality
     };
@@ -700,7 +692,7 @@ export default function EnhancedTemplateEditor({
       type: 'PREVIEW_DATA', 
       payload: previewData 
     }, window.location.origin);
-  }, [user, customCSS, template, cssMode, compiledTemplate, residentData, useStandardLayout, showNavigation]);
+  }, [user, customCSS, template, cssMode, compiledTemplate, residentData, useStandardLayout, hideNavigation]);
 
   // Pop-up preview management
   const openPopupPreview = useCallback(async () => {
@@ -886,20 +878,20 @@ export default function EnhancedTemplateEditor({
     setSaveMessage(null);
     
     try {
-      const { template: previewTemplate, customCSS: previewCSS, cssMode: previewCSSMode, showNavigation: previewShowNavigation, useStandardLayout: previewUseStandardLayout } = saveData;
-      
+      const { template: previewTemplate, customCSS: previewCSS, cssMode: previewCSSMode, hideNavigation: previewHideNavigation, useStandardLayout: previewUseStandardLayout } = saveData;
+
       // Update local state to match what's being saved
       setTemplate(previewTemplate || '');
       setCustomCSS(previewCSS || '');
       setCSSMode(previewCSSMode || 'inherit');
-      setShowNavigation(previewShowNavigation !== undefined ? previewShowNavigation : true);
+      setHideNavigation(previewHideNavigation !== undefined ? previewHideNavigation : false);
       setUseStandardLayout(previewUseStandardLayout !== undefined ? previewUseStandardLayout : true);
-      
+
       // Handle standard layout mode differently
       if (previewUseStandardLayout) {
         // For standard layout, we save with empty template to indicate using default layout
-        // Standard layout always shows navigation (showNavigation = true)
-        await onSave('', previewCSS || '', undefined, previewCSSMode || 'inherit', true);
+        // Standard layout always shows navigation (hideNavigation = false)
+        await onSave('', previewCSS || '', undefined, previewCSSMode || 'inherit', false);
         setSaveMessage('✓ Standard layout saved!');
       } else {
         // For advanced templates, we need compiled template data
@@ -917,7 +909,7 @@ export default function EnhancedTemplateEditor({
           return;
         }
         
-        await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewShowNavigation !== undefined ? previewShowNavigation : true);
+        await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewHideNavigation !== undefined ? previewHideNavigation : false);
         setSaveMessage('✓ Advanced template saved!');
       }
       
@@ -1019,7 +1011,7 @@ export default function EnhancedTemplateEditor({
         clearTimeout(autoSaveTimer.current);
       }
     };
-  }, [template, customCSS, useStandardLayout, cssMode, showNavigation]);
+  }, [template, customCSS, useStandardLayout, cssMode, hideNavigation]);
 
   // Warn user about unsaved changes before leaving page
   useEffect(() => {
@@ -1045,7 +1037,7 @@ export default function EnhancedTemplateEditor({
     setSaveState('saving');
     try {
       const compiledTemplateData = compiledTemplate || (await compileTemplateForPreview(true));
-      await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, showNavigation);
+      await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, hideNavigation);
       setSaveState('saved');
       setHasUnsavedChanges(false);
     } catch (error) {
@@ -1058,7 +1050,7 @@ export default function EnhancedTemplateEditor({
         }
       }, 10000);
     }
-  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, showNavigation, saveState]);
+  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, saveState]);
 
   // Manual save function (enhanced)
   const handleManualSave = useCallback(async () => {
@@ -1069,7 +1061,7 @@ export default function EnhancedTemplateEditor({
 
     try {
       const compiledTemplateData = compiledTemplate || (await compileTemplateForPreview(true));
-      await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, showNavigation);
+      await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, hideNavigation);
       setSaveState('saved');
       setSaveMessage('✓ Template saved successfully!');
       setTimeout(() => setSaveMessage(null), 3000);
@@ -1079,7 +1071,7 @@ export default function EnhancedTemplateEditor({
       setSaveMessage('❌ Save failed - please try again');
       setTimeout(() => setSaveMessage(null), 5000);
     }
-  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, showNavigation]);
+  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation]);
 
   // Use the enhanced manual save as handleSave
   const handleSave = handleManualSave;
@@ -1605,12 +1597,12 @@ export default function EnhancedTemplateEditor({
                     <div className="mb-3 flex items-center gap-2">
                       <input
                         type="checkbox"
-                        id="showNavigation"
-                        checked={showNavigation}
-                        onChange={(e) => setShowNavigation(e.target.checked)}
+                        id="hideNavigation"
+                        checked={!hideNavigation}
+                        onChange={(e) => setHideNavigation(!e.target.checked)}
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                       />
-                      <label htmlFor="showNavigation" className="text-sm text-thread-sage">
+                      <label htmlFor="hideNavigation" className="text-sm text-thread-sage">
                         Show site navigation
                       </label>
                     </div>
@@ -2104,8 +2096,8 @@ body {
                 onTemplateChange={handleVisualTemplateChange}
                 residentData={residentData || undefined}
                 className="h-full w-full"
-                showNavigation={showNavigation}
-                onNavigationToggle={setShowNavigation}
+                hideNavigation={hideNavigation}
+                onNavigationToggle={setHideNavigation}
               />
             </div>
           </div>

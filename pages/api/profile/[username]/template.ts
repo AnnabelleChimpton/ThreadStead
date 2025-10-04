@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { compileTemplate } from '@/lib/templates/compilation/template-parser';
 import { identifyIslandsWithTransform } from '@/lib/templates/compilation/compiler/island-detector';
 import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer';
+import { stripNavigationFromTemplate } from '@/lib/templates/utils/navigation-stripper';
 
 import { SITE_NAME } from '@/lib/config/site/constants';
 
@@ -76,18 +77,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Invalid template data' });
       }
 
+      // Strip navigation components from template - they're NOT stored in HTML
+      const cleanedTemplate = stripNavigationFromTemplate(template);
+
       // Debug: Check positioning data in template being saved
-      const hasPositioningInTemplate = template.includes('data-positioning-mode') || template.includes('data-pixel-position');
+      const hasPositioningInTemplate = cleanedTemplate.includes('data-positioning-mode') || cleanedTemplate.includes('data-pixel-position');
 
       if (hasPositioningInTemplate) {
-        const positioningMatches = template.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
+        const positioningMatches = cleanedTemplate.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
       }
 
       // Compile the template using our fixed compilation pipeline
       let compiledResult;
       try {
-        // Parse the template AST
-        const parseResult = compileTemplate(template);
+        // Parse the template AST (using cleaned template)
+        const parseResult = compileTemplate(cleanedTemplate);
 
         if (!parseResult.success) {
           console.error('Template compilation failed:', parseResult.errors);
@@ -147,28 +151,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await db.profile.upsert({
         where: { userId: handle.user.id },
         update: {
-          customTemplate: template,
+          customTemplate: cleanedTemplate, // Save cleaned template without navigation
           customTemplateAst: JSON.stringify(compiledResult),
           // Save the compiled template for Islands architecture
           compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
           templateIslands: JSON.parse(JSON.stringify(compiledResult.islands || null)),
           templateCompiledAt: new Date(),
           ...(processedCSS !== undefined && { customCSS: processedCSS }),
-          ...(cssMode !== undefined && { 
+          ...(cssMode !== undefined && {
             includeSiteCSS: cssMode !== 'disable'
             // Note: cssMode is stored in customCSS as a comment for now
           })
         },
         create: {
           userId: handle.user.id,
-          customTemplate: template,
+          customTemplate: cleanedTemplate, // Save cleaned template without navigation
           customTemplateAst: JSON.stringify(compiledResult),
           // Save the compiled template for Islands architecture
           compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
           templateIslands: JSON.parse(JSON.stringify(compiledResult.islands || null)),
           templateCompiledAt: new Date(),
           ...(processedCSS !== undefined && { customCSS: processedCSS }),
-          ...(cssMode !== undefined && { 
+          ...(cssMode !== undefined && {
             includeSiteCSS: cssMode !== 'disable'
             // Note: cssMode is stored in customCSS as a comment for now
           })

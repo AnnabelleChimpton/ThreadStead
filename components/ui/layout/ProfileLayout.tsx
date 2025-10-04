@@ -1,7 +1,7 @@
 import React from "react";
 import Layout from "./Layout";
 import NavBar from "../navigation/NavBar";
-import MinimalNavBar from "../navigation/MinimalNavBar";
+import NavigationPreview from "@/components/features/templates/NavigationPreview";
 import { generateOptimizedCSS, type CSSMode, type TemplateMode } from "@/lib/utils/css/layers";
 import { useSiteCSS } from "@/hooks/useSiteCSS";
 
@@ -73,11 +73,14 @@ export default function ProfileLayout({
       return (
         <>
           {/* NO CSS injection - ProfileModeRenderer handles it */}
-          {/* Completely unstyled minimal navigation */}
-          <MinimalNavBar />
+          {/* Unified navigation with dropdown support */}
+          <NavigationPreview />
 
-          {/* Completely raw content - no containers, no classes, no styling */}
-          {children}
+          {/* Use margin-top (not padding) so absolute children position below navigation */}
+          <div style={{ position: 'relative', marginTop: '70px' }}>
+            {/* Completely raw content - no containers, no classes, no styling */}
+            {children}
+          </div>
         </>
       );
     }

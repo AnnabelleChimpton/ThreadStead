@@ -104,7 +104,7 @@ export default function TemplateEditorPage({
   // Clean CSS mode comment from CSS for editor
   const cleanedCssContent = extractedCssContent.replace(/\/\* CSS_MODE:\w+ \*\/\n?/, '');
 
-  const handleSave = async (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', showNavigation?: boolean) => {
+  const handleSave = async (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean) => {
     // Combine HTML and CSS for API
     const fullTemplate = `${template}${css.trim() ? `\n<style>\n${css}\n</style>` : ''}`;
 
@@ -151,10 +151,10 @@ export default function TemplateEditorPage({
       const layoutResponse = await fetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           templateMode: templateMode,
-          hideNavigation: !showNavigation, // Invert because we're asking "show navigation" but storing "hide navigation"
-          cap: token 
+          hideNavigation: hideNavigation,
+          cap: token
         }),
       });
 

@@ -6,7 +6,7 @@ import { ResidentDataProvider } from '@/components/features/templates/ResidentDa
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { useProfileIslandHydration } from '@/lib/islands';
 import Head from 'next/head';
-import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
+import NavigationPreview from '@/components/features/templates/NavigationPreview';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import ProfileHeader from '@/components/core/profile/ProfileHeader';
 import Tabs, { TabSpec } from '@/components/ui/navigation/Tabs';
@@ -390,7 +390,7 @@ export default function PreviewTemp() {
         {/* Show site navigation if toggle is enabled */}
         {showNavigation && (
           <div style={{ position: 'fixed', top: '40px', left: 0, right: 0, zIndex: 999998, height: '80px' }}>
-            <MinimalNavBar />
+            <NavigationPreview />
           </div>
         )}
         

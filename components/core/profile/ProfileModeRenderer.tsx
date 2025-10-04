@@ -34,7 +34,7 @@ import { ResidentDataProvider } from '@/components/features/templates/ResidentDa
 import { transformNodeToReact } from '@/lib/templates/rendering/template-renderer';
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
-import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
+import NavigationPreview from '@/components/features/templates/NavigationPreview';
 import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { getCurrentBreakpoint } from '@/lib/templates/visual-builder/grid-utils';
 import dynamic from 'next/dynamic';
@@ -65,6 +65,7 @@ export interface ProfileUser {
     compiledTemplate?: unknown;
     templateIslands?: unknown[];
     templateCompiledAt?: Date | null;
+    hideNavigation?: boolean;
   } | null;
 }
 
@@ -143,23 +144,19 @@ export default function ProfileModeRenderer({
             user.profile?.customCSS
           );
 
-          // Show MinimalNavBar when navigation toggle is ON and template doesn't have its own navigation
-          const navigationElement = !hideNavigation && (() => {
-            const islands = compiledTemplate?.islands || [];
-            const hasTemplateNavigation = islands.some((island: any) =>
-              island.component.toLowerCase().includes('navigation')
-            );
-            return !hasTemplateNavigation && <MinimalNavBar />;
-          })();
+          // Show NavigationPreview when hideNavigation is false
+          const shouldShowNavigation = !hideNavigation && !user.profile?.hideNavigation;
 
           return (
             <>
-              {navigationElement}
-              <AdvancedProfileRenderer
-                user={user}
-                residentData={residentData}
-                templateType={templateType}
-              />
+              {shouldShowNavigation && <NavigationPreview />}
+              <div style={{ position: 'relative', marginTop: shouldShowNavigation ? '70px' : '0' }}>
+                <AdvancedProfileRenderer
+                  user={user}
+                  residentData={residentData}
+                  templateType={templateType}
+                />
+              </div>
             </>
           );
         } else if (shouldUseIslands && !user.profile?.compiledTemplate) {

@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Link from 'next/link';
-import MinimalNavBar from '@/components/ui/navigation/MinimalNavBar';
 import { useNavPages } from '@/hooks/useNavPages';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
@@ -19,6 +18,8 @@ interface NavigationPreviewProps extends UniversalCSSProps {
   dropdownBorderColor?: string;
   dropdownHoverColor?: string;
   className?: string;
+  // Positioning mode - fixed for profiles, absolute for Visual Builder canvas
+  positionMode?: 'fixed' | 'absolute';
 }
 
 /**
@@ -176,7 +177,8 @@ export default function NavigationPreview(props: NavigationPreviewProps) {
     dropdownTextColor = '#374151', // gray-700
     dropdownBorderColor = '#e5e7eb', // gray-200
     dropdownHoverColor = '#f3f4f6', // gray-100
-    className: customClassName
+    className: customClassName,
+    positionMode = 'fixed' // Default to fixed for profiles
   } = componentProps;
 
   // Create component-specific styles
@@ -194,7 +196,13 @@ export default function NavigationPreview(props: NavigationPreviewProps) {
     minWidth: '100%',
     minHeight: '70px', // Ensure consistent height
     boxSizing: 'border-box',
-    position: 'relative',
+    position: positionMode,
+    // Only set top/left/right for fixed mode (absolute mode relies on parent wrapper)
+    ...(positionMode === 'fixed' && {
+      top: 0,
+      left: 0,
+      right: 0,
+    }),
     zIndex: 1000, // Higher z-index to ensure navigation and dropdowns render above components
     overflow: 'visible', // Ensure content isn't clipped
   };
