@@ -145,27 +145,27 @@ export function migrateLegacyProfile(templateMode: string, customCSS?: string): 
 export const TEMPLATE_EXAMPLES = {
   glassMorphism: {
     name: "Glass Morphism",
-    description: "Modern frosted glass design with floating elements",
-    template: `<GradientBox colors="blue-purple" opacity="20">
-  <CenteredBox maxWidth="800" padding="lg">
-    <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="lg" />
-    
-    <Tabs>
-      <Tab title="Posts">
-        <BlogPosts limit="5" />
-      </Tab>
-      <Tab title="Gallery">
-        <MediaGrid />
-      </Tab>
-      <Tab title="Badges">
-        <ProfileBadges />
-      </Tab>
-      <Tab title="Guestbook">
-        <Guestbook />
-      </Tab>
-    </Tabs>
-  </CenteredBox>
-</GradientBox>`,
+    description: "Modern frosted glass design with hero banner and split layout",
+    template: `<ProfileHero variant="plain" />
+
+<SplitLayout ratio="1:2" gap="md">
+  <RetroCard>
+    <ProfilePhoto size="lg" />
+    <DisplayName as="h3" />
+    <Bio />
+    <ProfileBadges layout="list" />
+  </RetroCard>
+
+  <RetroCard>
+    <Heading level="2" content="Latest Posts" />
+    <BlogPosts limit="3" />
+  </RetroCard>
+
+  <RetroCard>
+    <Heading level="2" content="Gallery" />
+    <MediaGrid />
+  </RetroCard>
+</SplitLayout>`,
     css: `/* Glass Morphism Styling */
 /* Visual Builder Generated CSS - VB_GENERATED_CSS */
 
@@ -176,20 +176,33 @@ export const TEMPLATE_EXAMPLES = {
   --global-text-color: rgba(255, 255, 255, 0.95);
 }
 
-.vb-theme-glass-morphism {
-  background-color: var(--global-bg-color);
-  font-family: var(--global-font-family);
-  color: var(--global-text-color);
+body {
+  background: #667eea;
+  margin: 0;
+  padding: 0;
 }
 
-body.vb-pattern-glass-morphism {
+.profile-template-root {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   font-family: 'Inter', system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.95);
+  min-height: 100vh;
 }
 
-.vb-theme-glass-morphism [class*="card"],
-.vb-theme-glass-morphism [class*="module"],
-.vb-theme-glass-morphism [class*="container"]:not(.pure-absolute-container) {
+/* Center and constrain content width */
+.profile-template-root > * {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
+}
+
+/* Glass morphism effect on cards and modules */
+[class*="card"],
+[class*="module"],
+.profile-tabs,
+[class*="tab-"],
+.ts-profile-hero {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(16px);
   border-radius: 20px;
@@ -198,26 +211,23 @@ body.vb-pattern-glass-morphism {
   transition: all 0.3s ease;
 }
 
-.vb-theme-glass-morphism [class*="card"]:hover,
-.vb-theme-glass-morphism [class*="module"]:hover,
-.vb-theme-glass-morphism [class*="container"]:not(.pure-absolute-container):hover {
+[class*="card"]:hover,
+[class*="module"]:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
 }
 
-.vb-theme-glass-morphism h1,
-.vb-theme-glass-morphism h2,
-.vb-theme-glass-morphism h3 {
+h1, h2, h3 {
   color: rgba(255, 255, 255, 0.95);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.vb-theme-glass-morphism a {
+a {
   color: rgba(255, 255, 255, 0.9);
   transition: all 0.3s ease;
 }
 
-.vb-theme-glass-morphism a:hover {
+a:hover {
   color: #ffffff;
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 }`,
@@ -226,30 +236,36 @@ body.vb-pattern-glass-morphism {
   
   neonCyberspace: {
     name: "Neon Cyberspace",
-    description: "Cyberpunk terminal interface with glowing neon accents",
-    template: `<RetroTerminal color="green" padding="lg">
-  <GlitchText text=">>> NEURAL_INTERFACE_ACTIVE" />
-  <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="md" />
-</RetroTerminal>
+    description: "Cyberpunk terminal interface with vertical flex layout",
+    template: `<FlexContainer direction="column" gap="md" align="stretch">
+  <RetroCard>
+    <Heading level="2" content=">>> NEURAL_INTERFACE_ACTIVE" className="terminal-header" />
+    <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="md" />
+  </RetroCard>
 
-<Tabs>
-  <Tab title="Data_Streams">
-    <BlogPosts limit="5" />
-  </Tab>
-  <Tab title="Media_Archive">
-    <MediaGrid />
-  </Tab>
-  <Tab title="Achievement_Tokens">
-    <ProfileBadges />
-  </Tab>
-  <Tab title="Network">
-    <FriendDisplay />
-    <WebsiteDisplay />
-  </Tab>
-  <Tab title="Message_Buffer">
+  <RetroCard>
+    <Heading level="3" content="> Data_Streams" />
+    <BlogPosts limit="10" />
+  </RetroCard>
+
+  <FlexContainer direction="row" gap="md" wrap="true">
+    <RetroCard className="flex-1">
+      <Heading level="3" content="> Network_Map" />
+      <FriendDisplay />
+      <WebsiteDisplay />
+    </RetroCard>
+
+    <RetroCard className="flex-1">
+      <Heading level="3" content="> Achievement_Log" />
+      <ProfileBadges layout="list" />
+    </RetroCard>
+  </FlexContainer>
+
+  <RetroCard>
+    <Heading level="3" content="> Msg_Buffer" />
     <Guestbook />
-  </Tab>
-</Tabs>`,
+  </RetroCard>
+</FlexContainer>`,
     css: `/* Neon Cyberspace Styling */
 /* Visual Builder Generated CSS - VB_GENERATED_CSS */
 
@@ -263,50 +279,44 @@ body.vb-pattern-glass-morphism {
   --global-neon-magenta: #ff00ff;
 }
 
-.vb-theme-neon-cyberspace {
-  background-color: var(--global-bg-color);
-  font-family: var(--global-font-family);
-  color: var(--global-text-color);
+body {
+  background: #000;
+  margin: 0;
+  padding: 0;
 }
 
-body.vb-pattern-neon-cyberspace {
+.profile-template-root {
   background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 70%);
   color: #00ff00;
   font-family: 'Courier New', monospace;
+  min-height: 100vh;
 }
 
-.vb-theme-neon-cyberspace [class*="card"],
-.vb-theme-neon-cyberspace [class*="module"],
-.vb-theme-neon-cyberspace [class*="container"]:not(.pure-absolute-container) {
+/* Center and constrain content width */
+.profile-template-root > * {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
+}
+
+/* Terminal styling on cards */
+[class*="card"],
+[class*="module"] {
   background: #001100;
   border: 2px solid #00ff00;
   box-shadow: 0 0 20px #00ff00;
   color: #00ff00;
 }
 
-.vb-theme-neon-cyberspace [role="tab"],
-.vb-theme-neon-cyberspace [class*="tab"] {
-  background: #000;
-  color: #00ff00;
-  border: 1px solid #00ff00;
-  text-shadow: 0 0 10px #00ff00;
-  font-family: 'Courier New', monospace;
-}
-
-.vb-theme-neon-cyberspace [role="tab"][aria-selected="true"],
-.vb-theme-neon-cyberspace [class*="tab"].active {
-  background: #003300;
-  color: #00ffff;
-  text-shadow: 0 0 15px #00ffff;
-}
-
-.vb-theme-neon-cyberspace h1,
-.vb-theme-neon-cyberspace h2,
-.vb-theme-neon-cyberspace h3 {
+/* Terminal header glitch effect */
+.terminal-header {
   color: #00ffff;
   text-shadow: 0 0 15px #00ffff;
   font-weight: bold;
   animation: pulse-glow 3s ease-in-out infinite alternate;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
 }
 
 @keyframes pulse-glow {
@@ -314,13 +324,35 @@ body.vb-pattern-neon-cyberspace {
   100% { text-shadow: 0 0 25px #00ffff, 0 0 35px #00ffff; }
 }
 
-.vb-theme-neon-cyberspace a {
+/* Tab styling */
+[role="tab"],
+[class*="tab-"] {
+  background: #000;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  text-shadow: 0 0 10px #00ff00;
+}
+
+[role="tab"][aria-selected="true"],
+[class*="tab-"].active {
+  background: #003300;
+  color: #00ffff;
+  text-shadow: 0 0 15px #00ffff;
+}
+
+h1, h2, h3 {
+  color: #00ffff;
+  text-shadow: 0 0 15px #00ffff;
+  font-weight: bold;
+}
+
+a {
   color: #ff00ff;
   text-shadow: 0 0 8px #ff00ff;
   transition: all 0.3s ease;
 }
 
-.vb-theme-neon-cyberspace a:hover {
+a:hover {
   color: #00ffff;
   text-shadow: 0 0 15px #00ffff;
 }`,
@@ -328,40 +360,42 @@ body.vb-pattern-neon-cyberspace {
   },
   
   retroMemories: {
-    name: "Retro Memories", 
-    description: "90s nostalgia with polaroids, sticky notes, and animated text",
-    template: `<WaveText text="Welcome to my totally rad page!" />
+    name: "Retro Memories",
+    description: "90s nostalgia with CSS Grid layout and named areas",
+    template: `<Heading level="1" content="Welcome to my totally rad page!" className="wave-header" />
 
-<PolaroidFrame>
-  <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="lg" />
-</PolaroidFrame>
+<Grid gridTemplateColumns="minmax(250px, 300px) 1fr" gap="1rem">
+  <div>
+    <RetroCard>
+      <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="lg" />
+    </RetroCard>
+  </div>
 
-<Tabs>
-  <Tab title="📝 Blog">
-    <BlogPosts limit="4" />
-  </Tab>
-  <Tab title="📷 Photos">
-    <PolaroidFrame>
+  <div>
+    <RetroCard>
+      <Heading level="3" content="📝 Latest Posts" />
+      <BlogPosts limit="4" />
+    </RetroCard>
+
+    <RetroCard>
+      <Heading level="3" content="💬 Guestbook" />
+      <Guestbook />
+    </RetroCard>
+  </div>
+
+  <div>
+    <RetroCard>
+      <Heading level="3" content="📷 Photos" />
       <MediaGrid />
-    </PolaroidFrame>
-  </Tab>
-  <Tab title="🏆 Badges">
-    <StickyNote color="pink" size="md">
-      <ProfileBadges />
-    </StickyNote>
-  </Tab>
-  <Tab title="🔗 Links">
-    <StickyNote color="yellow" size="lg">
+    </RetroCard>
+
+    <RetroCard>
+      <Heading level="3" content="🔗 Cool Links" />
       <FriendDisplay />
       <WebsiteDisplay />
-    </StickyNote>
-  </Tab>
-  <Tab title="💬 Guestbook">
-    <StickyNote color="green" size="md">
-      <Guestbook />
-    </StickyNote>
-  </Tab>
-</Tabs>`,
+    </RetroCard>
+  </div>
+</Grid>`,
     css: `/* Retro Memories Styling */
 /* Visual Builder Generated CSS - VB_GENERATED_CSS */
 
@@ -372,17 +406,19 @@ body.vb-pattern-neon-cyberspace {
   --global-accent-color: #ff1493;
 }
 
-.vb-theme-retro-memories {
-  background-color: var(--global-bg-color);
-  font-family: var(--global-font-family);
-  color: var(--global-text-color);
+body {
+  background: #ffd700;
+  margin: 0;
+  padding: 0;
 }
 
-body.vb-pattern-retro-memories {
+.profile-template-root {
   background: linear-gradient(45deg, #ffd700, #ff69b4, #00bfff, #90ee90);
   background-size: 400% 400%;
   animation: gradient-wave 15s ease infinite;
   font-family: 'Comic Sans MS', cursive, sans-serif;
+  color: #8b0000;
+  min-height: 100vh;
 }
 
 @keyframes gradient-wave {
@@ -391,27 +427,40 @@ body.vb-pattern-retro-memories {
   100% { background-position: 0% 50%; }
 }
 
-.vb-theme-retro-memories [class*="card"],
-.vb-theme-retro-memories [class*="module"],
-.vb-theme-retro-memories [class*="container"]:not(.pure-absolute-container) {
-  transform: rotate(1deg);
-  transition: transform 0.3s ease;
+/* Center and constrain content */
+.profile-template-root > * {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
 }
 
-.vb-theme-retro-memories [class*="card"]:hover,
-.vb-theme-retro-memories [class*="module"]:hover,
-.vb-theme-retro-memories [class*="container"]:not(.pure-absolute-container):hover {
+/* Polaroid-style cards with slight rotation */
+[class*="card"],
+[class*="module"] {
+  transform: rotate(1deg);
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+[class*="card"]:hover,
+[class*="module"]:hover {
   transform: rotate(0deg) scale(1.02);
 }
 
-.vb-theme-retro-memories h1,
-.vb-theme-retro-memories h2,
-.vb-theme-retro-memories h3,
-.vb-theme-retro-memories h4 {
+/* Wave header */
+.wave-header {
+  font-size: 2rem;
+  text-align: center;
+  animation: rainbow-blink 3s linear infinite;
+  text-shadow: 2px 2px 0px #ffffff, 4px 4px 0px #ff1493;
+  margin-bottom: 1rem;
+}
+
+h1, h2, h3, h4 {
   color: #8b0000;
   font-weight: bold;
   text-shadow: 2px 2px 0px #ffffff, 4px 4px 0px #ff1493;
-  animation: rainbow-blink 3s linear infinite;
 }
 
 @keyframes rainbow-blink {
@@ -424,16 +473,16 @@ body.vb-pattern-retro-memories {
   100% { color: #ff0000; }
 }
 
-.vb-theme-retro-memories a {
+a {
   color: #0000ff;
   text-decoration: underline;
 }
 
-.vb-theme-retro-memories a:visited {
+a:visited {
   color: #800080;
 }
 
-.vb-theme-retro-memories a:hover {
+a:hover {
   color: #ff1493;
   background: #ffff00;
   padding: 2px;
@@ -443,25 +492,17 @@ body.vb-pattern-retro-memories {
   
   minimalistZen: {
     name: "Minimalist Zen",
-    description: "Clean, peaceful design focused on content and readability",
-    template: `<CenteredBox maxWidth="700" padding="lg">
-  <ProfileHeader showPhoto="true" showBio="true" showActions="false" photoSize="lg" />
+    description: "Clean single-column flow focused on content and readability",
+    template: `<ProfileHeader showPhoto="true" showBio="true" showActions="false" photoSize="md" />
 
-  <Tabs>
-    <Tab title="Writings">
-      <BlogPosts limit="6" />
-    </Tab>
-    <Tab title="Gallery">
-      <MediaGrid />
-    </Tab>
-    <Tab title="Achievements">
-      <ProfileBadges />
-    </Tab>
-    <Tab title="Thoughts">
-      <Guestbook />
-    </Tab>
-  </Tabs>
-</CenteredBox>`,
+<Heading level="2" content="Recent Essays" />
+<BlogPosts limit="8" />
+
+<Heading level="2" content="Visual Journal" />
+<MediaGrid />
+
+<Heading level="2" content="Visitor Thoughts" />
+<Guestbook />`,
     css: `/* Minimalist Zen Styling */
 /* Visual Builder Generated CSS - VB_GENERATED_CSS */
 
@@ -472,23 +513,31 @@ body.vb-pattern-retro-memories {
   --global-accent-color: #3498db;
 }
 
-.vb-theme-minimalist-zen {
-  background-color: var(--global-bg-color);
-  font-family: var(--global-font-family);
-  color: var(--global-text-color);
-  line-height: 1.8;
+body {
+  background: #fafafa;
+  margin: 0;
+  padding: 0;
 }
 
-body.vb-pattern-minimalist-zen {
+.profile-template-root {
   background: linear-gradient(to bottom, #fafafa 0%, #f0f0f0 100%);
   font-family: 'Georgia', 'Times New Roman', serif;
   line-height: 1.8;
   color: #2c3e50;
+  min-height: 100vh;
 }
 
-.vb-theme-minimalist-zen [class*="card"],
-.vb-theme-minimalist-zen [class*="module"],
-.vb-theme-minimalist-zen [class*="container"]:not(.pure-absolute-container) {
+/* Center and constrain content width */
+.profile-template-root > * {
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
+}
+
+/* Clean minimal cards with subtle accent */
+[class*="card"],
+[class*="module"] {
   background: rgba(255, 255, 255, 0.9);
   border-radius: 2px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -507,54 +556,61 @@ body.vb-pattern-minimalist-zen {
   }
 }
 
-.vb-theme-minimalist-zen h1,
-.vb-theme-minimalist-zen h2,
-.vb-theme-minimalist-zen h3 {
+h1, h2, h3 {
   color: #2c3e50;
   font-weight: 300;
   letter-spacing: -0.5px;
 }
 
-.vb-theme-minimalist-zen a {
+a {
   color: #3498db;
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: border-color 0.3s ease;
 }
 
-.vb-theme-minimalist-zen a:hover {
+a:hover {
   border-bottom-color: #3498db;
 }`,
     cssMode: 'inherit' as const
   },
   
   creativePortfolio: {
-    name: "Creative Portfolio", 
-    description: "Artist-focused design showcasing visual work and creativity",
-    template: `<CenteredBox maxWidth="900" padding="lg">
-  <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="xl" />
+    name: "Creative Portfolio",
+    description: "Artist portfolio with retro tape hero and grid showcase",
+    template: `<ProfileHero variant="tape" />
 
-  <Tabs>
-    <Tab title="✦ Journal">
-      <BlogPosts limit="4" />
-    </Tab>
-    <Tab title="🎨 Gallery">
-      <div className="frame-collection">
-        <MediaGrid />
-      </div>
-    </Tab>
-    <Tab title="🏆 Recognition">
-      <ProfileBadges />
-    </Tab>
-    <Tab title="🌐 Network">
-      <FriendDisplay />
-      <WebsiteDisplay />
-    </Tab>
-    <Tab title="💌 Guestbook">
-      <Guestbook />
-    </Tab>
-  </Tabs>
-</CenteredBox>`,
+<RetroCard>
+  <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="xl" />
+</RetroCard>
+
+<Heading level="2" content="🎨 Featured Work" />
+<GridLayout columns="2" gap="lg">
+  <RetroCard>
+    <MediaGrid />
+  </RetroCard>
+
+  <RetroCard>
+    <Heading level="3" content="✦ Recent Journal" />
+    <BlogPosts limit="4" />
+  </RetroCard>
+
+  <RetroCard>
+    <Heading level="3" content="🏆 Recognition" />
+    <ProfileBadges />
+  </RetroCard>
+
+  <RetroCard>
+    <Heading level="3" content="💌 Connect" />
+    <FriendDisplay />
+    <WebsiteDisplay />
+  </RetroCard>
+</GridLayout>
+
+<RetroCard>
+  <Heading level="2" content="Visitor Messages" />
+  <Guestbook />
+</RetroCard>`,
     css: `/* Creative Portfolio Styling */
 /* Visual Builder Generated CSS - VB_GENERATED_CSS */
 
@@ -566,18 +622,19 @@ body.vb-pattern-minimalist-zen {
   --global-earth-tone: #8b7d6f;
 }
 
-.vb-theme-creative-portfolio {
-  background-color: var(--global-bg-color);
-  font-family: var(--global-font-family);
-  color: var(--global-text-color);
+body {
+  background: #f7f3f0;
+  margin: 0;
+  padding: 0;
 }
 
-body.vb-pattern-creative-portfolio {
+.profile-template-root {
   background: linear-gradient(45deg, #f7f3f0, #ede7e0, #f2ebe4);
   background-size: 300% 300%;
   animation: subtle-shift 20s ease-in-out infinite;
   font-family: 'Georgia', serif;
   color: #3d3d3d;
+  min-height: 100vh;
 }
 
 @keyframes subtle-shift {
@@ -585,38 +642,36 @@ body.vb-pattern-creative-portfolio {
   50% { background-position: 100% 50%; }
 }
 
-.vb-theme-creative-portfolio .frame-collection {
-  border: 5px solid #8b7d6f;
-  border-radius: 8px;
+/* Center and constrain content width */
+.profile-template-root > * {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: inset 0 0 10px rgba(139, 125, 111, 0.1);
 }
 
-.vb-theme-creative-portfolio [class*="card"],
-.vb-theme-creative-portfolio [class*="module"],
-.vb-theme-creative-portfolio [class*="container"]:not(.pure-absolute-container) {
+/* Earthy, artistic card styling */
+[class*="card"],
+[class*="module"] {
   background: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(139, 125, 111, 0.2);
   box-shadow: 0 4px 15px rgba(139, 125, 111, 0.1);
 }
 
-.vb-theme-creative-portfolio h1,
-.vb-theme-creative-portfolio h2,
-.vb-theme-creative-portfolio h3 {
+h1, h2, h3 {
   color: #6b5b73;
   font-weight: 300;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.vb-theme-creative-portfolio a {
+a {
   color: #9c8b7a;
   border-bottom: 1px solid transparent;
   transition: all 0.3s ease;
   text-decoration: none;
 }
 
-.vb-theme-creative-portfolio a:hover {
+a:hover {
   color: #6b5b73;
   border-bottom-color: #6b5b73;
 }`,

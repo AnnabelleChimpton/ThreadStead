@@ -66,8 +66,8 @@ export default function CenteredBox(props: CenteredBoxProps) {
     'mx-auto',
     maxWidthClass || '',
     paddingClass,
-    // Height behavior: fill container when in absolute mode, use grid sizing in grid mode
-    shouldUseGridClasses ? 'w-full h-full' : '',
+    // Height behavior: fill height in grid/absolute mode, but DON'T force full width (breaks centering)
+    shouldUseGridClasses ? 'h-full' : '',
     _positioningMode === 'absolute' ? 'h-full' : '' // Fill full height when resized
   ].filter(Boolean).join(' ');
 

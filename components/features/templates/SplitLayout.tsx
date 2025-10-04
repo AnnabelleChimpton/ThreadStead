@@ -91,20 +91,20 @@ export default function SplitLayout(props: SplitLayoutProps) {
       style={appliedStyles}
       onClick={onClick}
     >
-      <div className={firstWidth}>
+      <div className={firstWidth} style={{ minWidth: 0 }}>
         {firstChild}
       </div>
-      <div className={secondWidth}>
-        {/* If we have extra children, group them into the second column */}
+      <div className={secondWidth} style={{ minWidth: 0 }}>
+        {/* If we have extra children, group them into the second column with vertical spacing */}
         {childrenArray.length > 2 ? (
-          <>
+          <div className={`flex flex-col ${gapClasses}`}>
             {secondChild}
             {childrenArray.slice(2).map((child, index) => (
               <React.Fragment key={`extra-${index}`}>
                 {child}
               </React.Fragment>
             ))}
-          </>
+          </div>
         ) : (
           secondChild
         )}

@@ -179,7 +179,7 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
   }
 
   return (
-    <div className="guestbook-section thread-module p-4">
+    <div className="guestbook-section">
       <div className="mb-3">
         <h3 className="thread-headline text-xl font-bold">Guestbook</h3>
         <span className="thread-label">visitor messages</span>
