@@ -274,10 +274,29 @@ export function validateAndCoerceProps(
 
   // Validate provided attrs
   for (const [key, value] of Object.entries(normalizedAttrs)) {
-    const schema = propSchemas[key];
+    let schema = propSchemas[key];
+
+    // Try case-insensitive lookup if exact match not found (for legacy templates)
+    if (!schema) {
+      const lowerKey = key.toLowerCase();
+      const correctKey = Object.keys(propSchemas).find(k => k.toLowerCase() === lowerKey);
+      if (correctKey) {
+        schema = propSchemas[correctKey];
+        // Use the correct casing for the result
+        const correctedValue = value;
+        try {
+          result[correctKey] = validateAndCoerceProp(correctedValue, schema);
+        } catch (error) {
+          result[correctKey] = schema.default;
+        }
+        continue;
+      }
+    }
+
     if (!schema) {
       // Allow special props to pass through for all components without warning
-      if (key === 'className' || key.startsWith('_') || key.startsWith('data-')) {
+      // Note: data-* attributes get converted to camelCase (data-component-id -> dataComponentId) by HTML parser
+      if (key === 'className' || key.startsWith('_') || key.startsWith('data-') || key.startsWith('data')) {
         // Allow className, internal props (like _size, _positioningMode, etc.), and data attributes
         result[key] = value;
         continue;

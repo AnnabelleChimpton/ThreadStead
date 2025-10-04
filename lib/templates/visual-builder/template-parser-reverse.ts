@@ -54,6 +54,17 @@ export class TemplateParserReverse {
   private warnings: string[] = [];
   private ignoredComponents: string[] = [];
   private componentCount = 0;
+  private isFlowTemplate = false; // Track if template uses flow layout
+
+  // Container components that indicate flow-based layout
+  private readonly FLOW_CONTAINER_COMPONENTS = new Set([
+    'GradientBox',
+    'CenteredBox',
+    'FlexBox',
+    'GridLayout',
+    'Card',
+    'RetroCard'
+  ]);
 
   constructor(options: ParseOptions = {}) {
     this.options = {
@@ -587,6 +598,30 @@ export class TemplateParserReverse {
       processed = processed.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
     }
 
+    // LEGACY TEMPLATE NORMALIZATION: Add position: relative to template-container divs
+    // Legacy HTML templates (glassmorphism, cyberpunk, vintage) have .template-container
+    // without position: relative, which breaks absolute positioning in Visual Builder
+    if (processed.includes('template-container') && !processed.includes('pure-absolute-container')) {
+      // Add position: relative to existing style attribute
+      processed = processed.replace(
+        /(<div[^>]*class="[^"]*template-container[^"]*"[^>]*style=")([^"]*")/g,
+        (match, prefix, styleContent) => {
+          // Check if position is already set
+          if (styleContent.includes('position:')) {
+            return match; // Don't modify if position already exists
+          }
+          // Add position: relative at the beginning of style
+          return `${prefix}position: relative; ${styleContent}`;
+        }
+      );
+
+      // Handle case where template-container has no style attribute
+      processed = processed.replace(
+        /(<div[^>]*class="[^"]*template-container[^"]*")(?![^>]*style=)([^>]*>)/g,
+        '$1 style="position: relative;"$2'
+      );
+    }
+
     // Normalize whitespace
     processed = processed.replace(/\s+/g, ' ').trim();
 
@@ -638,6 +673,17 @@ export class TemplateParserReverse {
       return [];
     }
 
+    // Detect if this is a flow-based template by checking first child
+    const firstChild = bodyDiv.firstElementChild;
+    if (firstChild) {
+      const firstChildTag = firstChild.tagName;
+      this.isFlowTemplate = this.FLOW_CONTAINER_COMPONENTS.has(firstChildTag);
+
+      if (this.isFlowTemplate) {
+        console.log(`[TemplateParser] Flow template detected (root: ${firstChildTag})`);
+      }
+    }
+
     const components: CanvasComponent[] = [];
 
     // Recursively find all template components, ignoring HTML containers
@@ -667,13 +713,19 @@ export class TemplateParserReverse {
                                      element.getAttribute('data-position');
 
         if (!hasExplicitPositioning) {
-          // Calculate position based on document order and logical layout
-          const documentOrder = components.length; // 0-based index in found components
-          const logicalPosition = this.calculateLogicalPosition(tagName, documentOrder);
+          // FLOW TEMPLATE: Skip positioning for flow-based templates
+          if (this.isFlowTemplate) {
+            // Set positioning mode to 'flow' to preserve natural layout
+            component.positioningMode = 'flow';
+            // Don't set grid/pixel positions - let components flow naturally
+          } else {
+            // GRID/ABSOLUTE TEMPLATE: Calculate position based on document order
+            const documentOrder = components.length; // 0-based index in found components
+            const logicalPosition = this.calculateLogicalPosition(tagName, documentOrder);
 
-          component.gridPosition = logicalPosition.grid;
-          component.position = logicalPosition.pixel;
-
+            component.gridPosition = logicalPosition.grid;
+            component.position = logicalPosition.pixel;
+          }
         }
 
         // Only add to top-level components array if this is a top-level component

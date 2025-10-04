@@ -206,7 +206,31 @@ export default function EnhancedTemplateEditor({
   initialShowNavigation = true,
   onSave
 }: EnhancedTemplateEditorProps) {
-  const [template, setTemplate] = useState(initialTemplate);
+  // AUTO-FIX: Detect and unwrap flow templates that were incorrectly wrapped
+  // This fixes templates corrupted by the previous auto-wrap bug
+  const unwrappedTemplate = React.useMemo(() => {
+    // Check if template has the wrapper AND flow components
+    const hasWrapper = initialTemplate.includes('pure-absolute-container');
+    const hasFlowComponents = initialTemplate.includes('<GradientBox') ||
+                              initialTemplate.includes('<CenteredBox') ||
+                              initialTemplate.includes('<FlexBox') ||
+                              initialTemplate.includes('<Card') ||
+                              initialTemplate.includes('<RetroCard');
+
+    if (hasWrapper && hasFlowComponents) {
+      // Extract content from inside the pure-absolute-container div
+      const containerMatch = initialTemplate.match(/<div[^>]*class="[^"]*pure-absolute-container[^"]*"[^>]*>([\s\S]*)<\/div>\s*$/);
+      if (containerMatch && containerMatch[1]) {
+        const unwrapped = containerMatch[1].trim();
+        return unwrapped;
+      }
+    }
+
+    return initialTemplate;
+  }, [initialTemplate]);
+
+  const [template, setTemplate] = useState(unwrappedTemplate);
+
   const [customCSS, setCustomCSS] = useState(initialCSS);
   const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
   

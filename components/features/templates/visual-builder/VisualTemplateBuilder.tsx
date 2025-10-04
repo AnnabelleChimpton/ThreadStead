@@ -6,6 +6,9 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useCanvasState, type ComponentItem } from '@/hooks/useCanvasState';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
+import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
+import { parseTemplate, astToJson } from '@/lib/templates/compilation/template-parser';
+import { transformNodeToReact } from '@/lib/templates/rendering/template-renderer';
 import {
   getOptimalSpan,
   getCurrentBreakpoint,
@@ -111,9 +114,33 @@ export default function VisualTemplateBuilder({
     componentCount: 0,
   });
 
+  // Detect if template is a flow-based layout (like glassmorphism)
+  const isFlowTemplate = useMemo(() => {
+    if (!initialTemplate || initialTemplate.trim() === '') {
+      return false;
+    }
+    // If template has pure-absolute-container DIV (not just the string in CSS), it's positioned mode
+    // Check for actual HTML div, not CSS class references
+    if (initialTemplate.match(/<div[^>]*class="[^"]*pure-absolute-container[^"]*"/)) {
+      return false;
+    }
+    // Check for flow container components
+    return initialTemplate.includes('<GradientBox') ||
+           initialTemplate.includes('<CenteredBox') ||
+           initialTemplate.includes('<FlexBox') ||
+           initialTemplate.includes('<Card') ||
+           initialTemplate.includes('<RetroCard');
+  }, [initialTemplate]);
+
   // Parse initial template into components (pure function - no side effects)
+  // SKIP parsing for flow templates - they render directly
   const initialComponents = useMemo(() => {
     if (!initialTemplate || initialTemplate.trim() === '') {
+      return [];
+    }
+
+    // Flow templates don't get parsed into positioned components
+    if (isFlowTemplate) {
       return [];
     }
 
@@ -329,6 +356,88 @@ export default function VisualTemplateBuilder({
   // Store initial components for deep comparison to detect user changes
   const initialComponentsRef = React.useRef(initialComponents);
   const initialComponentCount = React.useRef(initialComponents.length);
+
+  // Ref for flow template renderer (for conversion to positioned mode)
+  const flowTemplateContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Helper function to convert AST node back to HTML string
+  const astNodeToHTML = useCallback((node: any): string => {
+    if (node.type === 'text') {
+      return node.value || '';
+    }
+
+    if (node.type === 'element' && node.tagName) {
+      const tagName = node.tagName;
+      const props: string[] = [];
+
+      // Convert properties to HTML attributes
+      if (node.properties) {
+        Object.entries(node.properties).forEach(([key, value]) => {
+          if (value === true) {
+            props.push(key);
+          } else if (value && value !== false) {
+            props.push(`${key}="${String(value).replace(/"/g, '&quot;')}"`);
+          }
+        });
+      }
+
+      const propsStr = props.length > 0 ? ' ' + props.join(' ') : '';
+
+      // Convert children to HTML
+      const childrenHTML = node.children && Array.isArray(node.children)
+        ? node.children.map(astNodeToHTML).join('')
+        : '';
+
+      if (childrenHTML) {
+        return `<${tagName}${propsStr}>${childrenHTML}</${tagName}>`;
+      } else {
+        // Self-closing
+        return `<${tagName}${propsStr} />`;
+      }
+    }
+
+    // Handle root or unknown nodes - just process children
+    if (node.children && Array.isArray(node.children)) {
+      return node.children.map(astNodeToHTML).join('');
+    }
+
+    return '';
+  }, []);
+
+  // Parse flow template HTML and convert to positioned components
+  const parseFlowTemplateToComponents = useCallback((html: string): ComponentItem[] => {
+    try {
+      // For now, use a simpler approach: wrap the entire flow template HTML in a CustomHTMLElement
+      // This preserves the complete structure without trying to parse/rebuild it
+      const htmlWithoutStyles = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
+
+      // Create a single CustomHTMLElement component that contains the entire template
+      const component: ComponentItem = {
+        id: 'converted-flow-template-0',
+        type: 'CustomHTMLElement',
+        position: { x: 100, y: 50 },
+        positioningMode: 'absolute',
+        publicProps: {
+          tagName: 'div',
+          content: htmlWithoutStyles,
+          width: '800px',
+          height: 'auto'
+        },
+        visualBuilderState: {
+          isSelected: false,
+          isLocked: false,
+          isHidden: false,
+          lastModified: Date.now()
+        }
+      };
+
+      return [component];
+      
+    } catch (error) {
+      console.error('[parseFlowTemplateToComponents] Error:', error);
+      return [];
+    }
+  }, [astNodeToHTML]);
 
   // Navigation management - automatically add/remove navigation component
   React.useEffect(() => {
@@ -854,12 +963,140 @@ ${combinedCSS}
     }
   }, []);
 
+  // Extract global settings from VB CSS in flow templates
+  const extractGlobalSettingsFromVBCSS = useCallback((html: string): GlobalSettings | null => {
+    try {
+      // Find VB CSS block
+      const vbCSSRegex = /<style[^>]*>[\s\S]*?VB_GENERATED_CSS[\s\S]*?<\/style>/i;
+      const match = html.match(vbCSSRegex);
+      if (!match) {
+        return null;
+      }
+
+      const css = match[0];
+
+      // Helper to extract CSS variable value
+      const getVar = (name: string): string | null => {
+        const regex = new RegExp(`--${name}:\\s*([^;]+);`);
+        const varMatch = css.match(regex);
+        return varMatch?.[1]?.trim() || null;
+      };
+
+      // Extract theme
+      const theme = (getVar('vb-theme') || 'custom') as any;
+
+      // Extract background settings
+      const bgType = getVar('vb-bg-type') || 'solid';
+      const background: GlobalSettings['background'] = {
+        color: getVar('global-bg-color') || '#ffffff',
+        type: bgType as any
+      };
+
+      if (bgType === 'gradient') {
+        const gradientColors = getVar('vb-gradient-colors')?.split(',').map(c => c.trim()) || [];
+        background.gradient = {
+          colors: gradientColors,
+          angle: parseInt(getVar('vb-gradient-angle') || '135')
+        };
+      } else if (bgType === 'pattern') {
+        background.pattern = {
+          type: (getVar('vb-pattern-type') || 'dots') as any,
+          primaryColor: getVar('vb-pattern-primary') || '#000000',
+          size: parseFloat(getVar('vb-pattern-size') || '1'),
+          opacity: parseFloat(getVar('vb-pattern-opacity') || '0.1'),
+          secondaryColor: getVar('vb-pattern-secondary') || undefined,
+          animated: getVar('vb-pattern-animated') === 'true'
+        };
+      }
+
+      // Extract typography
+      const typography: GlobalSettings['typography'] = {
+        fontFamily: getVar('global-font-family') || 'system-ui, sans-serif',
+        baseSize: getVar('global-base-font-size') || '16px',
+        scale: parseFloat(getVar('global-typography-scale') || '1.25'),
+        textShadow: getVar('vb-text-shadow') || undefined,
+        letterSpacing: getVar('vb-letter-spacing') || undefined
+      };
+
+      // Extract spacing
+      const spacing: GlobalSettings['spacing'] = {
+        containerPadding: getVar('global-container-padding') || '24px',
+        sectionSpacing: getVar('global-section-spacing') || '32px'
+      };
+
+      // Extract effects
+      const effects: GlobalSettings['effects'] = {
+        borderRadius: getVar('vb-border-radius') || undefined,
+        boxShadow: getVar('vb-box-shadow') || undefined,
+        animation: (getVar('vb-animation') || 'none') as any,
+        blur: parseFloat(getVar('vb-blur') || '0') || undefined
+      };
+
+      const settings: GlobalSettings = {
+        background,
+        typography,
+        spacing,
+        theme,
+        effects
+      };
+
+      return settings;
+    } catch (error) {
+      return null;
+    }
+  }, []);
+
+  // Track current flow template HTML (persists across renders)
+  const lastFlowHTMLRef = useRef<string>(initialTemplate);
+
   // Generate HTML for template output using pure absolute positioning
+  // Generate HTML with global settings for flow templates
+  const generateFlowTemplateHTML = useCallback(() => {
+    if (!isFlowTemplate) {
+      return initialTemplate;
+    }
+
+    // Generate global CSS from settings
+    const globalCSS = globalSettings ? generateCSSFromGlobalSettings(globalSettings) : { css: '', classNames: [] };
+
+    // If no global settings, return current template as-is
+    if (!globalCSS.css) {
+      return lastFlowHTMLRef.current;
+    }
+
+    // Use the LAST generated HTML, not the initial template
+    const currentHTML = lastFlowHTMLRef.current;
+
+    // Check if template already has a style tag with VB_GENERATED_CSS
+    const vbCSSRegex = /<style[^>]*>[\s\S]*?\/\*\s*Visual Builder Generated CSS[\s\S]*?VB_GENERATED_CSS[\s\S]*?<\/style>/i;
+
+    let updatedHTML: string;
+    if (vbCSSRegex.test(currentHTML)) {
+      // Replace existing VB CSS
+      updatedHTML = currentHTML.replace(
+        vbCSSRegex,
+        `<style>\n${globalCSS.css}\n</style>`
+      );
+    } else {
+      // Inject new VB CSS at the beginning
+      updatedHTML = `<style>\n${globalCSS.css}\n</style>\n\n${currentHTML}`;
+    }
+
+    // Update ref for next generation
+    lastFlowHTMLRef.current = updatedHTML;
+
+    return updatedHTML;
+  }, [isFlowTemplate, initialTemplate, globalSettings]);
+
   const generateHTML = useCallback(() => {
-    // Always use pure HTML generation system to ensure CSS injection works
-    // even when no components are placed (important for theme/global settings)
+    // For flow templates, use special flow template generation
+    if (isFlowTemplate) {
+      return generateFlowTemplateHTML();
+    }
+
+    // For positioned templates, use pure HTML generation system
     return generatePureHTMLOutput();
-  }, [generatePureHTMLOutput]);
+  }, [isFlowTemplate, generateFlowTemplateHTML, generatePureHTMLOutput]);
 
   // LEGACY HTML generation (kept for reference, will be removed)
   const generateLegacyHTML = useCallback(() => {
@@ -908,16 +1145,28 @@ ${combinedCSS}
   const [initialGlobalSettingsState] = React.useState(() => {
     if (initialTemplate && initialTemplate.trim() !== '') {
       try {
+        // For flow templates, extract from VB CSS
+        if (isFlowTemplate) {
+          return extractGlobalSettingsFromVBCSS(initialTemplate);
+        }
+
+        // For positioned templates, use existing parser
         const parseResult = parseExistingTemplate(initialTemplate);
         return parseResult.globalSettings || null;
       } catch (error) {
-        console.warn('[VisualTemplateBuilder] Failed to extract initial global settings:', error);
         return null;
       }
     }
     return null;
   });
   const initialGlobalSettingsRef = React.useRef(initialGlobalSettingsState);
+
+  // Load initial global settings into state for flow templates
+  React.useEffect(() => {
+    if (isFlowTemplate && initialGlobalSettingsState && !globalSettings) {
+      setGlobalSettings(initialGlobalSettingsState);
+    }
+  }, []);
 
   // Debounced template change function to prevent rapid-fire updates
   const debouncedTemplateChange = React.useCallback((html: string) => {
@@ -944,7 +1193,44 @@ ${combinedCSS}
   // Store previous components for deep comparison to avoid unnecessary template generation
   const prevPlacedComponentsRef = useRef<ComponentItem[]>([]);
 
+  // FLOW TEMPLATE: Separate save effect for global settings changes
+  // This runs ONLY for flow templates when global settings change
+  const prevGlobalSettingsRef = useRef<GlobalSettings | null>(globalSettings);
   React.useEffect(() => {
+    // Only for flow templates
+    if (!isFlowTemplate) return;
+
+    // Skip on initial mount - only trigger when settings actually CHANGE
+    if (!prevGlobalSettingsRef.current &&
+        JSON.stringify(globalSettings) === JSON.stringify(initialGlobalSettingsState)) {
+      prevGlobalSettingsRef.current = globalSettings;
+      return;
+    }
+
+    // Check if global settings actually changed
+    const settingsChanged = JSON.stringify(globalSettings) !== JSON.stringify(prevGlobalSettingsRef.current);
+
+    if (settingsChanged && globalSettings) {
+      // Generate HTML with new settings
+      const html = generateFlowTemplateHTML();
+
+      // Trigger save
+      if (onTemplateChange) {
+        onTemplateChange(html);
+      }
+
+      // Update ref
+      prevGlobalSettingsRef.current = globalSettings;
+    }
+  }, [globalSettings, isFlowTemplate, generateFlowTemplateHTML, onTemplateChange, initialGlobalSettingsState]);
+
+  React.useEffect(() => {
+    // CRITICAL: Skip this entire useEffect for flow templates
+    // Flow templates don't use placedComponents - they save via the flow-specific useEffect above
+    if (isFlowTemplate) {
+      return;
+    }
+
     // Ignore changes that are coming from our own onTemplateChange calls
     if (isInternalChange.current) {
       return;
@@ -966,18 +1252,21 @@ ${combinedCSS}
       return;
     }
 
-    // Mark that user has made changes once components or global settings differ from initial
-    // Use functional update to avoid dependency issues
-    if (!hasUserMadeChanges && (componentsChanged || globalSettingsChanged)) {
-      setHasUserMadeChanges(prev => prev ? prev : true);
-    }
+    // Determine if we should trigger a save
+    // For positioned templates: trigger on component or global settings changes
+    const shouldTriggerSave = componentsChanged || globalSettingsChanged;
 
-    // Only call template change after user has made changes AND components actually changed
-    if (hasUserMadeChanges && (componentsChanged || globalSettingsChanged)) {
+    if (shouldTriggerSave) {
+      // Mark that user has made changes
+      if (!hasUserMadeChanges) {
+        setHasUserMadeChanges(true);
+      }
+
+      // Generate and save HTML immediately (don't wait for state update)
       const html = generateHTML();
       debouncedTemplateChange(html);
     }
-  }, [placedComponents, globalSettings, generateHTML, debouncedTemplateChange, hasUserMadeChanges]);
+  }, [placedComponents, globalSettings, generateHTML, debouncedTemplateChange, hasUserMadeChanges, isFlowTemplate]);
 
   // Enhanced keyboard shortcuts and accessibility
   React.useEffect(() => {
@@ -1191,6 +1480,52 @@ ${combinedCSS}
         </div>
       )}
 
+      {/* Flow Template Conversion Banner */}
+      {isFlowTemplate && (
+        <div className="bg-purple-50 border-b border-purple-200 px-4 py-3">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2 text-purple-700">
+              <span>🌊</span>
+              <span>Flow Template Mode - This template uses natural CSS flow layout</span>
+            </div>
+            <button
+              onClick={() => {
+                if (confirm('Convert this flow template to positioned mode?\n\nThis will wrap your template in a positioned container while keeping all components intact.\n\nContinue?')) {
+
+                  // Strip out existing <style> tags to extract just the HTML content
+                  const htmlWithoutStyles = initialTemplate.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
+
+                  // Wrap in pure-absolute-container div
+                  let containerClass = 'pure-absolute-container';
+                  if (globalSettings && globalCSS.classNames.length > 0) {
+                    containerClass += ' ' + globalCSS.classNames.join(' ');
+                  }
+
+                  const containerStyle = 'position: relative; width: 1200px; min-height: 800px; padding: 32px; box-sizing: border-box';
+
+                  let finalHTML = `<div class="${containerClass}" style="${containerStyle}">\n${htmlWithoutStyles}\n</div>`;
+
+                  // Add global CSS styles
+                  if (globalSettings && globalCSS.css) {
+                    finalHTML = `<style>\n${globalCSS.css}\n</style>\n\n${finalHTML}`;
+                  }
+
+                  if (onTemplateChange) {
+                    onTemplateChange(finalHTML);
+                  }
+
+                  // The template now has pure-absolute-container, so isFlowTemplate will be false
+                  // React will re-render and show the positioned mode UI
+                }
+              }}
+              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-medium transition-colors"
+            >
+              Convert to Positioned Mode
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Full-screen canvas experience with proper scrolling */}
       <div
         className="flex-1 bg-gray-50"
@@ -1204,12 +1539,22 @@ ${combinedCSS}
           className={`min-h-full flex items-start ${activeBreakpoint === 'desktop' ? '' : 'justify-center'}`}
           style={{ padding: activeBreakpoint === 'desktop' ? '24px 24px' : '24px' }}
         >
-          <CanvasRenderer
-            canvasState={canvasState}
-            residentData={residentData}
-            className="shadow-2xl rounded-xl border border-gray-200"
-            activeBreakpoint={activeBreakpoint}
-          />
+          {isFlowTemplate ? (
+            <DirectTemplateRenderer
+              ref={flowTemplateContainerRef}
+              template={initialTemplate}
+              residentData={residentData}
+              activeBreakpoint={activeBreakpoint}
+              globalSettings={globalSettings}
+            />
+          ) : (
+            <CanvasRenderer
+              canvasState={canvasState}
+              residentData={residentData}
+              className="shadow-2xl rounded-xl border border-gray-200"
+              activeBreakpoint={activeBreakpoint}
+            />
+          )}
         </div>
       </div>
 
@@ -1654,3 +1999,115 @@ ${combinedCSS}
     </div>
   );
 }
+
+/**
+ * DirectTemplateRenderer - Renders flow templates directly like profile pages
+ * Used for templates with natural CSS flow (GradientBox, CenteredBox, etc.)
+ */
+interface DirectTemplateRendererProps {
+  template: string;
+  residentData: ResidentData;
+  activeBreakpoint?: 'desktop' | 'tablet' | 'mobile';
+  globalSettings?: GlobalSettings | null;
+  containerRef?: React.RefObject<HTMLDivElement>;
+}
+
+const DirectTemplateRenderer = React.forwardRef<HTMLDivElement, DirectTemplateRendererProps>(({
+  template,
+  residentData,
+  activeBreakpoint = 'desktop',
+  globalSettings = null,
+  containerRef
+}, ref) => {
+  // Generate CSS from global settings (same as CanvasRenderer)
+  const globalCSS = useMemo(() => {
+    if (!globalSettings) return { css: '', classNames: [] };
+    return generateCSSFromGlobalSettings(globalSettings);
+  }, [globalSettings]);
+
+  // Inject global CSS into document head (same as CanvasRenderer)
+  useEffect(() => {
+    if (!globalCSS.css) return;
+
+    const styleId = 'visual-builder-global-css-flow';
+    let styleElement = document.getElementById(styleId) as HTMLStyleElement;
+
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = styleId;
+      document.head.appendChild(styleElement);
+    }
+
+    styleElement.textContent = globalCSS.css;
+
+    return () => {
+      // Clean up the style element when component unmounts
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle && existingStyle.parentNode) {
+        existingStyle.parentNode.removeChild(existingStyle);
+      }
+    };
+  }, [globalCSS.css]);
+
+  // Extract CSS from template
+  const { css, htmlWithoutCSS } = useMemo(() => {
+    const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+    const matches = template.match(styleRegex);
+    const cssContent = matches ? matches.map(m => m.replace(/<\/?style[^>]*>/gi, '')).join('\n') : '';
+    const cleanHtml = template.replace(styleRegex, '');
+
+    return {
+      css: cssContent,
+      htmlWithoutCSS: cleanHtml
+    };
+  }, [template]);
+
+  // Parse and render template the same way profile pages do
+  const renderedContent = useMemo(() => {
+    try {
+      // Parse template HTML into AST (without CSS)
+      const ast = parseTemplate(htmlWithoutCSS);
+
+      // Convert hast Root to TemplateNode
+      const templateNode = astToJson(ast);
+
+      // Transform AST to React (same as profile rendering)
+      return transformNodeToReact(templateNode);
+    } catch (error) {
+      console.error('[DirectTemplateRenderer] Parse error:', error);
+      return (
+        <div className="p-8 text-center text-red-600">
+          <p className="font-semibold">Template Parse Error</p>
+          <p className="text-sm mt-2">{error instanceof Error ? error.message : 'Unknown error'}</p>
+        </div>
+      );
+    }
+  }, [htmlWithoutCSS]);
+
+  // Calculate responsive width
+  const canvasWidth = activeBreakpoint === 'desktop' ? '100%' :
+                      activeBreakpoint === 'tablet' ? '768px' : '375px';
+
+  return (
+    <div
+      ref={ref || containerRef}
+      className={`shadow-2xl rounded-xl border border-gray-200 overflow-hidden ${globalCSS.classNames.join(' ')}`}
+      style={{
+        width: canvasWidth,
+        maxWidth: '100%',
+        minHeight: '600px'
+      }}
+    >
+      {/* Inject CSS */}
+      {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
+
+      <ResidentDataProvider data={residentData}>
+        <div className="template-content">
+          {Array.isArray(renderedContent) ? renderedContent : renderedContent}
+        </div>
+      </ResidentDataProvider>
+    </div>
+  );
+});
+
+DirectTemplateRenderer.displayName = 'DirectTemplateRenderer';
