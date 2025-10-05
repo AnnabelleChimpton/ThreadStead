@@ -2858,44 +2858,105 @@ Like every component, GridItem also accepts:
     },
     {
       name: 'Choose (conditional)',
-      description: '📦 CONTAINER - Wraps When/Otherwise components for advanced conditional rendering with logic blocks',
+      description: '📦 CONTAINER - Wraps When/Otherwise components for advanced conditional rendering with multiple logic branches. Evaluates When conditions in order and renders the first match.',
       props: [
-        { name: 'children', type: 'components', options: ['When', 'Otherwise'], default: 'required', description: 'When and Otherwise components as children' }
+        { name: 'children', type: 'components', options: ['When', 'Otherwise'], default: 'required', description: 'When and Otherwise components as children (evaluates in order)' }
       ],
-      example: `<Choose>
-  <When condition="user.isLoggedIn">
-    <p>Welcome back, {user.name}!</p>
+      example: `<!-- Basic if-else logic -->
+<Choose>
+  <When data="posts.length" greater-than="10">
+    <h3>Prolific Poster! 🌟</h3>
+    <BlogPosts limit="10" />
   </When>
-  <When data="user.posts" equals="0">
-    <p>You haven't posted anything yet.</p>
+  <When data="posts.length" greater-than="0">
+    <h3>Recent Posts</h3>
+    <BlogPosts limit="5" />
   </When>
   <Otherwise>
-    <p>Please log in to see your content</p>
+    <p>No posts yet - stay tuned!</p>
+  </Otherwise>
+</Choose>
+
+<!-- Relationship-based content tiers -->
+<Choose>
+  <When data="viewer.isFriend">
+    <div class="vip-content">
+      <h2>💚 Friend-Exclusive Content</h2>
+      <p>Thanks for being my friend! Here's special content just for you.</p>
+      <ImageGallery limit="20" />
+    </div>
+  </When>
+  <When data="viewer.isFollowing">
+    <div class="follower-content">
+      <h3>Thanks for following! 🎉</h3>
+      <ImageGallery limit="10" />
+    </div>
+  </When>
+  <Otherwise>
+    <p>Follow me to unlock exclusive content!</p>
+  </Otherwise>
+</Choose>
+
+<!-- Complex conditions with multiple checks -->
+<Choose>
+  <When and='[{"data": "viewer.isFriend"}, {"data": "guestbook.length", "greater-than": "0"}]'>
+    <p>You're a friend who signed my guestbook - you're the best!</p>
+  </When>
+  <When data="guestbook.length" greater-than="0">
+    <Guestbook limit="5" />
+  </When>
+  <Otherwise>
+    <p>Be the first to sign my guestbook!</p>
   </Otherwise>
 </Choose>`,
       preview: (
         <div className="bg-yellow-50 border border-yellow-200 p-2 text-xs rounded">
-          <div className="text-yellow-800">When condition is true: Welcome back!</div>
-          <div className="text-gray-500 text-xs">Advanced conditional rendering with multiple When clauses</div>
+          <div className="text-yellow-800">Multi-branch logic: First matching When is rendered</div>
+          <div className="text-gray-500 text-xs">Advanced if-else-if logic with comparison operators and relationship awareness</div>
         </div>
       )
     },
     {
       name: 'When (used with Choose)',
-      description: 'Condition block for use inside Choose component',
+      description: 'Condition block for use inside Choose component. Supports all comparison operators, logical operators, and relationship checks. First matching When renders.',
       props: [
-        { name: 'condition', type: 'string', options: ['true', 'false', 'has:path.to.data', 'path.to.data'], default: 'none', description: 'Condition to evaluate against resident data' },
-        { name: 'data', type: 'string', options: ['user.name', 'posts', 'bio', 'any.data.path'], default: 'none', description: 'Data path to check' },
-        { name: 'equals', type: 'string', options: ['any value'], default: 'none', description: 'Value to compare data against' },
-        { name: 'exists', type: 'boolean', options: ['true', 'false'], default: 'none', description: 'Check if data exists' }
+        { name: 'when', type: 'string', options: ['true', 'false', 'has:path.to.data', 'path.to.data'], default: 'none', description: 'Simple condition to evaluate' },
+        { name: 'data', type: 'string', options: ['owner.displayName', 'posts.length', 'viewer.isFriend', 'any.data.path'], default: 'none', description: 'Data path to check' },
+        { name: 'equals', type: 'string', options: ['any value'], default: 'none', description: 'Check equality' },
+        { name: 'not-equals', type: 'string', options: ['any value'], default: 'none', description: 'Check inequality' },
+        { name: 'greater-than', type: 'number', options: ['any number'], default: 'none', description: 'Check >' },
+        { name: 'less-than', type: 'number', options: ['any number'], default: 'none', description: 'Check <' },
+        { name: 'greater-than-or-equal', type: 'number', options: ['any number'], default: 'none', description: 'Check >=' },
+        { name: 'less-than-or-equal', type: 'number', options: ['any number'], default: 'none', description: 'Check <=' },
+        { name: 'contains', type: 'string', options: ['any text'], default: 'none', description: 'String contains (case-insensitive)' },
+        { name: 'starts-with', type: 'string', options: ['any text'], default: 'none', description: 'String starts with' },
+        { name: 'ends-with', type: 'string', options: ['any text'], default: 'none', description: 'String ends with' },
+        { name: 'and', type: 'array', options: ['[{...}, {...}]'], default: 'none', description: 'AND logic for multiple conditions' },
+        { name: 'or', type: 'array', options: ['[{...}, {...}]'], default: 'none', description: 'OR logic for multiple conditions' },
+        { name: 'not', type: 'boolean/condition', options: ['true', 'false', 'data path'], default: 'none', description: 'Negate condition' }
       ],
-      example: `<When condition="has:user.bio">Bio exists</When>
-<When data="user.posts" equals="5">You have exactly 5 posts</When>
-<When data="user.verified" exists="true">Verified user badge</When>`,
+      example: `<!-- Simple existence check -->
+<When when="has:capabilities.bio">Bio exists</When>
+
+<!-- Comparison operators -->
+<When data="posts.length" greater-than="10">Many posts!</When>
+<When data="posts.length" equals="0">No posts</When>
+
+<!-- Relationship status -->
+<When data="viewer.isFriend">Friend content</When>
+<When data="viewer.isFollowing">Follower content</When>
+
+<!-- String matching -->
+<When data="owner.displayName" contains="artist">Artist badge</When>
+
+<!-- Complex AND logic -->
+<When and='[{"data": "viewer.isFriend"}, {"data": "posts.length", "greater-than": "5"}]'>
+  Friend with many posts to share!
+</When>`,
       preview: (
         <div className="bg-blue-50 border border-blue-200 p-2 text-xs rounded">
-          <div className="text-blue-800">✓ When condition met</div>
-          <div className="text-gray-500 text-xs">Used inside Choose for conditional logic</div>
+          <div className="text-blue-800">✓ When condition met - content renders</div>
+          <div className="text-gray-500 text-xs">Used inside Choose for multi-branch conditional logic</div>
         </div>
       )
     },
@@ -2920,26 +2981,66 @@ Like every component, GridItem also accepts:
     },
     {
       name: 'Show (conditional)',
-      description: '📦 CONTAINER - Wraps content to show/hide based on conditional evaluation',
+      description: '📦 CONTAINER - Wraps content to show/hide based on conditional evaluation. Supports existence checks, comparisons, logical operators, and relationship status.',
       props: [
-        { name: 'when', type: 'string', options: ['true', 'false', 'has:path.to.data', 'path.to.data'], default: 'none', description: 'Condition string to evaluate' },
-        { name: 'data', type: 'string', options: ['user.name', 'posts', 'bio', 'any.data.path'], default: 'none', description: 'Data path to check' },
-        { name: 'equals', type: 'string', options: ['any value'], default: 'none', description: 'Value to compare data against' },
-        { name: 'exists', type: 'string', options: ['any.data.path'], default: 'none', description: 'Check if data path exists' }
+        { name: 'when', type: 'string', options: ['true', 'false', 'has:path.to.data', 'path.to.data'], default: 'none', description: 'Simple condition string to evaluate' },
+        { name: 'data', type: 'string', options: ['owner.displayName', 'posts', 'viewer.isFriend', 'any.data.path'], default: 'none', description: 'Data path to check (supports owner.*, viewer.*, posts, guestbook, etc.)' },
+        { name: 'equals', type: 'string', options: ['any value'], default: 'none', description: 'Check if data equals this value' },
+        { name: 'not-equals', type: 'string', options: ['any value'], default: 'none', description: 'Check if data does not equal this value' },
+        { name: 'greater-than', type: 'number', options: ['any number'], default: 'none', description: 'Check if data is greater than this number' },
+        { name: 'less-than', type: 'number', options: ['any number'], default: 'none', description: 'Check if data is less than this number' },
+        { name: 'greater-than-or-equal', type: 'number', options: ['any number'], default: 'none', description: 'Check if data is >= this number' },
+        { name: 'less-than-or-equal', type: 'number', options: ['any number'], default: 'none', description: 'Check if data is <= this number' },
+        { name: 'contains', type: 'string', options: ['any text'], default: 'none', description: 'Check if data contains this text (case-insensitive)' },
+        { name: 'starts-with', type: 'string', options: ['any text'], default: 'none', description: 'Check if data starts with this text' },
+        { name: 'ends-with', type: 'string', options: ['any text'], default: 'none', description: 'Check if data ends with this text' },
+        { name: 'not', type: 'boolean/condition', options: ['true', 'false', 'data path'], default: 'none', description: 'Negate the condition (show when false)' },
+        { name: 'and', type: 'array', options: ['[{data: "..."}, {...}]'], default: 'none', description: 'Combine multiple conditions with AND logic' },
+        { name: 'or', type: 'array', options: ['[{data: "..."}, {...}]'], default: 'none', description: 'Combine multiple conditions with OR logic' }
       ],
-      example: `<Show when="has:user.bio">
-  <div>User has a bio: {user.bio}</div>
+      example: `<!-- Existence checks -->
+<Show when="has:capabilities.bio">
+  <p>User has written a bio!</p>
 </Show>
-<Show data="user.posts" equals="0">
-  <p>No posts yet - write your first one!</p>
+
+<!-- Relationship-based personalization -->
+<Show data="viewer.isFriend">
+  <div class="friend-only-message">
+    💚 Thanks for being my friend! Here's exclusive content just for you.
+  </div>
 </Show>
-<Show exists="user.profilePhoto">
-  <img src={user.profilePhoto} alt="Profile" />
+
+<Show data="viewer.isFollowing">
+  <p>Thanks for following me! 🎉</p>
+</Show>
+
+<!-- Comparison operators -->
+<Show data="posts.length" greater-than="0">
+  <BlogPosts limit="5" />
+</Show>
+
+<Show data="posts.length" equals="0">
+  <p>No posts yet - check back soon!</p>
+</Show>
+
+<!-- String matching -->
+<Show data="owner.displayName" contains="artist">
+  <div>🎨 Artist Badge</div>
+</Show>
+
+<!-- Logical operators (AND) -->
+<Show and='[{"data": "viewer.isFriend"}, {"data": "posts.length", "greater-than": "5"}]'>
+  <p>You're a friend AND I have lots of posts to share with you!</p>
+</Show>
+
+<!-- Negation (NOT) -->
+<Show not="viewer.isFriend">
+  <button>Send Friend Request</button>
 </Show>`,
       preview: (
         <div className="bg-green-50 border border-green-200 p-2 text-xs rounded">
-          <div className="text-green-800">✓ Content is shown</div>
-          <div className="text-gray-500 text-xs">Simple conditional with data path evaluation</div>
+          <div className="text-green-800">✓ Content is shown based on conditions</div>
+          <div className="text-gray-500 text-xs">Powerful conditional logic with comparisons, relationships, and logical operators</div>
         </div>
       )
     },
@@ -2962,18 +3063,52 @@ Like every component, GridItem also accepts:
     },
     {
       name: 'IfVisitor (conditional)',
-      description: 'Show content only to visitors (viewer !== owner)',
+      description: '📦 CONTAINER - Wraps content to show only to visitors (viewer !== owner). Combine with Show component to personalize based on relationship status.',
       props: [
         { name: 'children', type: 'ReactNode', options: ['any content'], default: 'required', description: 'Content visible only to visitors' }
       ],
-      example: `<IfVisitor>
+      example: `<!-- Basic visitor-only content -->
+<IfVisitor>
   <button>Follow</button>
   <button>Send Message</button>
+</IfVisitor>
+
+<!-- Personalize for friends -->
+<IfVisitor>
+  <Show data="viewer.isFriend">
+    <div class="friend-welcome">
+      💚 Hey friend! Great to see you here!
+    </div>
+  </Show>
+
+  <Show not="viewer.isFriend">
+    <Show data="viewer.isFollowing">
+      <p>Thanks for following! Want to be friends?</p>
+    </Show>
+  </Show>
+</IfVisitor>
+
+<!-- Different content based on relationship -->
+<IfVisitor>
+  <Choose>
+    <When data="viewer.isFriend">
+      <div class="friend-zone">
+        <h3>Friend-Only Section</h3>
+        <p>Here's my private photo collection!</p>
+      </div>
+    </When>
+    <When data="viewer.isFollowing">
+      <p>Thanks for the follow! Follow me back to unlock more content.</p>
+    </When>
+    <Otherwise>
+      <button>Follow Me</button>
+    </Otherwise>
+  </Choose>
 </IfVisitor>`,
       preview: (
         <div className="bg-indigo-50 border border-indigo-200 p-2 text-xs rounded">
-          <div className="text-indigo-800">👥 Visitor-only: Follow button</div>
-          <div className="text-gray-500 text-xs">Visible only when viewer.id !== owner.id</div>
+          <div className="text-indigo-800">👥 Visitor-only: Relationship-aware content</div>
+          <div className="text-gray-500 text-xs">Visible only when viewer.id !== owner.id, with personalization based on viewer.isFriend, viewer.isFollowing, and viewer.isFollower</div>
         </div>
       )
     }

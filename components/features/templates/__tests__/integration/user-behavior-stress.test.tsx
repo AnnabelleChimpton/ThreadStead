@@ -27,7 +27,7 @@ describe('Real-World User Behavior Stress Tests', () => {
         posts: [
           {
             id: 'post1',
-            contentHtml: '<p>Test post content</p>',
+            bodyHtml: '<p>Test post content</p>',
             createdAt: new Date().toISOString()
           }
         ]
@@ -262,7 +262,7 @@ describe('Real-World User Behavior Stress Tests', () => {
         posts: [
           {
             id: 'net-post-1',
-            contentHtml: '<p>Network test post 1</p>',
+            bodyHtml: '<p>Network test post 1</p>',
             createdAt: new Date().toISOString()
           }
         ]

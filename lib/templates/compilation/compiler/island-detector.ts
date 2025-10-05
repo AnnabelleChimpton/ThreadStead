@@ -219,7 +219,23 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'white-space': 'whitespace',
           'word-break': 'wordbreak',
           'word-wrap': 'wordwrap',
-          'text-overflow': 'textoverflow'
+          'text-overflow': 'textoverflow',
+          // Conditional component props (lowercased camelCase)
+          'greaterthan': 'greaterThan',
+          'lessthan': 'lessThan',
+          'greaterthanorequal': 'greaterThanOrEqual',
+          'lessthanorequal': 'lessThanOrEqual',
+          'notequals': 'notEquals',
+          'startswith': 'startsWith',
+          'endswith': 'endsWith',
+          // Conditional component props (kebab-case)
+          'greater-than': 'greaterThan',
+          'less-than': 'lessThan',
+          'greater-than-or-equal': 'greaterThanOrEqual',
+          'less-than-or-equal': 'lessThanOrEqual',
+          'not-equals': 'notEquals',
+          'starts-with': 'startsWith',
+          'ends-with': 'endsWith'
         };
 
         // Apply attribute name conversions for kebab-case to camelCase

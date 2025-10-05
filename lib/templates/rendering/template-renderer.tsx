@@ -5,6 +5,31 @@ import { ResidentDataProvider } from '@/components/features/templates/ResidentDa
 import GridCompatibleWrapper from '@/components/features/templates/GridCompatibleWrapper';
 import { isGridCompatible, getComponentGridBehavior } from '../visual-builder/grid-compatibility';
 
+/**
+ * Convert kebab-case to camelCase
+ * greater-than → greaterThan
+ * less-than-or-equal → lessThanOrEqual
+ */
+function kebabToCamelCase(str: string): string {
+  return str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+/**
+ * Normalize property keys from HTML attributes to React props
+ * Handles both kebab-case and lowercase conversion to camelCase
+ */
+function normalizeProps(props: Record<string, unknown>): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(props)) {
+    // Convert kebab-case to camelCase (e.g., greater-than → greaterThan)
+    const camelKey = kebabToCamelCase(key);
+    normalized[camelKey] = value;
+  }
+
+  return normalized;
+}
+
 // Transform AST to React elements
 export function transformNodeToReact(node: TemplateNode, key?: string | number): React.ReactNode {
   if (node.type === 'text') {
@@ -37,8 +62,13 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
       // Transform custom component
       const { component: Component, props: propSchemas } = componentRegistration;
 
-      // Extract and validate props from properties
-      const rawProps = { ...node.properties };
+      // DEBUG: Log node properties for Show component
+      if (tagName === 'Show') {
+        console.log('[transformNodeToReact] Show node.properties:', node.properties);
+      }
+
+      // Extract and normalize props from properties (kebab-case → camelCase)
+      const rawProps = normalizeProps({ ...node.properties });
       
       // Handle className/class attributes specially
       if (rawProps.class && !rawProps.className) {

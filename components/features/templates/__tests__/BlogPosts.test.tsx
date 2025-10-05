@@ -9,13 +9,13 @@ jest.mock('@/components/core/content/PostItem', () => {
     return (
       <div 
         data-testid={`mock-post-item-${post.id}`}
-        data-post-content={post.contentHtml}
+        data-post-content={post.bodyHtml}
         data-post-created={post.createdAt}
         data-is-owner={isOwner.toString()}
         data-is-admin={isAdmin.toString()}
         data-current-user={currentUser?.toString() || 'null'}
       >
-        Post: {post.contentHtml} (Created: {post.createdAt})
+        Post: {post.bodyHtml} (Created: {post.createdAt})
       </div>
     );
   };
@@ -32,9 +32,9 @@ describe('BlogPosts Component', () => {
           avatarUrl: '/test.jpg'
         },
         posts: [
-          { id: '1', contentHtml: 'First post content', createdAt: '2023-01-01' },
-          { id: '2', contentHtml: 'Second post content', createdAt: '2023-01-02' },
-          { id: '3', contentHtml: 'Third post content', createdAt: '2023-01-03' }
+          { id: '1', bodyHtml: 'First post content', createdAt: '2023-01-01' },
+          { id: '2', bodyHtml: 'Second post content', createdAt: '2023-01-02' },
+          { id: '3', bodyHtml: 'Third post content', createdAt: '2023-01-03' }
         ]
       });
 
@@ -57,12 +57,12 @@ describe('BlogPosts Component', () => {
     it('should respect custom limit prop', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Post 1', createdAt: '2023-01-01' },
-          { id: '2', contentHtml: 'Post 2', createdAt: '2023-01-02' },
-          { id: '3', contentHtml: 'Post 3', createdAt: '2023-01-03' },
-          { id: '4', contentHtml: 'Post 4', createdAt: '2023-01-04' },
-          { id: '5', contentHtml: 'Post 5', createdAt: '2023-01-05' },
-          { id: '6', contentHtml: 'Post 6', createdAt: '2023-01-06' }
+          { id: '1', bodyHtml: 'Post 1', createdAt: '2023-01-01' },
+          { id: '2', bodyHtml: 'Post 2', createdAt: '2023-01-02' },
+          { id: '3', bodyHtml: 'Post 3', createdAt: '2023-01-03' },
+          { id: '4', bodyHtml: 'Post 4', createdAt: '2023-01-04' },
+          { id: '5', bodyHtml: 'Post 5', createdAt: '2023-01-05' },
+          { id: '6', bodyHtml: 'Post 6', createdAt: '2023-01-06' }
         ]
       });
 
@@ -83,7 +83,7 @@ describe('BlogPosts Component', () => {
     it('should apply custom className', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Test post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Test post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -141,7 +141,7 @@ describe('BlogPosts Component', () => {
     it('should show empty state when posts exist but limit is 0', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Hidden post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Hidden post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -159,7 +159,7 @@ describe('BlogPosts Component', () => {
     it('should pass correct props to PostItem components', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: 'test-post', contentHtml: 'Test content', createdAt: '2023-01-01' }
+          { id: 'test-post', bodyHtml: 'Test content', createdAt: '2023-01-01' }
         ]
       });
 
@@ -179,7 +179,7 @@ describe('BlogPosts Component', () => {
     it('should always set isOwner and isAdmin to false in template preview', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: 'owner-test', contentHtml: 'Owner post', createdAt: '2023-01-01' }
+          { id: 'owner-test', bodyHtml: 'Owner post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -197,7 +197,7 @@ describe('BlogPosts Component', () => {
     it('should always set currentUser to null in template preview', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: 'user-test', contentHtml: 'User post', createdAt: '2023-01-01' }
+          { id: 'user-test', bodyHtml: 'User post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -215,7 +215,7 @@ describe('BlogPosts Component', () => {
     it('should handle limit larger than available posts', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Only post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Only post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -231,7 +231,7 @@ describe('BlogPosts Component', () => {
     it('should handle negative limit (should show no posts)', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Post that should not show', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Post that should not show', createdAt: '2023-01-01' }
         ]
       });
 
@@ -247,8 +247,8 @@ describe('BlogPosts Component', () => {
     it('should handle very large limit', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Post 1', createdAt: '2023-01-01' },
-          { id: '2', contentHtml: 'Post 2', createdAt: '2023-01-02' }
+          { id: '1', bodyHtml: 'Post 1', createdAt: '2023-01-01' },
+          { id: '2', bodyHtml: 'Post 2', createdAt: '2023-01-02' }
         ]
       });
 
@@ -266,7 +266,7 @@ describe('BlogPosts Component', () => {
     it('should apply correct CSS classes to container', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Test post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Test post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -299,7 +299,7 @@ describe('BlogPosts Component', () => {
     it('should combine custom className with default classes', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Test post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Test post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -321,8 +321,8 @@ describe('BlogPosts Component', () => {
     it('should handle posts with special characters', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: 'special-1', contentHtml: 'Post with "quotes" and <tags>', createdAt: '2023-01-01' },
-          { id: 'special-2', contentHtml: 'Post with émojis 🚀 and symbols @#$%', createdAt: '2023-01-02' }
+          { id: 'special-1', bodyHtml: 'Post with "quotes" and <tags>', createdAt: '2023-01-01' },
+          { id: 'special-2', bodyHtml: 'Post with émojis 🚀 and symbols @#$%', createdAt: '2023-01-02' }
         ]
       });
 
@@ -340,8 +340,8 @@ describe('BlogPosts Component', () => {
     it('should handle posts with empty content', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: 'empty-content', contentHtml: '', createdAt: '2023-01-01' },
-          { id: 'whitespace-only', contentHtml: '   ', createdAt: '2023-01-02' }
+          { id: 'empty-content', bodyHtml: '', createdAt: '2023-01-01' },
+          { id: 'whitespace-only', bodyHtml: '   ', createdAt: '2023-01-02' }
         ]
       });
 
@@ -357,9 +357,9 @@ describe('BlogPosts Component', () => {
     it('should handle posts with different date formats', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: 'date-1', contentHtml: 'Post 1', createdAt: '2023-12-31T23:59:59Z' },
-          { id: 'date-2', contentHtml: 'Post 2', createdAt: '2023-01-01' },
-          { id: 'date-3', contentHtml: 'Post 3', createdAt: 'invalid-date' }
+          { id: 'date-1', bodyHtml: 'Post 1', createdAt: '2023-12-31T23:59:59Z' },
+          { id: 'date-2', bodyHtml: 'Post 2', createdAt: '2023-01-01' },
+          { id: 'date-3', bodyHtml: 'Post 3', createdAt: 'invalid-date' }
         ]
       });
 
@@ -378,7 +378,7 @@ describe('BlogPosts Component', () => {
     it('should not re-render PostItems unnecessarily', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Stable post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Stable post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -403,7 +403,7 @@ describe('BlogPosts Component', () => {
       // Generate 1000 mock posts
       const largePosts = Array.from({ length: 1000 }, (_, i) => ({
         id: `post-${i}`,
-        contentHtml: `Content for post ${i}`,
+        bodyHtml: `Content for post ${i}`,
         createdAt: `2023-01-${String(i % 30 + 1).padStart(2, '0')}`
       }));
 

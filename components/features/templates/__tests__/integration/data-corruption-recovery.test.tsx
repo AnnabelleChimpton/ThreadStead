@@ -67,13 +67,13 @@ describe('Data Corruption & Recovery Integration', () => {
         posts: [
           {
             id: null, // Corrupted
-            contentHtml: undefined, // Corrupted
+            bodyHtml: undefined, // Corrupted
             createdAt: "invalid-date" // Invalid date format
           },
           null, // Completely null post
           {
             id: "valid-post",
-            contentHtml: "<p>This post is valid</p>",
+            bodyHtml: "<p>This post is valid</p>",
             createdAt: new Date().toISOString()
           }
         ] as any,
@@ -240,7 +240,7 @@ describe('Data Corruption & Recovery Integration', () => {
         posts: [
           {
             id: 'future-post-1',
-            contentHtml: '<p>Future post</p>',
+            bodyHtml: '<p>Future post</p>',
             createdAt: new Date().toISOString(),
             // Future fields
             aiEnhanced: true,
@@ -295,7 +295,7 @@ describe('Data Corruption & Recovery Integration', () => {
         posts: [
           {
             id: 'post1',
-            contentHtml: '<p>Initial post</p>',
+            bodyHtml: '<p>Initial post</p>',
             createdAt: new Date().toISOString()
           }
         ]
@@ -332,7 +332,7 @@ describe('Data Corruption & Recovery Integration', () => {
                 ...prev.posts,
                 {
                   id: `new-post-${updateCount + 1}`,
-                  contentHtml: `<p>New post ${updateCount + 1}</p>`,
+                  bodyHtml: `<p>New post ${updateCount + 1}</p>`,
                   createdAt: new Date().toISOString()
                 }
               ]
@@ -447,7 +447,7 @@ describe('Data Corruption & Recovery Integration', () => {
                   ...prev,
                   posts: [...prev.posts, {
                     id: `race-post-${Date.now()}`,
-                    contentHtml: '<p>Race condition post</p>',
+                    bodyHtml: '<p>Race condition post</p>',
                     createdAt: new Date().toISOString()
                   }]
                 }));

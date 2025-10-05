@@ -802,8 +802,8 @@ export default function EnhancedTemplateEditor({
             },
             viewer: { id: null },
             posts: [
-              { id: '1', contentHtml: 'This is a test post from the enhanced editor', createdAt: new Date().toISOString() },
-              { id: '2', contentHtml: 'Another test post with some content', createdAt: new Date(Date.now() - 86400000).toISOString() }
+              { id: '1', bodyHtml: 'This is a test post from the enhanced editor', createdAt: new Date().toISOString() },
+              { id: '2', bodyHtml: 'Another test post with some content', createdAt: new Date(Date.now() - 86400000).toISOString() }
             ],
             guestbook: [
               { id: '1', message: 'Great profile!', authorUsername: 'visitor1', createdAt: new Date().toISOString() }
@@ -832,8 +832,8 @@ export default function EnhancedTemplateEditor({
             },
             viewer: { id: null },
             posts: [
-              { id: '1', contentHtml: 'This is a sample post for template preview', createdAt: new Date().toISOString() },
-              { id: '2', contentHtml: 'Another sample post to show multiple entries', createdAt: new Date(Date.now() - 86400000).toISOString() }
+              { id: '1', bodyHtml: 'This is a sample post for template preview', createdAt: new Date().toISOString() },
+              { id: '2', bodyHtml: 'Another sample post to show multiple entries', createdAt: new Date(Date.now() - 86400000).toISOString() }
             ],
             guestbook: [
               { id: '1', message: 'Welcome to the site!', authorUsername: 'visitor1', createdAt: new Date().toISOString() }
@@ -856,7 +856,7 @@ export default function EnhancedTemplateEditor({
           },
           viewer: { id: null },
           posts: [
-            { id: '1', contentHtml: 'This is a test post', createdAt: new Date().toISOString() }
+            { id: '1', bodyHtml: 'This is a test post', createdAt: new Date().toISOString() }
           ],
           guestbook: [],
           capabilities: { bio: user.profile?.bio || 'This is a test bio' },

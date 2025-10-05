@@ -92,6 +92,15 @@ function createCustomSchema() {
         'src', 'alt', 'caption', 'link', 'level', 'name', 'category', 'color', 'textcolor', 'textColor', 'accentcolor', 'accentColor', 'type', 'value',
         'title', 'text', 'speed', 'amplitude', 'label', 'max', 'description', 'icon', 'priority',
         'when', 'data', 'equals', 'exists', 'condition', 'variant', 'size', 'rotation', 'shadow',
+        // Conditional component comparison operators (both camelCase and kebab-case)
+        'greaterthan', 'greaterThan', 'greater-than',
+        'lessthan', 'lessThan', 'less-than',
+        'greaterthanorequal', 'greaterThanOrEqual', 'greater-than-or-equal',
+        'lessthanorequal', 'lessThanOrEqual', 'less-than-or-equal',
+        'notequals', 'notEquals', 'not-equals',
+        'startswith', 'startsWith', 'starts-with',
+        'endswith', 'endsWith', 'ends-with',
+        'contains', 'matches', 'and', 'or', 'not',
         'buttonText', 'revealText', 'buttonStyle', 'ratio', 'vertical', 'gap', 'responsive',
         'expanded', 'theme', 'layout', 'showHeader', 'collapsible', 'maxMethods', 'showTitle',
         'as', 'showLabel', 'intensity', 'glitchColor1', 'glitchColor2', 'showValues', 'display',
@@ -413,14 +422,14 @@ export function validateTemplate(ast: TemplateNode): ValidationResult {
 
   // Count nodes and depth
   const { count: nodeCount, maxDepth } = countNodes(ast);
-  
+
   // Count components
   const componentCounts = countComponents(ast);
   const totalComponents = Object.values(componentCounts).reduce((sum, count) => sum + count, 0);
 
-  // Check limits (increased for showcase templates)
-  if (nodeCount > 500) {
-    errors.push(`Too many nodes: ${nodeCount} (max: 500)`);
+  // Check limits (increased to support complex showcase templates)
+  if (nodeCount > 1500) {
+    errors.push(`Too many nodes: ${nodeCount} (max: 1500)`);
   }
 
   if (maxDepth > 30) {

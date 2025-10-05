@@ -184,7 +184,7 @@ describe('Guestbook Component Logic', () => {
           avatarUrl: '/focused.jpg'
         },
         posts: [
-          { id: '1', contentHtml: 'Should be ignored', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Should be ignored', createdAt: '2023-01-01' }
         ],
         capabilities: { bio: 'Should also be ignored' }
       });

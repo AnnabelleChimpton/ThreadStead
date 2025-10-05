@@ -52,7 +52,7 @@ describe('Show Component', () => {
 
     it('should handle "has:" prefix for existence checks', () => {
       const mockData = createMockResidentData({
-        posts: [{ id: '1', contentHtml: 'Post content', createdAt: '2023-01-01' }]
+        posts: [{ id: '1', bodyHtml: 'Post content', createdAt: '2023-01-01' }]
       });
 
       renderWithTemplateContext(
@@ -97,7 +97,7 @@ describe('Show Component', () => {
 
     it('should return true for "has:" when data is non-empty array', () => {
       const mockData = createMockResidentData({
-        posts: [{ id: '1', contentHtml: 'Content', createdAt: '2023-01-01' }]
+        posts: [{ id: '1', bodyHtml: 'Content', createdAt: '2023-01-01' }]
       });
 
       renderWithTemplateContext(
@@ -188,8 +188,8 @@ describe('Show Component', () => {
     it('should handle arrays - show when not empty', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Post 1', createdAt: '2023-01-01' },
-          { id: '2', contentHtml: 'Post 2', createdAt: '2023-01-02' }
+          { id: '1', bodyHtml: 'Post 1', createdAt: '2023-01-01' },
+          { id: '2', bodyHtml: 'Post 2', createdAt: '2023-01-02' }
         ]
       });
 

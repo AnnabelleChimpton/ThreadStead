@@ -116,8 +116,8 @@ describe('Choose Component', () => {
     it('should handle condition prop with data path evaluation', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Post 1', createdAt: '2023-01-01' },
-          { id: '2', contentHtml: 'Post 2', createdAt: '2023-01-02' }
+          { id: '1', bodyHtml: 'Post 1', createdAt: '2023-01-01' },
+          { id: '2', bodyHtml: 'Post 2', createdAt: '2023-01-02' }
         ]
       });
 
@@ -225,7 +225,7 @@ describe('Choose Component', () => {
 
     it('should handle data prop with truthy evaluation (arrays)', () => {
       const mockData = createMockResidentData({
-        posts: [{ id: '1', contentHtml: 'Post', createdAt: '2023-01-01' }]
+        posts: [{ id: '1', bodyHtml: 'Post', createdAt: '2023-01-01' }]
       });
 
       renderWithTemplateContext(

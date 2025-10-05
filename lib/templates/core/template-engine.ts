@@ -128,12 +128,12 @@ export function createMockResidentData(username: string = 'testuser'): ResidentD
     posts: [
       {
         id: '1',
-        contentHtml: '<p>This is my first blog post! Welcome to my profile.</p>',
+        bodyHtml: '<p>This is my first blog post! Welcome to my profile.</p>',
         createdAt: new Date().toISOString()
       },
       {
         id: '2',
-        contentHtml: '<p>Here\'s another post with some <strong>formatted content</strong>.</p>',
+        bodyHtml: '<p>Here\'s another post with some <strong>formatted content</strong>.</p>',
         createdAt: new Date(Date.now() - 86400000).toISOString()
       }
     ],

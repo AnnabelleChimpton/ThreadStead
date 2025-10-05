@@ -6,18 +6,24 @@ import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConfl
 interface BlogPostsProps extends UniversalCSSProps {
   limit?: number;
   className?: string;
+  mode?: 'full' | 'count'; // Renamed from 'display' to avoid CSS prop collision
 }
 
 export default function BlogPosts(props: BlogPostsProps) {
   // Separate CSS properties from component-specific properties
   const { cssProps, componentProps } = separateCSSProps(props);
-  const { limit = 5, className: customClassName } = componentProps;
+  const { limit = 5, className: customClassName, mode = 'full' } = componentProps;
 
   const { posts, owner } = useResidentData();
 
   // Defensive programming: ensure posts is an array and filter out invalid posts
   const safePosts = Array.isArray(posts) ? posts.filter(post => post && post.id) : [];
   const displayPosts = safePosts.slice(0, limit);
+
+  // If mode is 'count', just return the count
+  if (mode === 'count') {
+    return <>{safePosts.length}</>;
+  }
 
   // Apply CSS properties as inline styles
   const appliedStyles = applyCSSProps(cssProps);

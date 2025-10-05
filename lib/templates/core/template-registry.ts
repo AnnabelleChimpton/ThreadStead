@@ -76,6 +76,9 @@ import Show from '@/components/features/templates/conditional/Show';
 import Choose, { When, Otherwise } from '@/components/features/templates/conditional/Choose';
 import IfOwner, { IfVisitor } from '@/components/features/templates/conditional/IfOwner';
 
+// Import debug components
+import DebugValue from '@/components/features/templates/DebugValue';
+
 // Import navigation component for Visual Builder
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
 
@@ -271,6 +274,12 @@ export function validateAndCoerceProps(
     // Legacy props that need to pass through during migration
     'contentEditable', 'tabIndex'
   ];
+
+  // DEBUG: Log incoming attrs for Show component
+  if (options?.componentType === 'Show') {
+    console.log('[validateAndCoerceProps] Show component attrs:', normalizedAttrs);
+    console.log('[validateAndCoerceProps] Show component propSchemas:', Object.keys(propSchemas));
+  }
 
   // Validate provided attrs
   for (const [key, value] of Object.entries(normalizedAttrs)) {
@@ -685,7 +694,8 @@ componentRegistry.register({
   name: 'BlogPosts',
   component: BlogPosts,
   props: {
-    limit: { type: 'number', min: 1, max: 20, default: 5 }
+    limit: { type: 'number', min: 1, max: 20, default: 5 },
+    mode: { type: 'enum', values: ['full', 'count'], default: 'full' }
   }
 });
 
@@ -1103,10 +1113,31 @@ componentRegistry.register({
   name: 'Show',
   component: Show,
   props: {
+    // Simple condition expressions
     when: { type: 'string' },
     data: { type: 'string' },
+
+    // Comparison operators
     equals: { type: 'string' },
-    exists: { type: 'string' }
+    notEquals: { type: 'string' },
+    greaterThan: { type: 'string' }, // Can be number or string
+    lessThan: { type: 'string' },
+    greaterThanOrEqual: { type: 'string' },
+    lessThanOrEqual: { type: 'string' },
+
+    // String operators
+    contains: { type: 'string' },
+    startsWith: { type: 'string' },
+    endsWith: { type: 'string' },
+    matches: { type: 'string' }, // regex pattern
+
+    // Existence check
+    exists: { type: 'string' },
+
+    // Logical operators
+    and: { type: 'string' }, // comma-separated data paths
+    or: { type: 'string' },  // comma-separated data paths
+    not: { type: 'string' }
   }
 });
 
@@ -1120,10 +1151,32 @@ componentRegistry.register({
   name: 'When',
   component: When,
   props: {
-    condition: { type: 'string' },
+    // Simple condition expressions
+    condition: { type: 'string' }, // backwards compatibility
+    when: { type: 'string' },
     data: { type: 'string' },
+
+    // Comparison operators
     equals: { type: 'string' },
-    exists: { type: 'boolean' }
+    notEquals: { type: 'string' },
+    greaterThan: { type: 'string' },
+    lessThan: { type: 'string' },
+    greaterThanOrEqual: { type: 'string' },
+    lessThanOrEqual: { type: 'string' },
+
+    // String operators
+    contains: { type: 'string' },
+    startsWith: { type: 'string' },
+    endsWith: { type: 'string' },
+    matches: { type: 'string' },
+
+    // Existence check
+    exists: { type: 'string' },
+
+    // Logical operators
+    and: { type: 'string' },
+    or: { type: 'string' },
+    not: { type: 'string' }
   }
 });
 
@@ -1143,6 +1196,15 @@ componentRegistry.register({
   name: 'IfVisitor',
   component: IfVisitor,
   props: {}
+});
+
+// Debug components
+componentRegistry.register({
+  name: 'DebugValue',
+  component: DebugValue,
+  props: {
+    path: { type: 'string', default: 'posts.length' }
+  }
 });
 
 componentRegistry.register({

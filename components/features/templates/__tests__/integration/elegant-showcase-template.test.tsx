@@ -113,9 +113,8 @@ describe('Elegant Showcase Template Integration', () => {
         posts: [
           {
             id: 'post1',
-            contentHtml: '<p>Latest thought from the elegant template</p>',
-            publishedAt: new Date().toISOString(),
-            handle: 'elegantuser'
+            bodyHtml: '<p>Latest thought from the elegant template</p>',
+            createdAt: new Date().toISOString()
           }
         ],
         guestbook: [

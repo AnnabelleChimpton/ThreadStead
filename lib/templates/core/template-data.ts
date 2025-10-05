@@ -155,7 +155,7 @@ export async function fetchResidentData(username: string): Promise<ResidentData 
       },
       posts: posts.posts.map(post => ({
         id: post.id,
-        contentHtml: post.contentHtml,
+        bodyHtml: post.contentHtml,
         createdAt: post.createdAt
       })),
       guestbook: guestbook.entries.map(entry => ({

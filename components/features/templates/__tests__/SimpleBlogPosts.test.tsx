@@ -30,7 +30,7 @@ function SimpleBlogPosts({ limit = 5, className: customClassName }: { limit?: nu
             data-testid={`simple-post-${post.id}`}
             className="post-preview"
           >
-            <div className="post-content">{post.contentHtml}</div>
+            <div className="post-content">{post.bodyHtml}</div>
             <div className="post-date">{post.createdAt}</div>
           </div>
         ))}
@@ -44,9 +44,9 @@ describe('BlogPosts Component Logic', () => {
     it('should render posts with default limit', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'First post content', createdAt: '2023-01-01' },
-          { id: '2', contentHtml: 'Second post content', createdAt: '2023-01-02' },
-          { id: '3', contentHtml: 'Third post content', createdAt: '2023-01-03' }
+          { id: '1', bodyHtml: 'First post content', createdAt: '2023-01-01' },
+          { id: '2', bodyHtml: 'Second post content', createdAt: '2023-01-02' },
+          { id: '3', bodyHtml: 'Third post content', createdAt: '2023-01-03' }
         ]
       });
 
@@ -68,12 +68,12 @@ describe('BlogPosts Component Logic', () => {
     it('should respect custom limit prop', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Post 1', createdAt: '2023-01-01' },
-          { id: '2', contentHtml: 'Post 2', createdAt: '2023-01-02' },
-          { id: '3', contentHtml: 'Post 3', createdAt: '2023-01-03' },
-          { id: '4', contentHtml: 'Post 4', createdAt: '2023-01-04' },
-          { id: '5', contentHtml: 'Post 5', createdAt: '2023-01-05' },
-          { id: '6', contentHtml: 'Post 6', createdAt: '2023-01-06' }
+          { id: '1', bodyHtml: 'Post 1', createdAt: '2023-01-01' },
+          { id: '2', bodyHtml: 'Post 2', createdAt: '2023-01-02' },
+          { id: '3', bodyHtml: 'Post 3', createdAt: '2023-01-03' },
+          { id: '4', bodyHtml: 'Post 4', createdAt: '2023-01-04' },
+          { id: '5', bodyHtml: 'Post 5', createdAt: '2023-01-05' },
+          { id: '6', bodyHtml: 'Post 6', createdAt: '2023-01-06' }
         ]
       });
 
@@ -94,7 +94,7 @@ describe('BlogPosts Component Logic', () => {
     it('should apply custom className', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Test post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Test post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -152,7 +152,7 @@ describe('BlogPosts Component Logic', () => {
     it('should show empty state when limit is 0', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Hidden post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Hidden post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -170,7 +170,7 @@ describe('BlogPosts Component Logic', () => {
     it('should handle limit larger than available posts', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Only post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Only post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -186,7 +186,7 @@ describe('BlogPosts Component Logic', () => {
     it('should handle negative limit (show no posts)', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Post that should not show', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Post that should not show', createdAt: '2023-01-01' }
         ]
       });
 
@@ -202,8 +202,8 @@ describe('BlogPosts Component Logic', () => {
     it('should handle very large limit', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Post 1', createdAt: '2023-01-01' },
-          { id: '2', contentHtml: 'Post 2', createdAt: '2023-01-02' }
+          { id: '1', bodyHtml: 'Post 1', createdAt: '2023-01-01' },
+          { id: '2', bodyHtml: 'Post 2', createdAt: '2023-01-02' }
         ]
       });
 
@@ -221,7 +221,7 @@ describe('BlogPosts Component Logic', () => {
     it('should apply correct CSS classes to elements', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Test post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Test post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -254,7 +254,7 @@ describe('BlogPosts Component Logic', () => {
     it('should combine custom className with default classes', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: '1', contentHtml: 'Test post', createdAt: '2023-01-01' }
+          { id: '1', bodyHtml: 'Test post', createdAt: '2023-01-01' }
         ]
       });
 
@@ -276,8 +276,8 @@ describe('BlogPosts Component Logic', () => {
     it('should handle posts with special characters', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: 'special-1', contentHtml: 'Post with "quotes" and <tags>', createdAt: '2023-01-01' },
-          { id: 'special-2', contentHtml: 'Post with émojis 🚀 and symbols @#$%', createdAt: '2023-01-02' }
+          { id: 'special-1', bodyHtml: 'Post with "quotes" and <tags>', createdAt: '2023-01-01' },
+          { id: 'special-2', bodyHtml: 'Post with émojis 🚀 and symbols @#$%', createdAt: '2023-01-02' }
         ]
       });
 
@@ -295,8 +295,8 @@ describe('BlogPosts Component Logic', () => {
     it('should handle posts with empty content', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: 'empty-content', contentHtml: '', createdAt: '2023-01-01' },
-          { id: 'whitespace-only', contentHtml: '   ', createdAt: '2023-01-02' }
+          { id: 'empty-content', bodyHtml: '', createdAt: '2023-01-01' },
+          { id: 'whitespace-only', bodyHtml: '   ', createdAt: '2023-01-02' }
         ]
       });
 
@@ -312,9 +312,9 @@ describe('BlogPosts Component Logic', () => {
     it('should handle posts with different date formats', () => {
       const mockData = createMockResidentData({
         posts: [
-          { id: 'date-1', contentHtml: 'Post 1', createdAt: '2023-12-31T23:59:59Z' },
-          { id: 'date-2', contentHtml: 'Post 2', createdAt: '2023-01-01' },
-          { id: 'date-3', contentHtml: 'Post 3', createdAt: 'invalid-date' }
+          { id: 'date-1', bodyHtml: 'Post 1', createdAt: '2023-12-31T23:59:59Z' },
+          { id: 'date-2', bodyHtml: 'Post 2', createdAt: '2023-01-01' },
+          { id: 'date-3', bodyHtml: 'Post 3', createdAt: 'invalid-date' }
         ]
       });
 
@@ -334,7 +334,7 @@ describe('BlogPosts Component Logic', () => {
       // Generate 100 mock posts
       const largePosts = Array.from({ length: 100 }, (_, i) => ({
         id: `post-${i}`,
-        contentHtml: `Content for post ${i}`,
+        bodyHtml: `Content for post ${i}`,
         createdAt: `2023-01-${String((i % 30) + 1).padStart(2, '0')}`
       }));
 
@@ -354,7 +354,7 @@ describe('BlogPosts Component Logic', () => {
     it('should slice posts array correctly for different limits', () => {
       const posts = Array.from({ length: 10 }, (_, i) => ({
         id: `post-${i}`,
-        contentHtml: `Post ${i}`,
+        bodyHtml: `Post ${i}`,
         createdAt: '2023-01-01'
       }));
 

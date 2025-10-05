@@ -15,12 +15,12 @@ export const createMockResidentData = (overrides: Partial<ResidentData> = {}): R
   posts: [
     {
       id: 'post-1',
-      contentHtml: '<p>This is a test post with <strong>formatting</strong>.</p>',
+      bodyHtml: '<p>This is a test post with <strong>formatting</strong>.</p>',
       createdAt: new Date().toISOString()
     },
     {
       id: 'post-2',
-      contentHtml: '<p>Another test post for testing purposes.</p>',
+      bodyHtml: '<p>Another test post for testing purposes.</p>',
       createdAt: new Date(Date.now() - 86400000).toISOString()
     }
   ],

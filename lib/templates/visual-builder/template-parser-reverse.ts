@@ -1024,7 +1024,15 @@ export class TemplateParserReverse {
       'backgroundopacity': 'backgroundOpacity',
       // Component-specific props - CustomHTMLElement
       'tagname': 'tagName',
-      'innerhtml': 'innerHTML'
+      'innerhtml': 'innerHTML',
+      // Conditional component comparison operators
+      'greaterthan': 'greaterThan',
+      'lessthan': 'lessThan',
+      'greaterthanorequal': 'greaterThanOrEqual',
+      'lessthanorequal': 'lessThanOrEqual',
+      'notequals': 'notEquals',
+      'startswith': 'startsWith',
+      'endswith': 'endsWith'
     };
 
     // Apply mappings

@@ -129,7 +129,28 @@ export default function TemplateEditorPage({
       if (!response.ok) {
         const errorData = await response.json();
         console.error('🎯 [TEMPLATE_EDITOR_SAVE] API error:', errorData);
-        throw new Error(errorData.error || "Failed to save template");
+
+        // Format enhanced error message
+        let errorMessage = 'Failed to save template';
+        if (errorData.error) {
+          errorMessage = errorData.error;
+
+          // Add helpful details if available
+          if (errorData.suggestion) {
+            errorMessage += `\n\n💡 ${errorData.suggestion}`;
+          }
+          if (errorData.details) {
+            errorMessage += `\n\nℹ️ ${errorData.details}`;
+          }
+          if (errorData.line) {
+            const lineInfo = errorData.column
+              ? `Line ${errorData.line}, Column ${errorData.column}`
+              : `Line ${errorData.line}`;
+            errorMessage = `${lineInfo}: ${errorMessage}`;
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const responseData = await response.json();

@@ -700,7 +700,15 @@ function StaticHTMLWithIslands({
               'backgroundopacity': 'backgroundOpacity',
               // Component-specific props - CustomHTMLElement
               'tagname': 'tagName',
-              'innerhtml': 'innerHTML'
+              'innerhtml': 'innerHTML',
+              // Conditional component comparison operators
+              'greaterthan': 'greaterThan',
+              'lessthan': 'lessThan',
+              'greaterthanorequal': 'greaterThanOrEqual',
+              'lessthanorequal': 'lessThanOrEqual',
+              'notequals': 'notEquals',
+              'startswith': 'startsWith',
+              'endswith': 'endsWith'
             };
 
             // Copy attributes as props
@@ -1140,7 +1148,15 @@ function domToReact(
       'backgroundopacity': 'backgroundOpacity',
       // Component-specific props - CustomHTMLElement
       'tagname': 'tagName',
-      'innerhtml': 'innerHTML'
+      'innerhtml': 'innerHTML',
+      // Conditional component comparison operators
+      'greaterthan': 'greaterThan',
+      'lessthan': 'lessThan',
+      'greaterthanorequal': 'greaterThanOrEqual',
+      'lessthanorequal': 'lessThanOrEqual',
+      'notequals': 'notEquals',
+      'startswith': 'startsWith',
+      'endswith': 'endsWith'
     };
 
     for (let i = 0; i < element.attributes.length; i++) {

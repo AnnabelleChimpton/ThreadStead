@@ -2,6 +2,7 @@
 import { SOCIAL_MODERN_TEMPLATE } from './html/social-modern';
 import { CLASSIC_WEB1_TEMPLATE } from './html/classic-web1';
 import { SIMPLE_DEFAULT_TEMPLATE } from './html/simple-default';
+import { CONDITIONAL_SHOWCASE_TEMPLATE } from './html/conditional-showcase';
 
 // Template metadata for UI display
 export interface HTMLTemplateInfo {
@@ -38,6 +39,14 @@ export const HTML_TEMPLATES: HTMLTemplateInfo[] = [
     category: 'classic',
     template: CLASSIC_WEB1_TEMPLATE,
     preview: '✨ Marquee text, blinking construction signs, table layouts, rainbow gradients, visitor counters'
+  },
+  {
+    id: 'conditional-showcase',
+    name: 'Conditional Logic Showcase',
+    description: 'Interactive demonstration of all conditional operators with live examples and syntax guide',
+    category: 'minimal',
+    template: CONDITIONAL_SHOWCASE_TEMPLATE,
+    preview: '🎓 Learn conditional logic with comparison, string, and logical operators - includes level system, owner/visitor detection, and complete syntax reference'
   }
 ];
 
@@ -61,5 +70,6 @@ export function getHTMLTemplatesByCategory(category: 'modern' | 'classic' | 'min
 export {
   SOCIAL_MODERN_TEMPLATE,
   CLASSIC_WEB1_TEMPLATE,
-  SIMPLE_DEFAULT_TEMPLATE
+  SIMPLE_DEFAULT_TEMPLATE,
+  CONDITIONAL_SHOWCASE_TEMPLATE
 };

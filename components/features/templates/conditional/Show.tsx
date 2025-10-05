@@ -1,65 +1,75 @@
+'use client';
+
 import React from 'react';
 import { useResidentData } from '../ResidentDataProvider';
+import { evaluateFullCondition, type ConditionConfig } from '@/lib/templates/conditional/condition-evaluator';
 
 interface ShowProps {
+  // Simple condition expressions
   when?: string;
   data?: string;
+
+  // Comparison operators
   equals?: string;
-  exists?: string;
+  notEquals?: string;
+  greaterThan?: string | number;
+  lessThan?: string | number;
+  greaterThanOrEqual?: string | number;
+  lessThanOrEqual?: string | number;
+
+  // String operators
+  contains?: string;
+  startsWith?: string;
+  endsWith?: string;
+  matches?: string; // regex pattern
+
+  // Existence check
+  exists?: string | boolean;
+
+  // Logical operators
+  and?: string | string[]; // comma-separated paths or array
+  or?: string | string[];  // comma-separated paths or array
+  not?: string;
+
   children: React.ReactNode;
 }
 
-// Helper function to safely get nested property values
-function getNestedValue(obj: any, path: string): any {
-  return path.split('.').reduce((current, key) => {
-    return current && current[key] !== undefined ? current[key] : undefined;
-  }, obj);
-}
-
-// Helper function to evaluate conditions
-function evaluateCondition(condition: string, data: any): boolean {
-  // Handle simple boolean expressions
-  if (condition === 'true') return true;
-  if (condition === 'false') return false;
-  
-  // Handle negation
-  if (condition.startsWith('!')) {
-    return !evaluateCondition(condition.slice(1), data);
-  }
-  
-  // Handle data path existence checks
-  if (condition.startsWith('has:')) {
-    const path = condition.slice(4);
-    const value = getNestedValue(data, path);
-    return value !== undefined && value !== null && value !== '';
-  }
-  
-  // Handle data path truthy checks
-  const value = getNestedValue(data, condition);
-  if (Array.isArray(value)) return value.length > 0;
-  return Boolean(value);
-}
-
-export default function Show({ when, data, equals, exists, children }: ShowProps) {
+/**
+ * Show Component - Conditionally render content based on data
+ *
+ * @example
+ * // Simple truthy check
+ * <Show data="posts">
+ *   <BlogPosts />
+ * </Show>
+ *
+ * @example
+ * // Comparison operators
+ * <Show data="posts.length" greaterThan="5">
+ *   <p>You have many posts!</p>
+ * </Show>
+ *
+ * @example
+ * // Logical AND
+ * <Show and="posts,capabilities.bio">
+ *   <RichProfile />
+ * </Show>
+ *
+ * @example
+ * // String operators
+ * <Show data="owner.handle" startsWith="admin">
+ *   <AdminBadge />
+ * </Show>
+ */
+export default function Show(props: ShowProps) {
+  const { children, ...conditionProps } = props;
   const residentData = useResidentData();
-  
-  let shouldShow = false;
-  
-  if (when) {
-    shouldShow = evaluateCondition(when, residentData);
-  } else if (data) {
-    const value = getNestedValue(residentData, data);
-    if (equals !== undefined) {
-      shouldShow = String(value) === equals;
-    } else if (exists !== undefined) {
-      shouldShow = value !== undefined && value !== null;
-    } else {
-      // Default: check if value is truthy
-      shouldShow = Array.isArray(value) ? value.length > 0 : Boolean(value);
-    }
-  } else if (exists) {
-    shouldShow = getNestedValue(residentData, exists) !== undefined;
-  }
-  
+
+  // Build condition config from props
+  const config: ConditionConfig = conditionProps as ConditionConfig;
+
+  // Evaluate condition using centralized engine
+  const shouldShow = evaluateFullCondition(config, residentData);
+
   return shouldShow ? <>{children}</> : null;
 }

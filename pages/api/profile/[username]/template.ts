@@ -6,6 +6,7 @@ import { compileTemplate } from '@/lib/templates/compilation/template-parser';
 import { identifyIslandsWithTransform } from '@/lib/templates/compilation/compiler/island-detector';
 import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer';
 import { stripNavigationFromTemplate } from '@/lib/templates/utils/navigation-stripper';
+import { parseTemplateError, formatTemplateErrorForAPI } from '@/lib/templates/errors/template-error-handler';
 
 import { SITE_NAME } from '@/lib/config/site/constants';
 
@@ -95,7 +96,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (!parseResult.success) {
           console.error('Template compilation failed:', parseResult.errors);
-          return res.status(400).json({ error: 'Template compilation failed' });
+
+          // Parse and format the error for users
+          const firstError = parseResult.errors?.[0] || 'Template compilation failed';
+          const templateError = parseTemplateError(firstError);
+          const formattedError = formatTemplateErrorForAPI(templateError);
+
+          return res.status(400).json(formattedError);
         }
 
         // Detect islands (components) in the template using the AST
@@ -129,7 +136,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
       } catch (compileError) {
         console.error('Template compilation failed:', compileError);
-        return res.status(400).json({ error: 'Template compilation failed' });
+
+        // Parse and format the error for users
+        const templateError = parseTemplateError(compileError as Error);
+        const formattedError = formatTemplateErrorForAPI(templateError);
+
+        return res.status(400).json(formattedError);
       }
 
       // Check if user can modify this profile

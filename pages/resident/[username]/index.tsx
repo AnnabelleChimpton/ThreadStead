@@ -589,10 +589,31 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       // Fetch posts and guestbook data for template rendering using direct DB calls
       const { getSessionUser } = await import('@/lib/auth/server');
       const { getPostsForUser, getGuestbookForUser, getPhotosForUser } = await import('@/lib/utils/data/fetchers');
-      
+
       const currentUser = await getSessionUser(req as any);
       const viewerId = currentUser?.id;
-      
+
+      // Compute viewer relationship to profile owner
+      let isFriend = false;
+      let isFollowing = false;
+      let isFollower = false;
+
+      if (viewerId && data.userId && viewerId !== data.userId) {
+        const { db } = await import('@/lib/config/database/connection');
+        const [viewerFollowsOwner, ownerFollowsViewer] = await Promise.all([
+          db.follow.findUnique({
+            where: { followerId_followeeId: { followerId: viewerId, followeeId: data.userId } },
+          }),
+          db.follow.findUnique({
+            where: { followerId_followeeId: { followerId: data.userId, followeeId: viewerId } },
+          })
+        ]);
+
+        isFollowing = viewerFollowsOwner?.status === "accepted";
+        isFollower = ownerFollowsViewer?.status === "accepted";
+        isFriend = isFollowing && isFollower;
+      }
+
       const [postsData, guestbookData, imagesData] = await Promise.allSettled([
         getPostsForUser(usernameParam, viewerId),
         getGuestbookForUser(usernameParam),
@@ -600,7 +621,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       ]);
       
       // Handle posts data
-      let posts: Array<{ id: string; contentHtml: string; createdAt: string }> = [];
+      let posts: Array<{ id: string; bodyHtml: string; createdAt: string }> = [];
       if (postsData.status === 'fulfilled' && postsData.value) {
 
         // Import cleaning functions
@@ -639,7 +660,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
           return {
             id: post.id || '',
-            contentHtml,
+            bodyHtml: contentHtml,
             createdAt: post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString()
           };
         }) || [];
@@ -677,7 +698,10 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
           avatarUrl: data.profile?.avatarUrl || "/assets/default-avatar.gif"
         },
         viewer: {
-          id: null // This would need to be populated with current user ID in a real implementation
+          id: viewerId || null,
+          isFriend,
+          isFollowing,
+          isFollower
         },
         posts,
         guestbook,

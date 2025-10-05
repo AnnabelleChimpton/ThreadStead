@@ -146,7 +146,7 @@ describe('Conditional Logic Integration', () => {
         posts: [
           {
             id: 'post1',
-            contentHtml: '<p>First post</p>',
+            bodyHtml: '<p>First post</p>',
             createdAt: new Date().toISOString()
           }
         ],
@@ -319,7 +319,7 @@ describe('Conditional Logic Integration', () => {
           handle: 'performancetest', 
           displayName: 'Performance Test User'
         },
-        posts: [{ id: '1', contentHtml: '<p>Test</p>', createdAt: new Date().toISOString() }],
+        posts: [{ id: '1', bodyHtml: '<p>Test</p>', createdAt: new Date().toISOString() }],
         capabilities: { bio: 'Test bio' },
         websites: [{ id: '1', label: 'Test', url: 'https://test.com' }],
         badges: [{ 
@@ -511,7 +511,7 @@ describe('Conditional Logic Integration', () => {
         posts: [
           {
             id: 'post1',
-            contentHtml: '<p>Owner post</p>',
+            bodyHtml: '<p>Owner post</p>',
             createdAt: new Date().toISOString()
           }
         ]

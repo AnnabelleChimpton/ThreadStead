@@ -200,12 +200,12 @@ function getComponentDescription(tagName: string): string {
     Tab: 'Individual tab within Tabs component',
     ProfileHero: 'Hero section for user profiles',
     RetroCard: 'Retro-styled card container',
-    Show: 'Conditionally display content based on data',
-    Choose: 'Multi-condition container for When/Otherwise',
-    When: 'Conditional branch within Choose component',
-    Otherwise: 'Default fallback within Choose component',
+    Show: 'Conditionally display content with comparison, string, and logical operators',
+    Choose: 'Multi-condition switch statement for complex branching logic',
+    When: 'Conditional branch with comparison and logical operators',
+    Otherwise: 'Default fallback when no When conditions match',
     IfOwner: 'Show content only to the profile owner',
-    IfVisitor: 'Show content only to visitors (not owner)'
+    IfVisitor: 'Show content only to visitors (not the profile owner)'
   };
   
   return descriptions[tagName] || 'Template component';

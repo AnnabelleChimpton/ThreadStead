@@ -1,0 +1,724 @@
+export const CONDITIONAL_SHOWCASE_TEMPLATE = `<style>
+/* Conditional Logic Showcase - Educational Template */
+body {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-attachment: fixed;
+  color: #2d3748;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 20px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.showcase-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  background: white;
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  margin-bottom: 30px;
+}
+
+.page-title {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 10px 0;
+}
+
+.page-subtitle {
+  font-size: 1.2rem;
+  color: #718096;
+  margin: 0;
+}
+
+.user-level-banner {
+  margin-top: 20px;
+  padding: 15px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: 8px;
+  color: white;
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.section-card {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.section-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 15px 0;
+  padding-bottom: 10px;
+  border-bottom: 3px solid;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-icon {
+  font-size: 1.8rem;
+}
+
+/* Color coding for different operator types */
+.comparison-section .section-title { border-color: #3182ce; color: #2c5282; }
+.string-section .section-title { border-color: #38a169; color: #22543d; }
+.logical-section .section-title { border-color: #805ad5; color: #553c9a; }
+.level-section .section-title { border-color: #dd6b20; color: #9c4221; }
+.role-section .section-title { border-color: #e53e3e; color: #9b2c2c; }
+.profile-section .section-title { border-color: #d69e2e; color: #975a16; }
+
+.example-item {
+  margin: 15px 0;
+  padding: 15px;
+  background: #f7fafc;
+  border-radius: 8px;
+  border-left: 4px solid #cbd5e0;
+}
+
+.example-label {
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.code-snippet {
+  background: #2d3748;
+  color: #68d391;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.result-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.result-true {
+  background: #c6f6d5;
+  color: #22543d;
+  border: 2px solid #38a169;
+}
+
+.result-false {
+  background: #fed7d7;
+  color: #742a2a;
+  border: 2px solid #e53e3e;
+}
+
+.level-badge {
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 10px 0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.level-beginner {
+  background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+  color: #065f46;
+}
+
+.level-intermediate {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  color: #7c2d12;
+}
+
+.level-expert {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  color: #7c2d12;
+}
+
+.level-master {
+  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+  color: #7c2d12;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 25px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 10px 0;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.5s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.explanation {
+  font-size: 0.85rem;
+  color: #718096;
+  font-style: italic;
+  margin-top: 8px;
+  padding: 8px;
+  background: #edf2f7;
+  border-radius: 4px;
+}
+
+.owner-only {
+  background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+  padding: 15px;
+  border-radius: 8px;
+  margin: 10px 0;
+  border: 2px dashed #e17055;
+}
+
+.visitor-only {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  padding: 15px;
+  border-radius: 8px;
+  margin: 10px 0;
+  border: 2px dashed #0652dd;
+  color: white;
+}
+
+.syntax-reference {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  margin-top: 30px;
+}
+
+.syntax-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0 0 20px 0;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #667eea;
+}
+
+.syntax-category {
+  margin: 20px 0;
+}
+
+.syntax-category h3 {
+  color: #4a5568;
+  font-size: 1.1rem;
+  margin: 15px 0 10px 0;
+}
+
+.syntax-example {
+  background: #2d3748;
+  color: #68d391;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  margin: 8px 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.footer-info {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-top: 30px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  color: #718096;
+}
+
+@media (max-width: 768px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-title {
+    font-size: 2rem;
+  }
+}
+</style>
+
+<div class="showcase-container">
+  <!-- Header Section -->
+  <div class="page-header">
+    <h1 class="page-title">Conditional Logic Showcase</h1>
+    <p class="page-subtitle">See all conditional operators in action with <DisplayName as="span" />'s profile</p>
+
+    <!-- User Level Display -->
+    <Choose>
+      <When data="posts.length" greaterThanOrEqual="100">
+        <div class="user-level-banner">🎖️ Your Level: MASTER (100+ posts)</div>
+      </When>
+      <When data="posts.length" greaterThanOrEqual="50">
+        <div class="user-level-banner">⭐ Your Level: EXPERT (50+ posts)</div>
+      </When>
+      <When data="posts.length" greaterThanOrEqual="10">
+        <div class="user-level-banner">✨ Your Level: INTERMEDIATE (10+ posts)</div>
+      </When>
+      <Otherwise>
+        <div class="user-level-banner">🌱 Your Level: BEGINNER (Start posting!)</div>
+      </Otherwise>
+    </Choose>
+  </div>
+
+  <!-- Comparison Operators Section -->
+  <div class="content-grid">
+    <div class="section-card comparison-section">
+      <h2 class="section-title">
+        <span class="section-icon">🔢</span>
+        Comparison Operators
+      </h2>
+
+      <div class="example-item">
+        <div class="example-label">Greater Than (&gt;)</div>
+        <div class="code-snippet">&lt;Show data="posts.length" greaterThan="5"&gt;</div>
+        <Show data="posts.length" greaterThan="5">
+          <span class="result-badge result-true">✓ TRUE: You have more than 5 posts!</span>
+        </Show>
+        <Show not="posts" or="posts.length" lessThanOrEqual="5">
+          <span class="result-badge result-false">✗ FALSE: You have 5 or fewer posts</span>
+        </Show>
+        <div class="explanation">Shows content when post count exceeds 5</div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">Less Than (&lt;)</div>
+        <div class="code-snippet">&lt;Show data="posts.length" lessThan="100"&gt;</div>
+        <Show data="posts.length" lessThan="100">
+          <span class="result-badge result-true">✓ TRUE: Under 100 posts</span>
+        </Show>
+        <Show data="posts.length" greaterThanOrEqual="100">
+          <span class="result-badge result-false">✗ FALSE: 100+ posts!</span>
+        </Show>
+        <div class="explanation">Shows content when post count is below 100</div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">Greater/Less Than or Equal</div>
+        <div class="code-snippet">&lt;Show data="posts.length" greaterThanOrEqual="1"&gt;</div>
+        <Show data="posts.length" greaterThanOrEqual="1">
+          <span class="result-badge result-true">✓ TRUE: At least 1 post</span>
+        </Show>
+        <Show data="posts.length" equals="0">
+          <span class="result-badge result-false">✗ FALSE: No posts yet</span>
+        </Show>
+        <div class="explanation">Includes the boundary value (≥ or ≤)</div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">Not Equal (!=)</div>
+        <div class="code-snippet">&lt;Show data="posts.length" notEquals="0"&gt;</div>
+        <Show data="posts.length" notEquals="0">
+          <span class="result-badge result-true">✓ TRUE: You have posts!</span>
+        </Show>
+        <Show data="posts.length" equals="0">
+          <span class="result-badge result-false">✗ FALSE: Post count is zero</span>
+        </Show>
+        <div class="explanation">Shows when values don't match</div>
+      </div>
+    </div>
+
+    <!-- String Operators Section -->
+    <div class="section-card string-section">
+      <h2 class="section-title">
+        <span class="section-icon">📝</span>
+        String Operators
+      </h2>
+
+      <div class="example-item">
+        <div class="example-label">Contains</div>
+        <div class="code-snippet">&lt;Show data="capabilities.bio" contains="developer"&gt;</div>
+        <Show data="capabilities.bio" contains="developer">
+          <span class="result-badge result-true">✓ TRUE: Bio mentions "developer"</span>
+        </Show>
+        <Show not="capabilities.bio">
+          <span class="result-badge result-false">✗ No bio to check</span>
+        </Show>
+        <Show data="capabilities.bio">
+          <Show data="capabilities.bio" contains="developer">
+            <!-- Already shown above -->
+          </Show>
+          <Show not="capabilities.bio" startsWith="developer">
+            <Show not="capabilities.bio" contains="developer">
+              <span class="result-badge result-false">✗ FALSE: "developer" not in bio</span>
+            </Show>
+          </Show>
+        </Show>
+        <div class="explanation">Searches for substring anywhere in text</div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">Starts With</div>
+        <div class="code-snippet">&lt;Show data="owner.handle" startsWith="admin"&gt;</div>
+        <Show data="owner.handle" startsWith="admin">
+          <span class="result-badge result-true">✓ TRUE: Admin account detected!</span>
+        </Show>
+        <Show data="owner.handle">
+          <Show not="owner.handle" startsWith="admin">
+            <span class="result-badge result-false">✗ FALSE: Not an admin account</span>
+          </Show>
+        </Show>
+        <div class="explanation">Checks if text begins with specific prefix</div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">Ends With</div>
+        <div class="code-snippet">&lt;Show data="owner.handle" endsWith="_test"&gt;</div>
+        <Show data="owner.handle" endsWith="_test">
+          <span class="result-badge result-true">✓ TRUE: Test account</span>
+        </Show>
+        <Show data="owner.handle">
+          <Show not="owner.handle" endsWith="_test">
+            <span class="result-badge result-false">✗ FALSE: Not a test account</span>
+          </Show>
+        </Show>
+        <div class="explanation">Checks if text ends with specific suffix</div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">Regex Match</div>
+        <div class="code-snippet">&lt;Show data="owner.handle" matches="user\d+"&gt;</div>
+        <Show data="owner.handle" matches="user\d+">
+          <span class="result-badge result-true">✓ TRUE: Matches pattern user[numbers]</span>
+        </Show>
+        <Show data="owner.handle">
+          <Show not="owner.handle" matches="user\d+">
+            <span class="result-badge result-false">✗ FALSE: Doesn't match pattern</span>
+          </Show>
+        </Show>
+        <div class="explanation">Advanced pattern matching with regex</div>
+      </div>
+    </div>
+
+    <!-- Logical Operators Section -->
+    <div class="section-card logical-section">
+      <h2 class="section-title">
+        <span class="section-icon">🔗</span>
+        Logical Operators
+      </h2>
+
+      <div class="example-item">
+        <div class="example-label">AND - All conditions must be true</div>
+        <div class="code-snippet">&lt;Show and="posts,capabilities.bio"&gt;</div>
+        <Show and="posts,capabilities.bio">
+          <span class="result-badge result-true">✓ TRUE: Has BOTH posts AND bio</span>
+        </Show>
+        <Show not="posts,capabilities.bio">
+          <span class="result-badge result-false">✗ FALSE: Missing posts or bio</span>
+        </Show>
+        <div class="explanation">Requires ALL conditions to be truthy</div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">OR - At least one must be true</div>
+        <div class="code-snippet">&lt;Show or="posts,guestbook,featuredFriends"&gt;</div>
+        <Show or="posts,guestbook,featuredFriends">
+          <span class="result-badge result-true">✓ TRUE: Has posts, guestbook, or friends</span>
+        </Show>
+        <Show not="posts">
+          <Show not="guestbook">
+            <Show not="featuredFriends">
+              <span class="result-badge result-false">✗ FALSE: No content available</span>
+            </Show>
+          </Show>
+        </Show>
+        <div class="explanation">Passes if ANY condition is truthy</div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">NOT - Condition must be false</div>
+        <div class="code-snippet">&lt;Show not="featuredFriends"&gt;</div>
+        <Show not="featuredFriends">
+          <span class="result-badge result-true">✓ TRUE: No featured friends</span>
+        </Show>
+        <Show data="featuredFriends">
+          <span class="result-badge result-false">✗ FALSE: Has featured friends</span>
+        </Show>
+        <div class="explanation">Inverts the condition (opposite of truthy)</div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">Profile Completeness Score</div>
+        <Choose>
+          <When and="posts,capabilities.bio,featuredFriends">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 100%;">100% Complete!</div>
+            </div>
+            <span class="result-badge result-true">✓ Full Profile</span>
+          </When>
+          <When and="posts,capabilities.bio">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 75%;">75% Complete</div>
+            </div>
+            <span class="result-badge result-true">Add featured friends!</span>
+          </When>
+          <When or="posts,capabilities.bio">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 50%;">50% Complete</div>
+            </div>
+            <span class="result-badge result-true">Keep building!</span>
+          </When>
+          <Otherwise>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 25%;">25% Complete</div>
+            </div>
+            <span class="result-badge result-false">Start adding content!</span>
+          </Otherwise>
+        </Choose>
+        <div class="explanation">Combines multiple conditions to calculate completion</div>
+      </div>
+    </div>
+
+    <!-- Level System Section -->
+    <div class="section-card level-section">
+      <h2 class="section-title">
+        <span class="section-icon">🏆</span>
+        User Level System
+      </h2>
+
+      <div class="example-item">
+        <div class="example-label">Choose/When/Otherwise Branching</div>
+        <div class="code-snippet">&lt;Choose&gt;
+  &lt;When data="posts.length" greaterThanOrEqual="100"&gt;
+  &lt;When data="posts.length" greaterThanOrEqual="50"&gt;
+  &lt;Otherwise&gt;</div>
+
+        <Choose>
+          <When data="posts.length" greaterThanOrEqual="100">
+            <span class="level-badge level-master">🎖️ MASTER LEVEL</span>
+            <div class="explanation">100+ posts - You're a content creation master!</div>
+          </When>
+          <When data="posts.length" greaterThanOrEqual="50">
+            <span class="level-badge level-expert">⭐ EXPERT LEVEL</span>
+            <div class="explanation">50+ posts - You're an experienced creator!</div>
+          </When>
+          <When data="posts.length" greaterThanOrEqual="10">
+            <span class="level-badge level-intermediate">✨ INTERMEDIATE</span>
+            <div class="explanation">10+ posts - You're building momentum!</div>
+          </When>
+          <Otherwise>
+            <span class="level-badge level-beginner">🌱 BEGINNER</span>
+            <div class="explanation">Under 10 posts - Welcome to the journey!</div>
+          </Otherwise>
+        </Choose>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">Level-Based Content</div>
+        <Show data="posts.length" greaterThanOrEqual="50">
+          <div style="background: linear-gradient(135deg, #ffeaa7, #fdcb6e); padding: 15px; border-radius: 8px; margin-top: 10px;">
+            <strong>🌟 Veteran User Perk:</strong> You've unlocked exclusive badges and customization options!
+          </div>
+        </Show>
+        <Show data="posts.length" lessThan="10">
+          <div style="background: linear-gradient(135deg, #81ecec, #74b9ff); padding: 15px; border-radius: 8px; margin-top: 10px; color: white;">
+            <strong>💡 Tip:</strong> Create 10 posts to unlock the next level!
+          </div>
+        </Show>
+      </div>
+    </div>
+
+    <!-- Owner/Visitor Section -->
+    <div class="section-card role-section">
+      <h2 class="section-title">
+        <span class="section-icon">👥</span>
+        Owner vs Visitor
+      </h2>
+
+      <div class="example-item">
+        <div class="example-label">IfOwner Component</div>
+        <div class="code-snippet">&lt;IfOwner&gt;Owner-only content&lt;/IfOwner&gt;</div>
+        <IfOwner>
+          <div class="owner-only">
+            <strong>👤 Owner View:</strong> This message is only visible to you!
+            You can edit your profile, view analytics, and manage settings.
+          </div>
+        </IfOwner>
+        <IfVisitor>
+          <span class="result-badge result-false">✗ Not visible - you're a visitor</span>
+        </IfVisitor>
+        <div class="explanation">Shows content only to profile owner</div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">IfVisitor Component</div>
+        <div class="code-snippet">&lt;IfVisitor&gt;Visitor-only content&lt;/IfVisitor&gt;</div>
+        <IfVisitor>
+          <div class="visitor-only">
+            <strong>👋 Visitor View:</strong> Welcome! Feel free to explore and sign the guestbook.
+          </div>
+        </IfVisitor>
+        <IfOwner>
+          <span class="result-badge result-false">✗ Not visible - you're the owner</span>
+        </IfOwner>
+        <div class="explanation">Shows content only to visitors (not owner)</div>
+      </div>
+    </div>
+
+    <!-- Profile Status Section -->
+    <div class="section-card profile-section">
+      <h2 class="section-title">
+        <span class="section-icon">📊</span>
+        Profile Status
+      </h2>
+
+      <div class="example-item">
+        <div class="example-label">Content Indicators</div>
+        <div style="display: grid; gap: 10px; margin-top: 10px;">
+          <Show data="posts">
+            <span class="result-badge result-true">✓ Has Posts</span>
+          </Show>
+          <Show not="posts">
+            <span class="result-badge result-false">✗ No Posts</span>
+          </Show>
+
+          <Show data="capabilities.bio">
+            <span class="result-badge result-true">✓ Has Bio</span>
+          </Show>
+          <Show not="capabilities.bio">
+            <span class="result-badge result-false">✗ No Bio</span>
+          </Show>
+
+          <Show data="guestbook">
+            <span class="result-badge result-true">✓ Has Guestbook Entries</span>
+          </Show>
+          <Show not="guestbook">
+            <span class="result-badge result-false">✗ No Guestbook Entries</span>
+          </Show>
+
+          <Show data="featuredFriends">
+            <span class="result-badge result-true">✓ Has Featured Friends</span>
+          </Show>
+          <Show not="featuredFriends">
+            <span class="result-badge result-false">✗ No Featured Friends</span>
+          </Show>
+        </div>
+      </div>
+
+      <div class="example-item">
+        <div class="example-label">Engagement Level</div>
+        <Choose>
+          <When and="posts,guestbook,featuredFriends">
+            <div style="background: linear-gradient(135deg, #84fab0, #8fd3f4); padding: 15px; border-radius: 8px; color: #065f46; font-weight: 600;">
+              🔥 Highly Active Profile - Full engagement across all features!
+            </div>
+          </When>
+          <When or="posts,guestbook">
+            <div style="background: linear-gradient(135deg, #ffecd2, #fcb69f); padding: 15px; border-radius: 8px; color: #7c2d12; font-weight: 600;">
+              ✨ Active Profile - Good participation!
+            </div>
+          </When>
+          <Otherwise>
+            <div style="background: linear-gradient(135deg, #e0e7ff, #cffafe); padding: 15px; border-radius: 8px; color: #1e3a8a; font-weight: 600;">
+              🌱 New Profile - Start exploring the platform!
+            </div>
+          </Otherwise>
+        </Choose>
+      </div>
+    </div>
+  </div>
+
+  <!-- Syntax Reference -->
+  <div class="syntax-reference">
+    <h2 class="syntax-title">📚 Syntax Quick Reference</h2>
+
+    <div class="syntax-category">
+      <h3>🔢 Comparison Operators</h3>
+      <div class="syntax-example">&lt;Show data="posts.length" greaterThan="10"&gt;...&lt;/Show&gt;
+&lt;Show data="posts.length" lessThan="100"&gt;...&lt;/Show&gt;
+&lt;Show data="posts.length" greaterThanOrEqual="5"&gt;...&lt;/Show&gt;
+&lt;Show data="posts.length" lessThanOrEqual="50"&gt;...&lt;/Show&gt;
+&lt;Show data="owner.handle" equals="admin"&gt;...&lt;/Show&gt;
+&lt;Show data="owner.handle" notEquals="guest"&gt;...&lt;/Show&gt;</div>
+    </div>
+
+    <div class="syntax-category">
+      <h3>📝 String Operators</h3>
+      <div class="syntax-example">&lt;Show data="capabilities.bio" contains="developer"&gt;...&lt;/Show&gt;
+&lt;Show data="owner.handle" startsWith="admin"&gt;...&lt;/Show&gt;
+&lt;Show data="owner.handle" endsWith="_test"&gt;...&lt;/Show&gt;
+&lt;Show data="owner.handle" matches="user\d+"&gt;...&lt;/Show&gt;</div>
+    </div>
+
+    <div class="syntax-category">
+      <h3>🔗 Logical Operators</h3>
+      <div class="syntax-example">&lt;Show and="posts,capabilities.bio,featuredFriends"&gt;...&lt;/Show&gt;
+&lt;Show or="posts,guestbook"&gt;...&lt;/Show&gt;
+&lt;Show not="posts"&gt;...&lt;/Show&gt;</div>
+    </div>
+
+    <div class="syntax-category">
+      <h3>🔀 Multi-Condition Branching</h3>
+      <div class="syntax-example">&lt;Choose&gt;
+  &lt;When data="posts.length" greaterThan="100"&gt;
+    Master level content
+  &lt;/When&gt;
+  &lt;When data="posts.length" greaterThan="50"&gt;
+    Expert level content
+  &lt;/When&gt;
+  &lt;Otherwise&gt;
+    Default content
+  &lt;/Otherwise&gt;
+&lt;/Choose&gt;</div>
+    </div>
+
+    <div class="syntax-category">
+      <h3>👥 Owner/Visitor</h3>
+      <div class="syntax-example">&lt;IfOwner&gt;Only profile owner sees this&lt;/IfOwner&gt;
+&lt;IfVisitor&gt;Only visitors see this&lt;/IfVisitor&gt;</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-info">
+    <p><strong>Conditional Logic Showcase</strong> - Interactive demonstration of all operators</p>
+    <p>Built with Threadstead's enhanced conditional rendering system</p>
+    <p style="margin-top: 15px; font-size: 0.9rem;">
+      View profile: <DisplayName as="span" /> |
+      <IfOwner>Edit this template to customize your showcase</IfOwner>
+      <IfVisitor>Explore and learn from live examples</IfVisitor>
+    </p>
+  </div>
+</div>`;

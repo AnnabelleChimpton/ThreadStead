@@ -299,7 +299,15 @@ export class PureHtmlGenerator {
       'backgroundOpacity': 'backgroundopacity',
       // Component-specific props - CustomHTMLElement
       'tagName': 'tagname',
-      'innerHTML': 'innerhtml'
+      'innerHTML': 'innerhtml',
+      // Conditional component comparison operators
+      'greaterThan': 'greaterthan',
+      'lessThan': 'lessthan',
+      'greaterThanOrEqual': 'greaterthanorequal',
+      'lessThanOrEqual': 'lessthanorequal',
+      'notEquals': 'notequals',
+      'startsWith': 'startswith',
+      'endsWith': 'endswith'
     };
 
     // Remove legacy props when universal equivalent exists

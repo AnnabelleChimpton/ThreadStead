@@ -97,12 +97,12 @@ describe('Template System End-to-End Integration', () => {
         posts: [
           {
             id: 'post1',
-            contentHtml: '<p>First blog post from template</p>',
+            bodyHtml: '<p>First blog post from template</p>',
             createdAt: new Date().toISOString()
           },
           {
             id: 'post2',
-            contentHtml: '<p>Second blog post with <strong>formatting</strong></p>',
+            bodyHtml: '<p>Second blog post with <strong>formatting</strong></p>',
             createdAt: new Date(Date.now() - 86400000).toISOString()
           }
         ]
@@ -249,7 +249,7 @@ describe('Template System End-to-End Integration', () => {
         posts: [
           {
             id: 'comp1',
-            contentHtml: '<p>My comprehensive post with <em>italics</em> and <strong>bold</strong>.</p>',
+            bodyHtml: '<p>My comprehensive post with <em>italics</em> and <strong>bold</strong>.</p>',
             createdAt: new Date().toISOString()
           }
         ],
@@ -375,7 +375,7 @@ describe('Template System End-to-End Integration', () => {
       const mockData = createMockResidentData({
         posts: Array.from({ length: 20 }, (_, i) => ({
           id: `post-${i}`,
-          contentHtml: `<p>Blog post ${i} content</p>`,
+          bodyHtml: `<p>Blog post ${i} content</p>`,
           createdAt: new Date(Date.now() - i * 86400000).toISOString()
         }))
       });

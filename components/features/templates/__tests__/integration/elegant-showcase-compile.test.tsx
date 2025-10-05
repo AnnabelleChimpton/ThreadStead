@@ -244,9 +244,8 @@ describe('Elegant Showcase Template Compilation', () => {
         posts: [
           {
             id: 'post1',
-            contentHtml: '<p>Test blog post content</p>',
-            publishedAt: new Date().toISOString(),
-            handle: 'elegantuser'
+            bodyHtml: '<p>Test blog post content</p>',
+            createdAt: new Date().toISOString()
           }
         ],
         guestbook: [

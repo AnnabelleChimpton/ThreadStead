@@ -10,10 +10,13 @@ export interface ResidentData {
   };
   viewer: {
     id: string | null;
+    isFriend?: boolean;
+    isFollowing?: boolean;
+    isFollower?: boolean;
   };
   posts: Array<{
     id: string;
-    contentHtml: string;
+    bodyHtml: string;
     createdAt: string;
   }>;
   guestbook: Array<{
