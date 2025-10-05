@@ -428,14 +428,19 @@ function StaticHTMLWithIslands({
 
       // Visual Builder container creation logic (client-side)
       if (templateType === 'visual-builder') {
-        // Check if we have a suitable container (profile container or pure-absolute-container)
-        const hasProfileContainer = processedHTML.includes(`id="${profileId}"`) &&
-                                   (processedHTML.includes('pure-absolute-container') ||
-                                    processedHTML.includes('advanced-template-container'));
-        const hasVBClasses = visualBuilderClasses.some(cls => processedHTML.includes(cls));
+        const hasPositioningContainer = processedHTML.includes('pure-absolute-container') ||
+                                       processedHTML.includes('advanced-template-container');
+        const hasProfileId = processedHTML.includes(`id="${profileId}"`);
 
-        // Create container if we don't have a proper Visual Builder container
-        if (!hasProfileContainer || !hasVBClasses) {
+        // If we already have a positioning container, add ID and classes to it instead of wrapping
+        if (hasPositioningContainer && !hasProfileId && profileId) {
+          // Add ID to the existing positioning container
+          processedHTML = processedHTML.replace(
+            /<div([^>]*class="[^"]*(?:pure-absolute-container|advanced-template-container)[^"]*"[^>]*)>/,
+            `<div id="${profileId}"$1>`
+          );
+        } else if (!hasPositioningContainer) {
+          // Only create a new wrapper if there's no positioning container at all
           const idAttr = profileId ? ` id="${profileId}"` : '';
           const classAttr = `class="pure-absolute-container ${vbClassString}"`;
           processedHTML = `<div${idAttr} ${classAttr}>${processedHTML}</div>`;
@@ -447,7 +452,10 @@ function StaticHTMLWithIslands({
 
     // Find all island placeholders in the DOM tree
     const placeholders = container.querySelectorAll('[data-island]');
-    
+
+    // Create a counter object to ensure unique keys across the entire tree
+    const keyCounter = { value: 0 };
+
     // Helper function to convert DOM node to React element
     const domToReact = (node: Node, islands: Island[], residentData: any, onIslandRender: (islandId: string) => void, onIslandError: (error: Error, islandId: string) => void, isNestedComponent = false, isInVisualBuilder = false): React.ReactNode => {
       if (node.nodeType === Node.TEXT_NODE) {
@@ -494,15 +502,6 @@ function StaticHTMLWithIslands({
                   ...existingStyle,
                   ...generatedStyles
                 };
-
-                // Debug logging for CSS prop conversion
-                if (Object.keys(cssProps).length > 0 && process.env.NODE_ENV === 'development') {
-                  console.log(`🎨 [ProfileRenderer] Converting CSS props for ${island.component}:`, {
-                    componentId: island.id,
-                    extractedCSS: cssProps,
-                    generatedStyles: generatedStyles
-                  });
-                }
 
                 // Create base component with props and set positioning mode
                 // KEEP both flat CSS props AND merged style for compatibility:
@@ -872,6 +871,10 @@ function StaticHTMLWithIslands({
           // Convert HTML attributes to React props
           if (propName === 'class') {
             propName = 'className';
+            props[propName] = attr.value; // CRITICAL: Actually set the className prop!
+          } else if (propName === 'style') {
+            // Convert CSS string to React style object
+            props[propName] = parseStyleString(attr.value);
           } else if (propName.includes('-')) {
             // PRESERVE positioning data attributes in original form for template renderer
             if (propName === 'data-positioning-mode' ||
@@ -890,9 +893,8 @@ function StaticHTMLWithIslands({
           }
         }
         
-        // Add a stable key for React reconciliation (FIXED: removed Math.random() to prevent infinite loops)
-        props.key = `${tagName}-${Array.from(element.childNodes).length}`;
-
+        // Add a stable key for React reconciliation (FIXED: use global counter for unique keys)
+        props.key = `${tagName}-${keyCounter.value++}`;
 
         // Recursively process children
         const children = Array.from(element.childNodes).map((child, index) =>
@@ -952,9 +954,8 @@ function StaticHTMLWithIslands({
     const processedContent = Array.from(container.childNodes).map((node, index) =>
       domToReact(node, islands, residentData, onIslandRender, onIslandError, false, isInVisualBuilder)
     ).filter(child => child !== null && child !== '');
-    
+
     // Return processed content
-    
     return processedContent;
   };
   
@@ -1031,11 +1032,14 @@ function parseHTMLToReactChildren(
   // Create a temporary div to parse the HTML
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
-  
+
   // Process the parsed HTML nodes
-  
+
+  // Create a counter object to ensure unique keys across the entire tree
+  const keyCounter = { value: 0 };
+
   // Convert DOM nodes to React elements
-  return domToReact(tempDiv, allIslands, residentData, onIslandRender, onIslandError, false);
+  return domToReact(tempDiv, allIslands, residentData, onIslandRender, onIslandError, false, keyCounter);
 }
 
 // Convert DOM nodes to React elements recursively
@@ -1045,7 +1049,8 @@ function domToReact(
   residentData: ResidentData,
   onIslandRender: (islandId: string) => void,
   onIslandError: (error: Error, islandId: string) => void,
-  isInVisualBuilder = false
+  isInVisualBuilder = false,
+  keyCounter = { value: 0 }
 ): React.ReactNode {
   // Text node
   if (node.nodeType === Node.TEXT_NODE) {
@@ -1082,8 +1087,8 @@ function domToReact(
       }
     }
     
-    // Regular HTML element - convert attributes (FIXED: removed Math.random() to prevent infinite loops)
-    const props: any = { key: `element-${element.tagName}-${Array.from(element.childNodes).length}` };
+    // Regular HTML element - convert attributes (FIXED: use global counter for unique keys)
+    const props: any = { key: `element-${element.tagName}-${keyCounter.value++}` };
 
     // Attribute mapping for component props (same as island-detector.ts)
     const attributeMap: Record<string, string> = {
@@ -1183,7 +1188,7 @@ function domToReact(
 
     // Convert children recursively
     const children = Array.from(node.childNodes)
-      .map(child => domToReact(child, allIslands, residentData, onIslandRender, onIslandError, isInVisualBuilder))
+      .map(child => domToReact(child, allIslands, residentData, onIslandRender, onIslandError, isInVisualBuilder, keyCounter))
       .filter(child => child !== null && child !== '');
 
     // Create React element

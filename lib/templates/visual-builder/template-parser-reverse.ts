@@ -686,7 +686,8 @@ export class TemplateParserReverse {
 
     const components: CanvasComponent[] = [];
 
-    // Recursively find all template components, ignoring HTML containers
+    // Recursively find all template components
+    // The recursive function now properly handles positioning wrapper divs
     this.extractComponentsRecursively(bodyDiv, components);
 
     return components;
@@ -701,7 +702,15 @@ export class TemplateParserReverse {
     // Check if this is a template component (registered in component registry)
     const componentRegistration = componentRegistry.get(tagName);
     const isTemplateComponent = componentRegistration !== undefined;
-    const isHTMLContainer = this.HTML_CONTAINERS.has(tagName.toLowerCase());
+
+    // CRITICAL FIX: Check if this is a positioning wrapper div that should NOT be skipped
+    const className = element.getAttribute('class') || '';
+    const isPositioningWrapper = tagName.toLowerCase() === 'div' &&
+                                 (className.includes('pure-absolute-container') ||
+                                  className.includes('advanced-template-container'));
+
+    // Only treat as HTML container if it's NOT a positioning wrapper
+    const isHTMLContainer = this.HTML_CONTAINERS.has(tagName.toLowerCase()) && !isPositioningWrapper;
 
     if (isTemplateComponent) {
       const component = this.elementToComponent(element);
@@ -744,6 +753,12 @@ export class TemplateParserReverse {
           });
         }
       }
+    } else if (isPositioningWrapper) {
+      // This is a positioning wrapper div - process its children as top-level components
+      // The wrapper itself is just a container and doesn't need to be in the components array
+      Array.from(element.children).forEach(child => {
+        this.extractComponentsRecursively(child, components, true); // Children are top-level
+      });
     } else if (isHTMLContainer) {
       // This is an HTML container - recursively examine its children as top-level components
       Array.from(element.children).forEach(child => {

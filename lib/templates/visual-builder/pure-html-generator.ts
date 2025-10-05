@@ -156,6 +156,9 @@ export class PureHtmlGenerator {
       positioningStyles = styles.join('; ');
     }
 
+    // Track if we've already added the style attribute
+    let styleWasHandled = false;
+
     Object.entries(deduplicatedProps).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
 
@@ -212,6 +215,7 @@ export class PureHtmlGenerator {
             : positioningStyles;
         }
         propStrings.push(`style="${this.escapeHtml(mergedStyles)}"`);
+        styleWasHandled = true;
         return;
       }
 
@@ -231,8 +235,8 @@ export class PureHtmlGenerator {
       }
     });
 
-    // If we have positioning styles but no style prop was found, add it
-    if (positioning && positioningStyles && !props.style) {
+    // If we have positioning styles but no style attribute was added yet, add it
+    if (positioning && positioningStyles && !styleWasHandled) {
       propStrings.push(`style="${positioningStyles}"`);
     }
 

@@ -8,14 +8,6 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
   let nodeCount = 0;
   let islandReplacements = 0;
 
-  // Debug: Check if AST contains positioning data
-  const astString = JSON.stringify(ast);
-  const hasPositioningInAST = astString.includes('data-positioning-mode') ||
-                              astString.includes('data-pixel-position') ||
-                              astString.includes('dataPositioningMode') ||
-                              astString.includes('dataPixelPosition') ||
-                              astString.includes('dataPosition');
-
 
   function renderNode(node: TemplateNode): string {
     nodeCount++;
@@ -65,7 +57,7 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
   }
   
   const result = renderNode(ast);
-  
+
   return result;
 }
 

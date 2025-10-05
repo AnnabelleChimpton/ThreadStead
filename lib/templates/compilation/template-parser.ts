@@ -9,7 +9,11 @@ function createCustomSchema() {
   // Start with a more permissive base instead of defaultSchema
   const schema = {
     tagNames: [...(defaultSchema.tagNames || [])],
-    attributes: { ...(defaultSchema.attributes || {}) },
+    // Deep copy attributes to avoid modifying defaultSchema's arrays
+    attributes: Object.entries(defaultSchema.attributes || {}).reduce((acc, [tag, attrs]) => {
+      acc[tag] = Array.isArray(attrs) ? [...attrs] : attrs;
+      return acc;
+    }, {} as Record<string, any>),
     protocols: { ...(defaultSchema.protocols || {}) },
     // CRITICAL: Allow inline CSS properties in style attributes
     // Without this, rehype-sanitize strips ALL inline styles
@@ -21,7 +25,53 @@ function createCustomSchema() {
   // Allow placeholder URLs like "#"
   schema.protocols.src = ['http', 'https', 'mailto', 'tel', 'data', '#'];
   schema.protocols.href = ['http', 'https', 'mailto', 'tel', '#'];
-  
+
+  // Add class to wildcard attributes so ALL tags can have classes
+  if (schema.attributes['*']) {
+    const wildcardAttrs = schema.attributes['*'];
+    if (!wildcardAttrs.includes('class')) {
+      wildcardAttrs.push('class');
+    }
+    if (!wildcardAttrs.includes('className')) {
+      wildcardAttrs.push('className');
+    }
+  }
+
+  // Allow class attributes on all standard HTML elements
+  const standardHTMLTags = [
+    'div', 'span', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav',
+    'a', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+    'form', 'input', 'button', 'select', 'textarea', 'label',
+    'img', 'video', 'audio', 'canvas', 'svg',
+    'strong', 'em', 'code', 'pre', 'blockquote'
+  ];
+
+  for (const tag of standardHTMLTags) {
+    // Ensure the tag has an attributes array
+    if (!schema.attributes[tag]) {
+      schema.attributes[tag] = [];
+    }
+
+    // Remove conditional class/className entries like ['className', 'value']
+    // These restrict className to specific values only, which breaks our templates
+    schema.attributes[tag] = schema.attributes[tag].filter((attr: any) => {
+      if (Array.isArray(attr) && (attr[0] === 'class' || attr[0] === 'className')) {
+        return false; // Remove conditional class/className
+      }
+      return true;
+    });
+
+    // Add unconditional class and className (allow any value)
+    if (!schema.attributes[tag].includes('class')) {
+      schema.attributes[tag].push('class');
+    }
+    if (!schema.attributes[tag].includes('className')) {
+      schema.attributes[tag].push('className');
+    }
+  }
+
   // Allow custom component tags from the registry
   if (componentRegistry) {
     const allowedTags = componentRegistry.getAllowedTags();
@@ -278,22 +328,22 @@ export function astToJson(node: unknown): TemplateNode {
 
   if (typedNode.type === 'root') {
     const children = typedNode.children?.map(astToJson) || [];
-    
+
     // Check if we have a single auto-added div wrapper to unwrap
-    if (children.length === 1 && 
-        children[0].type === 'element' && 
+    if (children.length === 1 &&
+        children[0].type === 'element' &&
         children[0].tagName === 'div') {
-      
+
       const divElement = children[0];
       const hasEmptyProperties = !divElement.properties || Object.keys(divElement.properties).length === 0;
       const hasMultipleChildren = divElement.children && divElement.children.length > 1;
-      
+
       if (hasEmptyProperties && hasMultipleChildren) {
         // This looks like our auto-added wrapper, unwrap it
-        const divChildren = divElement.children?.filter((child) => 
+        const divChildren = divElement.children?.filter((child) =>
           child.type !== 'text' || (child.value && child.value.trim())
         ) || [];
-        
+
         return {
           type: 'root',
           children: divChildren

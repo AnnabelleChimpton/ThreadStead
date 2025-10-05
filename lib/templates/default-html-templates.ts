@@ -17,27 +17,27 @@ export interface HTMLTemplateInfo {
 export const HTML_TEMPLATES: HTMLTemplateInfo[] = [
   {
     id: 'simple-default',
-    name: 'Modern Minimal',
-    description: 'Clean glassmorphism design with gradient backgrounds and smooth animations',
+    name: 'Personal Homepage',
+    description: 'Early 2000s blog-style homepage with sidebar, status updates, and blogroll',
     category: 'minimal',
     template: SIMPLE_DEFAULT_TEMPLATE,
-    preview: '🔮 Glassmorphism cards with gradient text and backdrop blur effects'
+    preview: '📝 Sidebar layout, custom badges, currently reading/playing status, no social features'
   },
   {
     id: 'social-modern',
-    name: 'Cyberpunk Social',
-    description: 'Futuristic cyberpunk theme with neon glows, holographic effects, and terminal aesthetics',
+    name: 'ThreadRing Portal',
+    description: 'Webring welcome page with navigation, member showcase, and community badges',
     category: 'modern',
     template: SOCIAL_MODERN_TEMPLATE,
-    preview: '⚡ Neon animations, glitch effects, holographic borders, and matrix-style terminals'
+    preview: '🔗 Links to /tr/welcome, ring navigation (prev/random/next), 88x31 badges, community portal'
   },
   {
     id: 'classic-web1',
-    name: 'Vintage Neocities',
-    description: 'Authentic 90s homepage with animated GIFs, blinking text, and retro web aesthetics',
+    name: 'Vintage Web 1.0',
+    description: 'Authentic 90s Geocities/Neocities homepage with animated effects and retro styling',
     category: 'classic',
     template: CLASSIC_WEB1_TEMPLATE,
-    preview: '💾 Marquee scrolling, rainbow text, animated borders, visitor counters, and webring links'
+    preview: '✨ Marquee text, blinking construction signs, table layouts, rainbow gradients, visitor counters'
   }
 ];
 

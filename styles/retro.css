@@ -85,6 +85,12 @@ a:hover {
   max-width: 100%;
 }
 
+/* Fix all modules on regular profile pages - ensure consistent width */
+.ts-profile-main-content .thread-module {
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* Micro-labels in monospace */
 .thread-label {
   font-family: "Menlo", "Monaco", "Consolas", monospace;

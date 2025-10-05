@@ -1,520 +1,390 @@
 export const SOCIAL_MODERN_TEMPLATE = `<style>
-/* Cyberpunk Social Hub Styling */
+/* ThreadRing Portal Styling */
 body {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 50%, #000a1a 100%) !important;
-  background-attachment: fixed !important;
-  color: #00ffff !important;
-  overflow-x: hidden !important;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background-attachment: fixed;
+  color: #eee;
+  font-family: 'Trebuchet MS', 'Lucida Sans', sans-serif;
+  margin: 0;
+  padding: 20px;
 }
 
-/* Custom container classes to avoid globals.css dependencies */
-.cyber-main-container {
-  width: 100% !important;
-  margin: 0 auto !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
+.portal-container {
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
-.cyber-split-layout {
-  display: flex !important;
-  gap: 1.5rem !important;
-  margin-bottom: 2rem !important;
-  flex-wrap: wrap !important;
+.portal-header {
+  background: linear-gradient(135deg, #e94560 0%, #d62c4e 100%);
+  border: 3px solid #fff;
+  border-radius: 15px;
+  padding: 30px;
+  text-align: center;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(233, 69, 96, 0.3);
 }
 
-.cyber-split-main {
-  flex: 65% !important;
-  min-width: 300px !important;
+.portal-title {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #fff;
+  margin: 0;
+  text-shadow: 3px 3px 0 rgba(0,0,0,0.3);
+  letter-spacing: 2px;
 }
 
-.cyber-split-sidebar {
-  flex: 35% !important;
-  min-width: 250px !important;
+.portal-subtitle {
+  font-size: 1.2rem;
+  color: #fff;
+  margin-top: 10px;
+  opacity: 0.9;
 }
 
-.cyber-flex-row {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  gap: 1.5rem !important;
-  flex-wrap: wrap !important;
+.welcome-banner {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 30px;
+  backdrop-filter: blur(10px);
 }
 
-.cyber-flex-col {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 1rem !important;
+.welcome-banner h2 {
+  color: #e94560;
+  margin-top: 0;
 }
 
-.cyber-flex-end {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-end !important;
-  gap: 1rem !important;
+.ring-navigation {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin: 30px 0;
 }
 
-.cyber-flex-social {
-  display: flex !important;
-  flex-direction: row !important;
-  gap: 1rem !important;
+.nav-card {
+  background: linear-gradient(135deg, rgba(233, 69, 96, 0.2) 0%, rgba(214, 44, 78, 0.2) 100%);
+  border: 2px solid #e94560;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  text-decoration: none;
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-@media (max-width: 768px) {
-  .cyber-split-layout {
-    flex-direction: column !important;
-  }
-  .cyber-split-main, .cyber-split-sidebar {
-    flex: 100% !important;
-  }
+.nav-card:hover {
+  background: linear-gradient(135deg, rgba(233, 69, 96, 0.4) 0%, rgba(214, 44, 78, 0.4) 100%);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(233, 69, 96, 0.4);
 }
 
-/* Animated background particles */
-body::before {
-  content: '' !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background-image: 
-    radial-gradient(circle at 20% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(255, 255, 0, 0.05) 0%, transparent 50%) !important;
-  animation: particle-drift 20s ease-in-out infinite !important;
-  z-index: -1 !important;
+.nav-card .icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 10px;
 }
 
-@keyframes particle-drift {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  33% { transform: translateY(-20px) rotate(120deg); }
-  66% { transform: translateY(10px) rotate(240deg); }
+.member-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin: 30px 0;
 }
 
-/* Neon DisplayName */
-.ts-profile-display-name {
-  font-size: 4rem !important;
-  font-family: 'Orbitron', monospace, sans-serif !important;
-  color: transparent !important;
-  background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00, #00ffff) !important;
-  background-size: 400% 400% !important;
-  background-clip: text !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  text-shadow: 
-    0 0 20px #00ffff,
-    0 0 40px #ff00ff,
-    0 0 60px #ffff00 !important;
-  animation: neon-glow 3s ease-in-out infinite alternate, color-shift 8s linear infinite !important;
-  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.5)) !important;
+.member-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(233, 69, 96, 0.5);
+  border-radius: 10px;
+  padding: 20px;
+  transition: all 0.3s ease;
 }
 
-@keyframes neon-glow {
-  0% { 
-    text-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff, 0 0 60px #ffff00;
-    filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.5));
-  }
-  100% { 
-    text-shadow: 0 0 40px #00ffff, 0 0 80px #ff00ff, 0 0 120px #ffff00;
-    filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.8));
-  }
+.member-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #e94560;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(233, 69, 96, 0.3);
 }
 
-@keyframes color-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+.member-card h3 {
+  color: #e94560;
+  margin-top: 0;
+  font-size: 1.3rem;
 }
 
-/* Holographic Profile Photo */
-.ts-profile-photo-frame {
-  position: relative !important;
-  border: 3px solid transparent !important;
-  border-radius: 50% !important;
-  background: linear-gradient(45deg, #00ffff, #ff00ff) !important;
-  padding: 4px !important;
-  animation: holo-rotate 4s linear infinite !important;
+.member-card p {
+  color: #ccc;
+  line-height: 1.6;
+  margin: 10px 0;
 }
 
-.ts-profile-photo-frame::before {
-  content: '' !important;
-  position: absolute !important;
-  top: -5px !important;
-  left: -5px !important;
-  right: -5px !important;
-  bottom: -5px !important;
-  background: linear-gradient(45deg, transparent, #00ffff, transparent, #ff00ff) !important;
-  border-radius: 50% !important;
-  animation: holo-spin 2s linear infinite !important;
-  z-index: -1 !important;
+.badge-collection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 30px 0;
+  justify-content: center;
 }
 
-@keyframes holo-rotate {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
+.ring-badge {
+  width: 88px;
+  height: 31px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  border: 2px solid;
+  font-family: Arial, sans-serif;
+  cursor: pointer;
+  transition: transform 0.2s ease;
 }
 
-@keyframes holo-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.ring-badge:hover {
+  transform: scale(1.1);
 }
 
-/* Cyber Bio Section */
-.ts-profile-bio-section {
-  background: rgba(0, 0, 0, 0.8) !important;
-  border: 2px solid #00ffff !important;
-  border-radius: 10px !important;
-  padding: 20px !important;
-  box-shadow: 
-    0 0 20px rgba(0, 255, 255, 0.3),
-    inset 0 0 20px rgba(0, 255, 255, 0.1) !important;
-  position: relative !important;
-  overflow: hidden !important;
+.badge-member {
+  background: linear-gradient(135deg, #e94560, #d62c4e);
+  color: white;
+  border-color: #fff;
 }
 
-.ts-profile-bio-section::before {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: -100% !important;
-  width: 100% !important;
-  height: 100% !important;
-  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent) !important;
-  animation: scan-line 3s linear infinite !important;
+.badge-featured {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #000;
+  border-color: #000;
 }
 
-@keyframes scan-line {
-  0% { left: -100%; }
-  100% { left: 100%; }
+.badge-verified {
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  color: white;
+  border-color: #fff;
 }
 
-.ts-bio-text {
-  color: #00ffff !important;
-  font-family: 'Courier New', monospace !important;
-  font-size: 1.1rem !important;
-  line-height: 1.6 !important;
-  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5) !important;
+.join-section {
+  background: linear-gradient(135deg, rgba(233, 69, 96, 0.3) 0%, rgba(15, 52, 96, 0.3) 100%);
+  border: 3px solid #e94560;
+  border-radius: 15px;
+  padding: 30px;
+  text-align: center;
+  margin: 30px 0;
 }
 
-/* Futuristic Blog Posts */
-.ts-blog-posts {
-  background: rgba(0, 0, 0, 0.9) !important;
-  border: 1px solid #ff00ff !important;
-  border-radius: 8px !important;
-  overflow: hidden !important;
+.join-section h2 {
+  color: #fff;
+  font-size: 2rem;
+  margin-top: 0;
 }
 
-.ts-blog-posts-title {
-  background: linear-gradient(90deg, #ff00ff, #00ffff) !important;
-  color: #000000 !important;
-  font-weight: bold !important;
-  font-family: 'Orbitron', sans-serif !important;
-  text-align: center !important;
-  padding: 10px !important;
-  margin: 0 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 2px !important;
+.cta-button {
+  display: inline-block;
+  background: linear-gradient(135deg, #e94560, #d62c4e);
+  color: white;
+  padding: 15px 30px;
+  border: 3px solid #fff;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-top: 15px;
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.ts-blog-post {
-  background: rgba(255, 0, 255, 0.05) !important;
-  border-bottom: 1px solid rgba(255, 0, 255, 0.3) !important;
-  padding: 15px !important;
-  transition: all 0.3s ease !important;
-  position: relative !important;
+.cta-button:hover {
+  background: linear-gradient(135deg, #d62c4e, #c42345);
+  transform: scale(1.05);
+  box-shadow: 0 10px 30px rgba(233, 69, 96, 0.5);
 }
 
-.ts-blog-post:hover {
-  background: rgba(255, 0, 255, 0.1) !important;
-  transform: translateX(5px) !important;
-  box-shadow: -5px 0 15px rgba(255, 0, 255, 0.3) !important;
+.info-box {
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 4px solid #e94560;
+  border-radius: 5px;
+  padding: 15px;
+  margin: 20px 0;
 }
 
-.ts-blog-post::before {
-  content: '▶' !important;
-  position: absolute !important;
-  left: 5px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  color: #00ffff !important;
-  opacity: 0 !important;
-  transition: opacity 0.3s ease !important;
+.footer-portal {
+  text-align: center;
+  margin-top: 50px;
+  padding-top: 30px;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
+  color: #999;
+  font-size: 0.9rem;
 }
 
-.ts-blog-post:hover::before {
-  opacity: 1 !important;
-}
-
-.ts-blog-post-meta {
-  color: #ffff00 !important;
-  font-family: 'Courier New', monospace !important;
-  font-size: 0.9rem !important;
-}
-
-/* Glitch effect for headings */
-h1, h2, h3 {
-  font-family: 'Orbitron', monospace, sans-serif !important;
-  color: #00ffff !important;
-  position: relative !important;
-  animation: glitch-text 4s linear infinite !important;
-}
-
-@keyframes glitch-text {
-  0%, 98% { 
-    transform: translate(0);
-    filter: hue-rotate(0deg);
-  }
-  99% { 
-    transform: translate(-2px, 2px);
-    filter: hue-rotate(90deg);
-  }
-  100% { 
-    transform: translate(2px, -2px);
-    filter: hue-rotate(180deg);
-  }
-}
-
-/* Cyberpunk Links */
 a {
-  color: #00ffff !important;
-  text-decoration: none !important;
-  position: relative !important;
-  font-weight: bold !important;
-  transition: all 0.3s ease !important;
+  color: #e94560;
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 a:hover {
-  color: #ff00ff !important;
-  text-shadow: 0 0 10px currentColor !important;
+  color: #ff6b81;
+  text-decoration: underline;
 }
 
-a::after {
-  content: '' !important;
-  position: absolute !important;
-  bottom: -2px !important;
-  left: 0 !important;
-  width: 0 !important;
-  height: 2px !important;
-  background: linear-gradient(90deg, #00ffff, #ff00ff) !important;
-  transition: width 0.3s ease !important;
+h2 {
+  color: #fff;
+  font-size: 1.8rem;
+  margin-bottom: 20px;
 }
 
-a:hover::after {
-  width: 100% !important;
+.section-heading {
+  text-align: center;
 }
 
-/* Terminal-style containers */
-.cyber-terminal {
-  background: #000000 !important;
-  border: 2px solid #00ff00 !important;
-  border-radius: 8px !important;
-  padding: 15px !important;
-  font-family: 'Courier New', monospace !important;
-  color: #00ff00 !important;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3) !important;
-  position: relative !important;
+.welcome-text {
+  color: #ccc;
+  line-height: 1.8;
 }
 
-.cyber-terminal::before {
-  content: '●●●' !important;
-  position: absolute !important;
-  top: 8px !important;
-  right: 15px !important;
-  color: #ff0000 !important;
-  font-size: 12px !important;
+.member-info {
+  margin-top: 15px;
 }
 
-.cyber-header {
-  background: rgba(0,0,0,0.9) !important;
-  border-bottom: 2px solid #00ffff !important;
-  padding: 2rem !important;
-  margin-bottom: 2rem !important;
-  position: relative !important;
+.join-text {
+  color: #eee;
+  font-size: 1.1rem;
+  line-height: 1.8;
 }
 
-.status-online {
-  color: #ffff00 !important;
-  font-family: 'Courier New', monospace !important;
-  margin-top: 0.5rem !important;
+.badges-description {
+  text-align: center;
+  color: #aaa;
+  margin-bottom: 20px;
 }
 
-.access-level {
-  color: #ff00ff !important;
-  font-family: 'Courier New', monospace !important;
-  margin-top: 0.25rem !important;
+.about-portal-box {
+  margin: 40px 0;
 }
 
-.connection-status {
-  padding: 10px 15px !important;
-  font-size: 0.9rem !important;
+.about-portal-heading {
+  color: #e94560;
+  margin-top: 0;
 }
 
-.section-title {
-  margin-bottom: 1rem !important;
-  font-size: 1.5rem !important;
+.about-portal-text {
+  color: #ccc;
 }
 
-.terminal-prompt {
-  color: #ffff00 !important;
-  margin-bottom: 0.5rem !important;
-}
-
-.terminal-prompt.network-cmd {
-  margin: 0.5rem 0 !important;
-}
-
-.terminal-prompt.social-cmd {
-  margin: 0.5rem 0 !important;
-}
-
-.terminal-output {
-  margin-left: 1rem !important;
-}
-
-.quick-access-panel {
-  background: rgba(255,0,255,0.1) !important;
-  border: 2px solid #ff00ff !important;
-  border-radius: 8px !important;
-  padding: 1rem !important;
-}
-
-.visitor-log-panel {
-  background: rgba(0,255,255,0.1) !important;
-  border: 2px solid #00ffff !important;
-  border-radius: 8px !important;
-  padding: 1rem !important;
-}
-
-.panel-title {
-  margin-bottom: 1rem !important;
-  font-size: 1.2rem !important;
-}
-
-.quick-access-title {
-  color: #ff00ff !important;
-}
-
-.visitor-log-title {
-  color: #00ffff !important;
-}
-
-.visitor-prompt {
-  font-family: 'Courier New', monospace !important;
-  font-size: 0.9rem !important;
-  color: #ffff00 !important;
-  margin-bottom: 1rem !important;
-}
-
-.cyber-footer {
-  margin-top: 4rem !important;
-  background: rgba(0,0,0,0.95) !important;
-  border-top: 2px solid #00ff00 !important;
-}
-
-.footer-system {
-  color: #00ff00 !important;
-  font-family: 'Courier New', monospace !important;
-  font-size: 0.9rem !important;
-}
-
-.footer-powered {
-  color: #ffff00 !important;
-  font-family: 'Courier New', monospace !important;
-  font-size: 0.8rem !important;
-  margin-top: 0.5rem !important;
-}
-
-.footer-highlight {
-  color: #ffff00 !important;
+.footer-links {
+  margin-top: 10px;
 }
 </style>
 
-<div class="cyber-main-container">
-  
-  <div class="cyber-header">
-    <div class="cyber-split-layout">
-      <div class="cyber-flex-row">
-        <ProfilePhoto size="xl" shape="circle" />
-        <div>
-          <DisplayName as="h1" />
-          <div class="status-online">
-            STATUS: ONLINE
-          </div>
-          <div class="access-level">
-            ACCESS LEVEL: PUBLIC
-          </div>
-        </div>
+<div class="portal-container">
+  <div class="portal-header">
+    <div class="portal-title">🔗 ThreadRing Portal 🔗</div>
+    <div class="portal-subtitle">Connecting the independent web, one thread at a time</div>
+  </div>
+
+  <div class="welcome-banner">
+    <h2>Welcome to the Ring!</h2>
+    <p class="welcome-text">
+      ThreadRing is a community of independent websites and creative minds. We believe in the open web,
+      personal expression, and the joy of discovering new corners of the internet. Navigate through our
+      members, discover amazing content, and maybe join us on this journey!
+    </p>
+  </div>
+
+  <h2 class="section-heading">🧭 Navigate the Ring</h2>
+  <div class="ring-navigation">
+    <a href="/tr/welcome" class="nav-card">
+      <span class="icon">🏠</span>
+      Ring Home
+    </a>
+    <a href="/tr/welcome?action=prev" class="nav-card">
+      <span class="icon">←</span>
+      Previous Site
+    </a>
+    <a href="/tr/welcome?action=random" class="nav-card">
+      <span class="icon">🎲</span>
+      Random Site
+    </a>
+    <a href="/tr/welcome?action=next" class="nav-card">
+      <span class="icon">→</span>
+      Next Site
+    </a>
+  </div>
+
+  <h2 class="section-heading">✨ Featured Ring Members</h2>
+  <div class="member-grid">
+    <div class="member-card">
+      <h3>Creative Portfolios</h3>
+      <p>Artists, designers, and makers showcasing their work and process.</p>
+      <div class="info-box member-info">
+        <strong>12 active members</strong>
       </div>
-      
-      <div class="cyber-flex-end">
-        <div class="cyber-terminal connection-status">
-          CONNECTION: SECURE
-        </div>
-        <div class="cyber-flex-social">
-          <FollowButton />
-          <MutualFriends />
-        </div>
+    </div>
+
+    <div class="member-card">
+      <h3>Tech Blogs</h3>
+      <p>Developers sharing tutorials, projects, and insights from the trenches.</p>
+      <div class="info-box member-info">
+        <strong>8 active members</strong>
+      </div>
+    </div>
+
+    <div class="member-card">
+      <h3>Personal Journals</h3>
+      <p>Writers documenting their thoughts, travels, and life experiences.</p>
+      <div class="info-box member-info">
+        <strong>15 active members</strong>
+      </div>
+    </div>
+
+    <div class="member-card">
+      <h3>Hobby Sites</h3>
+      <p>Enthusiasts sharing their passions: games, music, books, and more.</p>
+      <div class="info-box member-info">
+        <strong>10 active members</strong>
       </div>
     </div>
   </div>
 
-  <div class="cyber-split-layout">
-    
-    <div class="cyber-split-main">
-      <div class="cyber-flex-col">
-        <div>
-          <h2 class="section-title">PERSONAL_DATA.txt</h2>
-          <Bio />
-        </div>
-        
-        <div>
-          <h2 class="section-title">RECENT_TRANSMISSIONS</h2>
-          <BlogPosts limit="4" />
-        </div>
-      </div>
-    </div>
-    
-    <div class="cyber-split-sidebar">
-      <div class="cyber-flex-col">
-        
-        <div class="cyber-terminal">
-          <div class="terminal-prompt">$ whoami</div>
-          <div class="terminal-output"><DisplayName as="span" /></div>
-          <div class="terminal-prompt network-cmd">$ network_status</div>
-          <div class="terminal-output">CONNECTED TO THREADSTEAD</div>
-          <div class="terminal-prompt social-cmd">$ social_links</div>
-          <div class="terminal-output">
-            <FriendDisplay />
-          </div>
-        </div>
-        
-        <div class="quick-access-panel">
-          <h3 class="panel-title quick-access-title">QUICK_ACCESS</h3>
-          <div class="cyber-flex-col">
-            <NotificationBell />
-          </div>
-        </div>
-        
-        <div class="visitor-log-panel">
-          <h3 class="panel-title visitor-log-title">VISITOR_LOG</h3>
-          <div class="visitor-prompt">
-            &gt; Leave your mark in the digital void...
-          </div>
-          <Guestbook />
-        </div>
-        
-      </div>
-    </div>
-    
+  <div class="join-section">
+    <h2>🌟 Join the ThreadRing</h2>
+    <p class="join-text">
+      Have a personal site? Want to connect with other independent creators?
+      Join our webring and be part of the movement to reclaim the personal web!
+    </p>
+    <a href="/tr/welcome" class="cta-button">Explore the Ring →</a>
   </div>
 
-  <div class="cyber-footer">
-    <div class="footer-system">
-      &gt; SYSTEM MAINTAINED BY <DisplayName as="span" class="footer-highlight" />
-    </div>
-    <div class="footer-powered">
-      &gt; POWERED BY THREADSTEAD NEURAL NETWORK
-    </div>
-    <SiteBranding />
+  <h2 class="section-heading">🏆 Ring Badges</h2>
+  <p class="badges-description">
+    Add these to your site to show you're part of the ring!
+  </p>
+  <div class="badge-collection">
+    <div class="ring-badge badge-member">THREAD RING MEMBER</div>
+    <div class="ring-badge badge-featured">FEATURED SITE</div>
+    <div class="ring-badge badge-verified">RING VERIFIED</div>
+    <div class="ring-badge badge-member">EST. 2024</div>
+    <div class="ring-badge badge-featured">TOP RATED</div>
+    <div class="ring-badge badge-verified">ACTIVE RING</div>
   </div>
 
+  <div class="info-box about-portal-box">
+    <h3 class="about-portal-heading">About This Portal</h3>
+    <p class="about-portal-text">
+      This is an example ThreadRing portal page. It demonstrates how you can build a webring welcome page
+      using Threadstead's template system - no social features required! Perfect for communities,
+      collectives, or groups of friends who want to link their sites together.
+    </p>
+  </div>
+
+  <div class="footer-portal">
+    <p>Powered by <strong>Threadstead</strong> | Building the independent web</p>
+    <p class="footer-links">
+      <a href="/tr/welcome">Visit Official ThreadRing</a> |
+      <a href="#">About Webrings</a> |
+      <a href="#">Create Your Own</a>
+    </p>
+  </div>
 </div>`;

@@ -208,21 +208,24 @@ export default function EnhancedTemplateEditor({
 }: EnhancedTemplateEditorProps) {
   // AUTO-FIX: Detect and unwrap flow templates that were incorrectly wrapped
   // This fixes templates corrupted by the previous auto-wrap bug
+  // CRITICAL: Only unwrap if flow components are at ROOT level (not nested)
   const unwrappedTemplate = React.useMemo(() => {
-    // Check if template has the wrapper AND flow components
     const hasWrapper = initialTemplate.includes('pure-absolute-container');
-    const hasFlowComponents = initialTemplate.includes('<GradientBox') ||
-                              initialTemplate.includes('<CenteredBox') ||
-                              initialTemplate.includes('<FlexBox') ||
-                              initialTemplate.includes('<Card') ||
-                              initialTemplate.includes('<RetroCard');
 
-    if (hasWrapper && hasFlowComponents) {
-      // Extract content from inside the pure-absolute-container div
-      const containerMatch = initialTemplate.match(/<div[^>]*class="[^"]*pure-absolute-container[^"]*"[^>]*>([\s\S]*)<\/div>\s*$/);
-      if (containerMatch && containerMatch[1]) {
-        const unwrapped = containerMatch[1].trim();
-        return unwrapped;
+    if (hasWrapper) {
+      // Check if flow components appear IMMEDIATELY after wrapper opening tag (root level)
+      // If they're nested inside other components, this is a valid positioned template
+      const rootFlowComponentMatch = initialTemplate.match(
+        /<div[^>]*class="[^"]*pure-absolute-container[^"]*"[^>]*>\s*<(GradientBox|CenteredBox|FlexBox|Card|RetroCard)/
+      );
+
+      if (rootFlowComponentMatch) {
+        // This is a flow template incorrectly wrapped - unwrap it
+        const containerMatch = initialTemplate.match(/<div[^>]*class="[^"]*pure-absolute-container[^"]*"[^>]*>([\s\S]*)<\/div>\s*$/);
+        if (containerMatch && containerMatch[1]) {
+          const unwrapped = containerMatch[1].trim();
+          return unwrapped;
+        }
       }
     }
 
