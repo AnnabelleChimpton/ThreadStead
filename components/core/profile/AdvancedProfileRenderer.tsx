@@ -18,6 +18,7 @@ import {
   type GridBreakpoint
 } from '@/lib/templates/visual-builder/grid-utils';
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
+import { GlobalTemplateStateProvider } from '@/lib/templates/state/TemplateStateProvider';
 
 // Extended Island type with htmlStructure for runtime rendering
 interface ExtendedIsland extends Island {
@@ -77,6 +78,7 @@ export default function AdvancedProfileRenderer({
   // Get islands from compiled template or fallback to stored islands (memoized to avoid re-renders)
   const islands = useMemo(() => {
     const islandsData = compiledTemplate?.islands || templateIslands || [];
+
     return islandsData;
   }, [compiledTemplate?.islands, templateIslands]);
 
@@ -159,7 +161,7 @@ export default function AdvancedProfileRenderer({
 
 
   return (
-    <>
+    <GlobalTemplateStateProvider>
       {/* Layered CSS styles */}
       {layeredCSS && (
         <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />
@@ -200,7 +202,7 @@ export default function AdvancedProfileRenderer({
           />
         </div>
       )}
-    </>
+    </GlobalTemplateStateProvider>
   );
 }
 
@@ -708,7 +710,16 @@ function StaticHTMLWithIslands({
               'lessthanorequal': 'lessThanOrEqual',
               'notequals': 'notEquals',
               'startswith': 'startsWith',
-              'endswith': 'endsWith'
+              'endswith': 'endsWith',
+              // Template variable component props (Var, ShowVar, Set, OnClick)
+              'initial': 'initial',
+              'persist': 'persist',
+              'param': 'param',
+              'default': 'default',
+              'expression': 'expression',
+              'var': 'var',
+              'format': 'format',
+              'fallback': 'fallback'
             };
 
             // Copy attributes as props
@@ -1156,7 +1167,16 @@ function domToReact(
       'lessthanorequal': 'lessThanOrEqual',
       'notequals': 'notEquals',
       'startswith': 'startsWith',
-      'endswith': 'endsWith'
+      'endswith': 'endsWith',
+      // Template variable component props (Var, ShowVar, Set, OnClick)
+      'initial': 'initial',
+      'persist': 'persist',
+      'param': 'param',
+      'default': 'default',
+      'expression': 'expression',
+      'var': 'var',
+      'format': 'format',
+      'fallback': 'fallback'
     };
 
     for (let i = 0; i < element.attributes.length; i++) {
@@ -1492,15 +1512,15 @@ function DirectIslandsRenderer({
 }
 
 // Production island renderer (copy of SimpleIslandRenderer from preview)
-function ProductionIslandRenderer({ 
-  island, 
-  allIslands, 
-  residentData, 
-  onIslandRender, 
-  onIslandError 
-}: { 
-  island: Island, 
-  allIslands: Island[], 
+function ProductionIslandRenderer({
+  island,
+  allIslands,
+  residentData,
+  onIslandRender,
+  onIslandError
+}: {
+  island: Island,
+  allIslands: Island[],
   residentData: ResidentData,
   onIslandRender: (islandId: string) => void,
   onIslandError: (error: Error, islandId: string) => void

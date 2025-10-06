@@ -117,11 +117,40 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
     if (node.type === 'element' && node.tagName) {
       // Check if this node is a registered component
       const registration = componentRegistry.get(node.tagName);
-      
+
       if (registration) {
         // This is an interactive component - create an island
         componentCount++;
         const islandId = generateIslandId(node.tagName, path);
+
+        // DEBUG: Log variable component detection (development only)
+        if (process.env.NODE_ENV === 'development') {
+          const lowerTagName = node.tagName.toLowerCase();
+          if (lowerTagName === 'showvar') {
+            console.log('[ISLAND-DETECTOR] ShowVar detected:', {
+              islandId,
+              props: node.properties,
+              path,
+              hasChildren: !!node.children?.length
+            });
+          }
+          if (lowerTagName === 'var') {
+            console.log('[ISLAND-DETECTOR] Var detected:', {
+              islandId,
+              rawProps: node.properties,
+              path,
+              hasChildren: !!node.children?.length
+            });
+          }
+          if (lowerTagName === 'set') {
+            console.log('[ISLAND-DETECTOR] Set detected:', {
+              islandId,
+              rawProps: node.properties,
+              path,
+              hasChildren: !!node.children?.length
+            });
+          }
+        }
         
         // Process children first to create nested islands
         const processedChildren: TemplateNode[] = [];
@@ -235,14 +264,26 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'less-than-or-equal': 'lessThanOrEqual',
           'not-equals': 'notEquals',
           'starts-with': 'startsWith',
-          'ends-with': 'endsWith'
+          'ends-with': 'endsWith',
+          // Template variable component props (Var, ShowVar, Set, OnClick)
+          'initial': 'initial',
+          'persist': 'persist',
+          'param': 'param',
+          'default': 'default',
+          'expression': 'expression',
+          'var': 'var',
+          'format': 'format',
+          'fallback': 'fallback'
         };
 
         // Apply attribute name conversions for kebab-case to camelCase
         for (const [htmlAttr, reactProp] of Object.entries(styleAttributeMap)) {
           if (rawProps[htmlAttr] !== undefined) {
             rawProps[reactProp] = rawProps[htmlAttr];
-            delete rawProps[htmlAttr];
+            // Only delete the old attribute if it's actually different from the new one
+            if (htmlAttr !== reactProp) {
+              delete rawProps[htmlAttr];
+            }
           }
         }
 
@@ -291,6 +332,25 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           }
         }
 
+        // DEBUG: Log props after validation (development only)
+        if (process.env.NODE_ENV === 'development') {
+          const lowerTagName = node.tagName.toLowerCase();
+          if (lowerTagName === 'var') {
+            console.log('[ISLAND-DETECTOR] Var props after validation:', {
+              islandId,
+              rawProps: node.properties,
+              validatedProps: props
+            });
+          }
+          if (lowerTagName === 'set') {
+            console.log('[ISLAND-DETECTOR] Set props after validation:', {
+              islandId,
+              rawProps: node.properties,
+              validatedProps: props
+            });
+          }
+        }
+
         // Create island configuration with children
         const island: Island = {
           id: islandId,
@@ -299,7 +359,7 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           children: childIslands,
           placeholder: `<div data-island="${islandId}" data-component="${node.tagName}"></div>`
         };
-        
+
         islands.push(island);
         
         // Return a placeholder node with both island identifiers AND positioning attributes
@@ -379,8 +439,20 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           properties: preservedProperties,
           children: processedChildren
         };
-        
-        
+
+        // DEBUG: Log ShowVar island creation
+        if (node.tagName === 'ShowVar') {
+          console.log('[ISLAND-DETECTOR] ShowVar island created:', {
+            islandId,
+            island,
+            placeholder: {
+              tagName: placeholder.tagName,
+              properties: placeholder.properties,
+              hasChildren: !!placeholder.children?.length
+            }
+          });
+        }
+
         return placeholder;
       }
     }

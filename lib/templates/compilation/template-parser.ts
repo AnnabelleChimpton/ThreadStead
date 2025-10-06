@@ -92,6 +92,8 @@ function createCustomSchema() {
         'src', 'alt', 'caption', 'link', 'level', 'name', 'category', 'color', 'textcolor', 'textColor', 'accentcolor', 'accentColor', 'type', 'value',
         'title', 'text', 'speed', 'amplitude', 'label', 'max', 'description', 'icon', 'priority',
         'when', 'data', 'equals', 'exists', 'condition', 'variant', 'size', 'rotation', 'shadow',
+        // Template variable props (Var, ShowVar, Set components)
+        'initial', 'persist', 'param', 'default', 'expression', 'var', 'format', 'fallback',
         // Conditional component comparison operators (both camelCase and kebab-case)
         'greaterthan', 'greaterThan', 'greater-than',
         'lessthan', 'lessThan', 'less-than',
@@ -238,6 +240,9 @@ function createCustomSchema() {
 
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
 export function parseTemplate(htmlString: string): Root {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[PARSER] Input HTML string:', htmlString.substring(0, 500));
+  }
 
   // Unescape HTML entities in attributes before processing
   // This handles &quot; &apos; &lt; &gt; &amp; etc.
@@ -294,6 +299,31 @@ export function parseTemplate(htmlString: string): Root {
 
   // Check if positioning data survived sanitization (check both old and new formats)
   const processedString = JSON.stringify(processed);
+
+  // DEBUG: Log what the parser extracted for Var/Set/ShowVar components (development only)
+  if (process.env.NODE_ENV === 'development') {
+    if (processedString.includes('"var"') || processedString.includes('"Var"')) {
+      console.log('[PARSER] After sanitization, found Var component in tree');
+      // Find and log Var nodes with their properties
+      const findVarNodes = (node: any): any[] => {
+        const results: any[] = [];
+        if (node.tagName === 'var' || node.tagName === 'Var') {
+          results.push({ tagName: node.tagName, properties: node.properties });
+        }
+        if (node.children) {
+          for (const child of node.children) {
+            results.push(...findVarNodes(child));
+          }
+        }
+        return results;
+      };
+      const varNodes = findVarNodes(processed);
+      if (varNodes.length > 0) {
+        console.log('[PARSER] Var nodes found:', JSON.stringify(varNodes, null, 2));
+      }
+    }
+  }
+
   const hasPositioningAfterSanitization = processedString.includes('data-positioning-mode') ||
                                           processedString.includes('data-pixel-position') ||
                                           processedString.includes('data-pure-positioning') ||

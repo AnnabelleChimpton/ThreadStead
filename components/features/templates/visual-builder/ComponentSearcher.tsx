@@ -277,6 +277,56 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     tags: ['html', 'custom', 'code', 'raw', 'advanced', 'developer', 'markup'],
     popularity: 75
   },
+
+  // Template State/Variable Components
+  'Var': {
+    name: 'Variable',
+    description: 'Declare a template variable for interactive state',
+    icon: '📊',
+    category: 'State Management',
+    tags: ['variable', 'state', 'data', 'storage', 'interactive', 'dynamic', 'counter', 'value'],
+    popularity: 80
+  },
+  'ShowVar': {
+    name: 'Show Variable',
+    description: 'Display a template variable value',
+    icon: '👁️',
+    category: 'State Management',
+    tags: ['show', 'display', 'variable', 'value', 'output', 'text', 'dynamic'],
+    popularity: 85
+  },
+  'Set': {
+    name: 'Set Variable',
+    description: 'Set a variable value (action component)',
+    icon: '⚡',
+    category: 'State Management',
+    tags: ['set', 'update', 'change', 'variable', 'action', 'modify', 'assign'],
+    popularity: 90
+  },
+  'OnClick': {
+    name: 'On Click',
+    description: 'Handle click events and execute actions',
+    icon: '👆',
+    category: 'State Management',
+    tags: ['click', 'event', 'handler', 'button', 'interaction', 'action', 'trigger'],
+    popularity: 95
+  },
+  'Button': {
+    name: 'Button',
+    description: 'Interactive button that supports OnClick handlers',
+    icon: '🔘',
+    category: 'Interactive',
+    tags: ['button', 'click', 'interactive', 'action', 'submit', 'form', 'onclick'],
+    popularity: 100
+  },
+  'Option': {
+    name: 'Option',
+    description: 'Option for random-type variables',
+    icon: '🎲',
+    category: 'State Management',
+    tags: ['option', 'random', 'choice', 'value'],
+    popularity: 30
+  },
 };
 
 /**

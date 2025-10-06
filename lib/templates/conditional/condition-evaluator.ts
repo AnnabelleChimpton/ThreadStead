@@ -3,15 +3,54 @@
  * Provides shared logic for all conditional components
  */
 
+import { getGlobalTemplateState } from '../state/TemplateStateProvider';
+
 /**
  * Safely get nested property values from an object
  * Supports dot notation: "owner.displayName", "posts.length", etc.
+ * Also supports template variables: "$vars.variableName"
  *
  * Special handling: .length on undefined/null returns 0 (like empty array)
  */
 export function getNestedValue(obj: any, path: string): any {
   if (!path) return undefined;
 
+  // NEW: Check for $vars namespace (template variables)
+  if (path.startsWith('$vars.')) {
+    const varPath = path.slice(6); // Remove "$vars." prefix
+
+    // Try to get template state from global context
+    // This is set by TemplateStateProvider
+    const templateState = getGlobalTemplateState();
+
+    if (!templateState) {
+      console.warn(`Template state not available for path: ${path}`);
+      return undefined;
+    }
+
+    // Support nested access: $vars.user.name
+    const parts = varPath.split('.');
+    const variableName = parts[0];
+
+    // Get variable value
+    let value = templateState.getVariable(variableName);
+
+    // Handle nested properties: $vars.user.name
+    for (let i = 1; i < parts.length; i++) {
+      if (value === null || value === undefined) {
+        // Special case: .length on undefined/null returns 0
+        if (parts[i] === 'length') {
+          return 0;
+        }
+        return undefined;
+      }
+      value = value[parts[i]];
+    }
+
+    return value;
+  }
+
+  // EXISTING: Handle ResidentData paths
   const keys = path.split('.');
   let current = obj;
 

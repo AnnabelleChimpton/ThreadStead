@@ -76,6 +76,13 @@ import Show from '@/components/features/templates/conditional/Show';
 import Choose, { When, Otherwise } from '@/components/features/templates/conditional/Choose';
 import IfOwner, { IfVisitor } from '@/components/features/templates/conditional/IfOwner';
 
+// Import template state/variable components
+import Var, { Option } from '@/components/features/templates/state/Var';
+import ShowVar from '@/components/features/templates/state/ShowVar';
+import Set from '@/components/features/templates/state/actions/Set';
+import OnClick from '@/components/features/templates/state/events/OnClick';
+import Button from '@/components/features/templates/Button';
+
 // Import debug components
 import DebugValue from '@/components/features/templates/DebugValue';
 
@@ -1204,6 +1211,93 @@ componentRegistry.register({
   component: DebugValue,
   props: {
     path: { type: 'string', default: 'posts.length' }
+  }
+});
+
+// Template State/Variable components
+componentRegistry.register({
+  name: 'Var',
+  component: Var,
+  props: {
+    name: { type: 'string', required: true },
+    type: {
+      type: 'enum',
+      values: ['number', 'string', 'boolean', 'array', 'date', 'computed', 'random', 'urlParam'],
+      required: true
+    },
+    initial: { type: 'string' },
+    persist: { type: 'boolean', default: false },
+    expression: { type: 'string' },
+    param: { type: 'string' },
+    default: { type: 'string' }
+  },
+  relationship: {
+    type: 'leaf',
+    acceptsChildren: true  // For Option children in random type
+  }
+});
+
+componentRegistry.register({
+  name: 'Option',
+  component: Option,
+  props: {
+    value: { type: 'string' }
+  },
+  relationship: {
+    type: 'leaf',
+    acceptsChildren: true
+  }
+});
+
+componentRegistry.register({
+  name: 'ShowVar',
+  component: ShowVar,
+  props: {
+    name: { type: 'string', required: true },
+    format: { type: 'string' },
+    fallback: { type: 'string' }
+  },
+  relationship: {
+    type: 'leaf',
+    acceptsChildren: []
+  }
+});
+
+componentRegistry.register({
+  name: 'Set',
+  component: Set,
+  props: {
+    var: { type: 'string', required: true },
+    value: { type: 'string' },
+    expression: { type: 'string' }
+  },
+  relationship: {
+    type: 'leaf',  // Action component (used in event handlers)
+    acceptsChildren: []
+  }
+});
+
+componentRegistry.register({
+  name: 'OnClick',
+  component: OnClick,
+  props: {},  // No props, only children (actions)
+  relationship: {
+    type: 'container',  // Event handler component
+    acceptsChildren: true  // Accepts action components as children
+  }
+});
+
+componentRegistry.register({
+  name: 'Button',
+  component: Button,
+  props: {
+    type: { type: 'enum', values: ['button', 'submit', 'reset'], default: 'button' },
+    disabled: { type: 'boolean', default: false },
+    className: { type: 'string' }
+  },
+  relationship: {
+    type: 'container',  // Interactive component
+    acceptsChildren: true  // Accepts content and OnClick
   }
 });
 

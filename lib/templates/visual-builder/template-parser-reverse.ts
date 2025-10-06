@@ -1032,7 +1032,16 @@ export class TemplateParserReverse {
       'lessthanorequal': 'lessThanOrEqual',
       'notequals': 'notEquals',
       'startswith': 'startsWith',
-      'endswith': 'endsWith'
+      'endswith': 'endsWith',
+      // Template variable component props (Var, ShowVar, Set, OnClick)
+      'initial': 'initial',
+      'persist': 'persist',
+      'param': 'param',
+      'default': 'default',
+      'expression': 'expression',
+      'var': 'var',
+      'format': 'format',
+      'fallback': 'fallback'
     };
 
     // Apply mappings
