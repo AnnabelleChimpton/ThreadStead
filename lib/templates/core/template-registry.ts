@@ -80,7 +80,16 @@ import IfOwner, { IfVisitor } from '@/components/features/templates/conditional/
 import Var, { Option } from '@/components/features/templates/state/Var';
 import ShowVar from '@/components/features/templates/state/ShowVar';
 import Set from '@/components/features/templates/state/actions/Set';
+import Increment from '@/components/features/templates/state/actions/Increment';
+import Decrement from '@/components/features/templates/state/actions/Decrement';
+import Toggle from '@/components/features/templates/state/actions/Toggle';
+import ShowToast from '@/components/features/templates/state/actions/ShowToast';
 import OnClick from '@/components/features/templates/state/events/OnClick';
+import TInput from '@/components/features/templates/state/inputs/TInput';
+import Checkbox from '@/components/features/templates/state/inputs/Checkbox';
+import If from '@/components/features/templates/state/conditional/If';
+import ElseIf from '@/components/features/templates/state/conditional/ElseIf';
+import Else from '@/components/features/templates/state/conditional/Else';
 import Button from '@/components/features/templates/Button';
 
 // Import debug components
@@ -103,8 +112,8 @@ export interface PropSchema {
 
 // Component relationship metadata for parent-child relationships
 export interface ComponentRelationship {
-  type: 'container' | 'parent' | 'child' | 'leaf' | 'text';
-  acceptsChildren?: string[] | true; // Array of allowed child types, or true for any
+  type: 'container' | 'parent' | 'child' | 'leaf' | 'text' | 'action' | 'interactive' | 'conditional-action';
+  acceptsChildren?: string[] | true | false; // Array of allowed child types, true for any, false for none
   requiresParent?: string;           // Required parent type
   defaultChildren?: Array<{          // Auto-created children when component is added
     type: string;
@@ -1298,6 +1307,164 @@ componentRegistry.register({
   relationship: {
     type: 'container',  // Interactive component
     acceptsChildren: true  // Accepts content and OnClick
+  }
+});
+
+// Phase 2: Interactive template variable components
+componentRegistry.register({
+  name: 'Increment',
+  component: Increment,
+  props: {
+    var: { type: 'string', required: true },
+    by: { type: 'number', default: 1 },
+    min: { type: 'number' },
+    max: { type: 'number' }
+  },
+  relationship: {
+    type: 'action',  // Action component (used inside event handlers)
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Decrement',
+  component: Decrement,
+  props: {
+    var: { type: 'string', required: true },
+    by: { type: 'number', default: 1 },
+    min: { type: 'number' },
+    max: { type: 'number' }
+  },
+  relationship: {
+    type: 'action',  // Action component
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Toggle',
+  component: Toggle,
+  props: {
+    var: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',  // Action component
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'ShowToast',
+  component: ShowToast,
+  props: {
+    message: { type: 'string', required: true },
+    type: { type: 'enum', values: ['success', 'error', 'warning', 'info', 'loading'], default: 'success' },
+    duration: { type: 'number', default: 3000 },
+    position: { type: 'enum', values: ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'] }
+  },
+  relationship: {
+    type: 'action',  // Action component
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'TInput',
+  component: TInput,
+  props: {
+    var: { type: 'string', required: true },
+    type: { type: 'enum', values: ['text', 'email', 'number', 'password', 'url', 'tel'], default: 'text' },
+    placeholder: { type: 'string' },
+    min: { type: 'number' },
+    max: { type: 'number' },
+    step: { type: 'number' },
+    multiline: { type: 'boolean', default: false },
+    rows: { type: 'number', default: 3 },
+    disabled: { type: 'boolean', default: false },
+    className: { type: 'string' }
+  },
+  relationship: {
+    type: 'interactive',  // Interactive input component
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Checkbox',
+  component: Checkbox,
+  props: {
+    var: { type: 'string', required: true },
+    label: { type: 'string' },
+    disabled: { type: 'boolean', default: false },
+    className: { type: 'string' }
+  },
+  relationship: {
+    type: 'interactive',  // Interactive input component
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'If',
+  component: If,
+  props: {
+    condition: { type: 'string' },
+    data: { type: 'string' },
+    equals: { type: 'string' },
+    notEquals: { type: 'string' },
+    greaterThan: { type: 'string' },
+    lessThan: { type: 'string' },
+    greaterThanOrEqual: { type: 'string' },
+    lessThanOrEqual: { type: 'string' },
+    contains: { type: 'string' },
+    startsWith: { type: 'string' },
+    endsWith: { type: 'string' },
+    matches: { type: 'string' },
+    exists: { type: 'boolean' },
+    and: { type: 'string' },
+    or: { type: 'string' },
+    not: { type: 'string' }
+  },
+  relationship: {
+    type: 'conditional-action',  // Conditional action flow control
+    acceptsChildren: true  // Accepts action components as children
+  }
+});
+
+componentRegistry.register({
+  name: 'ElseIf',
+  component: ElseIf,
+  props: {
+    condition: { type: 'string' },
+    data: { type: 'string' },
+    equals: { type: 'string' },
+    notEquals: { type: 'string' },
+    greaterThan: { type: 'string' },
+    lessThan: { type: 'string' },
+    greaterThanOrEqual: { type: 'string' },
+    lessThanOrEqual: { type: 'string' },
+    contains: { type: 'string' },
+    startsWith: { type: 'string' },
+    endsWith: { type: 'string' },
+    matches: { type: 'string' },
+    exists: { type: 'boolean' },
+    and: { type: 'string' },
+    or: { type: 'string' },
+    not: { type: 'string' }
+  },
+  relationship: {
+    type: 'conditional-action',  // Conditional action flow control
+    acceptsChildren: true  // Accepts action components as children
+  }
+});
+
+componentRegistry.register({
+  name: 'Else',
+  component: Else,
+  props: {},
+  relationship: {
+    type: 'conditional-action',  // Conditional action fallback
+    acceptsChildren: true  // Accepts action components as children
   }
 });
 

@@ -273,7 +273,17 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'expression': 'expression',
           'var': 'var',
           'format': 'format',
-          'fallback': 'fallback'
+          'fallback': 'fallback',
+          // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast)
+          'by': 'by',
+          'min': 'min',
+          'step': 'step',
+          'rows': 'rows',
+          'multiline': 'multiline',
+          'message': 'message',
+          'duration': 'duration',
+          'disabled': 'disabled',
+          'placeholder': 'placeholder'
         };
 
         // Apply attribute name conversions for kebab-case to camelCase

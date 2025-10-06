@@ -94,6 +94,8 @@ function createCustomSchema() {
         'when', 'data', 'equals', 'exists', 'condition', 'variant', 'size', 'rotation', 'shadow',
         // Template variable props (Var, ShowVar, Set components)
         'initial', 'persist', 'param', 'default', 'expression', 'var', 'format', 'fallback',
+        // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast, If/Else)
+        'by', 'min', 'step', 'rows', 'multiline', 'message', 'duration', 'disabled', 'placeholder',
         // Conditional component comparison operators (both camelCase and kebab-case)
         'greaterthan', 'greaterThan', 'greater-than',
         'lessthan', 'lessThan', 'less-than',

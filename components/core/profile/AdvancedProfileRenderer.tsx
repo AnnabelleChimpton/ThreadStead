@@ -19,6 +19,7 @@ import {
 } from '@/lib/templates/visual-builder/grid-utils';
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 import { GlobalTemplateStateProvider } from '@/lib/templates/state/TemplateStateProvider';
+import { ToastProvider } from '@/lib/templates/state/ToastProvider';
 
 // Extended Island type with htmlStructure for runtime rendering
 interface ExtendedIsland extends Island {
@@ -162,46 +163,48 @@ export default function AdvancedProfileRenderer({
 
   return (
     <GlobalTemplateStateProvider>
-      {/* Layered CSS styles */}
-      {layeredCSS && (
-        <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />
-      )}
+      <ToastProvider>
+        {/* Layered CSS styles */}
+        {layeredCSS && (
+          <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />
+        )}
 
-      {/* UNIFIED: Minimal wrapper for both template types - non-interfering container for CSS scoping */}
-      <div
-        id={`profile-${user.id}`}
-        className="profile-template-root"
-        style={{
-          position: 'static',    // Don't create positioning context
-          zIndex: 'auto',        // Don't create stacking context
-          overflow: 'visible',   // Don't clip content
-          isolation: 'auto'      // Don't create isolation context
-        }}
-      >
-        <ProfileContentRenderer
-          compiledTemplate={compiledTemplate}
-          islands={islands}
-          residentData={residentData}
-          onIslandRender={handleIslandRender}
-          onIslandError={handleIslandError}
-          visualBuilderClasses={visualBuilderClasses}
-          isInVisualBuilder={isInVisualBuilder}
-          templateType={templateType}
-          profileId={`profile-${user.id}`}
-        />
-      </div>
-
-      {/* Hydration status indicator (dev mode only) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ position: 'fixed', top: 0, right: 0, zIndex: 9999 }}>
-          <HydrationDebugInfo
-            totalIslands={islands.length}
-            loadedIslands={loadedIslands}
-            failedIslands={failedIslands}
-            isHydrated={isHydrated}
+        {/* UNIFIED: Minimal wrapper for both template types - non-interfering container for CSS scoping */}
+        <div
+          id={`profile-${user.id}`}
+          className="profile-template-root"
+          style={{
+            position: 'static',    // Don't create positioning context
+            zIndex: 'auto',        // Don't create stacking context
+            overflow: 'visible',   // Don't clip content
+            isolation: 'auto'      // Don't create isolation context
+          }}
+        >
+          <ProfileContentRenderer
+            compiledTemplate={compiledTemplate}
+            islands={islands}
+            residentData={residentData}
+            onIslandRender={handleIslandRender}
+            onIslandError={handleIslandError}
+            visualBuilderClasses={visualBuilderClasses}
+            isInVisualBuilder={isInVisualBuilder}
+            templateType={templateType}
+            profileId={`profile-${user.id}`}
           />
         </div>
-      )}
+
+        {/* Hydration status indicator (dev mode only) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{ position: 'fixed', top: 0, right: 0, zIndex: 9999 }}>
+            <HydrationDebugInfo
+              totalIslands={islands.length}
+              loadedIslands={loadedIslands}
+              failedIslands={failedIslands}
+              isHydrated={isHydrated}
+            />
+          </div>
+        )}
+      </ToastProvider>
     </GlobalTemplateStateProvider>
   );
 }
@@ -719,7 +722,17 @@ function StaticHTMLWithIslands({
               'expression': 'expression',
               'var': 'var',
               'format': 'format',
-              'fallback': 'fallback'
+              'fallback': 'fallback',
+              // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast)
+              'by': 'by',
+              'min': 'min',
+              'step': 'step',
+              'rows': 'rows',
+              'multiline': 'multiline',
+              'message': 'message',
+              'duration': 'duration',
+              'disabled': 'disabled',
+              'placeholder': 'placeholder'
             };
 
             // Copy attributes as props
@@ -1176,7 +1189,17 @@ function domToReact(
       'expression': 'expression',
       'var': 'var',
       'format': 'format',
-      'fallback': 'fallback'
+      'fallback': 'fallback',
+      // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast)
+      'by': 'by',
+      'min': 'min',
+      'step': 'step',
+      'rows': 'rows',
+      'multiline': 'multiline',
+      'message': 'message',
+      'duration': 'duration',
+      'disabled': 'disabled',
+      'placeholder': 'placeholder'
     };
 
     for (let i = 0; i < element.attributes.length; i++) {

@@ -337,7 +337,21 @@ export function GlobalTemplateStateProvider({ children, initialVariables }: Temp
 
   const getVariable = useCallback((name: string): any => {
     const variable = variables[name];
-    return variable?.value;
+
+    // Return if found directly
+    if (variable !== undefined) {
+      return variable?.value;
+    }
+
+    // WORKAROUND: Check for prefixed version (due to HTML parser transforming <var> elements)
+    const prefixedName = `user-content-${name}`;
+    const prefixedVariable = variables[prefixedName];
+
+    if (prefixedVariable !== undefined) {
+      return prefixedVariable?.value;
+    }
+
+    return undefined;
   }, [variables]);
 
   const setVariable = useCallback((name: string, value: any) => {

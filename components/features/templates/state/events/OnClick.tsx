@@ -2,7 +2,14 @@
 
 import React, { createContext, useContext } from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { executeSetAction } from '../actions/Set';
+import { executeIncrementAction } from '../actions/Increment';
+import { executeDecrementAction } from '../actions/Decrement';
+import { executeToggleAction } from '../actions/Toggle';
+import { executeShowToastAction } from '../actions/ShowToast';
+import { evaluateIfCondition } from '../conditional/If';
+import { evaluateElseIfCondition } from '../conditional/ElseIf';
 
 /**
  * OnClick Component - Event handler for click events
@@ -48,6 +55,7 @@ export default function OnClick(props: OnClickProps) {
   } = props;
 
   const templateState = useTemplateState();
+  const residentData = useResidentData();
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   /**
@@ -60,7 +68,7 @@ export default function OnClick(props: OnClickProps) {
       return;
     }
 
-    executeActions(children, templateState);
+    executeActions(children, templateState, residentData);
   };
 
   // Visual builder mode - show indicator
@@ -86,16 +94,26 @@ export default function OnClick(props: OnClickProps) {
 /**
  * Execute action components
  * Iterates through children and executes recognized actions
+ * Supports conditional chains (If/ElseIf/Else)
  *
  * @param children React children (action components)
  * @param templateState Template state context
+ * @param residentData Resident data for condition evaluation
  */
 export function executeActions(
   children: React.ReactNode,
-  templateState: ReturnType<typeof useTemplateState>
+  templateState: ReturnType<typeof useTemplateState>,
+  residentData: any
 ): void {
-  React.Children.forEach(children, (child) => {
-    if (!React.isValidElement(child)) return;
+  const childArray = React.Children.toArray(children);
+
+  // Track conditional chain state
+  let inConditionalChain = false;
+  let conditionMatched = false;
+
+  for (let i = 0; i < childArray.length; i++) {
+    const child = childArray[i];
+    if (!React.isValidElement(child)) continue;
 
     // Unwrap ResidentDataProvider if present (islands architecture)
     let actualChild = child;
@@ -115,15 +133,62 @@ export function executeActions(
         ? actualChild.type
         : '';
 
-    // Execute based on component type
+    // Handle conditional components (If/ElseIf/Else)
+    if (componentName === 'If') {
+      inConditionalChain = true;
+      conditionMatched = evaluateIfCondition(actualChild.props as any, residentData);
+      if (conditionMatched) {
+        executeActions((actualChild.props as any).children, templateState, residentData);
+      }
+      continue;
+    }
+
+    if (componentName === 'ElseIf' && inConditionalChain) {
+      if (!conditionMatched) {
+        conditionMatched = evaluateElseIfCondition(actualChild.props as any, residentData);
+        if (conditionMatched) {
+          executeActions((actualChild.props as any).children, templateState, residentData);
+        }
+      }
+      continue;
+    }
+
+    if (componentName === 'Else' && inConditionalChain) {
+      if (!conditionMatched) {
+        executeActions((actualChild.props as any).children, templateState, residentData);
+      }
+      inConditionalChain = false;
+      conditionMatched = false;
+      continue;
+    }
+
+    // Any other component ends the conditional chain
+    if (inConditionalChain && !['If', 'ElseIf', 'Else'].includes(componentName)) {
+      inConditionalChain = false;
+      conditionMatched = false;
+    }
+
+    // Execute regular action components
     if (componentName === 'Set') {
       executeSetAction(actualChild.props as import('../actions/Set').SetProps, templateState);
     }
-    // Future: Add support for Increment, Decrement, Toggle, etc.
-    else {
+    else if (componentName === 'Increment') {
+      executeIncrementAction(actualChild.props as import('../actions/Increment').IncrementProps, templateState);
+    }
+    else if (componentName === 'Decrement') {
+      executeDecrementAction(actualChild.props as import('../actions/Decrement').DecrementProps, templateState);
+    }
+    else if (componentName === 'Toggle') {
+      executeToggleAction(actualChild.props as import('../actions/Toggle').ToggleProps, templateState);
+    }
+    else if (componentName === 'ShowToast') {
+      executeShowToastAction(actualChild.props as import('../actions/ShowToast').ShowToastProps, templateState);
+    }
+    // Ignore conditional components (already handled above)
+    else if (!['If', 'ElseIf', 'Else'].includes(componentName)) {
       console.warn(`OnClick: Unknown action component "${componentName}"`);
     }
-  });
+  }
 }
 
 /**
@@ -135,6 +200,7 @@ export function executeActions(
  */
 export function useOnClickHandler(children: React.ReactNode): (() => void) | null {
   const templateState = useTemplateState();
+  const residentData = useResidentData();
 
   // Find OnClick child
   let onClickChild: React.ReactElement | null = null;
@@ -169,7 +235,7 @@ export function useOnClickHandler(children: React.ReactNode): (() => void) | nul
 
   // Return handler that executes OnClick's children
   return () => {
-    executeActions((onClickChild!.props as OnClickProps).children, templateState);
+    executeActions((onClickChild!.props as OnClickProps).children, templateState, residentData);
   };
 }
 
