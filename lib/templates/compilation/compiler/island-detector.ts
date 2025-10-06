@@ -282,6 +282,19 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'multiline': 'multiline',
           'message': 'message',
           'duration': 'duration',
+          // Phase 3: Input component props (RadioGroup, Slider, Select, ColorPicker)
+          'showvalue': 'showValue',
+          'showValue': 'showValue',
+          'direction': 'direction',
+          'debounce': 'debounce',
+          // Phase 3: Array/String action props (Push, Pop, RemoveAt, Append, Prepend, Cycle)
+          'index': 'index',
+          'values': 'values',
+          // Phase 3: Event handler props (OnChange, OnMount, OnInterval)
+          'seconds': 'seconds',
+          'milliseconds': 'milliseconds',
+          // Phase 4: Loop props (ForEach)
+          'item': 'item',
           'disabled': 'disabled',
           'placeholder': 'placeholder'
         };

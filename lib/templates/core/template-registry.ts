@@ -92,6 +92,32 @@ import ElseIf from '@/components/features/templates/state/conditional/ElseIf';
 import Else from '@/components/features/templates/state/conditional/Else';
 import Button from '@/components/features/templates/Button';
 
+// Phase 3: Event handlers
+import OnChange from '@/components/features/templates/state/events/OnChange';
+import OnMount from '@/components/features/templates/state/events/OnMount';
+import OnInterval from '@/components/features/templates/state/events/OnInterval';
+
+// Phase 3: Input components
+import RadioGroup, { Radio } from '@/components/features/templates/state/inputs/RadioGroup';
+import Slider from '@/components/features/templates/state/inputs/Slider';
+import Select from '@/components/features/templates/state/inputs/Select';
+import ColorPicker from '@/components/features/templates/state/inputs/ColorPicker';
+
+// Phase 3: Array actions
+import Push from '@/components/features/templates/state/actions/Push';
+import Pop from '@/components/features/templates/state/actions/Pop';
+import RemoveAt from '@/components/features/templates/state/actions/RemoveAt';
+
+// Phase 3: String actions
+import Append from '@/components/features/templates/state/actions/Append';
+import Prepend from '@/components/features/templates/state/actions/Prepend';
+
+// Phase 3: Other actions
+import Cycle from '@/components/features/templates/state/actions/Cycle';
+
+// Phase 4: Loops
+import ForEach from '@/components/features/templates/state/loops/ForEach';
+
 // Import debug components
 import DebugValue from '@/components/features/templates/DebugValue';
 
@@ -1219,7 +1245,9 @@ componentRegistry.register({
   name: 'DebugValue',
   component: DebugValue,
   props: {
-    path: { type: 'string', default: 'posts.length' }
+    path: { type: 'string' },
+    name: { type: 'string' },
+    var: { type: 'string' }
   }
 });
 
@@ -1826,6 +1854,228 @@ componentRegistry.register({
     type: 'container',
     acceptsChildren: true,
     childrenLabel: 'Matrix Content'
+  }
+});
+
+// ========================================
+// PHASE 3: INTERACTIVE TEMPLATE VARIABLES
+// ========================================
+
+// Event handlers
+componentRegistry.register({
+  name: 'OnChange',
+  component: OnChange,
+  props: {
+    debounce: { type: 'number', default: 0 }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: true,
+    childrenLabel: 'Actions to Execute'
+  }
+});
+
+componentRegistry.register({
+  name: 'OnMount',
+  component: OnMount,
+  props: {},
+  relationship: {
+    type: 'action',
+    acceptsChildren: true,
+    childrenLabel: 'Actions to Execute'
+  }
+});
+
+componentRegistry.register({
+  name: 'OnInterval',
+  component: OnInterval,
+  props: {
+    seconds: { type: 'number' },
+    milliseconds: { type: 'number' }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: true,
+    childrenLabel: 'Actions to Execute'
+  }
+});
+
+// Input components
+componentRegistry.register({
+  name: 'RadioGroup',
+  component: RadioGroup,
+  props: {
+    var: { type: 'string', required: true },
+    direction: { type: 'enum', values: ['vertical', 'horizontal'], default: 'vertical' },
+    className: { type: 'string' }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true,
+    childrenLabel: 'Radio Options'
+  }
+});
+
+componentRegistry.register({
+  name: 'Radio',
+  component: Radio,
+  props: {
+    value: { type: 'string', required: true },
+    label: { type: 'string' },
+    disabled: { type: 'boolean', default: false },
+    className: { type: 'string' }
+  },
+  relationship: {
+    type: 'leaf',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Slider',
+  component: Slider,
+  props: {
+    var: { type: 'string', required: true },
+    min: { type: 'number', required: true },
+    max: { type: 'number', required: true },
+    step: { type: 'number', default: 1 },
+    showValue: { type: 'boolean', default: false },
+    label: { type: 'string' },
+    className: { type: 'string' },
+    disabled: { type: 'boolean', default: false }
+  },
+  relationship: {
+    type: 'leaf',
+    acceptsChildren: true,
+    childrenLabel: 'OnChange Handler'
+  }
+});
+
+componentRegistry.register({
+  name: 'Select',
+  component: Select,
+  props: {
+    var: { type: 'string', required: true },
+    placeholder: { type: 'string' },
+    className: { type: 'string' },
+    disabled: { type: 'boolean', default: false }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true,
+    childrenLabel: 'Options'
+  }
+});
+
+componentRegistry.register({
+  name: 'ColorPicker',
+  component: ColorPicker,
+  props: {
+    var: { type: 'string', required: true },
+    label: { type: 'string' },
+    className: { type: 'string' },
+    disabled: { type: 'boolean', default: false }
+  },
+  relationship: {
+    type: 'leaf',
+    acceptsChildren: true,
+    childrenLabel: 'OnChange Handler'
+  }
+});
+
+// Array action components
+componentRegistry.register({
+  name: 'Push',
+  component: Push,
+  props: {
+    var: { type: 'string', required: true },
+    value: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Pop',
+  component: Pop,
+  props: {
+    var: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'RemoveAt',
+  component: RemoveAt,
+  props: {
+    var: { type: 'string', required: true },
+    index: { type: 'string' } // String to support $vars references, ForEach placeholders, and direct numbers (will be parsed in component)
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+// String action components
+componentRegistry.register({
+  name: 'Append',
+  component: Append,
+  props: {
+    var: { type: 'string', required: true },
+    value: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Prepend',
+  component: Prepend,
+  props: {
+    var: { type: 'string', required: true },
+    value: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+// Other action components
+componentRegistry.register({
+  name: 'Cycle',
+  component: Cycle,
+  props: {
+    var: { type: 'string', required: true },
+    values: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+// Phase 4: Loop components
+componentRegistry.register({
+  name: 'ForEach',
+  component: ForEach,
+  props: {
+    var: { type: 'string', required: true },
+    item: { type: 'string', required: true },
+    index: { type: 'string' },
+    className: { type: 'string' }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true
   }
 });
 

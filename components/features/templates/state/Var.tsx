@@ -66,13 +66,20 @@ export default function Var(props: VarProps) {
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   const templateState = useTemplateState();
-  // Extract functions with stable references (wrapped in useCallback with [] deps)
-  const { registerVariable, unregisterVariable } = templateState;
   const hasRegisteredRef = useRef(false);
 
   useEffect(() => {
+    if (!templateState) {
+      console.error('[Var] No template state available!');
+      return;
+    }
+
     // Only register once
-    if (hasRegisteredRef.current) return;
+    if (hasRegisteredRef.current) {
+      return;
+    }
+
+    const { registerVariable, unregisterVariable } = templateState;
 
     // Parse options from children for random type
     let options: any[] | undefined;
@@ -100,7 +107,20 @@ export default function Var(props: VarProps) {
           coercedInitial = String(initial);
           break;
         case 'array':
-          coercedInitial = Array.isArray(initial) ? initial : [];
+          if (Array.isArray(initial)) {
+            coercedInitial = initial;
+          } else if (typeof initial === 'string') {
+            // Try to parse JSON string
+            try {
+              const parsed = JSON.parse(initial);
+              coercedInitial = Array.isArray(parsed) ? parsed : [];
+            } catch {
+              // If parsing fails, treat as empty array
+              coercedInitial = [];
+            }
+          } else {
+            coercedInitial = [];
+          }
           break;
         case 'date':
           coercedInitial = initial instanceof Date ? initial : new Date(String(initial));
@@ -132,8 +152,6 @@ export default function Var(props: VarProps) {
       hasRegisteredRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // Note: registerVariable and unregisterVariable are stable (useCallback with [] deps)
-    // so we don't include them to avoid infinite loops
   }, [name, type, initial, persist, expression, param, defaultValue, children]);
 
   // Visual builder mode - show variable indicator

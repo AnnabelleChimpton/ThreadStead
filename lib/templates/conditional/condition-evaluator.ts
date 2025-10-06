@@ -300,28 +300,33 @@ export function evaluateFullCondition(
   config: ConditionConfig,
   data: any
 ): boolean {
+
   // Priority 1: Logical operators (AND/OR/NOT)
   if (config.and) {
     const conditions = typeof config.and === 'string'
       ? config.and.split(',').map(s => s.trim())
       : config.and;
-    return evaluateLogical({ and: conditions }, data);
+    const result = evaluateLogical({ and: conditions }, data);
+    return result;
   }
 
   if (config.or) {
     const conditions = typeof config.or === 'string'
       ? config.or.split(',').map(s => s.trim())
       : config.or;
-    return evaluateLogical({ or: conditions }, data);
+    const result = evaluateLogical({ or: conditions }, data);
+    return result;
   }
 
   if (config.not) {
-    return evaluateLogical({ not: config.not }, data);
+    const result = evaluateLogical({ not: config.not }, data);
+    return result;
   }
 
   // Priority 2: Simple condition expression
   if (config.when) {
-    return evaluateCondition(config.when, data);
+    const result = evaluateCondition(config.when, data);
+    return result;
   }
 
   // Priority 3: Data-based conditions
@@ -330,34 +335,44 @@ export function evaluateFullCondition(
 
     // Comparison operators (in order of specificity)
     if (config.notEquals !== undefined) {
-      return compare(value, 'notEquals', config.notEquals);
+      const result = compare(value, 'notEquals', config.notEquals);
+      return result;
     }
     if (config.greaterThanOrEqual !== undefined) {
-      return compare(value, 'greaterThanOrEqual', config.greaterThanOrEqual);
+      const result = compare(value, 'greaterThanOrEqual', config.greaterThanOrEqual);
+      return result;
     }
     if (config.lessThanOrEqual !== undefined) {
-      return compare(value, 'lessThanOrEqual', config.lessThanOrEqual);
+      const result = compare(value, 'lessThanOrEqual', config.lessThanOrEqual);
+      return result;
     }
     if (config.greaterThan !== undefined) {
-      return compare(value, 'greaterThan', config.greaterThan);
+      const result = compare(value, 'greaterThan', config.greaterThan);
+      return result;
     }
     if (config.lessThan !== undefined) {
-      return compare(value, 'lessThan', config.lessThan);
+      const result = compare(value, 'lessThan', config.lessThan);
+      return result;
     }
     if (config.contains !== undefined) {
-      return compare(value, 'contains', config.contains);
+      const result = compare(value, 'contains', config.contains);
+      return result;
     }
     if (config.startsWith !== undefined) {
-      return compare(value, 'startsWith', config.startsWith);
+      const result = compare(value, 'startsWith', config.startsWith);
+      return result;
     }
     if (config.endsWith !== undefined) {
-      return compare(value, 'endsWith', config.endsWith);
+      const result = compare(value, 'endsWith', config.endsWith);
+      return result;
     }
     if (config.matches !== undefined) {
-      return compare(value, 'matches', config.matches);
+      const result = compare(value, 'matches', config.matches);
+      return result;
     }
     if (config.equals !== undefined) {
-      return compare(value, 'equals', config.equals);
+      const result = compare(value, 'equals', config.equals);
+      return result;
     }
 
     // Existence check

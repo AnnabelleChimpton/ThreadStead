@@ -3,11 +3,18 @@
 import React, { createContext, useContext } from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
+import { useForEachContext } from '../loops/ForEach';
 import { executeSetAction } from '../actions/Set';
 import { executeIncrementAction } from '../actions/Increment';
 import { executeDecrementAction } from '../actions/Decrement';
 import { executeToggleAction } from '../actions/Toggle';
 import { executeShowToastAction } from '../actions/ShowToast';
+import { executePushAction } from '../actions/Push';
+import { executePopAction } from '../actions/Pop';
+import { executeRemoveAtAction } from '../actions/RemoveAt';
+import { executeAppendAction } from '../actions/Append';
+import { executePrependAction } from '../actions/Prepend';
+import { executeCycleAction } from '../actions/Cycle';
 import { evaluateIfCondition } from '../conditional/If';
 import { evaluateElseIfCondition } from '../conditional/ElseIf';
 
@@ -56,6 +63,7 @@ export default function OnClick(props: OnClickProps) {
 
   const templateState = useTemplateState();
   const residentData = useResidentData();
+  const forEachContext = useForEachContext();
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   /**
@@ -68,7 +76,7 @@ export default function OnClick(props: OnClickProps) {
       return;
     }
 
-    executeActions(children, templateState, residentData);
+    executeActions(children, templateState, residentData, forEachContext);
   };
 
   // Visual builder mode - show indicator
@@ -99,12 +107,15 @@ export default function OnClick(props: OnClickProps) {
  * @param children React children (action components)
  * @param templateState Template state context
  * @param residentData Resident data for condition evaluation
+ * @param forEachContext ForEach loop context (if inside ForEach)
  */
 export function executeActions(
   children: React.ReactNode,
   templateState: ReturnType<typeof useTemplateState>,
-  residentData: any
+  residentData: any,
+  forEachContext: ReturnType<typeof useForEachContext> = null
 ): void {
+
   const childArray = React.Children.toArray(children);
 
   // Track conditional chain state
@@ -138,7 +149,7 @@ export function executeActions(
       inConditionalChain = true;
       conditionMatched = evaluateIfCondition(actualChild.props as any, residentData);
       if (conditionMatched) {
-        executeActions((actualChild.props as any).children, templateState, residentData);
+        executeActions((actualChild.props as any).children, templateState, residentData, forEachContext);
       }
       continue;
     }
@@ -147,7 +158,7 @@ export function executeActions(
       if (!conditionMatched) {
         conditionMatched = evaluateElseIfCondition(actualChild.props as any, residentData);
         if (conditionMatched) {
-          executeActions((actualChild.props as any).children, templateState, residentData);
+          executeActions((actualChild.props as any).children, templateState, residentData, forEachContext);
         }
       }
       continue;
@@ -155,7 +166,7 @@ export function executeActions(
 
     if (componentName === 'Else' && inConditionalChain) {
       if (!conditionMatched) {
-        executeActions((actualChild.props as any).children, templateState, residentData);
+        executeActions((actualChild.props as any).children, templateState, residentData, forEachContext);
       }
       inConditionalChain = false;
       conditionMatched = false;
@@ -184,6 +195,28 @@ export function executeActions(
     else if (componentName === 'ShowToast') {
       executeShowToastAction(actualChild.props as import('../actions/ShowToast').ShowToastProps, templateState);
     }
+    // Array actions
+    else if (componentName === 'Push') {
+      executePushAction(actualChild.props as import('../actions/Push').PushProps, templateState);
+    }
+    else if (componentName === 'Pop') {
+      executePopAction(actualChild.props as import('../actions/Pop').PopProps, templateState);
+    }
+    else if (componentName === 'RemoveAt') {
+      console.log('[OnClick] Executing RemoveAt with props:', actualChild.props);
+      executeRemoveAtAction(actualChild.props as import('../actions/RemoveAt').RemoveAtProps, templateState, forEachContext);
+    }
+    // String actions
+    else if (componentName === 'Append') {
+      executeAppendAction(actualChild.props as import('../actions/Append').AppendProps, templateState);
+    }
+    else if (componentName === 'Prepend') {
+      executePrependAction(actualChild.props as import('../actions/Prepend').PrependProps, templateState);
+    }
+    // Cycle action
+    else if (componentName === 'Cycle') {
+      executeCycleAction(actualChild.props as import('../actions/Cycle').CycleProps, templateState);
+    }
     // Ignore conditional components (already handled above)
     else if (!['If', 'ElseIf', 'Else'].includes(componentName)) {
       console.warn(`OnClick: Unknown action component "${componentName}"`);
@@ -201,6 +234,7 @@ export function executeActions(
 export function useOnClickHandler(children: React.ReactNode): (() => void) | null {
   const templateState = useTemplateState();
   const residentData = useResidentData();
+  const forEachContext = useForEachContext();
 
   // Find OnClick child
   let onClickChild: React.ReactElement | null = null;
@@ -235,7 +269,7 @@ export function useOnClickHandler(children: React.ReactNode): (() => void) | nul
 
   // Return handler that executes OnClick's children
   return () => {
-    executeActions((onClickChild!.props as OnClickProps).children, templateState, residentData);
+    executeActions((onClickChild!.props as OnClickProps).children, templateState, residentData, forEachContext);
   };
 }
 

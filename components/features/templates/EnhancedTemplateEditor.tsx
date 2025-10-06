@@ -1046,12 +1046,20 @@ export default function EnhancedTemplateEditor({
     } catch (error) {
       console.error('Auto-save failed:', error);
       setSaveState('error');
-      // Auto-retry after 10 seconds
-      setTimeout(() => {
-        if (saveState === 'error') {
-          handleAutoSave();
-        }
-      }, 10000);
+      // Display error message for critical issues (like node limit)
+      const errorMessage = error instanceof Error ? error.message : 'Auto-save failed';
+      if (errorMessage.includes('Too many') || errorMessage.includes('max:')) {
+        // Critical validation error - don't retry, show message
+        setSaveMessage(`⚠️ ${errorMessage}`);
+        setTimeout(() => setSaveMessage(null), 10000);
+      } else {
+        // Network/temporary error - auto-retry after 10 seconds
+        setTimeout(() => {
+          if (saveState === 'error') {
+            handleAutoSave();
+          }
+        }, 10000);
+      }
     }
   }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, saveState]);
 
@@ -1071,8 +1079,11 @@ export default function EnhancedTemplateEditor({
     } catch (error) {
       console.error('Manual save failed:', error);
       setSaveState('error');
-      setSaveMessage('❌ Save failed - please try again');
-      setTimeout(() => setSaveMessage(null), 5000);
+      // Display the actual error message with details
+      const errorMessage = error instanceof Error ? error.message : '❌ Save failed - please try again';
+      setSaveMessage(errorMessage);
+      // Longer timeout for detailed error messages
+      setTimeout(() => setSaveMessage(null), 8000);
     }
   }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation]);
 

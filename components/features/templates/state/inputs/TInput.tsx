@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { useOnChangeHandler, filterOnChangeChildren } from '../events/OnChange';
 
 /**
  * TInput Component - Text/number input bound to a template variable
@@ -53,7 +54,7 @@ export interface TInputProps {
   __visualBuilder?: boolean;
   _isInVisualBuilder?: boolean;
 
-  /** Children (ignored) */
+  /** Children (OnChange handlers) */
   children?: React.ReactNode;
 }
 
@@ -70,17 +71,25 @@ export default function TInput(props: TInputProps) {
     className: customClassName,
     disabled = false,
     __visualBuilder,
-    _isInVisualBuilder
+    _isInVisualBuilder,
+    children
   } = props;
 
   const templateState = useTemplateState();
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
+  // Extract OnChange handler from children
+  const changeHandler = useOnChangeHandler(children);
+
   // Convert string booleans to actual booleans
   const isMultiline = multiline === true || multiline === 'true';
 
   // Get current value from template state (reactive)
-  const variable = templateState.variables[varName];
+  // Try both unprefixed and prefixed versions (user-content- workaround)
+  let variable = templateState.variables[varName];
+  if (!variable && !varName.startsWith('user-content-')) {
+    variable = templateState.variables[`user-content-${varName}`];
+  }
   const currentValue = variable?.value ?? '';
 
   // Handle value changes
@@ -92,7 +101,14 @@ export default function TInput(props: TInputProps) {
       newValue = Number(newValue);
     }
 
+    console.log('[TInput] Value changed:', { varName, newValue, hasChangeHandler: !!changeHandler });
+
     templateState.setVariable(varName, newValue);
+
+    // Execute OnChange handler if present
+    if (changeHandler) {
+      changeHandler(newValue);
+    }
   };
 
   // Build className

@@ -47,7 +47,11 @@ export default function ShowVar(props: ShowVarProps) {
   const templateState = useTemplateState();
   // Access variables directly from state to ensure reactivity
   // This causes ShowVar to re-render when variables are registered or updated
-  const variable = templateState.variables[name];
+  // Try both unprefixed and prefixed versions (user-content- workaround)
+  let variable = templateState.variables[name];
+  if (!variable && !name.startsWith('user-content-')) {
+    variable = templateState.variables[`user-content-${name}`];
+  }
   const value = variable?.value;
 
   // Handle undefined/null values
@@ -71,8 +75,26 @@ export default function ShowVar(props: ShowVarProps) {
   let displayValue: string;
 
   if (format) {
-    // Replace {value} placeholder with actual value
-    displayValue = format.replace(/\{value\}/g, String(value));
+    // Replace {value} and {value.property} placeholders
+    displayValue = format.replace(/\{value(\.[a-zA-Z0-9_.]+)?\}/g, (match, propertyPath) => {
+      if (!propertyPath) {
+        // Just {value}
+        return String(value);
+      }
+
+      // {value.property} - access nested property
+      const keys = propertyPath.slice(1).split('.'); // Remove leading dot
+      let current = value;
+
+      for (const key of keys) {
+        if (current === null || current === undefined) {
+          return '';
+        }
+        current = current[key];
+      }
+
+      return String(current ?? '');
+    });
   } else {
     // Convert value to string for display
     if (typeof value === 'object') {

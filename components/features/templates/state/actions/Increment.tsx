@@ -99,19 +99,21 @@ export function executeIncrementAction(
 
   try {
     // Get current value
-    const variable = templateState.variables[varName];
-    if (!variable) {
-      // Try prefixed version (user-content-* workaround)
-      const prefixedName = `user-content-${varName}`;
-      if (templateState.variables[prefixedName]) {
-        executeIncrementAction(
-          { ...props, var: prefixedName },
-          templateState
-        );
-        return;
-      }
+    // Try both unprefixed and prefixed versions (user-content- workaround)
+    let variable = templateState.variables[varName];
+    if (!variable && !varName.startsWith('user-content-')) {
+      variable = templateState.variables[`user-content-${varName}`];
+    }
 
-      console.warn(`Increment action: variable "${varName}" not found`);
+    if (!variable) {
+      // Silently skip if variable not found yet (may still be registering)
+      // This commonly happens with OnInterval firing before Var components register
+      return;
+    }
+
+    // Check if variable is number type
+    if (variable.type && variable.type !== 'number') {
+      console.warn(`Increment action on non-number variable "${varName}" (type: ${variable.type})`);
       return;
     }
 

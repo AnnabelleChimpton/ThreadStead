@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useResidentData } from '../ResidentDataProvider';
+import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { evaluateFullCondition, type ConditionConfig } from '@/lib/templates/conditional/condition-evaluator';
 
 interface ShowProps {

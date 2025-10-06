@@ -96,6 +96,14 @@ function createCustomSchema() {
         'initial', 'persist', 'param', 'default', 'expression', 'var', 'format', 'fallback',
         // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast, If/Else)
         'by', 'min', 'step', 'rows', 'multiline', 'message', 'duration', 'disabled', 'placeholder',
+        // Phase 3: Input component props (RadioGroup, Slider, Select, ColorPicker)
+        'showValue', 'showvalue', 'direction', 'debounce',
+        // Phase 3: Array/String action props (Push, Pop, RemoveAt, Append, Prepend, Cycle)
+        'index', 'values',
+        // Phase 3: Event handler props (OnChange, OnMount, OnInterval)
+        'seconds', 'milliseconds',
+        // Phase 4: Loop props (ForEach)
+        'item',
         // Conditional component comparison operators (both camelCase and kebab-case)
         'greaterthan', 'greaterThan', 'greater-than',
         'lessthan', 'lessThan', 'less-than',
@@ -468,8 +476,8 @@ export function validateTemplate(ast: TemplateNode): ValidationResult {
     errors.push(`Template too deeply nested: ${maxDepth} levels (max: 30)`);
   }
 
-  if (totalComponents > 100) {
-    errors.push(`Too many components: ${totalComponents} (max: 100)`);
+  if (totalComponents > 250) {
+    errors.push(`Too many components: ${totalComponents} (max: 250)`);
   }
 
   return {

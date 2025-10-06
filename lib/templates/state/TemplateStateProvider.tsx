@@ -79,9 +79,17 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
 
   /**
    * Get variable value by name
+   * Handles user-content- prefix fallback for compatibility
    */
   const getVariable = useCallback((name: string): any => {
-    const variable = variables[name];
+    // Try unprefixed version first
+    let variable = variables[name];
+
+    // If not found and doesn't already have prefix, try with prefix
+    if (!variable && !name.startsWith('user-content-')) {
+      variable = variables[`user-content-${name}`];
+    }
+
     return variable?.value;
   }, [variables]);
 
@@ -96,12 +104,36 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
         return prev;
       }
 
+      // Type coercion based on variable type
+      let coercedValue = value;
+      if (variable.type) {
+        switch (variable.type) {
+          case 'number':
+            const num = Number(value);
+            coercedValue = isNaN(num) ? 0 : num;
+            break;
+          case 'boolean':
+            coercedValue = value === true || value === 'true' || value === '1';
+            break;
+          case 'string':
+            coercedValue = String(value);
+            break;
+          case 'array':
+            if (!Array.isArray(value)) {
+              console.warn(`Attempted to set non-array value to array variable ${name}:`, value);
+              coercedValue = Array.isArray(variable.value) ? variable.value : [];
+            }
+            break;
+          // computed, random, urlParam, date - no coercion
+        }
+      }
+
       // Update the variable
       const updated = {
         ...prev,
         [name]: {
           ...variable,
-          value
+          value: coercedValue
         }
       };
 
@@ -155,8 +187,9 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
           break;
 
         case 'computed':
-          // Computed variables start as initial value
-          // Will be evaluated after registration
+          // Computed variables start with undefined
+          // Will be evaluated by useEffect after all variables are registered
+          initialValue = undefined;
           break;
 
         default:
@@ -269,6 +302,68 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
     resetAll
   }), [variables, getVariable, setVariable, registerVariable, unregisterVariable, resetVariable, resetAll]);
 
+  // Evaluate computed variables whenever dependencies change
+  useEffect(() => {
+    const computedVars = Object.entries(variables).filter(([_, v]) => v.type === 'computed' && v.computed);
+
+    if (computedVars.length === 0) {
+      return;
+    }
+
+    // Import expression evaluator
+    import('@/lib/templates/state/expression-evaluator').then(({ evaluateExpression }) => {
+      // Re-capture current variables state inside the callback
+      setVariables(currentVars => {
+        let hasChanges = false;
+        const updates: Record<string, TemplateVariable> = {};
+
+        computedVars.forEach(([name, variable]) => {
+          try {
+            // Build context with all variable values (use currentVars, not stale variables)
+            const context = Object.fromEntries(
+              Object.entries(currentVars).map(([k, v]) => [k, v.value])
+            );
+
+            // Add unprefixed aliases for user-content-* variables
+            Object.keys(currentVars).forEach(key => {
+              if (key.startsWith('user-content-')) {
+                const unprefixedKey = key.replace('user-content-', '');
+                if (!context[unprefixedKey]) {
+                  context[unprefixedKey] = currentVars[key].value;
+                }
+              }
+            });
+
+            // Evaluate the expression
+            const result = evaluateExpression(variable.computed!, context);
+
+            // Only update if value changed (prevent infinite loops)
+            if (result !== variable.value) {
+              hasChanges = true;
+              updates[name] = {
+                ...currentVars[name],
+                value: result
+              };
+            }
+          } catch (error) {
+            console.error(`Failed to evaluate computed variable "${name}":`, error);
+          }
+        });
+
+        // Return updated state if there are changes
+        if (hasChanges) {
+          return {
+            ...currentVars,
+            ...updates
+          };
+        }
+
+        // No changes - return current state unchanged
+        return currentVars;
+      });
+    });
+  }, [variables]);
+
   return (
     <TemplateStateContext.Provider value={contextValue}>
       {children}
@@ -366,11 +461,36 @@ export function GlobalTemplateStateProvider({ children, initialVariables }: Temp
             console.warn(`Variable "${name}" not found, using prefixed "${prefixedName}" instead (HTML parser transformation)`);
             warnedVariablesRef.current.add(name);
           }
+
+          // Type coercion for prefixed variable
+          let coercedValue = value;
+          const prefixedVar = prev[prefixedName];
+          if (prefixedVar.type) {
+            switch (prefixedVar.type) {
+              case 'number':
+                const num = Number(value);
+                coercedValue = isNaN(num) ? 0 : num;
+                break;
+              case 'boolean':
+                coercedValue = value === true || value === 'true' || value === '1';
+                break;
+              case 'string':
+                coercedValue = String(value);
+                break;
+              case 'array':
+                if (!Array.isArray(value)) {
+                  console.warn(`Attempted to set non-array value to array variable ${prefixedName}:`, value);
+                  coercedValue = Array.isArray(prefixedVar.value) ? prefixedVar.value : [];
+                }
+                break;
+            }
+          }
+
           return {
             ...prev,
             [prefixedName]: {
               ...prev[prefixedName],
-              value
+              value: coercedValue
             }
           };
         }
@@ -383,11 +503,35 @@ export function GlobalTemplateStateProvider({ children, initialVariables }: Temp
         return prev;
       }
 
+      // Type coercion based on variable type
+      let coercedValue = value;
+      if (variable.type) {
+        switch (variable.type) {
+          case 'number':
+            const num = Number(value);
+            coercedValue = isNaN(num) ? 0 : num;
+            break;
+          case 'boolean':
+            coercedValue = value === true || value === 'true' || value === '1';
+            break;
+          case 'string':
+            coercedValue = String(value);
+            break;
+          case 'array':
+            if (!Array.isArray(value)) {
+              console.warn(`Attempted to set non-array value to array variable ${name}:`, value);
+              coercedValue = Array.isArray(variable.value) ? variable.value : [];
+            }
+            break;
+          // computed, random, urlParam, date - no coercion
+        }
+      }
+
       const updated = {
         ...prev,
         [name]: {
           ...variable,
-          value
+          value: coercedValue
         }
       };
 
@@ -527,6 +671,68 @@ export function GlobalTemplateStateProvider({ children, initialVariables }: Temp
     resetVariable,
     resetAll
   };
+
+  // Evaluate computed variables whenever dependencies change
+  useEffect(() => {
+    const computedVars = Object.entries(variables).filter(([_, v]) => v.type === 'computed' && v.computed);
+
+    if (computedVars.length === 0) {
+      return;
+    }
+
+    // Import expression evaluator
+    import('@/lib/templates/state/expression-evaluator').then(({ evaluateExpression }) => {
+      // Re-capture current variables state inside the callback
+      setVariables(currentVars => {
+        let hasChanges = false;
+        const updates: Record<string, TemplateVariable> = {};
+
+        computedVars.forEach(([name, variable]) => {
+          try {
+            // Build context with all variable values (use currentVars, not stale variables)
+            const context = Object.fromEntries(
+              Object.entries(currentVars).map(([k, v]) => [k, v.value])
+            );
+
+            // Add unprefixed aliases for user-content-* variables
+            Object.keys(currentVars).forEach(key => {
+              if (key.startsWith('user-content-')) {
+                const unprefixedKey = key.replace('user-content-', '');
+                if (!context[unprefixedKey]) {
+                  context[unprefixedKey] = currentVars[key].value;
+                }
+              }
+            });
+
+            // Evaluate the expression
+            const result = evaluateExpression(variable.computed!, context);
+
+            // Only update if value changed (prevent infinite loops)
+            if (result !== variable.value) {
+              hasChanges = true;
+              updates[name] = {
+                ...currentVars[name],
+                value: result
+              };
+            }
+          } catch (error) {
+            console.error(`Failed to evaluate computed variable "${name}":`, error);
+          }
+        });
+
+        // Return updated state if there are changes
+        if (hasChanges) {
+          return {
+            ...currentVars,
+            ...updates
+          };
+        }
+
+        // No changes - return current state unchanged
+        return currentVars;
+      });
+    });
+  }, [variables]);
 
   // Set global state for non-React contexts
   useEffect(() => {
