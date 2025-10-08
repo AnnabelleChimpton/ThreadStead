@@ -51,6 +51,14 @@ export default function Cycle(props: CycleProps) {
 
   // Visual builder mode - show indicator
   if (isVisualBuilder) {
+    if (!values) {
+      return (
+        <div className="inline-block px-2 py-1 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-700 dark:text-red-300 font-mono">
+          ⚠️ Cycle: {varName} (missing values)
+        </div>
+      );
+    }
+
     const displayValues = values.split(',').slice(0, 3).join(', ');
     const more = values.split(',').length > 3 ? '...' : '';
 
@@ -76,6 +84,11 @@ export function executeCycleAction(
 ): void {
   const { var: varName, values } = props;
 
+  if (!values) {
+    console.warn(`[Cycle] Missing required "values" prop for variable ${varName}`);
+    return;
+  }
+
   // Parse values list
   const valuesList = values.split(',').map(v => v.trim());
 
@@ -85,11 +98,7 @@ export function executeCycleAction(
   }
 
   // Get current value
-  // Try both unprefixed and prefixed versions (user-content- workaround)
-  let variable = templateState.variables[varName];
-  if (!variable && !varName.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${varName}`];
-  }
+  const variable = templateState.variables[varName];
 
   // Silently skip if variable not found yet (may still be registering)
   if (!variable) {

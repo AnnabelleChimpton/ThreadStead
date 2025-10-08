@@ -3,6 +3,7 @@
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useForEachContext } from '../loops/ForEach';
+import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 
 /**
  * RemoveAt Component - Action to remove an item at a specific index from an array variable
@@ -97,11 +98,9 @@ export function executeRemoveAtAction(
       availableVars: Object.keys(templateState.variables)
     });
 
-    // Get referenced variable
-    let referencedVar = templateState.variables[referencedVarName];
-    if (!referencedVar && !referencedVarName.startsWith('user-content-')) {
-      referencedVar = templateState.variables[`user-content-${referencedVarName}`];
-    }
+    // Get referenced variable with FRESH state from global manager
+    const freshVariables = globalTemplateStateManager.getAllVariables();
+    const referencedVar = freshVariables[referencedVarName];
 
     console.log('[RemoveAt] Variable lookup result:', {
       referencedVarName,
@@ -143,11 +142,7 @@ export function executeRemoveAtAction(
   });
 
   // Get current array
-  // Try both unprefixed and prefixed versions (user-content- workaround)
-  let variable = templateState.variables[varName];
-  if (!variable && !varName.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${varName}`];
-  }
+  const variable = templateState.variables[varName];
   const currentArray = Array.isArray(variable?.value) ? variable.value : [];
 
   console.log('[RemoveAt] Array state:', {

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 
 /**
  * Append Component - Action to append a string to a variable
@@ -70,11 +71,7 @@ export function executeAppendAction(
   const { var: varName, value } = props;
 
   // Get current value
-  // Try both unprefixed and prefixed versions (user-content- workaround)
-  let variable = templateState.variables[varName];
-  if (!variable && !varName.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${varName}`];
-  }
+  const variable = templateState.variables[varName];
 
   // Check if variable is string type
   if (variable?.type && variable.type !== 'string') {
@@ -91,11 +88,9 @@ export function executeAppendAction(
     const parts = varPath.split('.');
     const referencedVarName = parts[0];
 
-    // Get referenced variable
-    let referencedVar = templateState.variables[referencedVarName];
-    if (!referencedVar && !referencedVarName.startsWith('user-content-')) {
-      referencedVar = templateState.variables[`user-content-${referencedVarName}`];
-    }
+    // Get referenced variable with FRESH state from global manager
+    const freshVariables = globalTemplateStateManager.getAllVariables();
+    const referencedVar = freshVariables[referencedVarName];
 
     let varValue = referencedVar?.value;
 

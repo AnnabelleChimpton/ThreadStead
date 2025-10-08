@@ -3,6 +3,7 @@
 import React, { createContext, useContext } from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { getVariable } from '@/lib/templates/state/variable-utils';
+import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 
 /**
  * ForEach Context
@@ -17,6 +18,8 @@ interface ForEachContextValue {
   itemName: string;
   /** Variable name for the index */
   indexName?: string;
+  /** Scope ID for this iteration (for scoped variable resolution) */
+  scopeId: string;
 }
 
 const ForEachContext = createContext<ForEachContextValue | null>(null);
@@ -94,6 +97,43 @@ export default function ForEach(props: ForEachProps) {
   const templateState = useTemplateState();
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
+  // CRITICAL: Validate required props
+  if (!varName) {
+    console.error('[ForEach] Missing required "var" prop');
+    return (
+      <div style={{
+        padding: '12px',
+        margin: '8px 0',
+        backgroundColor: '#fef2f2',
+        border: '2px solid #dc2626',
+        borderRadius: '6px',
+        color: '#dc2626',
+        fontSize: '13px'
+      }}>
+        ⚠️ <strong>ForEach Error:</strong> Missing required <code>var</code> prop.
+        Example: <code>&lt;ForEach var=&quot;myArray&quot; item=&quot;item&quot;&gt;...&lt;/ForEach&gt;</code>
+      </div>
+    );
+  }
+
+  if (!itemName) {
+    console.error('[ForEach] Missing required "item" prop');
+    return (
+      <div style={{
+        padding: '12px',
+        margin: '8px 0',
+        backgroundColor: '#fef2f2',
+        border: '2px solid #dc2626',
+        borderRadius: '6px',
+        color: '#dc2626',
+        fontSize: '13px'
+      }}>
+        ⚠️ <strong>ForEach Error:</strong> Missing required <code>item</code> prop.
+        Example: <code>&lt;ForEach var=&quot;myArray&quot; item=&quot;item&quot;&gt;...&lt;/ForEach&gt;</code>
+      </div>
+    );
+  }
+
   // Get array from template state with prefix fallback
   const variable = getVariable(templateState, varName);
   const arrayValue = Array.isArray(variable?.value) ? variable.value : [];
@@ -133,28 +173,21 @@ export default function ForEach(props: ForEachProps) {
   return (
     <>
       {arrayValue.map((itemValue, idx) => {
-        // Process children to replace template placeholders
-        const processedChildren = processForEachChildren(
-          children,
-          itemValue,
-          itemName,
-          idx,
-          indexName
-        );
+        // Generate unique scope ID for this iteration
+        const scopeId = `forEach-${varName}-${idx}`;
 
-        // Wrap in context provider so nested components can access loop variables
         return (
-          <ForEachContext.Provider
+          <ForEachIteration
             key={idx}
-            value={{
-              item: itemValue,
-              index: idx,
-              itemName,
-              indexName
-            }}
+            scopeId={scopeId}
+            itemValue={itemValue}
+            idx={idx}
+            itemName={itemName}
+            indexName={indexName}
+            varName={varName}
           >
-            {processedChildren}
-          </ForEachContext.Provider>
+            {children}
+          </ForEachIteration>
         );
       })}
     </>
@@ -162,15 +195,102 @@ export default function ForEach(props: ForEachProps) {
 }
 
 /**
+ * ForEachIteration - Wrapper component for each iteration
+ * Handles scoped variable registration
+ */
+interface ForEachIterationProps {
+  scopeId: string;
+  itemValue: any;
+  idx: number;
+  itemName: string;
+  indexName?: string;
+  varName: string;
+  children: React.ReactNode;
+}
+
+function ForEachIteration(props: ForEachIterationProps) {
+  const {
+    scopeId,
+    itemValue,
+    idx,
+    itemName,
+    indexName,
+    varName,
+    children
+  } = props;
+
+  // Register scope and variables in useEffect
+  React.useEffect(() => {
+    // Register the scope (with no parent for now - could be enhanced for nested ForEach)
+    globalTemplateStateManager.registerScope(scopeId);
+
+    // Register item variable in this scope with its ORIGINAL name
+    globalTemplateStateManager.registerScopedVariable(scopeId, itemName, {
+      name: itemName,
+      type: typeof itemValue === 'number' ? 'number' : 'string',
+      initial: itemValue
+    });
+
+    // Update value (in case already registered)
+    globalTemplateStateManager.setScopedVariable(scopeId, itemName, itemValue);
+
+    // Register index variable if specified
+    if (indexName) {
+      globalTemplateStateManager.registerScopedVariable(scopeId, indexName, {
+        name: indexName,
+        type: 'number',
+        initial: idx
+      });
+      globalTemplateStateManager.setScopedVariable(scopeId, indexName, idx);
+    }
+
+    // Cleanup: unregister scope when unmounting
+    return () => {
+      globalTemplateStateManager.unregisterScope(scopeId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeId, itemValue, idx, itemName, indexName]);
+
+  // Process children to:
+  // 1. Replace {item} placeholders with actual values
+  // 2. Add scopeId prop to components that need scoped resolution (ShowVar, etc.)
+  const processedChildren = processForEachChildren(
+    children,
+    itemValue,
+    itemName,
+    idx,
+    indexName,
+    scopeId
+  );
+
+  // Wrap in context provider for non-island components
+  return (
+    <ForEachContext.Provider
+      value={{
+        item: itemValue,
+        index: idx,
+        itemName,
+        indexName,
+        scopeId
+      }}
+    >
+      {processedChildren}
+    </ForEachContext.Provider>
+  );
+}
+
+/**
  * Process children to replace ForEach template placeholders
  * Replaces {item}, {item.property}, {index} with actual values
+ * Adds scopeId prop to components for scoped variable resolution
  */
 function processForEachChildren(
   children: React.ReactNode,
   itemValue: any,
   itemName: string,
   currentIndex: number,
-  indexName?: string
+  indexName?: string,
+  scopeId?: string
 ): React.ReactNode {
   return React.Children.map(children, (child) => {
     if (!child) return child;
@@ -191,12 +311,6 @@ function processForEachChildren(
         ? (child.type.name || (child.type as any).displayName)
         : String(child.type);
 
-      console.log('[ForEach] Processing child:', {
-        childType: childTypeName,
-        props: child.props,
-        hasChildren: !!(child.props as any).children
-      });
-
       if (typeof child.type === 'function' &&
           (child.type.name === 'ResidentDataProvider' ||
            (child.type as any).displayName === 'ResidentDataProvider')) {
@@ -205,17 +319,12 @@ function processForEachChildren(
 
         // Extract the actual component from inside the provider
         const providerChildren = React.Children.toArray((child.props as any).children);
-        console.log('[ForEach] Unwrapping provider, found children:', providerChildren.length);
 
         if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
           actualChild = providerChildren[0];
           const actualTypeName = typeof actualChild.type === 'function'
             ? (actualChild.type.name || (actualChild.type as any).displayName)
             : String(actualChild.type);
-          console.log('[ForEach] Unwrapped to:', {
-            actualType: actualTypeName,
-            actualProps: actualChild.props
-          });
         }
       }
 
@@ -225,11 +334,14 @@ function processForEachChildren(
         itemValue,
         itemName,
         currentIndex,
-        indexName
+        indexName,
+        scopeId
       );
 
       // Process the actual component's props that might contain template placeholders
       const processedProps: any = {};
+      const componentName = typeof actualChild.type === 'function' ? actualChild.type.name : actualChild.type;
+
       Object.keys(actualChild.props as any).forEach((key) => {
         const propValue = (actualChild.props as any)[key];
 
@@ -243,8 +355,6 @@ function processForEachChildren(
           // Special handling for index prop in RemoveAt and similar components
           if (key === 'index' && propValue === `{${indexName}}`) {
             processedProps[key] = currentIndex;
-            console.log(`[ForEach] Replaced index placeholder {${indexName}} with ${currentIndex} for component`,
-              typeof actualChild.type === 'function' ? actualChild.type.name : actualChild.type);
           } else {
             processedProps[key] = replaceTemplatePlaceholders(
               propValue,
@@ -258,6 +368,11 @@ function processForEachChildren(
           processedProps[key] = propValue;
         }
       });
+
+      // Add scopeId prop to components that need scoped variable resolution
+      if (scopeId && (componentName === 'ShowVar')) {
+        processedProps.scopeId = scopeId;
+      }
 
       // Clone the actual component with processed props
       const processedChild = React.cloneElement(actualChild, processedProps, processedChildren);
@@ -285,6 +400,7 @@ function replaceTemplatePlaceholders(
   currentIndex: number,
   indexName?: string
 ): string {
+
   let result = text;
 
   // Replace {index} or {i} with actual index

@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { useForEachContext } from './loops/ForEach';
+import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 
 /**
  * ShowVar Component - Display a template variable value
@@ -27,6 +29,9 @@ export interface ShowVarProps {
   /** Text to show if variable is undefined or null */
   fallback?: string;
 
+  /** Scope ID for scoped variable resolution (provided by ForEach) */
+  scopeId?: string;
+
   /** Internal: Visual builder mode flag */
   __visualBuilder?: boolean;
   _isInVisualBuilder?: boolean;
@@ -35,6 +40,7 @@ export interface ShowVarProps {
 export default function ShowVar(props: ShowVarProps) {
   const {
     name,
+    scopeId: propScopeId,
     format,
     fallback,
     __visualBuilder,
@@ -44,15 +50,41 @@ export default function ShowVar(props: ShowVarProps) {
   // Visual builder mode - show placeholder
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
+  // IMPORTANT: Always call hooks before any conditional returns
   const templateState = useTemplateState();
-  // Access variables directly from state to ensure reactivity
-  // This causes ShowVar to re-render when variables are registered or updated
-  // Try both unprefixed and prefixed versions (user-content- workaround)
-  let variable = templateState.variables[name];
-  if (!variable && !name.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${name}`];
+  const forEachContext = useForEachContext();
+
+  // CRITICAL: Validate required props (after hooks)
+  if (!name) {
+    return (
+      <span style={{
+        padding: '4px 8px',
+        backgroundColor: '#fef2f2',
+        border: '1px solid #dc2626',
+        borderRadius: '4px',
+        color: '#dc2626',
+        fontSize: '12px',
+        fontFamily: 'monospace'
+      }}>
+        ⚠️ ShowVar: missing &quot;name&quot;
+      </span>
+    );
   }
-  const value = variable?.value;
+
+  // Determine which scope to use: prop (from ForEach processing) or context (from non-island component)
+  const scopeId = propScopeId || forEachContext?.scopeId;
+
+  // Resolve variable value using scoped resolution
+  let value: any;
+
+  if (scopeId) {
+    // Use scoped variable resolution (works across islands)
+    value = globalTemplateStateManager.getVariableInScope(scopeId, name);
+  } else {
+    // No scope - use global template variables
+    const variable = templateState.variables[name];
+    value = variable?.value;
+  }
 
   // Handle undefined/null values
   if (value === undefined || value === null) {

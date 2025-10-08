@@ -4,6 +4,7 @@
  */
 
 import { getGlobalTemplateState } from '../state/TemplateStateProvider';
+import { globalTemplateStateManager } from '../state/TemplateStateManager';
 
 /**
  * Safely get nested property values from an object
@@ -11,9 +12,17 @@ import { getGlobalTemplateState } from '../state/TemplateStateProvider';
  * Also supports template variables: "$vars.variableName"
  *
  * Special handling: .length on undefined/null returns 0 (like empty array)
+ *
+ * @param obj The object to get values from (typically residentData)
+ * @param path The path to the value
+ * @param scopeId Optional ForEach scope ID for scoped variable resolution
  */
-export function getNestedValue(obj: any, path: string): any {
-  if (!path) return undefined;
+export function getNestedValue(obj: any, path: string | undefined, scopeId?: string): any {
+  // CRITICAL: Defensive null checks
+  if (!path || typeof path !== 'string') {
+    console.warn('[getNestedValue] Invalid path:', path);
+    return undefined;
+  }
 
   // NEW: Check for $vars namespace (template variables)
   if (path.startsWith('$vars.')) {
@@ -32,8 +41,15 @@ export function getNestedValue(obj: any, path: string): any {
     const parts = varPath.split('.');
     const variableName = parts[0];
 
-    // Get variable value
-    let value = templateState.getVariable(variableName);
+    // Get variable value - check scoped variables first if scopeId provided
+    let value: any;
+    if (scopeId) {
+      // Use globalTemplateStateManager to access scoped variables
+      const scopedValue = globalTemplateStateManager.getVariableInScope(scopeId, variableName);
+      value = scopedValue !== undefined ? scopedValue : templateState.getVariable(variableName);
+    } else {
+      value = templateState.getVariable(variableName);
+    }
 
     // Handle nested properties: $vars.user.name
     for (let i = 1; i < parts.length; i++) {
@@ -99,11 +115,17 @@ export type ComparisonOperator =
 export function compare(
   value: any,
   operator: ComparisonOperator,
-  compareValue: string | number
+  compareValue: string | number | undefined
 ): boolean {
-  // Handle null/undefined
+  // CRITICAL: Defensive null checks
   if (value === null || value === undefined) {
     return operator === 'notEquals';
+  }
+
+  // Validate compareValue
+  if (compareValue === null || compareValue === undefined) {
+    console.warn('[compare] Invalid compareValue:', compareValue);
+    return false;
   }
 
   switch (operator) {
@@ -141,14 +163,23 @@ export function compare(
       return numValue <= numCompare;
     }
 
-    case 'contains':
-      return String(value).includes(String(compareValue));
+    case 'contains': {
+      const strValue = value != null ? String(value) : '';
+      const strCompare = compareValue != null ? String(compareValue) : '';
+      return strValue.includes(strCompare);
+    }
 
-    case 'startsWith':
-      return String(value).startsWith(String(compareValue));
+    case 'startsWith': {
+      const strValue = value != null ? String(value) : '';
+      const strCompare = compareValue != null ? String(compareValue) : '';
+      return strValue.startsWith(strCompare);
+    }
 
-    case 'endsWith':
-      return String(value).endsWith(String(compareValue));
+    case 'endsWith': {
+      const strValue = value != null ? String(value) : '';
+      const strCompare = compareValue != null ? String(compareValue) : '';
+      return strValue.endsWith(strCompare);
+    }
 
     case 'matches': {
       try {
@@ -196,9 +227,17 @@ export function exists(value: any): boolean {
  * - "!condition" - negation
  * - "has:path" - existence check (not empty)
  * - "path" - truthy check
+ *
+ * @param condition The condition expression
+ * @param data The data context (typically residentData)
+ * @param scopeId Optional ForEach scope ID for scoped variable resolution
  */
-export function evaluateCondition(condition: string, data: any): boolean {
-  if (!condition) return false;
+export function evaluateCondition(condition: string | undefined, data: any, scopeId?: string): boolean {
+  // CRITICAL: Defensive null checks
+  if (!condition || typeof condition !== 'string') {
+    console.warn('[evaluateCondition] Invalid condition:', condition);
+    return false;
+  }
 
   // Handle literal booleans
   if (condition === 'true') return true;
@@ -206,18 +245,18 @@ export function evaluateCondition(condition: string, data: any): boolean {
 
   // Handle negation
   if (condition.startsWith('!')) {
-    return !evaluateCondition(condition.slice(1), data);
+    return !evaluateCondition(condition.slice(1), data, scopeId);
   }
 
   // Handle existence checks
   if (condition.startsWith('has:')) {
     const path = condition.slice(4);
-    const value = getNestedValue(data, path);
+    const value = getNestedValue(data, path, scopeId);
     return exists(value) && isTruthy(value);
   }
 
   // Handle data path truthy checks
-  const value = getNestedValue(data, condition);
+  const value = getNestedValue(data, condition, scopeId);
   return isTruthy(value);
 }
 
@@ -232,15 +271,20 @@ export interface LogicalConditions {
 
 /**
  * Evaluate logical conditions (AND/OR/NOT)
+ *
+ * @param conditions The logical conditions
+ * @param data The data context (typically residentData)
+ * @param scopeId Optional ForEach scope ID for scoped variable resolution
  */
 export function evaluateLogical(
   conditions: LogicalConditions,
-  data: any
+  data: any,
+  scopeId?: string
 ): boolean {
   // AND: all conditions must be true
   if (conditions.and && conditions.and.length > 0) {
     return conditions.and.every(cond => {
-      const value = getNestedValue(data, cond);
+      const value = getNestedValue(data, cond, scopeId);
       return isTruthy(value);
     });
   }
@@ -248,14 +292,14 @@ export function evaluateLogical(
   // OR: at least one condition must be true
   if (conditions.or && conditions.or.length > 0) {
     return conditions.or.some(cond => {
-      const value = getNestedValue(data, cond);
+      const value = getNestedValue(data, cond, scopeId);
       return isTruthy(value);
     });
   }
 
   // NOT: condition must be false
   if (conditions.not) {
-    const value = getNestedValue(data, conditions.not);
+    const value = getNestedValue(data, conditions.not, scopeId);
     return !isTruthy(value);
   }
 
@@ -295,10 +339,15 @@ export interface ConditionConfig {
 
 /**
  * Main evaluation function - handles all condition types
+ *
+ * @param config The condition configuration
+ * @param data The data context (typically residentData)
+ * @param scopeId Optional ForEach scope ID for scoped variable resolution
  */
 export function evaluateFullCondition(
   config: ConditionConfig,
-  data: any
+  data: any,
+  scopeId?: string
 ): boolean {
 
   // Priority 1: Logical operators (AND/OR/NOT)
@@ -306,7 +355,7 @@ export function evaluateFullCondition(
     const conditions = typeof config.and === 'string'
       ? config.and.split(',').map(s => s.trim())
       : config.and;
-    const result = evaluateLogical({ and: conditions }, data);
+    const result = evaluateLogical({ and: conditions }, data, scopeId);
     return result;
   }
 
@@ -314,24 +363,52 @@ export function evaluateFullCondition(
     const conditions = typeof config.or === 'string'
       ? config.or.split(',').map(s => s.trim())
       : config.or;
-    const result = evaluateLogical({ or: conditions }, data);
+    const result = evaluateLogical({ or: conditions }, data, scopeId);
     return result;
   }
 
+  // PHASE 4 FIX: Handle "not" as a boolean modifier for data attribute
+  // If not is empty string with data, it's a negation modifier: <Show data="email_valid" not>
+  if (config.not !== undefined && config.not === '' && config.data) {
+    // Auto-prefix template variables if not already prefixed
+    let dataPath = config.data;
+    if (!dataPath.includes('.') && !dataPath.startsWith('$vars.')) {
+      // Check if this is a template variable
+      const templateState = getGlobalTemplateState();
+      if (templateState && templateState.variables[dataPath]) {
+        dataPath = `$vars.${dataPath}`;
+      }
+    }
+    const value = getNestedValue(data, dataPath, scopeId);
+    return !isTruthy(value);
+  }
+
+  // Otherwise, not is a logical operator with a path
   if (config.not) {
-    const result = evaluateLogical({ not: config.not }, data);
+    const result = evaluateLogical({ not: config.not }, data, scopeId);
     return result;
   }
 
   // Priority 2: Simple condition expression
   if (config.when) {
-    const result = evaluateCondition(config.when, data);
+    const result = evaluateCondition(config.when, data, scopeId);
     return result;
   }
 
   // Priority 3: Data-based conditions
   if (config.data) {
-    const value = getNestedValue(data, config.data);
+    // PHASE 4 FIX: Auto-prefix template variables if not already prefixed
+    let dataPath = config.data;
+
+    if (!dataPath.includes('.') && !dataPath.startsWith('$vars.')) {
+      // Check if this is a template variable
+      const templateState = getGlobalTemplateState();
+      if (templateState && templateState.variables[dataPath]) {
+        dataPath = `$vars.${dataPath}`;
+      }
+    }
+
+    const value = getNestedValue(data, dataPath, scopeId);
 
     // Comparison operators (in order of specificity)
     if (config.notEquals !== undefined) {
@@ -385,7 +462,7 @@ export function evaluateFullCondition(
         return exists(value);
       }
       // Legacy: exists as string means check that path
-      const existsValue = getNestedValue(data, config.exists as string);
+      const existsValue = getNestedValue(data, config.exists as string, scopeId);
       return exists(existsValue);
     }
 
@@ -395,7 +472,7 @@ export function evaluateFullCondition(
 
   // Priority 4: Standalone existence check
   if (config.exists && typeof config.exists === 'string') {
-    const value = getNestedValue(data, config.exists);
+    const value = getNestedValue(data, config.exists, scopeId);
     return exists(value);
   }
 

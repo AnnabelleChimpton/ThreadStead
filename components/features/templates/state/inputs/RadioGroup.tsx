@@ -74,11 +74,7 @@ export default function RadioGroup(props: RadioGroupProps) {
   const filteredChildren = filterOnChangeChildren(children);
 
   // Get current value from template state (reactive)
-  // Try both unprefixed and prefixed versions (user-content- workaround)
-  let variable = templateState.variables[varName];
-  if (!variable && !varName.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${varName}`];
-  }
+  const variable = templateState.variables[varName];
   const currentValue = variable?.value !== undefined ? variable.value : '';
 
   // Generate unique group name

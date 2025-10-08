@@ -99,11 +99,7 @@ export function executeDecrementAction(
 
   try {
     // Get current value
-    // Try both unprefixed and prefixed versions (user-content- workaround)
-    let variable = templateState.variables[varName];
-    if (!variable && !varName.startsWith('user-content-')) {
-      variable = templateState.variables[`user-content-${varName}`];
-    }
+    const variable = templateState.variables[varName];
 
     if (!variable) {
       // Silently skip if variable not found yet (may still be registering)

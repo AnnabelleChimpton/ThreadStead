@@ -66,11 +66,7 @@ export function executePopAction(
   const { var: varName } = props;
 
   // Get current array
-  // Try both unprefixed and prefixed versions (user-content- workaround)
-  let variable = templateState.variables[varName];
-  if (!variable && !varName.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${varName}`];
-  }
+  const variable = templateState.variables[varName];
 
   // Check if variable is array type
   if (variable?.type && variable.type !== 'array') {

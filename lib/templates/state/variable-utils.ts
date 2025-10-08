@@ -1,13 +1,27 @@
 /**
  * Utility functions for working with template variables
- * Handles the user-content- prefix workaround
+ * Handles the user-content- prefix normalization
  */
 
 import type { useTemplateState } from './TemplateStateProvider';
 
 /**
- * Get a variable from template state, trying both unprefixed and prefixed versions
- * This handles the user-content- prefix issue where variables might be registered with or without the prefix
+ * Normalize variable names by stripping the user-content- prefix
+ *
+ * rehype-sanitize adds this prefix to 'name' and 'id' attributes for DOM clobbering security.
+ * We strip it at the island detection layer so components work with clean names.
+ *
+ * @param name Variable name (may or may not have prefix)
+ * @returns Normalized name without prefix
+ */
+export function normalizeVariableName(name: string): string {
+  return name.startsWith('user-content-')
+    ? name.slice('user-content-'.length)
+    : name;
+}
+
+/**
+ * Get a variable from template state
  *
  * @param templateState Template state context
  * @param varName Variable name to look up
@@ -15,17 +29,14 @@ import type { useTemplateState } from './TemplateStateProvider';
  */
 export function getVariable(
   templateState: ReturnType<typeof useTemplateState>,
-  varName: string
+  varName: string | undefined
 ) {
-  // Try unprefixed version first
-  let variable = templateState.variables[varName];
-
-  // If not found and doesn't already have prefix, try with prefix
-  if (!variable && !varName.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${varName}`];
+  // Handle undefined varName
+  if (!varName) {
+    return undefined;
   }
 
-  return variable;
+  return templateState.variables[varName];
 }
 
 /**

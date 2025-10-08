@@ -87,16 +87,16 @@ export default function ProfileIslandWrapper({
   
   
   return (
-    <div 
-      data-island={islandId} 
+    <div
+      data-island={islandId}
       data-component={componentType}
       data-profile-mode={profileMode}
       className="profile-island"
     >
       <Suspense fallback={<IslandSkeleton profileMode={profileMode} componentType={componentType} />}>
         <ResidentDataProvider data={contextValue}>
-          <IslandErrorBoundary 
-            islandId={islandId} 
+          <IslandErrorBoundary
+            islandId={islandId}
             componentType={componentType}
             onError={onError}
           >

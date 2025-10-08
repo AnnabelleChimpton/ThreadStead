@@ -11,6 +11,7 @@ export type VariableType =
   | 'boolean'
   | 'array'
   | 'date'
+  | 'object'
   | 'computed'
   | 'random'
   | 'urlParam';
@@ -79,18 +80,9 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
 
   /**
    * Get variable value by name
-   * Handles user-content- prefix fallback for compatibility
    */
   const getVariable = useCallback((name: string): any => {
-    // Try unprefixed version first
-    let variable = variables[name];
-
-    // If not found and doesn't already have prefix, try with prefix
-    if (!variable && !name.startsWith('user-content-')) {
-      variable = variables[`user-content-${name}`];
-    }
-
-    return variable?.value;
+    return variables[name]?.value;
   }, [variables]);
 
   /**
@@ -124,7 +116,7 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
               coercedValue = Array.isArray(variable.value) ? variable.value : [];
             }
             break;
-          // computed, random, urlParam, date - no coercion
+          // object, computed, random, urlParam, date - no coercion
         }
       }
 
@@ -324,16 +316,6 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
               Object.entries(currentVars).map(([k, v]) => [k, v.value])
             );
 
-            // Add unprefixed aliases for user-content-* variables
-            Object.keys(currentVars).forEach(key => {
-              if (key.startsWith('user-content-')) {
-                const unprefixedKey = key.replace('user-content-', '');
-                if (!context[unprefixedKey]) {
-                  context[unprefixedKey] = currentVars[key].value;
-                }
-              }
-            });
-
             // Evaluate the expression
             const result = evaluateExpression(variable.computed!, context);
 
@@ -374,16 +356,43 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
 /**
  * Hook to access template state
  *
- * @throws Error if used outside TemplateStateProvider
+ * Works in two modes:
+ * 1. If within TemplateStateProvider context (same React tree) - uses Context
+ * 2. If outside context (separate React root/island) - uses global manager directly
+ *
+ * This allows islands hydrated in separate React roots to still access shared state.
  */
 export function useTemplateState(): TemplateStateContextType {
   const context = useContext(TemplateStateContext);
 
-  if (!context) {
-    throw new Error('useTemplateState must be used within a TemplateStateProvider');
+  // Force re-render when global state changes (for islands outside context)
+  const [, forceUpdate] = useState({});
+
+  useEffect(() => {
+    // Subscribe to global state if we're outside the context
+    if (!context) {
+      const unsubscribe = globalTemplateStateManager.subscribe(() => {
+        forceUpdate({}); // Trigger re-render
+      });
+      return unsubscribe;
+    }
+  }, [context]);
+
+  // If we have context (same React tree), use it
+  if (context) {
+    return context;
   }
 
-  return context;
+  // Otherwise, use global manager directly (separate React root)
+  return {
+    variables: globalTemplateStateManager.getAllVariables(),
+    getVariable: (name: string) => globalTemplateStateManager.getVariable(name),
+    setVariable: (name: string, value: any) => globalTemplateStateManager.setVariable(name, value),
+    registerVariable: (config: VariableConfig) => globalTemplateStateManager.registerVariable(config),
+    unregisterVariable: (name: string) => globalTemplateStateManager.unregisterVariable(name),
+    resetVariable: (name: string) => globalTemplateStateManager.resetVariable(name),
+    resetAll: () => globalTemplateStateManager.resetAll()
+  };
 }
 
 /**
@@ -401,347 +410,95 @@ export function useTemplateVariable(name: string): any {
  * Global template state instance for use in non-React contexts
  * (e.g., condition-evaluator.ts)
  *
- * This is set by the TemplateStateProvider during render
+ * Uses the global TemplateStateManager for true cross-island state sharing
  */
-let globalTemplateState: TemplateStateContextType | null = null;
-
-/**
- * Set global template state (called by provider)
- * @internal
- */
-export function _setGlobalTemplateState(state: TemplateStateContextType | null) {
-  globalTemplateState = state;
-}
+import { globalTemplateStateManager } from './TemplateStateManager';
 
 /**
  * Get global template state for use in non-React contexts
  *
- * @returns Template state context or null if not available
+ * @returns Template state context (always available via global manager)
  */
-export function getGlobalTemplateState(): TemplateStateContextType | null {
-  return globalTemplateState;
+export function getGlobalTemplateState(): TemplateStateContextType {
+  return {
+    variables: globalTemplateStateManager.getAllVariables(),
+    getVariable: (name: string) => globalTemplateStateManager.getVariable(name),
+    setVariable: (name: string, value: any) => globalTemplateStateManager.setVariable(name, value),
+    registerVariable: (config: VariableConfig) => globalTemplateStateManager.registerVariable(config),
+    unregisterVariable: (name: string) => globalTemplateStateManager.unregisterVariable(name),
+    resetVariable: (name: string) => globalTemplateStateManager.resetVariable(name),
+    resetAll: () => globalTemplateStateManager.resetAll()
+  };
 }
 
 /**
- * Enhanced TemplateStateProvider that sets global state
+ * Enhanced TemplateStateProvider that uses global state manager
+ *
+ * This provider:
+ * 1. Initializes the global state manager with initial variables
+ * 2. Subscribes to global state changes and triggers React re-renders
+ * 3. Provides context for React hooks to access global state
+ *
+ * The global manager ensures all islands share the same state.
  */
 export function GlobalTemplateStateProvider({ children, initialVariables }: TemplateStateProviderProps) {
-  const [variables, setVariables] = useState<Record<string, TemplateVariable>>(initialVariables || {});
+  // Force re-render when global state changes
+  const [, forceUpdate] = useState({});
   const computedDepsRef = useRef<Record<string, Set<string>>>({});
-  const warnedVariablesRef = useRef<Set<string>>(new Set());
+
+  // Initialize global state on mount
+  useEffect(() => {
+    if (initialVariables) {
+      globalTemplateStateManager.initialize(initialVariables);
+    }
+  }, []); // Only run once on mount
+
+  // Subscribe to global state changes
+  useEffect(() => {
+    const unsubscribe = globalTemplateStateManager.subscribe(() => {
+      forceUpdate({}); // Trigger re-render when state changes
+    });
+    return unsubscribe;
+  }, []);
+
+  // Get current variables from global manager
+  const variables = globalTemplateStateManager.getAllVariables();
 
   const getVariable = useCallback((name: string): any => {
-    const variable = variables[name];
-
-    // Return if found directly
-    if (variable !== undefined) {
-      return variable?.value;
-    }
-
-    // WORKAROUND: Check for prefixed version (due to HTML parser transforming <var> elements)
-    const prefixedName = `user-content-${name}`;
-    const prefixedVariable = variables[prefixedName];
-
-    if (prefixedVariable !== undefined) {
-      return prefixedVariable?.value;
-    }
-
-    return undefined;
-  }, [variables]);
+    return globalTemplateStateManager.getVariable(name);
+  }, []);
 
   const setVariable = useCallback((name: string, value: any) => {
-    setVariables(prev => {
-      const variable = prev[name];
-      if (!variable) {
-        // WORKAROUND: Check if there's a prefixed version (due to HTML parser transforming <var> elements)
-        const prefixedName = `user-content-${name}`;
-        if (prev[prefixedName]) {
-          // Only warn once per variable to avoid console spam
-          if (process.env.NODE_ENV === 'development' && !warnedVariablesRef.current.has(name)) {
-            console.warn(`Variable "${name}" not found, using prefixed "${prefixedName}" instead (HTML parser transformation)`);
-            warnedVariablesRef.current.add(name);
-          }
-
-          // Type coercion for prefixed variable
-          let coercedValue = value;
-          const prefixedVar = prev[prefixedName];
-          if (prefixedVar.type) {
-            switch (prefixedVar.type) {
-              case 'number':
-                const num = Number(value);
-                coercedValue = isNaN(num) ? 0 : num;
-                break;
-              case 'boolean':
-                coercedValue = value === true || value === 'true' || value === '1';
-                break;
-              case 'string':
-                coercedValue = String(value);
-                break;
-              case 'array':
-                if (!Array.isArray(value)) {
-                  console.warn(`Attempted to set non-array value to array variable ${prefixedName}:`, value);
-                  coercedValue = Array.isArray(prefixedVar.value) ? prefixedVar.value : [];
-                }
-                break;
-            }
-          }
-
-          return {
-            ...prev,
-            [prefixedName]: {
-              ...prev[prefixedName],
-              value: coercedValue
-            }
-          };
-        }
-
-        // Only warn once per variable to avoid console spam
-        if (process.env.NODE_ENV === 'development' && !warnedVariablesRef.current.has(name)) {
-          console.warn(`Attempted to set undefined variable: ${name}. Available: ${Object.keys(prev).join(', ')}`);
-          warnedVariablesRef.current.add(name);
-        }
-        return prev;
-      }
-
-      // Type coercion based on variable type
-      let coercedValue = value;
-      if (variable.type) {
-        switch (variable.type) {
-          case 'number':
-            const num = Number(value);
-            coercedValue = isNaN(num) ? 0 : num;
-            break;
-          case 'boolean':
-            coercedValue = value === true || value === 'true' || value === '1';
-            break;
-          case 'string':
-            coercedValue = String(value);
-            break;
-          case 'array':
-            if (!Array.isArray(value)) {
-              console.warn(`Attempted to set non-array value to array variable ${name}:`, value);
-              coercedValue = Array.isArray(variable.value) ? variable.value : [];
-            }
-            break;
-          // computed, random, urlParam, date - no coercion
-        }
-      }
-
-      const updated = {
-        ...prev,
-        [name]: {
-          ...variable,
-          value: coercedValue
-        }
-      };
-
-      if (variable.persist) {
-        try {
-          const serialized = JSON.stringify(value);
-          if (serialized.length <= 100 * 1024) {
-            localStorage.setItem(`${STORAGE_PREFIX}${name}`, serialized);
-          } else {
-            console.warn(`Variable ${name} too large to persist`);
-          }
-        } catch (error) {
-          console.error(`Failed to persist variable ${name}:`, error);
-        }
-      }
-
-      return updated;
-    });
+    globalTemplateStateManager.setVariable(name, value);
   }, []);
 
   const registerVariable = useCallback((config: VariableConfig) => {
-    setVariables(prev => {
-      if (prev[config.name]) {
-        return prev;
-      }
-
-      let initialValue = config.initial;
-
-      switch (config.type) {
-        case 'urlParam':
-          if (typeof window !== 'undefined' && config.param) {
-            const params = new URLSearchParams(window.location.search);
-            const paramValue = params.get(config.param);
-            initialValue = paramValue !== null ? paramValue : (config.default ?? initialValue);
-          }
-          break;
-
-        case 'random':
-          if (config.options && config.options.length > 0) {
-            const randomIndex = Math.floor(Math.random() * config.options.length);
-            initialValue = config.options[randomIndex];
-          }
-          break;
-
-        default:
-          if (config.persist && typeof window !== 'undefined') {
-            try {
-              const stored = localStorage.getItem(`${STORAGE_PREFIX}${config.name}`);
-              if (stored !== null) {
-                initialValue = JSON.parse(stored);
-              }
-            } catch (error) {
-              console.error(`Failed to load persisted variable ${config.name}:`, error);
-            }
-          }
-      }
-
-      const variable: TemplateVariable = {
-        name: config.name,
-        type: config.type,
-        value: initialValue,
-        initial: config.initial,
-        persist: config.persist,
-        computed: config.computed,
-        options: config.options,
-        param: config.param,
-        default: config.default
-      };
-
-      return {
-        ...prev,
-        [config.name]: variable
-      };
-    });
+    globalTemplateStateManager.registerVariable(config);
   }, []);
 
   const unregisterVariable = useCallback((name: string) => {
-    setVariables(prev => {
-      const { [name]: removed, ...rest } = prev;
-      return rest;
-    });
+    globalTemplateStateManager.unregisterVariable(name);
     delete computedDepsRef.current[name];
   }, []);
 
   const resetVariable = useCallback((name: string) => {
-    setVariables(prev => {
-      const variable = prev[name];
-      if (!variable) return prev;
-
-      return {
-        ...prev,
-        [name]: {
-          ...variable,
-          value: variable.initial
-        }
-      };
-    });
-
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.removeItem(`${STORAGE_PREFIX}${name}`);
-      } catch (error) {
-        console.error(`Failed to remove persisted variable ${name}:`, error);
-      }
-    }
+    globalTemplateStateManager.resetVariable(name);
   }, []);
 
   const resetAll = useCallback(() => {
-    setVariables(prev => {
-      const reset: Record<string, TemplateVariable> = {};
-
-      for (const [name, variable] of Object.entries(prev)) {
-        reset[name] = {
-          ...variable,
-          value: variable.initial
-        };
-
-        if (variable.persist && typeof window !== 'undefined') {
-          try {
-            localStorage.removeItem(`${STORAGE_PREFIX}${name}`);
-          } catch (error) {
-            console.error(`Failed to remove persisted variable ${name}:`, error);
-          }
-        }
-      }
-
-      return reset;
-    });
+    globalTemplateStateManager.resetAll();
   }, []);
 
-  const contextValue: TemplateStateContextType = {
-    variables,
-    getVariable,
-    setVariable,
-    registerVariable,
-    unregisterVariable,
-    resetVariable,
-    resetAll
-  };
-
-  // Evaluate computed variables whenever dependencies change
-  useEffect(() => {
-    const computedVars = Object.entries(variables).filter(([_, v]) => v.type === 'computed' && v.computed);
-
-    if (computedVars.length === 0) {
-      return;
-    }
-
-    // Import expression evaluator
-    import('@/lib/templates/state/expression-evaluator').then(({ evaluateExpression }) => {
-      // Re-capture current variables state inside the callback
-      setVariables(currentVars => {
-        let hasChanges = false;
-        const updates: Record<string, TemplateVariable> = {};
-
-        computedVars.forEach(([name, variable]) => {
-          try {
-            // Build context with all variable values (use currentVars, not stale variables)
-            const context = Object.fromEntries(
-              Object.entries(currentVars).map(([k, v]) => [k, v.value])
-            );
-
-            // Add unprefixed aliases for user-content-* variables
-            Object.keys(currentVars).forEach(key => {
-              if (key.startsWith('user-content-')) {
-                const unprefixedKey = key.replace('user-content-', '');
-                if (!context[unprefixedKey]) {
-                  context[unprefixedKey] = currentVars[key].value;
-                }
-              }
-            });
-
-            // Evaluate the expression
-            const result = evaluateExpression(variable.computed!, context);
-
-            // Only update if value changed (prevent infinite loops)
-            if (result !== variable.value) {
-              hasChanges = true;
-              updates[name] = {
-                ...currentVars[name],
-                value: result
-              };
-            }
-          } catch (error) {
-            console.error(`Failed to evaluate computed variable "${name}":`, error);
-          }
-        });
-
-        // Return updated state if there are changes
-        if (hasChanges) {
-          return {
-            ...currentVars,
-            ...updates
-          };
-        }
-
-        // No changes - return current state unchanged
-        return currentVars;
-      });
-    });
-  }, [variables]);
-
-  // Set global state for non-React contexts
-  useEffect(() => {
-    _setGlobalTemplateState(contextValue);
-    return () => _setGlobalTemplateState(null);
-  }, [contextValue]);
-
   return (
-    <TemplateStateContext.Provider value={contextValue}>
+    <TemplateStateContext.Provider value={{
+      variables,
+      getVariable,
+      setVariable,
+      registerVariable,
+      unregisterVariable,
+      resetVariable,
+      resetAll
+    }}>
       {children}
     </TemplateStateContext.Provider>
   );

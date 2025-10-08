@@ -70,6 +70,10 @@ function createCustomSchema() {
     if (!schema.attributes[tag].includes('className')) {
       schema.attributes[tag].push('className');
     }
+    // Add style attribute (allow inline styles with CSS variables)
+    if (!schema.attributes[tag].includes('style')) {
+      schema.attributes[tag].push('style');
+    }
   }
 
   // Allow custom component tags from the registry
@@ -96,10 +100,18 @@ function createCustomSchema() {
         'initial', 'persist', 'param', 'default', 'expression', 'var', 'format', 'fallback',
         // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast, If/Else)
         'by', 'min', 'step', 'rows', 'multiline', 'message', 'duration', 'disabled', 'placeholder',
+        // Phase 4: Validation props (Validate component)
+        'pattern', 'required', 'minlength', 'minLength', 'maxlength', 'maxLength',
+        // Phase 4: Event handler props (OnKeyPress)
+        'keyname', 'keyName',
+        // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)
+        'target',
+        // Phase 4: OnVisible props
+        'threshold', 'once',
         // Phase 3: Input component props (RadioGroup, Slider, Select, ColorPicker)
         'showValue', 'showvalue', 'direction', 'debounce',
-        // Phase 3: Array/String action props (Push, Pop, RemoveAt, Append, Prepend, Cycle)
-        'index', 'values',
+        // Phase 3: Array/String action props (Push, Pop, RemoveAt, ArrayAt, Append, Prepend, Cycle)
+        'index', 'values', 'array',
         // Phase 3: Event handler props (OnChange, OnMount, OnInterval)
         'seconds', 'milliseconds',
         // Phase 4: Loop props (ForEach)
@@ -250,9 +262,6 @@ function createCustomSchema() {
 
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
 export function parseTemplate(htmlString: string): Root {
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[PARSER] Input HTML string:', htmlString.substring(0, 500));
-  }
 
   // Unescape HTML entities in attributes before processing
   // This handles &quot; &apos; &lt; &gt; &amp; etc.
@@ -313,7 +322,6 @@ export function parseTemplate(htmlString: string): Root {
   // DEBUG: Log what the parser extracted for Var/Set/ShowVar components (development only)
   if (process.env.NODE_ENV === 'development') {
     if (processedString.includes('"var"') || processedString.includes('"Var"')) {
-      console.log('[PARSER] After sanitization, found Var component in tree');
       // Find and log Var nodes with their properties
       const findVarNodes = (node: any): any[] => {
         const results: any[] = [];
@@ -327,10 +335,6 @@ export function parseTemplate(htmlString: string): Root {
         }
         return results;
       };
-      const varNodes = findVarNodes(processed);
-      if (varNodes.length > 0) {
-        console.log('[PARSER] Var nodes found:', JSON.stringify(varNodes, null, 2));
-      }
     }
   }
 

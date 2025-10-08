@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useOnChangeHandler, filterOnChangeChildren } from '../events/OnChange';
 
@@ -75,21 +75,37 @@ export default function TInput(props: TInputProps) {
     children
   } = props;
 
+  // IMPORTANT: Always call hooks before any conditional returns
   const templateState = useTemplateState();
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Extract OnChange handler from children
   const changeHandler = useOnChangeHandler(children);
 
+  // CRITICAL: Validate required props (after hooks)
+  if (!varName) {
+    console.error('[TInput] Missing required "var" prop');
+    return (
+      <div style={{
+        padding: '12px',
+        margin: '8px 0',
+        backgroundColor: '#fef2f2',
+        border: '2px solid #dc2626',
+        borderRadius: '6px',
+        color: '#dc2626',
+        fontSize: '13px'
+      }}>
+        ⚠️ <strong>TInput Error:</strong> Missing required <code>var</code> prop.
+        Example: <code>&lt;TInput var=&quot;myVariable&quot; /&gt;</code>
+      </div>
+    );
+  }
+
   // Convert string booleans to actual booleans
   const isMultiline = multiline === true || multiline === 'true';
 
   // Get current value from template state (reactive)
-  // Try both unprefixed and prefixed versions (user-content- workaround)
-  let variable = templateState.variables[varName];
-  if (!variable && !varName.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${varName}`];
-  }
+  const variable = templateState.variables[varName];
   const currentValue = variable?.value ?? '';
 
   // Handle value changes
@@ -100,8 +116,6 @@ export default function TInput(props: TInputProps) {
     if (type === 'number' && newValue !== '') {
       newValue = Number(newValue);
     }
-
-    console.log('[TInput] Value changed:', { varName, newValue, hasChangeHandler: !!changeHandler });
 
     templateState.setVariable(varName, newValue);
 
@@ -157,28 +171,34 @@ export default function TInput(props: TInputProps) {
   // Normal mode - render functional input
   if (isMultiline) {
     return (
-      <textarea
-        placeholder={placeholder}
-        rows={typeof rows === 'string' ? parseInt(rows) : rows}
-        disabled={disabled}
-        className={finalClassName}
-        value={String(currentValue)}
-        onChange={handleChange}
-      />
+      <>
+        <textarea
+          placeholder={placeholder}
+          rows={typeof rows === 'string' ? parseInt(rows) : rows}
+          disabled={disabled}
+          className={finalClassName}
+          value={String(currentValue)}
+          onChange={handleChange}
+        />
+        {children}
+      </>
     );
   } else {
     return (
-      <input
-        type={type}
-        placeholder={placeholder}
-        min={min}
-        max={max}
-        step={step}
-        disabled={disabled}
-        className={finalClassName}
-        value={String(currentValue)}
-        onChange={handleChange}
-      />
+      <>
+        <input
+          type={type}
+          placeholder={placeholder}
+          min={min}
+          max={max}
+          step={step}
+          disabled={disabled}
+          className={finalClassName}
+          value={String(currentValue)}
+          onChange={handleChange}
+        />
+        {children}
+      </>
     );
   }
 }

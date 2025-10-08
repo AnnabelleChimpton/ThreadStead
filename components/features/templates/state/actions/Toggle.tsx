@@ -82,11 +82,7 @@ export function executeToggleAction(
 
   try {
     // Get current value
-    // Try both unprefixed and prefixed versions (user-content- workaround)
-    let variable = templateState.variables[varName];
-    if (!variable && !varName.startsWith('user-content-')) {
-      variable = templateState.variables[`user-content-${varName}`];
-    }
+    const variable = templateState.variables[varName];
 
     if (!variable) {
       console.warn(`Toggle action: variable "${varName}" not found`);

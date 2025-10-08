@@ -3,6 +3,7 @@
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { evaluateExpression } from '@/lib/templates/state/expression-evaluator';
+import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 
 /**
  * Push Component - Action to add an item to an array variable
@@ -26,7 +27,10 @@ export interface PushProps {
   var: string;
 
   /** Value to push (can be literal or expression with $vars) */
-  value: any;
+  value?: any;
+
+  /** Expression to evaluate for the value (alias for value) */
+  expression?: string;
 
   /** Internal: Visual builder mode flag */
   __visualBuilder?: boolean;
@@ -40,9 +44,13 @@ export default function Push(props: PushProps) {
   const {
     var: varName,
     value,
+    expression,
     __visualBuilder,
     _isInVisualBuilder
   } = props;
+
+  // Support both value and expression props (expression takes precedence)
+  const actualValue = expression ?? value;
 
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
@@ -50,7 +58,7 @@ export default function Push(props: PushProps) {
   if (isVisualBuilder) {
     return (
       <div className="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded text-xs text-green-700 dark:text-green-300 font-mono">
-        ➕ Push: {varName} ← {String(value)}
+        ➕ Push: {varName} ← {String(actualValue)}
       </div>
     );
   }
@@ -68,14 +76,22 @@ export function executePushAction(
   props: PushProps,
   templateState: ReturnType<typeof useTemplateState>
 ): void {
-  const { var: varName, value } = props;
+  const { var: varName, value, expression } = props;
+
+  console.log('[Push] executePushAction called with:', {
+    varName,
+    value,
+    expression,
+    allProps: props
+  });
+
+  // Support both value and expression props (expression takes precedence)
+  const actualValue = expression ?? value;
+
+  console.log('[Push] actualValue:', actualValue, 'type:', typeof actualValue);
 
   // Get current array
-  // Try both unprefixed and prefixed versions (user-content- workaround)
-  let variable = templateState.variables[varName];
-  if (!variable && !varName.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${varName}`];
-  }
+  const variable = templateState.variables[varName];
 
   // Check if variable is array type
   if (variable?.type && variable.type !== 'array') {
@@ -86,26 +102,21 @@ export function executePushAction(
   const currentArray = Array.isArray(variable?.value) ? variable.value : [];
 
   // Evaluate value if it's a string that might be an expression
-  let itemToAdd = value;
-  if (typeof value === 'string' && value.includes('$vars')) {
-    // Build context with all variables
+  let itemToAdd = actualValue;
+  if (typeof actualValue === 'string' && actualValue.includes('$vars')) {
+    // Build context with FRESH variables from global manager
+    const freshVariables = globalTemplateStateManager.getAllVariables();
     const context: Record<string, any> = {};
-    Object.keys(templateState.variables).forEach(key => {
-      context[key] = templateState.variables[key].value;
-      // Also add unprefixed version for user-content- workaround
-      if (key.startsWith('user-content-')) {
-        const unprefixedKey = key.replace('user-content-', '');
-        if (!context[unprefixedKey]) {
-          context[unprefixedKey] = templateState.variables[key].value;
-        }
-      }
+    Object.keys(freshVariables).forEach(key => {
+      context[key] = freshVariables[key].value;
     });
 
     try {
-      itemToAdd = evaluateExpression(value, context);
+      itemToAdd = evaluateExpression(actualValue, context);
+      console.log(`[Push] Evaluated expression "${actualValue}" to:`, itemToAdd);
     } catch (error) {
-      console.error(`[Push] Expression evaluation failed for "${value}":`, error);
-      itemToAdd = value; // Fallback to literal value
+      console.error(`[Push] Expression evaluation failed for "${actualValue}":`, error);
+      itemToAdd = actualValue; // Fallback to literal value
     }
   }
 

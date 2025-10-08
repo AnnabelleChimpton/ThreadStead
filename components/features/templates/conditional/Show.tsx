@@ -65,12 +65,18 @@ interface ShowProps {
 export default function Show(props: ShowProps) {
   const { children, ...conditionProps } = props;
   const residentData = useResidentData();
+  const templateState = useTemplateState();
 
   // Build condition config from props
   const config: ConditionConfig = conditionProps as ConditionConfig;
 
   // Evaluate condition using centralized engine
+  // Pass residentData as the data context - condition evaluator will access template state via getGlobalTemplateState()
   const shouldShow = evaluateFullCondition(config, residentData);
+
+  // ALTERNATIVE: If template state is not accessible via global, we could merge it into data
+  // const dataWithVars = { ...residentData, $vars: templateState?.variables };
+  // const shouldShow = evaluateFullCondition(config, dataWithVars);
 
   return shouldShow ? <>{children}</> : null;
 }

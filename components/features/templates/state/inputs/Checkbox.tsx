@@ -51,11 +51,7 @@ export default function Checkbox(props: CheckboxProps) {
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Get current value from template state (reactive)
-  // Try both unprefixed and prefixed versions (user-content- workaround)
-  let variable = templateState.variables[varName];
-  if (!variable && !varName.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${varName}`];
-  }
+  const variable = templateState.variables[varName];
   const currentValue = Boolean(variable?.value);
 
   // Handle value changes

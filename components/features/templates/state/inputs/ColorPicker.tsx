@@ -56,11 +56,7 @@ export default function ColorPicker(props: ColorPickerProps) {
   const filteredChildren = filterOnChangeChildren(children);
 
   // Get current value from template state (reactive)
-  // Try both unprefixed and prefixed versions (user-content- workaround)
-  let variable = templateState.variables[varName];
-  if (!variable && !varName.startsWith('user-content-')) {
-    variable = templateState.variables[`user-content-${varName}`];
-  }
+  const variable = templateState.variables[varName];
   const currentValue = typeof variable?.value === 'string' ? variable.value : '#000000';
 
   // Handle value changes

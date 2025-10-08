@@ -20,6 +20,7 @@ import {
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 import { GlobalTemplateStateProvider } from '@/lib/templates/state/TemplateStateProvider';
 import { ToastProvider } from '@/lib/templates/state/ToastProvider';
+import TemplateErrorBoundary from '@/components/features/templates/TemplateErrorBoundary';
 
 // Extended Island type with htmlStructure for runtime rendering
 interface ExtendedIsland extends Island {
@@ -162,50 +163,57 @@ export default function AdvancedProfileRenderer({
 
 
   return (
-    <GlobalTemplateStateProvider>
-      <ToastProvider>
-        {/* Layered CSS styles */}
-        {layeredCSS && (
-          <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />
-        )}
+    <TemplateErrorBoundary
+      componentName="AdvancedProfileRenderer"
+      fallbackMessage="The template could not be rendered due to an error. This may be caused by invalid template syntax or missing required properties."
+    >
+      <GlobalTemplateStateProvider>
+        <ResidentDataProvider data={residentData}>
+          <ToastProvider>
+            {/* Layered CSS styles */}
+            {layeredCSS && (
+              <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />
+            )}
 
-        {/* UNIFIED: Minimal wrapper for both template types - non-interfering container for CSS scoping */}
-        <div
-          id={`profile-${user.id}`}
-          className="profile-template-root"
-          style={{
-            position: 'static',    // Don't create positioning context
-            zIndex: 'auto',        // Don't create stacking context
-            overflow: 'visible',   // Don't clip content
-            isolation: 'auto'      // Don't create isolation context
-          }}
-        >
-          <ProfileContentRenderer
-            compiledTemplate={compiledTemplate}
-            islands={islands}
-            residentData={residentData}
-            onIslandRender={handleIslandRender}
-            onIslandError={handleIslandError}
-            visualBuilderClasses={visualBuilderClasses}
-            isInVisualBuilder={isInVisualBuilder}
-            templateType={templateType}
-            profileId={`profile-${user.id}`}
-          />
-        </div>
-
-        {/* Hydration status indicator (dev mode only) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ position: 'fixed', top: 0, right: 0, zIndex: 9999 }}>
-            <HydrationDebugInfo
-              totalIslands={islands.length}
-              loadedIslands={loadedIslands}
-              failedIslands={failedIslands}
-              isHydrated={isHydrated}
+          {/* UNIFIED: Minimal wrapper for both template types - non-interfering container for CSS scoping */}
+          <div
+            id={`profile-${user.id}`}
+            className="profile-template-root"
+            style={{
+              position: 'static',    // Don't create positioning context
+              zIndex: 'auto',        // Don't create stacking context
+              overflow: 'visible',   // Don't clip content
+              isolation: 'auto'      // Don't create isolation context
+            }}
+          >
+            <ProfileContentRenderer
+              compiledTemplate={compiledTemplate}
+              islands={islands}
+              residentData={residentData}
+              onIslandRender={handleIslandRender}
+              onIslandError={handleIslandError}
+              visualBuilderClasses={visualBuilderClasses}
+              isInVisualBuilder={isInVisualBuilder}
+              templateType={templateType}
+              profileId={`profile-${user.id}`}
             />
           </div>
-        )}
-      </ToastProvider>
-    </GlobalTemplateStateProvider>
+
+          {/* Hydration status indicator (dev mode only) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div style={{ position: 'fixed', top: 0, right: 0, zIndex: 9999 }}>
+              <HydrationDebugInfo
+                totalIslands={islands.length}
+                loadedIslands={loadedIslands}
+                failedIslands={failedIslands}
+                isHydrated={isHydrated}
+              />
+            </div>
+          )}
+        </ToastProvider>
+        </ResidentDataProvider>
+      </GlobalTemplateStateProvider>
+    </TemplateErrorBoundary>
   );
 }
 
@@ -478,7 +486,6 @@ function StaticHTMLWithIslands({
         if (islandId && componentName) {
           const island = islands.find(i => i.id === islandId);
           if (island) {
-
             try {
               const Component = getComponent(island.component);
               if (Component) {
@@ -488,7 +495,31 @@ function StaticHTMLWithIslands({
                 ).filter(child => child !== null && child !== '');
 
                 // Parse children for component props
-                const processedChildren = childElements.length > 0 ? childElements : undefined;
+                let processedChildren = childElements.length > 0 ? childElements : undefined;
+
+                // PHASE 4 FIX: Inject var prop into Validate children when parent is TInput
+                // This must happen BEFORE creating componentProps to avoid cloning issues
+                if ((island.component === 'TInput' || island.component === 'tinput') && island.props.var && processedChildren) {
+                  const varName = island.props.var;
+
+                  // processedChildren is an array, not React children, so map over it directly
+                  processedChildren = processedChildren.map((child: any) => {
+                    if (React.isValidElement(child)) {
+                      const childType = (child.type as any)?.name || (child.type as any)?.displayName;
+                      if (childType === 'ResidentDataProvider') {
+                        const innerChild = (child.props as any)?.children;
+                        if (React.isValidElement(innerChild)) {
+                          const innerType = (innerChild.type as any)?.name || (innerChild.type as any)?.displayName;
+                          if (innerType === 'Validate') {
+                            const newValidate = React.cloneElement(innerChild, { var: varName, ...(innerChild.props as any) } as any);
+                            return React.cloneElement(child, { ...(child.props as any), children: newValidate } as any);
+                          }
+                        }
+                      }
+                    }
+                    return child;
+                  });
+                }
 
                 // PROPS-BASED POSITIONING: Get positioning data directly from island props
                 const positioningData = island.props._positioning;
@@ -745,7 +776,19 @@ function StaticHTMLWithIslands({
               'seconds': 'seconds',
               'milliseconds': 'milliseconds',
               // Phase 4: Loop props (ForEach)
-              'item': 'item'
+              'item': 'item',
+              // Phase 4: Validation props (Validate component)
+              'pattern': 'pattern',
+              'required': 'required',
+              'minlength': 'minLength',
+              'maxlength': 'maxLength',
+              // Phase 4: Event handler props (OnKeyPress)
+              'keyname': 'keyName',
+              // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)
+              'target': 'target',
+              // Phase 4: OnVisible props
+              'threshold': 'threshold',
+              'once': 'once'
             };
 
             // Copy attributes as props
@@ -1225,7 +1268,19 @@ function domToReact(
       'seconds': 'seconds',
       'milliseconds': 'milliseconds',
       // Phase 4: Loop props (ForEach)
-      'item': 'item'
+      'item': 'item',
+      // Phase 4: Validation props (Validate component)
+      'pattern': 'pattern',
+      'required': 'required',
+      'minlength': 'minLength',
+      'maxlength': 'maxLength',
+      // Phase 4: Event handler props (OnKeyPress)
+      'keyname': 'keyName',
+      // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)
+      'target': 'target',
+      // Phase 4: OnVisible props
+      'threshold': 'threshold',
+      'once': 'once'
     };
 
     for (let i = 0; i < element.attributes.length; i++) {
@@ -1752,12 +1807,11 @@ function ProductionIslandRenderer({
 
     onIslandRender(island.id);
 
+    // No need to wrap in ResidentDataProvider - it's provided at root level
     const component = (
-      <ResidentDataProvider data={residentData}>
-        <Component {...componentProps}>
-          {children}
-        </Component>
-      </ResidentDataProvider>
+      <Component {...componentProps}>
+        {children}
+      </Component>
     );
 
     // Apply size styling if _size exists

@@ -87,10 +87,12 @@ import ShowToast from '@/components/features/templates/state/actions/ShowToast';
 import OnClick from '@/components/features/templates/state/events/OnClick';
 import TInput from '@/components/features/templates/state/inputs/TInput';
 import Checkbox from '@/components/features/templates/state/inputs/Checkbox';
+import DynamicImage from '@/components/features/templates/state/DynamicImage';
 import If from '@/components/features/templates/state/conditional/If';
 import ElseIf from '@/components/features/templates/state/conditional/ElseIf';
 import Else from '@/components/features/templates/state/conditional/Else';
 import Button from '@/components/features/templates/Button';
+import EventDiv from '@/components/features/templates/EventDiv';
 
 // Phase 3: Event handlers
 import OnChange from '@/components/features/templates/state/events/OnChange';
@@ -107,6 +109,7 @@ import ColorPicker from '@/components/features/templates/state/inputs/ColorPicke
 import Push from '@/components/features/templates/state/actions/Push';
 import Pop from '@/components/features/templates/state/actions/Pop';
 import RemoveAt from '@/components/features/templates/state/actions/RemoveAt';
+import ArrayAt from '@/components/features/templates/state/actions/ArrayAt';
 
 // Phase 3: String actions
 import Append from '@/components/features/templates/state/actions/Append';
@@ -117,6 +120,28 @@ import Cycle from '@/components/features/templates/state/actions/Cycle';
 
 // Phase 4: Loops
 import ForEach from '@/components/features/templates/state/loops/ForEach';
+
+// Phase 4: Validation
+import Validate from '@/components/features/templates/state/validation/Validate';
+
+// Phase 4: Event handlers
+import OnHover from '@/components/features/templates/state/events/OnHover';
+import OnMouseEnter from '@/components/features/templates/state/events/OnMouseEnter';
+import OnMouseLeave from '@/components/features/templates/state/events/OnMouseLeave';
+import OnKeyPress from '@/components/features/templates/state/events/OnKeyPress';
+import OnVisible from '@/components/features/templates/state/events/OnVisible';
+
+// Phase 4: CSS manipulation
+import AddClass from '@/components/features/templates/state/actions/AddClass';
+import RemoveClass from '@/components/features/templates/state/actions/RemoveClass';
+import ToggleClass from '@/components/features/templates/state/actions/ToggleClass';
+import SetCSSVar from '@/components/features/templates/state/actions/SetCSSVar';
+
+// Phase 4: Utility actions
+import CopyToClipboard from '@/components/features/templates/state/actions/CopyToClipboard';
+import SetURLParam from '@/components/features/templates/state/actions/SetURLParam';
+import SetURLHash from '@/components/features/templates/state/actions/SetURLHash';
+import Reset from '@/components/features/templates/state/actions/Reset';
 
 // Import debug components
 import DebugValue from '@/components/features/templates/DebugValue';
@@ -1338,6 +1363,21 @@ componentRegistry.register({
   }
 });
 
+componentRegistry.register({
+  name: 'EventDiv',
+  component: EventDiv,
+  props: {
+    className: { type: 'string' },
+    class: { type: 'string' },
+    id: { type: 'string' },
+    style: { type: 'string' }
+  },
+  relationship: {
+    type: 'container',  // Interactive container
+    acceptsChildren: true  // Accepts content and event handlers (OnHover, OnMouseEnter, OnMouseLeave)
+  }
+});
+
 // Phase 2: Interactive template variable components
 componentRegistry.register({
   name: 'Increment',
@@ -1428,6 +1468,22 @@ componentRegistry.register({
   },
   relationship: {
     type: 'interactive',  // Interactive input component
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'DynamicImage',
+  component: DynamicImage,
+  props: {
+    var: { type: 'string', required: true },
+    alt: { type: 'string' },
+    width: { type: 'string' },
+    height: { type: 'string' },
+    className: { type: 'string' }
+  },
+  relationship: {
+    type: 'interactive',  // Interactive component bound to variable
     acceptsChildren: false
   }
 });
@@ -2022,6 +2078,20 @@ componentRegistry.register({
   }
 });
 
+componentRegistry.register({
+  name: 'ArrayAt',
+  component: ArrayAt,
+  props: {
+    var: { type: 'string', required: true },
+    array: { type: 'string', required: true },
+    index: { type: 'string', required: true } // String to support variable names or literal numbers
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
 // String action components
 componentRegistry.register({
   name: 'Append',
@@ -2076,6 +2146,190 @@ componentRegistry.register({
   relationship: {
     type: 'container',
     acceptsChildren: true
+  }
+});
+
+// Phase 4: Validation components
+componentRegistry.register({
+  name: 'Validate',
+  component: Validate,
+  props: {
+    var: { type: 'string' },
+    pattern: { type: 'string' },
+    required: { type: 'boolean', default: false },
+    min: { type: 'number' },
+    max: { type: 'number' },
+    minLength: { type: 'number' },
+    maxLength: { type: 'number' },
+    message: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'leaf',
+    acceptsChildren: false
+  }
+});
+
+// Phase 4: Event handler components
+componentRegistry.register({
+  name: 'OnHover',
+  component: OnHover,
+  props: {},
+  relationship: {
+    type: 'action',
+    acceptsChildren: true
+  }
+});
+
+componentRegistry.register({
+  name: 'OnMouseEnter',
+  component: OnMouseEnter,
+  props: {},
+  relationship: {
+    type: 'action',
+    acceptsChildren: true
+  }
+});
+
+componentRegistry.register({
+  name: 'OnMouseLeave',
+  component: OnMouseLeave,
+  props: {},
+  relationship: {
+    type: 'action',
+    acceptsChildren: true
+  }
+});
+
+componentRegistry.register({
+  name: 'OnKeyPress',
+  component: OnKeyPress,
+  props: {
+    keyName: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: true
+  }
+});
+
+componentRegistry.register({
+  name: 'OnVisible',
+  component: OnVisible,
+  props: {
+    threshold: { type: 'number', default: 0.5 },
+    once: { type: 'boolean', default: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: true
+  }
+});
+
+// Phase 4: CSS manipulation action components
+componentRegistry.register({
+  name: 'AddClass',
+  component: AddClass,
+  props: {
+    target: { type: 'string', required: true },
+    className: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'RemoveClass',
+  component: RemoveClass,
+  props: {
+    target: { type: 'string', required: true },
+    className: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'ToggleClass',
+  component: ToggleClass,
+  props: {
+    target: { type: 'string', required: true },
+    className: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'SetCSSVar',
+  component: SetCSSVar,
+  props: {
+    name: { type: 'string', required: true },
+    value: { type: 'string' },
+    expression: { type: 'string' },
+    target: { type: 'string', default: ':root' }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+// Phase 4: Utility action components
+componentRegistry.register({
+  name: 'CopyToClipboard',
+  component: CopyToClipboard,
+  props: {
+    value: { type: 'string' },
+    expression: { type: 'string' }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'SetURLParam',
+  component: SetURLParam,
+  props: {
+    key: { type: 'string', required: true },
+    value: { type: 'string' },
+    expression: { type: 'string' }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'SetURLHash',
+  component: SetURLHash,
+  props: {
+    value: { type: 'string' },
+    expression: { type: 'string' }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Reset',
+  component: Reset,
+  props: {
+    var: { type: 'string' }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
   }
 });
 

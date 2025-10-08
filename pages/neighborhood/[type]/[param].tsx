@@ -159,7 +159,7 @@ export default function UnifiedNeighborhood({
       return (b.joinedAt || '').localeCompare(a.joinedAt || '')
     })
   
-  const pageTitle = `🏘️ ${title} - ThreadStead Neighborhoods`
+  const pageTitle = `${title} - ThreadStead Neighborhoods`
   const activeCount = members.filter(m => m.stats.isActive).length
   
   return (
@@ -852,7 +852,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         
         switch (param) {
           case 'all':
-            title = '🌍 Explore All Neighborhoods'
+            title = 'Explore All Neighborhoods'
             description = 'Discover pixel homes across all of ThreadStead'
             break
           case 'recent':
@@ -872,7 +872,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             take = 30
             break
           default:
-            title = '🌍 Explore All Neighborhoods'
+            title = 'Explore All Neighborhoods'
             description = 'Discover pixel homes across all of ThreadStead'
         }
         

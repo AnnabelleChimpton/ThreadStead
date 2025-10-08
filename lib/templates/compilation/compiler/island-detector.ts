@@ -2,6 +2,7 @@
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import { componentRegistry, validateAndCoerceProps, validateStandardizedProps } from '@/lib/templates/core/template-registry';
 import type { Island } from './types';
+import { normalizeVariableName } from '@/lib/templates/state/variable-utils';
 
 // Generate unique island ID based on component type and path
 export function generateIslandId(componentType: string, path: string[]): string {
@@ -122,35 +123,6 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         // This is an interactive component - create an island
         componentCount++;
         const islandId = generateIslandId(node.tagName, path);
-
-        // DEBUG: Log variable component detection (development only)
-        if (process.env.NODE_ENV === 'development') {
-          const lowerTagName = node.tagName.toLowerCase();
-          if (lowerTagName === 'showvar') {
-            console.log('[ISLAND-DETECTOR] ShowVar detected:', {
-              islandId,
-              props: node.properties,
-              path,
-              hasChildren: !!node.children?.length
-            });
-          }
-          if (lowerTagName === 'var') {
-            console.log('[ISLAND-DETECTOR] Var detected:', {
-              islandId,
-              rawProps: node.properties,
-              path,
-              hasChildren: !!node.children?.length
-            });
-          }
-          if (lowerTagName === 'set') {
-            console.log('[ISLAND-DETECTOR] Set detected:', {
-              islandId,
-              rawProps: node.properties,
-              path,
-              hasChildren: !!node.children?.length
-            });
-          }
-        }
         
         // Process children first to create nested islands
         const processedChildren: TemplateNode[] = [];
@@ -287,16 +259,32 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'showValue': 'showValue',
           'direction': 'direction',
           'debounce': 'debounce',
-          // Phase 3: Array/String action props (Push, Pop, RemoveAt, Append, Prepend, Cycle)
+          // Phase 3: Array/String action props (Push, Pop, RemoveAt, ArrayAt, Append, Prepend, Cycle)
           'index': 'index',
           'values': 'values',
+          'array': 'array',
           // Phase 3: Event handler props (OnChange, OnMount, OnInterval)
           'seconds': 'seconds',
           'milliseconds': 'milliseconds',
           // Phase 4: Loop props (ForEach)
           'item': 'item',
           'disabled': 'disabled',
-          'placeholder': 'placeholder'
+          'placeholder': 'placeholder',
+          // Phase 4: Validation props (Validate component)
+          'pattern': 'pattern',
+          'required': 'required',
+          'minlength': 'minLength',
+          'minLength': 'minLength',
+          'maxlength': 'maxLength',
+          'maxLength': 'maxLength',
+          // Phase 4: Event handler props (OnKeyPress)
+          'keyname': 'keyName',
+          'keyName': 'keyName',
+          // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)
+          'target': 'target',
+          // Phase 4: OnVisible props
+          'threshold': 'threshold',
+          'once': 'once'
         };
 
         // Apply attribute name conversions for kebab-case to camelCase
@@ -308,6 +296,13 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
               delete rawProps[htmlAttr];
             }
           }
+        }
+
+        // Normalize variable names by stripping user-content- prefix
+        // rehype-sanitize adds this prefix for DOM clobbering security,
+        // but we strip it here so components work with clean names
+        if (rawProps['name'] && typeof rawProps['name'] === 'string') {
+          rawProps['name'] = normalizeVariableName(rawProps['name']);
         }
 
         // Convert dataComponentSize attribute back to _size prop if present
@@ -352,25 +347,6 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           } else {
             // Component not found in either registry
             props = rawProps; // Use raw props as fallback
-          }
-        }
-
-        // DEBUG: Log props after validation (development only)
-        if (process.env.NODE_ENV === 'development') {
-          const lowerTagName = node.tagName.toLowerCase();
-          if (lowerTagName === 'var') {
-            console.log('[ISLAND-DETECTOR] Var props after validation:', {
-              islandId,
-              rawProps: node.properties,
-              validatedProps: props
-            });
-          }
-          if (lowerTagName === 'set') {
-            console.log('[ISLAND-DETECTOR] Set props after validation:', {
-              islandId,
-              rawProps: node.properties,
-              validatedProps: props
-            });
           }
         }
 
@@ -454,6 +430,26 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           if (styleValues.length > 0) {
             preservedProperties['style'] = styleValues.join('; ');
           }
+
+          // NEW: Preserve event component props (OnKeyPress, OnChange, etc.)
+          // These components need their config props in the static HTML for domToReact
+          const eventComponentProps: Record<string, string[]> = {
+            'OnKeyPress': ['keyname', 'keyName'],
+            'OnChange': ['var'],
+            'OnMount': [],
+            'OnInterval': ['seconds', 'milliseconds'],
+            'OnVisible': ['threshold', 'once']
+          };
+
+          const componentPropsList = eventComponentProps[node.tagName];
+          if (componentPropsList) {
+            for (const propName of componentPropsList) {
+              const value = node.properties[propName];
+              if (value !== undefined && value !== null && value !== '') {
+                preservedProperties[propName] = value;
+              }
+            }
+          }
         }
 
         const placeholder: TemplateNode = {
@@ -462,19 +458,6 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           properties: preservedProperties,
           children: processedChildren
         };
-
-        // DEBUG: Log ShowVar island creation
-        if (node.tagName === 'ShowVar') {
-          console.log('[ISLAND-DETECTOR] ShowVar island created:', {
-            islandId,
-            island,
-            placeholder: {
-              tagName: placeholder.tagName,
-              properties: placeholder.properties,
-              hasChildren: !!placeholder.children?.length
-            }
-          });
-        }
 
         return placeholder;
       }

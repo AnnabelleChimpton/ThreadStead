@@ -111,11 +111,13 @@ export default function If(props: IfProps) {
  *
  * @param props If component props
  * @param residentData Resident data context
+ * @param forEachContext ForEach loop context for scoped variables
  * @returns true if condition is met, false otherwise
  */
 export function evaluateIfCondition(
   props: IfProps,
-  residentData: any
+  residentData: any,
+  forEachContext?: { scopeId?: string } | null
 ): boolean {
   const { condition, data, ...rest } = props;
 
@@ -125,6 +127,7 @@ export function evaluateIfCondition(
     ...rest
   } as ConditionConfig;
 
-  // Use centralized condition evaluator
-  return evaluateFullCondition(config, residentData);
+  // Use centralized condition evaluator with scoped variable support
+  const scopeId = forEachContext?.scopeId;
+  return evaluateFullCondition(config, residentData, scopeId);
 }

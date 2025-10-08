@@ -72,11 +72,19 @@ export interface EvaluationContext {
  * @throws Error if expression is invalid or unsafe
  */
 export function evaluateExpression(
-  expression: string,
+  expression: string | undefined,
   context: EvaluationContext
 ): any {
+  // CRITICAL: Defensive null checks - return undefined instead of throwing
   if (!expression || typeof expression !== 'string') {
-    throw new Error('Expression must be a non-empty string');
+    console.warn('[evaluateExpression] Invalid expression:', expression);
+    return undefined;
+  }
+
+  // Validate context
+  if (!context || typeof context !== 'object') {
+    console.warn('[evaluateExpression] Invalid context:', context);
+    return undefined;
   }
 
   // Parse expression to AST
@@ -136,7 +144,13 @@ export function evaluateExpression(
   /**
    * Get identifier value from context
    */
-  function getIdentifierValue(name: string, ctx: EvaluationContext): any {
+  function getIdentifierValue(name: string | undefined, ctx: EvaluationContext): any {
+    // CRITICAL: Defensive null check
+    if (!name || typeof name !== 'string') {
+      console.warn('[getIdentifierValue] Invalid name:', name);
+      return undefined;
+    }
+
     // Check if it's a direct variable reference
     if (ctx.hasOwnProperty(name)) {
       return ctx[name];

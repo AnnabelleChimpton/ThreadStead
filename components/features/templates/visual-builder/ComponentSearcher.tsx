@@ -327,6 +327,118 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     tags: ['option', 'random', 'choice', 'value'],
     popularity: 30
   },
+  'Validate': {
+    name: 'Validate',
+    description: 'Input validation with error messages',
+    icon: '✓',
+    category: 'State Management',
+    tags: ['validate', 'validation', 'error', 'form', 'input', 'check', 'required', 'pattern'],
+    popularity: 75
+  },
+  'OnHover': {
+    name: 'On Hover',
+    description: 'Execute actions when element is hovered',
+    icon: '🖱️',
+    category: 'Events',
+    tags: ['hover', 'mouse', 'event', 'interaction', 'cursor', 'mouseover'],
+    popularity: 70
+  },
+  'OnMouseEnter': {
+    name: 'On Mouse Enter',
+    description: 'Execute actions when mouse enters element',
+    icon: '➡️',
+    category: 'Events',
+    tags: ['mouse', 'enter', 'event', 'hover', 'interaction'],
+    popularity: 65
+  },
+  'OnMouseLeave': {
+    name: 'On Mouse Leave',
+    description: 'Execute actions when mouse leaves element',
+    icon: '⬅️',
+    category: 'Events',
+    tags: ['mouse', 'leave', 'event', 'hover', 'interaction'],
+    popularity: 65
+  },
+  'OnKeyPress': {
+    name: 'On Key Press',
+    description: 'Execute actions when a key is pressed',
+    icon: '⌨️',
+    category: 'Events',
+    tags: ['keyboard', 'key', 'press', 'event', 'shortcut', 'enter', 'escape'],
+    popularity: 80
+  },
+  'OnVisible': {
+    name: 'On Visible',
+    description: 'Execute actions when element becomes visible',
+    icon: '👁️',
+    category: 'Events',
+    tags: ['visible', 'scroll', 'viewport', 'intersection', 'lazy', 'observer'],
+    popularity: 70
+  },
+  'AddClass': {
+    name: 'Add Class',
+    description: 'Add a CSS class to an element',
+    icon: '➕',
+    category: 'Actions',
+    tags: ['css', 'class', 'add', 'style', 'dom', 'manipulation'],
+    popularity: 70
+  },
+  'RemoveClass': {
+    name: 'Remove Class',
+    description: 'Remove a CSS class from an element',
+    icon: '➖',
+    category: 'Actions',
+    tags: ['css', 'class', 'remove', 'style', 'dom', 'manipulation'],
+    popularity: 70
+  },
+  'ToggleClass': {
+    name: 'Toggle Class',
+    description: 'Toggle a CSS class on an element',
+    icon: '🔄',
+    category: 'Actions',
+    tags: ['css', 'class', 'toggle', 'style', 'dom', 'manipulation'],
+    popularity: 75
+  },
+  'SetCSSVar': {
+    name: 'Set CSS Variable',
+    description: 'Set a CSS custom property value',
+    icon: '🎨',
+    category: 'Actions',
+    tags: ['css', 'variable', 'custom', 'property', 'theme', 'style'],
+    popularity: 65
+  },
+  'CopyToClipboard': {
+    name: 'Copy to Clipboard',
+    description: 'Copy text to the clipboard',
+    icon: '📋',
+    category: 'Actions',
+    tags: ['copy', 'clipboard', 'share', 'paste', 'text'],
+    popularity: 80
+  },
+  'SetURLParam': {
+    name: 'Set URL Parameter',
+    description: 'Update a URL query parameter',
+    icon: '🔗',
+    category: 'Actions',
+    tags: ['url', 'param', 'query', 'navigation', 'link'],
+    popularity: 60
+  },
+  'SetURLHash': {
+    name: 'Set URL Hash',
+    description: 'Update the URL hash/anchor',
+    icon: '🔗',
+    category: 'Actions',
+    tags: ['url', 'hash', 'anchor', 'navigation', 'link'],
+    popularity: 55
+  },
+  'Reset': {
+    name: 'Reset Variable',
+    description: 'Reset variable(s) to initial value',
+    icon: '🔄',
+    category: 'Actions',
+    tags: ['reset', 'clear', 'initial', 'variable', 'state'],
+    popularity: 70
+  },
 };
 
 /**

@@ -15,6 +15,14 @@ import { executeRemoveAtAction } from '../actions/RemoveAt';
 import { executeAppendAction } from '../actions/Append';
 import { executePrependAction } from '../actions/Prepend';
 import { executeCycleAction } from '../actions/Cycle';
+import { executeAddClassAction } from '../actions/AddClass';
+import { executeRemoveClassAction } from '../actions/RemoveClass';
+import { executeToggleClassAction } from '../actions/ToggleClass';
+import { executeSetCSSVarAction } from '../actions/SetCSSVar';
+import { executeCopyToClipboardAction } from '../actions/CopyToClipboard';
+import { executeSetURLParamAction } from '../actions/SetURLParam';
+import { executeSetURLHashAction } from '../actions/SetURLHash';
+import { executeResetAction } from '../actions/Reset';
 import { evaluateIfCondition } from '../conditional/If';
 import { evaluateElseIfCondition } from '../conditional/ElseIf';
 
@@ -108,12 +116,14 @@ export default function OnClick(props: OnClickProps) {
  * @param templateState Template state context
  * @param residentData Resident data for condition evaluation
  * @param forEachContext ForEach loop context (if inside ForEach)
+ * @param currentElement Current HTML element (for target="this" in AddClass/RemoveClass)
  */
 export function executeActions(
   children: React.ReactNode,
   templateState: ReturnType<typeof useTemplateState>,
   residentData: any,
-  forEachContext: ReturnType<typeof useForEachContext> = null
+  forEachContext: ReturnType<typeof useForEachContext> = null,
+  currentElement?: HTMLElement
 ): void {
 
   const childArray = React.Children.toArray(children);
@@ -147,18 +157,18 @@ export function executeActions(
     // Handle conditional components (If/ElseIf/Else)
     if (componentName === 'If') {
       inConditionalChain = true;
-      conditionMatched = evaluateIfCondition(actualChild.props as any, residentData);
+      conditionMatched = evaluateIfCondition(actualChild.props as any, residentData, forEachContext);
       if (conditionMatched) {
-        executeActions((actualChild.props as any).children, templateState, residentData, forEachContext);
+        executeActions((actualChild.props as any).children, templateState, residentData, forEachContext, currentElement);
       }
       continue;
     }
 
     if (componentName === 'ElseIf' && inConditionalChain) {
       if (!conditionMatched) {
-        conditionMatched = evaluateElseIfCondition(actualChild.props as any, residentData);
+        conditionMatched = evaluateElseIfCondition(actualChild.props as any, residentData, forEachContext);
         if (conditionMatched) {
-          executeActions((actualChild.props as any).children, templateState, residentData, forEachContext);
+          executeActions((actualChild.props as any).children, templateState, residentData, forEachContext, currentElement);
         }
       }
       continue;
@@ -166,7 +176,7 @@ export function executeActions(
 
     if (componentName === 'Else' && inConditionalChain) {
       if (!conditionMatched) {
-        executeActions((actualChild.props as any).children, templateState, residentData, forEachContext);
+        executeActions((actualChild.props as any).children, templateState, residentData, forEachContext, currentElement);
       }
       inConditionalChain = false;
       conditionMatched = false;
@@ -181,7 +191,7 @@ export function executeActions(
 
     // Execute regular action components
     if (componentName === 'Set') {
-      executeSetAction(actualChild.props as import('../actions/Set').SetProps, templateState);
+      executeSetAction(actualChild.props as import('../actions/Set').SetProps, templateState, forEachContext);
     }
     else if (componentName === 'Increment') {
       executeIncrementAction(actualChild.props as import('../actions/Increment').IncrementProps, templateState);
@@ -216,6 +226,32 @@ export function executeActions(
     // Cycle action
     else if (componentName === 'Cycle') {
       executeCycleAction(actualChild.props as import('../actions/Cycle').CycleProps, templateState);
+    }
+    // CSS manipulation actions
+    else if (componentName === 'AddClass') {
+      executeAddClassAction(actualChild.props as import('../actions/AddClass').AddClassProps, currentElement);
+    }
+    else if (componentName === 'RemoveClass') {
+      executeRemoveClassAction(actualChild.props as import('../actions/RemoveClass').RemoveClassProps, currentElement);
+    }
+    else if (componentName === 'ToggleClass') {
+      executeToggleClassAction(actualChild.props as import('../actions/ToggleClass').ToggleClassProps, currentElement);
+    }
+    else if (componentName === 'SetCSSVar') {
+      executeSetCSSVarAction(actualChild.props as import('../actions/SetCSSVar').SetCSSVarProps, templateState, forEachContext);
+    }
+    // Utility actions
+    else if (componentName === 'CopyToClipboard') {
+      executeCopyToClipboardAction(actualChild.props as import('../actions/CopyToClipboard').CopyToClipboardProps, templateState, forEachContext);
+    }
+    else if (componentName === 'SetURLParam') {
+      executeSetURLParamAction(actualChild.props as import('../actions/SetURLParam').SetURLParamProps, templateState, forEachContext);
+    }
+    else if (componentName === 'SetURLHash') {
+      executeSetURLHashAction(actualChild.props as import('../actions/SetURLHash').SetURLHashProps, templateState, forEachContext);
+    }
+    else if (componentName === 'Reset') {
+      executeResetAction(actualChild.props as import('../actions/Reset').ResetProps, templateState);
     }
     // Ignore conditional components (already handled above)
     else if (!['If', 'ElseIf', 'Else'].includes(componentName)) {

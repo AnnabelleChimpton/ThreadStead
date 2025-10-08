@@ -3,6 +3,7 @@
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { evaluateExpression } from '@/lib/templates/state/expression-evaluator';
+import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 
 /**
  * Set Component - Action to set a variable value
@@ -84,10 +85,12 @@ export default function Set(props: SetProps) {
  *
  * @param props Set component props
  * @param templateState Template state context
+ * @param forEachContext ForEach loop context for scoped variables
  */
 export function executeSetAction(
   props: SetProps,
-  templateState: ReturnType<typeof useTemplateState>
+  templateState: ReturnType<typeof useTemplateState>,
+  forEachContext?: { scopeId?: string } | null
 ): void {
   const { var: varName, value, expression } = props;
 
@@ -98,22 +101,27 @@ export function executeSetAction(
 
   try {
     if (expression) {
-      // Evaluate expression
-      // Build context with all variable values
-      const context = Object.fromEntries(
-        Object.entries(templateState.variables).map(([k, v]) => [k, v.value])
-      );
+      // Evaluate expression with FRESH variables from global manager, including scoped variables
+      const scopeId = forEachContext?.scopeId;
+      const freshVariables = globalTemplateStateManager.getAllVariables();
+      const context: Record<string, any> = {};
 
-      // WORKAROUND: Add unprefixed aliases for user-content-* variables
-      // This handles the HTML parser transforming <var name="counter"> to have name="user-content-counter"
-      Object.keys(templateState.variables).forEach(key => {
-        if (key.startsWith('user-content-')) {
-          const unprefixedKey = key.replace('user-content-', '');
-          if (!context[unprefixedKey]) {
-            context[unprefixedKey] = templateState.variables[key].value;
+      // Add global variables
+      Object.entries(freshVariables).forEach(([k, v]) => {
+        context[k] = v.value;
+      });
+
+      // If we have a scope, check for scoped variables that might override globals
+      if (scopeId) {
+        const varMatches = expression.matchAll(/\$vars\.([a-zA-Z_][a-zA-Z0-9_]*)/g);
+        for (const match of varMatches) {
+          const varName = match[1];
+          const scopedValue = globalTemplateStateManager.getVariableInScope(scopeId, varName);
+          if (scopedValue !== undefined) {
+            context[varName] = scopedValue;
           }
         }
-      });
+      }
 
       const result = evaluateExpression(expression, context);
       templateState.setVariable(varName, result);

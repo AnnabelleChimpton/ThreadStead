@@ -1041,7 +1041,21 @@ export class TemplateParserReverse {
       'expression': 'expression',
       'var': 'var',
       'format': 'format',
-      'fallback': 'fallback'
+      'fallback': 'fallback',
+      // Phase 4: Validation props (Validate component)
+      'pattern': 'pattern',
+      'required': 'required',
+      'minlength': 'minLength',
+      'maxlength': 'maxLength',
+      // Phase 4: Event handler props (OnKeyPress)
+      'keyname': 'keyName',
+      // Phase 4: Loop props (ForEach)
+      'item': 'item',
+      // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)
+      'target': 'target',
+      // Phase 4: OnVisible props
+      'threshold': 'threshold',
+      'once': 'once'
     };
 
     // Apply mappings
