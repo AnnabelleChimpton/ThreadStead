@@ -23,6 +23,14 @@ import { executeCopyToClipboardAction } from '../actions/CopyToClipboard';
 import { executeSetURLParamAction } from '../actions/SetURLParam';
 import { executeSetURLHashAction } from '../actions/SetURLHash';
 import { executeResetAction } from '../actions/Reset';
+// Phase 2 (Roadmap): Collection operations
+import { executeCountAction } from '../actions/Count';
+import { executeSumAction } from '../actions/Sum';
+import { executeGetAction } from '../actions/Get';
+import { executeFilterAction } from '../actions/Filter';
+import { executeFindAction } from '../actions/Find';
+import { executeTransformAction } from '../actions/Transform';
+import { executeSortAction } from '../actions/Sort';
 import { evaluateIfCondition } from '../conditional/If';
 import { evaluateElseIfCondition } from '../conditional/ElseIf';
 import { executeSwitchActions } from '../conditional/Switch';
@@ -204,72 +212,100 @@ export function executeActions(
     }
 
     // Execute regular action components
-    if (componentName === 'Set') {
-      executeSetAction(actualChild.props as import('../actions/Set').SetProps, templateState, forEachContext);
-    }
-    else if (componentName === 'Increment') {
-      executeIncrementAction(actualChild.props as import('../actions/Increment').IncrementProps, templateState);
-    }
-    else if (componentName === 'Decrement') {
-      executeDecrementAction(actualChild.props as import('../actions/Decrement').DecrementProps, templateState);
-    }
-    else if (componentName === 'Toggle') {
-      executeToggleAction(actualChild.props as import('../actions/Toggle').ToggleProps, templateState);
-    }
-    else if (componentName === 'ShowToast') {
-      executeShowToastAction(actualChild.props as import('../actions/ShowToast').ShowToastProps, templateState);
-    }
-    // Array actions
-    else if (componentName === 'Push') {
-      executePushAction(actualChild.props as import('../actions/Push').PushProps, templateState);
-    }
-    else if (componentName === 'Pop') {
-      executePopAction(actualChild.props as import('../actions/Pop').PopProps, templateState);
-    }
-    else if (componentName === 'RemoveAt') {
-      console.log('[OnClick] Executing RemoveAt with props:', actualChild.props);
-      executeRemoveAtAction(actualChild.props as import('../actions/RemoveAt').RemoveAtProps, templateState, forEachContext);
-    }
-    // String actions
-    else if (componentName === 'Append') {
-      executeAppendAction(actualChild.props as import('../actions/Append').AppendProps, templateState);
-    }
-    else if (componentName === 'Prepend') {
-      executePrependAction(actualChild.props as import('../actions/Prepend').PrependProps, templateState);
-    }
-    // Cycle action
-    else if (componentName === 'Cycle') {
-      executeCycleAction(actualChild.props as import('../actions/Cycle').CycleProps, templateState);
-    }
-    // CSS manipulation actions
-    else if (componentName === 'AddClass') {
-      executeAddClassAction(actualChild.props as import('../actions/AddClass').AddClassProps, currentElement);
-    }
-    else if (componentName === 'RemoveClass') {
-      executeRemoveClassAction(actualChild.props as import('../actions/RemoveClass').RemoveClassProps, currentElement);
-    }
-    else if (componentName === 'ToggleClass') {
-      executeToggleClassAction(actualChild.props as import('../actions/ToggleClass').ToggleClassProps, currentElement);
-    }
-    else if (componentName === 'SetCSSVar') {
-      executeSetCSSVarAction(actualChild.props as import('../actions/SetCSSVar').SetCSSVarProps, templateState, forEachContext);
-    }
-    // Utility actions
-    else if (componentName === 'CopyToClipboard') {
-      executeCopyToClipboardAction(actualChild.props as import('../actions/CopyToClipboard').CopyToClipboardProps, templateState, forEachContext);
-    }
-    else if (componentName === 'SetURLParam') {
-      executeSetURLParamAction(actualChild.props as import('../actions/SetURLParam').SetURLParamProps, templateState, forEachContext);
-    }
-    else if (componentName === 'SetURLHash') {
-      executeSetURLHashAction(actualChild.props as import('../actions/SetURLHash').SetURLHashProps, templateState, forEachContext);
-    }
-    else if (componentName === 'Reset') {
-      executeResetAction(actualChild.props as import('../actions/Reset').ResetProps, templateState);
-    }
-    // Ignore conditional components (already handled above)
-    else if (!['If', 'ElseIf', 'Else'].includes(componentName)) {
-      console.warn(`OnClick: Unknown action component "${componentName}"`);
+    try {
+      if (componentName === 'Set') {
+        executeSetAction(actualChild.props as import('../actions/Set').SetProps, templateState, forEachContext);
+      }
+      else if (componentName === 'Increment') {
+        executeIncrementAction(actualChild.props as import('../actions/Increment').IncrementProps, templateState);
+      }
+      else if (componentName === 'Decrement') {
+        executeDecrementAction(actualChild.props as import('../actions/Decrement').DecrementProps, templateState);
+      }
+      else if (componentName === 'Toggle') {
+        executeToggleAction(actualChild.props as import('../actions/Toggle').ToggleProps, templateState);
+      }
+      else if (componentName === 'ShowToast') {
+        executeShowToastAction(actualChild.props as import('../actions/ShowToast').ShowToastProps, templateState);
+      }
+      // Array actions
+      else if (componentName === 'Push') {
+        executePushAction(actualChild.props as import('../actions/Push').PushProps, templateState);
+      }
+      else if (componentName === 'Pop') {
+        executePopAction(actualChild.props as import('../actions/Pop').PopProps, templateState);
+      }
+      else if (componentName === 'RemoveAt') {
+        console.log('[OnClick] Executing RemoveAt with props:', actualChild.props);
+        executeRemoveAtAction(actualChild.props as import('../actions/RemoveAt').RemoveAtProps, templateState, forEachContext);
+      }
+      // String actions
+      else if (componentName === 'Append') {
+        executeAppendAction(actualChild.props as import('../actions/Append').AppendProps, templateState);
+      }
+      else if (componentName === 'Prepend') {
+        executePrependAction(actualChild.props as import('../actions/Prepend').PrependProps, templateState);
+      }
+      // Cycle action
+      else if (componentName === 'Cycle') {
+        executeCycleAction(actualChild.props as import('../actions/Cycle').CycleProps, templateState);
+      }
+      // CSS manipulation actions
+      else if (componentName === 'AddClass') {
+        executeAddClassAction(actualChild.props as import('../actions/AddClass').AddClassProps, currentElement);
+      }
+      else if (componentName === 'RemoveClass') {
+        executeRemoveClassAction(actualChild.props as import('../actions/RemoveClass').RemoveClassProps, currentElement);
+      }
+      else if (componentName === 'ToggleClass') {
+        executeToggleClassAction(actualChild.props as import('../actions/ToggleClass').ToggleClassProps, currentElement);
+      }
+      else if (componentName === 'SetCSSVar') {
+        executeSetCSSVarAction(actualChild.props as import('../actions/SetCSSVar').SetCSSVarProps, templateState, forEachContext);
+      }
+      // Utility actions
+      else if (componentName === 'CopyToClipboard') {
+        executeCopyToClipboardAction(actualChild.props as import('../actions/CopyToClipboard').CopyToClipboardProps, templateState, forEachContext);
+      }
+      else if (componentName === 'SetURLParam') {
+        executeSetURLParamAction(actualChild.props as import('../actions/SetURLParam').SetURLParamProps, templateState, forEachContext);
+      }
+      else if (componentName === 'SetURLHash') {
+        executeSetURLHashAction(actualChild.props as import('../actions/SetURLHash').SetURLHashProps, templateState, forEachContext);
+      }
+      else if (componentName === 'Reset') {
+        executeResetAction(actualChild.props as import('../actions/Reset').ResetProps, templateState);
+      }
+      // Phase 2 (Roadmap): Collection operations
+      else if (componentName === 'Count') {
+        executeCountAction(actualChild.props as import('../actions/Count').CountProps, templateState);
+      }
+      else if (componentName === 'Sum') {
+        executeSumAction(actualChild.props as import('../actions/Sum').SumProps, templateState);
+      }
+      else if (componentName === 'Get') {
+        executeGetAction(actualChild.props as import('../actions/Get').GetProps, templateState);
+      }
+      else if (componentName === 'Filter') {
+        executeFilterAction(actualChild.props as import('../actions/Filter').FilterProps, templateState);
+      }
+      else if (componentName === 'Find') {
+        executeFindAction(actualChild.props as import('../actions/Find').FindProps, templateState);
+      }
+      else if (componentName === 'Transform') {
+        executeTransformAction(actualChild.props as import('../actions/Transform').TransformProps, templateState);
+      }
+      else if (componentName === 'Sort') {
+        executeSortAction(actualChild.props as import('../actions/Sort').SortProps, templateState);
+      }
+      // Ignore conditional components (already handled above)
+      else if (!['If', 'ElseIf', 'Else'].includes(componentName)) {
+        console.warn(`OnClick: Unknown action component "${componentName}"`);
+      }
+    } catch (error) {
+      console.error(`[OnClick] Error executing ${componentName}:`, error);
+      console.error('[OnClick] Props were:', actualChild.props);
+      // Continue execution despite error
     }
   }
 }

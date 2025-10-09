@@ -118,6 +118,8 @@ function createCustomSchema() {
         'item',
         // Phase 1 (Roadmap): Error handling props (Attempt component)
         'showError', 'showerror', 'show-error',
+        // Phase 2 (Roadmap): Collection operation props (Filter, Sort, Transform, Find, Count, Sum, Get)
+        'where', 'by', 'order', 'property', 'from', 'at',
         // Conditional component comparison operators (both camelCase and kebab-case)
         'greaterthan', 'greaterThan', 'greater-than',
         'lessthan', 'lessThan', 'less-than',
@@ -262,6 +264,93 @@ function createCustomSchema() {
   return schema;
 }
 
+/**
+ * Convert self-closing tags to proper closing tags while respecting quoted attributes
+ * Handles cases like: <Filter where="item.price > 100" />
+ * The regex approach fails because > inside quotes terminates the match early
+ */
+function convertSelfClosingTags(html: string): string {
+  let result = '';
+  let i = 0;
+
+  while (i < html.length) {
+    // Look for opening < of a tag
+    if (html[i] === '<') {
+      // Check if this might be a self-closing tag
+      const tagStart = i;
+      i++; // Skip <
+
+      // Skip whitespace after <
+      while (i < html.length && /\s/.test(html[i])) i++;
+
+      // Extract tag name
+      let tagName = '';
+      while (i < html.length && /[a-zA-Z0-9\-]/.test(html[i])) {
+        tagName += html[i];
+        i++;
+      }
+
+      // If no tag name, this isn't a tag - just copy and continue
+      if (!tagName) {
+        result += html[tagStart];
+        continue;
+      }
+
+      // Now parse attributes, respecting quotes
+      let attributes = '';
+      let inQuote = false;
+      let quoteChar = '';
+      let isSelfClosing = false;
+
+      while (i < html.length) {
+        const char = html[i];
+
+        // Track quote state
+        if ((char === '"' || char === "'") && (i === 0 || html[i - 1] !== '\\')) {
+          if (!inQuote) {
+            inQuote = true;
+            quoteChar = char;
+          } else if (char === quoteChar) {
+            inQuote = false;
+            quoteChar = '';
+          }
+        }
+
+        // Check for self-closing /> (only when not in quotes)
+        if (!inQuote && char === '/' && i + 1 < html.length && html[i + 1] === '>') {
+          isSelfClosing = true;
+          i += 2; // Skip />
+          break;
+        }
+
+        // Check for regular closing > (only when not in quotes)
+        if (!inQuote && char === '>') {
+          i++; // Skip >
+          break;
+        }
+
+        attributes += char;
+        i++;
+      }
+
+      // Build the result
+      if (isSelfClosing) {
+        // Convert to proper closing tag
+        result += `<${tagName}${attributes}></${tagName}>`;
+      } else {
+        // Regular tag, keep as is
+        result += `<${tagName}${attributes}>`;
+      }
+    } else {
+      // Not a tag, just copy
+      result += html[i];
+      i++;
+    }
+  }
+
+  return result;
+}
+
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
 export function parseTemplate(htmlString: string): Root {
 
@@ -296,7 +385,9 @@ export function parseTemplate(htmlString: string): Root {
     }
   }
   
-  processedHtml = processedHtml.replace(/<([^>\s/]+)([^>]*?)\s*\/>/g, '<$1$2></$1>');
+  // Convert self-closing tags to proper closing tags, respecting quoted attributes
+  // This properly handles cases like: <Filter where="item.price > 100" />
+  processedHtml = convertSelfClosingTags(processedHtml);
   
   // Detect if we have multiple root-level components after conversion and wrap them
   const trimmedHtml = processedHtml.trim();

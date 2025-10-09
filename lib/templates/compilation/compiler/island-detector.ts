@@ -292,7 +292,14 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'target': 'target',
           // Phase 4: OnVisible props
           'threshold': 'threshold',
-          'once': 'once'
+          'once': 'once',
+          // Phase 2 (Roadmap): Collection operation props
+          'where': 'where',
+          // 'by' already defined above for Increment/Decrement
+          'order': 'order',
+          'property': 'property',
+          'from': 'from',
+          'at': 'at'
         };
 
         // Apply attribute name conversions for kebab-case to camelCase

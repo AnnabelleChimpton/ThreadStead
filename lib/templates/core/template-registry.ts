@@ -147,6 +147,15 @@ import SetURLParam from '@/components/features/templates/state/actions/SetURLPar
 import SetURLHash from '@/components/features/templates/state/actions/SetURLHash';
 import Reset from '@/components/features/templates/state/actions/Reset';
 
+// Phase 2 (Roadmap): Collection operations
+import Count from '@/components/features/templates/state/actions/Count';
+import Sum from '@/components/features/templates/state/actions/Sum';
+import Get from '@/components/features/templates/state/actions/Get';
+import Filter from '@/components/features/templates/state/actions/Filter';
+import Find from '@/components/features/templates/state/actions/Find';
+import Transform from '@/components/features/templates/state/actions/Transform';
+import Sort from '@/components/features/templates/state/actions/Sort';
+
 // Import debug components
 import DebugValue from '@/components/features/templates/DebugValue';
 
@@ -2392,6 +2401,106 @@ componentRegistry.register({
   component: Reset,
   props: {
     var: { type: 'string' }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+// Phase 2 (Roadmap): Collection operations
+componentRegistry.register({
+  name: 'Count',
+  component: Count,
+  props: {
+    var: { type: 'string', required: true },
+    target: { type: 'string', required: true },
+    where: { type: 'string', required: false }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Sum',
+  component: Sum,
+  props: {
+    var: { type: 'string', required: true },
+    target: { type: 'string', required: true },
+    property: { type: 'string', required: false }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Get',
+  component: Get,
+  props: {
+    from: { type: 'string', required: true },
+    at: { type: 'string', required: true },
+    target: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Filter',
+  component: Filter,
+  props: {
+    var: { type: 'string', required: true },
+    target: { type: 'string', required: true },
+    where: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Find',
+  component: Find,
+  props: {
+    var: { type: 'string', required: true },
+    target: { type: 'string', required: true },
+    where: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Transform',
+  component: Transform,
+  props: {
+    var: { type: 'string', required: true },
+    target: { type: 'string', required: true },
+    expression: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Sort',
+  component: Sort,
+  props: {
+    var: { type: 'string', required: true },
+    target: { type: 'string', required: true },
+    by: { type: 'string', required: true },
+    order: { type: 'enum', values: ['asc', 'desc'], default: 'asc' }
   },
   relationship: {
     type: 'action',

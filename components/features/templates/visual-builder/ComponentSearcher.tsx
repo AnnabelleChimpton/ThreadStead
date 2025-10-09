@@ -440,6 +440,64 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     popularity: 70
   },
 
+  // Phase 2 (Roadmap): Collection operations
+  'Count': {
+    name: 'Count',
+    description: 'Count array items with optional filter condition',
+    icon: '🔢',
+    category: 'Actions',
+    tags: ['count', 'array', 'length', 'filter', 'collection', 'aggregate'],
+    popularity: 75
+  },
+  'Sum': {
+    name: 'Sum',
+    description: 'Sum numeric values in an array',
+    icon: '➕',
+    category: 'Actions',
+    tags: ['sum', 'total', 'add', 'array', 'aggregate', 'numbers'],
+    popularity: 75
+  },
+  'Get': {
+    name: 'Get Property',
+    description: 'Dynamically access object property or array index',
+    icon: '🔍',
+    category: 'Actions',
+    tags: ['get', 'property', 'index', 'access', 'dynamic', 'object', 'array'],
+    popularity: 70
+  },
+  'Filter': {
+    name: 'Filter',
+    description: 'Filter array items by condition',
+    icon: '🔽',
+    category: 'Actions',
+    tags: ['filter', 'array', 'where', 'condition', 'collection', 'select'],
+    popularity: 85
+  },
+  'Find': {
+    name: 'Find',
+    description: 'Find first array item matching condition',
+    icon: '🔎',
+    category: 'Actions',
+    tags: ['find', 'search', 'array', 'first', 'match', 'collection'],
+    popularity: 80
+  },
+  'Transform': {
+    name: 'Transform',
+    description: 'Transform array items with expression (map)',
+    icon: '🔄',
+    category: 'Actions',
+    tags: ['transform', 'map', 'array', 'convert', 'collection', 'modify'],
+    popularity: 80
+  },
+  'Sort': {
+    name: 'Sort',
+    description: 'Sort array by property or expression',
+    icon: '🔀',
+    category: 'Actions',
+    tags: ['sort', 'order', 'array', 'ascending', 'descending', 'collection'],
+    popularity: 85
+  },
+
   // Phase 1 (Roadmap): Pattern Matching & Control Flow
   'Switch': {
     name: 'Switch',

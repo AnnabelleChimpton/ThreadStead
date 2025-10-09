@@ -1061,7 +1061,14 @@ export class TemplateParserReverse {
       'once': 'once',
       // Phase 1 (Roadmap): Error handling props (Attempt component)
       'showerror': 'showError',
-      'show-error': 'showError'
+      'show-error': 'showError',
+      // Phase 2 (Roadmap): Collection operation props
+      'where': 'where',
+      'by': 'by',
+      'order': 'order',
+      'property': 'property',
+      'from': 'from',
+      'at': 'at'
     };
 
     // Apply mappings

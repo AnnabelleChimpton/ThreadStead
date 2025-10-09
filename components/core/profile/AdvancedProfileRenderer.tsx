@@ -794,7 +794,13 @@ function StaticHTMLWithIslands({
               'once': 'once',
               // Phase 1 (Roadmap): Error handling props (Attempt component)
               'showerror': 'showError',
-              'show-error': 'showError'
+              'show-error': 'showError',
+              // Phase 2 (Roadmap): Collection operation props
+              'where': 'where',
+              'order': 'order',
+              'property': 'property',
+              'from': 'from',
+              'at': 'at'
             };
 
             // Copy attributes as props
@@ -1292,7 +1298,13 @@ function domToReact(
       'once': 'once',
       // Phase 1 (Roadmap): Error handling props (Attempt component)
       'showerror': 'showError',
-      'show-error': 'showError'
+      'show-error': 'showError',
+      // Phase 2 (Roadmap): Collection operation props
+      'where': 'where',
+      'order': 'order',
+      'property': 'property',
+      'from': 'from',
+      'at': 'at'
     };
 
     for (let i = 0; i < element.attributes.length; i++) {
