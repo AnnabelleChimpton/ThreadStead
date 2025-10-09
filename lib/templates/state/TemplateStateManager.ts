@@ -128,7 +128,22 @@ class TemplateStateManager {
         if (typeof window !== 'undefined' && config.param) {
           const params = new URLSearchParams(window.location.search);
           const paramValue = params.get(config.param);
-          initialValue = paramValue !== null ? paramValue : (config.default ?? initialValue);
+
+          if (paramValue !== null) {
+            // Apply coercion if specified
+            if (config.coerce === 'number') {
+              initialValue = Number(paramValue);
+            } else if (config.coerce === 'boolean') {
+              initialValue = paramValue === 'true';
+            } else if (config.coerce === 'array') {
+              const separator = config.separator || ',';
+              initialValue = paramValue.split(separator).map(s => s.trim());
+            } else {
+              initialValue = paramValue;
+            }
+          } else {
+            initialValue = config.default ?? initialValue;
+          }
         }
         break;
 
@@ -169,7 +184,9 @@ class TemplateStateManager {
       computed: config.computed,
       options: config.options,
       param: config.param,
-      default: config.default
+      default: config.default,
+      coerce: config.coerce,
+      separator: config.separator
     };
 
     this.variables[config.name] = variable;

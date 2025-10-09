@@ -40,6 +40,12 @@ export interface VarProps {
   /** Default value for urlParam type */
   default?: string | number | boolean | any;
 
+  /** Type coercion for urlParam variables */
+  coerce?: 'number' | 'boolean' | 'array' | string;
+
+  /** Separator for array coercion (default: ",") */
+  separator?: string;
+
   /** Children elements (for random type with Option children) */
   children?: React.ReactNode;
 
@@ -57,6 +63,8 @@ export default function Var(props: VarProps) {
     expression,
     param,
     default: defaultValue,
+    coerce,
+    separator,
     children,
     __visualBuilder,
     _isInVisualBuilder
@@ -140,7 +148,9 @@ export default function Var(props: VarProps) {
       computed: expression,
       options,
       param,
-      default: defaultValue
+      default: defaultValue,
+      coerce,
+      separator
     };
 
     registerVariable(config);
@@ -152,7 +162,7 @@ export default function Var(props: VarProps) {
       hasRegisteredRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, type, initial, persist, expression, param, defaultValue, children]);
+  }, [name, type, initial, persist, expression, param, defaultValue, coerce, separator, children]);
 
   // Visual builder mode - show variable indicator
   if (isVisualBuilder) {

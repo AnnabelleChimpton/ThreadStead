@@ -305,6 +305,8 @@ export class PureHtmlGenerator {
       'lessThan': 'lessthan',
       'greaterThanOrEqual': 'greaterthanorequal',
       'lessThanOrEqual': 'lessthanorequal',
+      // Template variable props
+      'dateFormat': 'dateformat',
       'notEquals': 'notequals',
       'startsWith': 'startswith',
       'endsWith': 'endswith'

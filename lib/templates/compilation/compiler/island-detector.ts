@@ -246,6 +246,10 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'var': 'var',
           'format': 'format',
           'fallback': 'fallback',
+          'coerce': 'coerce',
+          'separator': 'separator',
+          'dateFormat': 'dateFormat',
+          'dateformat': 'dateFormat',
           // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast)
           'by': 'by',
           'min': 'min',

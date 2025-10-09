@@ -97,7 +97,7 @@ function createCustomSchema() {
         'title', 'text', 'speed', 'amplitude', 'label', 'max', 'description', 'icon', 'priority',
         'when', 'data', 'equals', 'exists', 'condition', 'variant', 'size', 'rotation', 'shadow',
         // Template variable props (Var, ShowVar, Set components)
-        'initial', 'persist', 'param', 'default', 'expression', 'var', 'format', 'fallback',
+        'initial', 'persist', 'param', 'default', 'expression', 'var', 'format', 'fallback', 'coerce', 'separator', 'dateFormat', 'dateformat',
         // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast, If/Else)
         'by', 'min', 'step', 'rows', 'multiline', 'message', 'duration', 'disabled', 'placeholder',
         // Phase 4: Validation props (Validate component)

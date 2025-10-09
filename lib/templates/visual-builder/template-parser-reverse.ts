@@ -1042,6 +1042,9 @@ export class TemplateParserReverse {
       'var': 'var',
       'format': 'format',
       'fallback': 'fallback',
+      'coerce': 'coerce',
+      'separator': 'separator',
+      'dateformat': 'dateFormat',
       // Phase 4: Validation props (Validate component)
       'pattern': 'pattern',
       'required': 'required',

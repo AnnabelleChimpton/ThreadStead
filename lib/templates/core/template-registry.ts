@@ -1291,7 +1291,12 @@ componentRegistry.register({
     persist: { type: 'boolean', default: false },
     expression: { type: 'string' },
     param: { type: 'string' },
-    default: { type: 'string' }
+    default: { type: 'string' },
+    coerce: {
+      type: 'enum',
+      values: ['number', 'boolean', 'array']
+    },
+    separator: { type: 'string', default: ',' }
   },
   relationship: {
     type: 'leaf',
@@ -1317,7 +1322,11 @@ componentRegistry.register({
   props: {
     name: { type: 'string', required: true },
     format: { type: 'string' },
-    fallback: { type: 'string' }
+    fallback: { type: 'string' },
+    dateFormat: {
+      type: 'enum',
+      values: ['short', 'long', 'time', 'datetime', 'relative', 'iso']
+    }
   },
   relationship: {
     type: 'leaf',

@@ -754,6 +754,9 @@ function StaticHTMLWithIslands({
               'var': 'var',
               'format': 'format',
               'fallback': 'fallback',
+              'coerce': 'coerce',
+              'separator': 'separator',
+              'dateformat': 'dateFormat',
               // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast)
               'by': 'by',
               'min': 'min',
@@ -1246,6 +1249,9 @@ function domToReact(
       'var': 'var',
       'format': 'format',
       'fallback': 'fallback',
+      'coerce': 'coerce',
+      'separator': 'separator',
+      'dateformat': 'dateFormat',
       // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast)
       'by': 'by',
       'min': 'min',

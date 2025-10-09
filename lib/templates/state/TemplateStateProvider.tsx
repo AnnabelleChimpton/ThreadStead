@@ -29,6 +29,8 @@ export interface TemplateVariable {
   options?: any[];        // Options for random variables
   param?: string;         // URL parameter name for urlParam type
   default?: any;          // Default value for urlParam type
+  coerce?: 'number' | 'boolean' | 'array' | string;  // Type coercion for urlParam
+  separator?: string;     // Separator for array coercion (default: ",")
 }
 
 /**
@@ -43,6 +45,8 @@ export interface VariableConfig {
   options?: any[];
   param?: string;
   default?: any;
+  coerce?: 'number' | 'boolean' | 'array' | string;
+  separator?: string;
 }
 
 /**
@@ -166,7 +170,22 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
           if (typeof window !== 'undefined' && config.param) {
             const params = new URLSearchParams(window.location.search);
             const paramValue = params.get(config.param);
-            initialValue = paramValue !== null ? paramValue : (config.default ?? initialValue);
+
+            if (paramValue !== null) {
+              // Apply coercion if specified
+              if (config.coerce === 'number') {
+                initialValue = Number(paramValue);
+              } else if (config.coerce === 'boolean') {
+                initialValue = paramValue === 'true';
+              } else if (config.coerce === 'array') {
+                const separator = config.separator || ',';
+                initialValue = paramValue.split(separator).map(s => s.trim());
+              } else {
+                initialValue = paramValue;
+              }
+            } else {
+              initialValue = config.default ?? initialValue;
+            }
           }
           break;
 
@@ -207,7 +226,9 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
         computed: config.computed,
         options: config.options,
         param: config.param,
-        default: config.default
+        default: config.default,
+        coerce: config.coerce,
+        separator: config.separator
       };
 
       return {
