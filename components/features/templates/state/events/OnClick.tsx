@@ -25,6 +25,7 @@ import { executeSetURLHashAction } from '../actions/SetURLHash';
 import { executeResetAction } from '../actions/Reset';
 import { evaluateIfCondition } from '../conditional/If';
 import { evaluateElseIfCondition } from '../conditional/ElseIf';
+import { executeSwitchActions } from '../conditional/Switch';
 
 /**
  * OnClick Component - Event handler for click events
@@ -187,6 +188,19 @@ export function executeActions(
     if (inConditionalChain && !['If', 'ElseIf', 'Else'].includes(componentName)) {
       inConditionalChain = false;
       conditionMatched = false;
+    }
+
+    // Handle Switch/Case/Default pattern matching
+    if (componentName === 'Switch') {
+      // Execute Switch actions using the helper function
+      executeSwitchActions(
+        actualChild.props as any,
+        templateState,
+        residentData,
+        forEachContext,
+        executeActions
+      );
+      continue;
     }
 
     // Execute regular action components

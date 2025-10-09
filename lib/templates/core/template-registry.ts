@@ -91,6 +91,10 @@ import DynamicImage from '@/components/features/templates/state/DynamicImage';
 import If from '@/components/features/templates/state/conditional/If';
 import ElseIf from '@/components/features/templates/state/conditional/ElseIf';
 import Else from '@/components/features/templates/state/conditional/Else';
+// Phase 1 (Roadmap): Pattern matching
+import Switch from '@/components/features/templates/state/conditional/Switch';
+import Case from '@/components/features/templates/state/conditional/Case';
+import Default from '@/components/features/templates/state/conditional/Default';
 import Button from '@/components/features/templates/Button';
 import EventDiv from '@/components/features/templates/EventDiv';
 
@@ -1558,6 +1562,59 @@ componentRegistry.register({
   relationship: {
     type: 'conditional-action',  // Conditional action fallback
     acceptsChildren: true  // Accepts action components as children
+  }
+});
+
+// ============================================================================
+// Phase 1 (Roadmap): Pattern Matching & Control Flow Components
+// ============================================================================
+
+componentRegistry.register({
+  name: 'Switch',
+  component: Switch,
+  props: {
+    value: { type: 'string' },  // Variable reference (e.g., "$vars.status")
+    expression: { type: 'string' }  // Expression to evaluate
+  },
+  relationship: {
+    type: 'conditional-action',  // Pattern matching container
+    acceptsChildren: true  // Accepts Case and Default components
+  }
+});
+
+componentRegistry.register({
+  name: 'Case',
+  component: Case,
+  props: {
+    value: { type: 'string' },  // Value to match
+    when: { type: 'string' },  // Condition expression
+    // Comparison operators
+    equals: { type: 'string' },
+    notEquals: { type: 'string' },
+    greaterThan: { type: 'string' },
+    lessThan: { type: 'string' },
+    greaterThanOrEqual: { type: 'string' },
+    lessThanOrEqual: { type: 'string' },
+    contains: { type: 'string' },
+    startsWith: { type: 'string' },
+    endsWith: { type: 'string' },
+    matches: { type: 'string' }
+  },
+  relationship: {
+    type: 'conditional-action',  // Pattern match branch
+    acceptsChildren: true,  // Accepts action components
+    requiresParent: 'Switch'
+  }
+});
+
+componentRegistry.register({
+  name: 'Default',
+  component: Default,
+  props: {},
+  relationship: {
+    type: 'conditional-action',  // Pattern matching fallback
+    acceptsChildren: true,  // Accepts action components
+    requiresParent: 'Switch'
   }
 });
 

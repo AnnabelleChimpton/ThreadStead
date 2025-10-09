@@ -272,6 +272,10 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'milliseconds': 'milliseconds',
           // Phase 4: Loop props (ForEach)
           'item': 'item',
+          // Phase 1 (Roadmap): Error handling props (Attempt component)
+          'showerror': 'showError',
+          'showError': 'showError',
+          'show-error': 'showError',
           'disabled': 'disabled',
           'placeholder': 'placeholder',
           // Phase 4: Validation props (Validate component)

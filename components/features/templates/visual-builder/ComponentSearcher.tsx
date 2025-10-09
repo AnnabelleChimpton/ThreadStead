@@ -439,6 +439,32 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     tags: ['reset', 'clear', 'initial', 'variable', 'state'],
     popularity: 70
   },
+
+  // Phase 1 (Roadmap): Pattern Matching & Control Flow
+  'Switch': {
+    name: 'Switch',
+    description: 'Pattern matching container (like switch/case)',
+    icon: '🔀',
+    category: 'Control Flow',
+    tags: ['switch', 'case', 'pattern', 'match', 'conditional', 'branch', 'logic', 'control'],
+    popularity: 85
+  },
+  'Case': {
+    name: 'Case',
+    description: 'Pattern match branch (child of Switch)',
+    icon: '📌',
+    category: 'Control Flow',
+    tags: ['case', 'match', 'branch', 'when', 'condition', 'switch'],
+    popularity: 80
+  },
+  'Default': {
+    name: 'Default',
+    description: 'Fallback case when no match found',
+    icon: '⭐',
+    category: 'Control Flow',
+    tags: ['default', 'fallback', 'else', 'case', 'switch'],
+    popularity: 75
+  },
 };
 
 /**

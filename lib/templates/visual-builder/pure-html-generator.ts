@@ -309,7 +309,9 @@ export class PureHtmlGenerator {
       'dateFormat': 'dateformat',
       'notEquals': 'notequals',
       'startsWith': 'startswith',
-      'endsWith': 'endswith'
+      'endsWith': 'endswith',
+      // Phase 1 (Roadmap): Error handling props
+      'showError': 'showerror'
     };
 
     // Remove legacy props when universal equivalent exists

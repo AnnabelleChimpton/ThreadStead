@@ -116,6 +116,8 @@ function createCustomSchema() {
         'seconds', 'milliseconds',
         // Phase 4: Loop props (ForEach)
         'item',
+        // Phase 1 (Roadmap): Error handling props (Attempt component)
+        'showError', 'showerror', 'show-error',
         // Conditional component comparison operators (both camelCase and kebab-case)
         'greaterthan', 'greaterThan', 'greater-than',
         'lessthan', 'lessThan', 'less-than',

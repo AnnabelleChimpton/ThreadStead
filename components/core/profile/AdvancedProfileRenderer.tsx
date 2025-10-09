@@ -791,7 +791,10 @@ function StaticHTMLWithIslands({
               'target': 'target',
               // Phase 4: OnVisible props
               'threshold': 'threshold',
-              'once': 'once'
+              'once': 'once',
+              // Phase 1 (Roadmap): Error handling props (Attempt component)
+              'showerror': 'showError',
+              'show-error': 'showError'
             };
 
             // Copy attributes as props
@@ -1286,7 +1289,10 @@ function domToReact(
       'target': 'target',
       // Phase 4: OnVisible props
       'threshold': 'threshold',
-      'once': 'once'
+      'once': 'once',
+      // Phase 1 (Roadmap): Error handling props (Attempt component)
+      'showerror': 'showError',
+      'show-error': 'showError'
     };
 
     for (let i = 0; i < element.attributes.length; i++) {
