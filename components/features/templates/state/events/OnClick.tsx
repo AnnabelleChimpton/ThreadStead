@@ -34,6 +34,10 @@ import { executeSortAction } from '../actions/Sort';
 import { evaluateIfCondition } from '../conditional/If';
 import { evaluateElseIfCondition } from '../conditional/ElseIf';
 import { executeSwitchActions } from '../conditional/Switch';
+// Phase 3 (Roadmap): Temporal controls
+import { executeDelayAction } from '../temporal/Delay';
+import { executeSequenceActions } from '../temporal/Sequence';
+import { executeContinueAction } from '../loops/Continue';
 
 /**
  * OnClick Component - Event handler for click events
@@ -211,6 +215,38 @@ export function executeActions(
       continue;
     }
 
+    // Handle Delay (temporal control)
+    if (componentName === 'Delay') {
+      // Execute delay asynchronously (doesn't block subsequent actions)
+      executeDelayAction(
+        actualChild.props as any,
+        executeActions,
+        templateState,
+        residentData,
+        forEachContext,
+        currentElement
+      ).catch(error => {
+        console.error('[OnClick] Delay execution error:', error);
+      });
+      continue;
+    }
+
+    // Handle Sequence (temporal control)
+    if (componentName === 'Sequence') {
+      // Execute sequence asynchronously (doesn't block subsequent actions)
+      executeSequenceActions(
+        actualChild.props as any,
+        executeActions,
+        templateState,
+        residentData,
+        forEachContext,
+        currentElement
+      ).catch(error => {
+        console.error('[OnClick] Sequence execution error:', error);
+      });
+      continue;
+    }
+
     // Execute regular action components
     try {
       if (componentName === 'Set') {
@@ -297,6 +333,13 @@ export function executeActions(
       }
       else if (componentName === 'Sort') {
         executeSortAction(actualChild.props as import('../actions/Sort').SortProps, templateState);
+      }
+      // Phase 3 (Roadmap): Loop control
+      else if (componentName === 'Break') {
+        console.warn('[OnClick] Break component is not supported inside OnClick handlers. Break is a passive marker component that is pre-processed by ForEach during template rendering.');
+      }
+      else if (componentName === 'Continue') {
+        executeContinueAction(actualChild.props as import('../loops/Continue').ContinueProps, templateState, forEachContext);
       }
       // Ignore conditional components (already handled above)
       else if (!['If', 'ElseIf', 'Else'].includes(componentName)) {

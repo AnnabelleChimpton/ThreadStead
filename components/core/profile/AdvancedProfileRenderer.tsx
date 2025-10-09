@@ -775,9 +775,10 @@ function StaticHTMLWithIslands({
               // Phase 3: Array/String action props (Push, Pop, RemoveAt, Append, Prepend, Cycle)
               'index': 'index',
               'values': 'values',
-              // Phase 3: Event handler props (OnChange, OnMount, OnInterval)
+              // Phase 3: Event handler props (OnChange, OnMount, OnInterval, Delay, Sequence/Step)
               'seconds': 'seconds',
               'milliseconds': 'milliseconds',
+              'delay': 'delay',
               // Phase 4: Loop props (ForEach)
               'item': 'item',
               // Phase 4: Validation props (Validate component)
@@ -1279,9 +1280,10 @@ function domToReact(
       // Phase 3: Array/String action props (Push, Pop, RemoveAt, Append, Prepend, Cycle)
       'index': 'index',
       'values': 'values',
-      // Phase 3: Event handler props (OnChange, OnMount, OnInterval)
+      // Phase 3: Event handler props (OnChange, OnMount, OnInterval, Delay, Sequence/Step)
       'seconds': 'seconds',
       'milliseconds': 'milliseconds',
+      'delay': 'delay',
       // Phase 4: Loop props (ForEach)
       'item': 'item',
       // Phase 4: Validation props (Validate component)

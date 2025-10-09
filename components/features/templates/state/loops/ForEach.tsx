@@ -8,6 +8,7 @@ import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateM
 /**
  * ForEach Context
  * Provides loop variables (item, index) to nested components
+ * Also provides break/continue control
  */
 interface ForEachContextValue {
   /** Current item value */
@@ -20,6 +21,14 @@ interface ForEachContextValue {
   indexName?: string;
   /** Scope ID for this iteration (for scoped variable resolution) */
   scopeId: string;
+  /** Flag: should break out of loop (set by Break component) */
+  shouldBreak: boolean;
+  /** Flag: should continue to next iteration (set by Continue component) */
+  shouldContinue: boolean;
+  /** Set break flag to exit loop early */
+  setBreak: () => void;
+  /** Set continue flag to skip to next iteration */
+  setContinue: () => void;
 }
 
 const ForEachContext = createContext<ForEachContextValue | null>(null);
@@ -30,6 +39,142 @@ const ForEachContext = createContext<ForEachContextValue | null>(null);
  */
 export function useForEachContext(): ForEachContextValue | null {
   return useContext(ForEachContext);
+}
+
+/**
+ * Evaluate a 'when' condition by directly parsing and replacing index variable
+ * Supports simple comparisons like "i >= 5", "index < 10"
+ */
+function evaluateWhenCondition(condition: string, index: number): boolean {
+  // Replace 'i' or 'index' with actual value
+  const normalized = condition.replace(/\bi\b/g, String(index))
+                              .replace(/\bindex\b/g, String(index));
+
+  // Parse comparison (e.g., "5 >= 5")
+  const match = normalized.match(/^\s*(\d+)\s*(>=|<=|>|<|===|!==|==|!=)\s*(\d+)\s*$/);
+  if (!match) {
+    return false;
+  }
+
+  const [, left, operator, right] = match;
+  const leftNum = Number(left);
+  const rightNum = Number(right);
+
+  switch (operator) {
+    case '>=': return leftNum >= rightNum;
+    case '<=': return leftNum <= rightNum;
+    case '>': return leftNum > rightNum;
+    case '<': return leftNum < rightNum;
+    case '===':
+    case '==': return leftNum === rightNum;
+    case '!==':
+    case '!=': return leftNum !== rightNum;
+    default: return false;
+  }
+}
+
+/**
+ * Calculate break index by pre-processing Break components in children
+ * Returns the index where the loop should break, or null if no break
+ */
+function calculateBreakIndex(
+  children: React.ReactNode,
+  arrayValue: any[],
+  varName: string,
+  templateState: ReturnType<typeof useTemplateState>
+): number | null {
+  // Find all Break components in children (including those wrapped in ResidentDataProvider)
+  const breakComponents: Array<{ condition?: string; when?: string }> = [];
+
+  const findBreakComponents = (node: React.ReactNode) => {
+    React.Children.forEach(node, (child) => {
+      if (React.isValidElement(child)) {
+        const childType = child.type;
+        const typeName = typeof childType === 'function' ? (childType as any).name || (childType as any).displayName : String(childType);
+
+        if (typeName === 'Break') {
+          const props = child.props as any;
+          breakComponents.push({
+            condition: props.condition,
+            when: props.when
+          });
+        }
+
+        // Only recurse into structural wrappers, not functional components
+        // This prevents searching into If, Show, etc. which manage their own rendering
+        const isStructuralElement =
+          typeName === 'ResidentDataProvider' ||
+          typeName === 'Fragment' ||
+          typeof childType === 'string'; // HTML elements like div, span
+
+        if (isStructuralElement && (child.props as any).children) {
+          findBreakComponents((child.props as any).children);
+        }
+      }
+    });
+  };
+
+  findBreakComponents(children);
+
+  if (breakComponents.length === 0) {
+    return null;
+  }
+
+  // Iterate through array and check if any Break would trigger at each index
+  for (let idx = 0; idx < arrayValue.length; idx++) {
+    // Check each Break component
+    for (const breakComp of breakComponents) {
+      // Warn about unconditional Break (no conditions specified)
+      if (!breakComp.condition && !breakComp.when) {
+        return 0; // Break immediately at index 0
+      }
+
+      let shouldBreak = true;
+
+      // Evaluate outer 'condition' (global variables like $vars.breakAtFive)
+      if (breakComp.condition) {
+        // Simple evaluation: extract variable name and check its value
+        const varMatch = breakComp.condition.match(/\$vars\.(\w+)/);
+        if (varMatch) {
+          const varName = varMatch[1];
+          const variable = templateState?.variables?.[varName];
+          const varValue = variable?.value; // Access the .value property
+
+          if (!varValue) {
+            shouldBreak = false;
+            continue; // Skip this Break component
+          }
+        } else {
+          shouldBreak = false;
+          continue;
+        }
+      }
+
+      // Evaluate inner 'when' condition (scoped variables like i >= 5)
+      if (breakComp.when) {
+        try {
+          // Directly evaluate the condition by replacing 'i' with the current index
+          // This avoids registering scopes during render
+          const whenResult = evaluateWhenCondition(breakComp.when, idx);
+
+          if (!whenResult) {
+            shouldBreak = false;
+            continue; // Skip this Break component
+          }
+        } catch (error) {
+          shouldBreak = false;
+          continue;
+        }
+      }
+
+      // Both conditions passed - break at this index
+      if (shouldBreak) {
+        return idx;
+      }
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -97,9 +242,26 @@ export default function ForEach(props: ForEachProps) {
   const templateState = useTemplateState();
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
+  // Get array from template state with prefix fallback
+  // IMPORTANT: This must be before any conditional returns to avoid breaking React Hooks rules
+  const variable = getVariable(templateState, varName || '');
+  const arrayValue = Array.isArray(variable?.value) ? variable.value : [];
+
+  // Pre-process children to find Break components and calculate break index
+  // Serialize variables for stable dependency comparison
+  // IMPORTANT: These hooks must be called before any conditional returns
+  const variablesHash = React.useMemo(() => {
+    return JSON.stringify(templateState?.variables);
+  }, [templateState?.variables]);
+
+  const breakAtIndex = React.useMemo(() => {
+    // Only calculate if we have valid props
+    if (!varName || !itemName) return null;
+    return calculateBreakIndex(children, arrayValue, varName, templateState);
+  }, [children, arrayValue.length, varName, itemName, variablesHash, templateState]);
+
   // CRITICAL: Validate required props
   if (!varName) {
-    console.error('[ForEach] Missing required "var" prop');
     return (
       <div style={{
         padding: '12px',
@@ -117,7 +279,6 @@ export default function ForEach(props: ForEachProps) {
   }
 
   if (!itemName) {
-    console.error('[ForEach] Missing required "item" prop');
     return (
       <div style={{
         padding: '12px',
@@ -133,10 +294,6 @@ export default function ForEach(props: ForEachProps) {
       </div>
     );
   }
-
-  // Get array from template state with prefix fallback
-  const variable = getVariable(templateState, varName);
-  const arrayValue = Array.isArray(variable?.value) ? variable.value : [];
 
   // Visual builder mode - show indicator with sample iteration
   if (isVisualBuilder) {
@@ -170,10 +327,12 @@ export default function ForEach(props: ForEachProps) {
     return null; // Empty array renders nothing
   }
 
+  // Determine maximum index to render
+  const maxIndex = breakAtIndex !== null ? breakAtIndex : arrayValue.length;
+
   return (
     <>
-      {arrayValue.map((itemValue, idx) => {
-        // Generate unique scope ID for this iteration
+      {arrayValue.slice(0, maxIndex).map((itemValue, idx) => {
         const scopeId = `forEach-${varName}-${idx}`;
 
         return (
@@ -185,6 +344,13 @@ export default function ForEach(props: ForEachProps) {
             itemName={itemName}
             indexName={indexName}
             varName={varName}
+            onBreak={() => {
+              // Legacy: Break is now pre-processed, not reactive
+            }}
+            onContinue={() => {
+              // Legacy: Continue not supported in direct template rendering
+            }}
+            shouldSkip={false}
           >
             {children}
           </ForEachIteration>
@@ -205,6 +371,9 @@ interface ForEachIterationProps {
   itemName: string;
   indexName?: string;
   varName: string;
+  onBreak: () => void;
+  onContinue: () => void;
+  shouldSkip: boolean;
   children: React.ReactNode;
 }
 
@@ -216,40 +385,46 @@ function ForEachIteration(props: ForEachIterationProps) {
     itemName,
     indexName,
     varName,
+    onBreak,
+    onContinue,
+    shouldSkip,
     children
   } = props;
 
-  // Register scope and variables in useEffect
-  React.useEffect(() => {
-    // Register the scope (with no parent for now - could be enhanced for nested ForEach)
+  // Register scope and variables in useLayoutEffect (runs before paint, on every render)
+  // This ensures scopes are always available when Show components evaluate
+  React.useLayoutEffect(() => {
+    // Ensure scope exists
     globalTemplateStateManager.registerScope(scopeId);
 
-    // Register item variable in this scope with its ORIGINAL name
+    // Register/update item variable in this scope
     globalTemplateStateManager.registerScopedVariable(scopeId, itemName, {
       name: itemName,
-      type: typeof itemValue === 'number' ? 'number' : 'string',
+      type: typeof itemValue === 'number' ? 'number' : 'object',
       initial: itemValue
-    });
+    }, true); // silent=true
 
-    // Update value (in case already registered)
-    globalTemplateStateManager.setScopedVariable(scopeId, itemName, itemValue);
+    // Update current value
+    globalTemplateStateManager.setScopedVariable(scopeId, itemName, itemValue, true);
 
-    // Register index variable if specified
+    // Register/update index variable if specified
     if (indexName) {
       globalTemplateStateManager.registerScopedVariable(scopeId, indexName, {
         name: indexName,
         type: 'number',
         initial: idx
-      });
-      globalTemplateStateManager.setScopedVariable(scopeId, indexName, idx);
-    }
+      }, true); // silent=true
 
-    // Cleanup: unregister scope when unmounting
+      globalTemplateStateManager.setScopedVariable(scopeId, indexName, idx, true);
+    }
+  }, [scopeId, itemName, itemValue, idx, indexName]);
+
+  // Cleanup: unregister scope when unmounting
+  React.useEffect(() => {
     return () => {
       globalTemplateStateManager.unregisterScope(scopeId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopeId, itemValue, idx, itemName, indexName]);
+  }, [scopeId]);
 
   // Process children to:
   // 1. Replace {item} placeholders with actual values
@@ -263,17 +438,26 @@ function ForEachIteration(props: ForEachIterationProps) {
     scopeId
   );
 
+  // Skip this iteration if Continue was called
+  if (shouldSkip) {
+    return null;
+  }
+
   // Wrap in context provider for non-island components
+  const contextValue = {
+    item: itemValue,
+    index: idx,
+    itemName,
+    indexName,
+    scopeId,
+    shouldBreak: false, // Legacy, not used anymore
+    shouldContinue: false, // Legacy, not used anymore
+    setBreak: onBreak,
+    setContinue: onContinue
+  };
+
   return (
-    <ForEachContext.Provider
-      value={{
-        item: itemValue,
-        index: idx,
-        itemName,
-        indexName,
-        scopeId
-      }}
-    >
+    <ForEachContext.Provider value={contextValue}>
       {processedChildren}
     </ForEachContext.Provider>
   );
@@ -370,7 +554,7 @@ function processForEachChildren(
       });
 
       // Add scopeId prop to components that need scoped variable resolution
-      if (scopeId && (componentName === 'ShowVar')) {
+      if (scopeId && (componentName === 'ShowVar' || componentName === 'Show' || componentName === 'Break')) {
         processedProps.scopeId = scopeId;
       }
 

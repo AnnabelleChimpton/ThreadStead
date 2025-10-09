@@ -112,8 +112,8 @@ function createCustomSchema() {
         'showValue', 'showvalue', 'direction', 'debounce',
         // Phase 3: Array/String action props (Push, Pop, RemoveAt, ArrayAt, Append, Prepend, Cycle)
         'index', 'values', 'array',
-        // Phase 3: Event handler props (OnChange, OnMount, OnInterval)
-        'seconds', 'milliseconds',
+        // Phase 3: Event handler props (OnChange, OnMount, OnInterval, Delay, Sequence/Step)
+        'seconds', 'milliseconds', 'delay',
         // Phase 4: Loop props (ForEach)
         'item',
         // Phase 1 (Roadmap): Error handling props (Attempt component)

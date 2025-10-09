@@ -53,12 +53,10 @@ class TemplateStateManager {
       // WORKAROUND: Check if there's a prefixed version
       const prefixedName = `user-content-${name}`;
       if (this.variables[prefixedName]) {
-        console.warn(`[TemplateStateManager] Variable "${name}" not found, using prefixed "${prefixedName}" instead`);
         this.setVariable(prefixedName, value);
         return;
       }
 
-      console.warn(`[TemplateStateManager] Attempted to set undefined variable: ${name}. Available: ${Object.keys(this.variables).join(', ')}`);
       return;
     }
 
@@ -78,12 +76,16 @@ class TemplateStateManager {
           break;
         case 'array':
           if (!Array.isArray(value)) {
-            console.warn(`[TemplateStateManager] Attempted to set non-array value to array variable ${name}:`, value);
             coercedValue = Array.isArray(variable.value) ? variable.value : [];
           }
           break;
         // object, computed, random, urlParam, date - no coercion
       }
+    }
+
+    // Check if value actually changed (prevent infinite loops)
+    if (variable.value === coercedValue) {
+      return; // No change, don't notify listeners
     }
 
     // Update the variable
@@ -98,8 +100,6 @@ class TemplateStateManager {
         const serialized = JSON.stringify(coercedValue);
         if (serialized.length <= 100 * 1024) { // 100KB limit per variable
           localStorage.setItem(`threadstead_template_${name}`, serialized);
-        } else {
-          console.warn(`[TemplateStateManager] Variable ${name} too large to persist (${serialized.length} bytes)`);
         }
       } catch (error) {
         console.error(`[TemplateStateManager] Failed to persist variable ${name}:`, error);
@@ -112,8 +112,10 @@ class TemplateStateManager {
 
   /**
    * Register a new variable
+   * @param config Variable configuration
+   * @param silent If true, don't notify listeners (for internal variables)
    */
-  registerVariable(config: VariableConfig): void {
+  registerVariable(config: VariableConfig, silent: boolean = false): void {
     // If variable already exists, don't re-register
     if (this.variables[config.name]) {
       return;
@@ -214,8 +216,10 @@ class TemplateStateManager {
       });
     }
 
-    // Notify listeners of new variable
-    this.notifyListeners();
+    // Notify listeners of new variable (unless silent mode for internal variables)
+    if (!silent) {
+      this.notifyListeners();
+    }
   }
 
   /**
@@ -303,8 +307,9 @@ class TemplateStateManager {
 
   /**
    * Register a variable in a specific scope
+   * @param silent If true, don't notify listeners (use during initial render to avoid React warnings)
    */
-  registerScopedVariable(scopeId: string, name: string, config: VariableConfig): void {
+  registerScopedVariable(scopeId: string, name: string, config: VariableConfig, silent: boolean = false): void {
     // Ensure scope exists
     if (!this.scopes.has(scopeId)) {
       this.registerScope(scopeId);
@@ -326,24 +331,28 @@ class TemplateStateManager {
     };
 
     scope.set(name, variable);
-    this.notifyListeners();
+    if (!silent) {
+      this.notifyListeners();
+    }
   }
 
   /**
    * Set a scoped variable's value
+   * @param silent If true, don't notify listeners (use during initial render to avoid React warnings)
    */
-  setScopedVariable(scopeId: string, name: string, value: any): void {
+  setScopedVariable(scopeId: string, name: string, value: any, silent: boolean = false): void {
     const scope = this.scopes.get(scopeId);
     if (!scope) {
-      console.warn(`[TemplateStateManager] Scope "${scopeId}" not found`);
       return;
     }
 
     const variable = scope.get(name);
     if (!variable) {
-      console.warn(`[TemplateStateManager] Variable "${name}" not found in scope "${scopeId}"`);
       return;
     }
+
+    // Only notify if value actually changed and not silent
+    const valueChanged = variable.value !== value;
 
     // Update variable
     scope.set(name, {
@@ -351,7 +360,9 @@ class TemplateStateManager {
       value
     });
 
-    this.notifyListeners();
+    if (!silent && valueChanged) {
+      this.notifyListeners();
+    }
   }
 
   /**
@@ -359,44 +370,26 @@ class TemplateStateManager {
    * This is the key method for proper variable resolution
    */
   getVariableInScope(scopeId: string | null | undefined, name: string): any {
-    console.log(`[TemplateStateManager] getVariableInScope called:`, { scopeId, name });
-
     // If no scope, check global variables
     if (!scopeId) {
-      console.log(`[TemplateStateManager] No scopeId provided, checking global variables`);
       return this.getVariable(name);
     }
 
-    console.log(`[TemplateStateManager] Walking scope chain starting from "${scopeId}"`);
-    console.log(`[TemplateStateManager] Available scopes:`, Array.from(this.scopes.keys()));
-
     // Walk up scope chain
     let currentScopeId: string | null | undefined = scopeId;
-    let depth = 0;
     while (currentScopeId) {
       const scope = this.scopes.get(currentScopeId);
-      console.log(`[TemplateStateManager] Checking scope "${currentScopeId}" (depth ${depth}):`, {
-        scopeExists: !!scope,
-        hasVariable: scope?.has(name),
-        scopeVariables: scope ? Array.from(scope.keys()) : []
-      });
 
       if (scope?.has(name)) {
-        const value = scope.get(name)?.value;
-        console.log(`[TemplateStateManager] ✅ Found "${name}" in scope "${currentScopeId}":`, value);
-        return value;
+        return scope.get(name)?.value;
       }
 
       // Move to parent scope
       currentScopeId = this.scopeParents.get(currentScopeId);
-      depth++;
     }
 
     // Not found in scope chain, check global variables
-    console.log(`[TemplateStateManager] Not found in scope chain, checking global variables`);
-    const globalValue = this.getVariable(name);
-    console.log(`[TemplateStateManager] Global variable "${name}":`, globalValue);
-    return globalValue;
+    return this.getVariable(name);
   }
 
   /**

@@ -523,6 +523,64 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     tags: ['default', 'fallback', 'else', 'case', 'switch'],
     popularity: 75
   },
+
+  // Phase 3 (Roadmap): Temporal Controls
+  'Delay': {
+    name: 'Delay',
+    description: 'Execute actions after a delay',
+    icon: '⏱️',
+    category: 'Actions',
+    tags: ['delay', 'wait', 'timeout', 'timing', 'animation', 'temporal', 'async'],
+    popularity: 80
+  },
+  'Sequence': {
+    name: 'Sequence',
+    description: 'Execute steps sequentially with delays',
+    icon: '⏩',
+    category: 'Actions',
+    tags: ['sequence', 'steps', 'chain', 'animation', 'timing', 'temporal', 'async'],
+    popularity: 75
+  },
+  'Step': {
+    name: 'Step',
+    description: 'Single step in a Sequence (child of Sequence)',
+    icon: '↪️',
+    category: 'Actions',
+    tags: ['step', 'sequence', 'delay', 'timing', 'animation'],
+    popularity: 70
+  },
+  'Timeout': {
+    name: 'Timeout',
+    description: 'Auto-execute actions after duration',
+    icon: '⏰',
+    category: 'Events',
+    tags: ['timeout', 'timer', 'auto', 'expiration', 'temporal', 'cancel'],
+    popularity: 75
+  },
+  'OnTimeout': {
+    name: 'OnTimeout',
+    description: 'Handler for Timeout expiration (child of Timeout)',
+    icon: '⏲️',
+    category: 'Events',
+    tags: ['timeout', 'handler', 'expiration', 'event'],
+    popularity: 70
+  },
+  'Break': {
+    name: 'Break',
+    description: 'Exit ForEach loop early',
+    icon: '🛑',
+    category: 'Control Flow',
+    tags: ['break', 'loop', 'foreach', 'exit', 'stop', 'control'],
+    popularity: 70
+  },
+  'Continue': {
+    name: 'Continue',
+    description: 'Skip to next ForEach iteration',
+    icon: '⏭️',
+    category: 'Control Flow',
+    tags: ['continue', 'loop', 'foreach', 'skip', 'next', 'control'],
+    popularity: 70
+  },
 };
 
 /**

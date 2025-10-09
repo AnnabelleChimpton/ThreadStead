@@ -267,9 +267,10 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'index': 'index',
           'values': 'values',
           'array': 'array',
-          // Phase 3: Event handler props (OnChange, OnMount, OnInterval)
+          // Phase 3: Event handler props (OnChange, OnMount, OnInterval, Delay, Sequence/Step)
           'seconds': 'seconds',
           'milliseconds': 'milliseconds',
+          'delay': 'delay',
           // Phase 4: Loop props (ForEach)
           'item': 'item',
           // Phase 1 (Roadmap): Error handling props (Attempt component)

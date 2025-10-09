@@ -1052,6 +1052,10 @@ export class TemplateParserReverse {
       'maxlength': 'maxLength',
       // Phase 4: Event handler props (OnKeyPress)
       'keyname': 'keyName',
+      // Phase 3/4: Event handler props (OnInterval, Delay, Sequence/Step)
+      'seconds': 'seconds',
+      'milliseconds': 'milliseconds',
+      'delay': 'delay',
       // Phase 4: Loop props (ForEach)
       'item': 'item',
       // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)

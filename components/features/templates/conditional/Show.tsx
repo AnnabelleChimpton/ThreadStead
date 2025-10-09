@@ -9,6 +9,7 @@ interface ShowProps {
   // Simple condition expressions
   when?: string;
   data?: string;
+  condition?: string;  // Alias for data/when
 
   // Comparison operators
   equals?: string;
@@ -31,6 +32,9 @@ interface ShowProps {
   and?: string | string[]; // comma-separated paths or array
   or?: string | string[];  // comma-separated paths or array
   not?: string;
+
+  // Internal: Scoped variable resolution (injected by ForEach)
+  scopeId?: string;
 
   children: React.ReactNode;
 }
@@ -63,20 +67,20 @@ interface ShowProps {
  * </Show>
  */
 export default function Show(props: ShowProps) {
-  const { children, ...conditionProps } = props;
+  const { children, scopeId, condition, ...conditionProps } = props;
   const residentData = useResidentData();
   const templateState = useTemplateState();
 
   // Build condition config from props
-  const config: ConditionConfig = conditionProps as ConditionConfig;
+  // Map 'condition' prop to 'data' for the evaluator
+  const config: ConditionConfig = {
+    ...(condition ? { data: condition } : {}),
+    ...conditionProps
+  } as ConditionConfig;
 
   // Evaluate condition using centralized engine
-  // Pass residentData as the data context - condition evaluator will access template state via getGlobalTemplateState()
-  const shouldShow = evaluateFullCondition(config, residentData);
-
-  // ALTERNATIVE: If template state is not accessible via global, we could merge it into data
-  // const dataWithVars = { ...residentData, $vars: templateState?.variables };
-  // const shouldShow = evaluateFullCondition(config, dataWithVars);
+  // Pass scopeId for ForEach loop variable resolution
+  const shouldShow = evaluateFullCondition(config, residentData, scopeId);
 
   return shouldShow ? <>{children}</> : null;
 }

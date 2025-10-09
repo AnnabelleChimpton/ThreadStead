@@ -20,9 +20,12 @@ import { globalTemplateStateManager } from '../state/TemplateStateManager';
 export function getNestedValue(obj: any, path: string | undefined, scopeId?: string): any {
   // CRITICAL: Defensive null checks
   if (!path || typeof path !== 'string') {
-    console.warn('[getNestedValue] Invalid path:', path);
     return undefined;
   }
+
+  // Parse path into parts
+  const keys = path.split('.');
+  const rootKey = keys[0];
 
   // NEW: Check for $vars namespace (template variables)
   if (path.startsWith('$vars.')) {
@@ -33,7 +36,6 @@ export function getNestedValue(obj: any, path: string | undefined, scopeId?: str
     const templateState = getGlobalTemplateState();
 
     if (!templateState) {
-      console.warn(`Template state not available for path: ${path}`);
       return undefined;
     }
 
@@ -66,8 +68,32 @@ export function getNestedValue(obj: any, path: string | undefined, scopeId?: str
     return value;
   }
 
-  // EXISTING: Handle ResidentData paths
-  const keys = path.split('.');
+  // NEW: If scopeId provided, check scoped variables FIRST (even without $vars prefix)
+  // This enables ForEach loop variables like "item.visible" to work
+  if (scopeId) {
+    const scopedValue = globalTemplateStateManager.getVariableInScope(scopeId, rootKey);
+
+    if (scopedValue !== undefined) {
+      // Found in scoped variables - use this value
+      let current = scopedValue;
+
+      // Handle nested properties: item.visible, item.name, etc.
+      for (let i = 1; i < keys.length; i++) {
+        if (current === null || current === undefined) {
+          // Special case: .length on undefined/null returns 0
+          if (keys[i] === 'length') {
+            return 0;
+          }
+          return undefined;
+        }
+        current = current[keys[i]];
+      }
+
+      return current;
+    }
+  }
+
+  // EXISTING: Handle ResidentData paths (fall back if not found in scoped variables)
   let current = obj;
 
   for (let i = 0; i < keys.length; i++) {
@@ -124,7 +150,6 @@ export function compare(
 
   // Validate compareValue
   if (compareValue === null || compareValue === undefined) {
-    console.warn('[compare] Invalid compareValue:', compareValue);
     return false;
   }
 
@@ -235,7 +260,6 @@ export function exists(value: any): boolean {
 export function evaluateCondition(condition: string | undefined, data: any, scopeId?: string): boolean {
   // CRITICAL: Defensive null checks
   if (!condition || typeof condition !== 'string') {
-    console.warn('[evaluateCondition] Invalid condition:', condition);
     return false;
   }
 

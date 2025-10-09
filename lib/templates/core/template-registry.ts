@@ -124,6 +124,8 @@ import Cycle from '@/components/features/templates/state/actions/Cycle';
 
 // Phase 4: Loops
 import ForEach from '@/components/features/templates/state/loops/ForEach';
+import Break from '@/components/features/templates/state/loops/Break';
+import Continue from '@/components/features/templates/state/loops/Continue';
 
 // Phase 4: Validation
 import Validate from '@/components/features/templates/state/validation/Validate';
@@ -155,6 +157,13 @@ import Filter from '@/components/features/templates/state/actions/Filter';
 import Find from '@/components/features/templates/state/actions/Find';
 import Transform from '@/components/features/templates/state/actions/Transform';
 import Sort from '@/components/features/templates/state/actions/Sort';
+
+// Phase 3 (Roadmap): Temporal controls
+import Delay from '@/components/features/templates/state/temporal/Delay';
+import Sequence from '@/components/features/templates/state/temporal/Sequence';
+import Step from '@/components/features/templates/state/temporal/Step';
+import Timeout from '@/components/features/templates/state/temporal/Timeout';
+import OnTimeout from '@/components/features/templates/state/temporal/OnTimeout';
 
 // Import debug components
 import DebugValue from '@/components/features/templates/DebugValue';
@@ -1196,6 +1205,7 @@ componentRegistry.register({
     // Simple condition expressions
     when: { type: 'string' },
     data: { type: 'string' },
+    condition: { type: 'string' }, // Alias for data/when
 
     // Comparison operators
     equals: { type: 'string' },
@@ -2224,6 +2234,32 @@ componentRegistry.register({
   }
 });
 
+// Phase 3 (Roadmap): Loop control
+componentRegistry.register({
+  name: 'Break',
+  component: Break,
+  props: {
+    when: { type: 'string', required: false },
+    condition: { type: 'string', required: false }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Continue',
+  component: Continue,
+  props: {
+    when: { type: 'string', required: false }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
 // Phase 4: Validation components
 componentRegistry.register({
   name: 'Validate',
@@ -2505,6 +2541,66 @@ componentRegistry.register({
   relationship: {
     type: 'action',
     acceptsChildren: false
+  }
+});
+
+// Phase 3 (Roadmap): Temporal controls
+componentRegistry.register({
+  name: 'Delay',
+  component: Delay,
+  props: {
+    seconds: { type: 'number', required: false },
+    milliseconds: { type: 'number', required: false }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: true
+  }
+});
+
+componentRegistry.register({
+  name: 'Sequence',
+  component: Sequence,
+  props: {},
+  relationship: {
+    type: 'action',
+    acceptsChildren: true
+  }
+});
+
+componentRegistry.register({
+  name: 'Step',
+  component: Step,
+  props: {
+    delay: { type: 'number', default: 0 }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: true
+  }
+});
+
+componentRegistry.register({
+  name: 'Timeout',
+  component: Timeout,
+  props: {
+    seconds: { type: 'number', required: false },
+    milliseconds: { type: 'number', required: false }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: true
+  }
+});
+
+componentRegistry.register({
+  name: 'OnTimeout',
+  component: OnTimeout,
+  props: {},
+  relationship: {
+    type: 'action',
+    acceptsChildren: true,
+    childrenLabel: 'Actions to Execute'
   }
 });
 
