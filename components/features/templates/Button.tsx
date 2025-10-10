@@ -56,6 +56,13 @@ export default function Button(props: ButtonProps) {
 
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
+  React.Children.forEach(children, (child, index) => {
+    if (React.isValidElement(child)) {
+      const childType = child.type;
+      const typeName = typeof childType === 'function' ? (childType.name || (childType as any).displayName || 'Anonymous') : String(childType);
+    }
+  });
+
   // Extract OnClick handler from children
   const clickHandler = useOnClickHandler(children);
 

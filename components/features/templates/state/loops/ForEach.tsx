@@ -102,7 +102,9 @@ function calculateBreakIndex(
 
         // Only recurse into structural wrappers, not functional components
         // This prevents searching into If, Show, etc. which manage their own rendering
+        // P3.3 FIX: Include IslandErrorBoundary as a structural element
         const isStructuralElement =
+          typeName === 'IslandErrorBoundary' ||
           typeName === 'ResidentDataProvider' ||
           typeName === 'Fragment' ||
           typeof childType === 'string'; // HTML elements like div, span
@@ -419,10 +421,11 @@ function ForEachIteration(props: ForEachIterationProps) {
     }
   }, [scopeId, itemName, itemValue, idx, indexName]);
 
-  // Cleanup: unregister scope when unmounting
+  // P3.2: Cleanup - recursively delete scope and all child scopes when unmounting
+  // This prevents memory leaks from nested ForEach loops
   React.useEffect(() => {
     return () => {
-      globalTemplateStateManager.unregisterScope(scopeId);
+      globalTemplateStateManager.deleteScopeTree(scopeId);
     };
   }, [scopeId]);
 
@@ -486,23 +489,37 @@ function processForEachChildren(
 
     // Handle React elements
     if (React.isValidElement(child)) {
-      // Check if this is a ResidentDataProvider wrapper (island architecture)
+      // P3.3 FIX: Check if this is wrapped in IslandErrorBoundary and/or ResidentDataProvider
       let actualChild = child;
-      let isWrappedInProvider = false;
-      let providerProps: any = null;
+      let boundaryElement: React.ReactElement | null = null;
+      let providerElement: React.ReactElement | null = null;
 
       const childTypeName = typeof child.type === 'function'
         ? (child.type.name || (child.type as any).displayName)
         : String(child.type);
 
+      // First, unwrap IslandErrorBoundary if present
       if (typeof child.type === 'function' &&
-          (child.type.name === 'ResidentDataProvider' ||
-           (child.type as any).displayName === 'ResidentDataProvider')) {
-        isWrappedInProvider = true;
-        providerProps = child.props;
+          (child.type.name === 'IslandErrorBoundary' ||
+           (child.type as any).displayName === 'IslandErrorBoundary')) {
+        boundaryElement = child;
+
+        // Extract the actual component from inside the boundary
+        const boundaryChildren = React.Children.toArray((child.props as any).children);
+
+        if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+          actualChild = boundaryChildren[0];
+        }
+      }
+
+      // Then, unwrap ResidentDataProvider if present
+      if (typeof actualChild.type === 'function' &&
+          (actualChild.type.name === 'ResidentDataProvider' ||
+           (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+        providerElement = actualChild;
 
         // Extract the actual component from inside the provider
-        const providerChildren = React.Children.toArray((child.props as any).children);
+        const providerChildren = React.Children.toArray((actualChild.props as any).children);
 
         if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
           actualChild = providerChildren[0];
@@ -559,11 +576,15 @@ function processForEachChildren(
       }
 
       // Clone the actual component with processed props
-      const processedChild = React.cloneElement(actualChild, processedProps, processedChildren);
+      let processedChild = React.cloneElement(actualChild, processedProps, processedChildren);
 
-      // If it was wrapped in a provider, re-wrap it
-      if (isWrappedInProvider) {
-        return React.cloneElement(child, providerProps, processedChild);
+      // Re-wrap in reverse order: provider first, then boundary
+      if (providerElement) {
+        processedChild = React.cloneElement(providerElement, providerElement.props as any, processedChild);
+      }
+
+      if (boundaryElement) {
+        processedChild = React.cloneElement(boundaryElement, boundaryElement.props as any, processedChild);
       }
 
       return processedChild;

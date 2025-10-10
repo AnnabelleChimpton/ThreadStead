@@ -576,14 +576,17 @@ function StaticHTMLWithIslands({
                   componentProps._positioningMode = 'absolute';
                 }
 
+                // P3.3: Wrap island in error boundary for graceful error handling
                 const renderedElement = (
-                  <ResidentDataProvider key={island.id} data={residentData}>
-                    <Component
-                      {...componentProps}
-                    >
-                      {processedChildren}
-                    </Component>
-                  </ResidentDataProvider>
+                  <IslandErrorBoundary islandId={island.id} key={island.id}>
+                    <ResidentDataProvider data={residentData}>
+                      <Component
+                        {...componentProps}
+                      >
+                        {processedChildren}
+                      </Component>
+                    </ResidentDataProvider>
+                  </IslandErrorBoundary>
                 );
 
                 // Apply positioning if present - handle legacy, simple absolute, and responsive formats

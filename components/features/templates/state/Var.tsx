@@ -93,10 +93,63 @@ export default function Var(props: VarProps) {
     let options: any[] | undefined;
     if (type === 'random' && children) {
       options = React.Children.toArray(children)
-        .filter(child => React.isValidElement(child) && (child.type as any).name === 'Option')
+        .filter(child => {
+          if (!React.isValidElement(child)) return false;
+
+          // P3.3 FIX: Unwrap IslandErrorBoundary and ResidentDataProvider to find Option
+          let actualChild = child;
+
+          // Unwrap IslandErrorBoundary if present
+          if (typeof child.type === 'function' &&
+              (child.type.name === 'IslandErrorBoundary' ||
+               (child.type as any).displayName === 'IslandErrorBoundary')) {
+            const boundaryChildren = React.Children.toArray((child.props as any).children);
+            if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+              actualChild = boundaryChildren[0];
+            }
+          }
+
+          // Unwrap ResidentDataProvider if present
+          if (typeof actualChild.type === 'function' &&
+              (actualChild.type.name === 'ResidentDataProvider' ||
+               (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+            const providerChildren = React.Children.toArray((actualChild.props as any).children);
+            if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+              actualChild = providerChildren[0];
+            }
+          }
+
+          const componentName = typeof actualChild.type === 'function'
+            ? actualChild.type.name || (actualChild.type as any).displayName
+            : '';
+
+          return componentName === 'Option';
+        })
         .map(child => {
-          const optionChild = child as React.ReactElement<any>;
-          return optionChild.props.value ?? optionChild.props.children;
+          // Unwrap to get the actual Option component
+          let actualChild = child as React.ReactElement<any>;
+
+          // Unwrap IslandErrorBoundary
+          if (typeof actualChild.type === 'function' &&
+              (actualChild.type.name === 'IslandErrorBoundary' ||
+               (actualChild.type as any).displayName === 'IslandErrorBoundary')) {
+            const boundaryChildren = React.Children.toArray((actualChild.props as any).children);
+            if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+              actualChild = boundaryChildren[0];
+            }
+          }
+
+          // Unwrap ResidentDataProvider
+          if (typeof actualChild.type === 'function' &&
+              (actualChild.type.name === 'ResidentDataProvider' ||
+               (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+            const providerChildren = React.Children.toArray((actualChild.props as any).children);
+            if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+              actualChild = providerChildren[0];
+            }
+          }
+
+          return actualChild.props.value ?? actualChild.props.children;
         });
     }
 

@@ -75,9 +75,9 @@ export default function RadioGroup(props: RadioGroupProps) {
   const onChangeHandler = useOnChangeHandler(children);
   const filteredChildren = filterOnChangeChildren(children);
 
-  // Get current value from template state (reactive)
-  const variable = templateState.variables[varName];
-  const currentValue = variable?.value !== undefined ? variable.value : '';
+  // PHASE 1.1 FIX: Use getVariable() to get current value, not stale snapshot
+  const value = templateState.getVariable(varName);
+  const currentValue = value !== undefined ? value : '';
 
   // Generate unique group name
   const groupName = React.useMemo(() => `radio-group-${varName}-${Math.random().toString(36).slice(2)}`, [varName]);

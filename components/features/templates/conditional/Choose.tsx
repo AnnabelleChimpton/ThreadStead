@@ -106,17 +106,29 @@ export default function Choose({ children }: ChooseProps) {
 
   for (const child of childArray) {
     if (React.isValidElement(child)) {
-      // CRITICAL FIX: Unwrap ResidentDataProvider to find the actual component
-      // Islands rendering wraps every component in ResidentDataProvider, breaking child detection
+      // P3.3 FIX: Unwrap IslandErrorBoundary if present
       let actualChild = child;
       let actualProps = child.props;
 
-      // Check if this is a ResidentDataProvider wrapper
+      // Check if this is an IslandErrorBoundary wrapper
       if (typeof child.type === 'function' &&
-          (child.type.name === 'ResidentDataProvider' ||
-           (child.type as any).displayName === 'ResidentDataProvider')) {
+          (child.type.name === 'IslandErrorBoundary' ||
+           (child.type as any).displayName === 'IslandErrorBoundary')) {
+        const boundaryChildren = React.Children.toArray((child.props as any).children);
+        if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+          actualChild = boundaryChildren[0];
+          actualProps = actualChild.props;
+        }
+      }
+
+      // CRITICAL FIX: Unwrap ResidentDataProvider to find the actual component
+      // Islands rendering wraps every component in ResidentDataProvider, breaking child detection
+      // Check if this is a ResidentDataProvider wrapper
+      if (typeof actualChild.type === 'function' &&
+          (actualChild.type.name === 'ResidentDataProvider' ||
+           (actualChild.type as any).displayName === 'ResidentDataProvider')) {
         // Get the actual child inside the provider
-        const providerChildren = React.Children.toArray((child.props as any).children);
+        const providerChildren = React.Children.toArray((actualChild.props as any).children);
         if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
           actualChild = providerChildren[0];
           actualProps = actualChild.props;

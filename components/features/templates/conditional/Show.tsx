@@ -135,5 +135,13 @@ export default function Show(props: ShowProps) {
   // Pass scopeId for ForEach loop variable resolution
   const shouldShow = evaluateFullCondition(config, residentData, scopeId);
 
+  // DEBUG: Log Show evaluation
+  console.log('[DEBUG-TEMPORAL] Show render:', {
+    config,
+    dependencies,
+    shouldShow,
+    variables: dependencies.map(dep => ({ [dep]: templateState.getVariable(dep) }))
+  });
+
   return shouldShow ? <>{children}</> : null;
 }

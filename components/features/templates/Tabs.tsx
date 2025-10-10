@@ -27,81 +27,55 @@ export default function Tabs(props: TabsProps) {
   const tabs = React.useMemo(() => {
     return childArray.map((child, index) => {
       if (React.isValidElement(child)) {
-        const props = child.props as any;
-        
-        // Check if it's a Tab component (direct match)
-        if (child.type === Tab) {
-          return {
-            title: props.title,
-            content: props.children
-          };
-        }
-        
-        // Check if it's a Tab component by name/displayName (for compiled components)
+        // P3.3 FIX: Unwrap IslandErrorBoundary and ResidentDataProvider to find Tab components
+        let actualChild = child;
+        let actualProps = child.props as any;
+
+        // First, unwrap IslandErrorBoundary if present
         const typeName = (child.type as any)?.name || (child.type as any)?.displayName;
-        if (typeName === 'Tab') {
+        if (typeName === 'IslandErrorBoundary' && actualProps.children && React.isValidElement(actualProps.children)) {
+          actualChild = actualProps.children;
+          actualProps = actualChild.props as any;
+        }
+
+        // Then, unwrap ResidentDataProvider if present
+        const actualTypeName = (actualChild.type as any)?.name || (actualChild.type as any)?.displayName;
+        if (actualTypeName === 'ResidentDataProvider' && actualProps.children && React.isValidElement(actualProps.children)) {
+          actualChild = actualProps.children;
+          actualProps = actualChild.props as any;
+        }
+
+        // Now check the unwrapped component
+        // Check if it's a Tab component (direct match)
+        if (actualChild.type === Tab) {
           return {
-            title: props.title,
-            content: props.children
+            title: actualProps.title,
+            content: actualProps.children
           };
         }
-        
+
+        // Check if it's a Tab component by name/displayName (for compiled components)
+        const finalTypeName = (actualChild.type as any)?.name || (actualChild.type as any)?.displayName;
+        if (finalTypeName === 'Tab') {
+          return {
+            title: actualProps.title,
+            content: actualProps.children
+          };
+        }
+
         // Check for data-tab-title attribute (from Tab component rendering) - this is the most reliable method
-        if (props['data-tab-title']) {
+        if (actualProps['data-tab-title']) {
           return {
-            title: props['data-tab-title'],
-            content: props.children
+            title: actualProps['data-tab-title'],
+            content: actualProps.children
           };
         }
-        
-        // Check if it's wrapped in ResidentDataProvider (from island rendering)
-        // In production, component names are minified, so also check for wrapper patterns
-        const isWrapper = typeName === 'ResidentDataProvider' || 
-                         (typeName && typeName.length === 1 && props.data && props.children); // Minified wrapper pattern
-        
-        if (isWrapper && props.children && React.isValidElement(props.children)) {
-          const wrappedChild = props.children;
-          const wrappedProps = wrappedChild.props as any;
-          
-          // Check if the wrapped child is a Tab component (direct reference)
-          if (wrappedChild.type === Tab) {
-            return {
-              title: wrappedProps.title,
-              content: wrappedProps.children
-            };
-          }
-          
-          // Check by name for compiled Tab components
-          const wrappedTypeName = (wrappedChild.type as any)?.name || (wrappedChild.type as any)?.displayName;
-          if (wrappedTypeName === 'Tab') {
-            return {
-              title: wrappedProps.title,
-              content: wrappedProps.children
-            };
-          }
-          
-          // Check for data-tab-title attribute on wrapped child (most reliable for production)
-          if (wrappedProps['data-tab-title']) {
-            return {
-              title: wrappedProps['data-tab-title'],
-              content: wrappedProps.children
-            };
-          }
-          
-          // If wrapped child has title prop, treat it as a tab
-          if (wrappedProps.title) {
-            return {
-              title: wrappedProps.title,
-              content: wrappedProps.children || wrappedChild
-            };
-          }
-        }
-        
+
         // Fallback: check if child has a title prop directly
-        if (props.title) {
+        if (actualProps.title) {
           return {
-            title: props.title,
-            content: props.children || child
+            title: actualProps.title,
+            content: actualProps.children || actualChild
           };
         }
       }

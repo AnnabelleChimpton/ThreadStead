@@ -77,10 +77,34 @@ export default function ContactCard(props: ContactCardProps) {
     const childArray = React.Children.toArray(children);
     const contactMethods = childArray.map((child) => {
       if (React.isValidElement(child)) {
-        const props = child.props as any;
-        
+        // P3.3 FIX: Unwrap IslandErrorBoundary and ResidentDataProvider to find ContactMethod components
+        let actualChild = child;
+        let props = child.props as any;
+
+        // Unwrap IslandErrorBoundary if present
+        if (typeof child.type === 'function' &&
+            (child.type.name === 'IslandErrorBoundary' ||
+             (child.type as any).displayName === 'IslandErrorBoundary')) {
+          const boundaryChildren = React.Children.toArray((child.props as any).children);
+          if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+            actualChild = boundaryChildren[0];
+            props = actualChild.props as any;
+          }
+        }
+
+        // Unwrap ResidentDataProvider if present
+        if (typeof actualChild.type === 'function' &&
+            (actualChild.type.name === 'ResidentDataProvider' ||
+             (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+          const providerChildren = React.Children.toArray((actualChild.props as any).children);
+          if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+            actualChild = providerChildren[0];
+            props = actualChild.props as any;
+          }
+        }
+
         // Check if it's a ContactMethod component
-        if (child.type === ContactMethod) {
+        if (actualChild.type === ContactMethod) {
           return {
             type: props.type,
             value: props.value,
@@ -89,26 +113,6 @@ export default function ContactCard(props: ContactCardProps) {
             copyable: props.copyable !== false,
             priority: props.priority || 5
           };
-        }
-        
-        // Check if it's wrapped in ResidentDataProvider (from our DOM parsing)
-        if ((child.type as any)?.name === 'ResidentDataProvider' && props.children) {
-          const wrappedChild = props.children;
-          if (React.isValidElement(wrappedChild)) {
-            const wrappedProps = wrappedChild.props as any;
-            
-            // Check if the wrapped child is a ContactMethod component
-            if (wrappedChild.type === ContactMethod) {
-              return {
-                type: wrappedProps.type,
-                value: wrappedProps.value,
-                label: wrappedProps.label || getDefaultLabel(wrappedProps.type),
-                icon: wrappedProps.icon || getDefaultIcon(wrappedProps.type),
-                copyable: wrappedProps.copyable !== false,
-                priority: wrappedProps.priority || 5
-              };
-            }
-          }
         }
         
         // Check for data attributes (from template rendering)

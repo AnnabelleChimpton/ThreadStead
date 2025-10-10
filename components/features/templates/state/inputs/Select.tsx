@@ -62,21 +62,30 @@ export default function Select(props: SelectProps) {
   const onChangeHandler = useOnChangeHandler(children);
   const filteredChildren = filterOnChangeChildren(children);
 
-  // Get current value from template state (reactive)
-  const variable = templateState.variables[varName];
-  const currentValue = variable?.value;
+  // PHASE 1.1 FIX: Use getVariable() to get current value, not stale snapshot
+  const currentValue = templateState.getVariable(varName);
 
   // Extract Option children
   const options: Array<{ value: any; label: React.ReactNode }> = [];
   React.Children.forEach(filteredChildren, (child) => {
     if (!React.isValidElement(child)) return;
 
-    // Unwrap ResidentDataProvider if present (islands architecture)
+    // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
     let actualChild = child;
     if (typeof child.type === 'function' &&
-        (child.type.name === 'ResidentDataProvider' ||
-         (child.type as any).displayName === 'ResidentDataProvider')) {
-      const providerChildren = React.Children.toArray((child.props as any).children);
+        (child.type.name === 'IslandErrorBoundary' ||
+         (child.type as any).displayName === 'IslandErrorBoundary')) {
+      const boundaryChildren = React.Children.toArray((child.props as any).children);
+      if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+        actualChild = boundaryChildren[0];
+      }
+    }
+
+    // Unwrap ResidentDataProvider if present (islands architecture)
+    if (typeof actualChild.type === 'function' &&
+        (actualChild.type.name === 'ResidentDataProvider' ||
+         (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+      const providerChildren = React.Children.toArray((actualChild.props as any).children);
       if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
         actualChild = providerChildren[0];
       }

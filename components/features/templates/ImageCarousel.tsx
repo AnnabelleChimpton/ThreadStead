@@ -78,10 +78,34 @@ export default function ImageCarousel(props: ImageCarouselProps) {
     const childArray = React.Children.toArray(children);
     const customImages = childArray.map((child) => {
       if (React.isValidElement(child)) {
-        const props = child.props as any;
-        
+        // P3.3 FIX: Unwrap IslandErrorBoundary and ResidentDataProvider to find CarouselImage components
+        let actualChild = child;
+        let props = child.props as any;
+
+        // Unwrap IslandErrorBoundary if present
+        if (typeof child.type === 'function' &&
+            (child.type.name === 'IslandErrorBoundary' ||
+             (child.type as any).displayName === 'IslandErrorBoundary')) {
+          const boundaryChildren = React.Children.toArray((child.props as any).children);
+          if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+            actualChild = boundaryChildren[0];
+            props = actualChild.props as any;
+          }
+        }
+
+        // Unwrap ResidentDataProvider if present
+        if (typeof actualChild.type === 'function' &&
+            (actualChild.type.name === 'ResidentDataProvider' ||
+             (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+          const providerChildren = React.Children.toArray((actualChild.props as any).children);
+          if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+            actualChild = providerChildren[0];
+            props = actualChild.props as any;
+          }
+        }
+
         // Check if it's a CarouselImage component
-        if (child.type === CarouselImage) {
+        if (actualChild.type === CarouselImage) {
           return {
             src: props.src,
             alt: props.alt || '',

@@ -59,10 +59,34 @@ export default function ProgressTracker(props: ProgressTrackerProps) {
   const childArray = React.Children.toArray(children);
   const progressItems = childArray.map((child, index) => {
     if (React.isValidElement(child)) {
-      const props = child.props as any;
-      
+      // P3.3 FIX: Unwrap IslandErrorBoundary and ResidentDataProvider to find ProgressItem components
+      let actualChild = child;
+      let props = child.props as any;
+
+      // Unwrap IslandErrorBoundary if present
+      if (typeof child.type === 'function' &&
+          (child.type.name === 'IslandErrorBoundary' ||
+           (child.type as any).displayName === 'IslandErrorBoundary')) {
+        const boundaryChildren = React.Children.toArray((child.props as any).children);
+        if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+          actualChild = boundaryChildren[0];
+          props = actualChild.props as any;
+        }
+      }
+
+      // Unwrap ResidentDataProvider if present
+      if (typeof actualChild.type === 'function' &&
+          (actualChild.type.name === 'ResidentDataProvider' ||
+           (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+        const providerChildren = React.Children.toArray((actualChild.props as any).children);
+        if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+          actualChild = providerChildren[0];
+          props = actualChild.props as any;
+        }
+      }
+
       // Check if it's a ProgressItem component
-      if (child.type === ProgressItem) {
+      if (actualChild.type === ProgressItem) {
         return {
           label: props.label,
           value: props.value,
@@ -70,25 +94,6 @@ export default function ProgressTracker(props: ProgressTrackerProps) {
           color: props.color,
           description: props.description
         };
-      }
-      
-      // Check if it's wrapped in ResidentDataProvider (from our DOM parsing)
-      if ((child.type as any)?.name === 'ResidentDataProvider' && props.children) {
-        const wrappedChild = props.children;
-        if (React.isValidElement(wrappedChild)) {
-          const wrappedProps = wrappedChild.props as any;
-          
-          // Check if the wrapped child is a ProgressItem component
-          if (wrappedChild.type === ProgressItem) {
-            return {
-              label: wrappedProps.label,
-              value: wrappedProps.value,
-              max: wrappedProps.max,
-              color: wrappedProps.color,
-              description: wrappedProps.description
-            };
-          }
-        }
       }
       
       // Check for data attributes (from template rendering)

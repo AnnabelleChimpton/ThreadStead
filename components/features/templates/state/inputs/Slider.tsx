@@ -73,9 +73,9 @@ export default function Slider(props: SliderProps) {
   const onChangeHandler = useOnChangeHandler(children);
   const filteredChildren = filterOnChangeChildren(children);
 
-  // Get current value from template state (reactive)
-  const variable = templateState.variables[varName];
-  const currentValue = typeof variable?.value === 'number' ? variable.value : min;
+  // PHASE 1.1 FIX: Use getVariable() to get current value, not stale snapshot
+  const value = templateState.getVariable(varName);
+  const currentValue = typeof value === 'number' ? value : min;
 
   // Handle value changes (fires on every movement - updates state)
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {

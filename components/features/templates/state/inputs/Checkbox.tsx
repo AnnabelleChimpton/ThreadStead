@@ -52,9 +52,8 @@ export default function Checkbox(props: CheckboxProps) {
   const templateState = useTemplateStateWithDeps(dependencies);
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
-  // Get current value from template state (reactive)
-  const variable = templateState.variables[varName];
-  const currentValue = Boolean(variable?.value);
+  // PHASE 1.1 FIX: Use getVariable() to get current value, not stale snapshot
+  const currentValue = Boolean(templateState.getVariable(varName));
 
   // Handle value changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

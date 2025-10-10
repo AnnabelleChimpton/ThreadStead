@@ -201,12 +201,22 @@ export function executeSwitchActions(
   for (const child of childArray) {
     if (!React.isValidElement(child)) continue;
 
-    // Unwrap ResidentDataProvider if present (islands architecture)
+    // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
     let actualChild = child;
     if (typeof child.type === 'function' &&
-        (child.type.name === 'ResidentDataProvider' ||
-         (child.type as any).displayName === 'ResidentDataProvider')) {
-      const providerChildren = React.Children.toArray((child.props as any).children);
+        (child.type.name === 'IslandErrorBoundary' ||
+         (child.type as any).displayName === 'IslandErrorBoundary')) {
+      const boundaryChildren = React.Children.toArray((child.props as any).children);
+      if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+        actualChild = boundaryChildren[0];
+      }
+    }
+
+    // Unwrap ResidentDataProvider if present (islands architecture)
+    if (typeof actualChild.type === 'function' &&
+        (actualChild.type.name === 'ResidentDataProvider' ||
+         (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+      const providerChildren = React.Children.toArray((actualChild.props as any).children);
       if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
         actualChild = providerChildren[0];
       }

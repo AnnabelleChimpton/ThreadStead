@@ -96,7 +96,6 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
     setVariables(prev => {
       const variable = prev[name];
       if (!variable) {
-        console.warn(`Attempted to set undefined variable: ${name}`);
         return prev;
       }
 
@@ -116,7 +115,6 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
             break;
           case 'array':
             if (!Array.isArray(value)) {
-              console.warn(`Attempted to set non-array value to array variable ${name}:`, value);
               coercedValue = Array.isArray(variable.value) ? variable.value : [];
             }
             break;
@@ -447,18 +445,24 @@ export function useTemplateStateWithDeps(dependencies?: string[]): TemplateState
   // Force re-render when specific variables change
   const [, forceUpdate] = useState({});
 
+  // PHASE 1.1 FIX: Determine if we should use selective subscription
+  const useSelectiveSubscription = dependencies && dependencies.length > 0;
+
   useEffect(() => {
-    // If we have context, we don't need to subscribe to global state
-    if (context) {
+    // If we have context AND not using selective subscriptions, rely on context
+    // Context re-renders on ALL changes, which is fine when we want global updates
+    if (context && !useSelectiveSubscription) {
       return;
     }
 
-    // Subscribe to global state
-    // If dependencies provided, use selective subscription
-    // Otherwise, fallback to global subscription
-    if (dependencies && dependencies.length > 0) {
+    // Subscribe to global state directly:
+    // - When NO context (separate React root)
+    // - When using selective subscriptions (even with context, for performance + reliability)
+    if (useSelectiveSubscription) {
       const unsubscribe = globalTemplateStateManager.subscribeToVariables(
-        () => forceUpdate({}),
+        () => {
+          forceUpdate({});
+        },
         dependencies
       );
       return unsubscribe;
@@ -468,7 +472,7 @@ export function useTemplateStateWithDeps(dependencies?: string[]): TemplateState
       });
       return unsubscribe;
     }
-  }, [context, ...(dependencies || [])]);
+  }, [context, useSelectiveSubscription, ...(dependencies || [])]);
 
   // If we have context (same React tree), use it
   if (context) {

@@ -350,6 +350,28 @@ class TemplateStateManager {
   }
 
   /**
+   * P3.2: Delete a scope and all its child scopes recursively
+   * Prevents memory leaks from nested ForEach loops
+   *
+   * @param parentScopeId The scope ID to delete along with all children
+   */
+  deleteScopeTree(parentScopeId: string): void {
+    // Find all child scopes
+    const childScopes: string[] = [];
+    for (const [scopeId, parent] of this.scopeParents.entries()) {
+      if (parent === parentScopeId) {
+        childScopes.push(scopeId);
+      }
+    }
+
+    // Recursively delete children first
+    childScopes.forEach(childId => this.deleteScopeTree(childId));
+
+    // Delete parent scope
+    this.unregisterScope(parentScopeId);
+  }
+
+  /**
    * Register a variable in a specific scope
    * @param silent If true, don't notify listeners (use during initial render to avoid React warnings)
    */

@@ -94,9 +94,9 @@ export default function ShowVar(props: ShowVarProps) {
     // Use scoped variable resolution (works across islands)
     value = globalTemplateStateManager.getVariableInScope(scopeId, name);
   } else {
-    // No scope - use global template variables
-    const variable = templateState.variables[name];
-    value = variable?.value;
+    // PHASE 1.1 FIX: Use getVariable() to always get current value, not stale snapshot
+    // This ensures components see updates immediately when using selective subscriptions
+    value = templateState.getVariable(name);
   }
 
   // Handle undefined/null values
