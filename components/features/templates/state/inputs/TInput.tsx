@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo } from 'react';
-import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { useTemplateStateWithDeps } from '@/lib/templates/state/TemplateStateProvider';
 import { useOnChangeHandler, filterOnChangeChildren } from '../events/OnChange';
 
 /**
@@ -76,7 +76,9 @@ export default function TInput(props: TInputProps) {
   } = props;
 
   // IMPORTANT: Always call hooks before any conditional returns
-  const templateState = useTemplateState();
+  // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
+  const dependencies = useMemo(() => varName ? [varName] : [], [varName]);
+  const templateState = useTemplateStateWithDeps(dependencies);
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Extract OnChange handler from children

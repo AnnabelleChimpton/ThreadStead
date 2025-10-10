@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import React, { useMemo } from 'react';
+import { useTemplateStateWithDeps } from '@/lib/templates/state/TemplateStateProvider';
 import { useForEachContext } from './loops/ForEach';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 
@@ -62,7 +62,9 @@ export default function ShowVar(props: ShowVarProps) {
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // IMPORTANT: Always call hooks before any conditional returns
-  const templateState = useTemplateState();
+  // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
+  const dependencies = useMemo(() => name ? [name] : [], [name]);
+  const templateState = useTemplateStateWithDeps(dependencies);
   const forEachContext = useForEachContext();
 
   // CRITICAL: Validate required props (after hooks)

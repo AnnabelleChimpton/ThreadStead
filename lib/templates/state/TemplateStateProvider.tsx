@@ -428,6 +428,66 @@ export function useTemplateVariable(name: string): any {
 }
 
 /**
+ * PHASE 1.1: Hook to access template state with selective subscriptions
+ * Only re-renders when the specified variables change
+ *
+ * This is a performance optimization over useTemplateState() which re-renders on ALL variable changes.
+ * Components should use this hook when they only depend on specific variables.
+ *
+ * @param dependencies Array of variable names to watch (optional). If not provided, behaves like useTemplateState()
+ * @returns Template state context
+ *
+ * @example
+ * // Only re-render when 'counter' or 'name' change
+ * const state = useTemplateStateWithDeps(['counter', 'name']);
+ */
+export function useTemplateStateWithDeps(dependencies?: string[]): TemplateStateContextType {
+  const context = useContext(TemplateStateContext);
+
+  // Force re-render when specific variables change
+  const [, forceUpdate] = useState({});
+
+  useEffect(() => {
+    // If we have context, we don't need to subscribe to global state
+    if (context) {
+      return;
+    }
+
+    // Subscribe to global state
+    // If dependencies provided, use selective subscription
+    // Otherwise, fallback to global subscription
+    if (dependencies && dependencies.length > 0) {
+      const unsubscribe = globalTemplateStateManager.subscribeToVariables(
+        () => forceUpdate({}),
+        dependencies
+      );
+      return unsubscribe;
+    } else {
+      const unsubscribe = globalTemplateStateManager.subscribe(() => {
+        forceUpdate({}); // Trigger re-render
+      });
+      return unsubscribe;
+    }
+  }, [context, ...(dependencies || [])]);
+
+  // If we have context (same React tree), use it
+  if (context) {
+    return context;
+  }
+
+  // Otherwise, use global manager directly (separate React root)
+  return {
+    variables: globalTemplateStateManager.getAllVariables(),
+    getVariable: (name: string) => globalTemplateStateManager.getVariable(name),
+    setVariable: (name: string, value: any) => globalTemplateStateManager.setVariable(name, value),
+    registerVariable: (config: VariableConfig) => globalTemplateStateManager.registerVariable(config),
+    unregisterVariable: (name: string) => globalTemplateStateManager.unregisterVariable(name),
+    resetVariable: (name: string) => globalTemplateStateManager.resetVariable(name),
+    resetAll: () => globalTemplateStateManager.resetAll()
+  };
+}
+
+/**
  * Global template state instance for use in non-React contexts
  * (e.g., condition-evaluator.ts)
  *

@@ -22,6 +22,9 @@ class TemplateStateManager {
   private listeners: Set<() => void> = new Set();
   private computedDepsRef: Record<string, Set<string>> = {};
 
+  // PHASE 1.1: Per-variable listeners for selective subscriptions
+  private variableListeners: Map<string, Set<() => void>> = new Map();
+
   // Scope-based variable storage for proper ForEach isolation
   private scopes: Map<string, Map<string, TemplateVariable>> = new Map();
   private scopeParents: Map<string, string | null> = new Map(); // Track scope hierarchy
@@ -138,8 +141,10 @@ class TemplateStateManager {
       }
     }
 
-    // Notify all listeners (trigger re-renders)
+    // PHASE 1.1: Notify both global listeners and variable-specific listeners
+    // Global listeners are kept for backward compatibility
     this.notifyListeners();
+    this.notifyVariableListeners(name);
 
     // QUICK WIN #4: Reset depth after successful update
     // Use setTimeout to reset after current event loop completes
@@ -400,7 +405,9 @@ class TemplateStateManager {
     });
 
     if (!silent && valueChanged) {
+      // PHASE 1.1: Notify both global and variable-specific listeners
       this.notifyListeners();
+      this.notifyVariableListeners(name);
     }
   }
 
@@ -443,6 +450,38 @@ class TemplateStateManager {
   }
 
   /**
+   * PHASE 1.1: Subscribe to specific variables only
+   * Only triggers re-render when one of the specified variables changes
+   *
+   * @param callback Function to call when any of the specified variables change
+   * @param variables Array of variable names to watch
+   * @returns Unsubscribe function
+   */
+  subscribeToVariables(callback: () => void, variables: string[]): () => void {
+    // Subscribe callback to each variable
+    variables.forEach(varName => {
+      if (!this.variableListeners.has(varName)) {
+        this.variableListeners.set(varName, new Set());
+      }
+      this.variableListeners.get(varName)!.add(callback);
+    });
+
+    // Return unsubscribe function
+    return () => {
+      variables.forEach(varName => {
+        const listeners = this.variableListeners.get(varName);
+        if (listeners) {
+          listeners.delete(callback);
+          // Clean up empty sets
+          if (listeners.size === 0) {
+            this.variableListeners.delete(varName);
+          }
+        }
+      });
+    };
+  }
+
+  /**
    * Notify all listeners of state change
    */
   private notifyListeners(): void {
@@ -450,6 +489,19 @@ class TemplateStateManager {
 
     // After notifying, evaluate computed variables
     this.evaluateComputedVariables();
+  }
+
+  /**
+   * PHASE 1.1: Notify only listeners subscribed to a specific variable
+   * This is the key optimization that prevents unnecessary re-renders
+   *
+   * @param varName Variable name that changed
+   */
+  private notifyVariableListeners(varName: string): void {
+    const listeners = this.variableListeners.get(varName);
+    if (listeners && listeners.size > 0) {
+      listeners.forEach(fn => fn());
+    }
   }
 
   /**

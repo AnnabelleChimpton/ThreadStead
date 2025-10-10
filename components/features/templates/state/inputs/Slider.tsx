@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import React, { useMemo } from 'react';
+import { useTemplateStateWithDeps } from '@/lib/templates/state/TemplateStateProvider';
 import { useOnChangeHandler, filterOnChangeChildren } from '../events/OnChange';
 
 /**
@@ -64,7 +64,9 @@ export default function Slider(props: SliderProps) {
     children
   } = props;
 
-  const templateState = useTemplateState();
+  // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
+  const dependencies = useMemo(() => varName ? [varName] : [], [varName]);
+  const templateState = useTemplateStateWithDeps(dependencies);
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Get OnChange handler if present
