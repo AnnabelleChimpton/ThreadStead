@@ -3,6 +3,7 @@ import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import { componentRegistry, validateAndCoerceProps, validateStandardizedProps } from '@/lib/templates/core/template-registry';
 import type { Island } from './types';
 import { normalizeVariableName } from '@/lib/templates/state/variable-utils';
+import { normalizeAttributeName } from '@/lib/templates/core/attribute-mappings';
 
 // Generate unique island ID based on component type and path
 export function generateIslandId(componentType: string, path: string[]): string {
@@ -153,172 +154,20 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         const rawProps = node.properties || {};
 
         // STYLING ATTRIBUTE NORMALIZATION
-        // Map from actual lowercase HTML attributes to proper camelCase React props
-        // HTML attributes are already normalized to lowercase when they reach here
-        const styleAttributeMap: Record<string, string> = {
-          // Universal styling props - map from lowercase HTML attrs to camelCase React props
-          'backgroundcolor': 'backgroundColor',
-          'textcolor': 'textColor',
-          'bordercolor': 'borderColor',
-          'accentcolor': 'accentColor',
-          'borderradius': 'borderRadius',
-          'borderwidth': 'borderWidth',
-          'boxshadow': 'boxShadow',
-          'fontsize': 'fontSize',
-          'fontweight': 'fontWeight',
-          'fontfamily': 'fontFamily',
-          'textalign': 'textAlign',
-          'lineheight': 'lineHeight',
-          'customcss': 'customCSS',
-          // Component-specific props - CRTMonitor
-          'screencolor': 'screenColor',
-          'phosphorglow': 'phosphorGlow',
-          // Component-specific props - ArcadeButton
-          'style3d': 'style3D',
-          'clickeffect': 'clickEffect',
-          // Component-specific props - PixelArtFrame
-          'framecolor': 'frameColor',
-          'framewidth': 'frameWidth',
-          'borderstyle': 'borderStyle',
-          'cornerstyle': 'cornerStyle',
-          'shadoweffect': 'shadowEffect',
-          'gloweffect': 'glowEffect',
-          'innerpadding': 'innerPadding',
-          // Component-specific props - RetroGrid
-          'gridstyle': 'gridStyle',
-          // Component-specific props - VHSTape
-          'tapecolor': 'tapeColor',
-          'labelstyle': 'labelStyle',
-          'showbarcode': 'showBarcode',
-          // Component-specific props - CassetteTape
-          'showspokestorotate': 'showSpokesToRotate',
-          // Component-specific props - RetroTV
-          'tvstyle': 'tvStyle',
-          'channelnumber': 'channelNumber',
-          'showstatic': 'showStatic',
-          'showscanlines': 'showScanlines',
-          // Component-specific props - Boombox
-          'showequalizer': 'showEqualizer',
-          'showcassettedeck': 'showCassetteDeck',
-          'showradio': 'showRadio',
-          'isplaying': 'isPlaying',
-          'currenttrack': 'currentTrack',
-          // Component-specific props - MatrixRain
-          'customcharacters': 'customCharacters',
-          'fadeeffect': 'fadeEffect',
-          'backgroundopacity': 'backgroundOpacity',
-          // Component-specific props - CustomHTMLElement
-          'tagname': 'tagName',
-          'innerhtml': 'innerHTML',
-          // Legacy CSS props - keep as lowercase
-          'text-decoration': 'textdecoration',
-          'font-style': 'fontstyle',
-          'text-transform': 'texttransform',
-          'letter-spacing': 'letterspacing',
-          'word-spacing': 'wordspacing',
-          'text-indent': 'textindent',
-          'white-space': 'whitespace',
-          'word-break': 'wordbreak',
-          'word-wrap': 'wordwrap',
-          'text-overflow': 'textoverflow',
-          // Conditional component props (lowercased camelCase)
-          'greaterthan': 'greaterThan',
-          'lessthan': 'lessThan',
-          'greaterthanorequal': 'greaterThanOrEqual',
-          'lessthanorequal': 'lessThanOrEqual',
-          'notequals': 'notEquals',
-          'startswith': 'startsWith',
-          'endswith': 'endsWith',
-          // Conditional component props (kebab-case)
-          'greater-than': 'greaterThan',
-          'less-than': 'lessThan',
-          'greater-than-or-equal': 'greaterThanOrEqual',
-          'less-than-or-equal': 'lessThanOrEqual',
-          'not-equals': 'notEquals',
-          'starts-with': 'startsWith',
-          'ends-with': 'endsWith',
-          // Template variable component props (Var, ShowVar, Set, OnClick)
-          'initial': 'initial',
-          'persist': 'persist',
-          'param': 'param',
-          'default': 'default',
-          'type': 'type',
-          'expression': 'expression',
-          'var': 'var',
-          'format': 'format',
-          'fallback': 'fallback',
-          'coerce': 'coerce',
-          'separator': 'separator',
-          'dateFormat': 'dateFormat',
-          'dateformat': 'dateFormat',
-          // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast)
-          'by': 'by',
-          'min': 'min',
-          'step': 'step',
-          'rows': 'rows',
-          'multiline': 'multiline',
-          'message': 'message',
-          'duration': 'duration',
-          // Phase 3: Input component props (RadioGroup, Slider, Select, ColorPicker)
-          'showvalue': 'showValue',
-          'showValue': 'showValue',
-          'direction': 'direction',
-          'debounce': 'debounce',
-          // Phase 3: Array/String action props (Push, Pop, RemoveAt, ArrayAt, Append, Prepend, Cycle)
-          'value': 'value',
-          'index': 'index',
-          'values': 'values',
-          'array': 'array',
-          // Phase 3: Event handler props (OnChange, OnMount, OnInterval, Delay, Sequence/Step)
-          'seconds': 'seconds',
-          'milliseconds': 'milliseconds',
-          'delay': 'delay',
-          // Phase 4: Loop props (ForEach)
-          'item': 'item',
-          // Phase 1 (Roadmap): Error handling props (Attempt component)
-          'showerror': 'showError',
-          'showError': 'showError',
-          'show-error': 'showError',
-          'disabled': 'disabled',
-          'placeholder': 'placeholder',
-          // Phase 4: Validation props (Validate component)
-          'pattern': 'pattern',
-          'required': 'required',
-          'minlength': 'minLength',
-          'minLength': 'minLength',
-          'maxlength': 'maxLength',
-          'maxLength': 'maxLength',
-          // Phase 4: Event handler props (OnKeyPress)
-          'keyname': 'keyName',
-          'keyName': 'keyName',
-          // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)
-          'target': 'target',
-          // Phase 4: OnVisible props
-          'threshold': 'threshold',
-          'once': 'once',
-          // Phase 2 (Roadmap): Collection operation props
-          'where': 'where',
-          // 'by' already defined above for Increment/Decrement
-          'order': 'order',
-          'property': 'property',
-          'from': 'from',
-          'at': 'at',
-          // Phase 6 (Roadmap): Advanced state management props
-          'path': 'path',
-          'as': 'as',
-          'sources': 'sources',
-          'element': 'element',
-          'attribute': 'attribute'
-        };
-
-        // Apply attribute name conversions for kebab-case to camelCase
-        for (const [htmlAttr, reactProp] of Object.entries(styleAttributeMap)) {
-          if (rawProps[htmlAttr] !== undefined) {
-            rawProps[reactProp] = rawProps[htmlAttr];
-            // Only delete the old attribute if it's actually different from the new one
-            if (htmlAttr !== reactProp) {
-              delete rawProps[htmlAttr];
-            }
+        // Use centralized attribute mapping system to normalize all attribute names
+        // This eliminates 154 lines of duplicate mapping code
+        const normalizedProps: Record<string, any> = {};
+        for (const [htmlAttr, value] of Object.entries(rawProps)) {
+          const normalizedName = normalizeAttributeName(htmlAttr);
+          normalizedProps[normalizedName] = value;
+        }
+        // Replace rawProps with normalized version
+        Object.assign(rawProps, normalizedProps);
+        // Remove old unnormalized keys (if they differ from normalized)
+        for (const htmlAttr of Object.keys(normalizedProps)) {
+          const originalKey = Object.keys(rawProps).find(k => normalizeAttributeName(k) === htmlAttr && k !== htmlAttr);
+          if (originalKey && originalKey !== htmlAttr) {
+            delete rawProps[originalKey];
           }
         }
 

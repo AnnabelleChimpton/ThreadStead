@@ -4,7 +4,7 @@ import { UniversalCSSProps, applyCSSProps, separateCSSProps } from '@/lib/templa
 
 export interface ParagraphProps extends UniversalCSSProps {
   content?: string;
-  style?: React.CSSProperties | string; // Accept both object and JSON string
+  style?: React.CSSProperties | string; // Accept both object and CSS string
   className?: string;
   children?: React.ReactNode;
   // Internal props for visual builder
@@ -39,15 +39,24 @@ export default function Paragraph(props: ParagraphProps) {
   const [editingContent, setEditingContent] = useState(content);
   const editRef = useRef<HTMLParagraphElement>(null);
 
-  // Parse existing style prop if it's a JSON string
+  // Parse existing style prop if it's a CSS string
   const existingStyle = React.useMemo(() => {
     if (typeof style === 'string') {
-      try {
-        return JSON.parse(style) as React.CSSProperties;
-      } catch (error) {
-        console.warn('Failed to parse style JSON string:', style, error);
-        return {};
-      }
+      // Parse CSS string like "color: blue; font-size: 16px"
+      const styles: Record<string, string> = {};
+      style.split(';').forEach(declaration => {
+        const colonIndex = declaration.indexOf(':');
+        if (colonIndex > 0) {
+          const property = declaration.slice(0, colonIndex).trim();
+          const value = declaration.slice(colonIndex + 1).trim();
+          if (property && value) {
+            // Convert kebab-case to camelCase for React style objects
+            const camelProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+            styles[camelProperty] = value;
+          }
+        }
+      });
+      return styles;
     }
     return style && typeof style === 'object' ? style : {};
   }, [style]);

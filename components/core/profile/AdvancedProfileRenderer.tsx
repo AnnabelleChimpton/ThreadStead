@@ -21,6 +21,7 @@ import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/univers
 import { GlobalTemplateStateProvider } from '@/lib/templates/state/TemplateStateProvider';
 import { ToastProvider } from '@/lib/templates/state/ToastProvider';
 import TemplateErrorBoundary from '@/components/features/templates/TemplateErrorBoundary';
+import { normalizeAttributeName, POSITIONING_ATTRIBUTES } from '@/lib/templates/core/attribute-mappings';
 
 // Extended Island type with htmlStructure for runtime rendering
 interface ExtendedIsland extends Island {
@@ -533,7 +534,10 @@ function StaticHTMLWithIslands({
                 const generatedStyles = applyCSSProps(cssProps);
 
                 // Merge with existing style prop (user may have custom styles in the style prop)
-                const existingStyle = (island.props.style as React.CSSProperties) || {};
+                // CRITICAL: Parse style if it's a string (islands may store style as string)
+                const existingStyle = typeof island.props.style === 'string'
+                  ? parseStyleString(island.props.style)
+                  : (island.props.style as React.CSSProperties) || {};
                 const finalStyles = {
                   ...existingStyle,
                   ...generatedStyles
@@ -686,161 +690,18 @@ function StaticHTMLWithIslands({
           if (Component) {
             const props: any = {};
 
-            // Attribute mapping for component props (same as island-detector.ts)
-            const attributeMap: Record<string, string> = {
-              // Universal styling props
-              'backgroundcolor': 'backgroundColor',
-              'textcolor': 'textColor',
-              'bordercolor': 'borderColor',
-              'fontsize': 'fontSize',
-              'fontweight': 'fontWeight',
-              'fontfamily': 'fontFamily',
-              'textalign': 'textAlign',
-              'borderradius': 'borderRadius',
-              // Component-specific props - CRTMonitor
-              'screencolor': 'screenColor',
-              'phosphorglow': 'phosphorGlow',
-              // Component-specific props - ArcadeButton
-              'style3d': 'style3D',
-              'clickeffect': 'clickEffect',
-              // Component-specific props - PixelArtFrame
-              'framecolor': 'frameColor',
-              'framewidth': 'frameWidth',
-              'borderstyle': 'borderStyle',
-              'cornerstyle': 'cornerStyle',
-              'shadoweffect': 'shadowEffect',
-              'gloweffect': 'glowEffect',
-              'innerpadding': 'innerPadding',
-              // Component-specific props - RetroGrid
-              'gridstyle': 'gridStyle',
-              // Component-specific props - VHSTape
-              'tapecolor': 'tapeColor',
-              'labelstyle': 'labelStyle',
-              'showbarcode': 'showBarcode',
-              // Component-specific props - CassetteTape
-              'showspokestorotate': 'showSpokesToRotate',
-              // Component-specific props - RetroTV
-              'tvstyle': 'tvStyle',
-              'channelnumber': 'channelNumber',
-              'showstatic': 'showStatic',
-              'showscanlines': 'showScanlines',
-              // Component-specific props - Boombox
-              'showequalizer': 'showEqualizer',
-              'showcassettedeck': 'showCassetteDeck',
-              'showradio': 'showRadio',
-              'isplaying': 'isPlaying',
-              'currenttrack': 'currentTrack',
-              // Component-specific props - MatrixRain
-              'customcharacters': 'customCharacters',
-              'fadeeffect': 'fadeEffect',
-              'backgroundopacity': 'backgroundOpacity',
-              // Component-specific props - CustomHTMLElement
-              'tagname': 'tagName',
-              'innerhtml': 'innerHTML',
-              // Conditional component comparison operators
-              'greaterthan': 'greaterThan',
-              'lessthan': 'lessThan',
-              'greaterthanorequal': 'greaterThanOrEqual',
-              'lessthanorequal': 'lessThanOrEqual',
-              'notequals': 'notEquals',
-              'startswith': 'startsWith',
-              'endswith': 'endsWith',
-              // Template variable component props (Var, ShowVar, Set, OnClick)
-              'initial': 'initial',
-              'persist': 'persist',
-              'param': 'param',
-              'default': 'default',
-              'type': 'type',
-              'expression': 'expression',
-              'var': 'var',
-              'format': 'format',
-              'fallback': 'fallback',
-              'coerce': 'coerce',
-              'separator': 'separator',
-              'dateformat': 'dateFormat',
-              // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast)
-              'by': 'by',
-              'min': 'min',
-              'step': 'step',
-              'rows': 'rows',
-              'multiline': 'multiline',
-              'message': 'message',
-              'duration': 'duration',
-              'disabled': 'disabled',
-              'placeholder': 'placeholder',
-              // Phase 3: Input component props (RadioGroup, Slider, Select, ColorPicker)
-              'showvalue': 'showValue',
-              'showValue': 'showValue',
-              'direction': 'direction',
-              'debounce': 'debounce',
-              // Phase 3: Array/String action props (Push, Pop, RemoveAt, Append, Prepend, Cycle)
-              'value': 'value',
-              'index': 'index',
-              'values': 'values',
-              'array': 'array',
-              // Phase 3: Event handler props (OnChange, OnMount, OnInterval, Delay, Sequence/Step)
-              'seconds': 'seconds',
-              'milliseconds': 'milliseconds',
-              'delay': 'delay',
-              // Phase 4: Loop props (ForEach)
-              'item': 'item',
-              // Phase 4: Validation props (Validate component)
-              'pattern': 'pattern',
-              'required': 'required',
-              'minlength': 'minLength',
-              'maxlength': 'maxLength',
-              // Phase 4: Event handler props (OnKeyPress)
-              'keyname': 'keyName',
-              // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)
-              'target': 'target',
-              // Phase 4: OnVisible props
-              'threshold': 'threshold',
-              'once': 'once',
-              // Phase 1 (Roadmap): Error handling props (Attempt component)
-              'showerror': 'showError',
-              'show-error': 'showError',
-              // Phase 2 (Roadmap): Collection operation props
-              'where': 'where',
-              'order': 'order',
-              'property': 'property',
-              'from': 'from',
-              'at': 'at',
-              // Phase 6 (Roadmap): Advanced state management props
-              'path': 'path',
-              'as': 'as',
-              'sources': 'sources',
-              'element': 'element',
-              'attribute': 'attribute'
-            };
-
-            // Copy attributes as props
+            // Copy attributes as props with centralized attribute normalization
+            // This eliminates ~125 lines of duplicate attribute mapping code
             for (let i = 0; i < element.attributes.length; i++) {
               const attr = element.attributes[i];
-              let propName = attr.name;
+              const propName = normalizeAttributeName(attr.name);
 
-              // Apply attribute mapping first
-              if (attributeMap[propName]) {
-                propName = attributeMap[propName];
+              // Special handling for style attribute - convert CSS string to React style object
+              if (propName === 'style') {
+                props[propName] = parseStyleString(attr.value);
+              } else {
+                props[propName] = attr.value;
               }
-              // Convert HTML attributes to React props
-              else if (propName === 'class') {
-                propName = 'className';
-              } else if (propName.includes('-')) {
-                // PRESERVE positioning data attributes in original form for template renderer
-                if (propName === 'data-positioning-mode' ||
-                    propName === 'data-pixel-position' ||
-                    propName === 'data-position' ||
-                    propName === 'data-grid-position') {
-                  // Keep these attributes as-is for positioning logic
-                  props[propName] = attr.value;
-                  continue;
-                } else {
-                  // Convert other kebab-case to camelCase
-                  propName = propName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
-                }
-              }
-
-              props[propName] = attr.value;
             }
             
             // Add a stable key for React reconciliation (FIXED: removed Math.random() to prevent infinite loops)
@@ -1200,146 +1061,18 @@ function domToReact(
     // Regular HTML element - convert attributes (FIXED: use global counter for unique keys)
     const props: any = { key: `element-${element.tagName}-${keyCounter.value++}` };
 
-    // Attribute mapping for component props (same as island-detector.ts)
-    const attributeMap: Record<string, string> = {
-      // Universal styling props
-      'backgroundcolor': 'backgroundColor',
-      'textcolor': 'textColor',
-      'bordercolor': 'borderColor',
-      'fontsize': 'fontSize',
-      'fontweight': 'fontWeight',
-      'fontfamily': 'fontFamily',
-      'textalign': 'textAlign',
-      'borderradius': 'borderRadius',
-      // Component-specific props - CRTMonitor
-      'screencolor': 'screenColor',
-      'phosphorglow': 'phosphorGlow',
-      // Component-specific props - ArcadeButton
-      'style3d': 'style3D',
-      'clickeffect': 'clickEffect',
-      // Component-specific props - PixelArtFrame
-      'framecolor': 'frameColor',
-      'framewidth': 'frameWidth',
-      'borderstyle': 'borderStyle',
-      'cornerstyle': 'cornerStyle',
-      'shadoweffect': 'shadowEffect',
-      'gloweffect': 'glowEffect',
-      'innerpadding': 'innerPadding',
-      // Component-specific props - RetroGrid
-      'gridstyle': 'gridStyle',
-      // Component-specific props - VHSTape
-      'tapecolor': 'tapeColor',
-      'labelstyle': 'labelStyle',
-      'showbarcode': 'showBarcode',
-      // Component-specific props - CassetteTape
-      'showspokestorotate': 'showSpokesToRotate',
-      // Component-specific props - RetroTV
-      'tvstyle': 'tvStyle',
-      'channelnumber': 'channelNumber',
-      'showstatic': 'showStatic',
-      'showscanlines': 'showScanlines',
-      // Component-specific props - Boombox
-      'showequalizer': 'showEqualizer',
-      'showcassettedeck': 'showCassetteDeck',
-      'showradio': 'showRadio',
-      'isplaying': 'isPlaying',
-      'currenttrack': 'currentTrack',
-      // Component-specific props - MatrixRain
-      'customcharacters': 'customCharacters',
-      'fadeeffect': 'fadeEffect',
-      'backgroundopacity': 'backgroundOpacity',
-      // Component-specific props - CustomHTMLElement
-      'tagname': 'tagName',
-      'innerhtml': 'innerHTML',
-      // Conditional component comparison operators
-      'greaterthan': 'greaterThan',
-      'lessthan': 'lessThan',
-      'greaterthanorequal': 'greaterThanOrEqual',
-      'lessthanorequal': 'lessThanOrEqual',
-      'notequals': 'notEquals',
-      'startswith': 'startsWith',
-      'endswith': 'endsWith',
-      // Template variable component props (Var, ShowVar, Set, OnClick)
-      'initial': 'initial',
-      'persist': 'persist',
-      'param': 'param',
-      'default': 'default',
-      'type': 'type',
-      'expression': 'expression',
-      'var': 'var',
-      'format': 'format',
-      'fallback': 'fallback',
-      'coerce': 'coerce',
-      'separator': 'separator',
-      'dateformat': 'dateFormat',
-      // Interactive component props (Increment, Decrement, TInput, Checkbox, ShowToast)
-      'by': 'by',
-      'min': 'min',
-      'step': 'step',
-      'rows': 'rows',
-      'multiline': 'multiline',
-      'message': 'message',
-      'duration': 'duration',
-      'disabled': 'disabled',
-      'placeholder': 'placeholder',
-      // Phase 3: Input component props (RadioGroup, Slider, Select, ColorPicker)
-      'showvalue': 'showValue',
-      'showValue': 'showValue',
-      'direction': 'direction',
-      'debounce': 'debounce',
-      // Phase 3: Array/String action props (Push, Pop, RemoveAt, Append, Prepend, Cycle)
-      'value': 'value',
-      'index': 'index',
-      'values': 'values',
-      'array': 'array',
-      // Phase 3: Event handler props (OnChange, OnMount, OnInterval, Delay, Sequence/Step)
-      'seconds': 'seconds',
-      'milliseconds': 'milliseconds',
-      'delay': 'delay',
-      // Phase 4: Loop props (ForEach)
-      'item': 'item',
-      // Phase 4: Validation props (Validate component)
-      'pattern': 'pattern',
-      'required': 'required',
-      'minlength': 'minLength',
-      'maxlength': 'maxLength',
-      // Phase 4: Event handler props (OnKeyPress)
-      'keyname': 'keyName',
-      // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)
-      'target': 'target',
-      // Phase 4: OnVisible props
-      'threshold': 'threshold',
-      'once': 'once',
-      // Phase 1 (Roadmap): Error handling props (Attempt component)
-      'showerror': 'showError',
-      'show-error': 'showError',
-      // Phase 2 (Roadmap): Collection operation props
-      'where': 'where',
-      'order': 'order',
-      'property': 'property',
-      'from': 'from',
-      'at': 'at',
-      // Phase 6 (Roadmap): Advanced state management props
-      'path': 'path',
-      'as': 'as',
-      'sources': 'sources',
-      'element': 'element',
-      'attribute': 'attribute'
-    };
-
+    // Copy attributes as props with centralized attribute normalization
+    // This eliminates another ~125 lines of duplicate attribute mapping code
     for (let i = 0; i < element.attributes.length; i++) {
       const attr = element.attributes[i];
-      let propName = attr.name;
+      const propName = normalizeAttributeName(attr.name);
 
-      // Apply attribute mapping first
-      if (attributeMap[propName]) {
-        propName = attributeMap[propName];
+      // Special handling for style attribute - convert CSS string to React style object
+      if (propName === 'style') {
+        props[propName] = parseStyleString(attr.value);
+      } else {
+        props[propName] = attr.value;
       }
-      // Convert HTML attributes to React props
-      else if (propName === 'class') propName = 'className';
-      else if (propName === 'for') propName = 'htmlFor';
-
-      props[propName] = attr.value;
     }
     
     // Check if this is a grid container and enhance with CSS Grid styles
@@ -1586,6 +1319,10 @@ function ProductionIslandRendererWithHTMLChildren({
     // Apply _size properties to component props if they exist
     const componentProps = { ...island.props };
 
+    // CRITICAL: Parse style if it's a string (islands may store style as string)
+    if (typeof componentProps.style === 'string') {
+      componentProps.style = parseStyleString(componentProps.style);
+    }
 
     if (island.props._size) {
       componentProps._positioningMode = 'absolute';
@@ -1844,6 +1581,10 @@ function ProductionIslandRenderer({
     // Apply _size properties to component props if they exist
     const componentProps = { ...island.props };
 
+    // CRITICAL: Parse style if it's a string (islands may store style as string)
+    if (typeof componentProps.style === 'string') {
+      componentProps.style = parseStyleString(componentProps.style);
+    }
 
     if (island.props._size) {
       componentProps._positioningMode = 'absolute';

@@ -11,6 +11,7 @@ import {
   ComponentPositioning,
   AbsolutePositioningUtils
 } from './pure-positioning';
+import { getDuplicatePropPairs } from '../core/attribute-mappings';
 
 export interface PureHtmlGeneratorOptions {
   containerClass?: string;
@@ -246,76 +247,17 @@ export class PureHtmlGenerator {
   /**
    * Remove duplicate styling props - keep universal names, remove legacy duplicates
    * This prevents both backgroundColor AND backgroundcolor from appearing in HTML
+   *
+   * Uses centralized attribute mapping system - eliminates 60 lines of duplicate code
    */
   private removeDuplicateStylingProps(props: Record<string, any>): Record<string, any> {
-    const originalKeys = Object.keys(props);
     const deduplicated = { ...props };
 
-    // Universal to legacy mappings - if both exist, keep universal and remove legacy
-    const duplicateMappings: Record<string, string> = {
-      'backgroundColor': 'backgroundcolor',
-      'textColor': 'textcolor',  // Fixed: was 'color' (wrong), should be 'textcolor' (lowercase variant)
-      'borderColor': 'bordercolor',
-      'fontSize': 'fontsize',
-      'fontWeight': 'fontweight',
-      'textAlign': 'textalign',
-      'borderRadius': 'borderradius',
-      // Component-specific props - CRTMonitor
-      'screenColor': 'screencolor',
-      'phosphorGlow': 'phosphorglow',
-      // Component-specific props - ArcadeButton
-      'style3D': 'style3d',
-      'clickEffect': 'clickeffect',
-      // Component-specific props - PixelArtFrame
-      'frameColor': 'framecolor',
-      'frameWidth': 'framewidth',
-      'borderStyle': 'borderstyle',
-      'cornerStyle': 'cornerstyle',
-      'shadowEffect': 'shadoweffect',
-      'glowEffect': 'gloweffect',
-      'innerPadding': 'innerpadding',
-      // Component-specific props - RetroGrid
-      'gridStyle': 'gridstyle',
-      // Component-specific props - VHSTape
-      'tapeColor': 'tapecolor',
-      'labelStyle': 'labelstyle',
-      'showBarcode': 'showbarcode',
-      // Component-specific props - CassetteTape
-      'showSpokesToRotate': 'showspokestorotate',
-      // Component-specific props - RetroTV
-      'tvStyle': 'tvstyle',
-      'channelNumber': 'channelnumber',
-      'showStatic': 'showstatic',
-      'showScanlines': 'showscanlines',
-      // Component-specific props - Boombox
-      'showEqualizer': 'showequalizer',
-      'showCassetteDeck': 'showcassettedeck',
-      'showRadio': 'showradio',
-      'isPlaying': 'isplaying',
-      'currentTrack': 'currenttrack',
-      // Component-specific props - MatrixRain
-      'customCharacters': 'customcharacters',
-      'fadeEffect': 'fadeeffect',
-      'backgroundOpacity': 'backgroundopacity',
-      // Component-specific props - CustomHTMLElement
-      'tagName': 'tagname',
-      'innerHTML': 'innerhtml',
-      // Conditional component comparison operators
-      'greaterThan': 'greaterthan',
-      'lessThan': 'lessthan',
-      'greaterThanOrEqual': 'greaterthanorequal',
-      'lessThanOrEqual': 'lessthanorequal',
-      // Template variable props
-      'dateFormat': 'dateformat',
-      'notEquals': 'notequals',
-      'startsWith': 'startswith',
-      'endsWith': 'endswith',
-      // Phase 1 (Roadmap): Error handling props
-      'showError': 'showerror'
-    };
+    // Get duplicate prop pairs from centralized mapping system
+    const duplicatePairs = getDuplicatePropPairs();
 
     // Remove legacy props when universal equivalent exists
-    Object.entries(duplicateMappings).forEach(([universalProp, legacyProp]) => {
+    duplicatePairs.forEach(([universalProp, legacyProp]) => {
       if (deduplicated[universalProp] !== undefined && deduplicated[legacyProp] !== undefined) {
         // Both exist - remove the legacy version
         delete deduplicated[legacyProp];

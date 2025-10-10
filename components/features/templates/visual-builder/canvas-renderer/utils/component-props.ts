@@ -8,6 +8,30 @@ import type { VisualBuilderContext } from '@/lib/templates/core/standard-compone
 import { stripPositioningFromStyle } from './css-utilities';
 
 /**
+ * Parse CSS style string into React style object
+ * Converts kebab-case properties to camelCase
+ */
+function parseStyleString(styleString: string): Record<string, string> {
+  const styles: Record<string, string> = {};
+  if (!styleString) return styles;
+
+  styleString.split(';').forEach(declaration => {
+    const colonIndex = declaration.indexOf(':');
+    if (colonIndex > 0) {
+      const property = declaration.slice(0, colonIndex).trim();
+      const value = declaration.slice(colonIndex + 1).trim();
+      if (property && value) {
+        // Convert kebab-case to camelCase for React style objects
+        const camelProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+        styles[camelProperty] = value;
+      }
+    }
+  });
+
+  return styles;
+}
+
+/**
  * Prepare props for component rendering with support for both legacy and standardized prop structures
  * This handles the transition from the old prop system to the new standardized system
  */
@@ -61,6 +85,11 @@ export function prepareComponentProps(
     // separateCSSProps() parses the style prop and extracts positioning from it
     // We need to clean the style prop to prevent double positioning
     if (baseProps.style) {
+      // Parse string styles to object first
+      if (typeof baseProps.style === 'string') {
+        baseProps.style = parseStyleString(baseProps.style);
+      }
+      // Now strip positioning from the object
       baseProps.style = stripPositioningFromStyle(baseProps.style);
     }
 
@@ -180,17 +209,10 @@ export function prepareComponentProps(
     let existingStyleObj: React.CSSProperties = {};
     if (remainingProps.style) {
       if (typeof remainingProps.style === 'string') {
-        // Parse string style and convert to object, stripping positioning
-        const cleanedStyleString = stripPositioningFromStyle(remainingProps.style) as string;
-        // Parse the cleaned string into an object
-        cleanedStyleString.split(';').forEach(declaration => {
-          const [property, value] = declaration.split(':').map(s => s.trim());
-          if (property && value) {
-            // Convert kebab-case to camelCase
-            const camelProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-            (existingStyleObj as any)[camelProperty] = value;
-          }
-        });
+        // First parse the string to object, then strip positioning
+        // Use standard parseStyleString for consistent parsing
+        const parsedStyle = parseStyleString(remainingProps.style);
+        existingStyleObj = stripPositioningFromStyle(parsedStyle) as React.CSSProperties;
       } else if (typeof remainingProps.style === 'object') {
         // Clean object style by removing positioning
         existingStyleObj = stripPositioningFromStyle(remainingProps.style) as React.CSSProperties;

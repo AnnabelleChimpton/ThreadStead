@@ -19,6 +19,7 @@ import { DEFAULT_GRID_SYSTEM } from './constants';
 import type { GlobalSettings } from '@/components/features/templates/visual-builder/GlobalSettingsPanel';
 import { parseGlobalSettingsFromClasses } from './css-class-generator';
 import { type UniversalStyleProps, getDisplayValueForStyleProp } from './universal-styling';
+import { normalizeAttributeName } from '../core/attribute-mappings';
 
 export interface ParseOptions {
   /** Whether to preserve layout attributes from visual builder */
@@ -954,152 +955,25 @@ export class TemplateParserReverse {
   /**
    * Normalize universal styling props to ensure compatibility
    * Maps both old and new prop names to the standard universal format
+   *
+   * Uses centralized attribute mapping system - eliminates 127 lines of duplicate code
    */
   private normalizeUniversalStyleProps(props: Record<string, unknown>): Record<string, unknown> {
-    const normalized = { ...props };
+    const normalized: Record<string, unknown> = {};
 
-    // Universal styling prop mappings
-    const universalPropMappings: Record<string, string> = {
-      // Legacy -> Universal mappings
-      'backgroundcolor': 'backgroundColor',
-      'textcolor': 'textColor',  // Lowercase variant from template compilation
-      'color': 'textColor',       // CSS standard name (also maps to textColor)
-      'bordercolor': 'borderColor',
-      'fontsize': 'fontSize',
-      'fontweight': 'fontWeight',
-      'textalign': 'textAlign',
-      'borderradius': 'borderRadius',
-      // Keep universal props as-is
-      'backgroundColor': 'backgroundColor',
-      'textColor': 'textColor',
-      'borderColor': 'borderColor',
-      'accentColor': 'accentColor',
-      'opacity': 'opacity',
-      'borderWidth': 'borderWidth',
-      'boxShadow': 'boxShadow',
-      'fontSize': 'fontSize',
-      'fontWeight': 'fontWeight',
-      'fontFamily': 'fontFamily',
-      'textAlign': 'textAlign',
-      'lineHeight': 'lineHeight',
-      'padding': 'padding',
-      'margin': 'margin',
-      'customCSS': 'customCSS',
-      // Component-specific props - CRTMonitor
-      'screencolor': 'screenColor',
-      'phosphorglow': 'phosphorGlow',
-      // Component-specific props - ArcadeButton
-      'style3d': 'style3D',
-      'clickeffect': 'clickEffect',
-      // Component-specific props - PixelArtFrame
-      'framecolor': 'frameColor',
-      'framewidth': 'frameWidth',
-      'borderstyle': 'borderStyle',
-      'cornerstyle': 'cornerStyle',
-      'shadoweffect': 'shadowEffect',
-      'gloweffect': 'glowEffect',
-      'innerpadding': 'innerPadding',
-      // Component-specific props - RetroGrid
-      'gridstyle': 'gridStyle',
-      // Component-specific props - VHSTape
-      'tapecolor': 'tapeColor',
-      'labelstyle': 'labelStyle',
-      'showbarcode': 'showBarcode',
-      // Component-specific props - CassetteTape
-      'showspokestorotate': 'showSpokesToRotate',
-      // Component-specific props - RetroTV
-      'tvstyle': 'tvStyle',
-      'channelnumber': 'channelNumber',
-      'showstatic': 'showStatic',
-      'showscanlines': 'showScanlines',
-      // Component-specific props - Boombox
-      'showequalizer': 'showEqualizer',
-      'showcassettedeck': 'showCassetteDeck',
-      'showradio': 'showRadio',
-      'isplaying': 'isPlaying',
-      'currenttrack': 'currentTrack',
-      // Component-specific props - MatrixRain
-      'customcharacters': 'customCharacters',
-      'fadeeffect': 'fadeEffect',
-      'backgroundopacity': 'backgroundOpacity',
-      // Component-specific props - CustomHTMLElement
-      'tagname': 'tagName',
-      'innerhtml': 'innerHTML',
-      // Conditional component comparison operators
-      'greaterthan': 'greaterThan',
-      'lessthan': 'lessThan',
-      'greaterthanorequal': 'greaterThanOrEqual',
-      'lessthanorequal': 'lessThanOrEqual',
-      'notequals': 'notEquals',
-      'startswith': 'startsWith',
-      'endswith': 'endsWith',
-      // Template variable component props (Var, ShowVar, Set, OnClick)
-      'initial': 'initial',
-      'persist': 'persist',
-      'param': 'param',
-      'default': 'default',
-      'expression': 'expression',
-      'var': 'var',
-      'format': 'format',
-      'fallback': 'fallback',
-      'coerce': 'coerce',
-      'separator': 'separator',
-      'dateformat': 'dateFormat',
-      // Phase 4: Validation props (Validate component)
-      'pattern': 'pattern',
-      'required': 'required',
-      'minlength': 'minLength',
-      'maxlength': 'maxLength',
-      // Phase 4: Event handler props (OnKeyPress)
-      'keyname': 'keyName',
-      // Phase 3/4: Event handler props (OnInterval, Delay, Sequence/Step)
-      'seconds': 'seconds',
-      'milliseconds': 'milliseconds',
-      'delay': 'delay',
-      // Phase 4: Loop props (ForEach)
-      'item': 'item',
-      // Phase 3: Array/String action props (Push, Pop, RemoveAt, ArrayAt, Append, Prepend, Cycle)
-      'value': 'value',
-      'index': 'index',
-      'values': 'values',
-      'array': 'array',
-      // Template variable props (Var component)
-      'type': 'type',
-      // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)
-      'target': 'target',
-      // Phase 4: OnVisible props
-      'threshold': 'threshold',
-      'once': 'once',
-      // Phase 1 (Roadmap): Error handling props (Attempt component)
-      'showerror': 'showError',
-      'show-error': 'showError',
-      // Phase 2 (Roadmap): Collection operation props
-      'where': 'where',
-      'by': 'by',
-      'order': 'order',
-      'property': 'property',
-      'from': 'from',
-      'at': 'at',
-      // Phase 6 (Roadmap): Advanced state management props
-      'path': 'path',
-      'as': 'as',
-      'sources': 'sources',
-      'element': 'element',
-      'attribute': 'attribute'
-    };
+    // Use centralized normalization for all props
+    for (const [key, value] of Object.entries(props)) {
+      const normalizedKey = normalizeAttributeName(key);
 
-    // Apply mappings
-    Object.entries(universalPropMappings).forEach(([sourceKey, targetKey]) => {
-      if (normalized[sourceKey] !== undefined) {
-        // If target key doesn't exist, use the source value
-        if (normalized[targetKey] === undefined) {
-          normalized[targetKey] = normalized[sourceKey];
-        }
-
-        // Keep both old and new prop names for maximum compatibility
-        // Don't remove the old prop name in case other parts of the system expect it
+      // Keep the normalized version
+      if (normalized[normalizedKey] === undefined) {
+        normalized[normalizedKey] = value;
       }
-    });
+
+      // Also keep original key for maximum compatibility
+      // (some parts of the system might still expect the old format)
+      normalized[key] = value;
+    }
 
     return normalized;
   }

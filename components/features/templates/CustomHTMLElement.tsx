@@ -114,14 +114,24 @@ export default function CustomHTMLElement({
     return activeContent.trim() || '<div>Double-click to edit HTML content</div>';
   }, [content, innerHTML, children]);
 
-  // Parse style prop if it's a JSON string
+  // Parse style prop if it's a CSS string
   const parsedStyle = typeof style === 'string' ?
     (() => {
-      try {
-        return JSON.parse(style);
-      } catch {
-        return {};
-      }
+      // Parse CSS string like "color: blue; font-size: 16px"
+      const styles: Record<string, string> = {};
+      style.split(';').forEach(declaration => {
+        const colonIndex = declaration.indexOf(':');
+        if (colonIndex > 0) {
+          const property = declaration.slice(0, colonIndex).trim();
+          const value = declaration.slice(colonIndex + 1).trim();
+          if (property && value) {
+            // Convert kebab-case to camelCase for React style objects
+            const camelProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+            styles[camelProperty] = value;
+          }
+        }
+      });
+      return styles;
     })() : (style || {});
 
   // Generate CSS class name based on render mode
