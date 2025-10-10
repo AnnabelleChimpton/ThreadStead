@@ -1,12 +1,13 @@
 // Main template compiler interface
-import type { 
-  ProfileRenderContext, 
+import type {
+  ProfileRenderContext,
   CompilationResult,
   CompilationOptions,
-  ProfileMode 
+  ProfileMode
 } from './types';
 import { compileProfileTemplate, validateModeCompatibility } from './profile-modes';
 import { calculateMetrics } from './html-optimizer';
+import { clearExpressionCaches } from '../../state/expression-evaluator';
 
 // Main compiler class
 export class TemplateCompiler {
@@ -27,7 +28,10 @@ export class TemplateCompiler {
     options?: Partial<CompilationOptions>
   ): Promise<CompilationResult> {
     const compilationOptions = { ...this.defaultOptions, ...options };
-    
+
+    // P1.2: Clear expression caches on new compilation
+    clearExpressionCaches();
+
     // Validate the mode compatibility first
     const template = context.user.profile?.customTemplate || '';
     const mode = context.user.profile?.templateMode || compilationOptions.mode;

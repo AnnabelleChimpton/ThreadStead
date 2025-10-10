@@ -19,6 +19,18 @@
 
 import jsep from 'jsep';
 
+// P1.2: Expression caching - AST cache
+const astCache = new Map<string, jsep.Expression>();
+const AST_CACHE_MAX_SIZE = 1000;
+
+// P1.2: Result cache for pure expressions
+const resultCache = new Map<string, any>();
+const RESULT_CACHE_MAX_SIZE = 500;
+
+// Track cache hits/misses for debugging
+let cacheHits = 0;
+let cacheMisses = 0;
+
 // Maximum nodes in expression tree (prevent DoS)
 const MAX_NODES = 1000;
 
@@ -87,17 +99,54 @@ export function evaluateExpression(
     return undefined;
   }
 
-  // Parse expression to AST
-  let ast: jsep.Expression;
-  try {
-    ast = jsep(expression);
-  } catch (error) {
-    throw new Error(`Failed to parse expression: ${error}`);
+  // P1.2: Check if expression is pure (no variables)
+  const isPure = !expression.includes('$vars');
+
+  // P1.2: For pure expressions, check result cache first
+  if (isPure) {
+    const cachedResult = resultCache.get(expression);
+    if (cachedResult !== undefined) {
+      cacheHits++;
+      return cachedResult;
+    }
+  }
+
+  // P1.2: Parse expression to AST - check cache first
+  let ast: jsep.Expression | undefined = astCache.get(expression);
+
+  if (!ast) {
+    // Cache miss - parse
+    cacheMisses++;
+    try {
+      ast = jsep(expression);
+
+      // Add to cache (with size limit)
+      if (astCache.size >= AST_CACHE_MAX_SIZE) {
+        // Simple LRU: delete first entry
+        const firstKey = astCache.keys().next().value;
+        if (firstKey) astCache.delete(firstKey);
+      }
+      astCache.set(expression, ast);
+    } catch (error) {
+      throw new Error(`Failed to parse expression: ${error}`);
+    }
+  } else {
+    // Cache hit
+    cacheHits++;
   }
 
   // Evaluate AST
   let nodeCount = 0;
   const result = evaluateNode(ast, context);
+
+  // P1.2: Cache pure results
+  if (isPure) {
+    if (resultCache.size >= RESULT_CACHE_MAX_SIZE) {
+      const firstKey = resultCache.keys().next().value;
+      if (firstKey) resultCache.delete(firstKey);
+    }
+    resultCache.set(expression, result);
+  }
 
   return result;
 
@@ -375,7 +424,15 @@ export function extractVariableNames(expression: string): string[] {
   }
 
   try {
-    const ast = jsep(expression);
+    // P1.2: Use cached AST if available
+    let ast = astCache.get(expression);
+    if (!ast) {
+      ast = jsep(expression);
+      if (astCache.size < AST_CACHE_MAX_SIZE) {
+        astCache.set(expression, ast);
+      }
+    }
+
     const variables = new Set<string>();
 
     function traverse(node: jsep.Expression) {
@@ -417,4 +474,36 @@ export function extractVariableNames(expression: string): string[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Clear expression caches (call on template compilation)
+ * P1.2: Clears both AST and result caches
+ */
+export function clearExpressionCaches(): void {
+  astCache.clear();
+  resultCache.clear();
+  cacheHits = 0;
+  cacheMisses = 0;
+}
+
+/**
+ * Get cache statistics (for debugging)
+ * P1.2: Returns cache size and hit rate metrics
+ */
+export function getExpressionCacheStats() {
+  const total = cacheHits + cacheMisses;
+  return {
+    astCacheSize: astCache.size,
+    resultCacheSize: resultCache.size,
+    cacheHits,
+    cacheMisses,
+    hitRate: total > 0 ? (cacheHits / total * 100).toFixed(2) + '%' : '0%'
+  };
+}
+
+// P1.2: Debug utilities - expose to window in development mode
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  (window as any).__expressionCacheStats = getExpressionCacheStats;
+  (window as any).__clearExpressionCaches = clearExpressionCaches;
 }
