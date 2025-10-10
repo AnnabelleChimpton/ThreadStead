@@ -140,7 +140,6 @@ export default function ResizableComponent({
             prev.offsetY !== newDimensions.offsetY ||
             prev.containerWidth !== newDimensions.containerWidth ||
             prev.containerHeight !== newDimensions.containerHeight) {
-          onMeasuredDimensions?.(newDimensions);
           return newDimensions;
         }
         return prev;
@@ -166,7 +165,15 @@ export default function ResizableComponent({
       if (throttleTimeout) clearTimeout(throttleTimeout);
       resizeObserver.disconnect();
     };
-  }, [isSelected, isResizing]); // Add isResizing to trigger re-measurement when resize state changes
+  }, [isSelected, isResizing]); // Dependencies for when to re-setup measurement
+
+  // Separate effect to call onMeasuredDimensions when dimensions change
+  // This prevents calling parent setState during render
+  useLayoutEffect(() => {
+    if (measuredDimensions) {
+      onMeasuredDimensions?.(measuredDimensions);
+    }
+  }, [measuredDimensions, onMeasuredDimensions]);
 
   // Always use the stored component size as the source of truth
   // Don't mix visual measurements with stored sizes

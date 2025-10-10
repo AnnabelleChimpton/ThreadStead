@@ -38,7 +38,7 @@ export interface ButtonProps extends UniversalCSSProps {
   disabled?: boolean;
 
   /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
+  __visualBuilder?: boolean | { isInVisualBuilder?: boolean };
   _isInVisualBuilder?: boolean;
 }
 
@@ -54,7 +54,9 @@ export default function Button(props: ButtonProps) {
     _isInVisualBuilder
   } = componentProps;
 
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
+  const isVisualBuilder =
+    (typeof __visualBuilder === 'object' ? __visualBuilder?.isInVisualBuilder : __visualBuilder) === true ||
+    _isInVisualBuilder === true;
 
   React.Children.forEach(children, (child, index) => {
     if (React.isValidElement(child)) {
@@ -83,13 +85,11 @@ export default function Button(props: ButtonProps) {
   if (isVisualBuilder) {
     return (
       <div className={`${finalClassName} inline-block relative border-2 border-dashed border-blue-400 dark:border-blue-600 p-2 rounded`} style={style}>
-        <button
-          type={type}
-          disabled={true}
-          className="opacity-70"
+        <div
+          className="opacity-70 inline-block cursor-pointer"
         >
           {visibleChildren}
-        </button>
+        </div>
         {clickHandler && (
           <div className="absolute -top-2 -right-2 px-1 py-0.5 bg-blue-500 text-white text-xs rounded">
             📌 OnClick
