@@ -1058,6 +1058,13 @@ export class TemplateParserReverse {
       'delay': 'delay',
       // Phase 4: Loop props (ForEach)
       'item': 'item',
+      // Phase 3: Array/String action props (Push, Pop, RemoveAt, ArrayAt, Append, Prepend, Cycle)
+      'value': 'value',
+      'index': 'index',
+      'values': 'values',
+      'array': 'array',
+      // Template variable props (Var component)
+      'type': 'type',
       // Phase 4: CSS manipulation props (AddClass, RemoveClass, ToggleClass, SetCSSVar)
       'target': 'target',
       // Phase 4: OnVisible props
@@ -1072,7 +1079,13 @@ export class TemplateParserReverse {
       'order': 'order',
       'property': 'property',
       'from': 'from',
-      'at': 'at'
+      'at': 'at',
+      // Phase 6 (Roadmap): Advanced state management props
+      'path': 'path',
+      'as': 'as',
+      'sources': 'sources',
+      'element': 'element',
+      'attribute': 'attribute'
     };
 
     // Apply mappings

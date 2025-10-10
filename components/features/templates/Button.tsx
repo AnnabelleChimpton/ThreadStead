@@ -28,6 +28,9 @@ export interface ButtonProps extends UniversalCSSProps {
   /** Additional CSS classes */
   className?: string;
 
+  /** Element ID */
+  id?: string;
+
   /** Button type (button, submit, reset) */
   type?: 'button' | 'submit' | 'reset';
 
@@ -44,6 +47,7 @@ export default function Button(props: ButtonProps) {
   const {
     children,
     className: customClassName,
+    id,
     type = 'button',
     disabled = false,
     __visualBuilder,
@@ -91,6 +95,7 @@ export default function Button(props: ButtonProps) {
   // Normal mode - render functional button
   return (
     <button
+      id={id}
       type={type}
       disabled={disabled}
       className={finalClassName}

@@ -130,6 +130,24 @@ export default function Var(props: VarProps) {
             coercedInitial = [];
           }
           break;
+        case 'object':
+          if (typeof initial === 'string') {
+            // Try to parse JSON string
+            try {
+              const parsed = JSON.parse(initial);
+              // Ensure result is an object (not array or null)
+              coercedInitial = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
+            } catch (error) {
+              coercedInitial = {};
+            }
+          } else if (typeof initial === 'object' && initial !== null && !Array.isArray(initial)) {
+            // Already an object
+            coercedInitial = initial;
+          } else {
+            // Invalid type, use empty object
+            coercedInitial = {};
+          }
+          break;
         case 'date':
           coercedInitial = initial instanceof Date ? initial : new Date(String(initial));
           break;

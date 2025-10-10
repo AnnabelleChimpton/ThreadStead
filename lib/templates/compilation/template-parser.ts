@@ -74,6 +74,10 @@ function createCustomSchema() {
     if (!schema.attributes[tag].includes('style')) {
       schema.attributes[tag].push('style');
     }
+    // Add id attribute (will be prefixed with user-content- by rehype-sanitize for security)
+    if (!schema.attributes[tag].includes('id')) {
+      schema.attributes[tag].push('id');
+    }
   }
 
   // Allow custom component tags from the registry
@@ -120,6 +124,8 @@ function createCustomSchema() {
         'showError', 'showerror', 'show-error',
         // Phase 2 (Roadmap): Collection operation props (Filter, Sort, Transform, Find, Count, Sum, Get)
         'where', 'by', 'order', 'property', 'from', 'at',
+        // Phase 6 (Roadmap): Advanced state management props (Extract, Property, Merge, Clone, ObjectSet, ConditionalAttr)
+        'path', 'as', 'sources', 'element', 'attribute',
         // Conditional component comparison operators (both camelCase and kebab-case)
         'greaterthan', 'greaterThan', 'greater-than',
         'lessthan', 'lessThan', 'less-than',

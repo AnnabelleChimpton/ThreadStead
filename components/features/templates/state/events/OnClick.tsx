@@ -38,6 +38,12 @@ import { executeSwitchActions } from '../conditional/Switch';
 import { executeDelayAction } from '../temporal/Delay';
 import { executeSequenceActions } from '../temporal/Sequence';
 import { executeContinueAction } from '../loops/Continue';
+// Phase 6 (Roadmap): Advanced state management
+import { executeCloneAction } from '../actions/Clone';
+import { executeMergeAction } from '../actions/Merge';
+import { executeObjectSetAction } from '../actions/ObjectSet';
+import { executeExtractAction } from '../actions/Extract';
+import { executeConditionalAttrAction } from '../actions/ConditionalAttr';
 
 /**
  * OnClick Component - Event handler for click events
@@ -333,6 +339,22 @@ export function executeActions(
       }
       else if (componentName === 'Sort') {
         executeSortAction(actualChild.props as import('../actions/Sort').SortProps, templateState);
+      }
+      // Phase 6 (Roadmap): Advanced state management
+      else if (componentName === 'Clone') {
+        executeCloneAction(actualChild.props as import('../actions/Clone').CloneProps, templateState);
+      }
+      else if (componentName === 'Merge') {
+        executeMergeAction(actualChild.props as import('../actions/Merge').MergeProps, templateState);
+      }
+      else if (componentName === 'ObjectSet') {
+        executeObjectSetAction(actualChild.props as import('../actions/ObjectSet').ObjectSetProps, templateState, forEachContext);
+      }
+      else if (componentName === 'Extract') {
+        executeExtractAction(actualChild.props as import('../actions/Extract').ExtractProps, templateState);
+      }
+      else if (componentName === 'ConditionalAttr') {
+        executeConditionalAttrAction(actualChild.props as import('../actions/ConditionalAttr').ConditionalAttrProps, residentData, forEachContext);
       }
       // Phase 3 (Roadmap): Loop control
       else if (componentName === 'Break') {

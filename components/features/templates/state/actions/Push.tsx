@@ -3,7 +3,6 @@
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { evaluateExpression } from '@/lib/templates/state/expression-evaluator';
-import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 
 /**
  * Push Component - Action to add an item to an array variable
@@ -78,17 +77,8 @@ export function executePushAction(
 ): void {
   const { var: varName, value, expression } = props;
 
-  console.log('[Push] executePushAction called with:', {
-    varName,
-    value,
-    expression,
-    allProps: props
-  });
-
   // Support both value and expression props (expression takes precedence)
   const actualValue = expression ?? value;
-
-  console.log('[Push] actualValue:', actualValue, 'type:', typeof actualValue);
 
   // Get current array
   const variable = templateState.variables[varName];
@@ -104,16 +94,14 @@ export function executePushAction(
   // Evaluate value if it's a string that might be an expression
   let itemToAdd = actualValue;
   if (typeof actualValue === 'string' && actualValue.includes('$vars')) {
-    // Build context with FRESH variables from global manager
-    const freshVariables = globalTemplateStateManager.getAllVariables();
+    // Build context from local templateState (same source as Extract/Property)
     const context: Record<string, any> = {};
-    Object.keys(freshVariables).forEach(key => {
-      context[key] = freshVariables[key].value;
+    Object.keys(templateState.variables).forEach(key => {
+      context[key] = templateState.variables[key].value;
     });
 
     try {
       itemToAdd = evaluateExpression(actualValue, context);
-      console.log(`[Push] Evaluated expression "${actualValue}" to:`, itemToAdd);
     } catch (error) {
       console.error(`[Push] Expression evaluation failed for "${actualValue}":`, error);
       itemToAdd = actualValue; // Fallback to literal value

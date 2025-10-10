@@ -165,6 +165,14 @@ import Step from '@/components/features/templates/state/temporal/Step';
 import Timeout from '@/components/features/templates/state/temporal/Timeout';
 import OnTimeout from '@/components/features/templates/state/temporal/OnTimeout';
 
+// Phase 6 (Roadmap): Advanced state management
+import Clone from '@/components/features/templates/state/actions/Clone';
+import Merge from '@/components/features/templates/state/actions/Merge';
+import ObjectSet from '@/components/features/templates/state/actions/ObjectSet';
+import Extract from '@/components/features/templates/state/actions/Extract';
+import Property from '@/components/features/templates/state/actions/Property';
+import ConditionalAttr from '@/components/features/templates/state/actions/ConditionalAttr';
+
 // Import debug components
 import DebugValue from '@/components/features/templates/DebugValue';
 
@@ -1307,7 +1315,7 @@ componentRegistry.register({
     name: { type: 'string', required: true },
     type: {
       type: 'enum',
-      values: ['number', 'string', 'boolean', 'array', 'date', 'computed', 'random', 'urlParam'],
+      values: ['number', 'string', 'boolean', 'array', 'object', 'date', 'computed', 'random', 'urlParam'],
       required: true
     },
     initial: { type: 'string' },
@@ -1385,6 +1393,7 @@ componentRegistry.register({
   name: 'Button',
   component: Button,
   props: {
+    id: { type: 'string' },
     type: { type: 'enum', values: ['button', 'submit', 'reset'], default: 'button' },
     disabled: { type: 'boolean', default: false },
     className: { type: 'string' }
@@ -2130,7 +2139,8 @@ componentRegistry.register({
   component: Push,
   props: {
     var: { type: 'string', required: true },
-    value: { type: 'string', required: true }
+    value: { type: 'string' },
+    expression: { type: 'string' }
   },
   relationship: {
     type: 'action',
@@ -2601,6 +2611,90 @@ componentRegistry.register({
     type: 'action',
     acceptsChildren: true,
     childrenLabel: 'Actions to Execute'
+  }
+});
+
+// Phase 6 (Roadmap): Advanced state management
+componentRegistry.register({
+  name: 'Clone',
+  component: Clone,
+  props: {
+    var: { type: 'string', required: true },
+    target: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Merge',
+  component: Merge,
+  props: {
+    sources: { type: 'string', required: true },
+    target: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'ObjectSet',
+  component: ObjectSet,
+  props: {
+    var: { type: 'string', required: true },
+    path: { type: 'string', required: true },
+    value: { type: 'string', required: false },
+    expression: { type: 'string', required: false }
+  },
+  relationship: {
+    type: 'action',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'Extract',
+  component: Extract,
+  props: {
+    from: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'container',
+    acceptsChildren: ['Property'],
+    childrenLabel: 'Properties to Extract'
+  }
+});
+
+componentRegistry.register({
+  name: 'Property',
+  component: Property,
+  props: {
+    path: { type: 'string', required: true },
+    as: { type: 'string', required: true }
+  },
+  relationship: {
+    type: 'child',
+    requiresParent: 'Extract',
+    acceptsChildren: false
+  }
+});
+
+componentRegistry.register({
+  name: 'ConditionalAttr',
+  component: ConditionalAttr,
+  props: {
+    element: { type: 'string', required: true },
+    attribute: { type: 'string', required: true },
+    when: { type: 'string', required: false },
+    value: { type: 'string', default: 'true' }
+  },
+  relationship: {
+    type: 'interactive',
+    acceptsChildren: false
   }
 });
 

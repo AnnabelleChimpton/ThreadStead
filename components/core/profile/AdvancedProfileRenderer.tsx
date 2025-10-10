@@ -750,6 +750,7 @@ function StaticHTMLWithIslands({
               'persist': 'persist',
               'param': 'param',
               'default': 'default',
+              'type': 'type',
               'expression': 'expression',
               'var': 'var',
               'format': 'format',
@@ -773,8 +774,10 @@ function StaticHTMLWithIslands({
               'direction': 'direction',
               'debounce': 'debounce',
               // Phase 3: Array/String action props (Push, Pop, RemoveAt, Append, Prepend, Cycle)
+              'value': 'value',
               'index': 'index',
               'values': 'values',
+              'array': 'array',
               // Phase 3: Event handler props (OnChange, OnMount, OnInterval, Delay, Sequence/Step)
               'seconds': 'seconds',
               'milliseconds': 'milliseconds',
@@ -801,7 +804,13 @@ function StaticHTMLWithIslands({
               'order': 'order',
               'property': 'property',
               'from': 'from',
-              'at': 'at'
+              'at': 'at',
+              // Phase 6 (Roadmap): Advanced state management props
+              'path': 'path',
+              'as': 'as',
+              'sources': 'sources',
+              'element': 'element',
+              'attribute': 'attribute'
             };
 
             // Copy attributes as props
@@ -1255,6 +1264,7 @@ function domToReact(
       'persist': 'persist',
       'param': 'param',
       'default': 'default',
+      'type': 'type',
       'expression': 'expression',
       'var': 'var',
       'format': 'format',
@@ -1278,8 +1288,10 @@ function domToReact(
       'direction': 'direction',
       'debounce': 'debounce',
       // Phase 3: Array/String action props (Push, Pop, RemoveAt, Append, Prepend, Cycle)
+      'value': 'value',
       'index': 'index',
       'values': 'values',
+      'array': 'array',
       // Phase 3: Event handler props (OnChange, OnMount, OnInterval, Delay, Sequence/Step)
       'seconds': 'seconds',
       'milliseconds': 'milliseconds',
@@ -1306,7 +1318,13 @@ function domToReact(
       'order': 'order',
       'property': 'property',
       'from': 'from',
-      'at': 'at'
+      'at': 'at',
+      // Phase 6 (Roadmap): Advanced state management props
+      'path': 'path',
+      'as': 'as',
+      'sources': 'sources',
+      'element': 'element',
+      'attribute': 'attribute'
     };
 
     for (let i = 0; i < element.attributes.length; i++) {

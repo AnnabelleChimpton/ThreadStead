@@ -123,7 +123,22 @@ export function executeSetAction(
         }
       }
 
-      const result = evaluateExpression(expression, context);
+      // Check if expression is a JSON literal (object or array)
+      let result;
+      const trimmedExpr = expression.trim();
+      if ((trimmedExpr.startsWith('{') && trimmedExpr.endsWith('}')) ||
+          (trimmedExpr.startsWith('[') && trimmedExpr.endsWith(']'))) {
+        try {
+          // Try parsing as JSON first
+          result = JSON.parse(expression);
+        } catch (jsonError) {
+          // If JSON parsing fails, fall back to expression evaluation
+          result = evaluateExpression(expression, context);
+        }
+      } else {
+        // Regular expression evaluation
+        result = evaluateExpression(expression, context);
+      }
       templateState.setVariable(varName, result);
     } else if (value !== undefined) {
       // Set literal value

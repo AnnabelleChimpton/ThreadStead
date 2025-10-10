@@ -581,6 +581,56 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     tags: ['continue', 'loop', 'foreach', 'skip', 'next', 'control'],
     popularity: 70
   },
+
+  // Phase 6 (Roadmap): Advanced State Management
+  'Clone': {
+    name: 'Clone',
+    description: 'Deep clone an object or array variable',
+    icon: '📋',
+    category: 'Actions',
+    tags: ['clone', 'copy', 'duplicate', 'object', 'array', 'deep', 'state'],
+    popularity: 75
+  },
+  'Merge': {
+    name: 'Merge',
+    description: 'Merge multiple objects into one',
+    icon: '🔗',
+    category: 'Actions',
+    tags: ['merge', 'combine', 'object', 'join', 'extend', 'state'],
+    popularity: 75
+  },
+  'ObjectSet': {
+    name: 'ObjectSet',
+    description: 'Set nested object property immutably',
+    icon: '🔧',
+    category: 'Actions',
+    tags: ['object', 'set', 'property', 'nested', 'update', 'state', 'path'],
+    popularity: 80
+  },
+  'Extract': {
+    name: 'Extract',
+    description: 'Extract object properties into variables',
+    icon: '📦',
+    category: 'Actions',
+    tags: ['extract', 'destructure', 'object', 'property', 'state', 'unpack'],
+    popularity: 70
+  },
+  'Property': {
+    name: 'Property',
+    description: 'Define property to extract (child of Extract)',
+    icon: '↪️',
+    category: 'Actions',
+    tags: ['property', 'extract', 'field', 'path'],
+    popularity: 65
+  },
+  'ConditionalAttr': {
+    name: 'ConditionalAttr',
+    description: 'Conditionally set/remove element attributes',
+    icon: '🔄',
+    category: 'Actions',
+    tags: ['attribute', 'conditional', 'dynamic', 'dom', 'aria', 'disabled', 'reactive'],
+    popularity: 70
+  },
 };
 
 /**

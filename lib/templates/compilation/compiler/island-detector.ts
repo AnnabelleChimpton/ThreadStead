@@ -242,6 +242,7 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'persist': 'persist',
           'param': 'param',
           'default': 'default',
+          'type': 'type',
           'expression': 'expression',
           'var': 'var',
           'format': 'format',
@@ -264,6 +265,7 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'direction': 'direction',
           'debounce': 'debounce',
           // Phase 3: Array/String action props (Push, Pop, RemoveAt, ArrayAt, Append, Prepend, Cycle)
+          'value': 'value',
           'index': 'index',
           'values': 'values',
           'array': 'array',
@@ -300,7 +302,13 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           'order': 'order',
           'property': 'property',
           'from': 'from',
-          'at': 'at'
+          'at': 'at',
+          // Phase 6 (Roadmap): Advanced state management props
+          'path': 'path',
+          'as': 'as',
+          'sources': 'sources',
+          'element': 'element',
+          'attribute': 'attribute'
         };
 
         // Apply attribute name conversions for kebab-case to camelCase
