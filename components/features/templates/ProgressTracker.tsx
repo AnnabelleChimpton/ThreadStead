@@ -55,66 +55,68 @@ export default function ProgressTracker(props: ProgressTrackerProps) {
     ? customClassName.join(' ')
     : customClassName;
 
-  // Extract progress item data from children
-  const childArray = React.Children.toArray(children);
-  const progressItems = childArray.map((child, index) => {
-    if (React.isValidElement(child)) {
-      // P3.3 FIX: Unwrap IslandErrorBoundary and ResidentDataProvider to find ProgressItem components
-      let actualChild = child;
-      let props = child.props as any;
+  // P1.4: Memoize progress items extraction to avoid expensive child processing on every render
+  const progressItems = React.useMemo(() => {
+    const childArray = React.Children.toArray(children);
+    return childArray.map((child, index) => {
+      if (React.isValidElement(child)) {
+        // P3.3 FIX: Unwrap IslandErrorBoundary and ResidentDataProvider to find ProgressItem components
+        let actualChild = child;
+        let props = child.props as any;
 
-      // Unwrap IslandErrorBoundary if present
-      if (typeof child.type === 'function' &&
-          (child.type.name === 'IslandErrorBoundary' ||
-           (child.type as any).displayName === 'IslandErrorBoundary')) {
-        const boundaryChildren = React.Children.toArray((child.props as any).children);
-        if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
-          actualChild = boundaryChildren[0];
-          props = actualChild.props as any;
+        // Unwrap IslandErrorBoundary if present
+        if (typeof child.type === 'function' &&
+            (child.type.name === 'IslandErrorBoundary' ||
+             (child.type as any).displayName === 'IslandErrorBoundary')) {
+          const boundaryChildren = React.Children.toArray((child.props as any).children);
+          if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+            actualChild = boundaryChildren[0];
+            props = actualChild.props as any;
+          }
+        }
+
+        // Unwrap ResidentDataProvider if present
+        if (typeof actualChild.type === 'function' &&
+            (actualChild.type.name === 'ResidentDataProvider' ||
+             (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+          const providerChildren = React.Children.toArray((actualChild.props as any).children);
+          if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+            actualChild = providerChildren[0];
+            props = actualChild.props as any;
+          }
+        }
+
+        // Check if it's a ProgressItem component
+        if (actualChild.type === ProgressItem) {
+          return {
+            label: props.label,
+            value: props.value,
+            max: props.max,
+            color: props.color,
+            description: props.description
+          };
+        }
+
+        // Check for data attributes (from template rendering)
+        if (props['data-progress-label']) {
+          return {
+            label: props['data-progress-label'],
+            value: Number(props['data-progress-value']) || 0,
+            max: props['data-progress-max'] ? Number(props['data-progress-max']) : undefined,
+            color: props['data-progress-color'],
+            description: props['data-progress-description']
+          };
         }
       }
-
-      // Unwrap ResidentDataProvider if present
-      if (typeof actualChild.type === 'function' &&
-          (actualChild.type.name === 'ResidentDataProvider' ||
-           (actualChild.type as any).displayName === 'ResidentDataProvider')) {
-        const providerChildren = React.Children.toArray((actualChild.props as any).children);
-        if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
-          actualChild = providerChildren[0];
-          props = actualChild.props as any;
-        }
-      }
-
-      // Check if it's a ProgressItem component
-      if (actualChild.type === ProgressItem) {
-        return {
-          label: props.label,
-          value: props.value,
-          max: props.max,
-          color: props.color,
-          description: props.description
-        };
-      }
-      
-      // Check for data attributes (from template rendering)
-      if (props['data-progress-label']) {
-        return {
-          label: props['data-progress-label'],
-          value: Number(props['data-progress-value']) || 0,
-          max: props['data-progress-max'] ? Number(props['data-progress-max']) : undefined,
-          color: props['data-progress-color'],
-          description: props['data-progress-description']
-        };
-      }
-    }
-    return null;
-  }).filter(Boolean) as Array<{
-    label: string;
-    value: number;
-    max?: number;
-    color?: string;
-    description?: string;
-  }>;
+      return null;
+    }).filter(Boolean) as Array<{
+      label: string;
+      value: number;
+      max?: number;
+      color?: string;
+      description?: string;
+    }>;
+  }, [children]);
 
   // Set default max values based on displayMode type
   const getDefaultMax = (displayMode: string) => {

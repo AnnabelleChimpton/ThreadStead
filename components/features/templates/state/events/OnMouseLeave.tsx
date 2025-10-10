@@ -74,57 +74,60 @@ export function useOnMouseLeaveHandler(children: React.ReactNode): ((event: Reac
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
 
-  // Find OnMouseLeave child
-  let onMouseLeaveChild: React.ReactElement | null = null;
+  // P1.4: Memoize finding OnMouseLeave child
+  const onMouseLeaveChild = React.useMemo(() => {
+    let found: React.ReactElement | null = null;
 
-  React.Children.forEach(children, (child) => {
-    if (!React.isValidElement(child)) return;
+    React.Children.forEach(children, (child) => {
+      if (!React.isValidElement(child)) return;
 
-    // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
-    let actualChild = child;
-    if (typeof child.type === 'function' &&
-        (child.type.name === 'IslandErrorBoundary' ||
-         (child.type as any).displayName === 'IslandErrorBoundary')) {
-      const boundaryChildren = React.Children.toArray((child.props as any).children);
-      if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
-        actualChild = boundaryChildren[0];
+      // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
+      let actualChild = child;
+      if (typeof child.type === 'function' &&
+          (child.type.name === 'IslandErrorBoundary' ||
+           (child.type as any).displayName === 'IslandErrorBoundary')) {
+        const boundaryChildren = React.Children.toArray((child.props as any).children);
+        if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+          actualChild = boundaryChildren[0];
+        }
       }
-    }
 
-    // Unwrap ResidentDataProvider if present (islands architecture)
-    if (typeof actualChild.type === 'function' &&
-        (actualChild.type.name === 'ResidentDataProvider' ||
-         (actualChild.type as any).displayName === 'ResidentDataProvider')) {
-      const providerChildren = React.Children.toArray((actualChild.props as any).children);
-      if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
-        actualChild = providerChildren[0];
+      // Unwrap ResidentDataProvider if present (islands architecture)
+      if (typeof actualChild.type === 'function' &&
+          (actualChild.type.name === 'ResidentDataProvider' ||
+           (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+        const providerChildren = React.Children.toArray((actualChild.props as any).children);
+        if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+          actualChild = providerChildren[0];
+        }
       }
-    }
 
-    // Check if this is OnMouseLeave component
-    const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
-      : '';
+      // Check if this is OnMouseLeave component
+      const componentName = typeof actualChild.type === 'function'
+        ? actualChild.type.name || (actualChild.type as any).displayName
+        : '';
 
-    if (componentName === 'OnMouseLeave') {
-      onMouseLeaveChild = actualChild;
-    }
-  });
+      if (componentName === 'OnMouseLeave') {
+        found = actualChild;
+      }
+    });
 
-  if (!onMouseLeaveChild) {
-    return null;
-  }
+    return found;
+  }, [children]);
 
-  // Return handler that executes OnMouseLeave's children
-  return (event: React.MouseEvent) => {
+  // P1.4: Memoize handler with useCallback
+  const handler = React.useCallback((event: React.MouseEvent) => {
+    if (!onMouseLeaveChild) return;
     // Get the current element from the event for AddClass/RemoveClass target="this"
     const currentElement = event.currentTarget as HTMLElement;
     executeActions(
-      (onMouseLeaveChild!.props as OnMouseLeaveProps).children,
+      (onMouseLeaveChild as React.ReactElement<OnMouseLeaveProps>).props.children,
       templateState,
       residentData,
       forEachContext,
       currentElement
     );
-  };
+  }, [onMouseLeaveChild, templateState, residentData, forEachContext]);
+
+  return onMouseLeaveChild ? handler : null;
 }

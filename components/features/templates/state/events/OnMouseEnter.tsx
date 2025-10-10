@@ -74,49 +74,52 @@ export function useOnMouseEnterHandler(children: React.ReactNode): (() => void) 
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
 
-  // Find OnMouseEnter child
-  let onMouseEnterChild: React.ReactElement | null = null;
+  // P1.4: Memoize finding OnMouseEnter child
+  const onMouseEnterChild = React.useMemo(() => {
+    let found: React.ReactElement | null = null;
 
-  React.Children.forEach(children, (child) => {
-    if (!React.isValidElement(child)) return;
+    React.Children.forEach(children, (child) => {
+      if (!React.isValidElement(child)) return;
 
-    // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
-    let actualChild = child;
-    if (typeof child.type === 'function' &&
-        (child.type.name === 'IslandErrorBoundary' ||
-         (child.type as any).displayName === 'IslandErrorBoundary')) {
-      const boundaryChildren = React.Children.toArray((child.props as any).children);
-      if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
-        actualChild = boundaryChildren[0];
+      // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
+      let actualChild = child;
+      if (typeof child.type === 'function' &&
+          (child.type.name === 'IslandErrorBoundary' ||
+           (child.type as any).displayName === 'IslandErrorBoundary')) {
+        const boundaryChildren = React.Children.toArray((child.props as any).children);
+        if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+          actualChild = boundaryChildren[0];
+        }
       }
-    }
 
-    // Unwrap ResidentDataProvider if present (islands architecture)
-    if (typeof actualChild.type === 'function' &&
-        (actualChild.type.name === 'ResidentDataProvider' ||
-         (actualChild.type as any).displayName === 'ResidentDataProvider')) {
-      const providerChildren = React.Children.toArray((actualChild.props as any).children);
-      if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
-        actualChild = providerChildren[0];
+      // Unwrap ResidentDataProvider if present (islands architecture)
+      if (typeof actualChild.type === 'function' &&
+          (actualChild.type.name === 'ResidentDataProvider' ||
+           (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+        const providerChildren = React.Children.toArray((actualChild.props as any).children);
+        if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+          actualChild = providerChildren[0];
+        }
       }
-    }
 
-    // Check if this is OnMouseEnter component
-    const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
-      : '';
+      // Check if this is OnMouseEnter component
+      const componentName = typeof actualChild.type === 'function'
+        ? actualChild.type.name || (actualChild.type as any).displayName
+        : '';
 
-    if (componentName === 'OnMouseEnter') {
-      onMouseEnterChild = actualChild;
-    }
-  });
+      if (componentName === 'OnMouseEnter') {
+        found = actualChild;
+      }
+    });
 
-  if (!onMouseEnterChild) {
-    return null;
-  }
+    return found;
+  }, [children]);
 
-  // Return handler that executes OnMouseEnter's children
-  return () => {
-    executeActions((onMouseEnterChild!.props as OnMouseEnterProps).children, templateState, residentData, forEachContext);
-  };
+  // P1.4: Memoize handler with useCallback
+  const handler = React.useCallback(() => {
+    if (!onMouseEnterChild) return;
+    executeActions((onMouseEnterChild as React.ReactElement<OnMouseEnterProps>).props.children, templateState, residentData, forEachContext);
+  }, [onMouseEnterChild, templateState, residentData, forEachContext]);
+
+  return onMouseEnterChild ? handler : null;
 }

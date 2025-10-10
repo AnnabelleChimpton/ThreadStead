@@ -201,7 +201,11 @@ export default function ContactCard(props: ContactCardProps) {
     }
   };
 
-  const contactMethods = getContactMethods();
+  // P1.4: Memoize contactMethods calculation to avoid expensive child processing on every render
+  const contactMethods = React.useMemo(() => {
+    return getContactMethods();
+  }, [children]);
+
   const displayedMethods = isExpanded ? contactMethods : contactMethods.slice(0, maxMethods);
   const hasMoreMethods = contactMethods.length > maxMethods;
 

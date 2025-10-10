@@ -75,65 +75,66 @@ export function useOnHoverHandler(children: React.ReactNode): {
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
 
-  // Find OnHover child
-  let onHoverChild: React.ReactElement | null = null;
+  // P1.4: Memoize finding OnHover child to avoid repeated traversal
+  const onHoverChild = React.useMemo(() => {
+    let found: React.ReactElement | null = null;
 
-  React.Children.forEach(children, (child) => {
-    if (!React.isValidElement(child)) return;
+    React.Children.forEach(children, (child) => {
+      if (!React.isValidElement(child)) return;
 
-    // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
-    let actualChild = child;
-    if (typeof child.type === 'function' &&
-        (child.type.name === 'IslandErrorBoundary' ||
-         (child.type as any).displayName === 'IslandErrorBoundary')) {
-      const boundaryChildren = React.Children.toArray((child.props as any).children);
-      if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
-        actualChild = boundaryChildren[0];
+      // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
+      let actualChild = child;
+      if (typeof child.type === 'function' &&
+          (child.type.name === 'IslandErrorBoundary' ||
+           (child.type as any).displayName === 'IslandErrorBoundary')) {
+        const boundaryChildren = React.Children.toArray((child.props as any).children);
+        if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+          actualChild = boundaryChildren[0];
+        }
       }
-    }
 
-    // Unwrap ResidentDataProvider if present (islands architecture)
-    if (typeof actualChild.type === 'function' &&
-        (actualChild.type.name === 'ResidentDataProvider' ||
-         (actualChild.type as any).displayName === 'ResidentDataProvider')) {
-      const providerChildren = React.Children.toArray((actualChild.props as any).children);
-      if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
-        actualChild = providerChildren[0];
+      // Unwrap ResidentDataProvider if present (islands architecture)
+      if (typeof actualChild.type === 'function' &&
+          (actualChild.type.name === 'ResidentDataProvider' ||
+           (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+        const providerChildren = React.Children.toArray((actualChild.props as any).children);
+        if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+          actualChild = providerChildren[0];
+        }
       }
-    }
 
-    // Check if this is OnHover component
-    const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
-      : '';
+      // Check if this is OnHover component
+      const componentName = typeof actualChild.type === 'function'
+        ? actualChild.type.name || (actualChild.type as any).displayName
+        : '';
 
-    if (componentName === 'OnHover') {
-      onHoverChild = actualChild;
-    }
-  });
+      if (componentName === 'OnHover') {
+        found = actualChild;
+      }
+    });
 
-  if (!onHoverChild) {
-    return { onMouseEnter: null, onMouseLeave: null };
-  }
+    return found;
+  }, [children]);
 
-  // Return handlers that execute OnHover's children
-  const onMouseEnter = (event: React.MouseEvent) => {
+  // P1.4: Memoize handler with useCallback
+  const onMouseEnter = React.useCallback((event: React.MouseEvent) => {
+    if (!onHoverChild) return;
     // Get the current element from the event for AddClass/RemoveClass target="this"
     const currentElement = event.currentTarget as HTMLElement;
     executeActions(
-      (onHoverChild!.props as OnHoverProps).children,
+      (onHoverChild as React.ReactElement<OnHoverProps>).props.children,
       templateState,
       residentData,
       forEachContext,
       currentElement
     );
-  };
+  }, [onHoverChild, templateState, residentData, forEachContext]);
 
   // For OnHover, we don't execute anything on mouse leave
   // (use OnMouseEnter/OnMouseLeave for separate control)
   const onMouseLeave = null;
 
-  return { onMouseEnter, onMouseLeave };
+  return onHoverChild ? { onMouseEnter, onMouseLeave } : { onMouseEnter: null, onMouseLeave: null };
 }
 
 /**

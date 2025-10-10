@@ -88,42 +88,46 @@ export function useOnChangeHandler(children: React.ReactNode): ((value?: any) =>
     forEachContextRef.current = forEachContext;
   }, [templateState, residentData, forEachContext]);
 
-  // Find OnChange child
-  let onChangeChild: React.ReactElement<OnChangeProps> | null = null;
+  // P1.4: Memoize finding OnChange child to avoid repeated traversal
+  const onChangeChild = React.useMemo(() => {
+    let found: React.ReactElement<OnChangeProps> | null = null;
 
-  React.Children.forEach(children, (child) => {
-    if (!React.isValidElement(child)) return;
+    React.Children.forEach(children, (child) => {
+      if (!React.isValidElement(child)) return;
 
-    // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
-    let actualChild = child;
-    if (typeof child.type === 'function' &&
-        (child.type.name === 'IslandErrorBoundary' ||
-         (child.type as any).displayName === 'IslandErrorBoundary')) {
-      const boundaryChildren = React.Children.toArray((child.props as any).children);
-      if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
-        actualChild = boundaryChildren[0];
+      // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
+      let actualChild = child;
+      if (typeof child.type === 'function' &&
+          (child.type.name === 'IslandErrorBoundary' ||
+           (child.type as any).displayName === 'IslandErrorBoundary')) {
+        const boundaryChildren = React.Children.toArray((child.props as any).children);
+        if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+          actualChild = boundaryChildren[0];
+        }
       }
-    }
 
-    // Unwrap ResidentDataProvider if present (islands architecture)
-    if (typeof actualChild.type === 'function' &&
-        (actualChild.type.name === 'ResidentDataProvider' ||
-         (actualChild.type as any).displayName === 'ResidentDataProvider')) {
-      const providerChildren = React.Children.toArray((actualChild.props as any).children);
-      if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
-        actualChild = providerChildren[0];
+      // Unwrap ResidentDataProvider if present (islands architecture)
+      if (typeof actualChild.type === 'function' &&
+          (actualChild.type.name === 'ResidentDataProvider' ||
+           (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+        const providerChildren = React.Children.toArray((actualChild.props as any).children);
+        if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+          actualChild = providerChildren[0];
+        }
       }
-    }
 
-    // Check if this is OnChange component
-    const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
-      : '';
+      // Check if this is OnChange component
+      const componentName = typeof actualChild.type === 'function'
+        ? actualChild.type.name || (actualChild.type as any).displayName
+        : '';
 
-    if (componentName === 'OnChange') {
-      onChangeChild = actualChild as React.ReactElement<OnChangeProps>;
-    }
-  });
+      if (componentName === 'OnChange') {
+        found = actualChild as React.ReactElement<OnChangeProps>;
+      }
+    });
+
+    return found;
+  }, [children]);
 
   // Use ref to persist timeout ID across renders
   const timeoutIdRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -134,7 +138,7 @@ export function useOnChangeHandler(children: React.ReactNode): ((value?: any) =>
       return;
     }
 
-    const props = onChangeChild.props as OnChangeProps;
+    const props = (onChangeChild as React.ReactElement<OnChangeProps>).props;
     const debounce = props.debounce || 0;
     if (debounce > 0) {
       // Debounced version - use refs to get current state

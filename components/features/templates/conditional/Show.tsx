@@ -124,12 +124,29 @@ export default function Show(props: ShowProps) {
 
   const templateState = useTemplateStateWithDeps(dependencies);
 
-  // Build condition config from props
-  // Map 'condition' prop to 'data' for the evaluator
-  const config: ConditionConfig = {
+  // P1.4: Memoize condition config building to avoid recreating on every render
+  const config: ConditionConfig = useMemo(() => ({
     ...(condition ? { data: condition } : {}),
     ...conditionProps
-  } as ConditionConfig;
+  } as ConditionConfig), [
+    condition,
+    conditionProps.data,
+    conditionProps.when,
+    conditionProps.equals,
+    conditionProps.notEquals,
+    conditionProps.greaterThan,
+    conditionProps.lessThan,
+    conditionProps.greaterThanOrEqual,
+    conditionProps.lessThanOrEqual,
+    conditionProps.contains,
+    conditionProps.startsWith,
+    conditionProps.endsWith,
+    conditionProps.matches,
+    conditionProps.exists,
+    conditionProps.and,
+    conditionProps.or,
+    conditionProps.not
+  ]);
 
   // Evaluate condition using centralized engine
   // Pass scopeId for ForEach loop variable resolution

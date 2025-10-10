@@ -113,55 +113,58 @@ export function useOnClickHandler(children: React.ReactNode): (() => void) | nul
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
 
-  // Find OnClick child
-  let onClickChild: React.ReactElement | null = null;
+  // P1.4: Memoize finding OnClick child to avoid repeated traversal
+  const onClickChild = React.useMemo(() => {
+    let found: React.ReactElement | null = null;
 
-  React.Children.forEach(children, (child) => {
-    if (!React.isValidElement(child)) {
-      return;
-    }
-
-    const originalChildType = typeof child.type === 'function' ? (child.type.name || (child.type as any).displayName) : String(child.type);
-
-    // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
-    let actualChild = child;
-    if (typeof child.type === 'function' &&
-        (child.type.name === 'IslandErrorBoundary' ||
-         (child.type as any).displayName === 'IslandErrorBoundary')) {
-      const boundaryChildren = React.Children.toArray((child.props as any).children);
-      if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
-        actualChild = boundaryChildren[0];
+    React.Children.forEach(children, (child) => {
+      if (!React.isValidElement(child)) {
+        return;
       }
-    }
 
-    // Unwrap ResidentDataProvider if present (islands architecture)
-    if (typeof actualChild.type === 'function' &&
-        (actualChild.type.name === 'ResidentDataProvider' ||
-         (actualChild.type as any).displayName === 'ResidentDataProvider')) {
-      const providerChildren = React.Children.toArray((actualChild.props as any).children);
-      if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
-        actualChild = providerChildren[0];
+      const originalChildType = typeof child.type === 'function' ? (child.type.name || (child.type as any).displayName) : String(child.type);
+
+      // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
+      let actualChild = child;
+      if (typeof child.type === 'function' &&
+          (child.type.name === 'IslandErrorBoundary' ||
+           (child.type as any).displayName === 'IslandErrorBoundary')) {
+        const boundaryChildren = React.Children.toArray((child.props as any).children);
+        if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
+          actualChild = boundaryChildren[0];
+        }
       }
-    }
 
-    // Check if this is OnClick component
-    const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
-      : '';
+      // Unwrap ResidentDataProvider if present (islands architecture)
+      if (typeof actualChild.type === 'function' &&
+          (actualChild.type.name === 'ResidentDataProvider' ||
+           (actualChild.type as any).displayName === 'ResidentDataProvider')) {
+        const providerChildren = React.Children.toArray((actualChild.props as any).children);
+        if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
+          actualChild = providerChildren[0];
+        }
+      }
 
-    if (componentName === 'OnClick') {
-      onClickChild = actualChild;
-    }
-  });
+      // Check if this is OnClick component
+      const componentName = typeof actualChild.type === 'function'
+        ? actualChild.type.name || (actualChild.type as any).displayName
+        : '';
 
-  if (!onClickChild) {
-    return null;
-  }
+      if (componentName === 'OnClick') {
+        found = actualChild;
+      }
+    });
 
-  // Return handler that executes OnClick's children
-  return () => {
-    executeActions((onClickChild!.props as OnClickProps).children, templateState, residentData, forEachContext);
-  };
+    return found;
+  }, [children]);
+
+  // P1.4: Memoize handler with useCallback
+  const handler = React.useCallback(() => {
+    if (!onClickChild) return;
+    executeActions((onClickChild as React.ReactElement<OnClickProps>).props.children, templateState, residentData, forEachContext);
+  }, [onClickChild, templateState, residentData, forEachContext]);
+
+  return onClickChild ? handler : null;
 }
 
 /**
