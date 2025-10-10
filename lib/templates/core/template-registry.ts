@@ -563,6 +563,11 @@ export class ComponentRegistry {
   private components = new Map<string, ComponentRegistration>();
   private standardizedComponents = new Map<string, StandardizedComponentRegistration<any>>();
 
+  // QUICK WIN #2: Size property for schema cache invalidation
+  get size(): number {
+    return this.components.size + this.standardizedComponents.size;
+  }
+
   register(registration: ComponentRegistration) {
     this.components.set(registration.name, registration);
   }

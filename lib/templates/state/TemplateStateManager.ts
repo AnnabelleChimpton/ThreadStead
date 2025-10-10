@@ -26,6 +26,11 @@ class TemplateStateManager {
   private scopes: Map<string, Map<string, TemplateVariable>> = new Map();
   private scopeParents: Map<string, string | null> = new Map(); // Track scope hierarchy
 
+  // QUICK WIN #4: Update cycle detection and circuit breaker
+  private updateDepth: Map<string, number> = new Map();
+  private readonly MAX_UPDATE_DEPTH = 10; // Warning threshold
+  private readonly CIRCUIT_BREAKER_DEPTH = 20; // Hard limit to prevent runaway updates
+
   /**
    * Get variable value by name
    * Handles user-content- prefix fallback for compatibility
@@ -60,6 +65,31 @@ class TemplateStateManager {
       return;
     }
 
+    // QUICK WIN #4: Track update depth for cycle detection
+    const currentDepth = this.updateDepth.get(name) || 0;
+
+    // Circuit breaker: prevent runaway updates
+    if (currentDepth >= this.CIRCUIT_BREAKER_DEPTH) {
+      console.error(
+        `[TemplateStateManager] CIRCUIT BREAKER: Variable "${name}" exceeded max update depth (${this.CIRCUIT_BREAKER_DEPTH}). Possible infinite loop detected.`,
+        '\nThis usually indicates a computed variable or action cycle.',
+        '\nPlease review your variable dependencies.'
+      );
+      // Reset depth to prevent permanent lockout
+      this.updateDepth.set(name, 0);
+      return;
+    }
+
+    // Warning threshold
+    if (currentDepth >= this.MAX_UPDATE_DEPTH) {
+      console.warn(
+        `[TemplateStateManager] Variable "${name}" update depth: ${currentDepth}. Possible update cycle.`
+      );
+    }
+
+    // Increment depth
+    this.updateDepth.set(name, currentDepth + 1);
+
     // Type coercion based on variable type
     let coercedValue = value;
     if (variable.type) {
@@ -85,6 +115,8 @@ class TemplateStateManager {
 
     // Check if value actually changed (prevent infinite loops)
     if (variable.value === coercedValue) {
+      // Reset depth on no-op
+      this.updateDepth.set(name, 0);
       return; // No change, don't notify listeners
     }
 
@@ -108,6 +140,13 @@ class TemplateStateManager {
 
     // Notify all listeners (trigger re-renders)
     this.notifyListeners();
+
+    // QUICK WIN #4: Reset depth after successful update
+    // Use setTimeout to reset after current event loop completes
+    // This allows dependent updates to increment the counter before reset
+    setTimeout(() => {
+      this.updateDepth.set(name, 0);
+    }, 0);
   }
 
   /**
@@ -475,6 +514,57 @@ class TemplateStateManager {
   initialize(initialVariables: Record<string, TemplateVariable> = {}): void {
     this.variables = { ...initialVariables };
     this.notifyListeners();
+  }
+
+  /**
+   * QUICK WIN #4: Cycle detection utilities for debugging
+   */
+
+  /**
+   * Detect variables that may be stuck in update cycles
+   * Returns list of variables with high update depth
+   */
+  detectCycles(): string[] {
+    const cyclingVariables: string[] = [];
+
+    for (const [name, depth] of this.updateDepth.entries()) {
+      if (depth > this.MAX_UPDATE_DEPTH) {
+        cyclingVariables.push(`${name} (depth: ${depth})`);
+      }
+    }
+
+    return cyclingVariables;
+  }
+
+  /**
+   * Get current update depth for a variable
+   * Useful for debugging update chains
+   */
+  getUpdateDepth(name: string): number {
+    return this.updateDepth.get(name) || 0;
+  }
+
+  /**
+   * Get all variables with their current update depths
+   * Returns map of variable name to current depth
+   */
+  getAllUpdateDepths(): Map<string, number> {
+    return new Map(this.updateDepth);
+  }
+
+  /**
+   * Reset cycle detection for all variables
+   * Useful after resolving an update cycle issue
+   */
+  resetCycleDetection(): void {
+    this.updateDepth.clear();
+  }
+
+  /**
+   * Reset cycle detection for a specific variable
+   */
+  resetVariableCycleDetection(name: string): void {
+    this.updateDepth.delete(name);
   }
 }
 

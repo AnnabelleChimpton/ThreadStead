@@ -5,8 +5,19 @@ import type { Root } from 'hast';
 import { componentRegistry } from '../core/template-registry';
 import { getAllowedAttributes } from '../core/attribute-mappings';
 
+// QUICK WIN #2: Cache schema to avoid recreating on every parse
+// Schema is only rebuilt when component registry changes
+let cachedSchema: any = null;
+let lastRegistrySize: number = 0;
+
 // Define our custom sanitization schema
 function createCustomSchema() {
+  // Check if we can reuse cached schema
+  const currentRegistrySize = componentRegistry.size;
+
+  if (cachedSchema && currentRegistrySize === lastRegistrySize) {
+    return cachedSchema;
+  }
   // Start with a more permissive base instead of defaultSchema
   const schema = {
     tagNames: [...(defaultSchema.tagNames || [])],
@@ -105,7 +116,11 @@ function createCustomSchema() {
       schema.attributes[lowerTagName] = allAttributes;
     }
   }
-  
+
+  // Cache the schema for future use
+  cachedSchema = schema;
+  lastRegistrySize = currentRegistrySize;
+
   return schema;
 }
 

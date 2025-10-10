@@ -334,6 +334,20 @@ function StaticHTMLWithIslands({
   templateType = 'legacy',
   profileId
 }: StaticHTMLWithIslandsProps) {
+  // QUICK WIN #5: Memoization for domToReact results
+  // Create memo cache for converted React elements
+  const memoCache = React.useMemo(() => new Map<string, React.ReactNode>(), []);
+
+  // Create cache key from islands to detect when they change
+  const islandsCacheKey = React.useMemo(() => {
+    return islands.map(i => `${i.id}:${JSON.stringify(i.props)}`).join('|');
+  }, [islands]);
+
+  // Clear cache when islands change
+  React.useEffect(() => {
+    memoCache.clear();
+  }, [islandsCacheKey, memoCache]);
+
   // Debug: Check for positioning data in staticHTML
   const hasPositioningInHTML = staticHTML.includes('data-positioning-mode') || staticHTML.includes('data-pixel-position');
 
@@ -483,8 +497,13 @@ function StaticHTMLWithIslands({
         // Check if this is an island placeholder
         const islandId = element.getAttribute('data-island');
         const componentName = element.getAttribute('data-component');
-        
+
         if (islandId && componentName) {
+          // QUICK WIN #5: Check memo cache for this island
+          if (memoCache.has(islandId)) {
+            return memoCache.get(islandId);
+          }
+
           const island = islands.find(i => i.id === islandId);
           if (island) {
             try {
@@ -638,6 +657,9 @@ function StaticHTMLWithIslands({
                   );
 
                   onIslandRender(island.id);
+
+                  // QUICK WIN #5: Cache the positioned element
+                  memoCache.set(islandId, positionedElement);
                   return positionedElement;
                 } else if (positioningData && positioningData.mode === 'grid') {
                   // Handle grid positioning from props
@@ -658,10 +680,16 @@ function StaticHTMLWithIslands({
                   );
 
                   onIslandRender(island.id);
+
+                  // QUICK WIN #5: Cache the grid element
+                  memoCache.set(islandId, gridElement);
                   return gridElement;
                 } else {
                   // No positioning - render component normally
                   onIslandRender(island.id);
+
+                  // QUICK WIN #5: Cache the rendered element
+                  memoCache.set(islandId, renderedElement);
                   return renderedElement;
                 }
               }
@@ -1137,16 +1165,17 @@ function parseStyleString(styleString: string): Record<string, string> {
 }
 
 // Enhanced island renderer that combines island children with HTML children
-function ProductionIslandRendererWithHTMLChildren({ 
-  island, 
-  allIslands, 
-  residentData, 
+// QUICK WIN #1: Memoized to prevent unnecessary re-renders
+const ProductionIslandRendererWithHTMLChildren = React.memo(function ProductionIslandRendererWithHTMLChildren({
+  island,
+  allIslands,
+  residentData,
   htmlChildren,
-  onIslandRender, 
-  onIslandError 
-}: { 
-  island: Island, 
-  allIslands: Island[], 
+  onIslandRender,
+  onIslandError
+}: {
+  island: Island,
+  allIslands: Island[],
   residentData: ResidentData,
   htmlChildren: React.ReactNode,
   onIslandRender: (islandId: string) => void,
@@ -1369,7 +1398,28 @@ function ProductionIslandRendererWithHTMLChildren({
       </div>
     );
   }
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison for React.memo optimization
+  // Return true if props are equal (skip re-render), false if different (re-render)
+
+  // Quick checks
+  if (prevProps.island.id !== nextProps.island.id) return false;
+  if (prevProps.island.component !== nextProps.island.component) return false;
+
+  // Deep comparison of island props
+  const prevPropsStr = JSON.stringify(prevProps.island.props);
+  const nextPropsStr = JSON.stringify(nextProps.island.props);
+  if (prevPropsStr !== nextPropsStr) return false;
+
+  // Check residentData reference
+  if (prevProps.residentData !== nextProps.residentData) return false;
+
+  // Check htmlChildren reference (shallow comparison)
+  if (prevProps.htmlChildren !== nextProps.htmlChildren) return false;
+
+  // Props are equal - skip re-render
+  return true;
+});
 
 function DirectIslandsRenderer({ 
   islands, 
@@ -1397,7 +1447,9 @@ function DirectIslandsRenderer({
 }
 
 // Production island renderer (copy of SimpleIslandRenderer from preview)
-function ProductionIslandRenderer({
+// QUICK WIN #1: Memoized to prevent unnecessary re-renders when parent state changes
+// Custom comparison ensures we only re-render when island props or data actually change
+const ProductionIslandRenderer = React.memo(function ProductionIslandRenderer({
   island,
   allIslands,
   residentData,
@@ -1630,7 +1682,25 @@ function ProductionIslandRenderer({
       </div>
     );
   }
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison for React.memo optimization
+  // Return true if props are equal (skip re-render), false if different (re-render)
+
+  // Quick checks for obvious changes
+  if (prevProps.island.id !== nextProps.island.id) return false;
+  if (prevProps.island.component !== nextProps.island.component) return false;
+
+  // Deep comparison of island props (where most changes occur)
+  const prevPropsStr = JSON.stringify(prevProps.island.props);
+  const nextPropsStr = JSON.stringify(nextProps.island.props);
+  if (prevPropsStr !== nextPropsStr) return false;
+
+  // Check if residentData reference changed (usually stable per profile)
+  if (prevProps.residentData !== nextProps.residentData) return false;
+
+  // Props are equal - skip re-render
+  return true;
+});
 
 // Static HTML renderer with island placeholders (LEGACY - UNUSED)
 interface StaticHTMLRendererProps {
