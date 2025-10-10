@@ -56,10 +56,15 @@ export default function Reset(props: ResetProps) {
 /**
  * Execute Reset action
  * Called by event handlers (OnClick, etc.)
+ *
+ * @param props Reset component props
+ * @param templateState Template state context
+ * @param forEachContext ForEach loop context (unused, but kept for consistency)
  */
 export function executeResetAction(
   props: ResetProps,
-  templateState: ReturnType<typeof useTemplateState>
+  templateState: ReturnType<typeof useTemplateState>,
+  forEachContext?: { scopeId?: string } | null
 ): void {
   const { var: varName } = props;
 

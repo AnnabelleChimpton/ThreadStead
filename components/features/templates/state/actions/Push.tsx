@@ -3,6 +3,7 @@
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { evaluateExpression } from '@/lib/templates/state/expression-evaluator';
+import { getVariableValue, getVariableObject, buildExpressionContext } from '@/lib/templates/state/state-utils';
 
 /**
  * Push Component - Action to add an item to an array variable
@@ -70,18 +71,23 @@ export default function Push(props: PushProps) {
 /**
  * Execute Push action
  * Called by event handlers (OnClick, etc.)
+ *
+ * @param props Push component props
+ * @param templateState Template state context
+ * @param forEachContext ForEach loop context for scoped variables
  */
 export function executePushAction(
   props: PushProps,
-  templateState: ReturnType<typeof useTemplateState>
+  templateState: ReturnType<typeof useTemplateState>,
+  forEachContext?: { scopeId?: string } | null
 ): void {
   const { var: varName, value, expression } = props;
 
   // Support both value and expression props (expression takes precedence)
   const actualValue = expression ?? value;
 
-  // Get current array
-  const variable = templateState.variables[varName];
+  // Get variable metadata (for type checking)
+  const variable = getVariableObject(varName, templateState);
 
   // Check if variable is array type
   if (variable?.type && variable.type !== 'array') {
@@ -89,16 +95,15 @@ export function executePushAction(
     return;
   }
 
-  const currentArray = Array.isArray(variable?.value) ? variable.value : [];
+  // Get FRESH current array (handles ForEach scope)
+  const value_data = getVariableValue(varName, forEachContext);
+  const currentArray = Array.isArray(value_data) ? value_data : [];
 
   // Evaluate value if it's a string that might be an expression
   let itemToAdd = actualValue;
   if (typeof actualValue === 'string' && actualValue.includes('$vars')) {
-    // Build context from local templateState (same source as Extract/Property)
-    const context: Record<string, any> = {};
-    Object.keys(templateState.variables).forEach(key => {
-      context[key] = templateState.variables[key].value;
-    });
+    // Build context with FRESH variables and scoped variables
+    const context = buildExpressionContext(forEachContext);
 
     try {
       itemToAdd = evaluateExpression(actualValue, context);

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { getVariableValue, getVariableObject } from '@/lib/templates/state/state-utils';
 
 /**
  * Toggle Component - Action to toggle a boolean variable
@@ -68,10 +69,12 @@ export default function Toggle(props: ToggleProps) {
  *
  * @param props Toggle component props
  * @param templateState Template state context
+ * @param forEachContext ForEach loop context for scoped variables
  */
 export function executeToggleAction(
   props: ToggleProps,
-  templateState: ReturnType<typeof useTemplateState>
+  templateState: ReturnType<typeof useTemplateState>,
+  forEachContext?: { scopeId?: string } | null
 ): void {
   const { var: varName } = props;
 
@@ -81,15 +84,16 @@ export function executeToggleAction(
   }
 
   try {
-    // Get current value
-    const variable = templateState.variables[varName];
+    // Get variable metadata (for validation)
+    const variable = getVariableObject(varName, templateState);
 
     if (!variable) {
       console.warn(`Toggle action: variable "${varName}" not found`);
       return;
     }
 
-    const currentValue = variable.value;
+    // Get FRESH current value (handles ForEach scope)
+    const currentValue = getVariableValue(varName, forEachContext);
     // Toggle: convert to boolean and negate
     const newValue = !currentValue;
 

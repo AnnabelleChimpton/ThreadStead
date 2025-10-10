@@ -3,6 +3,7 @@
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
+import { useForEachContext } from '../loops/ForEach';
 import { executeActions } from './OnClick';
 
 /**
@@ -74,15 +75,18 @@ export default function OnChange(props: OnChangeProps) {
 export function useOnChangeHandler(children: React.ReactNode): ((value?: any) => void) | null {
   const templateState = useTemplateState();
   const residentData = useResidentData();
+  const forEachContext = useForEachContext();
 
   // Use refs to capture current values for use in debounced callbacks
   const templateStateRef = React.useRef(templateState);
   const residentDataRef = React.useRef(residentData);
+  const forEachContextRef = React.useRef(forEachContext);
 
   React.useEffect(() => {
     templateStateRef.current = templateState;
     residentDataRef.current = residentData;
-  }, [templateState, residentData]);
+    forEachContextRef.current = forEachContext;
+  }, [templateState, residentData, forEachContext]);
 
   // Find OnChange child
   let onChangeChild: React.ReactElement<OnChangeProps> | null = null;
@@ -129,14 +133,14 @@ export function useOnChangeHandler(children: React.ReactNode): ((value?: any) =>
       }
       timeoutIdRef.current = setTimeout(() => {
         console.log('[OnChange] Executing debounced actions after', debounce, 'ms');
-        executeActions(props.children, templateStateRef.current, residentDataRef.current);
+        executeActions(props.children, templateStateRef.current, residentDataRef.current, forEachContextRef.current);
       }, debounce);
     } else {
       // Immediate version
-      executeActions(props.children, templateState, residentData);
+      executeActions(props.children, templateState, residentData, forEachContext);
     }
-  }, [onChangeChild, templateState, residentData]);
-  // Note: templateState/residentData changes will recreate handler, but that's okay
+  }, [onChangeChild, templateState, residentData, forEachContext]);
+  // Note: templateState/residentData/forEachContext changes will recreate handler, but that's okay
   // The important part is debounce value staying stable
 
   return onChangeChild ? handler : null;

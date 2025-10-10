@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { getVariableValue, getVariableObject } from '@/lib/templates/state/state-utils';
 
 /**
  * Decrement Component - Action to decrement a numeric variable
@@ -85,10 +86,12 @@ export default function Decrement(props: DecrementProps) {
  *
  * @param props Decrement component props
  * @param templateState Template state context
+ * @param forEachContext ForEach loop context for scoped variables
  */
 export function executeDecrementAction(
   props: DecrementProps,
-  templateState: ReturnType<typeof useTemplateState>
+  templateState: ReturnType<typeof useTemplateState>,
+  forEachContext?: { scopeId?: string } | null
 ): void {
   const { var: varName, by = 1, min, max } = props;
 
@@ -98,8 +101,8 @@ export function executeDecrementAction(
   }
 
   try {
-    // Get current value
-    const variable = templateState.variables[varName];
+    // Get variable metadata (for type checking)
+    const variable = getVariableObject(varName, templateState);
 
     if (!variable) {
       // Silently skip if variable not found yet (may still be registering)
@@ -113,7 +116,8 @@ export function executeDecrementAction(
       return;
     }
 
-    const currentValue = Number(variable.value) || 0;
+    // Get FRESH current value (handles ForEach scope)
+    const currentValue = Number(getVariableValue(varName, forEachContext)) || 0;
     let newValue = currentValue - by;
 
     // Apply min constraint

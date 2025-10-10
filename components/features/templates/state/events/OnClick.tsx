@@ -259,23 +259,23 @@ export function executeActions(
         executeSetAction(actualChild.props as import('../actions/Set').SetProps, templateState, forEachContext);
       }
       else if (componentName === 'Increment') {
-        executeIncrementAction(actualChild.props as import('../actions/Increment').IncrementProps, templateState);
+        executeIncrementAction(actualChild.props as import('../actions/Increment').IncrementProps, templateState, forEachContext);
       }
       else if (componentName === 'Decrement') {
-        executeDecrementAction(actualChild.props as import('../actions/Decrement').DecrementProps, templateState);
+        executeDecrementAction(actualChild.props as import('../actions/Decrement').DecrementProps, templateState, forEachContext);
       }
       else if (componentName === 'Toggle') {
-        executeToggleAction(actualChild.props as import('../actions/Toggle').ToggleProps, templateState);
+        executeToggleAction(actualChild.props as import('../actions/Toggle').ToggleProps, templateState, forEachContext);
       }
       else if (componentName === 'ShowToast') {
-        executeShowToastAction(actualChild.props as import('../actions/ShowToast').ShowToastProps, templateState);
+        executeShowToastAction(actualChild.props as import('../actions/ShowToast').ShowToastProps, templateState, forEachContext);
       }
       // Array actions
       else if (componentName === 'Push') {
-        executePushAction(actualChild.props as import('../actions/Push').PushProps, templateState);
+        executePushAction(actualChild.props as import('../actions/Push').PushProps, templateState, forEachContext);
       }
       else if (componentName === 'Pop') {
-        executePopAction(actualChild.props as import('../actions/Pop').PopProps, templateState);
+        executePopAction(actualChild.props as import('../actions/Pop').PopProps, templateState, forEachContext);
       }
       else if (componentName === 'RemoveAt') {
         console.log('[OnClick] Executing RemoveAt with props:', actualChild.props);
@@ -283,14 +283,14 @@ export function executeActions(
       }
       // String actions
       else if (componentName === 'Append') {
-        executeAppendAction(actualChild.props as import('../actions/Append').AppendProps, templateState);
+        executeAppendAction(actualChild.props as import('../actions/Append').AppendProps, templateState, forEachContext);
       }
       else if (componentName === 'Prepend') {
-        executePrependAction(actualChild.props as import('../actions/Prepend').PrependProps, templateState);
+        executePrependAction(actualChild.props as import('../actions/Prepend').PrependProps, templateState, forEachContext);
       }
       // Cycle action
       else if (componentName === 'Cycle') {
-        executeCycleAction(actualChild.props as import('../actions/Cycle').CycleProps, templateState);
+        executeCycleAction(actualChild.props as import('../actions/Cycle').CycleProps, templateState, forEachContext);
       }
       // CSS manipulation actions
       else if (componentName === 'AddClass') {
@@ -316,7 +316,7 @@ export function executeActions(
         executeSetURLHashAction(actualChild.props as import('../actions/SetURLHash').SetURLHashProps, templateState, forEachContext);
       }
       else if (componentName === 'Reset') {
-        executeResetAction(actualChild.props as import('../actions/Reset').ResetProps, templateState);
+        executeResetAction(actualChild.props as import('../actions/Reset').ResetProps, templateState, forEachContext);
       }
       // Phase 2 (Roadmap): Collection operations
       else if (componentName === 'Count') {

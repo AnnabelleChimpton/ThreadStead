@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
+import { useForEachContext } from '../loops/ForEach';
 import { executeActions } from './OnClick';
 
 /**
@@ -42,6 +43,7 @@ export default function OnMount(props: OnMountProps) {
 
   const templateState = useTemplateState();
   const residentData = useResidentData();
+  const forEachContext = useForEachContext();
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Execute actions on mount (only once)
@@ -51,7 +53,7 @@ export default function OnMount(props: OnMountProps) {
       return;
     }
 
-    executeActions(children, templateState, residentData);
+    executeActions(children, templateState, residentData, forEachContext);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps = run only on mount
 

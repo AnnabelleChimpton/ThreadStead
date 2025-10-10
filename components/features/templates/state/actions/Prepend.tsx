@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
-import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
+import { getVariableValue, getVariableObject, resolveVarsReference } from '@/lib/templates/state/state-utils';
 
 /**
  * Prepend Component - Action to prepend a string to a variable
@@ -63,15 +63,20 @@ export default function Prepend(props: PrependProps) {
 /**
  * Execute Prepend action
  * Called by event handlers (OnClick, etc.)
+ *
+ * @param props Prepend component props
+ * @param templateState Template state context
+ * @param forEachContext ForEach loop context for scoped variables
  */
 export function executePrependAction(
   props: PrependProps,
-  templateState: ReturnType<typeof useTemplateState>
+  templateState: ReturnType<typeof useTemplateState>,
+  forEachContext?: { scopeId?: string } | null
 ): void {
   const { var: varName, value } = props;
 
-  // Get current value
-  const variable = templateState.variables[varName];
+  // Get variable metadata (for type checking)
+  const variable = getVariableObject(varName, templateState);
 
   // Check if variable is string type
   if (variable?.type && variable.type !== 'string') {
@@ -79,32 +84,14 @@ export function executePrependAction(
     return;
   }
 
-  const currentValue = variable?.value !== undefined ? String(variable.value) : '';
+  // Get FRESH current value (handles ForEach scope)
+  const currentValueData = getVariableValue(varName, forEachContext);
+  const currentValue = currentValueData !== undefined ? String(currentValueData) : '';
 
-  // Resolve value: check for $vars. references
-  let resolvedValue = value;
-  if (typeof value === 'string' && value.startsWith('$vars.')) {
-    const varPath = value.slice(6); // Remove "$vars." prefix
-    const parts = varPath.split('.');
-    const referencedVarName = parts[0];
-
-    // Get referenced variable with FRESH state from global manager
-    const freshVariables = globalTemplateStateManager.getAllVariables();
-    const referencedVar = freshVariables[referencedVarName];
-
-    let varValue = referencedVar?.value;
-
-    // Handle nested properties: $vars.user.name
-    for (let i = 1; i < parts.length; i++) {
-      if (varValue === null || varValue === undefined) {
-        varValue = undefined;
-        break;
-      }
-      varValue = varValue[parts[i]];
-    }
-
-    resolvedValue = varValue !== undefined ? String(varValue) : '';
-  }
+  // Resolve value: check for $vars. references (handles scoped variables)
+  const resolvedValue = typeof value === 'string' && value.startsWith('$vars.')
+    ? String(resolveVarsReference(value, forEachContext) || '')
+    : value;
 
   // Prepend value
   const newValue = String(resolvedValue) + currentValue;

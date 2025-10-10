@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
+import { useForEachContext } from '../loops/ForEach';
 import { executeActions } from './OnClick';
 
 /**
@@ -47,20 +48,23 @@ export default function OnInterval(props: OnIntervalProps) {
 
   const templateState = useTemplateState();
   const residentData = useResidentData();
+  const forEachContext = useForEachContext();
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use refs to always access current values without recreating interval
   const templateStateRef = useRef(templateState);
   const residentDataRef = useRef(residentData);
+  const forEachContextRef = useRef(forEachContext);
   const childrenRef = useRef(children);
 
   // Update refs when values change
   useEffect(() => {
     templateStateRef.current = templateState;
     residentDataRef.current = residentData;
+    forEachContextRef.current = forEachContext;
     childrenRef.current = children;
-  }, [templateState, residentData, children]);
+  }, [templateState, residentData, forEachContext, children]);
 
   // Calculate interval in milliseconds
   const intervalMs = milliseconds || (seconds ? seconds * 1000 : 1000);
@@ -76,7 +80,7 @@ export default function OnInterval(props: OnIntervalProps) {
     const initTimeout = setTimeout(() => {
       // Start interval - use refs to get current values
       intervalIdRef.current = setInterval(() => {
-        executeActions(childrenRef.current, templateStateRef.current, residentDataRef.current);
+        executeActions(childrenRef.current, templateStateRef.current, residentDataRef.current, forEachContextRef.current);
       }, intervalMs);
     }, 100);
 

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { getVariableValue, getVariableObject } from '@/lib/templates/state/state-utils';
 
 /**
  * Pop Component - Action to remove the last item from an array variable
@@ -58,15 +59,20 @@ export default function Pop(props: PopProps) {
 /**
  * Execute Pop action
  * Called by event handlers (OnClick, etc.)
+ *
+ * @param props Pop component props
+ * @param templateState Template state context
+ * @param forEachContext ForEach loop context for scoped variables
  */
 export function executePopAction(
   props: PopProps,
-  templateState: ReturnType<typeof useTemplateState>
+  templateState: ReturnType<typeof useTemplateState>,
+  forEachContext?: { scopeId?: string } | null
 ): void {
   const { var: varName } = props;
 
-  // Get current array
-  const variable = templateState.variables[varName];
+  // Get variable metadata (for type checking)
+  const variable = getVariableObject(varName, templateState);
 
   // Check if variable is array type
   if (variable?.type && variable.type !== 'array') {
@@ -74,7 +80,9 @@ export function executePopAction(
     return;
   }
 
-  const currentArray = Array.isArray(variable?.value) ? variable.value : [];
+  // Get FRESH current array (handles ForEach scope)
+  const value = getVariableValue(varName, forEachContext);
+  const currentArray = Array.isArray(value) ? value : [];
 
   // Don't pop from empty array
   if (currentArray.length === 0) {

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { getVariableValue, getVariableObject } from '@/lib/templates/state/state-utils';
 
 /**
  * Cycle Component - Action to cycle through a list of values
@@ -77,10 +78,15 @@ export default function Cycle(props: CycleProps) {
 /**
  * Execute Cycle action
  * Called by event handlers (OnClick, OnInterval, etc.)
+ *
+ * @param props Cycle component props
+ * @param templateState Template state context
+ * @param forEachContext ForEach loop context for scoped variables
  */
 export function executeCycleAction(
   props: CycleProps,
-  templateState: ReturnType<typeof useTemplateState>
+  templateState: ReturnType<typeof useTemplateState>,
+  forEachContext?: { scopeId?: string } | null
 ): void {
   const { var: varName, values } = props;
 
@@ -97,15 +103,16 @@ export function executeCycleAction(
     return;
   }
 
-  // Get current value
-  const variable = templateState.variables[varName];
+  // Get variable metadata (for validation)
+  const variable = getVariableObject(varName, templateState);
 
   // Silently skip if variable not found yet (may still be registering)
   if (!variable) {
     return;
   }
 
-  const currentValue = variable?.value;
+  // Get FRESH current value (handles ForEach scope)
+  const currentValue = getVariableValue(varName, forEachContext);
 
   // Find current index
   let currentIndex = valuesList.findIndex(v => {

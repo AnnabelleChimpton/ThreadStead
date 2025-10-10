@@ -93,10 +93,12 @@ export default function ShowToast(props: ShowToastProps) {
  *
  * @param props ShowToast component props
  * @param templateState Template state context (unused, but kept for consistency)
+ * @param forEachContext ForEach loop context (unused, but kept for consistency)
  */
 export function executeShowToastAction(
   props: ShowToastProps,
-  templateState?: ReturnType<typeof useTemplateState>
+  templateState?: ReturnType<typeof useTemplateState>,
+  forEachContext?: { scopeId?: string } | null
 ): void {
   const { message, type = 'success', duration = 3000 } = props;
 
