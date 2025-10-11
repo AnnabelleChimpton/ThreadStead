@@ -4,6 +4,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import type { Root } from 'hast';
 import { componentRegistry } from '../core/template-registry';
 import { getAllowedAttributes } from '../core/attribute-mappings';
+import { TEMPLATE_LIMITS, formatLimitError, checkWarningThresholds } from './template-limits';
 
 // QUICK WIN #2: Cache schema to avoid recreating on every parse
 // Schema is only rebuilt when component registry changes
@@ -424,18 +425,26 @@ export function validateTemplate(ast: TemplateNode): ValidationResult {
   const componentCounts = countComponents(ast);
   const totalComponents = Object.values(componentCounts).reduce((sum, count) => sum + count, 0);
 
-  // Check limits (increased to support complex showcase templates)
-  if (nodeCount > 1500) {
-    errors.push(`Too many nodes: ${nodeCount} (max: 1500)`);
+  // Check hard limits (Phase 3: Using centralized limit management)
+  if (nodeCount > TEMPLATE_LIMITS.maxNodes) {
+    errors.push(formatLimitError('nodes', nodeCount, TEMPLATE_LIMITS.maxNodes));
   }
 
-  if (maxDepth > 30) {
-    errors.push(`Template too deeply nested: ${maxDepth} levels (max: 30)`);
+  if (maxDepth > TEMPLATE_LIMITS.maxDepth) {
+    errors.push(formatLimitError('depth', maxDepth, TEMPLATE_LIMITS.maxDepth));
   }
 
-  if (totalComponents > 250) {
-    errors.push(`Too many components: ${totalComponents} (max: 250)`);
+  if (totalComponents > TEMPLATE_LIMITS.maxComponents) {
+    errors.push(formatLimitError('components', totalComponents, TEMPLATE_LIMITS.maxComponents));
   }
+
+  // Check warning thresholds (Phase 3: Soft limits)
+  const thresholdWarnings = checkWarningThresholds({
+    nodes: nodeCount,
+    depth: maxDepth,
+    components: totalComponents,
+  });
+  warnings.push(...thresholdWarnings);
 
   return {
     isValid: errors.length === 0,
@@ -459,12 +468,15 @@ export interface CompilationResult {
 
 export function compileTemplate(htmlString: string): CompilationResult {
   try {
-    // Check size limit
-    const sizeKB = new Blob([htmlString]).size / 1024;
-    if (sizeKB > 64) {
+    // Check size limit (Phase 3: Using centralized limit management)
+    const sizeBytes = new Blob([htmlString]).size;
+    const sizeKB = sizeBytes / 1024;
+    const maxKB = TEMPLATE_LIMITS.maxSizeBytes / 1024;
+
+    if (sizeBytes > TEMPLATE_LIMITS.maxSizeBytes) {
       return {
         success: false,
-        errors: [`Template too large: ${sizeKB.toFixed(1)}KB (max: 64KB)`]
+        errors: [formatLimitError('size', Math.round(sizeKB), Math.round(maxKB))]
       };
     }
 
@@ -479,7 +491,13 @@ export function compileTemplate(htmlString: string): CompilationResult {
 
     // Validate
     const validation = validateTemplate(ast);
-    
+
+    // Add size warning check (Phase 3)
+    const sizeWarnings = checkWarningThresholds({ sizeBytes });
+    if (sizeWarnings.length > 0 && validation.warnings) {
+      validation.warnings.push(...sizeWarnings);
+    }
+
     return {
       success: validation.isValid,
       ast: validation.isValid ? ast : undefined,
