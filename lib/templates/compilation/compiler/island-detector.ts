@@ -105,6 +105,51 @@ function extractPositioningFromProperties(properties: Record<string, any>): any 
     }
   }
 
+  // NEW: Check for Visual Builder positioning attributes (data-x, data-y format)
+  // This is the format output by the Visual Builder's HTML generator
+  const dataX = properties['data-x'] || properties['dataX'];
+  const dataY = properties['data-y'] || properties['dataY'];
+
+  if (dataX !== undefined && dataY !== undefined) {
+    const x = parseFloat(String(dataX));
+    const y = parseFloat(String(dataY));
+
+    if (!isNaN(x) && !isNaN(y)) {
+      const dataWidth = properties['data-width'] || properties['dataWidth'];
+      const dataHeight = properties['data-height'] || properties['dataHeight'];
+      const dataResponsive = properties['data-responsive'] || properties['dataResponsive'];
+
+      // Check if this is responsive positioning (has breakpoints)
+      const isResponsive = dataResponsive === 'true' || dataResponsive === true;
+
+      if (isResponsive) {
+        // Responsive positioning - create breakpoints object
+        // Currently Visual Builder only outputs desktop, but structure supports all breakpoints
+        return {
+          breakpoints: {
+            desktop: {
+              x,
+              y,
+              zIndex: 1, // Default z-index, can be overridden
+              width: dataWidth ? parseFloat(String(dataWidth)) : undefined,
+              height: dataHeight ? parseFloat(String(dataHeight)) : undefined
+            }
+          }
+        };
+      } else {
+        // Simple absolute positioning (data-responsive="false")
+        return {
+          mode: 'absolute',
+          x,
+          y,
+          width: dataWidth ? parseFloat(String(dataWidth)) : 200,
+          height: dataHeight ? parseFloat(String(dataHeight)) : 150,
+          zIndex: 1
+        };
+      }
+    }
+  }
+
   return null;
 }
 

@@ -1137,7 +1137,7 @@ export const CONTAINER_FILLER_COMPONENTS = [
  */
 export const CONTENT_DRIVEN_COMPONENTS = [
   'textelement', 'paragraph', 'contactcard', 'progresstracker',
-  'bio', 'blogposts', 'guestbook', 'tabs'
+  'bio', 'blogposts', 'guestbook', 'tabs', 'profilehero'
 ];
 
 /**

@@ -208,24 +208,61 @@ export default function EnhancedTemplateEditor({
 }: EnhancedTemplateEditorProps) {
   // AUTO-FIX: Detect and unwrap flow templates that were incorrectly wrapped
   // This fixes templates corrupted by the previous auto-wrap bug
-  // CRITICAL: Only unwrap if flow components are at ROOT level (not nested)
+  // CRITICAL: Only unwrap if components have NO positioning attributes (true flow mode)
   const unwrappedTemplate = React.useMemo(() => {
     const hasWrapper = initialTemplate.includes('pure-absolute-container');
 
     if (hasWrapper) {
-      // Check if flow components appear IMMEDIATELY after wrapper opening tag (root level)
-      // If they're nested inside other components, this is a valid positioned template
-      const rootFlowComponentMatch = initialTemplate.match(
-        /<div[^>]*class="[^"]*pure-absolute-container[^"]*"[^>]*>\s*<(GradientBox|CenteredBox|FlexBox|Card|RetroCard)/
+      // Extract content between wrapper tags
+      const wrapperContentMatch = initialTemplate.match(
+        /<div[^>]*class="[^"]*pure-absolute-container[^"]*"[^>]*>([\s\S]*)<\/div>\s*$/
       );
 
-      if (rootFlowComponentMatch) {
-        // This is a flow template incorrectly wrapped - unwrap it
-        const containerMatch = initialTemplate.match(/<div[^>]*class="[^"]*pure-absolute-container[^"]*"[^>]*>([\s\S]*)<\/div>\s*$/);
-        if (containerMatch && containerMatch[1]) {
-          const unwrapped = containerMatch[1].trim();
-          return unwrapped;
+      if (!wrapperContentMatch) {
+        return initialTemplate;
+      }
+
+      const innerContent = wrapperContentMatch[1].trim();
+
+      // Check if first component is a flow-capable component
+      const firstComponentMatch = innerContent.match(/^\s*<([A-Z][a-zA-Z0-9]*)/);
+
+      if (!firstComponentMatch) {
+        return initialTemplate;
+      }
+
+      const componentType = firstComponentMatch[1];
+
+      // Only check components that can be used in both modes
+      const flowCapableComponents = ['GradientBox', 'CenteredBox', 'FlexBox', 'Card', 'RetroCard'];
+
+      if (!flowCapableComponents.includes(componentType)) {
+        // Not a flow-capable component, keep wrapper
+        return initialTemplate;
+      }
+
+      // Check if the component has positioning attributes
+      // Look for: style="...position: absolute..." OR data-position OR data-positioning-mode
+      const componentTagMatch = innerContent.match(
+        new RegExp(`^\\s*<${componentType}[^>]*>`, 's')
+      );
+
+      if (componentTagMatch) {
+        const componentTag = componentTagMatch[0];
+
+        const hasAbsoluteStyle = /style="[^"]*position:\s*absolute/.test(componentTag);
+        const hasDataPosition = /data-position=/.test(componentTag);
+        const hasPositioningMode = /data-positioning-mode=/.test(componentTag);
+        const hasPixelPosition = /data-pixel-position=/.test(componentTag);
+
+        // If ANY positioning attributes found, this is a valid positioned template
+        if (hasAbsoluteStyle || hasDataPosition || hasPositioningMode || hasPixelPosition) {
+          return initialTemplate; // Keep wrapper - it's positioned mode!
         }
+
+        // No positioning found - this is likely a flow template that was incorrectly wrapped
+        // Unwrap it
+        return innerContent;
       }
     }
 
