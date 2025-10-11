@@ -115,15 +115,12 @@ export function executeDelayAction(
 
   // Return promise that resolves after delay
   return new Promise((resolve) => {
-    console.log(`[DEBUG-TEMPORAL] Delay: Setting timeout for ${delayMs}ms`);
     setTimeout(() => {
-      console.log(`[DEBUG-TEMPORAL] Delay: Timeout fired, executing child actions`);
       try {
         // Execute child actions after delay
         if (children) {
           executeActions(children, templateState, residentData, forEachContext, currentElement);
         }
-        console.log(`[DEBUG-TEMPORAL] Delay: Child actions executed`);
         resolve();
       } catch (error) {
         console.error('[Delay] Error executing delayed actions:', error);

@@ -359,29 +359,6 @@ html body html body html body body {
   margin: 0 !important;
   padding: 0 !important;
 }
-
-/* WRAPPER ELEMENT PATTERN INHERITANCE FOR FULL-PAGE VISUAL BUILDER */
-/* Copy pattern backgrounds from Visual Builder containers to wrapper for seamless coverage */
-html body html body html body #__next > div:has([class*="vb-pattern-"]) {
-  /* Inherit all Visual Builder styling for full-page coverage */
-  background-color: var(--global-bg-color, var(--vb-background-color)) !important;
-  color: var(--global-text-color, var(--vb-text-color)) !important;
-  font-family: var(--global-font-family, var(--vb-font-family)) !important;
-  font-size: var(--global-font-size, var(--vb-font-size)) !important;
-}
-
-/* PATTERN-SPECIFIC WRAPPER INHERITANCE */
-/* Stars pattern */
-html body html body html body #__next > div:has(.vb-pattern-stars) {
-  background-image: url("data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%20%20%20%20%20%20%3Cpolygon%20points%3D%2220%2C10%2024%2C18%2030%2C14%2026%2C22%2032%2C30%2020%2C24%208%2C30%2014%2C22%2010%2C14%2016%2C18%22%0A%20%20%20%20%20%20%20%20%20%20fill%3D%22%23ffffff%22%20opacity%3D%220.8%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Cpolygon%20points%3D%2240%2C30%2042%2C33%2045%2C32%2043%2C35%2046%2C38%2040%2C36%2034%2C38%2037%2C35%2035%2C32%2038%2C33%22%0A%20%20%20%20%20%20%20%20%20%20fill%3D%22%23ffd700%22%20opacity%3D%220.48%22%2F%3E%0A%20%20%20%20%20%20%3C%2Fsvg%3E") !important;
-  background-repeat: repeat !important;
-  background-size: 40px 40px !important;
-}
-
-/* Animated stars pattern */
-html body html body html body #__next > div:has(.vb-pattern-stars-animated) {
-  animation: vb-twinkle 3s ease-in-out infinite !important;
-}
 `;
   }
 
