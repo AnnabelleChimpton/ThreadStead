@@ -1,5 +1,6 @@
 // Template compiler types
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
+import type React from 'react';
 
 // Profile mode types (matching Prisma schema)
 export type ProfileMode = 'default' | 'enhanced' | 'advanced';
@@ -28,6 +29,12 @@ export interface Island {
   props: Record<string, any>;
   children?: Island[];
   placeholder: string;
+  // Phase 2: Pre-computed props for faster hydration
+  // Contains props processed at compile-time to avoid runtime processing
+  _precomputed?: {
+    styles: React.CSSProperties; // Pre-computed styles from CSS props
+    componentProps: Record<string, any>; // Component props (CSS props removed)
+  };
 }
 
 // Compiled template result

@@ -4,6 +4,10 @@ import { componentRegistry, validateAndCoerceProps, validateStandardizedProps } 
 import type { Island } from './types';
 import { normalizeVariableName } from '@/lib/templates/state/variable-utils';
 import { normalizeAttributeName } from '@/lib/templates/core/attribute-mappings';
+import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
+import { parseStyleString } from '@/lib/templates/positioning/positioning-utils';
+import { stripPositioningFromStyle } from '@/components/features/templates/visual-builder/canvas-renderer/utils/css-utilities';
+import type React from 'react';
 
 // Generate unique island ID based on component type and path
 export function generateIslandId(componentType: string, path: string[]): string {
@@ -21,6 +25,57 @@ function hashString(str: string): string {
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash).toString(36);
+}
+
+/**
+ * Phase 2: Strip positioning properties from props
+ * This mirrors the logic in HTMLIslandHydration.tsx but is run at compile-time
+ * Removes positioning from both flat props and the style property
+ */
+function stripPositioningFromProps(props: Record<string, any>): Record<string, any> {
+  const {
+    position,
+    top,
+    right,
+    bottom,
+    left,
+    zIndex,
+    ...cleanedProps
+  } = props;
+
+  // Also strip positioning from the style property
+  if (cleanedProps.style) {
+    if (typeof cleanedProps.style === 'string') {
+      // Parse style string, strip positioning, convert back to string
+      const parsedStyle = parseStyleString(cleanedProps.style);
+      const cleanedStyle = stripPositioningFromStyle(parsedStyle) as React.CSSProperties;
+
+      // Convert back to style string (only if there are remaining styles)
+      const styleEntries = Object.entries(cleanedStyle);
+      if (styleEntries.length > 0) {
+        cleanedProps.style = styleEntries
+          .map(([key, value]) => {
+            // Convert camelCase to kebab-case
+            const kebabKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+            return `${kebabKey}: ${value}`;
+          })
+          .join('; ');
+      } else {
+        // No styles left after stripping, remove style property
+        delete cleanedProps.style;
+      }
+    } else if (typeof cleanedProps.style === 'object') {
+      // Style is already an object, strip positioning
+      cleanedProps.style = stripPositioningFromStyle(cleanedProps.style) as React.CSSProperties;
+
+      // Remove style property if empty
+      if (Object.keys(cleanedProps.style).length === 0) {
+        delete cleanedProps.style;
+      }
+    }
+  }
+
+  return cleanedProps;
 }
 
 // Extract positioning data from node properties and standardize it
@@ -268,13 +323,48 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           }
         }
 
-        // Create island configuration with children
+        // PHASE 2: Pre-compute props at compile-time
+        // This moves prop processing from runtime (hydration) to compile-time
+        // Expected: 20-40% faster renders
+        const cleanedIslandProps = positioningData
+          ? stripPositioningFromProps(props as Record<string, any>)
+          : (props as Record<string, any>);
+
+        // Separate CSS props from component props
+        const { cssProps, componentProps: separatedComponentProps } = separateCSSProps(cleanedIslandProps);
+
+        // Convert CSS props to inline styles
+        const generatedStyles = applyCSSProps(cssProps);
+
+        // Handle existing style prop (parse if string, strip positioning)
+        const existingStyle = typeof cleanedIslandProps.style === 'string'
+          ? parseStyleString(cleanedIslandProps.style)
+          : (cleanedIslandProps.style as React.CSSProperties) || {};
+
+        // Strip positioning from existing styles if component has positioning data
+        const shouldStripPositioning = positioningData !== undefined;
+        const cleanedExistingStyle = shouldStripPositioning
+          ? (stripPositioningFromStyle(existingStyle) as React.CSSProperties)
+          : existingStyle;
+
+        // Merge all styles (existing styles + generated styles from CSS props)
+        const finalStyles: React.CSSProperties = {
+          ...cleanedExistingStyle,
+          ...generatedStyles
+        };
+
+        // Create island configuration with children and pre-computed props
         const island: Island = {
           id: islandId,
           component: node.tagName,
           props,
           children: childIslands,
-          placeholder: `<div data-island="${islandId}" data-component="${node.tagName}"></div>`
+          placeholder: `<div data-island="${islandId}" data-component="${node.tagName}"></div>`,
+          // Phase 2: Pre-computed props for faster hydration
+          _precomputed: {
+            styles: finalStyles,
+            componentProps: separatedComponentProps
+          }
         };
 
         islands.push(island);
