@@ -6,6 +6,7 @@ import type { Island } from '@/lib/templates/compilation/compiler';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { componentRegistry } from '@/lib/templates/core/template-registry';
+import { getLoadedComponent } from '@/lib/templates/core/dynamic-registry';
 import { normalizeAttributeName } from '@/lib/templates/core/attribute-mappings';
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 import { getCurrentBreakpoint } from '@/lib/templates/visual-builder/grid-utils';
@@ -587,8 +588,17 @@ export function StaticHTMLWithIslands({
     };
 
     // Helper function to get component from registry
+    // PHASE 1: Try dynamic registry first (preloaded components), then fall back to static registry
     const getComponent = (componentName: string) => {
       try {
+        // First, try to get preloaded component from dynamic registry cache
+        const dynamicComponent = getLoadedComponent(componentName);
+        if (dynamicComponent) {
+          return dynamicComponent;
+        }
+
+        // Fall back to static component registry (for backward compatibility)
+        // This ensures templates still work even if dynamic loading hasn't been enabled
         const registration = componentRegistry.get(componentName);
         if (registration) {
           return registration.component;

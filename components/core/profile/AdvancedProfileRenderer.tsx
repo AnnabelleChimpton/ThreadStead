@@ -12,6 +12,7 @@ import { ToastProvider } from '@/lib/templates/state/ToastProvider';
 import TemplateErrorBoundary from '@/components/features/templates/TemplateErrorBoundary';
 import { useIslandManager } from '@/components/islands/ProfileIslandWrapper';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
+import { preloadTemplateComponents } from '@/lib/templates/core/dynamic-registry';
 
 // Import and re-export types
 export type {
@@ -46,6 +47,7 @@ export default function AdvancedProfileRenderer({
   isInVisualBuilder = false
 }: AdvancedProfileRendererProps) {
   const [isHydrated, setIsHydrated] = useState(false);
+  const [componentsReady, setComponentsReady] = useState(false);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
 
   // Get compiled template from user profile and CSS mode first
@@ -105,19 +107,31 @@ export default function AdvancedProfileRenderer({
     onIslandError?.(error, islandId);
   }, [managerHandleIslandError, onIslandError]);
 
-  // Hydrate islands when component mounts
+  // Hydrate islands when component mounts (WITH DYNAMIC COMPONENT PRELOADING)
   useEffect(() => {
-    if (!isHydrated && compiledTemplate?.staticHTML && islands.length > 0) {
-      try {
-        // Start hydration process
-        setIsHydrated(true);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown hydration error';
-        setHydrationError(errorMessage);
-        onFallback?.(errorMessage);
-      }
+    if (!componentsReady && compiledTemplate?.staticHTML && islands.length > 0) {
+      (async () => {
+        try {
+          // PHASE 1: PRE-LOAD all components used in this template
+          // This loads components dynamically instead of bundling all 128+ components
+          await preloadTemplateComponents(islands);
+
+          // Mark components as ready and start hydration
+          setComponentsReady(true);
+          setIsHydrated(true);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown hydration error';
+          console.error('[AdvancedProfileRenderer] Preload error:', errorMessage);
+          setHydrationError(errorMessage);
+          onFallback?.(errorMessage);
+        }
+      })();
+    } else if (islands.length === 0) {
+      // No islands to preload, mark as ready immediately
+      setComponentsReady(true);
+      setIsHydrated(true);
     }
-  }, [compiledTemplate?.staticHTML, islands.length, isHydrated, onFallback]);
+  }, [compiledTemplate?.staticHTML, islands.length, componentsReady, onFallback]);
 
   // Notify when all islands are ready (FIXED: memoize sizes to prevent infinite loops)
   const loadedCount = useMemo(() => loadedIslands.size, [loadedIslands]);
@@ -139,6 +153,15 @@ export default function AdvancedProfileRenderer({
   // If hydration failed, show fallback
   if (hydrationError) {
     return <AdvancedProfileFallback reason={hydrationError} />;
+  }
+
+  // Wait for components to be preloaded before rendering (prevents premature component access)
+  if (islands.length > 0 && !componentsReady) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-gray-500 text-sm">Loading components...</div>
+      </div>
+    );
   }
 
   return (
