@@ -10,6 +10,7 @@
  */
 
 import type { TemplateVariable, VariableType, VariableConfig } from './TemplateStateProvider';
+import { evaluateExpression, extractVariableNames } from './expression-evaluator';
 
 /**
  * Global Template State Manager Class
@@ -33,6 +34,16 @@ class TemplateStateManager {
   private updateDepth: Map<string, number> = new Map();
   private readonly MAX_UPDATE_DEPTH = 10; // Warning threshold
   private readonly CIRCUIT_BREAKER_DEPTH = 20; // Hard limit to prevent runaway updates
+
+  // P3.1: Stack trace tracking for enhanced cycle debugging (dev mode only)
+  private updateCallStacks: Map<string, string[]> = new Map();
+  private readonly MAX_STACK_HISTORY = 20; // Keep last 20 stacks per variable
+
+  // P3.1: Dependency graph for computed variables
+  // dependencyGraph: varName → Set of variables it depends on
+  private dependencyGraph: Map<string, Set<string>> = new Map();
+  // reverseDependencyGraph: varName → Set of variables that depend on it
+  private reverseDependencyGraph: Map<string, Set<string>> = new Map();
 
   /**
    * Get variable value by name
@@ -71,6 +82,21 @@ class TemplateStateManager {
     // QUICK WIN #4: Track update depth for cycle detection
     const currentDepth = this.updateDepth.get(name) || 0;
 
+    // P3.1: Capture stack trace in dev mode for debugging
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+      const stack = new Error().stack || '';
+      if (!this.updateCallStacks.has(name)) {
+        this.updateCallStacks.set(name, []);
+      }
+      const stacks = this.updateCallStacks.get(name)!;
+      stacks.push(stack);
+
+      // Keep only last N stacks to prevent memory bloat
+      if (stacks.length > this.MAX_STACK_HISTORY) {
+        stacks.shift();
+      }
+    }
+
     // Circuit breaker: prevent runaway updates
     if (currentDepth >= this.CIRCUIT_BREAKER_DEPTH) {
       console.error(
@@ -78,6 +104,23 @@ class TemplateStateManager {
         '\nThis usually indicates a computed variable or action cycle.',
         '\nPlease review your variable dependencies.'
       );
+
+      // P3.1: Show stack trace history when circuit breaker triggers (dev mode)
+      if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+        const stacks = this.updateCallStacks.get(name);
+        if (stacks && stacks.length > 0) {
+          console.error('\n📋 Update call chain (last 5 updates):');
+          stacks.slice(-5).forEach((stack, i) => {
+            console.error(`\n--- Update ${stacks.length - 4 + i} ---`);
+            // Clean up stack trace (remove first 2 lines - Error and TemplateStateManager)
+            const lines = stack.split('\n').slice(2);
+            console.error(lines.slice(0, 8).join('\n')); // Show first 8 frames
+          });
+        }
+        // Clear stacks after logging
+        this.updateCallStacks.delete(name);
+      }
+
       // Reset depth to prevent permanent lockout
       this.updateDepth.set(name, 0);
       return;
@@ -237,27 +280,51 @@ class TemplateStateManager {
 
     this.variables[config.name] = variable;
 
-    // If this is a computed variable, evaluate it immediately
+    // If this is a computed variable, evaluate it immediately AND build dependency graph
+    // P3.1 FIX: Use synchronous evaluation instead of async import
     if (config.type === 'computed' && config.computed) {
-      import('./expression-evaluator').then(({ evaluateExpression }) => {
-        try {
-          const context = Object.fromEntries(
-            Object.entries(this.variables).map(([k, v]) => [k, v.value])
+      try {
+        // P3.1: Build dependency graph
+        const deps = extractVariableNames(config.computed);
+
+        // Store dependencies (what this variable depends on)
+        this.dependencyGraph.set(config.name, new Set(deps));
+
+        // Update reverse graph (what depends on this variable)
+        deps.forEach(dep => {
+          if (!this.reverseDependencyGraph.has(dep)) {
+            this.reverseDependencyGraph.set(dep, new Set());
+          }
+          this.reverseDependencyGraph.get(dep)!.add(config.name);
+        });
+
+        // P3.1: Check for circular dependencies at compile time
+        const cycle = this.detectCircularDependency(config.name);
+        if (cycle) {
+          console.error(
+            `[TemplateStateManager] ⚠️  CIRCULAR DEPENDENCY DETECTED at compile time:\n` +
+            `  ${cycle.join(' → ')}\n` +
+            `  This will cause infinite update loops!`
           );
-
-          const result = evaluateExpression(config.computed!, context);
-
-          this.variables[config.name] = {
-            ...this.variables[config.name],
-            value: result
-          };
-
-          // Notify listeners of the computed value
-          this.listeners.forEach(fn => fn());
-        } catch (error) {
-          console.error(`[TemplateStateManager] Failed to evaluate computed variable "${config.name}" on registration:`, error);
         }
-      });
+
+        // Evaluate the computed expression
+        const context = Object.fromEntries(
+          Object.entries(this.variables).map(([k, v]) => [k, v.value])
+        );
+
+        const result = evaluateExpression(config.computed, context);
+
+        this.variables[config.name] = {
+          ...this.variables[config.name],
+          value: result
+        };
+
+        // Notify listeners of the computed value
+        this.notifyListeners();
+      } catch (error) {
+        console.error(`[TemplateStateManager] Failed to evaluate computed variable "${config.name}" on registration:`, error);
+      }
     }
 
     // Notify listeners of new variable (unless silent mode for internal variables)
@@ -272,6 +339,27 @@ class TemplateStateManager {
   unregisterVariable(name: string): void {
     delete this.variables[name];
     delete this.computedDepsRef[name];
+
+    // P3.1: Clean up dependency graphs
+    const deps = this.dependencyGraph.get(name);
+    if (deps) {
+      // Remove this variable from reverse dependencies
+      deps.forEach(dep => {
+        this.reverseDependencyGraph.get(dep)?.delete(name);
+      });
+    }
+    this.dependencyGraph.delete(name);
+
+    // Remove from reverse graph
+    const dependents = this.reverseDependencyGraph.get(name);
+    if (dependents) {
+      // Remove from dependency graph of variables that depended on this
+      dependents.forEach(dependent => {
+        this.dependencyGraph.get(dependent)?.delete(name);
+      });
+    }
+    this.reverseDependencyGraph.delete(name);
+
     this.notifyListeners();
   }
 
@@ -528,6 +616,7 @@ class TemplateStateManager {
 
   /**
    * Evaluate all computed variables
+   * P3.1 FIX: Use synchronous evaluation instead of async import
    */
   private evaluateComputedVariables(): void {
     const computedVars = Object.entries(this.variables).filter(
@@ -538,39 +627,36 @@ class TemplateStateManager {
       return;
     }
 
-    // Import expression evaluator dynamically
-    import('./expression-evaluator').then(({ evaluateExpression }) => {
-      let hasChanges = false;
+    let hasChanges = false;
 
-      computedVars.forEach(([name, variable]) => {
-        try {
-          // Build context with all variable values
-          const context = Object.fromEntries(
-            Object.entries(this.variables).map(([k, v]) => [k, v.value])
-          );
+    computedVars.forEach(([name, variable]) => {
+      try {
+        // Build context with all variable values
+        const context = Object.fromEntries(
+          Object.entries(this.variables).map(([k, v]) => [k, v.value])
+        );
 
-          // Evaluate the expression
-          const result = evaluateExpression(variable.computed!, context);
+        // Evaluate the expression
+        const result = evaluateExpression(variable.computed!, context);
 
-          // Only update if value changed (prevent infinite loops)
-          if (result !== variable.value) {
-            hasChanges = true;
-            this.variables[name] = {
-              ...variable,
-              value: result
-            };
-          }
-        } catch (error) {
-          console.error(`[TemplateStateManager] Failed to evaluate computed variable "${name}":`, error);
+        // Only update if value changed (prevent infinite loops)
+        if (result !== variable.value) {
+          hasChanges = true;
+          this.variables[name] = {
+            ...variable,
+            value: result
+          };
         }
-      });
-
-      // If any computed variables changed, notify listeners again (but don't loop infinitely)
-      if (hasChanges) {
-        // Notify without triggering another evaluation cycle
-        this.listeners.forEach(fn => fn());
+      } catch (error) {
+        console.error(`[TemplateStateManager] Failed to evaluate computed variable "${name}":`, error);
       }
     });
+
+    // If any computed variables changed, notify listeners again (but don't loop infinitely)
+    if (hasChanges) {
+      // Notify without triggering another evaluation cycle
+      this.listeners.forEach(fn => fn());
+    }
   }
 
   /**
@@ -588,6 +674,52 @@ class TemplateStateManager {
   initialize(initialVariables: Record<string, TemplateVariable> = {}): void {
     this.variables = { ...initialVariables };
     this.notifyListeners();
+  }
+
+  /**
+   * P3.1: Detect circular dependency in computed variables using DFS
+   * Returns cycle path if found, null otherwise
+   *
+   * @param startVar Variable name to check
+   * @returns Array representing the cycle path, or null if no cycle
+   */
+  private detectCircularDependency(startVar: string): string[] | null {
+    const visited = new Set<string>();
+    const path: string[] = [];
+
+    const dfs = (varName: string): boolean => {
+      // Cycle detected - varName appears in current path
+      const cycleIndex = path.indexOf(varName);
+      if (cycleIndex !== -1) {
+        // Return the cycle portion of the path
+        path.push(varName); // Close the cycle
+        return true;
+      }
+
+      // Already fully explored this variable
+      if (visited.has(varName)) {
+        return false;
+      }
+
+      visited.add(varName);
+      path.push(varName);
+
+      // Check all dependencies
+      const deps = this.dependencyGraph.get(varName);
+      if (deps) {
+        for (const dep of deps) {
+          if (dfs(dep)) {
+            return true;
+          }
+        }
+      }
+
+      // No cycle found through this path, backtrack
+      path.pop();
+      return false;
+    };
+
+    return dfs(startVar) ? path : null;
   }
 
   /**
@@ -640,6 +772,44 @@ class TemplateStateManager {
   resetVariableCycleDetection(name: string): void {
     this.updateDepth.delete(name);
   }
+
+  /**
+   * P3.1: Get update history (call stacks) for a variable
+   * Returns array of stack traces for last N updates
+   * Only available in development mode
+   *
+   * @param name Variable name
+   * @returns Array of stack trace strings
+   */
+  getUpdateHistory(name: string): string[] {
+    return this.updateCallStacks.get(name) || [];
+  }
+
+  /**
+   * P3.1: Get all variables that depend on the given variable
+   * Useful for understanding update propagation
+   *
+   * @param varName Variable name
+   * @returns Set of variable names that depend on this variable
+   */
+  getDependents(varName: string): Set<string> {
+    return this.reverseDependencyGraph.get(varName) || new Set();
+  }
+
+  /**
+   * P3.1: Get full dependency graph for all computed variables
+   * Returns map of variable name to array of variables it depends on
+   * Useful for visualization and debugging
+   *
+   * @returns Dependency graph as plain object
+   */
+  getDependencyGraph(): Record<string, string[]> {
+    const graph: Record<string, string[]> = {};
+    for (const [name, deps] of this.dependencyGraph.entries()) {
+      graph[name] = Array.from(deps);
+    }
+    return graph;
+  }
 }
 
 // Create singleton instance
@@ -651,4 +821,254 @@ export { globalTemplateStateManager };
 // Export for debugging
 if (typeof window !== 'undefined') {
   (window as any).__templateState = globalTemplateStateManager;
+
+  // P3.1: Enhanced debug API - ALWAYS AVAILABLE for template creators
+  // Lightweight tools are available in production for users creating templates
+  (window as any).__templateDebug = {
+    // ===== Dependency Graph (Always Available) =====
+    /**
+     * Get full dependency graph
+     * ALWAYS AVAILABLE - helps template creators spot circular dependencies
+     */
+    getDependencyGraph: () => {
+      const graph = globalTemplateStateManager.getDependencyGraph();
+      if (Object.keys(graph).length === 0) {
+        console.log('No computed variables with dependencies');
+        return graph;
+      }
+      console.log('📊 Dependency Graph:');
+      console.table(graph);
+      return graph;
+    },
+
+    /**
+     * Get variables that depend on the given variable
+     * ALWAYS AVAILABLE
+     */
+    getDependents: (name: string) => {
+      const deps = globalTemplateStateManager.getDependents(name);
+      const arr = Array.from(deps);
+      if (arr.length === 0) {
+        console.log(`No variables depend on "${name}"`);
+      } else {
+        console.log(`Variables that depend on "${name}":`, arr);
+      }
+      return deps;
+    },
+
+    /**
+     * Visualize dependency chain (tree view)
+     * ALWAYS AVAILABLE
+     */
+    visualizeDependencyChain: (varName: string) => {
+      const graph = globalTemplateStateManager.getDependencyGraph();
+
+      const buildTree = (name: string, indent = 0, visited = new Set<string>()): string => {
+        // Prevent infinite loops in circular dependencies
+        if (visited.has(name)) {
+          return '  '.repeat(indent) + '└─ ' + name + ' ⚠️  (circular)\n';
+        }
+
+        visited.add(name);
+        const prefix = '  '.repeat(indent) + (indent > 0 ? '└─ ' : '');
+        let result = prefix + name + '\n';
+
+        const deps = graph[name] || [];
+        deps.forEach((dep, i) => {
+          result += buildTree(dep, indent + 1, new Set(visited));
+        });
+
+        return result;
+      };
+
+      const tree = buildTree(varName);
+      console.log(`🌳 Dependency chain for "${varName}":\n${tree}`);
+      return tree;
+    },
+
+    /**
+     * Find ALL circular dependencies in template
+     * ALWAYS AVAILABLE - critical for template creators
+     */
+    findAllCycles: () => {
+      const graph = globalTemplateStateManager.getDependencyGraph();
+      const allVars = Object.keys(graph);
+      const cycles: string[][] = [];
+      const seenCycles = new Set<string>();
+
+      allVars.forEach(varName => {
+        // Try detecting cycle starting from this variable
+        const visited = new Set<string>();
+        const path: string[] = [];
+
+        const dfs = (name: string): boolean => {
+          const cycleIndex = path.indexOf(name);
+          if (cycleIndex !== -1) {
+            // Found a cycle - extract it
+            const cycle = [...path.slice(cycleIndex), name];
+            const cycleKey = cycle.sort().join('→');
+
+            // Only add if we haven't seen this cycle before
+            if (!seenCycles.has(cycleKey)) {
+              seenCycles.add(cycleKey);
+              cycles.push(cycle);
+            }
+            return true;
+          }
+
+          if (visited.has(name)) return false;
+
+          visited.add(name);
+          path.push(name);
+
+          const deps = graph[name] || [];
+          for (const dep of deps) {
+            dfs(dep);
+          }
+
+          path.pop();
+          return false;
+        };
+
+        dfs(varName);
+      });
+
+      if (cycles.length === 0) {
+        console.log('✓ No circular dependencies detected');
+      } else {
+        console.error(`⚠️  Found ${cycles.length} circular dependencies:`);
+        cycles.forEach((cycle, i) => {
+          console.error(`  ${i + 1}. ${cycle.join(' → ')}`);
+        });
+      }
+
+      return cycles;
+    },
+
+    // ===== Runtime Cycle Detection (Always Available) =====
+    /**
+     * Detect variables currently in update cycles
+     * ALWAYS AVAILABLE
+     */
+    detectCycles: () => {
+      const cycles = globalTemplateStateManager.detectCycles();
+      if (cycles.length === 0) {
+        console.log('✓ No active update cycles detected');
+      } else {
+        console.warn(`⚠️  Found ${cycles.length} variable(s) in update cycles:`);
+        cycles.forEach(c => console.warn(`  - ${c}`));
+      }
+      return cycles;
+    },
+
+    /**
+     * Get update depth for a specific variable
+     * ALWAYS AVAILABLE
+     */
+    getUpdateDepth: (name: string) => {
+      const depth = globalTemplateStateManager.getUpdateDepth(name);
+      console.log(`Update depth for "${name}": ${depth}`);
+      return depth;
+    },
+
+    /**
+     * Get all variables and their current update depths
+     * ALWAYS AVAILABLE
+     */
+    getAllUpdateDepths: () => {
+      const depths = globalTemplateStateManager.getAllUpdateDepths();
+      const obj = Object.fromEntries(depths);
+      console.table(obj);
+      return obj;
+    },
+
+    /**
+     * Reset cycle detection for all variables
+     * ALWAYS AVAILABLE
+     */
+    resetCycleDetection: () => {
+      globalTemplateStateManager.resetCycleDetection();
+      console.log('✓ Cycle detection reset for all variables');
+    },
+
+    // ===== Helper =====
+    /**
+     * Show help message
+     * ALWAYS AVAILABLE
+     */
+    help: () => {
+      const isDev = typeof process !== 'undefined' && process.env.NODE_ENV === 'development';
+      console.log(`
+%c🔧 Threadstead Template Debug Tools%c
+
+%cDependency Graph:%c
+  getDependencyGraph()         - View full dependency graph
+  getDependents(name)          - See what depends on a variable
+  visualizeDependencyChain(name) - Tree view of dependencies
+  findAllCycles()              - Find ALL circular dependencies
+
+%cCycle Detection:%c
+  detectCycles()               - Find variables in active update cycles
+  getUpdateDepth(name)         - Get update depth for a variable
+  getAllUpdateDepths()         - View all update depths
+  resetCycleDetection()        - Reset cycle counters
+${isDev ? `
+%cStack Traces (Dev Mode Only):%c
+  getUpdateHistory(name)       - View update call stacks for variable
+` : ''}
+%cQuick Start:%c
+  window.__templateDebug.findAllCycles()
+  window.__templateDebug.getDependencyGraph()
+  window.__templateDebug.detectCycles()
+      `,
+        'color: #4CAF50; font-weight: bold; font-size: 14px',
+        '',
+        'color: #2196F3; font-weight: bold',
+        '',
+        'color: #2196F3; font-weight: bold',
+        '',
+        isDev ? 'color: #2196F3; font-weight: bold' : '',
+        isDev ? '' : '',
+        'color: #FF9800; font-weight: bold',
+        ''
+      );
+    }
+  };
+
+  // P3.1: Stack traces - DEV MODE ONLY (performance overhead)
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+    /**
+     * Show update history (stack traces) for a variable
+     * DEV MODE ONLY - has performance overhead
+     */
+    (window as any).__templateDebug.getUpdateHistory = (name: string) => {
+      const stacks = globalTemplateStateManager.getUpdateHistory(name);
+      if (stacks.length === 0) {
+        console.log(`No update history for "${name}"`);
+        return [];
+      }
+      console.log(`📋 Update history for "${name}" (${stacks.length} updates):`);
+      stacks.forEach((stack, i) => {
+        console.log(`\n--- Update ${i + 1} of ${stacks.length} ---`);
+        // Clean up stack (remove first 2 lines)
+        const lines = stack.split('\n').slice(2);
+        console.log(lines.slice(0, 8).join('\n'));
+      });
+      return stacks;
+    };
+
+    // Friendly console banner (dev mode)
+    console.log(
+      '%c[Threadstead Debug]',
+      'color: #4CAF50; font-weight: bold',
+      'Template state debugging available. Type window.__templateDebug.help() for commands'
+    );
+  } else {
+    // Production banner - still helpful for template creators
+    console.log(
+      '%c[Threadstead]',
+      'color: #4CAF50; font-weight: bold',
+      'Template debugging tools available. Type window.__templateDebug.help() for commands'
+    );
+  }
 }

@@ -29,6 +29,9 @@ export class TemplateCompiler {
   ): Promise<CompilationResult> {
     const compilationOptions = { ...this.defaultOptions, ...options };
 
+    // Track compilation performance
+    const startTime = performance.now();
+
     // P1.2: Clear expression caches on new compilation
     clearExpressionCaches();
 
@@ -62,6 +65,17 @@ export class TemplateCompiler {
       }
     }
     
+    // Track and log performance metrics
+    const endTime = performance.now();
+    const compilationTime = endTime - startTime;
+
+    if (process.env.NODE_ENV === 'development' && compilationTime > 100) {
+      console.warn(
+        `[TemplateCompiler] Slow compilation: ${compilationTime.toFixed(0)}ms for ` +
+        `template with ${result.compiled?.islands.length || 0} islands`
+      );
+    }
+
     return {
       ...result,
       warnings: [...(result.warnings || []), ...validation.warnings]

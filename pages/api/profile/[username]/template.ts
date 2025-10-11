@@ -7,6 +7,7 @@ import { identifyIslandsWithTransform } from '@/lib/templates/compilation/compil
 import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer';
 import { stripNavigationFromTemplate } from '@/lib/templates/utils/navigation-stripper';
 import { parseTemplateError, formatTemplateErrorForAPI } from '@/lib/templates/errors/template-error-handler';
+import { getCompiledTemplateWithMetrics, getCacheStats } from '@/lib/templates/compilation/template-cache';
 
 import { SITE_NAME } from '@/lib/config/site/constants';
 
@@ -88,28 +89,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const positioningMatches = cleanedTemplate.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
       }
 
-      // Compile the template using our fixed compilation pipeline
+      // Compile the template using cached compilation pipeline
       let compiledResult;
       try {
-        // Parse the template AST (using cleaned template)
-        const parseResult = compileTemplate(cleanedTemplate);
+        const startTime = performance.now();
 
-        if (!parseResult.success) {
-          console.error('Template compilation failed:', parseResult.errors);
+        // Use cached compilation wrapper - this will hit cache on repeat saves
+        const { ast, islands, staticHTML } = await getCompiledTemplateWithMetrics(
+          cleanedTemplate,
+          async () => {
+            // This function only runs on cache MISS (first compilation)
 
-          // Parse and format the error for users
-          const firstError = parseResult.errors?.[0] || 'Template compilation failed';
-          const templateError = parseTemplateError(firstError);
-          const formattedError = formatTemplateErrorForAPI(templateError);
+            // Parse the template AST (using cleaned template)
+            const parseResult = compileTemplate(cleanedTemplate);
 
-          return res.status(400).json(formattedError);
+            if (!parseResult.success) {
+              console.error('Template compilation failed:', parseResult.errors);
+
+              // Parse and format the error for users
+              const firstError = parseResult.errors?.[0] || 'Template compilation failed';
+              const templateError = parseTemplateError(firstError);
+              const formattedError = formatTemplateErrorForAPI(templateError);
+
+              // Throw error to prevent caching failed compilations
+              throw new Error(JSON.stringify(formattedError));
+            }
+
+            // Detect islands (components) in the template using the AST
+            const islandResult = identifyIslandsWithTransform(parseResult.ast!);
+
+            // Generate static HTML with component placeholders
+            const staticHTML = generateStaticHTML(islandResult.transformedAst, islandResult.islands);
+
+            return {
+              ast: islandResult.transformedAst,
+              islands: islandResult.islands,
+              staticHTML
+            };
+          }
+        );
+
+        const endTime = performance.now();
+        const totalTime = endTime - startTime;
+
+        // Log performance in development
+        if (process.env.NODE_ENV === 'development') {
+          const stats = getCacheStats();
+          console.log(`[TemplateAPI] Compilation completed in ${totalTime.toFixed(0)}ms`);
+          console.log(`[TemplateAPI] Cache stats: ${JSON.stringify(stats)}`);
         }
-
-        // Detect islands (components) in the template using the AST
-        const islandResult = identifyIslandsWithTransform(parseResult.ast!);
-
-        // Generate static HTML with component placeholders
-        const staticHTML = generateStaticHTML(islandResult.transformedAst, islandResult.islands);
 
         // Debug: Check positioning data in final static HTML
         const hasPositioningInStaticHTML = staticHTML.includes('data-positioning-mode') ||
@@ -119,23 +147,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (hasPositioningInTemplate && !hasPositioningInStaticHTML) {
           console.error('🚨 [TEMPLATE_SAVE_API] POSITIONING DATA LOST during compilation!');
         }
-        
+
         // Create compiled result structure that matches what the renderer expects
         compiledResult = {
-          mode: 'advanced',
+          mode: 'advanced' as const,
           staticHTML: staticHTML,
-          islands: islandResult.islands,
+          islands: islands,
           fallback: undefined,
           compiledAt: new Date(),
           errors: [],
           warnings: [],
           // Keep additional data for compatibility
-          ast: islandResult.transformedAst,
-          validation: parseResult.validation
+          ast: ast
         };
-        
+
       } catch (compileError) {
         console.error('Template compilation failed:', compileError);
+
+        // Check if error is already formatted (from cache function)
+        try {
+          const parsedError = JSON.parse((compileError as Error).message);
+          if (parsedError.error) {
+            return res.status(400).json(parsedError);
+          }
+        } catch {
+          // Not a JSON error, handle normally
+        }
 
         // Parse and format the error for users
         const templateError = parseTemplateError(compileError as Error);
