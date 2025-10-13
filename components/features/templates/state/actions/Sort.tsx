@@ -14,7 +14,7 @@ import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateM
  *
  * @example
  * ```xml
- * <!-- Sort by property ascending -->
+ * <!-- Static sort order -->
  * <Button>
  *   <OnClick>
  *     <Sort var="products" target="sorted" by="item.price" order="asc" />
@@ -29,6 +29,16 @@ import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateM
  *   </OnClick>
  *   Sort by Name Length
  * </Button>
+ *
+ * <!-- Dynamic sort order from variable -->
+ * <Var name="sortOrder" type="string" initial="asc" />
+ * <RadioGroup var="sortOrder">
+ *   <OnChange>
+ *     <Sort var="products" target="sorted" by="item.price" order-var="sortOrder" />
+ *   </OnChange>
+ *   <Radio value="asc">Ascending</Radio>
+ *   <Radio value="desc">Descending</Radio>
+ * </RadioGroup>
  * ```
  */
 
@@ -44,6 +54,9 @@ export interface SortProps {
 
   /** Sort order: 'asc' (ascending) or 'desc' (descending) */
   order?: 'asc' | 'desc';
+
+  /** Variable name containing sort order (alternative to order prop for dynamic sorting) */
+  'order-var'?: string;
 
   /** Internal: Visual builder mode flag */
   __visualBuilder?: boolean;
@@ -92,15 +105,30 @@ export function executeSortAction(
 ): void {
   const { var: varName, target, by, order = 'asc' } = props;
 
+  // Check for order-var in multiple forms (order-var, orderVar)
+  const orderVar = (props as any)['order-var'] || (props as any)['orderVar'];
+
   // Validate required props
   if (!varName || !target || !by) {
     console.error('[Sort] Missing required props: var, target, and by are required');
     return;
   }
 
-  // Validate order
-  if (order !== 'asc' && order !== 'desc') {
-    console.error(`[Sort] Invalid order "${order}". Must be "asc" or "desc"`);
+  // Resolve order: prioritize order-var, fallback to order prop
+  let resolvedOrder: 'asc' | 'desc' = 'asc';
+
+  if (orderVar) {
+    // Use order-var prop (variable name)
+    const orderValue = globalTemplateStateManager.getVariable(orderVar);
+    resolvedOrder = (orderValue === 'desc' ? 'desc' : 'asc');
+  } else {
+    // Use order prop (literal value)
+    resolvedOrder = (order === 'desc' ? 'desc' : 'asc');
+  }
+
+  // Validate resolved order
+  if (resolvedOrder !== 'asc' && resolvedOrder !== 'desc') {
+    console.error(`[Sort] Invalid order "${resolvedOrder}". Must be "asc" or "desc"`);
     return;
   }
 
@@ -125,7 +153,7 @@ export function executeSortAction(
 
   try {
     // Sort array
-    const sorted = sortArray(sourceArray, by, order, context);
+    const sorted = sortArray(sourceArray, by, resolvedOrder, context);
 
     // Register target variable if it doesn't exist
     if (!templateState.variables[target]) {

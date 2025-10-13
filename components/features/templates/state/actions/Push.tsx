@@ -83,6 +83,14 @@ export function executePushAction(
 ): void {
   const { var: varName, value, expression } = props;
 
+  // DEFENSIVE: Check if varName is valid
+  if (!varName || typeof varName !== 'string') {
+    console.error('[Push] Missing or invalid "var" prop:', varName);
+    console.error('[Push] Did you mean var="..." instead of array="..."?');
+    console.error('[Push] Component props:', props);
+    return;
+  }
+
   // Support both value and expression props (expression takes precedence)
   const actualValue = expression ?? value;
 

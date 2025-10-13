@@ -336,6 +336,7 @@ export function evaluateLogical(
 export interface ConditionConfig {
   // Data path to evaluate
   data?: string;
+  condition?: string; // Alias for data (more intuitive prop name)
 
   // Simple condition expression
   when?: string;
@@ -374,23 +375,28 @@ export function evaluateFullCondition(
   scopeId?: string
 ): boolean {
 
-  // Priority 1: Logical operators (AND/OR/NOT)
+  // Accumulate all condition checks (allows combining and/or with comparisons)
+  const conditionResults: boolean[] = [];
+
+  // Check 1: Logical AND operator (all variables must be truthy)
   if (config.and) {
     const conditions = typeof config.and === 'string'
       ? config.and.split(',').map(s => s.trim())
       : config.and;
     const result = evaluateLogical({ and: conditions }, data, scopeId);
-    return result;
+    conditionResults.push(result);
   }
 
+  // Check 2: Logical OR operator (at least one variable must be truthy)
   if (config.or) {
     const conditions = typeof config.or === 'string'
       ? config.or.split(',').map(s => s.trim())
       : config.or;
     const result = evaluateLogical({ or: conditions }, data, scopeId);
-    return result;
+    conditionResults.push(result);
   }
 
+  // Check 3: NOT operator (standalone or as modifier)
   // PHASE 4 FIX: Handle "not" as a boolean modifier for data attribute
   // If not is empty string with data, it's a negation modifier: <Show data="email_valid" not>
   if (config.not !== undefined && config.not === '' && config.data) {
@@ -404,27 +410,26 @@ export function evaluateFullCondition(
       }
     }
     const value = getNestedValue(data, dataPath, scopeId);
-    return !isTruthy(value);
+    conditionResults.push(!isTruthy(value));
   }
-
   // Otherwise, not is a logical operator with a path
-  if (config.not) {
+  else if (config.not) {
     const result = evaluateLogical({ not: config.not }, data, scopeId);
-    return result;
+    conditionResults.push(result);
   }
 
-  // Priority 2: Simple condition expression
+  // Check 4: Simple condition expression
   if (config.when) {
     const result = evaluateCondition(config.when, data, scopeId);
-    return result;
+    conditionResults.push(result);
   }
 
-  // Priority 3: Data-based conditions
-  if (config.data) {
+  // Check 5: Data-based conditions with comparison operators
+  if (config.data || config.condition) {
     // PHASE 4 FIX: Auto-prefix template variables if not already prefixed
-    let dataPath = config.data;
+    let dataPath = config.data || config.condition;
 
-    if (!dataPath.includes('.') && !dataPath.startsWith('$vars.')) {
+    if (dataPath && !dataPath.includes('.') && !dataPath.startsWith('$vars.')) {
       // Check if this is a template variable
       const templateState = getGlobalTemplateState();
       if (templateState && templateState.variables[dataPath]) {
@@ -432,73 +437,71 @@ export function evaluateFullCondition(
       }
     }
 
-    const value = getNestedValue(data, dataPath, scopeId);
+    const value = dataPath ? getNestedValue(data, dataPath, scopeId) : undefined;
 
-    // Comparison operators (in order of specificity)
+    // Check for comparison operators (push result to array instead of returning)
     if (config.notEquals !== undefined) {
-      const result = compare(value, 'notEquals', config.notEquals);
-      return result;
+      conditionResults.push(compare(value, 'notEquals', config.notEquals));
     }
-    if (config.greaterThanOrEqual !== undefined) {
-      const result = compare(value, 'greaterThanOrEqual', config.greaterThanOrEqual);
-      return result;
+    else if (config.greaterThanOrEqual !== undefined) {
+      conditionResults.push(compare(value, 'greaterThanOrEqual', config.greaterThanOrEqual));
     }
-    if (config.lessThanOrEqual !== undefined) {
-      const result = compare(value, 'lessThanOrEqual', config.lessThanOrEqual);
-      return result;
+    else if (config.lessThanOrEqual !== undefined) {
+      conditionResults.push(compare(value, 'lessThanOrEqual', config.lessThanOrEqual));
     }
-    if (config.greaterThan !== undefined) {
-      const result = compare(value, 'greaterThan', config.greaterThan);
-      return result;
+    else if (config.greaterThan !== undefined) {
+      conditionResults.push(compare(value, 'greaterThan', config.greaterThan));
     }
-    if (config.lessThan !== undefined) {
-      const result = compare(value, 'lessThan', config.lessThan);
-      return result;
+    else if (config.lessThan !== undefined) {
+      conditionResults.push(compare(value, 'lessThan', config.lessThan));
     }
-    if (config.contains !== undefined) {
-      const result = compare(value, 'contains', config.contains);
-      return result;
+    else if (config.contains !== undefined) {
+      conditionResults.push(compare(value, 'contains', config.contains));
     }
-    if (config.startsWith !== undefined) {
-      const result = compare(value, 'startsWith', config.startsWith);
-      return result;
+    else if (config.startsWith !== undefined) {
+      conditionResults.push(compare(value, 'startsWith', config.startsWith));
     }
-    if (config.endsWith !== undefined) {
-      const result = compare(value, 'endsWith', config.endsWith);
-      return result;
+    else if (config.endsWith !== undefined) {
+      conditionResults.push(compare(value, 'endsWith', config.endsWith));
     }
-    if (config.matches !== undefined) {
-      const result = compare(value, 'matches', config.matches);
-      return result;
+    else if (config.matches !== undefined) {
+      conditionResults.push(compare(value, 'matches', config.matches));
     }
-    if (config.equals !== undefined) {
-      const result = compare(value, 'equals', config.equals);
-      return result;
+    else if (config.equals !== undefined) {
+      conditionResults.push(compare(value, 'equals', config.equals));
     }
-
     // Existence check
-    if (config.exists !== undefined) {
+    else if (config.exists !== undefined) {
       if (typeof config.exists === 'boolean') {
-        return exists(value) === config.exists;
+        conditionResults.push(exists(value) === config.exists);
       }
       // Legacy: exists as empty string with data prop means check if data value exists
-      if (config.exists === '' && config.data) {
-        return exists(value);
+      else if (config.exists === '' && config.data) {
+        conditionResults.push(exists(value));
       }
       // Legacy: exists as string means check that path
-      const existsValue = getNestedValue(data, config.exists as string, scopeId);
-      return exists(existsValue);
+      else {
+        const existsValue = getNestedValue(data, config.exists as string, scopeId);
+        conditionResults.push(exists(existsValue));
+      }
     }
-
-    // Default: truthy check
-    return isTruthy(value);
+    // Default: truthy check (only if no other conditions present)
+    else if (conditionResults.length === 0) {
+      conditionResults.push(isTruthy(value));
+    }
   }
 
-  // Priority 4: Standalone existence check
-  if (config.exists && typeof config.exists === 'string') {
+  // Check 6: Standalone existence check
+  if (config.exists && typeof config.exists === 'string' && !config.data && !config.condition) {
     const value = getNestedValue(data, config.exists, scopeId);
-    return exists(value);
+    conditionResults.push(exists(value));
   }
 
-  return false;
+  // Return true only if ALL accumulated conditions are true (AND logic)
+  // If no conditions were evaluated, return false
+  if (conditionResults.length === 0) {
+    return false;
+  }
+
+  return conditionResults.every(result => result === true);
 }

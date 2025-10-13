@@ -19,7 +19,7 @@ export default function RetroFooter({ isCSSPage= false }: RetroFooterProps) {
           </p>
           
           {!isCSSPage ? (
-            <Link 
+            <Link
               href="/design-tutorial?category=css-classes"
               className="inline-flex items-center px-8 py-4 bg-purple-400 text-black font-black text-lg border-4 border-black shadow-[4px_4px_0_#000] hover:bg-purple-300 hover:shadow-[6px_6px_0_#000] transform hover:-translate-x-1 hover:-translate-y-1 transition-all"
             >
@@ -27,10 +27,10 @@ export default function RetroFooter({ isCSSPage= false }: RetroFooterProps) {
             </Link>
             ) : (
             <Link
-              href="/design-tutorial?category=content"
+              href="/templates/components?filter=visual-builder"
               className="inline-flex items-center px-8 py-4 bg-purple-400 text-black font-black text-lg border-4 border-black shadow-[4px_4px_0_#000] hover:bg-purple-300 hover:shadow-[6px_6px_0_#000] transform hover:-translate-x-1 hover:-translate-y-1 transition-all"
             >
-              📝 COMPONENT TEMPLATES GUIDE
+              📚 BROWSE ALL COMPONENTS
             </Link>
             )}
         </div>

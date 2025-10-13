@@ -1,34 +1,47 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { evaluateFullCondition, type ConditionConfig } from '@/lib/templates/conditional/condition-evaluator';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
+import { useTemplateStateWithDeps } from '@/lib/templates/state/TemplateStateProvider';
 
 /**
- * If Component - Conditional action execution
+ * If Component - Universal conditional component
  *
- * IMPORTANT: This is NOT the same as <Show>!
- * - <Show> controls rendering (display vs hide)
- * - <If> controls action execution (inside event handlers like OnClick)
- *
- * The If component only executes its child actions if the condition evaluates to true.
+ * Works in TWO contexts:
+ * 1. Conditional Rendering - Show/hide content based on conditions
+ * 2. Conditional Actions - Execute actions inside event handlers (OnClick, etc.)
  *
  * @example
  * ```xml
- * <button>
+ * <!-- Conditional Rendering -->
+ * <If condition="isLoggedIn">
+ *   <p>Welcome back!</p>
+ * </If>
+ *
+ * <!-- Conditional Actions -->
+ * <Button>
  *   <OnClick>
- *     <If condition="$vars.counter" lessThan="10">
+ *     <If condition="counter < 10">
  *       <Increment var="counter" />
  *     </If>
- *     <ElseIf condition="$vars.counter" equals="10">
+ *   </OnClick>
+ * </Button>
+ *
+ * <!-- If/ElseIf/Else chains (actions only) -->
+ * <Button>
+ *   <OnClick>
+ *     <If condition="counter < 10">
+ *       <Increment var="counter" />
+ *     </If>
+ *     <ElseIf condition="counter == 10">
  *       <Set var="counter" value="0" />
- *       <ShowToast message="Reset!" />
  *     </ElseIf>
  *     <Else>
  *       <ShowToast message="Max reached!" />
  *     </Else>
  *   </OnClick>
- * </button>
+ * </Button>
  * ```
  */
 
@@ -36,6 +49,7 @@ export interface IfProps {
   // Data path to check (used with operators or for truthy check)
   condition?: string;
   data?: string; // Alias for condition
+  when?: string; // Alternative alias
 
   // Comparison operators
   equals?: string;
@@ -59,7 +73,10 @@ export interface IfProps {
   or?: string | string[];
   not?: string;
 
-  // Action components to execute if condition is true
+  // Internal: Scoped variable resolution (injected by ForEach)
+  scopeId?: string;
+
+  // Content to render or actions to execute if condition is true
   children?: React.ReactNode;
 
   /** Internal: Visual builder mode flag */
@@ -67,19 +84,102 @@ export interface IfProps {
   _isInVisualBuilder?: boolean;
 }
 
+/**
+ * PHASE 1.1: Extract variable names from condition strings
+ * Finds all $vars.variableName references in the condition
+ */
+function extractVariableDependencies(props: IfProps): string[] {
+  const deps = new Set<string>();
+  const varRegex = /\$vars\.([a-zA-Z0-9_-]+)/g;
+
+  // Check all string props for variable references
+  const propsToCheck = [
+    props.when,
+    props.data,
+    props.condition,
+    props.equals,
+    props.notEquals,
+    props.contains,
+    props.startsWith,
+    props.endsWith,
+    props.matches,
+    props.not,
+    ...(Array.isArray(props.and) ? props.and : props.and ? [props.and] : []),
+    ...(Array.isArray(props.or) ? props.or : props.or ? [props.or] : [])
+  ];
+
+  for (const prop of propsToCheck) {
+    if (typeof prop === 'string') {
+      let match;
+      while ((match = varRegex.exec(prop)) !== null) {
+        deps.add(match[1]); // Add variable name without $vars. prefix
+      }
+    }
+  }
+
+  return Array.from(deps);
+}
+
 export default function If(props: IfProps) {
   const {
     children,
     __visualBuilder,
     _isInVisualBuilder,
+    scopeId,
+    condition,
+    data,
+    when,
     ...conditionProps
   } = props;
 
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
+  const residentData = useResidentData();
+
+  // PHASE 1.1: Extract variable dependencies and use selective subscription
+  const dependencies = useMemo(() => extractVariableDependencies(props), [
+    props.when,
+    props.data,
+    props.condition,
+    props.equals,
+    props.notEquals,
+    props.contains,
+    props.startsWith,
+    props.endsWith,
+    props.matches,
+    props.not,
+    props.and,
+    props.or
+  ]);
+
+  const templateState = useTemplateStateWithDeps(dependencies);
+
+  // P1.4: Memoize condition config building to avoid recreating on every render
+  const config: ConditionConfig = useMemo(() => ({
+    ...(condition || data || when ? { data: condition || data || when } : {}),
+    ...conditionProps
+  } as ConditionConfig), [
+    condition,
+    data,
+    when,
+    conditionProps.equals,
+    conditionProps.notEquals,
+    conditionProps.greaterThan,
+    conditionProps.lessThan,
+    conditionProps.greaterThanOrEqual,
+    conditionProps.lessThanOrEqual,
+    conditionProps.contains,
+    conditionProps.startsWith,
+    conditionProps.endsWith,
+    conditionProps.matches,
+    conditionProps.exists,
+    conditionProps.and,
+    conditionProps.or,
+    conditionProps.not
+  ]);
 
   // Visual builder mode - show indicator
   if (isVisualBuilder) {
-    const conditionDisplay = props.condition || props.data || 'condition';
+    const conditionDisplay = props.condition || props.data || props.when || 'condition';
     const operators = [];
     if (props.equals) operators.push(`== ${props.equals}`);
     if (props.notEquals) operators.push(`!= ${props.notEquals}`);
@@ -100,9 +200,15 @@ export default function If(props: IfProps) {
     );
   }
 
-  // Normal mode - component doesn't render
-  // Condition evaluation happens in parent event handler
-  return null;
+  // Normal mode - evaluate condition and render conditionally
+  // Evaluate condition using centralized engine
+  // Pass scopeId for ForEach loop variable resolution
+  const shouldShow = evaluateFullCondition(config, residentData, scopeId);
+
+  // Return children if condition is true, null otherwise
+  // NOTE: ActionExecutor will still intercept If components inside event handlers
+  // and handle them specially for If/ElseIf/Else chains
+  return shouldShow ? <>{children}</> : null;
 }
 
 /**

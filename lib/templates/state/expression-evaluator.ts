@@ -99,8 +99,14 @@ export function evaluateExpression(
     return undefined;
   }
 
-  // P1.2: Check if expression is pure (no variables)
-  const isPure = !expression.includes('$vars');
+  // P1.2: Check if expression is pure (no variables at all)
+  // CRITICAL: An expression is only pure if it has NO variables, including:
+  // - $vars.* template variables
+  // - Context variables like 'item', 'index', 'i' (used in collection operations)
+  // Only literals and constants are pure (e.g., "5 + 10", "true", "'hello'")
+  const hasDollarVars = expression.includes('$vars');
+  const hasContextVars = /\b(item|index|i)\b/.test(expression);
+  const isPure = !hasDollarVars && !hasContextVars && Object.keys(context).length === 0;
 
   // P1.2: For pure expressions, check result cache first
   if (isPure) {
@@ -306,39 +312,87 @@ export function evaluateExpression(
   function evaluateCallExpression(node: jsep.CallExpression, ctx: EvaluationContext): any {
     const { callee, arguments: args } = node;
 
-    // Get function name
-    let funcName: string;
-    if (callee.type === 'Identifier') {
-      funcName = (callee as jsep.Identifier).name;
-    } else if (callee.type === 'MemberExpression') {
+    // Handle member expression calls (object.method())
+    if (callee.type === 'MemberExpression') {
       const memberExpr = callee as jsep.MemberExpression;
-      const objectName = (memberExpr.object as jsep.Identifier).name;
+
+      // Evaluate the object first
+      const objectValue = evaluateNode(memberExpr.object, ctx);
+
+      // DEFENSIVE: If object is undefined/null, return undefined gracefully
+      if (objectValue === undefined || objectValue === null) {
+        const objectName = (memberExpr.object as any).name || 'unknown';
+        console.warn(
+          `[Expression] Cannot call method on ${objectValue === null ? 'null' : 'undefined'} object.`,
+          `Object: ${objectName}`,
+          `Did you mean to use $vars.${objectName}?`
+        );
+        return undefined;
+      }
+
+      // Get property/method name
       const propertyName = (memberExpr.property as jsep.Identifier).name;
-      funcName = `${objectName}.${propertyName}`;
-    } else {
-      throw new Error('Unsupported function call type');
+      const method = objectValue[propertyName];
+
+      // DEFENSIVE: Method doesn't exist on object
+      if (typeof method !== 'function') {
+        console.warn(`[Expression] Method '${propertyName}' not found on object:`, objectValue);
+        return undefined;
+      }
+
+      // Evaluate arguments
+      const evaluatedArgs = args.map(arg => evaluateNode(arg, ctx));
+
+      // Try to call the native method (string/array methods are safe)
+      try {
+        return method.apply(objectValue, evaluatedArgs);
+      } catch (error) {
+        console.warn(`[Expression] Error calling ${propertyName}():`, error);
+        return undefined;
+      }
     }
 
-    // Check if function is allowed
-    if (!ALLOWED_FUNCTIONS.has(funcName)) {
-      throw new Error(`Function '${funcName}' is not allowed`);
+    // Handle direct function calls (Math.round, Number, etc.)
+    if (callee.type === 'Identifier') {
+      const funcName = (callee as jsep.Identifier).name;
+
+      // Check if function is allowed
+      if (!ALLOWED_FUNCTIONS.has(funcName)) {
+        // Provide helpful error messages for common mistakes
+        if (funcName === 'Get') {
+          console.error(`[Expression] Function 'Get' is not available in expressions. Use array indexing instead: $vars.array[$vars.index]`);
+          return undefined;
+        }
+        if (funcName === 'Filter' || funcName === 'Find' || funcName === 'Sort' || funcName === 'Transform') {
+          console.error(`[Expression] Function '${funcName}' is not available in expressions. Use it as an action component instead.`);
+          return undefined;
+        }
+        console.error(`[Expression] Function '${funcName}' is not allowed. Only Math functions (round, floor, ceil, min, max, abs, sqrt, pow) and type conversions (Number, String, Boolean) are supported.`);
+        return undefined;
+      }
+
+      // Get function
+      const func = ALLOWED_FUNCTIONS.get(funcName);
+      if (!func) {
+        console.error(`[Expression] Function '${funcName}' not found`);
+        return undefined;
+      }
+
+      // Evaluate arguments
+      const evaluatedArgs = args.map(arg => evaluateNode(arg, ctx));
+
+      // Call function
+      try {
+        return func(...evaluatedArgs);
+      } catch (error) {
+        console.error(`[Expression] Error calling ${funcName}:`, error);
+        return undefined;
+      }
     }
 
-    // Get function
-    const func = ALLOWED_FUNCTIONS.get(funcName);
-    if (!func) {
-      throw new Error(`Function '${funcName}' not found`);
-    }
-
-    // Evaluate arguments
-    const evaluatedArgs = args.map(arg => evaluateNode(arg, ctx));
-
-    // Call function
-    try {
-      return func(...evaluatedArgs);
-    } catch (error) {
-      throw new Error(`Error calling ${funcName}: ${error}`);
-    }
+    // Unsupported call type
+    console.error('[Expression] Unsupported function call type');
+    return undefined;
   }
 
   /**

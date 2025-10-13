@@ -109,26 +109,6 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
   // Icon mapping for navigation items
   const getItemIcon = (label: string): string => {
     const iconMap: { [key: string]: string } = {
-      // My Space items
-      'Bookmarks': '🔖',
-      'Feed': '📰',
-      'My Pixel Home': '🏠',
-      'My Profile': '👤',
-
-      // Explore items
-      'All Homes': '🏘️',
-      'Recent Activity': '⚡',
-      'Directory': '📚',
-      'ThreadRings': '💍',
-      'The Spool': '🧵',
-      'Genealogy': '🌳',
-      'Community Index': '📋',
-      'Engagement': '💬',
-
-      // Help items
-      'Getting Started': '🚀',
-      'Design Tutorial': '🎨',
-      'Design CSS Tutorial': '💻'
     };
     return iconMap[label] || '•';
   };
@@ -304,7 +284,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 setActiveDropdown={setActiveDropdown}
                 items={[
                   { href: "/getting-started", label: "Getting Started" },
-                  { href: "/design-tutorial", label: "Design Tutorial" },
+                  { href: "/templates", label: "Templates" },
                   ...(helpPages.length > 0 ? [{ href: `/page/${helpPages[0].slug}`, label: "FAQ" }] : []) // First help page as FAQ
                 ]}
               />
@@ -517,16 +497,14 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                     className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span>🚀</span>
                     <span>Getting Started</span>
                   </Link>
                   <Link
-                    href="/design-tutorial"
+                    href="/templates"
                     className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span>🎨</span>
-                    <span>Design Tutorial</span>
+                    <span>Templates</span>
                   </Link>
                   {helpPages.length > 0 && (
                     <Link

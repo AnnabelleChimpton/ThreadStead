@@ -407,7 +407,8 @@ export function registerActionComponents(registry: ComponentRegistry) {
       var: { type: 'string', required: true },
       target: { type: 'string', required: true },
       by: { type: 'string', required: true },
-      order: { type: 'enum', values: ['asc', 'desc'], default: 'asc' }
+      order: { type: 'enum', values: ['asc', 'desc'], default: 'asc' },
+      'order-var': { type: 'string' }
     },
     relationship: {
       type: 'action',

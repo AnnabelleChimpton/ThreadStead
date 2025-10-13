@@ -3,49 +3,13 @@ import React from 'react';
 export const componentCategories = [
   {
     id: 'visual-builder',
-    title: 'Visual Builder',
+    title: 'Visual Builder Tutorials',
     icon: '🎨',
     description: 'Learn to use our flagship drag-and-drop builder with professional workflow features'
   },
   {
-    id: 'retro-components',
-    title: 'Retro Components',
-    icon: '📺',
-    description: 'Unique retro components including CRT monitors, VHS tapes, arcade buttons, and more'
-  },
-  {
-    id: 'content',
-    title: 'Content',
-    icon: 'Content',
-    description: 'Display your personal information, posts, and media with style'
-  },
-  {
-    id: 'layout',
-    title: 'Layout',
-    icon: 'Layout',
-    description: 'Structure and organize your content with flexible containers'
-  },
-  {
-    id: 'visual',
-    title: 'Visual',
-    icon: 'Visual',
-    description: 'Eye-catching design elements and visual effects'
-  },
-  {
-    id: 'interactive',
-    title: 'Interactive',
-    icon: 'Interactive',
-    description: 'Dynamic components that respond and engage'
-  },
-  {
-    id: 'utility',
-    title: 'Utility',
-    icon: 'Utility',
-    description: 'Helper components for data display, navigation, and conditional rendering'
-  },
-  {
     id: 'css-classes',
-    title: 'CSS Classes',
+    title: 'CSS Classes Reference',
     icon: '💻',
     description: 'CSS class reference and styling guide for customizing your components'
   }

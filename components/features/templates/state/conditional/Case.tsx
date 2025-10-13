@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSwitchContext } from './Switch';
 import { evaluateFullCondition, type ConditionConfig } from '@/lib/templates/conditional/condition-evaluator';
+import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
 
 /**
  * Case Component - Pattern match branch
@@ -78,6 +79,24 @@ export default function Case(props: CaseProps) {
 
   const switchContext = useSwitchContext();
   const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
+  const residentData = useResidentData();
+
+  // Evaluate if this Case matches (before any early returns)
+  const matches = switchContext && !switchContext.hasMatched
+    ? evaluateCaseCondition(
+        props,
+        switchContext,
+        residentData,
+        null // forEachContext not available in rendering mode
+      )
+    : false;
+
+  // Update switch context if this case matches (hook must be called unconditionally)
+  useEffect(() => {
+    if (matches && switchContext && !switchContext.hasMatched) {
+      switchContext.setMatched(true);
+    }
+  }, [matches, switchContext]);
 
   // Visual builder mode - show indicator
   if (isVisualBuilder) {
@@ -107,9 +126,20 @@ export default function Case(props: CaseProps) {
     );
   }
 
-  // Normal mode - component doesn't render
-  // Case matching happens in parent Switch component or event handler
-  return null;
+  // Normal mode - evaluate and conditionally render
+  // Return null if no switch context (used outside Switch)
+  if (!switchContext) {
+    console.warn('[Case] Used outside of Switch component');
+    return null;
+  }
+
+  // Return null if a previous Case already matched
+  if (switchContext.hasMatched) {
+    return null;
+  }
+
+  // Render children if this case matches
+  return matches ? <>{children}</> : null;
 }
 
 /**

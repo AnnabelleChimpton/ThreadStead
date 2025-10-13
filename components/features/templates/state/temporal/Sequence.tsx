@@ -6,10 +6,13 @@ import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 /**
  * Sequence Component - Execute actions in sequence with delays
  *
- * Container component that executes Step children sequentially.
- * Each Step can have a delay before it executes.
+ * Container component that executes actions sequentially.
+ * Supports two patterns:
  *
- * @example
+ * 1. Step-based (explicit delays per step)
+ * 2. Direct children (with Delay components for timing)
+ *
+ * @example Step-based pattern
  * ```xml
  * <Button>
  *   <OnClick>
@@ -29,6 +32,22 @@ import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
  *     </Sequence>
  *   </OnClick>
  *   Start Sequence
+ * </Button>
+ * ```
+ *
+ * @example Direct children pattern
+ * ```xml
+ * <Button>
+ *   <OnClick>
+ *     <Sequence>
+ *       <Set var="message" value="Starting..." />
+ *       <Delay milliseconds="1000" />
+ *       <Set var="message" value="Loading..." />
+ *       <Delay milliseconds="1000" />
+ *       <Set var="message" value="Complete!" />
+ *     </Sequence>
+ *   </OnClick>
+ *   Click Me
  * </Button>
  * ```
  */
@@ -94,7 +113,9 @@ export default function Sequence(props: SequenceProps) {
  * Execute Sequence actions programmatically
  * Called by event handlers like OnClick
  *
- * Executes Step children sequentially with delays
+ * Supports two patterns:
+ * 1. Step-based: Executes Step children sequentially with delay props
+ * 2. Direct children: Executes action children sequentially, handling Delay components
  *
  * @param props Sequence component props
  * @param executeActions Function to execute child actions
@@ -123,16 +144,16 @@ export async function executeSequenceActions(
     return;
   }
 
-  // Get all Step children
+  // Get all children
   const childArray = React.Children.toArray(children);
-  const steps: Array<{ delay: number; children: React.ReactNode }> = [];
 
-  // Extract Step components and their props
-  for (const child of childArray) {
-    if (!React.isValidElement(child)) continue;
+  // Helper function to unwrap island architecture wrappers
+  function unwrapChild(child: any): any {
+    if (!React.isValidElement(child)) return child;
 
-    // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
     let actualChild = child;
+
+    // Unwrap IslandErrorBoundary
     if (typeof child.type === 'function' &&
         (child.type.name === 'IslandErrorBoundary' ||
          (child.type as any).displayName === 'IslandErrorBoundary')) {
@@ -142,7 +163,7 @@ export async function executeSequenceActions(
       }
     }
 
-    // Unwrap ResidentDataProvider if present (islands architecture)
+    // Unwrap ResidentDataProvider
     if (typeof actualChild.type === 'function' &&
         (actualChild.type.name === 'ResidentDataProvider' ||
          (actualChild.type as any).displayName === 'ResidentDataProvider')) {
@@ -152,38 +173,103 @@ export async function executeSequenceActions(
       }
     }
 
-    // Get component name
+    return actualChild;
+  }
+
+  // Check if children contain Step components
+  const hasSteps = childArray.some(child => {
+    const actualChild = unwrapChild(child);
+    if (!React.isValidElement(actualChild)) return false;
+
     const componentName = typeof actualChild.type === 'function'
       ? actualChild.type.name || (actualChild.type as any).displayName
       : '';
 
-    // Only process Step components
-    if (componentName === 'Step') {
-      const stepProps = actualChild.props as any;
-      steps.push({
-        delay: stepProps.delay || 0,
-        children: stepProps.children
-      });
+    return componentName === 'Step';
+  });
+
+  // PATTERN 1: Step-based execution (backwards compatible)
+  if (hasSteps) {
+    const steps: Array<{ delay: number; children: React.ReactNode }> = [];
+
+    // Extract Step components and their props
+    for (const child of childArray) {
+      const actualChild = unwrapChild(child);
+      if (!React.isValidElement(actualChild)) continue;
+
+      const componentName = typeof actualChild.type === 'function'
+        ? actualChild.type.name || (actualChild.type as any).displayName
+        : '';
+
+      if (componentName === 'Step') {
+        const stepProps = actualChild.props as any;
+        steps.push({
+          delay: stepProps.delay || 0,
+          children: stepProps.children
+        });
+      }
+    }
+
+    // Execute steps sequentially
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+
+      // Wait for the delay
+      if (step.delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, step.delay));
+      }
+
+      // Execute step actions
+      try {
+        if (step.children) {
+          executeActions(step.children, templateState, residentData, forEachContext, currentElement);
+        }
+      } catch (error) {
+        console.error(`[Sequence] Error executing step ${i + 1}:`, error);
+        // Continue to next step despite error
+      }
     }
   }
+  // PATTERN 2: Direct children execution (better UX)
+  else {
+    // Execute children sequentially, handling Delay components specially
+    for (let i = 0; i < childArray.length; i++) {
+      const child = childArray[i];
+      const actualChild = unwrapChild(child);
 
-  // Execute steps sequentially
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i];
+      if (!React.isValidElement(actualChild)) continue;
 
-    // Wait for the delay
-    if (step.delay > 0) {
-      await new Promise(resolve => setTimeout(resolve, step.delay));
-    }
+      const componentName = typeof actualChild.type === 'function'
+        ? actualChild.type.name || (actualChild.type as any).displayName
+        : '';
 
-    // Execute step actions
-    try {
-      if (step.children) {
-        executeActions(step.children, templateState, residentData, forEachContext, currentElement);
+      // Handle Delay component specially - await the timeout
+      if (componentName === 'Delay') {
+        const delayProps = actualChild.props as any;
+        const milliseconds = delayProps.milliseconds || (delayProps.seconds ? delayProps.seconds * 1000 : 0);
+
+        if (milliseconds > 0) {
+          await new Promise(resolve => setTimeout(resolve, milliseconds));
+        }
+
+        // Execute any children of the Delay component
+        if (delayProps.children) {
+          try {
+            executeActions(delayProps.children, templateState, residentData, forEachContext, currentElement);
+          } catch (error) {
+            console.error('[Sequence] Error executing Delay children:', error);
+          }
+        }
       }
-    } catch (error) {
-      console.error(`[Sequence] Error executing step ${i + 1}:`, error);
-      // Continue to next step despite error
+      // Execute other actions immediately
+      else {
+        try {
+          executeActions(actualChild, templateState, residentData, forEachContext, currentElement);
+        } catch (error) {
+          console.error(`[Sequence] Error executing action ${i + 1}:`, error);
+          // Continue to next action despite error
+        }
+      }
     }
   }
 }

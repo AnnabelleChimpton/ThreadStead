@@ -58,9 +58,15 @@ export default function Default(props: DefaultProps) {
     );
   }
 
-  // Normal mode - component doesn't render
-  // Execution happens in parent Switch component or event handler
-  return null;
+  // Normal mode - render if no Case has matched
+  // Return null if no switch context (used outside Switch)
+  if (!switchContext) {
+    console.warn('[Default] Used outside of Switch component');
+    return null;
+  }
+
+  // Render children if no Case has matched yet
+  return !switchContext.hasMatched ? <>{children}</> : null;
 }
 
 /**

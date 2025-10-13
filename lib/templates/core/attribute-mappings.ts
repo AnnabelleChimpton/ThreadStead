@@ -291,6 +291,7 @@ export const ATTRIBUTE_MAP = {
   // Filter, Sort, Transform, Find, Count, Sum, Get
   'where': 'where',
   'order': 'order',
+  'order-var': 'order-var',
   'property': 'property',
   'from': 'from',
   'at': 'at',

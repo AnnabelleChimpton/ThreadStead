@@ -2,7 +2,6 @@
 import { ComponentRegistry } from './template-registry-class';
 
 // Import conditional rendering components
-import Show from '@/components/features/templates/conditional/Show';
 import Choose, { When, Otherwise } from '@/components/features/templates/conditional/Choose';
 import IfOwner, { IfVisitor } from '@/components/features/templates/conditional/IfOwner';
 import If from '@/components/features/templates/state/conditional/If';
@@ -17,39 +16,6 @@ import Default from '@/components/features/templates/state/conditional/Default';
  */
 export function registerConditionalComponents(registry: ComponentRegistry) {
   // Display Conditionals (for rendering UI conditionally)
-  registry.register({
-    name: 'Show',
-    component: Show,
-    props: {
-      // Simple condition expressions
-      when: { type: 'string' },
-      data: { type: 'string' },
-      condition: { type: 'string' }, // Alias for data/when
-
-      // Comparison operators
-      equals: { type: 'string' },
-      notEquals: { type: 'string' },
-      greaterThan: { type: 'string' },
-      lessThan: { type: 'string' },
-      greaterThanOrEqual: { type: 'string' },
-      lessThanOrEqual: { type: 'string' },
-
-      // String operators
-      contains: { type: 'string' },
-      startsWith: { type: 'string' },
-      endsWith: { type: 'string' },
-      matches: { type: 'string' },
-
-      // Existence check
-      exists: { type: 'string' },
-
-      // Logical operators
-      and: { type: 'string' },
-      or: { type: 'string' },
-      not: { type: 'string' }
-    }
-  });
-
   registry.register({
     name: 'Choose',
     component: Choose,

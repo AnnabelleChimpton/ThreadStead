@@ -71,6 +71,12 @@ export function executePopAction(
 ): void {
   const { var: varName } = props;
 
+  // DEFENSIVE: Check if varName is valid
+  if (!varName || typeof varName !== 'string') {
+    console.error('[Pop] Missing or invalid "var" prop:', varName);
+    return;
+  }
+
   // Get variable metadata (for type checking)
   const variable = getVariableObject(varName, templateState);
 

@@ -83,6 +83,13 @@ export function executeRemoveAtAction(
 ): void {
   const { var: varName, index } = props;
 
+  // DEFENSIVE: Check if varName is valid
+  if (!varName || typeof varName !== 'string') {
+    console.error('[RemoveAt] Missing or invalid "var" prop:', varName);
+    console.error('[RemoveAt] Did you mean var="..." instead of array="..."?');
+    return;
+  }
+
   // Resolve index from $vars if it's a variable reference
   let resolvedIndex: number | string | undefined;
 

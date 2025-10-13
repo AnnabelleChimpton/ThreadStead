@@ -170,7 +170,6 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
 
   // ========== Conditional Components ==========
   // Display Conditionals
-  Show: () => import('@/components/features/templates/conditional/Show'),
   Choose: () => import('@/components/features/templates/conditional/Choose'),
   When: () => import('@/components/features/templates/conditional/Choose').then(m => ({ default: m.When })),
   Otherwise: () => import('@/components/features/templates/conditional/Choose').then(m => ({ default: m.Otherwise })),

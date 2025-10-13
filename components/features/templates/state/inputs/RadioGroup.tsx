@@ -163,7 +163,7 @@ export interface RadioProps {
   __visualBuilder?: boolean;
   _isInVisualBuilder?: boolean;
 
-  /** Children (ignored) */
+  /** Children (used as label text) */
   children?: React.ReactNode;
 }
 
@@ -172,11 +172,15 @@ export function Radio(props: RadioProps) {
     value,
     label,
     disabled = false,
-    className: customClassName
+    className: customClassName,
+    children
   } = props;
 
   const context = useRadioGroupContext();
   const { selectedValue, groupName, onChange, isVisualBuilder } = context;
+
+  // Use children as label, fallback to label prop, then value
+  const displayLabel = children || label || String(value);
 
   // Compare values with type coercion for string/number compatibility
   // Handle undefined/null by converting to empty string
@@ -206,7 +210,7 @@ export function Radio(props: RadioProps) {
           className="w-4 h-4 border-gray-300"
         />
         <span className="text-sm">
-          {label || `${value}`}
+          {displayLabel}
         </span>
       </label>
     );
@@ -224,11 +228,9 @@ export function Radio(props: RadioProps) {
         onChange={handleChange}
         className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 accent-blue-600"
       />
-      {label && (
-        <span className="text-sm select-none">
-          {label}
-        </span>
-      )}
+      <span className="text-sm select-none">
+        {displayLabel}
+      </span>
     </label>
   );
 }

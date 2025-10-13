@@ -50,6 +50,13 @@ class TemplateStateManager {
    * Handles user-content- prefix fallback for compatibility
    */
   getVariable(name: string): any {
+    // DEFENSIVE: Guard against undefined/null/invalid name
+    if (!name || typeof name !== 'string') {
+      console.warn('[TemplateStateManager] Invalid variable name:', name);
+      console.trace('[TemplateStateManager] Call stack for debugging:');
+      return undefined;
+    }
+
     // Try unprefixed version first
     let variable = this.variables[name];
 
@@ -323,7 +330,17 @@ class TemplateStateManager {
         // Notify listeners of the computed value
         this.notifyListeners();
       } catch (error) {
-        console.error(`[TemplateStateManager] Failed to evaluate computed variable "${config.name}" on registration:`, error);
+        // DEFENSIVE: Set undefined value on error and show user-friendly message
+        console.error(`[TemplateStateManager] ⚠️  Computed variable "${config.name}" has an error:`, error instanceof Error ? error.message : error);
+        console.error(`[TemplateStateManager] Expression: "${config.computed}"`);
+
+        this.variables[config.name] = {
+          ...this.variables[config.name],
+          value: undefined
+        };
+
+        // Still notify listeners so UI doesn't get stuck
+        this.notifyListeners();
       }
     }
 
@@ -648,7 +665,18 @@ class TemplateStateManager {
           };
         }
       } catch (error) {
-        console.error(`[TemplateStateManager] Failed to evaluate computed variable "${name}":`, error);
+        // DEFENSIVE: Set undefined on error and show user-friendly message
+        console.error(`[TemplateStateManager] ⚠️  Computed variable "${name}" has an error:`, error instanceof Error ? error.message : error);
+        console.error(`[TemplateStateManager] Expression: "${variable.computed}"`);
+
+        // Set to undefined to prevent cascade errors
+        if (variable.value !== undefined) {
+          hasChanges = true;
+          this.variables[name] = {
+            ...variable,
+            value: undefined
+          };
+        }
       }
     });
 
