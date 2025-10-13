@@ -235,7 +235,10 @@ export function StaticHTMLWithIslands({
     // Helper function to convert DOM node to React element
     const domToReact = (node: Node, islands: Island[], residentData: any, onIslandRender: (islandId: string) => void, onIslandError: (error: Error, islandId: string) => void, isNestedComponent = false, isInVisualBuilder = false): React.ReactNode => {
       if (node.nodeType === Node.TEXT_NODE) {
-        const text = node.textContent?.trim();
+        // IMPORTANT: Do not trim text nodes - this destroys meaningful whitespace
+        // For example: <p>Hello, <ShowVar /></p> would lose the space after "Hello,"
+        const text = node.textContent;
+        // Only return null for completely empty text nodes
         return text ? text : null;
       }
 

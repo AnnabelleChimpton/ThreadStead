@@ -262,8 +262,15 @@ export function parseTemplate(htmlString: string): Root {
   }
 
   // Parse as fragment (now we have clean body content)
+  // IMPORTANT: rehype-parse may collapse whitespace by default
+  // We need to preserve whitespace for inline components
   const processor = unified()
-    .use(rehypeParse, { fragment: true })
+    .use(rehypeParse, {
+      fragment: true,
+      // Preserve whitespace around inline elements
+      emitParseErrors: false,
+      duplicateAttribute: false
+    })
     .use(rehypeSanitize, createCustomSchema());
 
   const tree = processor.parse(processedHtml);

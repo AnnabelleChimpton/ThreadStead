@@ -8,16 +8,6 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
   let nodeCount = 0;
   let islandReplacements = 0;
 
-  // DEBUG: Log all ShowVar islands
-  const showVarIslands = islands.filter(i => i.component === 'ShowVar');
-  if (showVarIslands.length > 0) {
-    console.log('[HTML-OPTIMIZER] ShowVar islands found:', showVarIslands.map(i => ({
-      id: i.id,
-      component: i.component,
-      props: i.props
-    })));
-  }
-
 
   function renderNode(node: TemplateNode): string {
     nodeCount++;
@@ -40,26 +30,10 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
         const island = islandMap.get(islandId)!;
         islandReplacements++;
 
-        // DEBUG: Log ShowVar placeholder rendering
-        if (island.component === 'ShowVar') {
-          console.log('[HTML-OPTIMIZER] Rendering ShowVar placeholder:', {
-            islandId,
-            attrs: node.properties,
-            hasChildren: !!node.children?.length
-          });
-        }
-
-        // Render as normal div with data-island attributes, but include children
+        // Render as inline span with data-island attributes (matches HTML custom element behavior)
         const attrs = renderAttributes(node.properties || {});
         const children = node.children?.map(renderNode).join('') || '';
-        const html = `<div${attrs ? ` ${attrs}` : ''}>${children}</div>`;
-
-        // DEBUG: Log ShowVar rendered HTML
-        if (island.component === 'ShowVar') {
-          console.log('[HTML-OPTIMIZER] ShowVar HTML:', html);
-        }
-
-        return html;
+        return `<span${attrs ? ` ${attrs}` : ''}>${children}</span>`;
       }
       
       // Regular HTML rendering
@@ -81,16 +55,8 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
     
     return '';
   }
-  
-  const result = renderNode(ast);
 
-  // DEBUG: Log final HTML if ShowVar islands exist
-  if (showVarIslands.length > 0) {
-    console.log('[HTML-OPTIMIZER] Final HTML with', showVarIslands.length, 'ShowVar island(s):', result);
-    console.log('[HTML-OPTIMIZER] ShowVar in final HTML?', result.includes('ShowVar'));
-  }
-
-  return result;
+  return renderNode(ast);
 }
 
 // Render HTML attributes safely

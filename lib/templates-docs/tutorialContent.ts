@@ -1549,7 +1549,6 @@ export const tutorials: Tutorial[] = [
       }
     ],
     summary: 'You\'ve mastered complex state management with objects! You can now build sophisticated templates with structured data, nested properties, and advanced state patterns. You\'re ready to build anything!',
-    nextTutorial: undefined,
     relatedComponents: ['extract', 'property', 'objectset', 'merge', 'clone']
   }
 ];
