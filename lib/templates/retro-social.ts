@@ -4,7 +4,6 @@ export const RETRO_SOCIAL_TEMPLATE = `/* =======================================
 
 @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Impact&family=Bebas+Neue&display=swap');
 
-/* CSS_MODE:inherit */
 
 /* MySpace 2005 Authentic Background */
 .thread-surface {

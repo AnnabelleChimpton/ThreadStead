@@ -62,18 +62,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const { template, customCSS, cssMode } = req.body;
-      
-      // Store CSS mode as a comment in the CSS for retrieval
-      let processedCSS = customCSS;
-      if (customCSS && cssMode) {
-        // Add CSS mode as a comment at the beginning if not already present
-        if (!customCSS.startsWith('/* CSS_MODE:')) {
-          processedCSS = `/* CSS_MODE:${cssMode} */\n${customCSS}`;
-        } else {
-          // Update existing mode comment
-          processedCSS = customCSS.replace(/\/\* CSS_MODE:\w+ \*\//, `/* CSS_MODE:${cssMode} */`);
-        }
-      }
 
       if (typeof template !== 'string') {
         return res.status(400).json({ error: 'Invalid template data' });
@@ -206,10 +194,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
           templateIslands: JSON.parse(JSON.stringify(compiledResult.islands || null)),
           templateCompiledAt: new Date(),
-          ...(processedCSS !== undefined && { customCSS: processedCSS }),
+          ...(customCSS !== undefined && { customCSS }),
           ...(cssMode !== undefined && {
+            cssMode,
             includeSiteCSS: cssMode !== 'disable'
-            // Note: cssMode is stored in customCSS as a comment for now
           })
         },
         create: {
@@ -220,10 +208,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
           templateIslands: JSON.parse(JSON.stringify(compiledResult.islands || null)),
           templateCompiledAt: new Date(),
-          ...(processedCSS !== undefined && { customCSS: processedCSS }),
+          ...(customCSS !== undefined && { customCSS }),
           ...(cssMode !== undefined && {
+            cssMode,
             includeSiteCSS: cssMode !== 'disable'
-            // Note: cssMode is stored in customCSS as a comment for now
           })
         }
       });

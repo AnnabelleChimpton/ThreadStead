@@ -118,43 +118,11 @@ ${nuclearCSS}
 }`);
         break;
     }
-    
-    // Add navigation customization helpers for advanced templates
-    if (templateMode === 'advanced') {
+
+    // Add navigation customization helpers for advanced templates (only when not in disable mode)
+    if (templateMode === 'advanced' && cssMode !== 'disable') {
       layers.push(`@layer ${CSS_LAYERS.USER_OVERRIDE} {
-/* Advanced Template Mode - Complete Layout Freedom */
-
-/* Minimal wrapper styles - non-interfering container for CSS scoping */
-.profile-template-root {
-  /* Ensure wrapper doesn't interfere with layout */
-  position: static !important;
-  z-index: auto !important;
-  overflow: visible !important;
-  isolation: auto !important;
-
-  /* Allow wrapper to size based on content */
-  display: block;
-  width: 100%;
-  min-height: 100vh;
-}
-
-/* Ensure inner containers work correctly */
-.profile-template-root > .pure-absolute-container,
-.profile-template-root > .advanced-template-container {
-  /* These containers handle actual layout */
-  position: relative;
-  min-height: inherit;
-}
-
-/* Remove all container constraints for advanced templates (legacy) */
-.advanced-template-mode {
-  /* Reset any inherited container constraints */
-  max-width: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
+/* Advanced Template Mode - Navigation Helpers */
 
 /* Navigation customization for advanced templates */
 .advanced-template-nav {
@@ -203,12 +171,14 @@ ${nuclearCSS}
 }
 
 /**
- * Clean user CSS by removing old CSS_MODE comments but PRESERVE !important for theme overrides
+ * Clean user CSS by removing comments and preparing for scoping
  * Optionally transform body styles for legacy templates
  */
 function cleanUserCSS(css: string, profileId?: string, isLegacyTemplate?: boolean): string {
   let cleanedCSS = css
-    // Remove CSS mode comments
+    // Remove ALL CSS comments FIRST (before scoping) to prevent breaking selector matching
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    // Remove CSS mode comments (legacy compatibility)
     .replace(/\/\* CSS_MODE:\w+ \*\/\n?/g, '')
     // Keep !important declarations - they're needed to override site styles
     // Only remove empty semicolons
@@ -277,11 +247,10 @@ export function forceUserCSSDominance(css: string, cssMode: CSSMode = 'inherit')
     atRules.push(match);
     return '';
   });
-  
-  // Remove comments and clean up the remaining CSS
+
+  // Clean up the remaining CSS (comments already removed in cleanUserCSS)
   workingCSS = workingCSS
-    .replace(/\/\*[\s\S]*?\*\//g, '') // Remove CSS comments
-    .replace(/^\s*\/\/.*$/gm, '') // Remove single-line comments  
+    .replace(/^\s*\/\/.*$/gm, '') // Remove single-line comments (if any)
     .replace(/\n\s*\n/g, '\n') // Remove extra blank lines
     .trim();
   
@@ -295,12 +264,14 @@ export function forceUserCSSDominance(css: string, cssMode: CSSMode = 'inherit')
     // Force maximum specificity on all selectors
     const nuclearSelectors = trimmedSelector.split(',')
       .map((s: string) => {
-        const trimmed = s.trim();
+        // Normalize whitespace: trim and collapse internal whitespace to single space
+        const trimmed = s.trim().replace(/\s+/g, ' ');
         
         // Don't modify selectors that already have maximum specificity
-        if (trimmed.includes(':root') || trimmed.startsWith('html body')) {
+        if (trimmed.startsWith('html body')) {
           return trimmed;
         }
+        // Note: We removed the :root check - it needs to be wrapped normally after scoping
         
         // Special handling for Visual Builder classes in nuclear mode
         if (trimmed.includes('.vb-')) {
@@ -387,7 +358,8 @@ function scopeCSSToProfile(css: string, profileId: string): string {
     // Handle multiple selectors separated by commas
     const scopedSelectors = selector.split(',')
       .map((s: string) => {
-        const trimmed = s.trim();
+        // Normalize whitespace: trim and collapse internal whitespace to single space
+        const trimmed = s.trim().replace(/\s+/g, ' ');
 
         // Handle body selector specially - apply to profile container (now using unified wrapper class)
         if (trimmed === 'body') {
@@ -397,9 +369,17 @@ function scopeCSSToProfile(css: string, profileId: string): string {
         } else if (trimmed.startsWith('body.')) {
           // Handle body.class selectors (like body.vb-pattern-grid) -> .profile-template-root#profile.class
           return `.profile-template-root#${profileId}${trimmed.substring(4)}`;
-        } else if (trimmed === ':root') {
-          // Root variables should apply to the profile container for proper CSS variable scoping
+        }
+
+        // Handle :root selector - must be transformed BEFORE catch-all (more forgiving check)
+        if (trimmed === ':root' || trimmed.includes(':root')) {
           return `.profile-template-root#${profileId}`;
+        }
+
+        // Handle .profile-template-root specially - it IS the container (same as body)
+        // Handles all cases: exact match, with classes, combinators (>, +, ~), pseudo-selectors (:, ::), descendants
+        if (trimmed.startsWith('.profile-template-root')) {
+          return `.profile-template-root#${profileId}${trimmed.substring('.profile-template-root'.length)}`;
         }
 
         // Legacy compatibility: Support old advanced-template-container references
@@ -511,7 +491,7 @@ export function generateFallbackCSS({
     
     parts.push(`/* USER CSS MUST ALWAYS WIN - NUCLEAR FALLBACK (${cssMode} mode) */\n${nuclearCSS}`);
   }
-  
+
   return parts.join('\n\n');
 }
 
@@ -519,8 +499,14 @@ export function generateFallbackCSS({
  * Main utility function - automatically chooses layers or fallback
  */
 export function generateOptimizedCSS(options: LayeredCSSOptions): string {
-  // Use layers if supported, fallback if not
-  if (supportsCSSLayers()) {
+  // For advanced templates in disable mode, ALWAYS use fallback (non-layered) CSS
+  // CSS Cascade Layers spec: unlayered styles beat ALL layered styles
+  // Tailwind utilities are unlayered, so our layered CSS would lose even with nuclear wrapping
+  // By forcing non-layered CSS, nuclear wrapping can actually beat Tailwind
+  const forceNonLayered = options.templateMode === 'advanced' && options.cssMode === 'disable';
+
+  const usingLayers = supportsCSSLayers() && !forceNonLayered;
+  if (usingLayers) {
     return generateLayeredCSS(options);
   } else {
     return generateFallbackCSS(options);

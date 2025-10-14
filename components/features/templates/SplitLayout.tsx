@@ -4,7 +4,7 @@ import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConfl
 interface SplitLayoutProps extends UniversalCSSProps {
   ratio?: '1:1' | '1:2' | '2:1' | '1:3' | '3:1';
   vertical?: boolean;
-  spacing?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  spacing?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'; // Renamed from 'gap' to avoid conflict with UniversalCSSProps.gap
   responsive?: boolean;
   children: React.ReactNode;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -22,14 +22,24 @@ export default function SplitLayout(props: SplitLayoutProps) {
     onClick
   } = componentProps;
 
-  const childrenArray = React.Children.toArray(children);
+  // Filter out whitespace-only text nodes that come from template formatting
+  const childrenArray = React.Children.toArray(children).filter(child => {
+    // Keep all non-text children (React elements)
+    if (React.isValidElement(child)) return true;
+    // For text nodes, only keep if they have non-whitespace content
+    if (typeof child === 'string') {
+      return child.trim().length > 0;
+    }
+    return true;
+  });
+
   const firstChild = childrenArray[0];
   const secondChild = childrenArray[1];
 
 
   // Mobile-first: start with stacked layout, add complexity only when needed
   const baseClasses = "w-full flex flex-col";
-  
+
   // Spacing between children
   const gapClasses = {
     'xs': 'gap-1',

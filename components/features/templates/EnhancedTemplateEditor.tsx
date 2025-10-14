@@ -273,7 +273,7 @@ export default function EnhancedTemplateEditor({
 
   const [customCSS, setCustomCSS] = useState(initialCSS);
   const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
-  
+
   // Pop-up preview window management
   const [previewWindow, setPreviewWindow] = useState<Window | null>(null);
   
@@ -1762,7 +1762,8 @@ export default function EnhancedTemplateEditor({
                       <option value="disable">Disable (complete CSS control)</option>
                     </select>
                   </div>
-                  
+
+
                   {/* CSS Template Selector */}
                   {useStandardLayout ? (
                     <button

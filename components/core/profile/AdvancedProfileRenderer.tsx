@@ -4,8 +4,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ProfileUser } from './ProfileModeRenderer';
 import type { CompiledTemplate, Island } from '@/lib/templates/compilation/compiler';
-import { generateOptimizedCSS, type CSSMode } from '@/lib/utils/css/layers';
-import { useSiteCSS } from '@/hooks/useSiteCSS';
 import { extractVisualBuilderClasses } from '@/lib/utils/css/visual-builder-class-extractor';
 import { GlobalTemplateStateProvider } from '@/lib/templates/state/TemplateStateProvider';
 import { ToastProvider } from '@/lib/templates/state/ToastProvider';
@@ -54,35 +52,12 @@ export default function AdvancedProfileRenderer({
   const compiledTemplate = user.profile?.compiledTemplate as CompiledTemplate | null;
   const templateIslands = user.profile?.templateIslands as ExtendedIsland[] | null;
   const customCSS = user.profile?.customCSS;
-  const cssMode = (user.profile?.cssMode || 'inherit') as CSSMode;
-
-  const { css: siteWideCSS } = useSiteCSS({
-    skipDOMInjection: true, // We handle CSS injection ourselves
-    cssMode
-  });
-
-  // Create a stable ID for this profile to scope the CSS (FIXED: removed Date.now() to prevent infinite loops)
-  const profileId = useMemo(() => `profile-${user.id}`, [user.id]);
 
   // Get islands from compiled template or fallback to stored islands (memoized to avoid re-renders)
   const islands = useMemo(() => {
     const islandsData = compiledTemplate?.islands || templateIslands || [];
     return islandsData;
   }, [compiledTemplate?.islands, templateIslands]);
-
-  // Generate properly layered CSS with strict mode isolation
-  const layeredCSS = useMemo(() => {
-    return generateOptimizedCSS({
-      cssMode,
-      templateMode: 'advanced',
-      // For 'disable' mode: exclude ALL system CSS, only user CSS allowed
-      globalCSS: '', // Never include global CSS for advanced templates
-      siteWideCSS: cssMode !== 'disable' ? siteWideCSS : '', // Exclude site CSS in disable mode
-      userCustomCSS: customCSS || '',
-      profileId,
-      templateHtml: compiledTemplate?.staticHTML || '' // Enable body style transformation for legacy templates
-    });
-  }, [customCSS, cssMode, profileId, siteWideCSS, compiledTemplate?.staticHTML]);
 
   // Extract Visual Builder classes from CSS to apply to HTML elements
   const visualBuilderClasses = useMemo(() => {
@@ -172,10 +147,7 @@ export default function AdvancedProfileRenderer({
       <GlobalTemplateStateProvider>
         <ResidentDataProvider data={residentData}>
           <ToastProvider>
-            {/* Layered CSS styles */}
-            {layeredCSS && (
-              <style dangerouslySetInnerHTML={{ __html: layeredCSS }} />
-            )}
+            {/* CSS now injected in head via _app.tsx for proper cascade order */}
 
             {/* UNIFIED: Minimal wrapper for both template types - non-interfering container for CSS scoping */}
             <div
@@ -185,7 +157,10 @@ export default function AdvancedProfileRenderer({
                 position: 'static',    // Don't create positioning context
                 zIndex: 'auto',        // Don't create stacking context
                 overflow: 'visible',   // Don't clip content
-                isolation: 'auto'      // Don't create isolation context
+                isolation: 'auto',     // Don't create isolation context
+                minHeight: '100vh',    // Ensure wrapper fills viewport for backgrounds
+                width: '100%',         // Fill container width
+                display: 'block'       // Block layout for proper sizing
               }}
             >
               <ProfileContentRenderer

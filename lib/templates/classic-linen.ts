@@ -4,7 +4,6 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
 
 @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Lato:wght@300;400;700&display=swap');
 
-/* CSS_MODE:inherit */
 
 /* Override thread-surface for linen background */
 .thread-surface {

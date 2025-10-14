@@ -4,7 +4,6 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Share+Tech+Mono&display=swap');
 
-/* CSS_MODE:inherit */
 
 /* Override thread-surface for dark terminal background */
 .thread-surface {

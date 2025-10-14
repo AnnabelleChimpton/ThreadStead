@@ -12,6 +12,7 @@ interface TemplateEditorPageProps {
   isOwner: boolean;
   existingTemplate?: string;
   customCSS?: string;
+  cssMode?: 'inherit' | 'override' | 'disable';
   templateEnabled?: boolean;
   templateMode?: 'default' | 'enhanced' | 'advanced';
   hideNavigation?: boolean;
@@ -32,6 +33,7 @@ export default function TemplateEditorPage({
   isOwner,
   existingTemplate,
   customCSS,
+  cssMode = 'inherit',
   templateEnabled = false,
   templateMode = 'default',
   hideNavigation = false,
@@ -114,7 +116,7 @@ export default function TemplateEditorPage({
       customCSS: css, // Send CSS separately
       // For legacy compatibility, we might need the AST
       ...(compiledTemplate && { ast: compiledTemplate }),
-      ...(cssMode && { cssMode: cssMode })
+      ...(cssMode && { cssMode })
     };
     try {
       // Save the template
@@ -282,7 +284,7 @@ export default function TemplateEditorPage({
               user={editorUser}
               initialTemplate={extractedHtmlContent}
               initialCSS={cleanedCssContent}
-              initialCSSMode={initialCSSMode}
+              initialCSSMode={cssMode}
               initialTemplateMode={templateMode}
               initialShowNavigation={!hideNavigation}
               onSave={handleSave}
@@ -370,6 +372,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
     }
 
     const hideNavigation = profileData.profile?.hideNavigation || false;
+    const cssMode = (profileData.profile?.cssMode as 'inherit' | 'override' | 'disable') || 'inherit';
 
     return {
       props: {
@@ -377,6 +380,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
         isOwner,
         existingTemplate,
         customCSS,
+        cssMode,
         hideNavigation,
         templateEnabled,
         templateMode,

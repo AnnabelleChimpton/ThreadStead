@@ -4,7 +4,6 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 
 @import url('https://fonts.googleapis.com/css2?family=Righteous:wght@400&family=Fredoka:wght@400;500;600&display=swap');
 
-/* CSS_MODE:inherit */
 
 /* Abstract Art Canvas Background - Paint Splatters & Brushstrokes */
 .thread-surface {

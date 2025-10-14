@@ -163,13 +163,12 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
-        {/* Conditional CSS handling based on Visual Builder mode */}
-        {isVisualBuilder ? (
-          /* Visual Builder in disable mode - inject page-level variable mapping only */
+        {/* Complete CSS reset for disable mode - neutralize ALL system styles */}
+        {isVisualBuilder && (
           <style dangerouslySetInnerHTML={{
             __html: `
-              /* Visual Builder Page-Level Variable Mapping */
-              /* Map Visual Builder variables to page elements for complete control */
+              /* CSS Disable Mode - Complete Reset */
+              /* Neutralize ALL Tailwind and system CSS to give users total control */
 
               html {
                 ${isLegacyTemplate ? '/* Legacy template: background handled by profile container */' :
@@ -190,19 +189,29 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                 min-height: 100vh !important;
               }
 
-              /* Ensure Visual Builder has complete page control */
-              * {
+              /* Strip system styles from wrapper only, not children */
+              #__next > .css-disable-mode {
+                all: unset;
+                display: block;
+                width: 100%;
+                min-height: 100vh;
                 box-sizing: border-box;
               }
 
-              /* Remove any remaining global overrides */
+              /* Ensure consistent box-sizing for children but allow user CSS to apply */
+              #__next > .css-disable-mode * {
+                box-sizing: border-box;
+              }
+
               #__next {
                 min-height: 100vh !important;
                 background: inherit !important;
               }
             `
           }} />
-        ) : needsCSSResets && (
+        )}
+
+        {needsCSSResets && !isVisualBuilder && (
           <style dangerouslySetInnerHTML={{
             __html: `
               /* Advanced template mode - complete CSS control */
@@ -231,11 +240,52 @@ export default function MyApp({ Component, pageProps }: AppProps) {
             dangerouslySetInnerHTML={{ __html: css || '/* Site CSS loading... */' }}
           />
         )}
-        
-        {isProfilePage && hasCustomCSS && (
-          <style 
+
+        {/* Advanced template CSS - inject with boosted specificity (only for legacy templates) */}
+        {isProfilePage && hasCustomCSS && pageProps.templateMode === 'advanced' && (() => {
+          const customCSS = pageProps.customCSS || '';
+
+          // Visual Builder templates (non-legacy) don't need specificity boosting
+          // because they're in disable mode with no system CSS to compete with
+          if (isVisualBuilder && !isLegacyTemplate) {
+            return (
+              <style
+                id="advanced-template-css"
+                dangerouslySetInnerHTML={{ __html: customCSS }}
+              />
+            );
+          }
+
+          // Legacy templates need specificity boosting to beat Tailwind
+          // Add 'html body' prefix to all selectors (adds 2 to specificity)
+          const boostedCSS = customCSS.replace(/([^{}]+)\{/g, (match: string, selector: string) => {
+            // Skip @-rules like @media, @keyframes, @import
+            const trimmed = selector.trim();
+            if (trimmed.startsWith('@')) return match;
+
+            // Split comma-separated selectors and boost each one
+            const selectors = selector.split(',').map((s: string) => {
+              const sel = s.trim();
+              // Don't double-boost if already has html body prefix
+              if (sel.startsWith('html body')) return sel;
+              return `html body ${sel}`;
+            }).join(', ');
+
+            return `${selectors} {`;
+          });
+
+          return (
+            <style
+              id="advanced-template-css"
+              dangerouslySetInnerHTML={{ __html: boostedCSS }}
+            />
+          );
+        })()}
+
+        {isProfilePage && hasCustomCSS && pageProps.templateMode !== 'advanced' && (
+          <style
             id="profile-page-styles"
-            dangerouslySetInnerHTML={{ 
+            dangerouslySetInnerHTML={{
               __html: `/* Profile page - Clean canvas for user customization */
 .profile-container {
   margin-top: 0;
@@ -283,14 +333,12 @@ ${pageProps.customCSS}`
       </Head>
       <div
         className={`${
-          isVisualBuilder && !isLegacyTemplate
-            ? visualBuilderBodyClasses // Visual Builder templates: apply VB classes to wrapper
-            : isVisualBuilder && isLegacyTemplate
-            ? '' // Legacy advanced templates: clean wrapper, they handle their own styling
+          isVisualBuilder
+            ? 'css-disable-mode' // CSS disable mode: strip ALL system styles
             : pageProps.templateMode === 'advanced'
             ? 'min-h-screen font-body' // Advanced mode (non-Visual Builder): clean but structured
             : 'min-h-screen font-body thread-surface text-thread-charcoal' // Normal styling for everything else
-        }`}
+        } ${isVisualBuilder && !isLegacyTemplate ? visualBuilderBodyClasses : ''}`}
         style={isVisualBuilder ? {
           // Visual Builder disable mode: wrapper inherits from Visual Builder variables
           // For legacy templates, omit background to let their body styles work

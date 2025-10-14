@@ -521,6 +521,11 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     component: RetroCard,
     props: {
       title: { type: 'string' }
+    },
+    relationship: {
+      type: 'container',
+      acceptsChildren: true,
+      childrenLabel: 'Card Content'
     }
   });
 

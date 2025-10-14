@@ -4,7 +4,6 @@ export const PIXEL_PETALS_TEMPLATE = `/* =======================================
 
 @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Quicksand:wght@400;500;600&display=swap');
 
-/* CSS_MODE:inherit */
 
 /* Override thread-surface for kawaii background */
 .thread-surface {

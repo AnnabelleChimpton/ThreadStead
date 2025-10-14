@@ -20,6 +20,7 @@ import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer"
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
 import { mapProfileCSSModeToComponentMode } from "@/lib/utils/css/css-mode-mapper";
+import { detectTemplateType } from "@/lib/utils/template-type-detector";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useRouter } from "next/router";
 import dynamic from 'next/dynamic';
@@ -123,31 +124,6 @@ export default function ProfilePage({
 
   const isOwner = currentUser?.id === ownerUserId;
 
-  // Extract CSS mode from custom CSS to determine rendering approach
-  const extractCSSMode = (css: string | null | undefined): 'inherit' | 'override' | 'disable' => {
-    if (!css) return 'inherit';
-
-    // Check for explicit CSS_MODE comment
-    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
-    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
-      return modeMatch[1] as 'inherit' | 'override' | 'disable';
-    }
-
-    // Check for Visual Builder CSS (has vb- classes and variables)
-    const hasVisualBuilderCSS = css.includes('/* Visual Builder Generated CSS */') ||
-                               (css.includes('.vb-theme-') && css.includes('--global-bg-color'));
-
-    if (hasVisualBuilderCSS) {
-      // Visual Builder CSS should use disable mode for full isolation
-      return 'disable';
-    }
-
-    // Default to inherit
-    return 'inherit';
-  };
-  
-  const currentCSSMode = extractCSSMode(customCSS);
-
   // Advanced templates always use the advanced renderer for consistent behavior
   // Only non-advanced templates use the standard layout
   const shouldUseStandardLayout = templateMode !== 'advanced';
@@ -163,7 +139,7 @@ export default function ProfilePage({
         customCSS,
         customTemplate: null, // Not needed for Islands rendering
         customTemplateAst: customTemplateAst ? JSON.stringify(customTemplateAst) : null,
-        cssMode: currentCSSMode,
+        cssMode: cssMode,
         compiledTemplate,
         templateIslands,
         templateCompiledAt: templateCompiledAt ? new Date(templateCompiledAt) : null
@@ -173,29 +149,54 @@ export default function ProfilePage({
     // Islands mode: Handle CSS based on navigation and CSS settings
     if (hideNavigation) {
       if (includeSiteCSS) {
-        // Hide navigation but keep site CSS
-        // For advanced templates, don't apply thread-surface to allow custom backgrounds
-        const wrapperClass = templateMode === 'advanced' 
-          ? "min-h-screen flex flex-col"
-          : "min-h-screen thread-surface flex flex-col";
-          
-        return (
-          <div className={wrapperClass}>
-            <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
-              <ProfileModeRenderer
-                user={profileUser}
-                residentData={residentData}
-                useIslands={true}
-                hideNavigation={true}
-                fallbackContent={
-                  <div className="p-8 text-center text-gray-500">
-                    <p>Template failed to load</p>
-                  </div>
-                }
-              />
-            </main>
-          </div>
+        // Detect template type to determine rendering approach
+        const compiledTemplateData = compiledTemplate as any;
+        const templateType = detectTemplateType(
+          compiledTemplateData?.staticHTML,
+          customCSS
         );
+
+        // Visual Builder templates MUST render full-screen for WYSIWYG
+        // Legacy templates can use constrained layout for backwards compatibility
+        if (templateType === 'visual-builder') {
+          // Full-screen rendering - no layout constraints
+          return (
+            <ProfileModeRenderer
+              user={profileUser}
+              residentData={residentData}
+              useIslands={true}
+              hideNavigation={true}
+              fallbackContent={
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+                  <p>Template failed to load</p>
+                </div>
+              }
+            />
+          );
+        } else {
+          // Legacy template with constrained layout
+          const wrapperClass = templateMode === 'advanced'
+            ? "min-h-screen flex flex-col"
+            : "min-h-screen thread-surface flex flex-col";
+
+          return (
+            <div className={wrapperClass}>
+              <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
+                <ProfileModeRenderer
+                  user={profileUser}
+                  residentData={residentData}
+                  useIslands={true}
+                  hideNavigation={true}
+                  fallbackContent={
+                    <div className="p-8 text-center text-gray-500">
+                      <p>Template failed to load</p>
+                    </div>
+                  }
+                />
+              </main>
+            </div>
+          );
+        }
       } else {
         // Hide navigation and disable site CSS - no wrapper constraints
         return (
@@ -344,12 +345,12 @@ export default function ProfilePage({
         />
       </Head>
 
-      <ProfileLayout 
+      <ProfileLayout
       customCSS={customCSS}
       hideNavigation={hideNavigation}
       includeSiteCSS={includeSiteCSS}
       templateMode={templateMode}
-      cssMode={currentCSSMode}
+      cssMode={cssMode}
     >
       <RetroCard>
         <ProfileHeader
@@ -463,23 +464,24 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const data: {
     userId: string;                      // <-- expecting this from /api/profile
     username?: string;
-    profile?: { 
-      bio?: string; 
-      avatarUrl?: string; 
+    profile?: {
+      bio?: string;
+      avatarUrl?: string;
       displayName?: string;
-      customCSS?: string; 
+      customCSS?: string;
       customTemplate?: string;
       customTemplateAst?: string;
       templateEnabled?: boolean;
       templateMode?: 'default' | 'enhanced' | 'advanced';
+      cssMode?: 'inherit' | 'override' | 'disable';
       hideNavigation?: boolean;
       includeSiteCSS?: boolean;
       // Islands compilation data
       compiledTemplate?: any;
       templateIslands?: any[];
       templateCompiledAt?: string;
-      blogroll?: unknown[]; 
-      featuredFriends?: unknown[] 
+      blogroll?: unknown[];
+      featuredFriends?: unknown[]
     };
     profileMidi?: {
       url: string;
@@ -534,27 +536,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   let customTemplateAst: TemplateNode | undefined;
   let residentData: ResidentData | undefined;
 
-  // Extract CSS mode BEFORE template loading to avoid scope issues
-  const extractCSSModeFromProfile = (css: string | null | undefined): 'inherit' | 'override' | 'disable' => {
-    if (!css) return 'inherit';
-
-    // Check for explicit CSS_MODE comment
-    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
-    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
-      return modeMatch[1] as 'inherit' | 'override' | 'disable';
-    }
-
-    // Check for Visual Builder CSS (matches client-side logic)
-    const hasVisualBuilderCSS = css.includes('/* Visual Builder Generated CSS */') ||
-                               (css.includes('.vb-theme-') && css.includes('--global-bg-color'));
-    if (hasVisualBuilderCSS) {
-      return 'disable';
-    }
-
-    return data.profile?.includeSiteCSS === false ? 'disable' : 'inherit';
-  };
-
-  const cssMode = extractCSSModeFromProfile(data.profile?.customCSS);
+  // Read CSS mode directly from database (no more CSS comment parsing!)
+  const cssMode = (data.profile?.cssMode as 'inherit' | 'override' | 'disable') || 'inherit';
 
   // Load custom template data for advanced mode (legacy AST or Islands compilation)
   if (data.profile?.templateMode === 'advanced' &&
@@ -750,13 +733,10 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   // CSS Priority based on template mode and CSS mode
   const templateMode = data.profile?.templateMode || 'default';
 
-  // TEMPORARILY restore forced disable mode for advanced templates until CSS mode propagation is properly tested
-  // This ensures advanced templates continue to work while we fix the CSS mode system
-  const finalCSSMode = templateMode === 'advanced' ? 'disable' : cssMode;
-  props.cssMode = finalCSSMode;
-  
+  props.cssMode = cssMode;
+
   // Ensure includeSiteCSS is properly set based on CSS mode
-  if (finalCSSMode === 'inherit') {
+  if (cssMode === 'inherit') {
     // Inherit mode must always load site CSS
     props.includeSiteCSS = true;
   } else if (data.profile?.includeSiteCSS != null) {
@@ -775,7 +755,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       props.customCSS = adminDefaultCSS;
     }
   } else if (templateMode === 'advanced' && data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
-    // Advanced template mode - always use user's custom CSS (cssMode forced to disable)
+    // Advanced template mode - use raw CSS as-is in head
     props.customCSS = data.profile.customCSS;
   } else if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
     // Fallback to admin default CSS if available

@@ -110,9 +110,10 @@ model Profile {
   hideNavigation     Boolean      @default(false)
   templateEnabled    Boolean      @default(false)
   templateMode       TemplateMode @default(default)
-  badgePreferences   Json?
-  includeSiteCSS     Boolean      @default(true)
-  profileMidiId      String?
+  badgePreferences    Json?
+  includeSiteCSS      Boolean      @default(true)
+  cssMode             String       @default("inherit") // 'inherit' | 'override' | 'disable'
+  profileMidiId       String?
   midiAutoplay       Boolean      @default(false)
   midiLoop           Boolean      @default(false)
   compiledTemplate   Json?

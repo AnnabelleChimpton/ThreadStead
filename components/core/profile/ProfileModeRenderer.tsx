@@ -112,18 +112,44 @@ export default function ProfileModeRenderer({
 
   const cssMode = extractCSSMode(user.profile?.customCSS);
   const isVisualBuilderDisableMode = mode === 'advanced' && cssMode === 'disable';
-  
+
   // Feature flag check for islands - bypass if we have compiled template data
   const featureFlagResult = featureFlags.templateIslands({ id: user.id, role: 'member' });
   const hasCompiledTemplate = !!user.profile?.compiledTemplate;
   const shouldUseIslands = useIslands &&
                           mode === 'advanced' &&
                           hasCompiledTemplate; // Always allow islands if compiled template exists
-                          
-  
+
+  // Detect template type for Visual Builder class application
+  const compiledTemplate = user.profile?.compiledTemplate as any;
+  const templateType = shouldUseIslands && hasCompiledTemplate
+    ? detectTemplateType(compiledTemplate?.staticHTML, user.profile?.customCSS)
+    : 'legacy';
+
+  // Extract Visual Builder classes for body-level application
+  const visualBuilderClasses = shouldUseIslands && hasCompiledTemplate
+    ? extractVisualBuilderClasses(user.profile?.customCSS || '')
+    : [];
+
+
   React.useEffect(() => {
     onModeChange?.(mode);
   }, [mode, onModeChange]);
+
+  // Apply VB pattern classes to body element for full viewport coverage
+  React.useEffect(() => {
+    if (mode === 'advanced' && shouldUseIslands && templateType === 'visual-builder' && visualBuilderClasses.length > 0) {
+      // Apply all VB classes to body for full-screen pattern coverage
+      visualBuilderClasses.forEach(className => {
+        BodyClassManager.applyPatternClass(className);
+      });
+
+      return () => {
+        // Cleanup on unmount
+        BodyClassManager.removePatternClass();
+      };
+    }
+  }, [mode, shouldUseIslands, templateType, visualBuilderClasses.join(',')]);
 
 
   // Render based on mode with fallback chain
@@ -137,16 +163,21 @@ export default function ProfileModeRenderer({
         
       case 'advanced':
         if (shouldUseIslands && user.profile?.compiledTemplate) {
-          // Detect template type to determine rendering approach
-          const compiledTemplate = user.profile?.compiledTemplate as any;
-          const templateType = detectTemplateType(
-            compiledTemplate?.staticHTML,
-            user.profile?.customCSS
-          );
-
           // Show NavigationPreview when hideNavigation is false
           const shouldShowNavigation = !hideNavigation && !user.profile?.hideNavigation;
 
+          // For Visual Builder with no navigation, render without wrapper for true full-screen
+          if (templateType === 'visual-builder' && !shouldShowNavigation) {
+            return (
+              <AdvancedProfileRenderer
+                user={user}
+                residentData={residentData}
+                templateType={templateType}
+              />
+            );
+          }
+
+          // For templates with navigation or legacy templates, use wrapper for spacing
           return (
             <>
               {shouldShowNavigation && <NavigationPreview />}

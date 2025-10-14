@@ -128,11 +128,12 @@ export function StaticHTMLWithIslands({
 
     // Instead of regex, parse the HTML properly and work with the DOM tree
     if (typeof document === 'undefined') {
-      // SSR fallback: inject Visual Builder classes and profileId into static HTML
+      // SSR fallback: inject profileId into static HTML (legacy templates only)
       let processedHTML = staticHTML;
 
-      // For Visual Builder templates, inject profileId at the container level
-      if (templateType === 'visual-builder' && profileId) {
+      // For legacy templates (NOT Visual Builder), inject profileId at the container level
+      // Visual Builder templates already have profileId on the outer .profile-template-root wrapper
+      if (templateType === 'legacy' && profileId) {
         // Try to add profileId to the main container
         processedHTML = processedHTML.replace(
           /(<div[^>]*class="[^"]*pure-absolute-container[^"]*"[^>]*)/,
@@ -146,19 +147,17 @@ export function StaticHTMLWithIslands({
       }
 
       // Visual Builder container creation logic (SSR)
-      // NOTE: We no longer inject VB classes into inner HTML - only outer profile-template-root has them
-      // This prevents redundant backgrounds and cleaner rendering
+      // NOTE: We no longer inject VB classes OR profileId into inner HTML
+      // The outer .profile-template-root wrapper (created by AdvancedProfileRenderer) has both
+      // This prevents redundant backgrounds, duplicate IDs, and cleaner rendering
       if (templateType === 'visual-builder' && visualBuilderClasses.length > 0) {
-        const vbClassString = visualBuilderClasses.join(' ');
         const hasPositioningContainer = processedHTML.includes('pure-absolute-container') ||
                                        processedHTML.includes('advanced-template-container');
-        const hasProfileId = processedHTML.includes(`id="${profileId}"`);
 
-        // Create container if we don't have a proper positioning container
+        // Create container if we don't have a proper positioning container (NO profileId for VB!)
         if (!hasPositioningContainer) {
-          const idAttr = profileId ? ` id="${profileId}"` : '';
-          const classAttr = `class="pure-absolute-container"`;  // No VB classes here - outer div has them
-          processedHTML = `<div${idAttr} ${classAttr}>${processedHTML}</div>`;
+          const classAttr = `class="pure-absolute-container"`;  // No VB classes or ID - outer div has them
+          processedHTML = `<div ${classAttr}>${processedHTML}</div>`;
         }
       }
 
@@ -168,27 +167,37 @@ export function StaticHTMLWithIslands({
     // Parse the entire static HTML into a DOM tree
     const container = document.createElement('div');
 
-    // Visual Builder container creation logic (client-side)
-    // NOTE: We no longer inject VB classes into inner HTML - only outer profile-template-root has them
-    // This prevents redundant backgrounds and cleaner rendering
+    // Container creation logic (client-side)
     let processedHTML = staticHTML;
-    if (templateType === 'visual-builder' && visualBuilderClasses.length > 0) {
+
+    // For legacy templates (NOT Visual Builder), inject profileId at the container level
+    // Visual Builder templates already have profileId on the outer .profile-template-root wrapper
+    if (templateType === 'legacy' && profileId) {
       const hasPositioningContainer = processedHTML.includes('pure-absolute-container') ||
                                      processedHTML.includes('advanced-template-container');
       const hasProfileId = processedHTML.includes(`id="${profileId}"`);
 
-      // If we already have a positioning container, add ID to it (but NOT VB classes)
-      if (hasPositioningContainer && !hasProfileId && profileId) {
-        // Add ID to the existing positioning container
+      // If we already have a positioning container, add ID to it
+      if (hasPositioningContainer && !hasProfileId) {
         processedHTML = processedHTML.replace(
           /<div([^>]*class="[^"]*(?:pure-absolute-container|advanced-template-container)[^"]*"[^>]*)>/,
           `<div id="${profileId}"$1>`
         );
       } else if (!hasPositioningContainer) {
-        // Only create a new wrapper if there's no positioning container at all
-        const idAttr = profileId ? ` id="${profileId}"` : '';
-        const classAttr = `class="pure-absolute-container"`;  // No VB classes here - outer div has them
-        processedHTML = `<div${idAttr} ${classAttr}>${processedHTML}</div>`;
+        // Create a new wrapper with profileId for legacy templates
+        processedHTML = `<div id="${profileId}" class="pure-absolute-container">${processedHTML}</div>`;
+      }
+    }
+
+    // For Visual Builder templates, only create container if missing (NO profileId!)
+    // The outer .profile-template-root wrapper (created by AdvancedProfileRenderer) already has the ID and VB classes
+    if (templateType === 'visual-builder' && visualBuilderClasses.length > 0) {
+      const hasPositioningContainer = processedHTML.includes('pure-absolute-container') ||
+                                     processedHTML.includes('advanced-template-container');
+
+      // Only create a new wrapper if there's no positioning container at all (NO profileId for VB!)
+      if (!hasPositioningContainer) {
+        processedHTML = `<div class="pure-absolute-container">${processedHTML}</div>`;
       }
     }
 
