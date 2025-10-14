@@ -25,6 +25,17 @@ export interface Component {
   examples: ComponentExample[];
   useCases: string[];
   tips?: string[];
+  // Enhanced metadata for better discoverability
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  pairsWellWith?: string[]; // Component IDs that work well with this one
+  accessibility?: string[]; // Accessibility tips and best practices
+  performanceNotes?: string[]; // Performance considerations
+  operators?: Array<{ // For conditional/logic components
+    name: string;
+    syntax: string;
+    example: string;
+    description: string;
+  }>;
 }
 
 export interface ComponentCategory {
@@ -145,6 +156,8 @@ export const componentData: Record<string, Component[]> = {
         },
       ],
       useCases: ['Counter states', 'Form data', 'UI toggles', 'Computed calculations', 'Persistent user preferences'],
+      difficulty: 'beginner',
+      pairsWellWith: ['showvar', 'set', 'button', 'tinput', 'slider'],
     },
     {
       id: 'showvar',
@@ -172,6 +185,8 @@ export const componentData: Record<string, Component[]> = {
         },
       ],
       useCases: ['Display variable values', 'Formatted currency', 'Date display', 'Percentage display'],
+      difficulty: 'beginner',
+      pairsWellWith: ['var', 'set', 'increment', 'decrement', 'toggle'],
     },
     {
       id: 'dynamicimage',
@@ -222,6 +237,14 @@ export const componentData: Record<string, Component[]> = {
         },
       ],
       useCases: ['Form fields', 'Search boxes', 'Comments', 'Bio text'],
+      difficulty: 'beginner',
+      pairsWellWith: ['var', 'validate', 'if', 'onchange', 'button'],
+      accessibility: [
+        'Always pair with a visible <label> for screen readers',
+        'Use appropriate type attribute for mobile keyboards (email, tel, url)',
+        'Provide clear placeholder text as hints',
+        'Use aria-label if no visible label is present'
+      ],
     },
     {
       id: 'checkbox',
@@ -239,6 +262,13 @@ export const componentData: Record<string, Component[]> = {
         },
       ],
       useCases: ['Agreements', 'Feature toggles', 'Task completion', 'Settings'],
+      difficulty: 'beginner',
+      pairsWellWith: ['var', 'if', 'toggle', 'showvar'],
+      accessibility: [
+        'Label prop provides accessible text for screen readers',
+        'Keyboard accessible (Space to toggle)',
+        'Consider using role="checkbox" for custom styled checkboxes'
+      ],
     },
     {
       id: 'radiogroup',
@@ -278,6 +308,14 @@ export const componentData: Record<string, Component[]> = {
         },
       ],
       useCases: ['Volume control', 'Brightness', 'Zoom level', 'Numeric ranges'],
+      difficulty: 'beginner',
+      pairsWellWith: ['var', 'showvar', 'set', 'if'],
+      accessibility: [
+        'Keyboard accessible (Arrow keys to adjust)',
+        'Provide visible value indicator with ShowVar',
+        'Consider adding aria-label with current value',
+        'Use aria-valuemin, aria-valuemax, aria-valuenow for screen readers'
+      ],
     },
     {
       id: 'select',
@@ -314,6 +352,13 @@ export const componentData: Record<string, Component[]> = {
         },
       ],
       useCases: ['Color themes', 'Customization', 'Drawing tools', 'Styling'],
+      difficulty: 'beginner',
+      pairsWellWith: ['var', 'showvar', 'set', 'gradientbox', 'setcssvar'],
+      tips: [
+        'Pair with GradientBox to show live color preview',
+        'Use SetCSSVar to apply color dynamically to theme',
+        'Display selected color with ShowVar for user feedback'
+      ],
     },
   ],
 
@@ -595,7 +640,7 @@ export const componentData: Record<string, Component[]> = {
       id: 'count',
       name: 'Count',
       category: 'collections',
-      description: 'Count array items, optionally with a filter. This is an action component - use inside event handlers.',
+      description: 'Count array items with optional filtering. This is an ACTION component - use inside event handlers. For simple counts, use .length in computed variables instead.',
       props: [
         { name: 'var', type: 'string', required: true, description: 'Array variable to count' },
         { name: 'target', type: 'string', required: true, description: 'Target variable for count result' },
@@ -1009,9 +1054,11 @@ export const componentData: Record<string, Component[]> = {
         { name: 'or', type: 'string', required: false, description: 'Comma-separated variables where at least ONE must be truthy' },
         { name: 'not', type: 'string', required: false, description: 'Variable that must be falsy' },
         { name: 'equals', type: 'any', required: false, description: 'Value to compare equality' },
+        { name: 'notEquals', type: 'any', required: false, description: 'Value to compare inequality' },
         { name: 'greaterThan', type: 'number', required: false, description: 'Greater than comparison' },
         { name: 'lessThan', type: 'number', required: false, description: 'Less than comparison' },
-        { name: 'notEquals', type: 'any', required: false, description: 'Value to compare inequality' },
+        { name: 'greaterThanOrEqual', type: 'number', required: false, description: 'Greater than or equal comparison' },
+        { name: 'lessThanOrEqual', type: 'number', required: false, description: 'Less than or equal comparison' },
         { name: 'contains', type: 'string', required: false, description: 'Check if string contains value' },
       ],
       examples: [
@@ -1057,6 +1104,70 @@ export const componentData: Record<string, Component[]> = {
         'Use and="$vars.var1,$vars.var2" to require multiple variables to be truthy',
         'All conditions are combined with AND logic - all must be true',
         'If works in two contexts: rendering (shows/hides content) and actions (inside OnClick, OnChange, etc.)'
+      ],
+      difficulty: 'beginner',
+      pairsWellWith: ['var', 'showvar', 'else', 'elseif', 'button'],
+      operators: [
+        {
+          name: 'equals',
+          syntax: 'condition="$vars.status" equals="active"',
+          example: '<If condition="$vars.theme" equals="dark">Dark mode enabled</If>',
+          description: 'Check if variable equals a value'
+        },
+        {
+          name: 'notEquals',
+          syntax: 'condition="$vars.status" notEquals=""',
+          example: '<If condition="$vars.username" notEquals="">Welcome!</If>',
+          description: 'Check if variable does not equal a value'
+        },
+        {
+          name: 'greaterThan',
+          syntax: 'condition="$vars.age" greaterThan="17"',
+          example: '<If condition="$vars.score" greaterThan="90">A+ grade!</If>',
+          description: 'Check if number is greater than value'
+        },
+        {
+          name: 'lessThan',
+          syntax: 'condition="$vars.age" lessThan="18"',
+          example: '<If condition="$vars.stock" lessThan="5">Low stock</If>',
+          description: 'Check if number is less than value'
+        },
+        {
+          name: 'greaterThanOrEqual',
+          syntax: 'condition="$vars.score" greaterThanOrEqual="80"',
+          example: '<If condition="$vars.age" greaterThanOrEqual="18">Adult</If>',
+          description: 'Check if number is greater than or equal to value'
+        },
+        {
+          name: 'lessThanOrEqual',
+          syntax: 'condition="$vars.rating" lessThanOrEqual="3"',
+          example: '<If condition="$vars.temp" lessThanOrEqual="32">Freezing!</If>',
+          description: 'Check if number is less than or equal to value'
+        },
+        {
+          name: 'contains',
+          syntax: 'condition="$vars.email" contains="@"',
+          example: '<If condition="$vars.username" contains="admin">Admin user</If>',
+          description: 'Check if string contains a substring'
+        },
+        {
+          name: 'and',
+          syntax: 'and="$vars.username,$vars.password"',
+          example: '<If and="$vars.agreed,$vars.email">Can submit</If>',
+          description: 'All listed variables must be truthy'
+        },
+        {
+          name: 'or',
+          syntax: 'or="$vars.isPro,$vars.isTrial"',
+          example: '<If or="$vars.isAdmin,$vars.isOwner">Has access</If>',
+          description: 'At least one listed variable must be truthy'
+        },
+        {
+          name: 'not',
+          syntax: 'not="$vars.isDisabled"',
+          example: '<If not="$vars.isLoading">Show content</If>',
+          description: 'Variable must be falsy'
+        }
       ]
     },
     {

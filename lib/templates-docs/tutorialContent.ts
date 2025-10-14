@@ -36,7 +36,7 @@ export const tutorials: Tutorial[] = [
     description: 'Learn the basics of template syntax by building a simple interactive counter',
     difficulty: 'beginner',
     estimatedTime: '10 minutes',
-    icon: '🎯',
+    icon: '',
     color: 'bg-green-200',
     hoverColor: 'hover:bg-green-100',
     learningObjectives: [
@@ -54,7 +54,7 @@ export const tutorials: Tutorial[] = [
         code: '<Var name="counter" type="number" initial="0" />',
         concepts: ['Var'],
         tips: [
-          'Variables must be declared at the top of your template',
+          'Variables must be declared at the top of your template (before any elements that reference them)',
           'The initial value determines what users see when they first load your template'
         ]
       },
@@ -142,7 +142,7 @@ export const tutorials: Tutorial[] = [
     description: 'Master different variable types, computed values, and persistence',
     difficulty: 'beginner',
     estimatedTime: '15 minutes',
-    icon: '💾',
+    icon: '',
     color: 'bg-green-200',
     hoverColor: 'hover:bg-green-100',
     learningObjectives: [
@@ -248,29 +248,32 @@ export const tutorials: Tutorial[] = [
 </Button>`,
         concepts: ['Var'],
         tips: [
-          'Persisted variables are saved per-template',
-          'Great for high scores, user preferences, and progress'
+          'Persisted variables are saved per-template in the browser\'s localStorage',
+          'Data is stored locally on the user\'s device and persists across page reloads',
+          'Each template instance maintains its own persisted data (scoped per user per template)',
+          'Great for high scores, user preferences, and progress tracking'
         ]
       },
       {
         id: 'step-7',
         title: 'URL Parameter Variables',
-        explanation: 'Read values from the URL query string. Perfect for shareable links and pre-filled forms.',
+        explanation: 'Read values from the URL query string. Perfect for shareable links and pre-filled forms. These variables are read-only and cannot be modified.',
         code: `<Var name="productId" type="urlParam" param="id" default="unknown" />
 
 <p>Viewing product: <ShowVar name="productId" /></p>
 <p>Try adding ?id=12345 to the URL!</p>`,
         concepts: ['Var'],
         tips: [
-          'URL params are read-only',
-          'Always provide a default value',
-          'Great for shareable templates'
+          'URL param variables are READ-ONLY - they cannot be modified by actions',
+          'The value comes from the URL query string (e.g., ?id=12345)',
+          'Always provide a default value for when the param is not present',
+          'Great for shareable templates and pre-filled forms'
         ]
       }
     ],
     summary: 'You now understand all variable types and how to use them effectively. Variables are the foundation of every template - choose the right type for your data!',
     nextTutorial: 'user-interactions',
-    relatedComponents: ['var', 'showvar', 'toggle', 'count']
+    relatedComponents: ['var', 'showvar', 'toggle']
   },
 
   // Tutorial 3: User Interactions
@@ -281,7 +284,7 @@ export const tutorials: Tutorial[] = [
     description: 'Capture user input with forms, text fields, checkboxes, and more',
     difficulty: 'intermediate',
     estimatedTime: '20 minutes',
-    icon: '⌨️',
+    icon: '',
     color: 'bg-yellow-200',
     hoverColor: 'hover:bg-yellow-100',
     learningObjectives: [
@@ -447,7 +450,7 @@ export const tutorials: Tutorial[] = [
     description: 'Show and hide content dynamically based on state and user input',
     difficulty: 'intermediate',
     estimatedTime: '20 minutes',
-    icon: '🔀',
+    icon: '',
     color: 'bg-yellow-200',
     hoverColor: 'hover:bg-yellow-100',
     learningObjectives: [
@@ -484,7 +487,7 @@ export const tutorials: Tutorial[] = [
       {
         id: 'step-2',
         title: 'Comparison Operators',
-        explanation: 'Use comparison operators as separate props: equals, notEquals, greaterThan, lessThan, greaterThanOrEqual, lessThanOrEqual',
+        explanation: 'Use comparison operators as separate props: equals, notEquals, greaterThan, lessThan, greaterThanOrEqual, lessThanOrEqual, contains',
         code: `<Var name="age" type="number" initial="16" />
 
 <Slider var="age" min="0" max="100" step="1" />
@@ -501,7 +504,9 @@ export const tutorials: Tutorial[] = [
         tips: [
           'Use condition prop for the variable path: condition="$vars.age"',
           'Add comparison as separate prop: greaterThanOrEqual="18"',
-          'Available operators: equals, notEquals, greaterThan, lessThan, greaterThanOrEqual, lessThanOrEqual'
+          'Comparison operators: equals, notEquals, greaterThan, lessThan, greaterThanOrEqual, lessThanOrEqual',
+          'String operator: contains (checks if string contains a substring)',
+          'Boolean operators: and, or, not (combine multiple conditions)'
         ]
       },
       {
@@ -635,7 +640,7 @@ export const tutorials: Tutorial[] = [
     description: 'Work with arrays, iterate over data, and build dynamic lists',
     difficulty: 'intermediate',
     estimatedTime: '25 minutes',
-    icon: '🔁',
+    icon: '',
     color: 'bg-yellow-200',
     hoverColor: 'hover:bg-yellow-100',
     learningObjectives: [
@@ -726,7 +731,8 @@ export const tutorials: Tutorial[] = [
 </ul>`,
         concepts: ['RemoveAt', 'ForEach'],
         tips: [
-          'Use index="{varName}" to pass a loop variable as the index',
+          'Use index="{varName}" syntax (e.g., index="{idx}") to pass loop variables as attribute values',
+          'This {varName} syntax in attributes is different from <ShowVar /> - it passes the value directly',
           'RemoveAt modifies the array in place'
         ]
       },
@@ -799,7 +805,7 @@ export const tutorials: Tutorial[] = [
     ],
     summary: 'You can now build dynamic lists and iterate over data! Arrays and ForEach are essential for displaying collections, building todo lists, and managing dynamic content.',
     nextTutorial: 'collection-operations',
-    relatedComponents: ['foreach', 'push', 'pop', 'removeat', 'get', 'count']
+    relatedComponents: ['foreach', 'push', 'pop', 'removeat', 'get']
   },
 
   // Tutorial 6: Collection Operations
@@ -810,7 +816,7 @@ export const tutorials: Tutorial[] = [
     description: 'Master advanced array operations like filtering, sorting, and transforming data',
     difficulty: 'advanced',
     estimatedTime: '30 minutes',
-    icon: '📊',
+    icon: '',
     color: 'bg-red-200',
     hoverColor: 'hover:bg-red-100',
     learningObjectives: [
@@ -843,7 +849,8 @@ export const tutorials: Tutorial[] = [
 <p>Filtered: <ShowVar name="filtered" /></p>`,
         concepts: ['Filter', 'Button', 'OnClick'],
         tips: [
-          'Filter is an ACTION - must be used inside OnClick handlers',
+          '⚠️ IMPORTANT: Filter is an ACTION component - must be used inside event handlers (OnClick, OnChange, OnMount, OnInterval, Sequence)',
+          'Actions cannot be used directly in the template - they must be triggered by events',
           'Use var for source array and target for result',
           'Condition expression uses "item" to reference each array element',
           'Returns a new array - original is unchanged'
@@ -871,7 +878,7 @@ export const tutorials: Tutorial[] = [
 <p>Sorted: <ShowVar name="sorted" /></p>`,
         concepts: ['Sort', 'RadioGroup', 'OnChange'],
         tips: [
-          'Sort is an ACTION - must be used inside event handlers',
+          'Sort is an ACTION component - must be used inside event handlers',
           'Use order-var="variableName" for dynamic sorting',
           'by="item" sorts the items directly (for arrays of primitives)',
           'Accepts "asc" (ascending) or "desc" (descending)',
@@ -900,7 +907,7 @@ export const tutorials: Tutorial[] = [
 <p>With tax: <ShowVar name="withTax" /></p>`,
         concepts: ['Transform', 'Button', 'OnClick'],
         tips: [
-          'Transform is an ACTION - must be used inside event handlers',
+          'Transform is an ACTION component - must be used inside event handlers',
           'Expression uses "item" to reference each array element',
           'Can access template variables in the expression',
           'Creates a new array with modified values'
@@ -927,7 +934,7 @@ export const tutorials: Tutorial[] = [
 <p>Found: <ShowVar name="found" /></p>`,
         concepts: ['Find', 'Slider', 'Button'],
         tips: [
-          'Find is an ACTION - must be used inside event handlers',
+          'Find is an ACTION component - must be used inside event handlers',
           'Use var for source array and target for result',
           'Returns the first matching item',
           'Returns undefined if no match found'
@@ -988,7 +995,7 @@ export const tutorials: Tutorial[] = [
 
   <Button>
     <OnClick>
-      <If condition="$vars.searchTerm" notEqual="">
+      <If condition="$vars.searchTerm" notEquals="">
         <Filter var="products" target="filtered" where="item.name.toLowerCase().includes($vars.searchTerm.toLowerCase())" />
       </If>
       <If condition="$vars.searchTerm" equals="">
@@ -1017,7 +1024,8 @@ export const tutorials: Tutorial[] = [
           'Collection operations are ACTIONS - trigger them with buttons',
           'Use If to conditionally apply filters',
           'Can reuse target variable for chaining (filter, then sort)',
-          'Use {item.property} syntax to display properties in ForEach loops'
+          'Inside ForEach loops, use {item.property} syntax (e.g., {product.name}) to display object properties',
+          'For regular variables, use <ShowVar name="varName" /> component instead'
         ]
       }
     ],
@@ -1034,7 +1042,7 @@ export const tutorials: Tutorial[] = [
     description: 'Create animations, countdowns, and time-based interactions',
     difficulty: 'advanced',
     estimatedTime: '25 minutes',
-    icon: '⏱️',
+    icon: '',
     color: 'bg-red-200',
     hoverColor: 'hover:bg-red-100',
     learningObjectives: [
@@ -1080,7 +1088,8 @@ export const tutorials: Tutorial[] = [
   <OnClick>
     <Toggle var="isRunning" />
   </OnClick>
-  <ShowVar name="isRunning" /> ? 'Stop' : 'Start'
+  <If condition="$vars.isRunning">Stop</If>
+  <If not="$vars.isRunning">Start</If>
 </Button>
 
 <p>Count: <ShowVar name="count" /></p>`,
@@ -1175,7 +1184,8 @@ export const tutorials: Tutorial[] = [
       <OnClick>
         <Toggle var="isRunning" />
       </OnClick>
-      <ShowVar name="isRunning" /> ? 'Pause' : 'Start'
+      <If condition="$vars.isRunning">Pause</If>
+      <If not="$vars.isRunning">Start</If>
     </Button>
   </If>
 
@@ -1254,7 +1264,7 @@ export const tutorials: Tutorial[] = [
     description: 'Master complex state with objects, nested data, and advanced patterns',
     difficulty: 'advanced',
     estimatedTime: '35 minutes',
-    icon: '🧩',
+    icon: '',
     color: 'bg-red-200',
     hoverColor: 'hover:bg-red-100',
     learningObjectives: [
@@ -1346,7 +1356,7 @@ export const tutorials: Tutorial[] = [
         tips: [
           'Use value for literal values',
           'Use expression with $vars.varName to use a variable\'s value',
-          'ObjectSet creates a new object (immutable update)'
+          '⚠️ IMPORTANT: ObjectSet creates a NEW object (immutable update) - the original object is not modified directly'
         ]
       },
       {

@@ -8,6 +8,8 @@ interface ComponentSearchProps {
   categories: Array<{ id: string; title: string; icon: string; color: string }>;
   availabilityFilter?: 'all' | 'visual-builder' | 'code-only';
   onAvailabilityFilterChange?: (filter: 'all' | 'visual-builder' | 'code-only') => void;
+  difficultyFilter?: 'all' | 'beginner' | 'intermediate' | 'advanced';
+  onDifficultyFilterChange?: (filter: 'all' | 'beginner' | 'intermediate' | 'advanced') => void;
 }
 
 export default function ComponentSearch({
@@ -18,6 +20,8 @@ export default function ComponentSearch({
   categories,
   availabilityFilter = 'all',
   onAvailabilityFilterChange,
+  difficultyFilter = 'all',
+  onDifficultyFilterChange,
 }: ComponentSearchProps) {
   return (
     <div className="space-y-4">
@@ -73,6 +77,53 @@ export default function ComponentSearch({
             }`}
           >
             💻 Code Only
+          </button>
+        </div>
+      )}
+
+      {/* Difficulty Filter */}
+      {onDifficultyFilterChange && (
+        <div className="flex flex-wrap gap-2 pb-4 border-b-2 border-gray-300">
+          <div className="w-full text-sm font-bold text-gray-700 mb-2">Difficulty Level:</div>
+          <button
+            onClick={() => onDifficultyFilterChange('all')}
+            className={`px-4 py-2 border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium ${
+              difficultyFilter === 'all'
+                ? 'bg-gray-800 text-white font-bold'
+                : 'bg-white hover:bg-gray-50'
+            }`}
+          >
+            All Levels
+          </button>
+          <button
+            onClick={() => onDifficultyFilterChange('beginner')}
+            className={`px-4 py-2 border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium ${
+              difficultyFilter === 'beginner'
+                ? 'bg-green-300 text-black font-bold'
+                : 'bg-white hover:bg-gray-50'
+            }`}
+          >
+            🌱 Beginner
+          </button>
+          <button
+            onClick={() => onDifficultyFilterChange('intermediate')}
+            className={`px-4 py-2 border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium ${
+              difficultyFilter === 'intermediate'
+                ? 'bg-orange-300 text-black font-bold'
+                : 'bg-white hover:bg-gray-50'
+            }`}
+          >
+            🔧 Intermediate
+          </button>
+          <button
+            onClick={() => onDifficultyFilterChange('advanced')}
+            className={`px-4 py-2 border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium ${
+              difficultyFilter === 'advanced'
+                ? 'bg-red-300 text-black font-bold'
+                : 'bg-white hover:bg-gray-50'
+            }`}
+          >
+            🚀 Advanced
           </button>
         </div>
       )}

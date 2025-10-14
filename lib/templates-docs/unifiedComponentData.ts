@@ -23,6 +23,17 @@ export interface UnifiedComponent {
   preview?: any;
   tutorial?: string;
   example?: string;
+  // Enhanced metadata for better discoverability
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  pairsWellWith?: string[]; // Component IDs that work well with this one
+  accessibility?: string[]; // Accessibility tips and best practices
+  performanceNotes?: string[]; // Performance considerations
+  operators?: Array<{ // For conditional/logic components
+    name: string;
+    syntax: string;
+    example: string;
+    description: string;
+  }>;
 }
 
 export interface UnifiedCategory {
@@ -54,6 +65,16 @@ function mapVisualComponentToUnified(component: any, categoryId: string): Unifie
     return null;
   }
 
+  // Auto-assign difficulty for Visual Builder components
+  let difficulty: 'beginner' | 'intermediate' | 'advanced' | undefined = component.difficulty;
+  if (!difficulty) {
+    if (['content', 'profile', 'retro-components'].includes(categoryId)) {
+      difficulty = 'beginner';
+    } else if (['layout', 'media', 'interactive'].includes(categoryId)) {
+      difficulty = 'intermediate';
+    }
+  }
+
   return {
     id: component.name.toLowerCase().replace(/\s+/g, '-'),
     name: component.name,
@@ -75,6 +96,11 @@ function mapVisualComponentToUnified(component: any, categoryId: string): Unifie
     preview: component.preview,
     tutorial: component.tutorial,
     useCases: component.useCases || [],
+    difficulty,
+    pairsWellWith: component.pairsWellWith,
+    accessibility: component.accessibility,
+    performanceNotes: component.performanceNotes,
+    operators: component.operators,
   };
 }
 
@@ -83,6 +109,18 @@ function mapTemplateComponentToUnified(component: TemplateComponent): UnifiedCom
   const codeOnlyCategories = ['state', 'actions', 'collections', 'objects', 'events', 'timing', 'conditionals', 'loops'];
   const isCodeOnly = codeOnlyCategories.includes(component.category);
   const isInteractive = ['inputs', 'actions', 'events'].includes(component.category);
+
+  // Auto-assign difficulty based on category if not explicitly set
+  let difficulty: 'beginner' | 'intermediate' | 'advanced' | undefined = component.difficulty;
+  if (!difficulty) {
+    if (['state', 'inputs', 'conditionals'].includes(component.category)) {
+      difficulty = 'beginner';
+    } else if (['actions', 'loops', 'events'].includes(component.category)) {
+      difficulty = 'intermediate';
+    } else if (['collections', 'objects', 'timing'].includes(component.category)) {
+      difficulty = 'advanced';
+    }
+  }
 
   return {
     id: component.id,
@@ -102,6 +140,11 @@ function mapTemplateComponentToUnified(component: TemplateComponent): UnifiedCom
     examples: component.examples || [],
     useCases: component.useCases || [],
     tips: component.tips,
+    difficulty,
+    pairsWellWith: component.pairsWellWith,
+    accessibility: component.accessibility,
+    performanceNotes: component.performanceNotes,
+    operators: component.operators,
   };
 }
 

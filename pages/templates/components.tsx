@@ -24,6 +24,7 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'visual-builder' | 'code-only'>('all');
+  const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
 
   // Get category from URL query parameter
   React.useEffect(() => {
@@ -42,12 +43,19 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
     }
   }, [router.query.filter]);
 
-  // Filter components based on search, category, and availability
+  // Filter components based on search, category, availability, and difficulty
   const filteredComponents = useMemo(() => {
     let allComponents = getAllUnifiedComponents();
 
     // Filter by availability
     allComponents = filterByAvailability(allComponents, availabilityFilter);
+
+    // Filter by difficulty
+    if (difficultyFilter !== 'all') {
+      allComponents = allComponents.filter(
+        (item) => item.component.difficulty === difficultyFilter
+      );
+    }
 
     // Filter by category
     if (activeCategory !== 'all') {
@@ -72,7 +80,7 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
     }
 
     return allComponents;
-  }, [searchTerm, activeCategory, availabilityFilter]);
+  }, [searchTerm, activeCategory, availabilityFilter, difficultyFilter]);
 
   // Get active category data
   const activeCategoryData = unifiedCategories.find(
@@ -132,6 +140,8 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
                 }))}
                 availabilityFilter={availabilityFilter}
                 onAvailabilityFilterChange={setAvailabilityFilter}
+                difficultyFilter={difficultyFilter}
+                onDifficultyFilterChange={setDifficultyFilter}
               />
             </RetroCard>
           </div>

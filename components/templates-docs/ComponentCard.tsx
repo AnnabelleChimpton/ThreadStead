@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import Link from "next/link";
 import { Component, ComponentCategory } from "@/lib/templates-docs/componentData";
+import { getCachedTutorialsForComponent, ComponentTutorialInfo } from "@/lib/templates-docs/componentTutorialMap";
 
 interface ComponentCardProps {
   component: Component & {
@@ -15,6 +17,10 @@ interface ComponentCardProps {
 export default function ComponentCard({ component, category }: ComponentCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copiedExample, setCopiedExample] = useState<number | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Get tutorials that feature this component
+  const tutorialsForComponent = getCachedTutorialsForComponent(component.id);
 
   const copyToClipboard = (code: string, index: number) => {
     navigator.clipboard.writeText(code);
@@ -22,22 +28,49 @@ export default function ComponentCard({ component, category }: ComponentCardProp
     setTimeout(() => setCopiedExample(null), 2000);
   };
 
+  const copyLink = () => {
+    const url = `${window.location.origin}/templates/components#${component.id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   return (
     <div
+      id={component.id}
       className={`border-3 border-black ${category.color} shadow-[3px_3px_0_#000] overflow-hidden transition-all ${
         isExpanded ? 'shadow-[5px_5px_0_#000]' : ''
       }`}
+      style={{ scrollMarginTop: '100px' }}
     >
       {/* Card Header */}
-      <button
+      <div
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`w-full px-6 py-4 ${category.hoverColor} transition-all text-left`}
+        className={`w-full px-6 py-4 ${category.hoverColor} transition-all text-left cursor-pointer`}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsExpanded(!isExpanded);
+          }
+        }}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl">{category.icon}</span>
               <h3 className="text-xl font-black text-gray-900">{component.name}</h3>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyLink();
+                }}
+                className="ml-2 px-2 py-1 bg-gray-200 border border-gray-400 text-xs font-medium hover:bg-gray-300 transition-colors"
+                title="Copy link to this component"
+              >
+                {copiedLink ? '✓ Copied!' : '🔗 Link'}
+              </button>
             </div>
             <p className="text-sm text-gray-700 mb-2">{component.description}</p>
 
@@ -63,13 +96,26 @@ export default function ComponentCard({ component, category }: ComponentCardProp
                   ⚡ Interactive
                 </span>
               )}
+              {component.difficulty && (
+                <span className={`px-2 py-0.5 border text-xs font-bold ${
+                  component.difficulty === 'beginner' ? 'bg-green-200 border-green-400' :
+                  component.difficulty === 'intermediate' ? 'bg-orange-200 border-orange-400' :
+                  'bg-red-200 border-red-400'
+                }`}>
+                  {component.difficulty === 'beginner' && '🌱'}
+                  {component.difficulty === 'intermediate' && '🔧'}
+                  {component.difficulty === 'advanced' && '🚀'}
+                  {' '}
+                  {component.difficulty.charAt(0).toUpperCase() + component.difficulty.slice(1)}
+                </span>
+              )}
             </div>
           </div>
           <div className="text-2xl transition-transform" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>
             ▼
           </div>
         </div>
-      </button>
+      </div>
 
       {/* Expanded Details */}
       {isExpanded && (
@@ -84,6 +130,138 @@ export default function ComponentCard({ component, category }: ComponentCardProp
               <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                 {component.useCases.map((useCase, index) => (
                   <li key={index}>{useCase}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Pairs Well With */}
+          {component.pairsWellWith && component.pairsWellWith.length > 0 && (
+            <div>
+              <h4 className="font-bold mb-2 flex items-center gap-2">
+                <span>🔗</span>
+                <span>Pairs Well With:</span>
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {component.pairsWellWith.map((componentId, index) => (
+                  <a
+                    key={index}
+                    href={`/templates/components#${componentId}`}
+                    className="px-3 py-1 bg-blue-100 border-2 border-blue-300 text-sm font-medium hover:bg-blue-200 transition-colors"
+                  >
+                    {componentId}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Featured In Tutorials */}
+          {tutorialsForComponent.length > 0 && (
+            <div>
+              <h4 className="font-bold mb-2 flex items-center gap-2">
+                <span>📚</span>
+                <span>Learn in Tutorials:</span>
+              </h4>
+              <div className="space-y-2">
+                {tutorialsForComponent.map((tutorialInfo, index) => (
+                  <Link
+                    key={index}
+                    href={`/templates/tutorials/${tutorialInfo.tutorial.slug}`}
+                    className="block p-3 bg-purple-50 border-2 border-purple-300 hover:bg-purple-100 transition-colors"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">{tutorialInfo.tutorial.icon || '📖'}</span>
+                      <div className="flex-1">
+                        <div className="font-bold text-sm">{tutorialInfo.tutorial.title}</div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          {tutorialInfo.appearsInSteps.length > 0 ? (
+                            <>Used in step{tutorialInfo.appearsInSteps.length > 1 ? 's' : ''} {tutorialInfo.appearsInSteps.join(', ')}</>
+                          ) : (
+                            <>Related component</>
+                          )}
+                          {' • '}
+                          <span className={`font-medium ${
+                            tutorialInfo.tutorial.difficulty === 'beginner' ? 'text-green-600' :
+                            tutorialInfo.tutorial.difficulty === 'intermediate' ? 'text-orange-600' :
+                            'text-red-600'
+                          }`}>
+                            {tutorialInfo.tutorial.difficulty}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Common Operators (for conditional components) */}
+          {component.operators && component.operators.length > 0 && (
+            <div>
+              <h4 className="font-bold mb-2 flex items-center gap-2">
+                <span>⚙️</span>
+                <span>Common Operators:</span>
+              </h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-2 border-black">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border border-black px-3 py-2 text-left">Operator</th>
+                      <th className="border border-black px-3 py-2 text-left">Syntax</th>
+                      <th className="border border-black px-3 py-2 text-left">Example</th>
+                      <th className="border border-black px-3 py-2 text-left">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {component.operators.map((op, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="border border-black px-3 py-2 font-mono text-xs font-bold">
+                          {op.name}
+                        </td>
+                        <td className="border border-black px-3 py-2">
+                          <code className="text-xs bg-purple-100 px-2 py-1 rounded block">{op.syntax}</code>
+                        </td>
+                        <td className="border border-black px-3 py-2">
+                          <code className="text-xs bg-green-100 px-2 py-1 rounded block">{op.example}</code>
+                        </td>
+                        <td className="border border-black px-3 py-2 text-gray-700">
+                          {op.description}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Accessibility */}
+          {component.accessibility && component.accessibility.length > 0 && (
+            <div>
+              <h4 className="font-bold mb-2 flex items-center gap-2">
+                <span>♿</span>
+                <span>Accessibility:</span>
+              </h4>
+              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 bg-blue-50 border-2 border-blue-300 p-4">
+                {component.accessibility.map((note, index) => (
+                  <li key={index}>{note}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Performance Notes */}
+          {component.performanceNotes && component.performanceNotes.length > 0 && (
+            <div>
+              <h4 className="font-bold mb-2 flex items-center gap-2">
+                <span>⚡</span>
+                <span>Performance:</span>
+              </h4>
+              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 bg-yellow-50 border-2 border-yellow-300 p-4">
+                {component.performanceNotes.map((note, index) => (
+                  <li key={index}>{note}</li>
                 ))}
               </ul>
             </div>

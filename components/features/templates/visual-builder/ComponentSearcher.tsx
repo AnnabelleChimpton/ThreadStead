@@ -24,6 +24,30 @@ interface ComponentSuggestion {
   isRegistered: boolean;
 }
 
+// Code-only components (Template Language) that should not appear in Visual Builder
+const CODE_ONLY_COMPONENTS = new Set([
+  // State Management
+  'Var', 'ShowVar', 'Set', 'OnClick', 'Option', 'Validate',
+  // Events
+  'OnHover', 'OnMouseEnter', 'OnMouseLeave', 'OnKeyPress', 'OnVisible',
+  'OnChange', 'OnMount', 'OnInterval',
+  // Actions
+  'AddClass', 'RemoveClass', 'ToggleClass', 'SetCSSVar', 'CopyToClipboard',
+  'SetURLParam', 'SetURLHash', 'Reset', 'Increment', 'Decrement', 'Toggle',
+  'Cycle', 'Push', 'Pop', 'RemoveAt', 'Prepend', 'Append', 'ArrayAt',
+  'ShowToast',
+  // Collections
+  'Count', 'Sum', 'Get', 'Filter', 'Find', 'Transform', 'Sort',
+  // Control Flow & Conditionals
+  'If', 'Else', 'ElseIf', 'Switch', 'Case', 'Default',
+  // Loops
+  'ForEach', 'Break', 'Continue',
+  // Temporal/Timing
+  'Delay', 'Sequence', 'Step', 'Timeout', 'OnTimeout',
+  // Advanced State Management
+  'Clone', 'Merge', 'ObjectSet', 'Extract', 'Property', 'ConditionalAttr',
+]);
+
 // Enhanced component data with better categorization and search terms
 const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegistered'>> = {
   // Text & Content
@@ -277,40 +301,6 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     tags: ['html', 'custom', 'code', 'raw', 'advanced', 'developer', 'markup'],
     popularity: 75
   },
-
-  // Template State/Variable Components
-  'Var': {
-    name: 'Variable',
-    description: 'Declare a template variable for interactive state',
-    icon: '📊',
-    category: 'State Management',
-    tags: ['variable', 'state', 'data', 'storage', 'interactive', 'dynamic', 'counter', 'value'],
-    popularity: 80
-  },
-  'ShowVar': {
-    name: 'Show Variable',
-    description: 'Display a template variable value',
-    icon: '👁️',
-    category: 'State Management',
-    tags: ['show', 'display', 'variable', 'value', 'output', 'text', 'dynamic'],
-    popularity: 85
-  },
-  'Set': {
-    name: 'Set Variable',
-    description: 'Set a variable value (action component)',
-    icon: '⚡',
-    category: 'State Management',
-    tags: ['set', 'update', 'change', 'variable', 'action', 'modify', 'assign'],
-    popularity: 90
-  },
-  'OnClick': {
-    name: 'On Click',
-    description: 'Handle click events and execute actions',
-    icon: '👆',
-    category: 'State Management',
-    tags: ['click', 'event', 'handler', 'button', 'interaction', 'action', 'trigger'],
-    popularity: 95
-  },
   'Button': {
     name: 'Button',
     description: 'Interactive button that supports OnClick handlers',
@@ -318,318 +308,6 @@ const COMPONENT_DATA: Record<string, Omit<ComponentSuggestion, 'type' | 'isRegis
     category: 'Interactive',
     tags: ['button', 'click', 'interactive', 'action', 'submit', 'form', 'onclick'],
     popularity: 100
-  },
-  'Option': {
-    name: 'Option',
-    description: 'Option for random-type variables',
-    icon: '🎲',
-    category: 'State Management',
-    tags: ['option', 'random', 'choice', 'value'],
-    popularity: 30
-  },
-  'Validate': {
-    name: 'Validate',
-    description: 'Input validation with error messages',
-    icon: '✓',
-    category: 'State Management',
-    tags: ['validate', 'validation', 'error', 'form', 'input', 'check', 'required', 'pattern'],
-    popularity: 75
-  },
-  'OnHover': {
-    name: 'On Hover',
-    description: 'Execute actions when element is hovered',
-    icon: '🖱️',
-    category: 'Events',
-    tags: ['hover', 'mouse', 'event', 'interaction', 'cursor', 'mouseover'],
-    popularity: 70
-  },
-  'OnMouseEnter': {
-    name: 'On Mouse Enter',
-    description: 'Execute actions when mouse enters element',
-    icon: '➡️',
-    category: 'Events',
-    tags: ['mouse', 'enter', 'event', 'hover', 'interaction'],
-    popularity: 65
-  },
-  'OnMouseLeave': {
-    name: 'On Mouse Leave',
-    description: 'Execute actions when mouse leaves element',
-    icon: '⬅️',
-    category: 'Events',
-    tags: ['mouse', 'leave', 'event', 'hover', 'interaction'],
-    popularity: 65
-  },
-  'OnKeyPress': {
-    name: 'On Key Press',
-    description: 'Execute actions when a key is pressed',
-    icon: '⌨️',
-    category: 'Events',
-    tags: ['keyboard', 'key', 'press', 'event', 'shortcut', 'enter', 'escape'],
-    popularity: 80
-  },
-  'OnVisible': {
-    name: 'On Visible',
-    description: 'Execute actions when element becomes visible',
-    icon: '👁️',
-    category: 'Events',
-    tags: ['visible', 'scroll', 'viewport', 'intersection', 'lazy', 'observer'],
-    popularity: 70
-  },
-  'AddClass': {
-    name: 'Add Class',
-    description: 'Add a CSS class to an element',
-    icon: '➕',
-    category: 'Actions',
-    tags: ['css', 'class', 'add', 'style', 'dom', 'manipulation'],
-    popularity: 70
-  },
-  'RemoveClass': {
-    name: 'Remove Class',
-    description: 'Remove a CSS class from an element',
-    icon: '➖',
-    category: 'Actions',
-    tags: ['css', 'class', 'remove', 'style', 'dom', 'manipulation'],
-    popularity: 70
-  },
-  'ToggleClass': {
-    name: 'Toggle Class',
-    description: 'Toggle a CSS class on an element',
-    icon: '🔄',
-    category: 'Actions',
-    tags: ['css', 'class', 'toggle', 'style', 'dom', 'manipulation'],
-    popularity: 75
-  },
-  'SetCSSVar': {
-    name: 'Set CSS Variable',
-    description: 'Set a CSS custom property value',
-    icon: '🎨',
-    category: 'Actions',
-    tags: ['css', 'variable', 'custom', 'property', 'theme', 'style'],
-    popularity: 65
-  },
-  'CopyToClipboard': {
-    name: 'Copy to Clipboard',
-    description: 'Copy text to the clipboard',
-    icon: '📋',
-    category: 'Actions',
-    tags: ['copy', 'clipboard', 'share', 'paste', 'text'],
-    popularity: 80
-  },
-  'SetURLParam': {
-    name: 'Set URL Parameter',
-    description: 'Update a URL query parameter',
-    icon: '🔗',
-    category: 'Actions',
-    tags: ['url', 'param', 'query', 'navigation', 'link'],
-    popularity: 60
-  },
-  'SetURLHash': {
-    name: 'Set URL Hash',
-    description: 'Update the URL hash/anchor',
-    icon: '🔗',
-    category: 'Actions',
-    tags: ['url', 'hash', 'anchor', 'navigation', 'link'],
-    popularity: 55
-  },
-  'Reset': {
-    name: 'Reset Variable',
-    description: 'Reset variable(s) to initial value',
-    icon: '🔄',
-    category: 'Actions',
-    tags: ['reset', 'clear', 'initial', 'variable', 'state'],
-    popularity: 70
-  },
-
-  // Phase 2 (Roadmap): Collection operations
-  'Count': {
-    name: 'Count',
-    description: 'Count array items with optional filter condition',
-    icon: '🔢',
-    category: 'Actions',
-    tags: ['count', 'array', 'length', 'filter', 'collection', 'aggregate'],
-    popularity: 75
-  },
-  'Sum': {
-    name: 'Sum',
-    description: 'Sum numeric values in an array',
-    icon: '➕',
-    category: 'Actions',
-    tags: ['sum', 'total', 'add', 'array', 'aggregate', 'numbers'],
-    popularity: 75
-  },
-  'Get': {
-    name: 'Get Property',
-    description: 'Dynamically access object property or array index',
-    icon: '🔍',
-    category: 'Actions',
-    tags: ['get', 'property', 'index', 'access', 'dynamic', 'object', 'array'],
-    popularity: 70
-  },
-  'Filter': {
-    name: 'Filter',
-    description: 'Filter array items by condition',
-    icon: '🔽',
-    category: 'Actions',
-    tags: ['filter', 'array', 'where', 'condition', 'collection', 'select'],
-    popularity: 85
-  },
-  'Find': {
-    name: 'Find',
-    description: 'Find first array item matching condition',
-    icon: '🔎',
-    category: 'Actions',
-    tags: ['find', 'search', 'array', 'first', 'match', 'collection'],
-    popularity: 80
-  },
-  'Transform': {
-    name: 'Transform',
-    description: 'Transform array items with expression (map)',
-    icon: '🔄',
-    category: 'Actions',
-    tags: ['transform', 'map', 'array', 'convert', 'collection', 'modify'],
-    popularity: 80
-  },
-  'Sort': {
-    name: 'Sort',
-    description: 'Sort array by property or expression',
-    icon: '🔀',
-    category: 'Actions',
-    tags: ['sort', 'order', 'array', 'ascending', 'descending', 'collection'],
-    popularity: 85
-  },
-
-  // Phase 1 (Roadmap): Pattern Matching & Control Flow
-  'Switch': {
-    name: 'Switch',
-    description: 'Pattern matching container (like switch/case)',
-    icon: '🔀',
-    category: 'Control Flow',
-    tags: ['switch', 'case', 'pattern', 'match', 'conditional', 'branch', 'logic', 'control'],
-    popularity: 85
-  },
-  'Case': {
-    name: 'Case',
-    description: 'Pattern match branch (child of Switch)',
-    icon: '📌',
-    category: 'Control Flow',
-    tags: ['case', 'match', 'branch', 'when', 'condition', 'switch'],
-    popularity: 80
-  },
-  'Default': {
-    name: 'Default',
-    description: 'Fallback case when no match found',
-    icon: '⭐',
-    category: 'Control Flow',
-    tags: ['default', 'fallback', 'else', 'case', 'switch'],
-    popularity: 75
-  },
-
-  // Phase 3 (Roadmap): Temporal Controls
-  'Delay': {
-    name: 'Delay',
-    description: 'Execute actions after a delay',
-    icon: '⏱️',
-    category: 'Actions',
-    tags: ['delay', 'wait', 'timeout', 'timing', 'animation', 'temporal', 'async'],
-    popularity: 80
-  },
-  'Sequence': {
-    name: 'Sequence',
-    description: 'Execute steps sequentially with delays',
-    icon: '⏩',
-    category: 'Actions',
-    tags: ['sequence', 'steps', 'chain', 'animation', 'timing', 'temporal', 'async'],
-    popularity: 75
-  },
-  'Step': {
-    name: 'Step',
-    description: 'Single step in a Sequence (child of Sequence)',
-    icon: '↪️',
-    category: 'Actions',
-    tags: ['step', 'sequence', 'delay', 'timing', 'animation'],
-    popularity: 70
-  },
-  'Timeout': {
-    name: 'Timeout',
-    description: 'Auto-execute actions after duration',
-    icon: '⏰',
-    category: 'Events',
-    tags: ['timeout', 'timer', 'auto', 'expiration', 'temporal', 'cancel'],
-    popularity: 75
-  },
-  'OnTimeout': {
-    name: 'OnTimeout',
-    description: 'Handler for Timeout expiration (child of Timeout)',
-    icon: '⏲️',
-    category: 'Events',
-    tags: ['timeout', 'handler', 'expiration', 'event'],
-    popularity: 70
-  },
-  'Break': {
-    name: 'Break',
-    description: 'Exit ForEach loop early',
-    icon: '🛑',
-    category: 'Control Flow',
-    tags: ['break', 'loop', 'foreach', 'exit', 'stop', 'control'],
-    popularity: 70
-  },
-  'Continue': {
-    name: 'Continue',
-    description: 'Skip to next ForEach iteration',
-    icon: '⏭️',
-    category: 'Control Flow',
-    tags: ['continue', 'loop', 'foreach', 'skip', 'next', 'control'],
-    popularity: 70
-  },
-
-  // Phase 6 (Roadmap): Advanced State Management
-  'Clone': {
-    name: 'Clone',
-    description: 'Deep clone an object or array variable',
-    icon: '📋',
-    category: 'Actions',
-    tags: ['clone', 'copy', 'duplicate', 'object', 'array', 'deep', 'state'],
-    popularity: 75
-  },
-  'Merge': {
-    name: 'Merge',
-    description: 'Merge multiple objects into one',
-    icon: '🔗',
-    category: 'Actions',
-    tags: ['merge', 'combine', 'object', 'join', 'extend', 'state'],
-    popularity: 75
-  },
-  'ObjectSet': {
-    name: 'ObjectSet',
-    description: 'Set nested object property immutably',
-    icon: '🔧',
-    category: 'Actions',
-    tags: ['object', 'set', 'property', 'nested', 'update', 'state', 'path'],
-    popularity: 80
-  },
-  'Extract': {
-    name: 'Extract',
-    description: 'Extract object properties into variables',
-    icon: '📦',
-    category: 'Actions',
-    tags: ['extract', 'destructure', 'object', 'property', 'state', 'unpack'],
-    popularity: 70
-  },
-  'Property': {
-    name: 'Property',
-    description: 'Define property to extract (child of Extract)',
-    icon: '↪️',
-    category: 'Actions',
-    tags: ['property', 'extract', 'field', 'path'],
-    popularity: 65
-  },
-  'ConditionalAttr': {
-    name: 'ConditionalAttr',
-    description: 'Conditionally set/remove element attributes',
-    icon: '🔄',
-    category: 'Actions',
-    tags: ['attribute', 'conditional', 'dynamic', 'dom', 'aria', 'disabled', 'reactive'],
-    popularity: 70
   },
 };
 
@@ -725,6 +403,11 @@ export default function ComponentSearcher({
       // Skip child components that should only be added through parent components
       const registration = componentRegistry.get(type);
       if (registration?.relationship?.type === 'child') {
+        continue;
+      }
+
+      // Skip code-only Template Language components
+      if (CODE_ONLY_COMPONENTS.has(type)) {
         continue;
       }
 
