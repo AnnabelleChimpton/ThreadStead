@@ -62,4 +62,17 @@ export interface CompilationResult {
   compiled?: CompiledTemplate;
   errors: string[];
   warnings: string[];
+  strippedComponents?: Array<{
+    name: string;
+    line?: number;
+    reason?: string;
+  }>;
+  validation?: {
+    isValid: boolean;
+    stats?: {
+      nodeCount: number;
+      maxDepth: number;
+      componentCounts: Record<string, number>;
+    };
+  };
 }

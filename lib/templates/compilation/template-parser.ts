@@ -212,8 +212,184 @@ function convertSelfClosingTags(html: string): string {
   return result;
 }
 
+// Helper function to extract ALL tag names from HTML string (both Components and HTML tags)
+// This allows us to track what gets stripped during sanitization
+function extractComponentTags(html: string): Array<{ name: string; line: number }> {
+  const tags: Array<{ name: string; line: number }> = [];
+  const lines = html.split('\n');
+
+  // Match ALL opening tags (both uppercase Components and lowercase HTML tags)
+  // But skip closing tags and comments
+  const tagRegex = /<([a-zA-Z][a-zA-Z0-9]*)/g;
+
+  lines.forEach((line, lineIndex) => {
+    let match;
+    // Reset regex for each line
+    tagRegex.lastIndex = 0;
+
+    while ((match = tagRegex.exec(line)) !== null) {
+      const tagName = match[1];
+
+      // Skip if this is a closing tag (preceded by </)
+      const fullMatch = match[0];
+      const beforeTag = line.substring(Math.max(0, match.index - 1), match.index);
+      if (beforeTag === '/') {
+        continue; // Skip closing tags
+      }
+
+      tags.push({
+        name: tagName,
+        line: lineIndex + 1
+      });
+    }
+  });
+
+  return tags;
+}
+
+// Pre-parse syntax validation to catch common errors before rehype
+function detectSyntaxErrors(htmlString: string): { errors: string[]; warnings: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const lines = htmlString.split('\n');
+
+  // Track quote state across the template
+  let inQuote = false;
+  let quoteChar = '';
+  let quoteStartLine = 0;
+
+  // Track tag stack for matching opening/closing tags
+  const tagStack: Array<{ name: string; line: number }> = [];
+
+  // Check each line for syntax issues
+  lines.forEach((line, lineIndex) => {
+    const lineNum = lineIndex + 1;
+
+    // Check for unclosed tags (tags that don't end with > or />)
+    // Look for < followed by tag name and attributes, but no closing
+    const openTagMatch = line.match(/<([A-Z][a-zA-Z0-9]*)\s+[^>]*$/);
+    if (openTagMatch && !line.trim().endsWith('/>') && !line.trim().endsWith('>')) {
+      const tagName = openTagMatch[1];
+      errors.push(
+        `Unclosed tag on line ${lineNum}: <${tagName}...> is missing closing '>' or '/>'.\n` +
+        `  ${line.trim()}\n` +
+        `Tip: Self-closing tags must end with />`
+      );
+    }
+
+    // Track opening and closing tags for structure validation
+    // Match opening tags: <TagName ...> or <tagname ...> (but not self-closing />)
+    // Match both Components (uppercase) and HTML tags (lowercase)
+    const openingTagRegex = /<([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+    let match;
+    while ((match = openingTagRegex.exec(line)) !== null) {
+      const fullMatch = match[0];
+      const tagName = match[1];
+
+      // Skip void HTML elements that don't need closing tags
+      const voidElements = ['img', 'br', 'hr', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'param', 'source', 'track', 'wbr'];
+      if (voidElements.includes(tagName.toLowerCase())) {
+        continue;
+      }
+
+      // Check if it's self-closing (ends with />)
+      if (!fullMatch.trim().endsWith('/>')) {
+        tagStack.push({ name: tagName, line: lineNum });
+      }
+    }
+
+    // Match closing tags: </TagName> or </tagname>
+    const closingTagRegex = /<\/([a-zA-Z][a-zA-Z0-9]*)>/g;
+    while ((match = closingTagRegex.exec(line)) !== null) {
+      const closingTagName = match[1];
+
+      if (tagStack.length === 0) {
+        errors.push(
+          `Line ${lineNum}: Unexpected closing tag </${closingTagName}>.\n` +
+          `  ${line.trim()}\n` +
+          `Tip: This closing tag has no matching opening tag`
+        );
+      } else {
+        const lastOpened = tagStack.pop()!;
+
+        // Check if closing tag matches the last opened tag
+        if (lastOpened.name !== closingTagName) {
+          errors.push(
+            `Line ${lineNum}: Mismatched closing tag </${closingTagName}>.\n` +
+            `  Expected </${lastOpened.name}> (opened on line ${lastOpened.line})\n` +
+            `  ${line.trim()}\n` +
+            `Tip: Closing tags must match their opening tags exactly`
+          );
+
+          // Put it back since we didn't find the right match
+          tagStack.push(lastOpened);
+        }
+      }
+    }
+
+    // Check for mismatched quotes in attributes
+    // This properly handles nested quotes (e.g., when="{{ theme === 'dark' }}")
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      // Skip escaped quotes
+      if (i > 0 && line[i - 1] === '\\') continue;
+
+      if ((char === '"' || char === "'") && !inQuote) {
+        // Opening quote
+        inQuote = true;
+        quoteChar = char;
+        quoteStartLine = lineNum;
+      } else if (char === quoteChar && inQuote) {
+        // Closing quote
+        inQuote = false;
+        quoteChar = '';
+      }
+    }
+
+    // Check for invalid JSON in initial attributes
+    const initialMatch = line.match(/initial=['"](\{[^'"]*\})['"]/);
+    if (initialMatch) {
+      const jsonStr = initialMatch[1];
+      try {
+        JSON.parse(jsonStr);
+      } catch (e) {
+        errors.push(
+          `Invalid JSON in 'initial' attribute on line ${lineNum}.\n` +
+          `  ${jsonStr}\n` +
+          `Tip: Use double quotes for JSON property names and string values`
+        );
+      }
+    }
+  });
+
+  // Check for unclosed quote at end of document
+  if (inQuote) {
+    errors.push(
+      `Unclosed quote starting on line ${quoteStartLine}.\n` +
+      `Tip: Make sure all attribute values have matching quotes`
+    );
+  }
+
+  // Check for unclosed tags at end of document
+  if (tagStack.length > 0) {
+    tagStack.forEach(tag => {
+      errors.push(
+        `Line ${tag.line}: Unclosed tag <${tag.name}>.\n` +
+        `Tip: Every opening tag needs a matching closing tag. Add </${tag.name}> before the end of the template.`
+      );
+    });
+  }
+
+  return { errors, warnings };
+}
+
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
-export function parseTemplate(htmlString: string): Root {
+// Returns both the parsed tree and information about stripped components
+export function parseTemplate(htmlString: string): Root & { _strippedComponents?: Array<{ name: string; line?: number; reason?: string }> } {
+
+  // Extract component tags BEFORE sanitization
+  const componentsBefore = extractComponentTags(htmlString);
 
   // Unescape HTML entities in attributes before processing
   // This handles &quot; &apos; &lt; &gt; &amp; etc.
@@ -307,7 +483,139 @@ export function parseTemplate(htmlString: string): Root {
                                           processedString.includes('dataPurePositioning') ||
                                           processedString.includes('dataPosition');
 
-  return processed as Root;
+  // Extract ALL tags AFTER sanitization by traversing the AST (Components and HTML tags)
+  const tagsAfter: string[] = [];
+  const extractTagsFromAst = (node: any) => {
+    // Track all tag names that survived sanitization
+    if (node.tagName) {
+      tagsAfter.push(node.tagName);
+    }
+    if (node.children) {
+      node.children.forEach(extractTagsFromAst);
+    }
+  };
+  extractTagsFromAst(processed);
+
+  // Compare before/after to find stripped tags (both Components and HTML tags)
+  // Use case-insensitive comparison because rehype might normalize tag names
+  const strippedComponents: Array<{ name: string; line?: number; reason?: string }> = [];
+  const allowedTagsLowercase = new Set(tagsAfter.map(t => t.toLowerCase()));
+
+  componentsBefore.forEach(tag => {
+    if (!allowedTagsLowercase.has(tag.name.toLowerCase())) {
+      // Check if it's a registered component
+      const isRegistered = componentRegistry.get(tag.name);
+
+      // Determine reason for stripping
+      let reason: string;
+      if (!isRegistered) {
+        // Not a registered component - could be unknown component or disallowed HTML tag
+        if (/^[A-Z]/.test(tag.name)) {
+          reason = 'Unknown component (not registered in template system)';
+        } else {
+          reason = 'Disallowed HTML tag (removed by security sanitization)';
+        }
+      } else {
+        reason = 'Invalid attributes or structure (removed by sanitization)';
+      }
+
+      strippedComponents.push({
+        name: tag.name,
+        line: tag.line,
+        reason
+      });
+    }
+  });
+
+  // Validate component attributes against registry
+  const attributeWarnings = validateComponentAttributes(processed);
+
+  // Attach stripped components and attribute warnings to the result
+  const result = processed as Root & {
+    _strippedComponents?: Array<{ name: string; line?: number; reason?: string }>;
+    _attributeWarnings?: string[];
+  };
+
+  if (strippedComponents.length > 0) {
+    result._strippedComponents = strippedComponents;
+  }
+
+  if (attributeWarnings.length > 0) {
+    result._attributeWarnings = attributeWarnings;
+  }
+
+  return result;
+}
+
+// Validate component attributes against registry definitions
+function validateComponentAttributes(node: any, warnings: string[] = [], lineNumber = 0): string[] {
+  if (node.tagName) {
+    // Check if this is a registered component
+    // Try both the original tagName and the capitalized version (rehype may normalize case)
+    let componentDef = componentRegistry.get(node.tagName);
+    if (!componentDef && node.tagName.length > 0) {
+      // Try with first letter capitalized
+      const capitalizedName = node.tagName.charAt(0).toUpperCase() + node.tagName.slice(1);
+      componentDef = componentRegistry.get(capitalizedName);
+    }
+
+    if (componentDef && componentDef.props) {
+      const props = node.properties || {};
+
+      // Validate each attribute
+      Object.entries(props).forEach(([attrName, attrValue]) => {
+        const propDef = componentDef.props![attrName];
+
+        if (!propDef) {
+          // Unknown attribute - skip (might be universal props like class, id, style)
+          return;
+        }
+
+        // Validate enum values
+        if (propDef.type === 'enum' && propDef.values) {
+          const value = String(attrValue);
+          if (!propDef.values.includes(value)) {
+            // Use the original component name for display (capitalize if needed)
+            const displayName = componentDef.name || node.tagName;
+            warnings.push(
+              `<${displayName}> has invalid "${attrName}" value: "${value}".\n` +
+              `  Valid values are: ${propDef.values.join(', ')}\n` +
+              `  Tip: Check the component documentation for allowed values`
+            );
+          }
+        }
+
+        // Validate required attributes
+        if (propDef.required && (attrValue === undefined || attrValue === null || attrValue === '')) {
+          const displayName = componentDef.name || node.tagName;
+          warnings.push(
+            `<${displayName}> is missing required attribute "${attrName}"`
+          );
+        }
+      });
+
+      // Check for missing required attributes
+      if (componentDef.props) {
+        Object.entries(componentDef.props).forEach(([propName, propDef]) => {
+          if (propDef.required && !(propName in props)) {
+            const displayName = componentDef.name || node.tagName;
+            warnings.push(
+              `<${displayName}> is missing required attribute "${propName}"`
+            );
+          }
+        });
+      }
+    }
+  }
+
+  // Recursively validate children
+  if (node.children) {
+    node.children.forEach((child: any) => {
+      validateComponentAttributes(child, warnings, lineNumber);
+    });
+  }
+
+  return warnings;
 }
 
 // Convert HAST to a serializable AST for storage
@@ -471,6 +779,11 @@ export interface CompilationResult {
   ast?: TemplateNode;
   validation?: ValidationResult;
   errors: string[];
+  strippedComponents?: Array<{
+    name: string;
+    line?: number;
+    reason?: string;
+  }>;
 }
 
 export function compileTemplate(htmlString: string): CompilationResult {
@@ -487,8 +800,21 @@ export function compileTemplate(htmlString: string): CompilationResult {
       };
     }
 
+    // Pre-validate syntax before parsing
+    const syntaxCheck = detectSyntaxErrors(htmlString);
+    if (syntaxCheck.errors.length > 0) {
+      return {
+        success: false,
+        errors: syntaxCheck.errors
+      };
+    }
+
     // Parse and sanitize
     const hast = parseTemplate(htmlString);
+
+    // Extract stripped components and attribute warnings from the HAST result
+    const strippedComponents = (hast as any)._strippedComponents;
+    const attributeWarnings = (hast as any)._attributeWarnings || [];
 
     // Convert to JSON AST
     const ast = astToJson(hast);
@@ -498,6 +824,11 @@ export function compileTemplate(htmlString: string): CompilationResult {
 
     // Validate
     const validation = validateTemplate(ast);
+
+    // Merge attribute warnings into validation warnings
+    if (attributeWarnings.length > 0 && validation.warnings) {
+      validation.warnings.push(...attributeWarnings);
+    }
 
     // Add size warning check (Phase 3)
     const sizeWarnings = checkWarningThresholds({ sizeBytes });
@@ -509,12 +840,38 @@ export function compileTemplate(htmlString: string): CompilationResult {
       success: validation.isValid,
       ast: validation.isValid ? ast : undefined,
       validation,
-      errors: validation.errors
+      errors: validation.errors,
+      strippedComponents: strippedComponents || undefined
     };
   } catch (error) {
+    // Extract meaningful error details from rehype/parser errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Try to extract line number if available
+    const lineMatch = errorMessage.match(/line (\d+)/i) || errorMessage.match(/(\d+):/);
+    const locationInfo = lineMatch ? ` (near line ${lineMatch[1]})` : '';
+
+    // Provide context-aware error messages based on error type
+    let friendlyError = `Template parsing failed${locationInfo}`;
+    const detailsPrefix = 'Parser details: ';
+
+    if (errorMessage.toLowerCase().includes('unexpected end')) {
+      friendlyError = `Unclosed tag detected${locationInfo}.\nCheck that all tags are properly closed with /> or matching closing tags.`;
+    } else if (errorMessage.toLowerCase().includes('invalid character') || errorMessage.toLowerCase().includes('unexpected character')) {
+      friendlyError = `Invalid character in template${locationInfo}.\nCheck for special characters or unclosed quotes in attribute values.`;
+    } else if (errorMessage.toLowerCase().includes('missing')) {
+      friendlyError = `Missing required element${locationInfo}.\n${errorMessage}`;
+    }
+
+    // Return both friendly and technical error messages
+    const errors = [friendlyError];
+    if (!errorMessage.includes(friendlyError)) {
+      errors.push(`${detailsPrefix}${errorMessage}`);
+    }
+
     return {
       success: false,
-      errors: [`Parse error: ${error}`]
+      errors
     };
   }
 }

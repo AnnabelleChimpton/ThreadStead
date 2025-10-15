@@ -16,6 +16,7 @@ import NavigationPreview from '@/components/features/templates/NavigationPreview
 import VisualTemplateBuilder from './visual-builder/VisualTemplateBuilder';
 import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
 import { extractLegacyValues, generateConvertedTemplate, generateConvertedCSS, generateConvertedTemplateWithCSS, validateExtractedValues, generateConversionSummary, generateGlobalSettingsFromLegacy } from '@/lib/utils/css/legacy-conversion';
+import ValidationFeedbackPanel from './ValidationFeedbackPanel';
 
 // Warning dialog for data loss prevention
 interface DataLossWarningProps {
@@ -427,7 +428,24 @@ export default function EnhancedTemplateEditor({
   // Save state management
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error' | 'pending'>('saved');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Validation feedback state
+  const [validationResult, setValidationResult] = useState<{
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    strippedComponents?: Array<{
+      name: string;
+      line?: number;
+      reason?: string;
+    }>;
+    stats?: {
+      nodeCount: number;
+      maxDepth: number;
+      componentCounts: Record<string, number>;
+    };
+  } | null>(null);
+  const [showValidationPanel, setShowValidationPanel] = useState(false);
 
   // Handle template changes from visual builder
   const handleVisualTemplateChange = useCallback((html: string) => {
@@ -1029,28 +1047,10 @@ export default function EnhancedTemplateEditor({
     // Users should be able to manually navigate to CSS tab in advanced mode
   }, [useStandardLayout, activeTab, editorMode]);
 
-  // Track changes for auto-save
+  // Track changes (manual save required now)
   useEffect(() => {
     setHasUnsavedChanges(true);
     setSaveState('pending');
-
-    // Clear existing timer
-    if (autoSaveTimer.current) {
-      clearTimeout(autoSaveTimer.current);
-    }
-
-    // Set new auto-save timer (3 seconds after last change)
-    autoSaveTimer.current = setTimeout(() => {
-      if (hasUnsavedChanges && saveState === 'pending') {
-        handleAutoSave();
-      }
-    }, 3000);
-
-    return () => {
-      if (autoSaveTimer.current) {
-        clearTimeout(autoSaveTimer.current);
-      }
-    };
   }, [template, customCSS, useStandardLayout, cssMode, hideNavigation]);
 
   // Warn user about unsaved changes before leaving page
@@ -1070,38 +1070,117 @@ export default function EnhancedTemplateEditor({
     };
   }, [hasUnsavedChanges]);
 
-  // Auto-save function
-  const handleAutoSave = useCallback(async () => {
-    if (!onSave) return;
-
-    setSaveState('saving');
-    try {
-      const compiledTemplateData = compiledTemplate || (await compileTemplateForPreview(true));
-      await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, hideNavigation);
-      setSaveState('saved');
-      setHasUnsavedChanges(false);
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-      setSaveState('error');
-      // Display error message for critical issues (like node limit)
-      const errorMessage = error instanceof Error ? error.message : 'Auto-save failed';
-      if (errorMessage.includes('Too many') || errorMessage.includes('max:')) {
-        // Critical validation error - don't retry, show message
-        setSaveMessage(`⚠️ ${errorMessage}`);
-        setTimeout(() => setSaveMessage(null), 10000);
-      } else {
-        // Network/temporary error - auto-retry after 10 seconds
-        setTimeout(() => {
-          if (saveState === 'error') {
-            handleAutoSave();
-          }
-        }, 10000);
-      }
+  // Validate template and update validation result
+  // Returns the full validation data so caller can check warnings/stripped components
+  const handleValidate = useCallback(async (): Promise<{ isValid: boolean; hasWarnings: boolean; hasStripped: boolean }> => {
+    // Don't validate empty templates or standard layout
+    if (!template.trim() || useStandardLayout) {
+      setValidationResult(null);
+      return { isValid: true, hasWarnings: false, hasStripped: false };
     }
-  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, saveState]);
 
-  // Manual save function (enhanced)
-  const handleManualSave = useCallback(async () => {
+    try {
+      // Extract username from user handle for API call
+      const fullHandle = user.primaryHandle || user.handles?.[0]?.handle;
+      const username = fullHandle ? fullHandle.split('@')[0] : null;
+
+      if (!username) {
+        const errorData = {
+          isValid: false,
+          errors: ['Unable to determine username for validation'],
+          warnings: []
+        };
+        setValidationResult(errorData);
+        return { isValid: false, hasWarnings: false, hasStripped: false };
+      }
+
+      // Use the compilation API to get validation results
+      const response = await fetch(`/api/users/${username}/templates/compile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          template,
+          customCSS,
+          mode: 'advanced'
+        })
+      });
+
+      if (!response.ok) {
+        // Try to extract error details from response body
+        let errors = ['Failed to validate template'];
+        let warnings: string[] = [];
+
+        try {
+          const errorData = await response.json();
+
+          // Check if the response contains structured error information
+          if (errorData.errors && Array.isArray(errorData.errors)) {
+            errors = errorData.errors;
+          } else if (errorData.error) {
+            errors = [errorData.error];
+          } else if (errorData.message) {
+            errors = [errorData.message];
+          }
+
+          // Also extract warnings if present
+          if (errorData.warnings && Array.isArray(errorData.warnings)) {
+            warnings = errorData.warnings;
+          }
+        } catch (jsonError) {
+          // Response body wasn't JSON or couldn't be parsed
+          // Try to get text error message
+          try {
+            const errorText = await response.text();
+            if (errorText && errorText.length > 0 && errorText.length < 500) {
+              errors = [errorText];
+            }
+          } catch (textError) {
+            // Give up, use generic error
+          }
+        }
+
+        const errorValidation = {
+          isValid: false,
+          errors,
+          warnings
+        };
+        setValidationResult(errorValidation);
+        return { isValid: false, hasWarnings: warnings.length > 0, hasStripped: false };
+      }
+
+      const result = await response.json();
+
+      // Extract validation information
+      const validationData = {
+        isValid: result.success && (!result.errors || result.errors.length === 0),
+        errors: result.errors || [],
+        warnings: result.warnings || [],
+        strippedComponents: result.strippedComponents || [],
+        stats: result.validation?.stats
+      };
+
+      setValidationResult(validationData);
+
+      return {
+        isValid: validationData.isValid,
+        hasWarnings: validationData.warnings.length > 0,
+        hasStripped: (validationData.strippedComponents?.length || 0) > 0
+      };
+    } catch (error) {
+      console.error('Validation failed:', error);
+      const errorValidation = {
+        isValid: false,
+        errors: ['Validation error: ' + (error instanceof Error ? error.message : 'Unknown error')],
+        warnings: []
+      };
+      setValidationResult(errorValidation);
+      return { isValid: false, hasWarnings: false, hasStripped: false };
+    }
+  }, [template, customCSS, user.id, useStandardLayout]);
+
+  // Internal save function (called after validation passes)
+  // Takes optional validation info to avoid relying on stale state
+  const performSave = useCallback(async (validationInfo?: { hasWarnings: boolean; hasStripped: boolean }) => {
     if (!onSave) return;
 
     setSaveState('saving');
@@ -1111,21 +1190,91 @@ export default function EnhancedTemplateEditor({
       const compiledTemplateData = compiledTemplate || (await compileTemplateForPreview(true));
       await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, hideNavigation);
       setSaveState('saved');
-      setSaveMessage('✓ Template saved successfully!');
-      setTimeout(() => setSaveMessage(null), 3000);
-    } catch (error) {
-      console.error('Manual save failed:', error);
-      setSaveState('error');
-      // Display the actual error message with details
-      const errorMessage = error instanceof Error ? error.message : '❌ Save failed - please try again';
-      setSaveMessage(errorMessage);
-      // Longer timeout for detailed error messages
-      setTimeout(() => setSaveMessage(null), 8000);
-    }
-  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation]);
 
-  // Use the enhanced manual save as handleSave
-  const handleSave = handleManualSave;
+      // Check if we have warnings or stripped components
+      // Use passed validationInfo first (most current), fall back to state
+      const hasIssues = validationInfo
+        ? (validationInfo.hasWarnings || validationInfo.hasStripped)
+        : (validationResult && (
+            validationResult.warnings.length > 0 ||
+            (validationResult.strippedComponents?.length || 0) > 0
+          ));
+
+      // Only show generic success message if there are no issues
+      // Otherwise, keep the specific warning message that was already set
+      if (!hasIssues) {
+        setSaveMessage('✓ Template saved successfully!');
+        setTimeout(() => setSaveMessage(null), 3000);
+        setShowValidationPanel(false);
+      }
+      // If there are issues, panel stays open with the warning message from handleSave
+    } catch (error) {
+      console.error('Save failed:', error);
+      setSaveState('error');
+      setHasUnsavedChanges(true); // Restore unsaved state on error
+
+      // Extract error message and display in ValidationFeedbackPanel
+      const errorMessage = error instanceof Error ? error.message : 'Save failed - please try again';
+
+      // Create validation result to display in panel
+      setValidationResult({
+        isValid: false,
+        errors: [errorMessage],
+        warnings: []
+      });
+
+      // Show the validation panel with the error
+      setShowValidationPanel(true);
+
+      // Also show toast for quick feedback
+      setSaveMessage('❌ Save failed - see details in validation panel');
+      setTimeout(() => setSaveMessage(null), 5000);
+    }
+  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult]);
+
+  // Main save handler with validation
+  const handleSave = useCallback(async () => {
+    // Validate template first
+    const validationInfo = await handleValidate();
+
+    // If validation has errors, block save and show panel
+    if (!validationInfo.isValid) {
+      setShowValidationPanel(true);
+      setSaveMessage('⚠️ Cannot save: Please fix validation errors first');
+      setTimeout(() => setSaveMessage(null), 5000);
+      return;
+    }
+
+    // If validation passed but has warnings or stripped components, show panel but allow save
+    if (validationInfo.hasWarnings || validationInfo.hasStripped) {
+      setShowValidationPanel(true);
+
+      // Show appropriate message based on what was found
+      if (validationInfo.hasStripped) {
+        setSaveMessage('ℹ️ Some components were removed - see details in panel');
+      } else {
+        setSaveMessage('⚠️ Template saved with warnings - see details in panel');
+      }
+      setTimeout(() => setSaveMessage(null), 8000);
+
+      // Still proceed with save - pass validation info to prevent stale state issues
+      try {
+        await performSave(validationInfo);
+      } catch (error) {
+        // Error is already handled by performSave's internal catch block
+        console.error('Error in handleSave:', error);
+      }
+      return;
+    }
+
+    // Validation passed with no warnings - save directly
+    try {
+      await performSave(validationInfo);
+    } catch (error) {
+      // Error is already handled by performSave's internal catch block
+      console.error('Error in handleSave:', error);
+    }
+  }, [handleValidate, performSave]);
 
   // Sample templates - unified Islands approach (matches default exactly)
   const sampleTemplates = {
@@ -2220,6 +2369,15 @@ body {
         preservedItems={conversionSummary?.preserved}
         clearedItems={conversionSummary?.cleared}
       />
+
+      {/* Validation Feedback Panel */}
+      {showValidationPanel && validationResult && (
+        <ValidationFeedbackPanel
+          validationResult={validationResult}
+          onDismiss={() => setShowValidationPanel(false)}
+          onSaveAnyway={validationResult.errors.length === 0 ? performSave : undefined}
+        />
+      )}
     </div>
     </>
   );

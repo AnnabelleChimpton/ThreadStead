@@ -132,7 +132,9 @@ async function compileAdvancedMode(
       return {
         success: false,
         errors: parseResult.errors,
-        warnings: ['Template compilation failed, falling back to enhanced mode']
+        warnings: ['Template compilation failed, falling back to enhanced mode'],
+        strippedComponents: parseResult.strippedComponents,
+        validation: parseResult.validation
       };
     }
     
@@ -154,12 +156,14 @@ async function compileAdvancedMode(
       errors: parseResult.errors,
       warnings: parseResult.validation?.warnings || []
     };
-    
+
     return {
       success: true,
       compiled,
       errors: [],
-      warnings: compiled.warnings
+      warnings: compiled.warnings,
+      strippedComponents: parseResult.strippedComponents,
+      validation: parseResult.validation
     };
     
   } catch (error) {
