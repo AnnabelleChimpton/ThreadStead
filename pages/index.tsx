@@ -239,7 +239,7 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
         <meta property="og:description" content={homepageMetadata.description} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
-        <meta property="og:site_name" content="ThreadStead" />
+        <meta property="og:site_name" content={siteConfig.site_name} />
         <meta property="og:locale" content="en_US" />
 
         {/* Social media card meta tags */}
@@ -258,12 +258,12 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
 
       <Layout siteConfig={siteConfig}>
       <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <SimpleCard title="Welcome to Threadstead">
+        <SimpleCard title={`Welcome to ${siteConfig.site_name}`}>
           <div className="text-center py-4 sm:py-6">
             <div className="text-4xl sm:text-5xl mb-4">🏘️✨</div>
             <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>
             <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-4 px-2">
-              <strong>Create your pixel home, join ThreadRings (themed communities), and connect with creative people in a retro-inspired social platform.</strong>
+              <strong>Create your pixel home, join ThreadRings (themed communities), and connect with creative people in a retro-inspired social platform on {siteConfig.site_name}.</strong>
             </p>
             <p className="text-sm sm:text-base text-gray-600 mb-6 px-2">Build your unique space, discover amazing communities, and share your creativity with the world.</p>
 
@@ -308,7 +308,7 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
           </div>
         </SimpleCard>
 
-        <SimpleCard title="How Threadstead Works">
+        <SimpleCard title={`How ${siteConfig.site_name} Works`}>
           <div className="space-y-4">
             <div className="text-center mb-4">
               <p className="text-sm sm:text-base text-gray-700 px-1">
@@ -491,7 +491,7 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
         <meta property="og:description" content={homepageMetadata.description} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
-        <meta property="og:site_name" content="ThreadStead" />
+        <meta property="og:site_name" content={siteConfig.site_name} />
         <meta property="og:locale" content="en_US" />
 
         {/* Social media card meta tags */}
@@ -641,7 +641,7 @@ function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
         <meta property="og:description" content={homepageMetadata.description} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
-        <meta property="og:site_name" content="ThreadStead" />
+        <meta property="og:site_name" content={siteConfig.site_name} />
         <meta property="og:locale" content="en_US" />
 
         {/* Social media card meta tags */}
@@ -660,7 +660,7 @@ function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
 
       <Layout siteConfig={siteConfig}>
       <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <SimpleCard title="Welcome to Threadstead">
+        <SimpleCard title={`Welcome to ${siteConfig.site_name}`}>
           <div className="text-center py-4 sm:py-6">
             <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>
             <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-4 px-2">

@@ -10,15 +10,17 @@ import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/templa
 import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_STYLES } from "@/lib/templates/rendering/template-preview-styles";
 import SignupFinaleAnimation from "@/components/features/onboarding/SignupFinaleAnimation";
 import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
+import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 
 interface SignupPageProps {
   betaKey?: string | null;
+  siteConfig: SiteConfig;
 }
 
 type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'guidelines' | 'profile' | 'template' | 'finale';
 type AuthMethod = 'password' | 'seedphrase';
 
-export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
+export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPageProps) {
   const router = useRouter();
   const globalAudio = useGlobalAudio();
   const [currentStep, setCurrentStep] = useState<SignupStep>('welcome');
@@ -402,9 +404,9 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
   return (
     <>
       <Head>
-        <title>Create Your Account | ThreadStead</title>
+        <title>Create Your Account | {siteConfig.site_name}</title>
       </Head>
-      <Layout>
+      <Layout siteConfig={siteConfig}>
         <div className="max-w-2xl mx-auto p-6">
           {/* Progress Indicator */}
           <div className="mb-8">
@@ -465,7 +467,7 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
             <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
                 <span className="text-6xl mb-4 block">👋</span>
-                <h1 className="text-3xl font-bold mb-2">Welcome to ThreadStead!</h1>
+                <h1 className="text-3xl font-bold mb-2">Welcome to {siteConfig.site_name}!</h1>
                 <p className="text-gray-600">
                   Let&apos;s create your decentralized identity. You&apos;ll own your account completely.
                 </p>
@@ -854,7 +856,7 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
                 <span className="text-6xl mb-4 block">🎨</span>
                 <h2 className="text-3xl font-bold mb-2">Choose Your Theme</h2>
                 <p className="text-gray-600 max-w-lg mx-auto">
-                  Select a profile template to personalize your ThreadStead experience.
+                  Select a profile template to personalize your {siteConfig.site_name} experience.
                   You can change this anytime in your settings.
                 </p>
               </div>
@@ -1183,10 +1185,12 @@ export default function SignupPage({ betaKey: urlBetaKey }: SignupPageProps) {
 export const getServerSideProps: GetServerSideProps<SignupPageProps> = async ({ query }) => {
   // Auto-populate beta key from URL parameter
   const betaKey = typeof query.beta === 'string' ? query.beta : null;
+  const siteConfig = await getSiteConfig();
 
   return {
     props: {
       betaKey,
+      siteConfig,
     },
   };
 };

@@ -85,7 +85,7 @@ export default function RetroFooter({ isCSSPage= false }: RetroFooterProps) {
           <div className="bg-white border-2 border-black p-4 shadow-[2px_2px_0_#000]">
             <h4 className="font-bold mb-2">Color Consistency</h4>
             <p className="text-gray-700">
-              Use the ThreadStead color palette for designs that feel native to the platform. 
+              Use the platform color palette for designs that feel native and cohesive. 
               Combine colors thoughtfully for accessible contrast.
             </p>
           </div>

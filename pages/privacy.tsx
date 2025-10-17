@@ -2,12 +2,18 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
+import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
+import { GetServerSideProps } from 'next';
 
 interface PolicyData {
   privacy_full: string;
 }
 
-export default function PrivacyPolicyPage() {
+interface PrivacyPolicyPageProps {
+  siteConfig: SiteConfig;
+}
+
+export default function PrivacyPolicyPage({ siteConfig }: PrivacyPolicyPageProps) {
   const [policyContent, setPolicyContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,10 +82,10 @@ export default function PrivacyPolicyPage() {
   return (
     <>
       <Head>
-        <title>Privacy Policy | ThreadStead</title>
-        <meta name="description" content="ThreadStead Privacy Policy - Learn how we collect, use, and protect your personal information." />
+        <title>Privacy Policy | {siteConfig.site_name}</title>
+        <meta name="description" content={`${siteConfig.site_name} Privacy Policy - Learn how we collect, use, and protect your personal information.`} />
       </Head>
-      <Layout>
+      <Layout siteConfig={siteConfig}>
         <RetroCard>
           <div className="prose prose-lg max-w-none">
             {renderContent()}
@@ -89,3 +95,13 @@ export default function PrivacyPolicyPage() {
     </>
   );
 }
+
+export const getServerSideProps: GetServerSideProps<PrivacyPolicyPageProps> = async () => {
+  const siteConfig = await getSiteConfig();
+
+  return {
+    props: {
+      siteConfig,
+    },
+  };
+};

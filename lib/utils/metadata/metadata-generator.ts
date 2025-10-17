@@ -39,6 +39,7 @@ export class MetadataGenerator {
     siteConfig?: SiteConfig
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    // ThreadStead is the platform name - fallback when site_name unavailable
     this.siteName = siteConfig?.site_name || 'ThreadStead';
     this.defaultDescription = siteConfig?.site_description || 'A community platform for connecting through ThreadRings and sharing content.';
     this.defaultImage = siteConfig?.default_og_image || '/assets/default-og-image.png';

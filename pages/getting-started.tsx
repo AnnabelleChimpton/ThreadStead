@@ -46,7 +46,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
           <div className="text-center py-4">
             <div className="text-4xl mb-4">🚀</div>
             <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900">
-              Welcome to Threadstead!
+              Welcome to {siteConfig.site_name}!
             </h1>
             {!user ? (
               <>
@@ -71,7 +71,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
             ) : (
               <>
                 <p className="text-base text-gray-600 max-w-2xl mx-auto leading-relaxed mb-6">
-                  Great to see you here! Use this guide to explore all the features and make the most of your Threadstead experience.
+                  Great to see you here! Use this guide to explore all the features and make the most of your {siteConfig.site_name} experience.
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-3">
                   <Link 
@@ -152,7 +152,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 </RetroCard>
               ) : (
                 // Existing user journey
-                <RetroCard title="Make the Most of Threadstead">
+                <RetroCard title={`Make the Most of ${siteConfig.site_name}`}>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-3">
                       <h3 className="font-bold text-lg">Quick Actions</h3>
@@ -221,7 +221,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 </RetroCard>
               )}
 
-              <RetroCard title="What Makes Threadstead Special?">
+              <RetroCard title={`What Makes ${siteConfig.site_name} Special?`}>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="flex items-start gap-3">
                     <div className="text-2xl flex-shrink-0">🎨</div>
@@ -274,7 +274,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-l-4 border-purple-400 p-4 rounded">
                     <h3 className="font-bold text-purple-800 mb-2">🚀 Design Without Code</h3>
                     <p className="text-purple-700 leading-relaxed">
-                      Threadstead&apos;s Visual Builder brings together retro aesthetics and modern drag-and-drop design.
+                      {siteConfig.site_name}&apos;s Visual Builder brings together retro aesthetics and modern drag-and-drop design.
                       Create stunning, professional profiles without writing a single line of CSS!
                     </p>
                   </div>
@@ -496,7 +496,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 <RetroCard title="Understanding ThreadRings">
                   <div className="space-y-4">
                     <p className="text-gray-700 leading-relaxed">
-                      ThreadRings are the heart of Threadstead - they&apos;re community spaces where people with shared 
+                      ThreadRings are the heart of {siteConfig.site_name} - they&apos;re community spaces where people with shared 
                       interests can gather, discuss, and create together. Think of them as specialized forums with a 
                       unique twist: they have genealogy!
                     </p>
@@ -624,7 +624,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title="Your Personal Space">
                 <div className="space-y-4">
                   <p className="text-gray-700 leading-relaxed">
-                    Your Threadstead profile is your personal corner of the internet. Like the homepages of old, 
+                    Your {siteConfig.site_name} profile is your personal corner of the internet. Like the homepages of old, 
                     you have complete creative control over how it looks and what it contains.
                   </p>
 
@@ -815,7 +815,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   <div className="bg-green-50 border-l-4 border-green-400 p-4">
                     <h3 className="font-bold text-green-800 mb-2">Flexible Authentication Options</h3>
                     <p className="text-sm text-green-700">
-                      Threadstead offers multiple secure ways to access your account. Choose what works best for you!
+                      {siteConfig.site_name} offers multiple secure ways to access your account. Choose what works best for you!
                     </p>
                   </div>
 
@@ -891,10 +891,10 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     Your profile lives at a clean URL that&apos;s easy to remember and share:
                   </p>
                   <div className="bg-gray-100 border p-3 font-mono text-sm text-center">
-                    threadstead.com/resident/<strong>username</strong>
+                    /resident/<strong>username</strong>
                   </div>
                   <p className="text-xs text-gray-600">
-                    This is your permanent home on Threadstead - customize it to reflect who you are!
+                    This is your permanent home on {siteConfig.site_name} - customize it to reflect who you are!
                   </p>
                 </div>
               </RetroCard>
@@ -906,7 +906,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title="Your Digital Pixel Home">
                 <div className="space-y-4">
                   <p className="text-gray-700 leading-relaxed">
-                    Every Threadstead user gets their own customizable pixel home - a charming 8-bit style house 
+                    Every {siteConfig.site_name} user gets their own customizable pixel home - a charming 8-bit style house 
                     that serves as a visual representation of your digital space. Think of it as your own little 
                     corner of a virtual neighborhood!
                   </p>
@@ -1088,7 +1088,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       <h4 className="font-bold text-blue-800 mb-2">🏘️ Neighborhood Views</h4>
                       <ul className="text-sm text-blue-700 space-y-1">
                         <li>• Appears in community neighborhood pages</li>
-                        <li>• Part of the broader Threadstead community</li>
+                        <li>• Part of the broader {siteConfig.site_name} community</li>
                         <li>• Showcases your unique design choices</li>
                         <li>• Inspires others with creative decorations</li>
                       </ul>
@@ -1114,7 +1114,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title="Connect with Others">
                 <div className="space-y-4">
                   <p className="text-gray-700">
-                    Threadstead offers various ways to connect and interact with fellow community members, 
+                    {siteConfig.site_name} offers various ways to connect and interact with fellow community members, 
                     from casual conversations to deep community engagement.
                   </p>
 
@@ -1247,7 +1247,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title="Creating Great Content">
                   <div className="space-y-4">
                     <p className="text-gray-700">
-                      Threadstead supports rich content creation with markdown formatting, media uploads, 
+                      {siteConfig.site_name} supports rich content creation with markdown formatting, media uploads, 
                       and flexible posting options. Whether you&apos;re sharing quick thoughts or detailed articles, 
                       you have the tools to express yourself fully.
                     </p>
@@ -1377,7 +1377,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
         {/* Call to Action */}
         <RetroCard title="">
           <div className="text-center py-4">
-            <h2 className="text-xl font-bold mb-3">Ready to Join Threadstead?</h2>
+            <h2 className="text-xl font-bold mb-3">Ready to Join {siteConfig.site_name}?</h2>
             <p className="text-gray-600 mb-4">
               Start your journey on this unique social platform where creativity meets community.
             </p>

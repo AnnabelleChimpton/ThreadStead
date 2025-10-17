@@ -107,6 +107,7 @@ export function useMetadata(options: UseMetadataOptions = {}) {
       updateMeta('meta[property="og:url"]', fullUrl);
     }
 
+    // ThreadStead is the platform name - fallback when site_name unavailable
     const siteName = siteConfig?.site_name || 'ThreadStead';
     updateMeta('meta[property="og:site_name"]', siteName);
     updateMeta('meta[property="og:locale"]', config.locale || 'en_US');
