@@ -116,6 +116,7 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
       'My Profile': '👤',
 
       // Explore items
+      'Demo Pixel Home': '🎨',
       'All Homes': '🏘️',
       'Recent Activity': '⚡',
       'Directory': '📚',
@@ -264,6 +265,10 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 activeDropdown={activeDropdown}
                 setActiveDropdown={setActiveDropdown}
                 items={[
+                  // Demo for visitors (top priority)
+                  ...(!me?.loggedIn ? [
+                    { href: "/home/demo", label: "Demo Pixel Home" }
+                  ] : []),
                   // Core community features (always visible)
                   { href: "/neighborhood/explore/all", label: "All Homes" },
                   { href: "/directory", label: "Directory" },

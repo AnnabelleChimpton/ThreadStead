@@ -354,6 +354,17 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Link
+                href="/home/demo"
+                className="flex items-center gap-3 p-4 bg-pink-50 hover:bg-pink-100 border-2 border-pink-300 rounded-lg transition-colors group shadow-sm hover:shadow-md"
+              >
+                <span className="text-2xl flex-shrink-0">🎨</span>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Try Pixel Home Demo</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">See what you can build - interactive preview!</p>
+                </div>
+              </Link>
+
+              <Link
                 href="/feed"
                 className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 border border-gray-300 rounded-lg transition-colors group"
               >

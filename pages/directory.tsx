@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Layout from "../components/ui/layout/Layout";
 import UserCard, { DirectoryUser } from "../components/ui/feedback/UserCard";
+import { UserCardSkeletonGrid } from "../components/ui/feedback/UserCardSkeleton";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 type SortOption = "recent" | "alphabetical" | "posts";
@@ -144,9 +145,7 @@ export default function Directory() {
 
       {/* Results */}
       {loading ? (
-        <div className="text-center py-12">
-          <span className="thread-label">Loading residents…</span>
-        </div>
+        <UserCardSkeletonGrid count={6} />
       ) : error ? (
         <div className="thread-module p-4 sm:p-5 md:p-6">
           <div className="text-thread-sunset bg-red-50 border border-red-200 p-4 rounded-cozy">

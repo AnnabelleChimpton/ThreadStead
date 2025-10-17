@@ -225,9 +225,9 @@ export default function UnifiedNeighborhood({
                     <div className="flex flex-wrap gap-2 mt-3">
                       <Link
                         href="/neighborhood/explore/all"
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${ 
-                          param === 'all' 
-                            ? 'bg-thread-sage text-thread-paper' 
+                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                          param === 'all'
+                            ? 'bg-thread-sage text-thread-paper'
                             : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
                         }`}
                       >
@@ -235,9 +235,9 @@ export default function UnifiedNeighborhood({
                       </Link>
                       <Link
                         href="/neighborhood/explore/recent"
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${ 
-                          param === 'recent' 
-                            ? 'bg-thread-sage text-thread-paper' 
+                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                          param === 'recent'
+                            ? 'bg-thread-sage text-thread-paper'
                             : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
                         }`}
                       >
@@ -245,9 +245,9 @@ export default function UnifiedNeighborhood({
                       </Link>
                       <Link
                         href="/neighborhood/explore/popular"
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${ 
-                          param === 'popular' 
-                            ? 'bg-thread-sage text-thread-paper' 
+                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                          param === 'popular'
+                            ? 'bg-thread-sage text-thread-paper'
                             : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
                         }`}
                       >
@@ -255,14 +255,33 @@ export default function UnifiedNeighborhood({
                       </Link>
                       <Link
                         href="/neighborhood/explore/random"
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${ 
-                          param === 'random' 
-                            ? 'bg-thread-sage text-thread-paper' 
+                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                          param === 'random'
+                            ? 'bg-thread-sage text-thread-paper'
                             : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
                         }`}
                       >
                         🎲 Random
                       </Link>
+                    </div>
+                  )}
+
+                  {/* Demo Banner for visitors exploring pixel homes */}
+                  {type === 'explore' && !currentUserId && (
+                    <div className="mt-3 bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-300 rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl flex-shrink-0">🎨</span>
+                        <div className="flex-1">
+                          <div className="font-semibold text-thread-pine text-sm">New to Pixel Homes?</div>
+                          <div className="text-xs text-thread-sage">Try our interactive demo to see what you can build!</div>
+                        </div>
+                        <Link
+                          href="/home/demo"
+                          className="px-4 py-2 bg-pink-200 hover:bg-pink-300 border border-pink-400 rounded-md text-sm font-medium transition-colors shadow-sm hover:shadow-md flex-shrink-0"
+                        >
+                          Try Demo →
+                        </Link>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import FeedPost, { FeedPostData } from "./FeedPost";
+import { PostSkeletonList } from "./PostSkeleton";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 type FeedType = "recent" | "active";
@@ -65,11 +66,7 @@ export default function Feed({ type }: FeedProps) {
   }
 
   if (loading) {
-    return (
-      <div className="text-center py-8">
-        <span className="thread-label">Loading posts…</span>
-      </div>
-    );
+    return <PostSkeletonList count={4} />;
   }
 
   if (error) {
