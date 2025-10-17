@@ -248,7 +248,12 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
       <header className={headerClasses}>
         <nav className={`${navClasses} mobile-nav-enhanced`}>
           <div className="site-branding flex-shrink-0">
-            <h1 className="site-title thread-headline text-xl sm:text-2xl font-bold text-thread-pine">{config.site_name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="site-title thread-headline text-xl sm:text-2xl font-bold text-thread-pine">{config.site_name}</h1>
+              <span className="text-xs font-mono font-bold px-2 py-0.5 bg-thread-cream border border-thread-sage rounded text-thread-sage uppercase shadow-sm">
+                Beta
+              </span>
+            </div>
             <span className="site-tagline thread-label hidden sm:inline">{config.site_tagline}</span>
           </div>
           

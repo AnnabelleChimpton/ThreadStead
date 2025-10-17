@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import NavBar from "../navigation/NavBar";
+import ScrollToTop from "../feedback/ScrollToTop";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
 
@@ -106,10 +107,13 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
             <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
           </div>
         </footer>
+
+        {/* Scroll to Top Button */}
+        <ScrollToTop />
       </div>
     );
   }
-  
+
   // Standard layout mode
   return (
     <div className="site-layout min-h-screen thread-surface flex flex-col">
@@ -196,6 +200,9 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
           <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
         </div>
       </footer>
+
+      {/* Scroll to Top Button */}
+      <ScrollToTop />
     </div>
   );
 }
