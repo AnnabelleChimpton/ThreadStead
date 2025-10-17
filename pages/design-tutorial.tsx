@@ -1,3 +1,26 @@
+/**
+ * @deprecated This page is deprecated and redirects to /templates
+ *
+ * REASON FOR DEPRECATION:
+ * - /design-tutorial was redundant with the unified /templates system
+ * - Visual Builder doesn't need a separate tutorial page (it's self-explanatory via drag-and-drop UI)
+ * - The real component reference lives at /templates/components
+ * - CSS customization guide moved to /design-css-tutorial
+ *
+ * MIGRATION PATH:
+ * - All links now point to /templates (unified hub)
+ * - A redirect is configured in next.config.ts: /design-tutorial → /templates
+ *
+ * TODO FOR FUTURE CLEANUP:
+ * - Remove this file (pages/design-tutorial.tsx)
+ * - Remove components/design-tutorial/ directory (RetroHeader, RetroNavigation, etc.)
+ * - Remove componentData.tsx (CSS classes moved to /design-css-tutorial)
+ * - Verify no external links point to /design-tutorial
+ *
+ * Date deprecated: January 2025
+ * Can be safely removed: After 1-2 months (March 2025+)
+ */
+
 import React, { useState, useEffect } from "react";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";

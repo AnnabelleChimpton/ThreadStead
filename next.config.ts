@@ -42,6 +42,13 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
 
+      // Design tutorial redirect to unified templates hub
+      {
+        source: '/design-tutorial',
+        destination: '/templates',
+        permanent: true,
+      },
+
       // Threadrings redirects
       {
         source: '/threadrings/create',

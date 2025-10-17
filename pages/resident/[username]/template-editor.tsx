@@ -41,6 +41,12 @@ export default function TemplateEditorPage({
 }: TemplateEditorPageProps) {
   const router = useRouter();
 
+  // Get mode parameter from URL (?mode=visual, ?mode=template, ?mode=css)
+  const urlMode = router.query.mode as string | undefined;
+  const initialEditorMode = (urlMode === 'visual' || urlMode === 'template' || urlMode === 'css')
+    ? urlMode
+    : undefined;
+
   // Extract HTML content and any embedded CSS from existing template
   let extractedHtmlContent = '';
   let embeddedCSS = '';
@@ -283,6 +289,7 @@ export default function TemplateEditorPage({
               initialCSSMode={cssMode}
               initialTemplateMode={templateMode}
               initialShowNavigation={!hideNavigation}
+              initialEditorMode={initialEditorMode}
               onSave={handleSave}
             />
           </div>

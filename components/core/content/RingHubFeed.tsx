@@ -394,6 +394,7 @@ export default function RingHubFeed({
               slug: ringHubPost.ringSlug,
               name: ringHubPost.ringName
             }}
+            viewContext="feed"
           />
         );
       })}

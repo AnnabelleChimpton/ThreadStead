@@ -599,35 +599,90 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
     },
     {
       id: "appearance",
-      label: "🎨 Appearance", 
+      label: "🎨 Appearance",
       content: (
         <div className="space-y-6">
           <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2">Profile Appearance</h2>
+            <h2 className="text-xl font-bold mb-2">Profile Customization</h2>
             <p className="text-gray-600 mb-6">
-              Customize how your profile looks with CSS, templates, and badges.
+              Choose how you want to customize your profile - from simple styling to advanced layouts.
             </p>
           </div>
 
-          <div className="max-w-md mx-auto">
-            <div className="bg-white border border-black rounded-none p-6 text-center shadow-[3px_3px_0_#000]">
-              <div className="mb-4">
-                <span className="text-5xl">Profile Editor</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {/* CSS Styling - Simplest */}
+            <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 rounded-lg p-6 text-center shadow-md relative">
+              <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded font-bold">
+                SIMPLEST
               </div>
-              <h3 className="text-lg font-bold mb-2">Profile Layout Editor</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Design your profile with templates, components, and custom CSS - all in one place
+              <div className="mb-3">
+                <span className="text-4xl">✨</span>
+              </div>
+              <h3 className="text-lg font-bold mb-2">CSS Styling</h3>
+              <p className="text-sm text-gray-700 mb-4">
+                Change colors, fonts, and spacing on your default layout. Perfect for quick customization.
               </p>
               <a
-                href={`/resident/${username}/template-editor`}
-                className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline"
+                href={`/resident/${username}/css-editor`}
+                className="px-4 py-2 bg-green-500 hover:bg-green-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm"
               >
-                Open Profile Layout Editor →
+                Open CSS Editor →
               </a>
+              <p className="text-xs text-gray-600 mt-2">5 minutes</p>
+            </div>
+
+            {/* Visual Builder */}
+            <div className="bg-white border-2 border-purple-300 rounded-lg p-6 text-center shadow-md">
+              <div className="mb-3">
+                <span className="text-4xl">🏗️</span>
+              </div>
+              <h3 className="text-lg font-bold mb-2">Visual Builder</h3>
+              <p className="text-sm text-gray-700 mb-4">
+                Drag & drop custom layouts with grid positioning. Build unique page structures.
+              </p>
+              <a
+                href={`/resident/${username}/template-editor?mode=visual`}
+                className="px-4 py-2 bg-purple-500 hover:bg-purple-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm"
+              >
+                Open Visual Builder →
+              </a>
+              <p className="text-xs text-gray-600 mt-2">30 minutes</p>
+            </div>
+
+            {/* Template Language */}
+            <div className="bg-white border-2 border-blue-300 rounded-lg p-6 text-center shadow-md">
+              <div className="mb-3">
+                <span className="text-4xl">💻</span>
+              </div>
+              <h3 className="text-lg font-bold mb-2">Template Code</h3>
+              <p className="text-sm text-gray-700 mb-4">
+                Code dynamic features with variables, loops, and conditionals. For developers.
+              </p>
+              <a
+                href={`/resident/${username}/template-editor?mode=template`}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm"
+              >
+                Open Code Editor →
+              </a>
+              <p className="text-xs text-gray-600 mt-2">1+ hour</p>
             </div>
           </div>
 
-
+          {/* Help Section */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-900 mb-2">Not sure which to choose?</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• <strong>Just want to change colors?</strong> Start with CSS Styling</li>
+              <li>• <strong>Want to build custom layouts?</strong> Try Visual Builder</li>
+              <li>• <strong>Need dynamic features?</strong> Use Template Code</li>
+            </ul>
+            <Link
+              href="/templates"
+              className="text-sm text-blue-600 hover:underline mt-2 inline-block"
+            >
+              Learn more about customization options →
+            </Link>
+          </div>
         </div>
       )
     },

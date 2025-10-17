@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import Head from "next/head";
 import RetroFooter from "@/components/design-tutorial/RetroFooter";
@@ -62,7 +63,7 @@ const cssData = {
       name: '👋 Welcome to CSS Customization!',
       description: 'Don\'t worry if you\'re new to CSS! These templates show you exactly how powerful CSS can be. Follow along step-by-step.',
       classes: [
-        { name: '💡 Prefer Visual?', description: 'Check out our Visual Builder (drag-and-drop, no code!) at /design-tutorial' },
+        { name: '💡 Prefer Visual?', description: 'Check out our Visual Builder (drag-and-drop, no code!) at /templates' },
         { name: 'Step 1', description: 'Choose a template that speaks to you' },
         { name: 'Step 2', description: 'Copy the CSS code and paste it into your profile editor' },
         { name: 'Step 3', description: 'See the magic happen instantly!' },
@@ -1846,8 +1847,45 @@ export default function DesignCSSTutorialPage() {
             background-size: 100px 100px;
           }
         `}</style>
-        
+
         <div className="w-full px-6 py-12">
+          {/* Cross-Link Banners */}
+          <div className="mb-8 max-w-4xl mx-auto space-y-4">
+            {/* Simple CSS Editor Banner */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-3 border-green-500 rounded-lg p-4 flex items-center justify-between gap-4 shadow-lg">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="text-3xl">✨</div>
+                <div>
+                  <div className="font-bold text-green-900">Ready to Customize?</div>
+                  <div className="text-sm text-green-700">Use our Simple CSS Editor with built-in class reference and live preview</div>
+                </div>
+              </div>
+              <Link
+                href="/settings?tab=appearance"
+                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded shadow-md transition-colors whitespace-nowrap"
+              >
+                Open CSS Editor →
+              </Link>
+            </div>
+
+            {/* Alternative Options Banner */}
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-3 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="text-2xl">🎨</div>
+                <div>
+                  <div className="font-semibold text-purple-900 text-sm">Don&apos;t want to write CSS?</div>
+                  <div className="text-xs text-purple-700">Try Visual Builder (drag & drop) or Template Language (for developers)</div>
+                </div>
+              </div>
+              <Link
+                href="/templates"
+                className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold rounded border border-purple-300 transition-colors whitespace-nowrap text-sm"
+              >
+                Explore Options →
+              </Link>
+            </div>
+          </div>
+
           {/* Header */}
           <div className="text-center mb-12">
             {/* Main Title */}

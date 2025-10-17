@@ -209,11 +209,11 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                           </Link>
                         )}
                         <Link
-                          href="/design-tutorial"
+                          href="/templates"
                           className="block p-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
                         >
-                          <div className="font-medium">📚 Design Tutorial</div>
-                          <div className="text-sm text-gray-600">Visual Builder & CSS guides</div>
+                          <div className="font-medium">📚 Templates & CSS</div>
+                          <div className="text-sm text-gray-600">Visual Builder, Template Language & CSS guides</div>
                         </Link>
                       </div>
                     </div>
@@ -469,10 +469,10 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         Check out our comprehensive design tutorial for detailed guides and component references.
                       </p>
                       <Link
-                        href="/design-tutorial?category=visual-builder"
+                        href="/templates"
                         className="block text-center border border-black px-3 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000] text-sm"
                       >
-                        View Design Tutorial
+                        View Templates Hub
                       </Link>
                     </div>
 
@@ -700,49 +700,66 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
               <RetroCard title="Design Your Profile Your Way">
                 <div className="space-y-4">
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 p-4 rounded">
-                    <h3 className="font-bold mb-2">🎨 Visual Builder - The Easy Way</h3>
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-400 p-4 rounded">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-green-500 text-white text-xs px-2 py-1 rounded font-bold">SIMPLEST</span>
+                      <h3 className="font-bold">✨ CSS Styling - Start Here!</h3>
+                    </div>
                     <p className="text-sm mb-3">
-                      Our flagship Visual Builder brings back the creative freedom of personal websites with modern ease.
-                      Drag retro components, customize colors, and create anything from minimalist designs to flashy masterpieces!
+                      Just want to change colors and fonts? Start with simple CSS styling on your default layout!
+                      No drag-and-drop, no layout building - just quick customization in minutes.
                     </p>
-                    <div className="grid md:grid-cols-3 gap-2 text-xs">
-                      <div className="bg-white p-2 border text-center">📺 CRT Monitors</div>
-                      <div className="bg-white p-2 border text-center">💾 VHS Tapes</div>
-                      <div className="bg-white p-2 border text-center">🕹️ Arcade Buttons</div>
+                    <div className="text-xs text-green-700">
+                      Perfect for: Quick styling • Beginners • Just changing colors/fonts
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-3 gap-4">
                     <div>
-                      <h4 className="font-bold mb-2">🎯 Visual Builder (Recommended)</h4>
+                      <h4 className="font-bold mb-2 text-sm">✨ CSS Styling</h4>
+                      <div className="space-y-2 text-sm">
+                        <Link
+                          href="/settings?tab=appearance"
+                          className="block border-2 border-green-500 px-3 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] text-center font-medium"
+                        >
+                          Open CSS Editor
+                        </Link>
+                        <p className="text-gray-600 text-xs">
+                          Change colors, fonts, spacing on default layout. Simple text editor with class reference.
+                        </p>
+                        <div className="text-xs text-gray-500">⏱ 5 minutes</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-bold mb-2 text-sm">🎨 Visual Builder</h4>
                       <div className="space-y-2 text-sm">
                         <Link
                           href="/settings/profile"
                           className="block border border-black px-3 py-2 bg-purple-100 hover:bg-purple-200 shadow-[1px_1px_0_#000] text-center"
                         >
-                          🎨 Open Visual Builder
+                          Open Visual Builder
                         </Link>
                         <p className="text-gray-600 text-xs">
-                          Drag-and-drop interface with retro components, real-time preview, and professional results.
-                          Perfect for beginners and experienced designers alike.
+                          Drag-and-drop custom layouts with grid positioning. Build unique page structures.
                         </p>
+                        <div className="text-xs text-gray-500">⏱ 30 minutes</div>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-2">⚙️ CSS Editor (Advanced)</h4>
+                      <h4 className="font-bold mb-2 text-sm">💻 Template Code</h4>
                       <div className="space-y-2 text-sm">
                         <Link
-                          href="/design-tutorial"
+                          href="/templates/tutorials/your-first-template"
                           className="block text-center border border-black px-3 py-2 bg-blue-100 hover:bg-blue-200 shadow-[1px_1px_0_#000]"
                         >
-                          📚 CSS Tutorial
+                          Coding Tutorial
                         </Link>
                         <p className="text-gray-600 text-xs">
-                          Direct code editing for maximum control. Write custom CSS, animations, and advanced styling.
-                          For users comfortable with web development.
+                          Code dynamic features with variables, loops, and conditionals. For developers.
                         </p>
+                        <div className="text-xs text-gray-500">⏱ 1+ hour</div>
                       </div>
                     </div>
                   </div>

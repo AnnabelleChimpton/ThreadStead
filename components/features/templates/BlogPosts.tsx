@@ -71,6 +71,7 @@ export default function BlogPosts(props: BlogPostsProps) {
             isAdmin={false}
             onChanged={() => {}} // No refresh needed in preview
             currentUser={null} // No current user in template preview
+            viewContext="widget"
           />
         ))}
       </div>

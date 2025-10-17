@@ -195,6 +195,7 @@ interface EnhancedTemplateEditorProps {
   initialCSSMode?: 'inherit' | 'override' | 'disable';
   initialTemplateMode?: 'default' | 'enhanced' | 'advanced';
   initialShowNavigation?: boolean;
+  initialEditorMode?: 'visual' | 'template' | 'css'; // URL mode parameter
   onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean) => void;
 }
 
@@ -205,6 +206,7 @@ export default function EnhancedTemplateEditor({
   initialCSSMode = 'inherit',
   initialTemplateMode = 'default',
   initialShowNavigation = true,
+  initialEditorMode,
   onSave
 }: EnhancedTemplateEditorProps) {
   // AUTO-FIX: Detect and unwrap flow templates that were incorrectly wrapped
@@ -383,12 +385,20 @@ export default function EnhancedTemplateEditor({
   };
   const [isLoading, setIsLoading] = useState(true);
   const [compiledTemplate, setCompiledTemplate] = useState<CompiledTemplate | null>(null);
-  // Smart default tab selection based on layout mode
+  // Smart default tab selection based on URL mode param or layout mode
   const [activeTab, setActiveTab] = useState<'template' | 'css' | 'visual'>(() => {
-    // If starting in standard layout mode, default to CSS tab since there's no HTML template to edit
+    // Priority 1: URL parameter
+    if (initialEditorMode === 'visual') return 'visual';
+    if (initialEditorMode === 'template') return 'template';
+    if (initialEditorMode === 'css') return 'css';
+
+    // Priority 2: If starting in standard layout mode, default to CSS tab
     return useStandardLayout ? 'css' : 'template';
   });
-  const [editorMode, setEditorMode] = useState<'code' | 'visual'>('code');
+  const [editorMode, setEditorMode] = useState<'code' | 'visual'>(() => {
+    // If URL says 'visual', start in visual mode
+    return initialEditorMode === 'visual' ? 'visual' : 'code';
+  });
   // Set to true to always show welcome on Visual Builder open (for testing)
   const [showVisualBuilderWelcome, setShowVisualBuilderWelcome] = useState(true);
 
@@ -1046,6 +1056,15 @@ export default function EnhancedTemplateEditor({
     // Removed the problematic auto-switch from CSS to template tab
     // Users should be able to manually navigate to CSS tab in advanced mode
   }, [useStandardLayout, activeTab, editorMode]);
+
+  // Handle initial mode from URL parameter
+  useEffect(() => {
+    if ((initialEditorMode === 'visual' || initialEditorMode === 'template') && useStandardLayout) {
+      // User wants Visual Builder or Template Code but is in standard layout
+      // Need to switch to advanced mode first
+      loadDefaultTemplate();
+    }
+  }, [initialEditorMode, useStandardLayout, loadDefaultTemplate]);
 
   // Track changes (manual save required now)
   useEffect(() => {
