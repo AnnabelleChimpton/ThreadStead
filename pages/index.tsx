@@ -14,6 +14,7 @@ import { HouseTemplate, ColorPalette, HouseCustomizations } from "../components/
 import DiscoverPageSearch from "../components/features/search/DiscoverPageSearch";
 import { useRouter } from "next/router";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
+import VisitorPixelHome from "@/components/home/VisitorPixelHome";
 
 const db = new PrismaClient();
 
@@ -432,7 +433,7 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
   );
 }
 
-function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; user: any }) {
+function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; user?: any }) {
   const router = useRouter();
 
   // Generate metadata for personalized homepage
@@ -519,7 +520,7 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
         />
       </Head>
 
-      <Layout siteConfig={siteConfig}>
+      <Layout siteConfig={siteConfig} fullWidth={true}>
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="text-center mb-6 sm:mb-8">
           {/* Quick Action Buttons - PROMINENT AND CLEAR */}
@@ -542,13 +543,23 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
               </Link>
             )}
 
-            <Link
-              href="/post/new"
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-            >
-              <span className="text-lg">✍️</span>
-              <span>Create Post</span>
-            </Link>
+            {user ? (
+              <Link
+                href="/post/new"
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+              >
+                <span className="text-lg">✍️</span>
+                <span>Create Post</span>
+              </Link>
+            ) : (
+              <Link
+                href="/landing"
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+              >
+                <span className="text-lg">📖</span>
+                <span>Request Beta Access</span>
+              </Link>
+            )}
 
             <Link
               href="/neighborhood/explore/all"
@@ -588,11 +599,17 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
 
           {/* Center - Pixel Home (First on mobile for prominence) */}
           <div className="lg:col-span-6 lg:order-2">
-            <SimpleCard title="Your Pixel Home">
-              <UserPixelHome user={user} />
-              <div className="text-center mt-3 text-xs text-gray-500">
-                <span>💡 Click your home to visit your profile page</span>
-              </div>
+            <SimpleCard title={user ? "Your Pixel Home" : "Demo Pixel Home"}>
+              {user ? (
+                <>
+                  <UserPixelHome user={user} />
+                  <div className="text-center mt-3 text-xs text-gray-500">
+                    <span>💡 Click your home to visit your profile page</span>
+                  </div>
+                </>
+              ) : (
+                <VisitorPixelHome />
+              )}
             </SimpleCard>
 
             {/* Additional center widgets for that portal feel */}
@@ -859,11 +876,12 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
         };
       }
 
-      // 3. Default: Visitors get landing page
+      // 3. Default: Visitors get unified homepage experience (PersonalizedHomepage without user)
       return {
         props: {
           siteConfig,
-          pageType: 'landing' as const,
+          pageType: 'homepage' as const,
+          // user is undefined, which will trigger visitor mode in PersonalizedHomepage
         },
       };
     }
