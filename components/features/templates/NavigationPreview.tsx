@@ -1,8 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Link from 'next/link';
-import { useNavPages } from '@/hooks/useNavPages';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
+import UserDropdown from '@/components/features/auth/UserDropdown';
+import NotificationDropdown from '@/components/ui/feedback/NotificationDropdown';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 
 interface NavigationPreviewProps extends UniversalCSSProps {
   // Visual Builder styling props
@@ -28,6 +30,7 @@ interface NavigationPreviewProps extends UniversalCSSProps {
 interface UnstyledDropdownProps {
   title: string;
   items: { href: string; label: string }[];
+  href: string; // Link to the hub/landing page
   textColor: string;
   dropdownBackgroundColor: string;
   dropdownTextColor: string;
@@ -38,6 +41,7 @@ interface UnstyledDropdownProps {
 function UnstyledDropdown({
   title,
   items,
+  href,
   textColor,
   dropdownBackgroundColor,
   dropdownTextColor,
@@ -47,6 +51,24 @@ function UnstyledDropdown({
   const [isOpen, setIsOpen] = React.useState(false);
   const [buttonRect, setButtonRect] = React.useState<DOMRect | null>(null);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const splitButtonRef = React.useRef<HTMLDivElement>(null);
+
+  // Icon mapping for navigation items
+  const getItemIcon = (label: string): string => {
+    const iconMap: { [key: string]: string } = {
+      'Neighborhoods': '🏘️',
+      'Search': '🔍',
+      'Feed': '📰',
+      'Residents': '👥',
+      'Templates': '🎨',
+      'Getting Started': '🚀',
+      'Browse Rings': '💍',
+      'The Spool': '🧵',
+      'FAQ': '❓',
+      'Contact': '✉️',
+    };
+    return iconMap[label] || '•';
+  };
 
   // Handle outside click
   React.useEffect(() => {
@@ -60,25 +82,34 @@ function UnstyledDropdown({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const buttonStyle = {
+  const linkStyle = {
     textDecoration: 'none',
     color: textColor === 'inherit' ? 'inherit' : textColor,
-    padding: '0.5rem 1rem',
-    borderRadius: '4px',
+    padding: '0.5rem 0.75rem',
+    cursor: 'pointer',
+    fontSize: 'inherit',
+    fontFamily: 'inherit'
+  };
+
+  const buttonStyle = {
+    color: textColor === 'inherit' ? 'inherit' : textColor,
+    padding: '0.5rem 0.75rem',
+    borderRadius: '0 4px 4px 0',
     transition: 'background-color 0.2s',
     display: 'flex',
     alignItems: 'center',
-    gap: '4px',
     cursor: 'pointer',
     border: 'none',
+    borderLeft: `1px solid ${textColor === 'inherit' ? 'rgba(161, 132, 99, 0.3)' : 'rgba(161, 132, 99, 0.3)'}`,
     background: 'transparent',
     fontSize: 'inherit',
     fontFamily: 'inherit'
   };
 
-
   const itemStyle = {
-    display: 'block',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
     padding: '8px 16px',
     color: dropdownTextColor,
     textDecoration: 'none',
@@ -87,36 +118,42 @@ function UnstyledDropdown({
 
   return (
     <div
-      style={{ position: 'relative' }}
+      style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
       ref={dropdownRef}
-      onMouseLeave={() => setIsOpen(false)}
     >
-      <button
-        style={buttonStyle}
-        onClick={() => setIsOpen(!isOpen)}
-        onMouseEnter={() => {
-          if (dropdownRef.current) {
-            const rect = dropdownRef.current.getBoundingClientRect();
-            setButtonRect(rect);
-          }
-          setIsOpen(true);
-        }}
-      >
-        {title}
-        <svg
-          style={{
-            width: '16px',
-            height: '16px',
-            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.2s'
+      {/* Split button: Link + toggle */}
+      <div ref={splitButtonRef} style={{ display: 'flex', alignItems: 'center' }}>
+        {/* Left side: Link to hub page */}
+        <Link href={href} style={linkStyle}>
+          {title}
+        </Link>
+
+        {/* Right side: Dropdown toggle */}
+        <button
+          style={buttonStyle}
+          onClick={() => {
+            if (splitButtonRef.current) {
+              const rect = splitButtonRef.current.getBoundingClientRect();
+              setButtonRect(rect);
+            }
+            setIsOpen(!isOpen);
           }}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+          <svg
+            style={{
+              width: '16px',
+              height: '16px',
+              transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s'
+            }}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
 
       {/* Portal the dropdown to document.body to bypass stacking context issues */}
       {isOpen && buttonRect && typeof document !== 'undefined' && ReactDOM.createPortal(
@@ -125,7 +162,7 @@ function UnstyledDropdown({
             position: 'fixed',
             top: `${buttonRect.bottom + 8}px`,
             left: `${buttonRect.left}px`,
-            width: '192px',
+            minWidth: '224px',
             backgroundColor: dropdownBackgroundColor,
             borderRadius: '8px',
             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
@@ -133,7 +170,6 @@ function UnstyledDropdown({
             padding: '8px 0',
             zIndex: 999999, // Very high z-index since it's now in document.body
           }}
-          onMouseLeave={() => setIsOpen(false)}
         >
           {items.map((item, index) => (
             <Link
@@ -149,7 +185,8 @@ function UnstyledDropdown({
                 (e.target as HTMLElement).style.color = dropdownTextColor;
               }}
             >
-              {item.label}
+              <span style={{ fontSize: '0.875rem' }}>{getItemIcon(item.label)}</span>
+              <span>{item.label}</span>
             </Link>
           ))}
         </div>,
@@ -280,13 +317,7 @@ function NavigationContent({
   dropdownHoverColor: string;
 }) {
   const [me, setMe] = React.useState<{ loggedIn: boolean; user?: { primaryHandle?: string } }>({ loggedIn: false });
-  const { pages: navPages } = useNavPages();
-
-  // Organize navigation pages by dropdown
-  const topLevelPages = navPages.filter(page => !page.navDropdown);
-  const discoveryPages = navPages.filter(page => page.navDropdown === 'discovery');
-  const threadRingsPages = navPages.filter(page => page.navDropdown === 'threadrings');
-  const helpPages = navPages.filter(page => page.navDropdown === 'help');
+  const { config } = useSiteConfig();
 
   React.useEffect(() => {
     let alive = true;
@@ -326,104 +357,123 @@ function NavigationContent({
       padding: '1rem 2rem',
       margin: 0
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: textColor === 'inherit' ? 'inherit' : textColor }}>
-          ThreadStead
-        </h1>
-        <span style={{ opacity: 0.7, fontSize: '0.9rem', color: textColor === 'inherit' ? 'inherit' : textColor }}>
-          @ ThreadStead
+      <Link href="/" style={{ textDecoration: 'none', display: 'block' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h1 style={{
+            margin: 0,
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: textColor === 'inherit' ? '#2E4B3F' : textColor,
+            fontFamily: 'Georgia, Times New Roman, serif'
+          }}>
+            {config.site_name}
+          </h1>
+          <span style={{
+            fontSize: '0.75rem',
+            fontFamily: 'Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace',
+            fontWeight: 'bold',
+            padding: '0.125rem 0.5rem',
+            backgroundColor: '#F5E9D4',
+            border: '1px solid #A18463',
+            borderRadius: '0.25rem',
+            color: '#A18463',
+            textTransform: 'uppercase',
+            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+          }}>
+            Beta
+          </span>
+        </div>
+        <span style={{
+          display: 'inline-block',
+          fontSize: '0.875rem',
+          opacity: 0.8,
+          marginTop: '0.25rem',
+          color: textColor === 'inherit' ? '#2E4B3F' : textColor
+        }}>
+          {config.site_tagline}
         </span>
-      </div>
+      </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
         {/* Main Navigation Links with Dropdowns */}
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           <Link href="/" style={linkStyle}>Home</Link>
-          <Link href="/discover" style={linkStyle}>Discover</Link>
 
-          {/* My Space dropdown - personal content */}
-          {me.loggedIn && (
-            <UnstyledDropdown
-              title="My Space"
-              textColor={textColor === 'inherit' ? 'inherit' : textColor}
-              dropdownBackgroundColor={dropdownBackgroundColor}
-              dropdownTextColor={dropdownTextColor}
-              dropdownBorderColor={dropdownBorderColor}
-              dropdownHoverColor={dropdownHoverColor}
-              items={[
-                { href: "/bookmarks", label: "Bookmarks" },
-                { href: "/feed", label: "Feed" },
-                ...(me.user?.primaryHandle ? [
-                  { href: `/home/${me.user.primaryHandle.split('@')[0]}`, label: "My Pixel Home" },
-                  { href: `/resident/${me.user.primaryHandle.split('@')[0]}`, label: "My Profile" }
-                ] : [])
-              ]}
-            />
-          )}
-
-          {/* Community dropdown - social features */}
+          {/* Discover dropdown - Neighborhoods as hero */}
           <UnstyledDropdown
-            title="Community"
+            title="Discover"
+            href="/discover"
             textColor={textColor === 'inherit' ? 'inherit' : textColor}
             dropdownBackgroundColor={dropdownBackgroundColor}
             dropdownTextColor={dropdownTextColor}
             dropdownBorderColor={dropdownBorderColor}
             dropdownHoverColor={dropdownHoverColor}
             items={[
-              { href: "/neighborhood/explore/all", label: "All Homes" },
-              { href: "/neighborhood/explore/recent", label: "Recent Activity" },
-              { href: "/directory", label: "Directory" },
-              { href: "/threadrings", label: "ThreadRings" },
-              { href: "/tr/spool", label: "The Spool" },
-              { href: "/threadrings/genealogy", label: "Genealogy" },
-              ...discoveryPages.map(page => ({
-                href: `/page/${page.slug}`,
-                label: page.title
-              })),
-              ...threadRingsPages.map(page => ({
-                href: `/page/${page.slug}`,
-                label: page.title
-              }))
+              { href: "/neighborhood/explore/all", label: "Neighborhoods" },
+              { href: "/discover/residents", label: "Residents" },
+              { href: "/discover/feed", label: "Feed" },
+              { href: "/discover/search", label: "Search" },
             ]}
           />
 
-          {/* Help dropdown - resources and tutorials */}
+          {/* Build dropdown */}
           <UnstyledDropdown
-            title="Help"
+            title="Build"
+            href="/build"
             textColor={textColor === 'inherit' ? 'inherit' : textColor}
             dropdownBackgroundColor={dropdownBackgroundColor}
             dropdownTextColor={dropdownTextColor}
             dropdownBorderColor={dropdownBorderColor}
             dropdownHoverColor={dropdownHoverColor}
             items={[
-              { href: "/getting-started", label: "Getting Started" },
-              { href: "/design-tutorial", label: "Design Tutorial" },
-              { href: "/design-css-tutorial", label: "Design CSS Tutorial" },
-              ...helpPages.map(page => ({
-                href: `/page/${page.slug}`,
-                label: page.title
-              })),
-              ...topLevelPages.map(page => ({
-                href: `/page/${page.slug}`,
-                label: page.title
-              }))
+              { href: "/build/templates", label: "Templates" },
+              { href: "/build/getting-started", label: "Getting Started" }
+            ]}
+          />
+
+          {/* ThreadRings dropdown */}
+          <UnstyledDropdown
+            title="ThreadRings"
+            href="/threadrings"
+            textColor={textColor === 'inherit' ? 'inherit' : textColor}
+            dropdownBackgroundColor={dropdownBackgroundColor}
+            dropdownTextColor={dropdownTextColor}
+            dropdownBorderColor={dropdownBorderColor}
+            dropdownHoverColor={dropdownHoverColor}
+            items={[
+              { href: "/threadrings", label: "Browse Rings" },
+              { href: "/tr/spool", label: "The Spool" },
+            ]}
+          />
+
+          {/* Help dropdown */}
+          <UnstyledDropdown
+            title="Help"
+            href="/help"
+            textColor={textColor === 'inherit' ? 'inherit' : textColor}
+            dropdownBackgroundColor={dropdownBackgroundColor}
+            dropdownTextColor={dropdownTextColor}
+            dropdownBorderColor={dropdownBorderColor}
+            dropdownHoverColor={dropdownHoverColor}
+            items={[
+              { href: "/help/faq", label: "FAQ" },
+              { href: "/help/contact", label: "Contact" },
             ]}
           />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {me.loggedIn && (
-            <Link href="/post/new" style={buttonStyle}>New Post</Link>
-          )}
-
           {me.loggedIn ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span style={{ opacity: 0.8, fontSize: '0.9rem', color: textColor === 'inherit' ? 'inherit' : textColor }}>
-                {me.user?.primaryHandle || 'User'}
-              </span>
-              <Link href="/settings" style={linkStyle}>Settings</Link>
-              <Link href="/logout" style={linkStyle}>Logout</Link>
-            </div>
+            <>
+              {/* Notification Bell - wrapped for inline style compatibility */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <NotificationDropdown />
+              </div>
+              {/* User Dropdown - wrapped for inline style compatibility */}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <UserDropdown />
+              </div>
+            </>
           ) : (
             <div style={{ display: 'flex', gap: '1rem' }}>
               <Link href="/login" style={linkStyle}>Login</Link>

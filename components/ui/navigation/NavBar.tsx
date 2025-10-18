@@ -363,17 +363,9 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                   <UserDropdown />
                 </>
               ) : (
-                <>
-                  <Link
-                    href="/auth/register"
-                    className="px-4 py-2 bg-thread-pine text-thread-cream rounded hover:bg-thread-sunset transition-colors font-medium"
-                  >
-                    Create Profile
-                  </Link>
-                  <div className="site-auth">
-                    <LoginStatus />
-                  </div>
-                </>
+                <div className="site-auth">
+                  <LoginStatus />
+                </div>
               )}
             </div>
           </div>
@@ -381,14 +373,6 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
           {/* Mobile Navigation Controls */}
           <div className="flex md:hidden items-center gap-2">
             <NotificationDropdown className="nav-link" />
-            {!me?.loggedIn && (
-              <Link
-                href="/auth/register"
-                className="px-3 py-1.5 bg-thread-pine text-thread-cream rounded hover:bg-thread-sunset transition-colors font-medium text-sm"
-              >
-                Create Profile
-              </Link>
-            )}
             <button
               id="hamburger-button"
               className="p-3 text-thread-pine hover:text-thread-sunset focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2"

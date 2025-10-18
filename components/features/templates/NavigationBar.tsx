@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import UserDropdown from '@/components/features/auth/UserDropdown';
+import NotificationDropdown from '@/components/ui/feedback/NotificationDropdown';
+import LoginStatus from '@/components/features/auth/LoginStatus';
 
 interface SiteConfig {
   site_name: string;
@@ -24,58 +27,112 @@ interface DropdownMenuProps {
   dropdownKey: string;
   activeDropdown: string | null;
   setActiveDropdown: (key: string | null) => void;
+  href: string; // Link to the hub/landing page
 }
 
-function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDropdown }: DropdownMenuProps) {
+function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDropdown, href }: DropdownMenuProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const isOpen = activeDropdown === dropdownKey;
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as HTMLElement;
-      
-      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
-        setActiveDropdown(null);
-      }
-    }
+  // Icon mapping for navigation items
+  const getItemIcon = (label: string): string => {
+    const iconMap: { [key: string]: string } = {
+      // Discover items
+      'Neighborhoods': '🏘️',
+      'Search': '🔍',
+      'Feed': '📰',
+      'Residents': '👥',
 
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [setActiveDropdown]);
+      // Build items
+      'Templates': '🎨',
+      'Getting Started': '🚀',
+
+      // ThreadRings items
+      'Browse Rings': '💍',
+      'The Spool': '🧵',
+
+      // Help items
+      'FAQ': '❓',
+      'Contact': '✉️',
+    };
+    return iconMap[label] || '•';
+  };
+
+  // Enhanced keyboard navigation
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    switch (event.key) {
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        setActiveDropdown(isOpen ? null : dropdownKey);
+        break;
+      case 'Escape':
+        setActiveDropdown(null);
+        buttonRef.current?.focus();
+        break;
+      case 'ArrowDown':
+        if (!isOpen) {
+          event.preventDefault();
+          setActiveDropdown(dropdownKey);
+        }
+        break;
+    }
+  };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium flex items-center gap-1 underline hover:no-underline"
-        onClick={() => setActiveDropdown(isOpen ? null : dropdownKey)}
-        onMouseEnter={() => setActiveDropdown(dropdownKey)}
-      >
-        {title}
-        <svg 
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
+    <div className="relative" ref={dropdownRef} data-dropdown-container>
+      {/* Split button: Link to hub page + dropdown toggle */}
+      <div className="flex items-center">
+        {/* Left side: Link to hub/landing page */}
+        <Link
+          href={href}
+          className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2 pr-1"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      
+          {title}
+        </Link>
+
+        {/* Right side: Dropdown toggle button */}
+        <button
+          ref={buttonRef}
+          className="text-thread-pine hover:text-thread-sunset focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2 pl-1 border-l border-thread-sage/30"
+          onClick={() => setActiveDropdown(isOpen ? null : dropdownKey)}
+          onKeyDown={handleKeyDown}
+          aria-expanded={isOpen}
+          aria-haspopup="true"
+          aria-label={`${title} menu`}
+          id={`dropdown-button-${dropdownKey}`}
+        >
+          <svg
+            className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
       {isOpen && (
-        <div 
-          className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[10000]"
-          onMouseLeave={() => setActiveDropdown(null)}
+        <div
+          className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[10000]"
+          role="menu"
+          aria-labelledby={`dropdown-button-${dropdownKey}`}
         >
           {items.map((item, index) => (
             <Link
               key={index}
               href={item.href}
-              className="block px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors"
-              onClick={() => {
-                setTimeout(() => setActiveDropdown(null), 50);
-              }}
+              className="flex items-center gap-3 px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
+              role="menuitem"
+              tabIndex={isOpen ? 0 : -1}
             >
-              {item.label}
+              <span className="text-sm" role="img" aria-hidden="true">
+                {getItemIcon(item.label)}
+              </span>
+              <span>{item.label}</span>
             </Link>
           ))}
         </div>
@@ -191,22 +248,40 @@ export default function NavigationBar(props: NavigationBarProps) {
   useEffect(() => {
     // Only run in browser environment
     if (typeof window === 'undefined') return;
-    
+
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as HTMLElement;
       const mobileMenu = document.getElementById('template-mobile-menu');
       const hamburger = document.getElementById('template-hamburger-button');
-      
-      if (mobileMenuOpen && 
-          mobileMenu && !mobileMenu.contains(target) && 
+
+      if (mobileMenuOpen &&
+          mobileMenu && !mobileMenu.contains(target) &&
           hamburger && !hamburger.contains(target)) {
         setMobileMenuOpen(false);
       }
     }
-    
+
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [mobileMenuOpen]);
+
+  // Close desktop dropdowns when clicking outside - single handler for all dropdowns
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!activeDropdown) return; // No dropdown is open
+
+      const target = event.target as HTMLElement;
+      // Check if click is inside any dropdown container
+      const clickedInsideDropdown = target.closest('[data-dropdown-container]');
+
+      if (!clickedInsideDropdown) {
+        setActiveDropdown(null);
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [activeDropdown]);
 
   const baseClasses = "site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative";
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
@@ -233,102 +308,91 @@ export default function NavigationBar(props: NavigationBarProps) {
             
             {/* Top level custom pages before dropdowns */}
             {topLevelPages.map(page => (
-              <Link 
-                key={page.id} 
+              <Link
+                key={page.id}
                 className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline"
                 href={`/page/${page.slug}`}
               >
                 {page.title}
               </Link>
             ))}
-            
-            {/* Discovery dropdown */}
-            <DropdownMenu 
-              title="Discovery"
-              dropdownKey="discovery"
+
+            {/* Discover dropdown - Neighborhoods as hero */}
+            <DropdownMenu
+              title="Discover"
+              dropdownKey="discover"
               activeDropdown={activeDropdown}
               setActiveDropdown={setActiveDropdown}
+              href="/discover"
               items={[
-                { href: "/feed", label: "Feed" },
-                { href: "/directory", label: "Directory" },
-                ...discoveryPages.map(page => ({
-                  href: `/page/${page.slug}`,
-                  label: page.title
-                }))
+                { href: "/neighborhood/explore/all", label: "Neighborhoods" },
+                { href: "/discover/residents", label: "Residents" },
+                { href: "/discover/feed", label: "Feed" },
+                { href: "/discover/search", label: "Search" },
               ]}
             />
-            
+
+            {/* Build dropdown */}
+            <DropdownMenu
+              title="Build"
+              dropdownKey="build"
+              activeDropdown={activeDropdown}
+              setActiveDropdown={setActiveDropdown}
+              href="/build"
+              items={[
+                { href: "/build/templates", label: "Templates" },
+                { href: "/build/getting-started", label: "Getting Started" }
+              ]}
+            />
+
             {/* ThreadRings dropdown */}
-            <DropdownMenu 
+            <DropdownMenu
               title="ThreadRings"
               dropdownKey="threadrings"
               activeDropdown={activeDropdown}
               setActiveDropdown={setActiveDropdown}
+              href="/threadrings"
               items={[
-                { href: "/threadrings", label: "ThreadRings" },
+                { href: "/threadrings", label: "Browse Rings" },
                 { href: "/tr/spool", label: "The Spool" },
-                { href: "/threadrings/genealogy", label: "Genealogy" },
-                ...threadRingsPages.map(page => ({
-                  href: `/page/${page.slug}`,
-                  label: page.title
-                }))
               ]}
             />
-            
+
             {/* Help dropdown */}
-            <DropdownMenu 
+            <DropdownMenu
               title="Help"
               dropdownKey="help"
               activeDropdown={activeDropdown}
               setActiveDropdown={setActiveDropdown}
+              href="/help"
               items={[
-                { href: "/getting-started", label: "Getting Started" },
-                { href: "/design-tutorial", label: "Design Tutorial" },
-                { href: "/design-css-tutorial", label: "Design CSS Tutorial" },
-                ...helpPages.map(page => ({
-                  href: `/page/${page.slug}`,
-                  label: page.title
-                }))
+                { href: "/help/faq", label: "FAQ" },
+                { href: "/help/contact", label: "Contact" },
               ]}
             />
           </div>
           <div className="site-nav-actions flex items-center gap-4">
-            {!isPreviewMode && user.loggedIn && (
-              <Link 
-                href="/post/new"
-                className="new-post-button bg-thread-pine text-white px-3 py-1 rounded hover:bg-thread-sunset transition-colors"
-              >
-                New Post
-              </Link>
-            )}
-            <div className="site-auth">
-              {isPreviewMode ? (
-                <div className="flex items-center gap-2 text-sm text-thread-sage">
-                  <span className="hidden sm:inline">Preview Mode</span>
-                  <div className="w-8 h-8 bg-thread-sage rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">👤</span>
+            {isPreviewMode ? (
+              <div className="flex items-center gap-2 text-sm text-thread-sage">
+                <span className="hidden sm:inline">Preview Mode</span>
+                <div className="w-8 h-8 bg-thread-sage rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs">👤</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {user.loggedIn ? (
+                  <>
+                    <NotificationDropdown className="nav-link" />
+                    <UserDropdown />
+                  </>
+                ) : (
+                  <div className="site-auth">
+                    <LoginStatus />
                   </div>
-                </div>
-              ) : user.loggedIn ? (
-                <div className="flex items-center gap-2">
-                  <Link href={`/resident/${user.username}`} className="text-thread-pine hover:text-thread-sunset">
-                    @{user.username}
-                  </Link>
-                  <Link href="/logout" className="text-sm text-thread-sage hover:text-thread-sunset">
-                    Logout
-                  </Link>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Link href="/login" className="text-thread-pine hover:text-thread-sunset">
-                    Login
-                  </Link>
-                  <Link href="/register" className="text-sm text-thread-sage hover:text-thread-sunset">
-                    Sign Up
-                  </Link>
-                </div>
-              )}
-            </div>
+                )}
+              </>
+            )}
           </div>
         </div>
         
@@ -378,194 +442,192 @@ export default function NavigationBar(props: NavigationBarProps) {
             </Link>
           ))}
           
-          {/* Discovery Section */}
+          {/* Discover Section */}
           <div>
             <button
-              className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between"
-              onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'discovery' ? null : 'discovery')}
+              className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
+              onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'discover' ? null : 'discover')}
             >
-              <span>Discovery</span>
-              <svg 
-                className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'discovery' ? 'rotate-180' : ''}`}
-                fill="none" 
-                stroke="currentColor" 
+              <span>Discover</span>
+              <svg
+                className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'discover' ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            {mobileDropdownOpen === 'discovery' && (
-              <div className="ml-6 mt-2 space-y-2">
-                <Link 
-                  href="/feed" 
-                  className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+            {mobileDropdownOpen === 'discover' && (
+              <div className="ml-4 mt-2 space-y-1">
+                <Link
+                  href="/neighborhood/explore/all"
+                  className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Feed
+                  <span>🏘️</span>
+                  <span>Neighborhoods</span>
                 </Link>
-                <Link 
-                  href="/directory" 
-                  className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                <Link
+                  href="/discover/residents"
+                  className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Directory
+                  <span>👥</span>
+                  <span>Residents</span>
                 </Link>
-                {discoveryPages.map(page => (
-                  <Link 
-                    key={page.id}
-                    href={`/page/${page.slug}`}
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {page.title}
-                  </Link>
-                ))}
+                <Link
+                  href="/discover/feed"
+                  className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span>📰</span>
+                  <span>Feed</span>
+                </Link>
+                <Link
+                  href="/discover/search"
+                  className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span>🔍</span>
+                  <span>Search</span>
+                </Link>
               </div>
             )}
           </div>
-          
+
+          {/* Build Section */}
+          <div>
+            <button
+              className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
+              onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'build' ? null : 'build')}
+            >
+              <span>Build</span>
+              <svg
+                className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'build' ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {mobileDropdownOpen === 'build' && (
+              <div className="ml-4 mt-2 space-y-1">
+                <Link
+                  href="/build/templates"
+                  className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span>🎨</span>
+                  <span>Templates</span>
+                </Link>
+                <Link
+                  href="/build/getting-started"
+                  className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span>🚀</span>
+                  <span>Getting Started</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
           {/* ThreadRings Section */}
           <div>
             <button
-              className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between"
+              className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
               onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'threadrings' ? null : 'threadrings')}
             >
               <span>ThreadRings</span>
-              <svg 
+              <svg
                 className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'threadrings' ? 'rotate-180' : ''}`}
-                fill="none" 
-                stroke="currentColor" 
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {mobileDropdownOpen === 'threadrings' && (
-              <div className="ml-6 mt-2 space-y-2">
-                <Link 
-                  href="/threadrings" 
-                  className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+              <div className="ml-4 mt-2 space-y-1">
+                <Link
+                  href="/threadrings"
+                  className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  ThreadRings
+                  <span>💍</span>
+                  <span>Browse Rings</span>
                 </Link>
-                <Link 
-                  href="/tr/spool" 
-                  className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                <Link
+                  href="/tr/spool"
+                  className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  The Spool
+                  <span>🧵</span>
+                  <span>The Spool</span>
                 </Link>
-                <Link 
-                  href="/threadrings/genealogy" 
-                  className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Genealogy
-                </Link>
-                {threadRingsPages.map(page => (
-                  <Link 
-                    key={page.id}
-                    href={`/page/${page.slug}`}
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {page.title}
-                  </Link>
-                ))}
               </div>
             )}
           </div>
-          
+
           {/* Help Section */}
           <div>
             <button
-              className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between"
+              className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
               onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'help' ? null : 'help')}
             >
               <span>Help</span>
-              <svg 
+              <svg
                 className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'help' ? 'rotate-180' : ''}`}
-                fill="none" 
-                stroke="currentColor" 
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {mobileDropdownOpen === 'help' && (
-              <div className="ml-6 mt-2 space-y-2">
-                <Link 
-                  href="/getting-started" 
-                  className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+              <div className="ml-4 mt-2 space-y-1">
+                <Link
+                  href="/help/faq"
+                  className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Getting Started
+                  <span>❓</span>
+                  <span>FAQ</span>
                 </Link>
-                <Link 
-                  href="/design-tutorial" 
-                  className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
+                <Link
+                  href="/help/contact"
+                  className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Design Tutorial
+                  <span>✉️</span>
+                  <span>Contact</span>
                 </Link>
-                <Link 
-                  href="/design-css-tutorial" 
-                  className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Design CSS Tutorial
-                </Link>
-                {helpPages.map(page => (
-                  <Link 
-                    key={page.id}
-                    href={`/page/${page.slug}`}
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {page.title}
-                  </Link>
-                ))}
               </div>
             )}
           </div>
           
           {/* User Actions */}
           <div className="border-t border-thread-sage pt-3 mt-3">
-            {!isPreviewMode && user.loggedIn && (
-              <Link 
-                href="/post/new"
-                className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                New Post
-              </Link>
+            {isPreviewMode ? (
+              <div className="px-3 py-2 text-thread-sage text-sm">
+                Preview Mode
+              </div>
+            ) : user.loggedIn ? (
+              <UserDropdown isMobile={true} onItemClick={() => setMobileMenuOpen(false)} />
+            ) : (
+              <div className="px-3 py-2 flex flex-col gap-2">
+                <Link href="/login" className="text-thread-pine hover:text-thread-sunset">
+                  Login
+                </Link>
+                <Link href="/register" className="text-sm text-thread-sage hover:text-thread-sunset">
+                  Sign Up
+                </Link>
+              </div>
             )}
-            <div className="px-3 py-2">
-              {isPreviewMode ? (
-                <div className="text-thread-sage text-sm">
-                  Preview Mode
-                </div>
-              ) : user.loggedIn ? (
-                <div className="flex flex-col gap-2">
-                  <Link href={`/resident/${user.username}`} className="text-thread-pine hover:text-thread-sunset">
-                    @{user.username}
-                  </Link>
-                  <Link href="/logout" className="text-sm text-thread-sage hover:text-thread-sunset">
-                    Logout
-                  </Link>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <Link href="/login" className="text-thread-pine hover:text-thread-sunset">
-                    Login
-                  </Link>
-                  <Link href="/register" className="text-sm text-thread-sage hover:text-thread-sunset">
-                    Sign Up
-                  </Link>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>

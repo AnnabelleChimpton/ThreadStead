@@ -15,11 +15,37 @@ interface NavigationLinksProps extends UniversalCSSProps {
 interface DropdownMenuProps {
   title: string;
   items: { href: string; label: string }[];
+  href: string; // Link to the hub/landing page
 }
 
-function DropdownMenu({ title, items }: DropdownMenuProps) {
+function DropdownMenu({ title, items, href }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Icon mapping for navigation items
+  const getItemIcon = (label: string): string => {
+    const iconMap: { [key: string]: string } = {
+      // Discover items
+      'Neighborhoods': '🏘️',
+      'Search': '🔍',
+      'Feed': '📰',
+      'Residents': '👥',
+
+      // Build items
+      'Templates': '🎨',
+      'Getting Started': '🚀',
+
+      // ThreadRings items
+      'Browse Rings': '💍',
+      'The Spool': '🧵',
+
+      // Help items
+      'FAQ': '❓',
+      'Contact': '✉️',
+    };
+    return iconMap[label] || '•';
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -33,36 +59,52 @@ function DropdownMenu({ title, items }: DropdownMenuProps) {
   }, []);
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        className="nav-link text-thread-pine hover:text-thread-sunset font-medium flex items-center gap-1"
-        onClick={() => setIsOpen(!isOpen)}
-        onMouseEnter={() => setIsOpen(true)}
-      >
-        {title}
-        <svg 
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
+    <div className="relative" ref={dropdownRef} data-dropdown-container>
+      {/* Split button: Link to hub page + dropdown toggle */}
+      <div className="flex items-center">
+        {/* Left side: Link to hub/landing page */}
+        <Link
+          href={href}
+          className="nav-link text-thread-pine hover:text-thread-sunset font-medium pr-1"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      
+          {title}
+        </Link>
+
+        {/* Right side: Dropdown toggle button */}
+        <button
+          ref={buttonRef}
+          className="text-thread-pine hover:text-thread-sunset focus:outline-none pl-1 border-l border-thread-sage/30"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-expanded={isOpen}
+          aria-haspopup="true"
+          aria-label={`${title} menu`}
+        >
+          <svg
+            className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
       {isOpen && (
-        <div 
-          className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
-          onMouseLeave={() => setIsOpen(false)}
+        <div
+          className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
         >
           {items.map((item, index) => (
             <Link
               key={index}
               href={item.href}
-              className="block px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors"
+              className="flex items-center gap-3 px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors"
               onClick={() => setIsOpen(false)}
             >
-              {item.label}
+              <span className="text-sm" role="img" aria-hidden="true">
+                {getItemIcon(item.label)}
+              </span>
+              <span>{item.label}</span>
             </Link>
           ))}
         </div>
@@ -94,27 +136,6 @@ export default function NavigationLinks(props: NavigationLinksProps = {}) {
     fetchNavPages();
   }, []);
 
-  const discoveryItems = [
-    { href: "/feed", label: "Feed" },
-    { href: "/directory", label: "Directory" },
-    { href: "/threadrings", label: "ThreadRings" },
-  ];
-
-  const helpItems = [
-    { href: "/getting-started", label: "Getting Started" },
-    { href: "/design-tutorial", label: "Design Tutorial" },
-    { href: "/design-css-tutorial", label: "Design CSS Tutorial" },
-  ];
-
-  // Add custom pages to help menu if they exist
-  const allHelpItems = [
-    ...helpItems,
-    ...navPages.map(page => ({
-      href: `/page/${page.slug}`,
-      label: page.title
-    }))
-  ];
-
   const baseClasses = "site-nav-links flex items-center gap-6";
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
   const style = applyCSSProps(cssProps);
@@ -128,10 +149,44 @@ export default function NavigationLinks(props: NavigationLinksProps = {}) {
       <Link className="nav-link text-thread-pine hover:text-thread-sunset font-medium" href="/">
         Home
       </Link>
-      
-      <DropdownMenu title="Discovery" items={discoveryItems} />
-      
-      <DropdownMenu title="Help" items={allHelpItems} />
+
+      <DropdownMenu
+        title="Discover"
+        href="/discover"
+        items={[
+          { href: "/neighborhood/explore/all", label: "Neighborhoods" },
+          { href: "/discover/residents", label: "Residents" },
+          { href: "/discover/feed", label: "Feed" },
+          { href: "/discover/search", label: "Search" },
+        ]}
+      />
+
+      <DropdownMenu
+        title="Build"
+        href="/build"
+        items={[
+          { href: "/build/templates", label: "Templates" },
+          { href: "/build/getting-started", label: "Getting Started" }
+        ]}
+      />
+
+      <DropdownMenu
+        title="ThreadRings"
+        href="/threadrings"
+        items={[
+          { href: "/threadrings", label: "Browse Rings" },
+          { href: "/tr/spool", label: "The Spool" },
+        ]}
+      />
+
+      <DropdownMenu
+        title="Help"
+        href="/help"
+        items={[
+          { href: "/help/faq", label: "FAQ" },
+          { href: "/help/contact", label: "Contact" },
+        ]}
+      />
     </div>
   );
 }
