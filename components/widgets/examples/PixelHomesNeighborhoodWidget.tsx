@@ -7,7 +7,7 @@ import HouseDetailsPopup from '../../pixel-homes/HouseDetailsPopup';
 
 const pixelHomesNeighborhoodConfig: WidgetConfig = {
   id: 'pixel-homes-neighborhood',
-  title: 'Neighborhood',
+  title: 'Random Neighbors',
   description: 'Discover random pixel homes in your community',
   category: 'community',
   size: 'medium',

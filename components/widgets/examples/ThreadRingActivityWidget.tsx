@@ -4,7 +4,7 @@ import { WidgetProps, WidgetConfig } from '../types/widget';
 
 const threadRingActivityConfig: WidgetConfig = {
   id: 'threadring-activity',
-  title: 'ThreadRing Activity',
+  title: 'What People Are Saying',
   description: 'Recent posts from ThreadRings',
   category: 'social',
   size: 'medium',

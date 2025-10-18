@@ -11,11 +11,36 @@ interface FAQProps {
 export default function FAQ({ siteConfig }: FAQProps) {
   const faqs = [
     {
+      category: 'Why HomePageAgain?',
+      questions: [
+        {
+          question: 'How is this different from Facebook, Twitter, or Instagram?',
+          answer: 'We focus on creativity and ownership instead of engagement metrics. Your pixel home and profile are YOUR space - not a cookie-cutter template. No algorithm decides what you see; you follow people and join communities YOU choose. Your content lives on your profile forever, not buried by an algorithm. Plus, we don\'t track you, sell your data, or optimize for rage-bait and addiction.'
+        },
+        {
+          question: 'What does "no algorithms" actually mean?',
+          answer: 'It means we don\'t use AI to decide what you see. Your feed shows posts from people you follow and ThreadRings you joined, in chronological order - newest first. We don\'t hide content, boost viral posts, or manipulate what appears based on "engagement." You control what you see by choosing who to follow and which communities to join.'
+        },
+        {
+          question: 'What does "no tracking" mean? How do you make money?',
+          answer: 'We don\'t use analytics trackers, advertising pixels, or sell your data to third parties. We don\'t track your behavior across the web or build profiles to sell to advertisers. HomePageAgain is currently in beta and exploring sustainable funding models that respect user privacy - likely premium features or memberships, not advertising.'
+        },
+        {
+          question: 'Can I browse without signing up?',
+          answer: 'Yes! You can explore the community feed, browse pixel homes in the neighborhood, view public profiles, and check out ThreadRings without creating an account. Signing up lets you create your own pixel home, join communities, post content, and connect with others.'
+        },
+        {
+          question: 'Why pixel homes? What\'s the point?',
+          answer: 'Pixel homes bring back the fun of personal expression that\'s been lost on modern social media. Instead of everyone having identical profile layouts, you get a unique visual representation you can customize and decorate. It\'s playful, creative, and makes browsing the community feel like exploring a neighborhood instead of scrolling an infinite feed. Plus, it\'s just fun!'
+        }
+      ]
+    },
+    {
       category: 'Getting Started',
       questions: [
         {
           question: 'What is HomePageAgain?',
-          answer: 'HomePageAgain is a platform for creating your own unique space on the web. Build your digital home (a customizable pixel art house), join ThreadRings (interest-based communities), and express yourself online without the constraints of traditional social media. Think of it as a blend of classic web homepages, visual creativity, and community connection.'
+          answer: 'HomePageAgain is a community-first social platform where you build your own pixel home, join ThreadRings (interest-based communities), and connect with real people. No algorithms deciding what you see, no tracking, no corporate BS. Think of it as a blend of classic GeoCities creativity, modern community features, and the fun social internet before it got corporate. Your page, your way.'
         },
         {
           question: 'How do I create my profile?',

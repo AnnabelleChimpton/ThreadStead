@@ -63,6 +63,19 @@ export default function VisitorPixelHome() {
 
   return (
     <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-4 sm:p-6 min-h-[300px] sm:min-h-[350px]">
+      {/* Explainer Text */}
+      <div className="text-center mb-4 pb-3 border-b border-white/30">
+        <p className="text-sm text-gray-800 font-medium mb-1">
+          Your pixel home is <strong>YOUR space</strong> on the web
+        </p>
+        <p className="text-xs text-gray-700">
+          Like GeoCities, but modern. Decorate it, customize it, make it yours.
+        </p>
+        <p className="text-xs text-gray-800 font-semibold italic mt-1">
+          Your page, your way.
+        </p>
+      </div>
+
       {/* Demo House Display */}
       <div className="w-full max-w-md mx-auto flex justify-center mb-4">
         <div className="transform scale-90 sm:scale-75 origin-center">

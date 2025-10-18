@@ -4,7 +4,7 @@ import { WidgetProps, WidgetConfig } from '../types/widget';
 
 const trendingContentConfig: WidgetConfig = {
   id: 'trending-content',
-  title: 'Trending Content',
+  title: "What's Hot Right Now",
   description: 'Popular posts and content from the community',
   category: 'community',
   size: 'medium',

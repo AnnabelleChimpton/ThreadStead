@@ -36,6 +36,7 @@ interface HomeProps {
     createdAt: string;
     updatedAt: string;
   };
+  customLandingPageSlug?: string;
 }
 
 interface UserHomeConfig {
@@ -433,7 +434,7 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
   );
 }
 
-function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; user?: any }) {
+function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string }) {
   const router = useRouter();
 
   // Generate metadata for personalized homepage
@@ -522,6 +523,20 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {/* Hero Statement */}
+        {!user && (
+          <div className="mb-6 sm:mb-8">
+            <div className="bg-gradient-to-br from-yellow-100 via-orange-50 to-pink-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#2E4B3F] mb-3 px-2">
+                The internet doesn&apos;t have to suck
+              </h1>
+              <p className="text-sm sm:text-base text-gray-800 max-w-3xl mx-auto px-4 font-medium">
+                Build your pixel home, join communities you care about, and connect with real people. No algorithms deciding what you see. <strong>Your page, your way.</strong>
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-6 sm:mb-8">
           {/* Quick Action Buttons - PROMINENT AND CLEAR */}
           <div className="flex flex-wrap justify-center gap-3 mb-4">
@@ -553,7 +568,7 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
               </Link>
             ) : (
               <Link
-                href="/landing"
+                href={customLandingPageSlug ? `/page/${customLandingPageSlug}` : "/landing"}
                 className="flex items-center gap-2 px-4 py-2 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
               >
                 <span className="text-lg">📖</span>
@@ -568,10 +583,25 @@ function PersonalizedHomepage({ siteConfig, user }: { siteConfig: SiteConfig; us
               <span className="text-lg">🏘️</span>
               <span>Explore Homes</span>
             </Link>
+
+            <Link
+              href="/help/faq"
+              className="flex items-center gap-2 px-4 py-2 bg-orange-200 hover:bg-orange-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+            >
+              <span className="text-lg">❓</span>
+              <span>FAQ</span>
+            </Link>
           </div>
         </div>
 
         {/* Enhanced Global Search Bar */}
+        {!user && (
+          <div className="text-center mb-3">
+            <p className="text-xs sm:text-sm text-gray-600">
+              🔍 Search the indie web, not the corporate web. Filter by privacy, no trackers, and human-made sites.
+            </p>
+          </div>
+        )}
         <DiscoverPageSearch
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -748,7 +778,7 @@ function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
   );
 }
 
-export default function Home({ siteConfig, pageType, user, customPage }: HomeProps) {
+export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug }: HomeProps) {
   // Route to appropriate component based on pageType
   switch (pageType) {
     case 'custom':
@@ -763,7 +793,7 @@ export default function Home({ siteConfig, pageType, user, customPage }: HomePro
     case 'landing':
       return <LandingPage siteConfig={siteConfig} />;
     case 'homepage':
-      return <PersonalizedHomepage siteConfig={siteConfig} user={user} />;
+      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} />;
     case 'unified':
     default:
       return <UnifiedHomepage siteConfig={siteConfig} />;
@@ -835,36 +865,16 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
     } else {
       // === VISITOR LOGIC ===
 
-      // 1. Custom Landing Page Override for visitors (highest priority)
+      // 1. Check if a custom landing page exists (but don't use it to override homepage)
       const customLandingPage = await db.customPage.findFirst({
         where: {
           published: true,
           isLandingPage: true,
         },
         select: {
-          id: true,
           slug: true,
-          title: true,
-          content: true,
-          hideNavbar: true,
-          createdAt: true,
-          updatedAt: true,
         },
       });
-
-      if (customLandingPage) {
-        return {
-          props: {
-            siteConfig,
-            pageType: 'custom' as const,
-            customPage: {
-              ...customLandingPage,
-              createdAt: customLandingPage.createdAt.toISOString(),
-              updatedAt: customLandingPage.updatedAt.toISOString(),
-            }
-          },
-        };
-      }
 
       // 2. Check if default landing page is disabled - redirect to feed if so
       if (siteConfig.disable_default_landing === "true") {
@@ -881,6 +891,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
         props: {
           siteConfig,
           pageType: 'homepage' as const,
+          customLandingPageSlug: customLandingPage?.slug,
           // user is undefined, which will trigger visitor mode in PersonalizedHomepage
         },
       };
