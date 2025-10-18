@@ -42,10 +42,49 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
 
-      // Design tutorial redirect to unified templates hub
+      // Navigation refactor redirects - Discover hub
+      {
+        source: '/feed',
+        destination: '/discover/feed',
+        permanent: true,
+      },
+      {
+        source: '/directory',
+        destination: '/discover/residents',
+        permanent: true,
+      },
+
+      // Navigation refactor redirects - Build hub
+      {
+        source: '/templates/:path*',
+        destination: '/build/templates/:path*',
+        permanent: true,
+      },
+      {
+        source: '/getting-started',
+        destination: '/build/getting-started',
+        permanent: true,
+      },
       {
         source: '/design-tutorial',
-        destination: '/templates',
+        destination: '/build/templates',
+        permanent: true,
+      },
+
+      // Navigation refactor redirects - Help hub
+      {
+        source: '/community-guidelines',
+        destination: '/help/guidelines',
+        permanent: true,
+      },
+      {
+        source: '/privacy',
+        destination: '/help/privacy',
+        permanent: true,
+      },
+      {
+        source: '/terms',
+        destination: '/help/terms',
         permanent: true,
       },
 

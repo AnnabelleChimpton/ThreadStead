@@ -84,27 +84,116 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
         <div className="py-4"></div>
 
         {/* Footer with minimal styling */}
-        <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto relative z-[9998]">
-          <div className="footer-content mx-auto max-w-5xl text-center">
-            <span className="footer-tagline thread-label">{config.site_description}</span>
-            <div className="footer-links mt-2 mb-2">
-              <Link href="/getting-started" className="text-xs text-thread-sage hover:text-thread-pine underline">
-                Help
-              </Link>
-              <span className="mx-2 text-xs text-thread-sage">•</span>
-              <Link href="/community-guidelines" className="text-xs text-thread-sage hover:text-thread-pine underline">
-                Community Guidelines
-              </Link>
-              <span className="mx-2 text-xs text-thread-sage">•</span>
-              <Link href="/privacy" className="text-xs text-thread-sage hover:text-thread-pine underline">
-                Privacy
-              </Link>
-              <span className="mx-2 text-xs text-thread-sage">•</span>
-              <Link href="/terms" className="text-xs text-thread-sage hover:text-thread-pine underline">
-                Terms
-              </Link>
+        <footer className="site-footer border-t border-thread-sage bg-thread-cream px-4 sm:px-6 py-8 mt-auto relative z-[9998]">
+          <div className="footer-content mx-auto max-w-6xl">
+            {/* Sitemap Navigation */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8">
+              {/* Discover Section */}
+              <div>
+                <h3 className="font-bold text-thread-pine mb-3 text-sm uppercase tracking-wide">Discover</h3>
+                <ul className="space-y-2">
+                  <li>
+                    <Link href="/discover/search" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Search
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/discover/feed" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Feed
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/discover/residents" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Residents
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/neighborhood/explore/all" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      All Homes
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/neighborhood/explore/recent" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Recent Activity
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/threadrings" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      ThreadRings
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/tr/spool" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      The Spool
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Build Section */}
+              <div>
+                <h3 className="font-bold text-thread-pine mb-3 text-sm uppercase tracking-wide">Build</h3>
+                <ul className="space-y-2">
+                  <li>
+                    <Link href="/build/templates" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Templates
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/build/getting-started" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Getting Started
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Help Section */}
+              <div>
+                <h3 className="font-bold text-thread-pine mb-3 text-sm uppercase tracking-wide">Help</h3>
+                <ul className="space-y-2">
+                  <li>
+                    <Link href="/help/faq" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      FAQ
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/help/contact" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Contact
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/help/guidelines" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Community Guidelines
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Legal Section */}
+              <div>
+                <h3 className="font-bold text-thread-pine mb-3 text-sm uppercase tracking-wide">Legal</h3>
+                <ul className="space-y-2">
+                  <li>
+                    <Link href="/help/privacy" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Privacy Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/help/terms" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Terms of Service
+                    </Link>
+                  </li>
+                </ul>
+              </div>
             </div>
-            <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
+
+            {/* Site Description & Copyright */}
+            <div className="border-t border-thread-sage pt-6 text-center">
+              <p className="footer-tagline thread-label mb-2">{config.site_description}</p>
+              <p className="footer-copyright text-sm text-thread-sage">
+                © {new Date().getFullYear()} HomePageAgain — powered by ThreadStead Technologies LLC
+              </p>
+            </div>
           </div>
         </footer>
 
@@ -177,27 +266,116 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       {/* Spacing before footer */}
       <div className="py-4"></div>
 
-      <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
-        <div className="footer-content mx-auto max-w-5xl text-center">
-          <span className="footer-tagline thread-label">{config.site_description}</span>
-          <div className="footer-links mt-2 mb-2">
-            <Link href="/getting-started" className="text-xs text-thread-sage hover:text-thread-pine underline">
-              Help
-            </Link>
-            <span className="mx-2 text-xs text-thread-sage">•</span>
-            <Link href="/community-guidelines" className="text-xs text-thread-sage hover:text-thread-pine underline">
-              Community Guidelines
-            </Link>
-            <span className="mx-2 text-xs text-thread-sage">•</span>
-            <Link href="/privacy" className="text-xs text-thread-sage hover:text-thread-pine underline">
-              Privacy
-            </Link>
-            <span className="mx-2 text-xs text-thread-sage">•</span>
-            <Link href="/terms" className="text-xs text-thread-sage hover:text-thread-pine underline">
-              Terms
-            </Link>
+      <footer className="site-footer border-t border-thread-sage bg-thread-cream px-4 sm:px-6 py-8 mt-auto">
+        <div className="footer-content mx-auto max-w-6xl">
+          {/* Sitemap Navigation */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8">
+            {/* Discover Section */}
+            <div>
+              <h3 className="font-bold text-thread-pine mb-3 text-sm uppercase tracking-wide">Discover</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/discover/search" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Search
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/discover/feed" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Feed
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/discover/residents" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Residents
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/neighborhood/explore/all" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    All Homes
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/neighborhood/explore/recent" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Recent Activity
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/threadrings" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    ThreadRings
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/tr/spool" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    The Spool
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Build Section */}
+            <div>
+              <h3 className="font-bold text-thread-pine mb-3 text-sm uppercase tracking-wide">Build</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/build/templates" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Templates
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/build/getting-started" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Getting Started
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Help Section */}
+            <div>
+              <h3 className="font-bold text-thread-pine mb-3 text-sm uppercase tracking-wide">Help</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/help/faq" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    FAQ
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/help/contact" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/help/guidelines" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Community Guidelines
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal Section */}
+            <div>
+              <h3 className="font-bold text-thread-pine mb-3 text-sm uppercase tracking-wide">Legal</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/help/privacy" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/help/terms" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Terms of Service
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
-          <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>
+
+          {/* Site Description & Copyright */}
+          <div className="border-t border-thread-sage pt-6 text-center">
+            <p className="footer-tagline thread-label mb-2">{config.site_description}</p>
+            <p className="footer-copyright text-sm text-thread-sage">
+              © {new Date().getFullYear()} HomePageAgain — powered by ThreadStead Technologies LLC
+            </p>
+          </div>
         </div>
       </footer>
 

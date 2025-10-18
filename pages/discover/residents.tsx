@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import Layout from "../components/ui/layout/Layout";
-import UserCard, { DirectoryUser } from "../components/ui/feedback/UserCard";
-import { UserCardSkeletonGrid } from "../components/ui/feedback/UserCardSkeleton";
+import Layout from "@/components/ui/layout/Layout";
+import UserCard, { DirectoryUser } from "@/components/ui/feedback/UserCard";
+import { UserCardSkeletonGrid } from "@/components/ui/feedback/UserCardSkeleton";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 type SortOption = "recent" | "alphabetical" | "posts";

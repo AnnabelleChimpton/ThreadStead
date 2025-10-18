@@ -1,11 +1,11 @@
 import { useState } from "react";
-import Layout from "../components/ui/layout/Layout";
-import RetroCard from "../components/ui/layout/RetroCard";
+import Layout from "@/components/ui/layout/Layout";
+import RetroCard from "@/components/ui/layout/RetroCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
-import FeatureGate, { NewUserTooltip } from "../components/features/onboarding/FeatureGate";
-import { useCurrentUser } from "../hooks/useCurrentUser";
+import FeatureGate, { NewUserTooltip } from "@/components/features/onboarding/FeatureGate";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface GettingStartedProps {
   siteConfig: SiteConfig;

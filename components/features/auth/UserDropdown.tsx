@@ -76,13 +76,42 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
           <div className="font-medium text-thread-pine text-sm">{username}</div>
         </div>
 
-        {/* User menu items */}
+        {/* User menu items - Personal Navigation */}
+        <Link
+          href={`/home/${username}`}
+          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          onClick={onItemClick}
+        >
+          <span>🏠</span>
+          My Pixel Home
+        </Link>
+
+        <Link
+          href={`/resident/${username}`}
+          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          onClick={onItemClick}
+        >
+          <span>👤</span>
+          My Profile
+        </Link>
+
+        <Link
+          href="/bookmarks"
+          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          onClick={onItemClick}
+        >
+          <span>🔖</span>
+          Bookmarks
+        </Link>
+
+        <div className="border-t border-gray-200 my-1"></div>
+
         <Link
           href="/me"
           className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
           onClick={onItemClick}
         >
-          <span>👤</span>
+          <span>📄</span>
           My Page
         </Link>
 
@@ -153,15 +182,46 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
           </div>
           
           <div className="py-1">
+            {/* Personal Navigation */}
+            <Link
+              href={`/home/${username}`}
+              className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
+              onClick={() => setIsOpen(false)}
+            >
+              <span>🏠</span>
+              My Pixel Home
+            </Link>
+
+            <Link
+              href={`/resident/${username}`}
+              className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
+              onClick={() => setIsOpen(false)}
+            >
+              <span>👤</span>
+              My Profile
+            </Link>
+
+            <Link
+              href="/bookmarks"
+              className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
+              onClick={() => setIsOpen(false)}
+            >
+              <span>🔖</span>
+              Bookmarks
+            </Link>
+
+            <div className="border-t border-thread-sage my-1"></div>
+
+            {/* Settings & Account */}
             <Link
               href="/me"
               className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
               onClick={() => setIsOpen(false)}
             >
-              <span>👤</span>
+              <span>📄</span>
               My Page
             </Link>
-            
+
             <Link
               href="/settings"
               className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"

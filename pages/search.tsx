@@ -43,9 +43,9 @@ export default function SearchRedirect() {
       queryParams.set('includeUnvalidated', router.query.includeUnvalidated as string);
     }
 
-    // Redirect to discover page with parameters
+    // Redirect to discover search page with parameters
     const queryString = queryParams.toString();
-    const redirectUrl = queryString ? `/discover?${queryString}` : '/discover';
+    const redirectUrl = queryString ? `/discover/search?${queryString}` : '/discover/search';
     router.replace(redirectUrl);
   }, [router]);
 
@@ -96,9 +96,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     queryParams.set('includeUnvalidated', query.includeUnvalidated as string);
   }
 
-  // Redirect to discover page with parameters
+  // Redirect to discover search page with parameters
   const queryString = queryParams.toString();
-  const redirectUrl = queryString ? `/discover?${queryString}` : '/discover';
+  const redirectUrl = queryString ? `/discover/search?${queryString}` : '/discover/search';
 
   return {
     redirect: {
