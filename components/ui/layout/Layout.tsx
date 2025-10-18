@@ -20,7 +20,10 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
   // Advanced template mode: minimal container, no background conflicts
   if (advancedTemplate) {
     return (
-      <div className="site-layout min-h-screen flex flex-col">
+      <div
+        className="site-layout min-h-screen flex flex-col"
+        style={{ backgroundColor: '#FCFAF7' }}
+      >
         {/* Skip to main content for screen readers */}
         <a 
           href="#main-content" 
@@ -205,7 +208,10 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
 
   // Standard layout mode
   return (
-    <div className="site-layout min-h-screen thread-surface flex flex-col">
+    <div
+      className="site-layout min-h-screen thread-surface flex flex-col"
+      style={{ backgroundColor: '#FCFAF7' }}
+    >
       {/* Skip to main content for screen readers */}
       <a 
         href="#main-content" 

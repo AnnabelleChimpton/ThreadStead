@@ -23,7 +23,10 @@ export default function CustomPageLayout({ children, siteConfig, hideNavbar = fa
   }, []);
   
   return (
-    <div className="site-layout min-h-screen thread-surface flex flex-col">
+    <div
+      className="site-layout min-h-screen thread-surface flex flex-col"
+      style={{ backgroundColor: '#FCFAF7' }}
+    >
       {/* Identity Sync Issue Banner */}
       {isClient && hasMismatch && (
         <div className="bg-amber-100 border-b border-amber-300 px-6 py-2">

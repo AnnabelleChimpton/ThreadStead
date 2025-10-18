@@ -11,6 +11,14 @@
 /* Base HTML/body styles - essential for page structure */
 html, body { height: 100%; }
 
+/* Force light mode - prevent browser dark mode from applying black backgrounds */
+@media (prefers-color-scheme: dark) {
+  html, body {
+    background-color: #FCFAF7 !important;
+    color-scheme: light !important;
+  }
+}
+
 /* ThreadStead default styles - wrapped in threadstead-global layer */
 @layer threadstead-global {
   body {

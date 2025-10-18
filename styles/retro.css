@@ -517,24 +517,55 @@ textarea:focus {
 
 /* Mobile optimizations */
 @media (max-width: 767px) {
+  /* Ensure proper background on mobile devices */
+  html {
+    background-color: #FCFAF7 !important;
+    background: #FCFAF7 !important;
+  }
+
+  body {
+    background-color: #FCFAF7 !important;
+    background: #FCFAF7 !important;
+  }
+
   /* Hide scrollbar on mobile to give more space and prevent border clipping */
   html {
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
   }
-  
+
   html::-webkit-scrollbar {
     display: none; /* Safari and Chrome */
   }
-  
+
   body {
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
     overflow-x: hidden; /* Prevent horizontal scroll */
   }
-  
+
   body::-webkit-scrollbar {
     display: none; /* Safari and Chrome */
+  }
+
+  /* Ensure thread-surface always has proper background on mobile */
+  .thread-surface {
+    background-color: #FCFAF7 !important;
+    background:
+      linear-gradient(135deg, rgba(245, 233, 212, 0.05) 0%, rgba(245, 233, 212, 0.15) 100%),
+      radial-gradient(circle at 20% 80%, rgba(161, 132, 99, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(46, 75, 63, 0.02) 0%, transparent 50%),
+      #FCFAF7 !important;
+  }
+
+  /* Ensure site layout always has proper background */
+  .site-layout {
+    background-color: #FCFAF7 !important;
+  }
+
+  /* Ensure main content areas have proper background */
+  main, .site-main {
+    background-color: #FCFAF7 !important;
   }
   
   /* Ensure container elements don't exceed viewport */
