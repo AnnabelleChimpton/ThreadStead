@@ -34,16 +34,18 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
           {/* Hero Section */}
-          <div className="text-center mb-8 sm:mb-12">
-            <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
-              How Can We Help?
-            </h1>
-            <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto mb-2">
-              Find answers, learn about our community, and get the support you need.
-            </p>
-            <p className="text-base text-gray-600 max-w-2xl mx-auto">
-              From FAQs to our privacy policy, everything you need to know is here.
-            </p>
+          <div className="mb-6 sm:mb-8">
+            <div className="bg-gradient-to-br from-blue-100 via-sky-50 to-purple-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
+              <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
+                How Can We Help?
+              </h1>
+              <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto mb-2">
+                Find answers, learn about our community, and get the support you need.
+              </p>
+              <p className="text-base text-gray-600 max-w-2xl mx-auto">
+                From FAQs to our privacy policy, everything you need to know is here.
+              </p>
+            </div>
           </div>
 
           {/* Sub-navigation Tabs */}

@@ -22,7 +22,6 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
     return (
       <div
         className="site-layout min-h-screen flex flex-col"
-        style={{ backgroundColor: '#FCFAF7' }}
       >
         {/* Skip to main content for screen readers */}
         <a 
@@ -210,7 +209,6 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
   return (
     <div
       className="site-layout min-h-screen thread-surface flex flex-col"
-      style={{ backgroundColor: '#FCFAF7' }}
     >
       {/* Skip to main content for screen readers */}
       <a 

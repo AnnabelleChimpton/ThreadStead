@@ -26,16 +26,18 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
           {/* Hero Section */}
-          <div className="text-center mb-10 sm:mb-14">
-            <h1 className="text-4xl sm:text-5xl font-bold text-thread-pine mb-4">
-              Explore the Neighborhood
-            </h1>
-            <p className="text-xl sm:text-2xl text-thread-sage max-w-3xl mx-auto mb-3">
-              Stroll through pixel homes, meet your neighbors, and discover what makes our community special
-            </p>
-            <p className="text-base text-gray-600 max-w-2xl mx-auto">
-              From immersive street views to random discoveries, find your own path through the neighborhood
-            </p>
+          <div className="mb-6 sm:mb-8">
+            <div className="bg-gradient-to-br from-cyan-100 via-teal-50 to-emerald-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
+              <h1 className="text-4xl sm:text-5xl font-bold text-thread-pine mb-4">
+                Explore the Neighborhood
+              </h1>
+              <p className="text-xl sm:text-2xl text-thread-sage max-w-3xl mx-auto mb-3">
+                Stroll through pixel homes, meet your neighbors, and discover what makes our community special
+              </p>
+              <p className="text-base text-gray-600 max-w-2xl mx-auto">
+                From immersive street views to random discoveries, find your own path through the neighborhood
+              </p>
+            </div>
           </div>
 
           {/* HERO FEATURE: Neighborhoods */}

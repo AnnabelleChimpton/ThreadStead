@@ -12,10 +12,11 @@
 html, body { height: 100%; }
 
 /* Force light mode - prevent browser dark mode from applying black backgrounds */
+/* Excludes user profile pages to allow custom backgrounds */
 @media (prefers-color-scheme: dark) {
-  html, body {
-    background-color: #FCFAF7 !important;
-    color-scheme: light !important;
+  html:not(.user-profile-page), body:not(.user-profile-page) {
+    background-color: #FCFAF7;
+    color-scheme: light;
   }
 }
 

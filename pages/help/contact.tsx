@@ -26,16 +26,18 @@ export default function Contact({ siteConfig }: ContactProps) {
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
           {/* Header */}
-          <div className="mb-8">
-            <Link href="/help" className="text-sm text-thread-sunset hover:underline mb-2 inline-block">
+          <div className="mb-6 sm:mb-8">
+            <Link href="/help" className="text-sm text-thread-sunset hover:underline mb-3 inline-block">
               ← Back to Help
             </Link>
-            <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
-              Contact Us
-            </h1>
-            <p className="text-lg text-gray-700">
-              We&apos;re here to help! Get in touch with our team.
-            </p>
+            <div className="bg-gradient-to-br from-purple-100 via-indigo-50 to-blue-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
+              <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
+                Contact Us
+              </h1>
+              <p className="text-lg text-gray-700">
+                We&apos;re here to help! Get in touch with our team.
+              </p>
+            </div>
           </div>
 
           {/* Contact Options */}

@@ -223,30 +223,31 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
       <Layout siteConfig={siteConfig}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold">ThreadRings</h1>
-              <p className="text-gray-600 mt-1">
-                {activeTab === 'mine' ? 'Your ThreadRing memberships' : 'Discover communities and join the conversation'}
-                {total !== null && ` • ${total} total rings`}
-              </p>
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-gradient-to-br from-purple-100 via-fuchsia-50 to-pink-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-3xl font-bold">ThreadRings</h1>
+                <p className="text-gray-600 mt-1">
+                  {activeTab === 'mine' ? 'Your ThreadRing memberships' : 'Discover communities and join the conversation'}
+                  {total !== null && ` • ${total} total rings`}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Link
+                  href="/threadrings/genealogy"
+                  className="border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+                >
+                  🌳 Genealogy
+                </Link>
+                <Link
+                  href="/tr/spool/fork"
+                  className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+                >
+                  Branch from The Spool
+                </Link>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Link
-                href="/threadrings/genealogy"
-                className="border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
-              >
-                🌳 Genealogy
-              </Link>
-              <Link
-                href="/tr/spool/fork"
-                className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
-              >
-                Branch from The Spool
-              </Link>
-            </div>
-          </div>
 
           {/* Tabs */}
           <div className="flex border-b border-gray-300 mb-4">
@@ -294,6 +295,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                 </option>
               ))}
             </select>
+          </div>
           </div>
         </div>
 

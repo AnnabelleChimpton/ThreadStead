@@ -244,19 +244,21 @@ export default function FAQ({ siteConfig }: FAQProps) {
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
           {/* Header */}
-          <div className="mb-8">
-            <Link href="/help" className="text-sm text-thread-sunset hover:underline mb-2 inline-block">
+          <div className="mb-6 sm:mb-8">
+            <Link href="/help" className="text-sm text-thread-sunset hover:underline mb-3 inline-block">
               ← Back to Help
             </Link>
-            <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
-              Frequently Asked Questions
-            </h1>
-            <p className="text-lg text-gray-700 mb-2">
-              Everything you need to know about Pixel Homes, ThreadRings, neighborhoods, and all our features.
-            </p>
-            <p className="text-base text-thread-sage">
-              New to HomePageAgain? Start with &quot;Getting Started&quot; below, then explore topics that interest you!
-            </p>
+            <div className="bg-gradient-to-br from-blue-100 via-sky-50 to-purple-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
+              <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
+                Frequently Asked Questions
+              </h1>
+              <p className="text-lg text-gray-700 mb-2">
+                Everything you need to know about Pixel Homes, ThreadRings, neighborhoods, and all our features.
+              </p>
+              <p className="text-base text-thread-sage">
+                New to HomePageAgain? Start with &quot;Getting Started&quot; below, then explore topics that interest you!
+              </p>
+            </div>
           </div>
 
           {/* FAQ Sections */}

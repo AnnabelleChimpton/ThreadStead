@@ -517,15 +517,15 @@ textarea:focus {
 
 /* Mobile optimizations */
 @media (max-width: 767px) {
-  /* Ensure proper background on mobile devices */
-  html {
-    background-color: #FCFAF7 !important;
-    background: #FCFAF7 !important;
+  /* Default background on mobile devices - can be overridden by user CSS */
+  html:not(.user-profile-page) {
+    background-color: #FCFAF7;
+    background: #FCFAF7;
   }
 
-  body {
-    background-color: #FCFAF7 !important;
-    background: #FCFAF7 !important;
+  body:not(.user-profile-page) {
+    background-color: #FCFAF7;
+    background: #FCFAF7;
   }
 
   /* Hide scrollbar on mobile to give more space and prevent border clipping */
@@ -548,24 +548,24 @@ textarea:focus {
     display: none; /* Safari and Chrome */
   }
 
-  /* Ensure thread-surface always has proper background on mobile */
-  .thread-surface {
-    background-color: #FCFAF7 !important;
+  /* Default thread-surface background on mobile - can be overridden */
+  .thread-surface:not(.user-profile-page *) {
+    background-color: #FCFAF7;
     background:
       linear-gradient(135deg, rgba(245, 233, 212, 0.05) 0%, rgba(245, 233, 212, 0.15) 100%),
       radial-gradient(circle at 20% 80%, rgba(161, 132, 99, 0.03) 0%, transparent 50%),
       radial-gradient(circle at 80% 20%, rgba(46, 75, 63, 0.02) 0%, transparent 50%),
-      #FCFAF7 !important;
+      #FCFAF7;
   }
 
-  /* Ensure site layout always has proper background */
-  .site-layout {
-    background-color: #FCFAF7 !important;
+  /* Default site layout background - can be overridden */
+  .site-layout:not(.user-profile-page) {
+    background-color: #FCFAF7;
   }
 
-  /* Ensure main content areas have proper background */
-  main, .site-main {
-    background-color: #FCFAF7 !important;
+  /* Default main content area background - can be overridden */
+  main:not(.user-profile-page *), .site-main:not(.user-profile-page *) {
+    background-color: #FCFAF7;
   }
   
   /* Ensure container elements don't exceed viewport */

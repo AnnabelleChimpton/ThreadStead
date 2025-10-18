@@ -31,16 +31,18 @@ export default function BuildHub({ siteConfig }: BuildHubProps) {
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
           {/* Hero Section */}
-          <div className="text-center mb-8 sm:mb-12">
-            <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
-              Build Your Web Presence
-            </h1>
-            <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto mb-2">
-              Create a unique home on the web with our powerful visual builder and intuitive template language.
-            </p>
-            <p className="text-base text-gray-600 max-w-2xl mx-auto">
-              Whether you&apos;re a designer or a developer, our tools make it easy to express yourself online.
-            </p>
+          <div className="mb-6 sm:mb-8">
+            <div className="bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
+              <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
+                Build Your Web Presence
+              </h1>
+              <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto mb-2">
+                Create a unique home on the web with our powerful visual builder and intuitive template language.
+              </p>
+              <p className="text-base text-gray-600 max-w-2xl mx-auto">
+                Whether you&apos;re a designer or a developer, our tools make it easy to express yourself online.
+              </p>
+            </div>
           </div>
 
           {/* Sub-navigation Tabs */}
