@@ -15,12 +15,14 @@ import DiscoverPageSearch from "../components/features/search/DiscoverPageSearch
 import { useRouter } from "next/router";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import VisitorPixelHome from "@/components/home/VisitorPixelHome";
+import { getOgImageUrl } from "@/lib/utils/og-image-url";
 
 const db = new PrismaClient();
 
 interface HomeProps {
   siteConfig: SiteConfig;
   pageType: 'custom' | 'landing' | 'homepage' | 'unified';
+  ogImageUrl: string;
   user?: {
     id: string;
     did: string;
@@ -221,7 +223,7 @@ function UserPixelHome({ user }: { user: any }) {
   );
 }
 
-function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
+function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogImageUrl: string }) {
   // Generate metadata for landing page
   const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
 
@@ -241,6 +243,10 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
         <meta property="og:description" content={homepageMetadata.description} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={`${siteConfig.site_name} - Your page, your way`} />
         <meta property="og:site_name" content={siteConfig.site_name} />
         <meta property="og:locale" content="en_US" />
 
@@ -248,6 +254,7 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={homepageMetadata.title} />
         <meta name="twitter:description" content={homepageMetadata.description} />
+        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
 
         {/* Structured data */}
         <script
@@ -434,7 +441,7 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
   );
 }
 
-function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string }) {
+function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImageUrl }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string; ogImageUrl: string }) {
   const router = useRouter();
 
   // Generate metadata for personalized homepage
@@ -504,6 +511,10 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug }: { sit
         <meta property="og:description" content={homepageMetadata.description} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={`${siteConfig.site_name} - Your page, your way`} />
         <meta property="og:site_name" content={siteConfig.site_name} />
         <meta property="og:locale" content="en_US" />
 
@@ -511,6 +522,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug }: { sit
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={homepageMetadata.title} />
         <meta name="twitter:description" content={homepageMetadata.description} />
+        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
 
         {/* Structured data */}
         <script
@@ -679,7 +691,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug }: { sit
   );
 }
 
-function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
+function UnifiedHomepage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogImageUrl: string }) {
   // Generate metadata for unified homepage
   const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
 
@@ -699,6 +711,10 @@ function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
         <meta property="og:description" content={homepageMetadata.description} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={`${siteConfig.site_name} - Your page, your way`} />
         <meta property="og:site_name" content={siteConfig.site_name} />
         <meta property="og:locale" content="en_US" />
 
@@ -706,6 +722,7 @@ function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={homepageMetadata.title} />
         <meta name="twitter:description" content={homepageMetadata.description} />
+        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
 
         {/* Structured data */}
         <script
@@ -778,7 +795,7 @@ function UnifiedHomepage({ siteConfig }: { siteConfig: SiteConfig }) {
   );
 }
 
-export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug }: HomeProps) {
+export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug, ogImageUrl }: HomeProps) {
   // Route to appropriate component based on pageType
   switch (pageType) {
     case 'custom':
@@ -791,18 +808,19 @@ export default function Home({ siteConfig, pageType, user, customPage, customLan
         </CustomPageLayout>
       );
     case 'landing':
-      return <LandingPage siteConfig={siteConfig} />;
+      return <LandingPage siteConfig={siteConfig} ogImageUrl={ogImageUrl} />;
     case 'homepage':
-      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} />;
+      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} />;
     case 'unified':
     default:
-      return <UnifiedHomepage siteConfig={siteConfig} />;
+      return <UnifiedHomepage siteConfig={siteConfig} ogImageUrl={ogImageUrl} />;
   }
 }
 
 export const getServerSideProps: GetServerSideProps<HomeProps> = async (context) => {
   const siteConfig = await getSiteConfig();
   const user = await getSessionUser(context.req as any);
+  const ogImageUrl = getOgImageUrl(); // Get dynamic og:image URL with automatic cache-busting
 
   try {
     if (user) {
@@ -830,6 +848,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
           props: {
             siteConfig,
             pageType: 'custom' as const,
+            ogImageUrl,
             customPage: {
               ...customHomepage,
               createdAt: customHomepage.createdAt.toISOString(),
@@ -854,6 +873,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
         props: {
           siteConfig,
           pageType: 'homepage' as const,
+          ogImageUrl,
           user: {
             id: user.id,
             did: user.did,
@@ -891,6 +911,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
         props: {
           siteConfig,
           pageType: 'homepage' as const,
+          ogImageUrl,
           customLandingPageSlug: customLandingPage?.slug,
           // user is undefined, which will trigger visitor mode in PersonalizedHomepage
         },
@@ -903,6 +924,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
       props: {
         siteConfig,
         pageType: 'unified' as const,
+        ogImageUrl,
       },
     };
   }
