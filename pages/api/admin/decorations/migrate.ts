@@ -51,6 +51,31 @@ const BETA_ITEMS = {
     { id: 'gazebo', name: 'Garden Gazebo', type: 'structure', zone: 'front_yard' },
     { id: 'pergola', name: 'Pergola', type: 'structure', zone: 'front_yard' },
     { id: 'shed', name: 'Garden Shed', type: 'structure', zone: 'front_yard' }
+  ],
+  atmosphere: [
+    { id: 'sunny_sky', name: 'Sunny Day', type: 'sky', zone: 'background' },
+    { id: 'sunset_sky', name: 'Sunset', type: 'sky', zone: 'background' },
+    { id: 'cloudy_sky', name: 'Cloudy', type: 'sky', zone: 'background' },
+    { id: 'night_sky', name: 'Night Sky', type: 'sky', zone: 'background' }
+  ],
+  house: [
+    // Doors Section
+    { id: 'default_door', name: 'Default Door', type: 'house_custom', zone: 'house_facade', section: 'doors', isDefault: true },
+    { id: 'arched_door', name: 'Arched Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
+    { id: 'double_door', name: 'Double Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
+    { id: 'cottage_door', name: 'Cottage Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
+
+    // Windows Section
+    { id: 'default_windows', name: 'Default Windows', type: 'house_custom', zone: 'house_facade', section: 'windows', isDefault: true },
+    { id: 'round_windows', name: 'Round Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
+    { id: 'arched_windows', name: 'Arched Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
+    { id: 'bay_windows', name: 'Bay Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
+
+    // Roof Trim Section
+    { id: 'default_trim', name: 'Default Trim', type: 'house_custom', zone: 'house_facade', section: 'roof', isDefault: true },
+    { id: 'ornate_trim', name: 'Ornate Roof Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
+    { id: 'scalloped_trim', name: 'Scalloped Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
+    { id: 'gabled_trim', name: 'Gabled Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' }
   ]
 };
 
@@ -73,6 +98,28 @@ const getSVGTemplate = (type: string, itemId: string) => {
       return `${baseIcon}<rect x="4" y="18" width="16" height="4" rx="2" fill="#6B7280"/><circle cx="8" cy="20" r="1" fill="#9CA3AF"/><circle cx="16" cy="20" r="1" fill="#9CA3AF"/></svg>`;
     case 'feature':
       return `${baseIcon}<circle cx="12" cy="16" r="6" fill="#E5E7EB"/><circle cx="12" cy="12" r="3" fill="#3B82F6"/><rect x="11" y="8" width="2" height="8" fill="#6B7280"/></svg>`;
+    case 'sky':
+      // Sky/atmosphere icons - different based on itemId
+      if (itemId === 'sunny_sky') {
+        return `${baseIcon}<circle cx="12" cy="12" r="5" fill="#FCD34D"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5l1.5 1.5M5 19l1.5-1.5M17.5 6.5l1.5-1.5" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+      } else if (itemId === 'sunset_sky') {
+        return `${baseIcon}<circle cx="12" cy="16" r="6" fill="#F97316"/><rect x="0" y="16" width="24" height="8" fill="#FCD34D" opacity="0.3"/><circle cx="12" cy="16" r="4" fill="#FBBF24"/></svg>`;
+      } else if (itemId === 'cloudy_sky') {
+        return `${baseIcon}<ellipse cx="10" cy="12" rx="4" ry="3" fill="#9CA3AF"/><ellipse cx="14" cy="12" rx="5" ry="3.5" fill="#D1D5DB"/><ellipse cx="12" cy="14" rx="3" ry="2" fill="#9CA3AF" opacity="0.8"/></svg>`;
+      } else if (itemId === 'night_sky') {
+        return `${baseIcon}<circle cx="14" cy="10" r="6" fill="#1E3A8A"/><circle cx="10" cy="10" r="5" fill="#0F172A"/><circle cx="6" cy="6" r="1" fill="#FCD34D"/><circle cx="18" cy="8" r="0.5" fill="#FCD34D"/><circle cx="8" cy="16" r="0.5" fill="#FCD34D"/></svg>`;
+      }
+      return `${baseIcon}<rect x="0" y="0" width="24" height="12" fill="#87CEEB"/><circle cx="18" cy="6" r="3" fill="#FCD34D"/></svg>`;
+    case 'house_custom':
+      // House customization icons - different based on section
+      if (itemId.includes('door')) {
+        return `${baseIcon}<rect x="8" y="10" width="8" height="12" rx="1" fill="#8B4513"/><circle cx="13" cy="16" r="0.8" fill="#D4AF37"/><rect x="9" y="11" width="2" height="3" fill="#6B4423" opacity="0.5"/></svg>`;
+      } else if (itemId.includes('window')) {
+        return `${baseIcon}<rect x="6" y="8" width="12" height="10" rx="1" fill="#87CEEB" opacity="0.5"/><path d="M6 13h12M12 8v10" stroke="#8B4513" stroke-width="1.5"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="#8B4513" stroke-width="1.5" fill="none"/></svg>`;
+      } else if (itemId.includes('trim')) {
+        return `${baseIcon}<polygon points="12,4 4,10 20,10" fill="#8B4513"/><rect x="4" y="9" width="16" height="2" fill="#D2691E"/><path d="M4 10l1-1h14l1 1" fill="#A0522D"/></svg>`;
+      }
+      return `${baseIcon}<rect x="6" y="8" width="12" height="12" rx="1" fill="#D2691E"/><polygon points="6,8 12,4 18,8" fill="#8B4513"/></svg>`;
     default:
       return `${baseIcon}<rect x="8" y="8" width="8" height="8" rx="2" fill="#6B7280"/></svg>`;
   }
@@ -141,7 +188,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               gridWidth: item.type === 'structure' ? 3 : item.type === 'water' ? 2 : item.type === 'furniture' ? 2 : 1,
               gridHeight: item.type === 'structure' ? 3 : item.type === 'water' ? 2 : item.type === 'feature' ? 2 : 1,
               isActive: true,
-              releaseType: 'PUBLIC',
+              releaseType: item.isDefault ? 'DEFAULT' : 'PUBLIC', // Use DEFAULT for default items
               createdBy: user.id
             }
           });

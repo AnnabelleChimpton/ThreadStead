@@ -79,11 +79,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     availableDecorations.forEach(decoration => {
       const { userClaims, ...decorationData } = decoration;
 
+      // Determine section for house items based on itemId
+      let section: string | undefined;
+      if (decoration.type === 'house_custom') {
+        if (decoration.itemId.includes('door')) {
+          section = 'doors';
+        } else if (decoration.itemId.includes('window')) {
+          section = 'windows';
+        } else if (decoration.itemId.includes('trim')) {
+          section = 'roof';
+        }
+      }
+
       const transformedDecoration = {
         id: decoration.itemId, // Use itemId as the main ID for frontend compatibility
         name: decoration.name,
         type: decoration.type,
         zone: decoration.zone,
+        ...(section && { section }), // Add section for house items
         gridWidth: decoration.gridWidth,
         gridHeight: decoration.gridHeight,
         description: decoration.description,

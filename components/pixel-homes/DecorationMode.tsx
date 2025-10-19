@@ -200,7 +200,7 @@ export default function DecorationMode({
   const [placedDecorations, setPlacedDecorations] = useState<DecorationItem[]>([])
   const [availableDecorations, setAvailableDecorations] = useState<Record<string, DecorationItem[]>>({})
   const [decorationsLoading, setDecorationsLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState<string>('plants')
+  const [selectedCategory, setSelectedCategory] = useState<string>('decorations')
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [isPlacing, setIsPlacing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -1496,23 +1496,76 @@ export default function DecorationMode({
         isMobile ? 'h-80' : 'h-96'
       }`}>
         {selectedCategory === 'themes' ? (
-          <div className="h-full p-4 overflow-y-auto">
-            <ThemePicker
-              onSelection={handleThemeSelection}
-              initialTemplate={currentTemplate}
-              initialPalette={currentPalette}
-              showExplanation={false}
-              showPreview={false}
-              immediateSelection={true}
-              className="space-y-4"
-            />
+          <div className="h-full flex flex-col">
+            {/* Category Navigation - Same as DecorationPalette */}
+            <div className="px-4 pt-4 pb-2">
+              <div className={`flex ${isMobile ? 'overflow-x-auto' : 'flex-wrap'} gap-2`}>
+                {[
+                  { key: 'decorations', label: 'Decorations', icon: '🎨' },
+                  { key: 'house', label: 'House', icon: '🏠' },
+                  { key: 'themes', label: 'Themes', icon: '🎭' },
+                  { key: 'atmosphere', label: 'Sky', icon: '🌤️' },
+                  { key: 'text', label: 'Text', icon: '📝' }
+                ].map(({key, label, icon}) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedCategory(key)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                      selectedCategory === key
+                        ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span>{icon}</span>
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 p-4 overflow-y-auto">
+              <ThemePicker
+                onSelection={handleThemeSelection}
+                initialTemplate={currentTemplate}
+                initialPalette={currentPalette}
+                showExplanation={false}
+                showPreview={false}
+                immediateSelection={true}
+                className="space-y-4"
+              />
+            </div>
           </div>
         ) : selectedCategory === 'text' ? (
-          <div className="h-full p-4 overflow-y-auto">
-            <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
-              <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 flex items-center gap-2">
-                📝 House Text Settings
-              </h3>
+          <div className="h-full flex flex-col">
+            {/* Category Navigation - Same as DecorationPalette */}
+            <div className="px-4 pt-4 pb-2">
+              <div className={`flex ${isMobile ? 'overflow-x-auto' : 'flex-wrap'} gap-2`}>
+                {[
+                  { key: 'decorations', label: 'Decorations', icon: '🎨' },
+                  { key: 'house', label: 'House', icon: '🏠' },
+                  { key: 'themes', label: 'Themes', icon: '🎭' },
+                  { key: 'atmosphere', label: 'Sky', icon: '🌤️' },
+                  { key: 'text', label: 'Text', icon: '📝' }
+                ].map(({key, label, icon}) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedCategory(key)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                      selectedCategory === key
+                        ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span>{icon}</span>
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 p-4 overflow-y-auto">
+              <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
+                <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 flex items-center gap-2">
+                  📝 House Text Settings
+                </h3>
 
               {/* House Text Settings */}
               <div className="space-y-4">
@@ -1568,6 +1621,7 @@ export default function DecorationMode({
               </div>
             </div>
           </div>
+        </div>
         ) : (
           <DecorationPalette
             items={availableDecorations}
@@ -1575,6 +1629,7 @@ export default function DecorationMode({
             onItemSelect={handleItemSelect}
             isMobile={isMobile}
             className="h-full"
+            onCategoryChange={setSelectedCategory}
           />
         )}
 

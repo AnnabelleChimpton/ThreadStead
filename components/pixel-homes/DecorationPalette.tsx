@@ -25,6 +25,7 @@ interface DecorationPaletteProps {
   onItemSelect: (item: DecorationItem) => void
   className?: string
   isMobile?: boolean
+  onCategoryChange?: (category: string) => void // Callback when primary category changes
 }
 
 // Primary categories with better organization
@@ -73,7 +74,8 @@ export default function DecorationPalette({
   selectedItem,
   onItemSelect,
   className = '',
-  isMobile = false
+  isMobile = false,
+  onCategoryChange
 }: DecorationPaletteProps) {
   const [primaryCategory, setPrimaryCategory] = useState<string>('decorations')
   const [secondaryCategory, setSecondaryCategory] = useState<string>('plants')
@@ -156,6 +158,11 @@ export default function DecorationPalette({
   const handlePrimaryChange = (category: string) => {
     setPrimaryCategory(category)
     setSearchQuery('')
+
+    // Notify parent component about category change
+    if (onCategoryChange) {
+      onCategoryChange(category)
+    }
 
     // Set default secondary category
     const subcategories = PRIMARY_CATEGORIES[category as keyof typeof PRIMARY_CATEGORIES]?.subcategories
