@@ -8,7 +8,7 @@ import { getSessionUser } from "@/lib/auth/server";
 import Link from "next/link";
 import { WidgetContainer } from "@/components/widgets";
 import { useDefaultWidgets, useWidgets } from "@/hooks/useWidgets";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import EnhancedHouseCanvas from "../components/pixel-homes/EnhancedHouseCanvas";
 import { HouseTemplate, ColorPalette, HouseCustomizations } from "../components/pixel-homes/HouseSVG";
 import DiscoverPageSearch from "../components/features/search/DiscoverPageSearch";
@@ -457,6 +457,27 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
   const [includeUnvalidated, setIncludeUnvalidated] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
 
+  // Mobile dropdown state
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -550,8 +571,8 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
         )}
 
         <div className="text-center mb-6 sm:mb-8">
-          {/* Quick Action Buttons - PROMINENT AND CLEAR */}
-          <div className="flex flex-wrap justify-center gap-3 mb-4">
+          {/* Quick Action Buttons - Desktop View */}
+          <div className="hidden md:flex flex-wrap justify-center gap-3 mb-4">
             <Link
               href="/feed"
               className="flex items-center gap-2 px-4 py-2 bg-green-200 hover:bg-green-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
@@ -603,6 +624,80 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
               <span className="text-lg">❓</span>
               <span>FAQ</span>
             </Link>
+          </div>
+
+          {/* Mobile Dropdown Menu */}
+          <div className="md:hidden relative mb-4" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-200 hover:bg-blue-100 border-2 border-black shadow-[3px_3px_0_#000] font-medium text-sm transition-all mx-auto"
+            >
+              <span className="text-lg">⚡</span>
+              <span>Quick Actions</span>
+              <span className={`text-sm transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+
+            {isDropdownOpen && (
+              <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white border-2 border-black shadow-[4px_4px_0_#000] z-50">
+                <Link
+                  href="/feed"
+                  onClick={() => setIsDropdownOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-green-50 border-b border-gray-300 transition-colors"
+                >
+                  <span className="text-lg">📰</span>
+                  <span className="font-medium text-sm">Browse Feed</span>
+                </Link>
+
+                {user?.primaryHandle && (
+                  <Link
+                    href={`/resident/${user.primaryHandle.split('@')[0]}`}
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 border-b border-gray-300 transition-colors"
+                  >
+                    <span className="text-lg">👤</span>
+                    <span className="font-medium text-sm">My Profile</span>
+                  </Link>
+                )}
+
+                {user ? (
+                  <Link
+                    href="/post/new"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-yellow-50 border-b border-gray-300 transition-colors"
+                  >
+                    <span className="text-lg">✍️</span>
+                    <span className="font-medium text-sm">Create Post</span>
+                  </Link>
+                ) : (
+                  <Link
+                    href={customLandingPageSlug ? `/page/${customLandingPageSlug}` : "/landing"}
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-yellow-50 border-b border-gray-300 transition-colors"
+                  >
+                    <span className="text-lg">📖</span>
+                    <span className="font-medium text-sm">Request Beta Access</span>
+                  </Link>
+                )}
+
+                <Link
+                  href="/neighborhood/explore/all"
+                  onClick={() => setIsDropdownOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 border-b border-gray-300 transition-colors"
+                >
+                  <span className="text-lg">🏘️</span>
+                  <span className="font-medium text-sm">Explore Homes</span>
+                </Link>
+
+                <Link
+                  href="/help/faq"
+                  onClick={() => setIsDropdownOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 transition-colors"
+                >
+                  <span className="text-lg">❓</span>
+                  <span className="font-medium text-sm">FAQ</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
