@@ -2,6 +2,7 @@ import { widgetRegistry } from './WidgetRegistry';
 
 // Import all widget definitions
 import { welcomeWidget } from '../examples/WelcomeWidget';
+import { faqWidget } from '../examples/FAQWidget';
 import { newNeighborsWidget } from '../examples/NewNeighborsWidget';
 import { threadRingActivityWidget } from '../examples/ThreadRingActivityWidget';
 import { friendActivityWidget } from '../examples/FriendActivityWidget';
@@ -15,6 +16,9 @@ import { quickActionsWidget } from '../examples/QuickActionsWidget';
 export function initializeWidgets() {
   // Example widgets
   widgetRegistry.register(welcomeWidget);
+
+  // Help widgets
+  widgetRegistry.register(faqWidget);
 
   // Social widgets
   widgetRegistry.register(newNeighborsWidget);

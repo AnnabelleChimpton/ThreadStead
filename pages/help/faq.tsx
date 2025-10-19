@@ -15,7 +15,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
       questions: [
         {
           question: 'How is this different from Facebook, Twitter, or Instagram?',
-          answer: 'We focus on creativity and ownership instead of engagement metrics. Your pixel home and profile are YOUR space - not a cookie-cutter template. No algorithm decides what you see; you follow people and join communities YOU choose. Your content lives on your profile forever, not buried by an algorithm. Plus, we don\'t track you, sell your data, or optimize for rage-bait and addiction.'
+          answer: 'We\'re bringing back the creative, playful internet before it got corporate. Your pixel home and profile are YOUR space - not a cookie-cutter template designed to maximize ad revenue. No algorithm decides what you see; you follow people and join communities YOU choose. Your content lives on your profile forever, not buried by an algorithm. Plus, we don\'t track you, sell your data, or optimize for rage-bait and addiction. It\'s the internet when it was actually fun.'
         },
         {
           question: 'What does "no algorithms" actually mean?',
@@ -23,7 +23,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
         },
         {
           question: 'What does "no tracking" mean? How do you make money?',
-          answer: 'We don\'t use analytics trackers, advertising pixels, or sell your data to third parties. We don\'t track your behavior across the web or build profiles to sell to advertisers. HomePageAgain is currently in beta and exploring sustainable funding models that respect user privacy - likely premium features or memberships, not advertising.'
+          answer: 'We don\'t use analytics trackers, advertising pixels, or sell your data to third parties. We don\'t track your behavior across the web or build profiles to sell to advertisers. HomePageAgain is currently in beta and exploring sustainable funding models that actually respect your privacy - likely premium features or memberships, not advertising. Right now, this is a passion project built by one person who thinks the internet can be better.'
         },
         {
           question: 'Can I browse without signing up?',
@@ -40,7 +40,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
       questions: [
         {
           question: 'What is HomePageAgain?',
-          answer: 'HomePageAgain is a community-first social platform where you build your own pixel home, join ThreadRings (interest-based communities), and connect with real people. No algorithms deciding what you see, no tracking, no corporate BS. Think of it as a blend of classic GeoCities creativity, modern community features, and the fun social internet before it got corporate. Your page, your way.'
+          answer: 'HomePageAgain is a community-first social platform where you build your own pixel home, join ThreadRings (interest-based communities), and connect with real people. No algorithms deciding what you see, no tracking, no corporate BS. Think of it as a blend of classic GeoCities creativity, modern community features, and the joy of the internet when it was weird and fun. Your page, your way - actually yours, not rented space on someone else\'s platform.'
         },
         {
           question: 'How do I create my profile?',
@@ -252,11 +252,14 @@ export default function FAQ({ siteConfig }: FAQProps) {
               <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
                 Frequently Asked Questions
               </h1>
-              <p className="text-lg text-gray-700 mb-2">
+              <p className="text-lg text-gray-700 mb-3">
                 Everything you need to know about Pixel Homes, ThreadRings, neighborhoods, and all our features.
               </p>
+              <p className="text-base text-gray-700 mb-3">
+                👋 <strong>First time here?</strong> This FAQ has all the details, but if you want the full story about why we&apos;re building HomePageAgain, check out our <Link href="/landing" className="text-thread-sunset hover:text-thread-pine underline font-medium">landing page</Link> - it&apos;s a personal note about creating a better internet.
+              </p>
               <p className="text-base text-thread-sage">
-                New to HomePageAgain? Start with &quot;Getting Started&quot; below, then explore topics that interest you!
+                New to HomePageAgain? Start with &quot;Why HomePageAgain?&quot; and &quot;Getting Started&quot; below!
               </p>
             </div>
           </div>
@@ -282,6 +285,32 @@ export default function FAQ({ siteConfig }: FAQProps) {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Founder's Personal Note */}
+          <div className="mt-12 mb-8 p-6 sm:p-8 bg-gradient-to-br from-yellow-100 via-orange-100 to-pink-100 border-2 border-black rounded-lg shadow-[3px_3px_0_#000]">
+            <h2 className="text-2xl sm:text-3xl font-bold text-thread-pine mb-4 text-center">
+              A Personal Note from the Founder
+            </h2>
+            <div className="max-w-3xl mx-auto space-y-4">
+              <p className="text-base text-gray-800 leading-relaxed">
+                I&apos;m building this alone, in every spare moment, because I genuinely believe we can have a social internet that doesn&apos;t suck. One that&apos;s creative, playful, and human-centered instead of optimized for engagement and profit.
+              </p>
+              <p className="text-base text-gray-800 leading-relaxed">
+                <strong>This is beta software built by one person who cares.</strong> It&apos;s rough around the edges, but it&apos;s honest. Your feedback helps me make this better—not for shareholders, but for actual people who just want a fun place to hang out online.
+              </p>
+              <p className="text-base text-gray-800 leading-relaxed">
+                Thank you for being here. Let&apos;s build something good together.
+              </p>
+            </div>
+            <div className="text-center mt-6">
+              <Link
+                href="/landing"
+                className="inline-block px-6 py-3 bg-white hover:bg-gray-50 border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] font-medium transition-all transform hover:-translate-y-0.5"
+              >
+                Read the complete landing page →
+              </Link>
+            </div>
           </div>
 
           {/* Still have questions? */}
