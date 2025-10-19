@@ -293,6 +293,13 @@ export default function DecorationPalette({
                   {item.name}
                 </div>
 
+                {/* Selected - Click to deselect hint */}
+                {selectedItem?.id === item.id && (
+                  <div className="mt-1 text-center text-[10px] font-semibold text-blue-600 leading-tight px-1">
+                    Click to deselect
+                  </div>
+                )}
+
                 {/* Selection Indicator */}
                 {selectedItem?.id === item.id && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">

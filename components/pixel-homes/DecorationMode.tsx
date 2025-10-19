@@ -192,10 +192,9 @@ export default function DecorationMode({
   initialHouseCustomizations,
   initialAtmosphere
 }: DecorationModeProps) {
-  // Mobile detection and accessibility
+  // Mobile detection
   const isMobile = useIsMobile(768)
   const isTouch = useIsTouch()
-  const prefersReducedMotion = usePrefersReducedMotion()
   
   const [placedDecorations, setPlacedDecorations] = useState<DecorationItem[]>([])
   const [availableDecorations, setAvailableDecorations] = useState<Record<string, DecorationItem[]>>({})
@@ -237,16 +236,11 @@ export default function DecorationMode({
   const [gridConfig, setGridConfig] = useState<DecorationGridConfig>(DEFAULT_DECORATION_GRID)
   const [mousePosition, setMousePosition] = useState<{x: number, y: number} | undefined>()
 
-  // Animation and feedback state
-  const [animatedDecorations, setAnimatedDecorations] = useState<Map<string, 'place' | 'remove' | 'select' | 'hover'>>(new Map())
-  const [deletionAnimations, setDeletionAnimations] = useState<Array<{id: string, position: {x: number, y: number}}>>([])
-  const [actionFeedback, setActionFeedback] = useState<Array<{
-    id: string,
-    type: 'success' | 'error' | 'info' | 'warning',
-    position: {x: number, y: number},
-    message: string
-  }>>([])
-  const [recentlyPlaced, setRecentlyPlaced] = useState<Set<string>>(new Set())
+  // Ref to track latest decorations for drag operations (avoids stale closure)
+  const placedDecorationsRef = React.useRef<DecorationItem[]>(placedDecorations)
+  React.useEffect(() => {
+    placedDecorationsRef.current = placedDecorations
+  }, [placedDecorations])
 
   // Load available decorations from API
   useEffect(() => {
@@ -273,7 +267,7 @@ export default function DecorationMode({
     loadDecorations()
   }, [])
 
-  // Initialize snapping system
+  // Initialize snapping system - disabled by default for better performance
   const {
     snapDecoration,
     updatePreview,
@@ -292,8 +286,8 @@ export default function DecorationMode({
       size?: 'small' | 'medium' | 'large'
       gridPosition?: { gridX: number; gridY: number; width: number; height: number }
     }>,
-    enableSnapping: true,
-    enableSpacingSuggestions: true
+    enableSnapping: false,  // Start disabled for better performance - users can enable via button
+    enableSpacingSuggestions: false
   })
 
   // Grid toggle functionality
@@ -301,56 +295,6 @@ export default function DecorationMode({
     setGridConfig(prev => ({ ...prev, showGrid: !prev.showGrid }))
   }
 
-  // Animation and feedback helpers
-  const addActionFeedback = (type: 'success' | 'error' | 'info' | 'warning', position: {x: number, y: number}, message: string) => {
-    if (prefersReducedMotion) return // Skip animations for reduced motion preference
-
-    const feedbackId = `feedback_${Date.now()}_${Math.random()}`
-    const newFeedback = { id: feedbackId, type, position, message }
-
-    setActionFeedback(prev => [...prev, newFeedback])
-
-    // Auto-remove after animation duration
-    setTimeout(() => {
-      setActionFeedback(prev => prev.filter(f => f.id !== feedbackId))
-    }, 2000)
-  }
-
-  const addDeletionAnimation = (position: {x: number, y: number}) => {
-    if (prefersReducedMotion) return // Skip animations for reduced motion preference
-
-    const animationId = `deletion_${Date.now()}_${Math.random()}`
-    const newAnimation = { id: animationId, position }
-
-    setDeletionAnimations(prev => [...prev, newAnimation])
-
-    // Auto-remove after animation duration
-    setTimeout(() => {
-      setDeletionAnimations(prev => prev.filter(a => a.id !== animationId))
-    }, 600)
-  }
-
-  const setDecorationAnimation = (decorationId: string, animationType: 'place' | 'remove' | 'select' | 'hover') => {
-    if (prefersReducedMotion) return // Skip animations for reduced motion preference
-
-    setAnimatedDecorations(prev => new Map(prev.set(decorationId, animationType)))
-
-    // Auto-remove animation state after duration
-    if (animationType === 'place') {
-      setTimeout(() => {
-        setAnimatedDecorations(prev => {
-          const newMap = new Map(prev)
-          newMap.delete(decorationId)
-          return newMap
-        })
-        setRecentlyPlaced(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(decorationId)
-          return newSet
-        })
-      }, 800)
-    }
-  }
 
   // Load initial decorations when component mounts
   useEffect(() => {
@@ -479,14 +423,27 @@ export default function DecorationMode({
       setSelectedItem(item)
       setIsPlacing(false)
     } else {
-      // Handle decoration placement
-      setSelectedItem(item)
-      setIsPlacing(true)
+      // Handle decoration placement - toggle if same item clicked
+      if (selectedItem && selectedItem.id === item.id) {
+        // Clicking same item - deselect
+        setSelectedItem(null)
+        setIsPlacing(false)
+      } else {
+        // Clicking new item - select it
+        setSelectedItem(item)
+        setIsPlacing(true)
+      }
     }
   }
 
   const handleCanvasClick = (event: React.MouseEvent) => {
-    if ((!isPlacing || !selectedItem) && !draggedItem) return
+    // If clicking empty space (not placing or dragging), clear selection
+    if ((!isPlacing || !selectedItem) && !draggedItem) {
+      setSelectedItem(null)
+      setIsPlacing(false)
+      setSelectedDecorations(new Set())
+      return
+    }
 
     const rect = event.currentTarget.getBoundingClientRect()
     const x = event.clientX - rect.left
@@ -520,11 +477,6 @@ export default function DecorationMode({
     const newDecorations = [...placedDecorations, newDecoration]
     updateHistory(newDecorations)
 
-    // Add placement animation and feedback
-    setDecorationAnimation(newDecoration.id, 'place')
-    setRecentlyPlaced(prev => new Set(prev.add(newDecoration.id)))
-    addActionFeedback('success', { x: snapResult.position.pixelX + 12, y: snapResult.position.pixelY - 20 }, 'Placed!')
-
     // Clear preview and drag state
     clearPreview()
     if (draggedItem) {
@@ -554,11 +506,6 @@ export default function DecorationMode({
     const newDecorations = [...placedDecorations, newDecoration]
     updateHistory(newDecorations)
 
-    // Add placement animation and feedback for mobile
-    setDecorationAnimation(newDecoration.id, 'place')
-    setRecentlyPlaced(prev => new Set(prev.add(newDecoration.id)))
-    addActionFeedback('success', { x: adjustedX + 12, y: adjustedY - 20 }, 'Placed!')
-
     // Clear selection after placement on mobile for easier workflow
     setSelectedItem(null)
     setIsPlacing(false)
@@ -568,16 +515,6 @@ export default function DecorationMode({
     event.stopPropagation()
 
     if (isDeleting) {
-      const decorationToDelete = placedDecorations.find(item => item.id === decorationId)
-      if (decorationToDelete && decorationToDelete.position) {
-        // Add deletion animation and feedback
-        addDeletionAnimation(decorationToDelete.position)
-        addActionFeedback('info', {
-          x: decorationToDelete.position.x + 12,
-          y: decorationToDelete.position.y - 20
-        }, 'Deleted!')
-      }
-
       const newDecorations = placedDecorations.filter(item => item.id !== decorationId)
       updateHistory(newDecorations)
       return
@@ -591,13 +528,11 @@ export default function DecorationMode({
           newSet.delete(decorationId)
         } else {
           newSet.add(decorationId)
-          setDecorationAnimation(decorationId, 'select')
         }
         return newSet
       })
     } else {
       setSelectedDecorations(new Set([decorationId]))
-      setDecorationAnimation(decorationId, 'select')
     }
   }
   
@@ -627,21 +562,22 @@ export default function DecorationMode({
     }
   }
   
-  const handleDecorationMouseMove = (event: MouseEvent) => {
+  const handleDecorationMouseMove = React.useCallback((event: MouseEvent) => {
     if (!draggedDecoration) return
-    
+
     const canvasElement = document.querySelector('.decoration-canvas')
     if (!canvasElement) return
-    
+
     const rect = canvasElement.getBoundingClientRect()
     const x = event.clientX - rect.left - dragOffset.x
     const y = event.clientY - rect.top - dragOffset.y
-    
+
     // Constrain to canvas bounds
     const adjustedX = Math.max(0, Math.min(x, 500 - 24))
     const adjustedY = Math.max(0, Math.min(y, 350 - 24))
-    
-    const newDecorations = placedDecorations.map(decoration => {
+
+    // Use functional setState to avoid stale closure
+    setPlacedDecorations(prev => prev.map(decoration => {
       if (selectedDecorations.has(decoration.id)) {
         return {
           ...decoration,
@@ -649,31 +585,30 @@ export default function DecorationMode({
         }
       }
       return decoration
-    })
-    setPlacedDecorations(newDecorations)
-  }
+    }))
+  }, [draggedDecoration, dragOffset, selectedDecorations])
   
-  const handleDecorationMouseUp = () => {
+  const handleDecorationMouseUp = React.useCallback(() => {
     if (draggedDecoration) {
-      // Save to history when drag ends
-      updateHistory([...placedDecorations])
+      // Save current state to history using the ref to get latest decorations
+      updateHistory([...placedDecorationsRef.current])
     }
     setDraggedDecoration(null)
     setDragOffset({x: 0, y: 0})
-  }
+  }, [draggedDecoration])
   
   // Add global mouse event listeners for decoration dragging
   useEffect(() => {
     if (draggedDecoration) {
       document.addEventListener('mousemove', handleDecorationMouseMove)
       document.addEventListener('mouseup', handleDecorationMouseUp)
-      
+
       return () => {
         document.removeEventListener('mousemove', handleDecorationMouseMove)
         document.removeEventListener('mouseup', handleDecorationMouseUp)
       }
     }
-  }, [draggedDecoration, dragOffset, selectedDecorations])
+  }, [draggedDecoration, handleDecorationMouseMove, handleDecorationMouseUp])
   
   // Keyboard shortcuts
   useEffect(() => {
@@ -792,24 +727,6 @@ export default function DecorationMode({
   const handleDeleteSelected = () => {
     if (selectedDecorations.size === 0) return
 
-    // Add deletion animations for all selected decorations
-    placedDecorations.forEach(decoration => {
-      if (selectedDecorations.has(decoration.id) && decoration.position) {
-        addDeletionAnimation(decoration.position)
-      }
-    })
-
-    // Add feedback for bulk deletion
-    if (selectedDecorations.size > 1) {
-      const firstSelected = placedDecorations.find(d => selectedDecorations.has(d.id))
-      if (firstSelected && firstSelected.position) {
-        addActionFeedback('info', {
-          x: firstSelected.position.x + 12,
-          y: firstSelected.position.y - 40
-        }, `Deleted ${selectedDecorations.size} items!`)
-      }
-    }
-
     const newDecorations = placedDecorations.filter(item => !selectedDecorations.has(item.id))
     updateHistory(newDecorations)
     setSelectedDecorations(new Set())
@@ -823,13 +740,24 @@ export default function DecorationMode({
     setSelectedDecorations(new Set())
   }
 
+  // Throttled mousemove handler for better performance (60fps = 16ms)
+  const lastMouseMoveTime = React.useRef(0)
   const handleCanvasMouseMove = (event: React.MouseEvent) => {
+    const now = Date.now()
+    const timeSinceLastUpdate = now - lastMouseMoveTime.current
+
+    // Throttle to ~60fps (16ms) for better performance
+    if (timeSinceLastUpdate < 16) return
+    lastMouseMoveTime.current = now
+
     const rect = event.currentTarget.getBoundingClientRect()
     const x = event.clientX - rect.left
     const y = event.clientY - rect.top
 
-    // Update mouse position for magnetic grid visualization
-    setMousePosition({ x, y })
+    // Only update mouse position if grid is visible (for magnetic grid visualization)
+    if (gridConfig.showGrid) {
+      setMousePosition({ x, y })
+    }
 
     if ((!isPlacing || !selectedItem) && !isDragging) {
       clearPreview()
@@ -897,11 +825,6 @@ export default function DecorationMode({
 
     const newDecorations = [...placedDecorations, newDecoration]
     updateHistory(newDecorations)
-
-    // Add placement animation and feedback for drag and drop
-    setDecorationAnimation(newDecoration.id, 'place')
-    setRecentlyPlaced(prev => new Set(prev.add(newDecoration.id)))
-    addActionFeedback('success', { x: adjustedX + 12, y: adjustedY - 20 }, 'Dropped!')
 
     handleDragEnd()
   }
@@ -1097,27 +1020,26 @@ export default function DecorationMode({
         <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
           {selectedDecorations.size > 0 && (
             <>
-              <span className={`text-sm text-thread-sage bg-thread-cream rounded ${
-                isMobile ? 'px-2 py-1' : 'px-2 py-1'
-              }`}>
+              <span className="h-9 flex items-center text-sm text-thread-sage bg-thread-cream rounded px-2 flex-shrink-0 whitespace-nowrap">
                 {selectedDecorations.size} selected
               </span>
-              {!isMobile && <span className="text-xs text-gray-500">Del to delete</span>}
               <button
                 onClick={handleDeleteSelected}
-                className={`bg-red-500 text-white hover:bg-red-600 rounded-lg transition-colors font-medium ${
-                  isMobile ? 'px-2 py-2 text-sm' : 'px-3 py-2'
+                className={`bg-red-500 text-white hover:bg-red-600 rounded-lg transition-colors font-medium flex items-center justify-center flex-shrink-0 ${
+                  isMobile ? 'w-9 h-9 text-sm' : 'h-9 w-9'
                 }`}
+                title="Delete Selected (Del)"
               >
-                🗑️ {isMobile ? '' : 'Delete Selected'}
+                🗑️
               </button>
               <button
                 onClick={handleDeselectAll}
-                className={`border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium ${
-                  isMobile ? 'px-2 py-2 text-sm' : 'px-3 py-2'
+                className={`border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium flex items-center justify-center gap-1 flex-shrink-0 whitespace-nowrap ${
+                  isMobile ? 'h-9 px-2 text-sm' : 'h-9 px-3'
                 }`}
+                title="Deselect All"
               >
-                {isMobile ? '✕' : 'Deselect All'}
+                {isMobile ? '✕' : '✕ Deselect'}
               </button>
             </>
           )}
@@ -1127,68 +1049,73 @@ export default function DecorationMode({
               <button
                 onClick={undo}
                 disabled={history.past.length === 0}
-                className="px-3 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-9 px-3 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 flex-shrink-0 whitespace-nowrap"
+                title="Undo (Ctrl+Z)"
               >
                 ↶ Undo
               </button>
-              
+
               <button
                 onClick={redo}
                 disabled={history.future.length === 0}
-                className="px-3 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-9 px-3 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 flex-shrink-0 whitespace-nowrap"
+                title="Redo (Ctrl+Shift+Z)"
               >
                 ↷ Redo
               </button>
-              
+
               <button
                 onClick={handleSelectAll}
                 disabled={placedDecorations.length === 0}
-                className="px-3 py-2 border border-thread-sage text-thread-sage hover:bg-thread-cream rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-9 px-3 border border-thread-sage text-thread-sage hover:bg-thread-cream rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0 whitespace-nowrap"
+                title="Select All (Ctrl+A)"
               >
                 Select All
               </button>
-              
+
               <button
                 onClick={handleDeleteToggle}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  isDeleting 
-                    ? 'bg-red-500 text-white hover:bg-red-600' 
+                className={`h-9 w-9 rounded-lg font-medium transition-colors flex items-center justify-center flex-shrink-0 ${
+                  isDeleting
+                    ? 'bg-red-500 text-white hover:bg-red-600'
                     : 'border border-red-500 text-red-500 hover:bg-red-50'
                 }`}
+                title={isDeleting ? 'Exit Delete Mode (Esc)' : 'Delete Mode (D)'}
               >
-                🗑️ {isDeleting ? 'Exit Delete' : 'Delete Mode'}
+                🗑️
               </button>
-              
+
               <button
                 onClick={handleReset}
-                className="px-4 py-2 border border-thread-sage text-thread-sage hover:bg-thread-cream rounded-lg transition-colors font-medium"
+                className="h-9 w-9 border border-thread-sage text-thread-sage hover:bg-thread-cream rounded-lg transition-colors font-medium flex items-center justify-center flex-shrink-0"
+                title="Reset All (Ctrl+R)"
               >
-                🔄 Reset
+                🔄
               </button>
 
               {/* Grid controls */}
               <div className="flex items-center gap-2 border-l border-gray-300 pl-2">
                 <button
                   onClick={toggleGrid}
-                  className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                  className={`h-9 w-9 rounded-lg font-medium transition-colors flex items-center justify-center flex-shrink-0 ${
                     gridConfig.showGrid
                       ? 'bg-blue-500 text-white hover:bg-blue-600'
                       : 'border border-blue-500 text-blue-500 hover:bg-blue-50'
                   }`}
-                  title="Toggle grid overlay"
+                  title="Toggle Grid Overlay (G)"
                 >
-                  ⊞ Grid
+                  ⊞
                 </button>
                 <button
                   onClick={toggleSnapping}
-                  className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                  className={`h-9 w-9 rounded-lg font-medium transition-colors flex items-center justify-center flex-shrink-0 ${
                     isSnapping
                       ? 'bg-green-500 text-white hover:bg-green-600'
                       : 'border border-green-500 text-green-500 hover:bg-green-50'
                   }`}
-                  title="Toggle magnetic snapping"
+                  title="Toggle Magnetic Snapping (S)"
                 >
-                  🧲 Snap
+                  🧲
                 </button>
               </div>
             </>
@@ -1196,13 +1123,14 @@ export default function DecorationMode({
           
           <button
             onClick={onCancel}
-            className={`border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium ${
-              isMobile ? 'px-2 py-2 text-sm' : 'px-4 py-2'
+            className={`border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium flex-shrink-0 ${
+              isMobile ? 'w-9 h-9 flex items-center justify-center text-sm' : 'h-9 w-9 flex items-center justify-center'
             }`}
+            title="Return to Home Page"
           >
-            {isMobile ? '🏠' : '🏠 Return to Home Page'}
+            🏠
           </button>
-          
+
           <button
             onClick={() => {
               const code = prompt('Enter claim code:')
@@ -1210,20 +1138,22 @@ export default function DecorationMode({
                 window.location.href = `/claim/${code}`
               }
             }}
-            className={`bg-purple-500 text-white hover:bg-purple-600 rounded-lg font-medium ${
-              isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'
-            } ${prefersReducedMotion ? 'reduce-motion' : ''}`}
+            className={`bg-purple-500 text-white hover:bg-purple-600 rounded-lg font-medium transition-colors flex-shrink-0 ${
+              isMobile ? 'w-9 h-9 flex items-center justify-center text-sm' : 'h-9 w-9 flex items-center justify-center'
+            }`}
+            title="Claim Exclusive Items"
           >
-            {isMobile ? '🎁' : '🎁 Claim Code'}
+            🎁
           </button>
 
           <button
             onClick={handleSave}
-            className={`bg-thread-sage text-thread-paper hover:bg-thread-pine rounded-lg font-medium btn-save btn-hover-lift ${
-              isMobile ? 'px-3 py-2 text-sm' : 'px-6 py-2'
-            } ${prefersReducedMotion ? 'reduce-motion' : ''}`}
+            className={`bg-thread-sage text-thread-paper hover:bg-thread-pine rounded-lg font-medium btn-save btn-hover-lift transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 whitespace-nowrap ${
+              isMobile ? 'px-3 h-9 text-sm' : 'h-9 px-4'
+            }`}
+            title="Save Changes (Ctrl+S)"
           >
-            {isMobile ? '💾' : '💾 Save'}
+            💾 Save
           </button>
         </div>
       </div>
@@ -1258,21 +1188,7 @@ export default function DecorationMode({
             onDecorationClick={handleDecorationClick}
             onDecorationMouseDown={!isMobile ? handleDecorationMouseDown : undefined}
             className="shadow-2xl"
-            animatedDecorations={animatedDecorations}
-            recentlyPlaced={recentlyPlaced}
             selectedDecorations={selectedDecorations}
-            onAnimationComplete={(decorationId) => {
-              setAnimatedDecorations(prev => {
-                const newMap = new Map(prev)
-                newMap.delete(decorationId)
-                return newMap
-              })
-              setRecentlyPlaced(prev => {
-                const newSet = new Set(prev)
-                newSet.delete(decorationId)
-                return newSet
-              })
-            }}
           />
 
           {/* Grid overlay */}
@@ -1285,31 +1201,6 @@ export default function DecorationMode({
             />
           )}
 
-
-          {/* Deletion animations */}
-          {deletionAnimations.map((animation) => (
-            <DeletionAnimation
-              key={animation.id}
-              position={animation.position}
-              onComplete={() => {
-                setDeletionAnimations(prev => prev.filter(a => a.id !== animation.id))
-              }}
-            />
-          ))}
-
-          {/* Action feedback */}
-          {actionFeedback.map((feedback) => (
-            <ActionFeedback
-              key={feedback.id}
-              type={feedback.type}
-              position={feedback.position}
-              message={feedback.message}
-              onComplete={() => {
-                setActionFeedback(prev => prev.filter(f => f.id !== feedback.id))
-              }}
-            />
-          ))}
-
           {/* Touch Decoration Placer for Mobile */}
           {isMobile && (
             <TouchDecorationPlacer
@@ -1320,20 +1211,8 @@ export default function DecorationMode({
               className="touch-decoration-overlay"
               onTouchSelect={(decorationIds) => {
                 setSelectedDecorations(new Set(decorationIds))
-                // Add selection animation for first decoration
-                if (decorationIds.length > 0) {
-                  setDecorationAnimation(decorationIds[0], 'select')
-                }
               }}
               onTouchDelete={(decorationId) => {
-                const decorationToDelete = placedDecorations.find(item => item.id === decorationId)
-                if (decorationToDelete && decorationToDelete.position) {
-                  addDeletionAnimation(decorationToDelete.position)
-                  addActionFeedback('info', {
-                    x: decorationToDelete.position.x + 12,
-                    y: decorationToDelete.position.y - 20
-                  }, 'Deleted!')
-                }
                 const newDecorations = placedDecorations.filter(item => item.id !== decorationId)
                 updateHistory(newDecorations)
               }}
@@ -1359,13 +1238,13 @@ export default function DecorationMode({
             />
           )}
           
-          {/* Enhanced selection indicators with animation */}
+          {/* Simple selection indicators */}
           {placedDecorations.map(decoration => {
             if (!selectedDecorations.has(decoration.id) || !decoration.position) return null
             return (
               <div
                 key={`selection-${decoration.id}`}
-                className={`absolute pointer-events-none decoration-item selected ${prefersReducedMotion ? 'reduce-motion' : ''}`}
+                className="absolute pointer-events-none"
                 style={{
                   left: decoration.position.x - 6,
                   top: decoration.position.y - 6,
@@ -1374,77 +1253,33 @@ export default function DecorationMode({
                   zIndex: 15
                 }}
               >
-                {/* Selection ring with enhanced animation */}
-                <div className="absolute inset-0 border-2 border-blue-500 rounded-full" 
-                     style={{ animation: prefersReducedMotion ? 'none' : 'selectionPulse 2s infinite' }} />
-                <div className="absolute inset-1 border border-blue-300 border-dashed rounded-full" 
-                     style={{ animation: prefersReducedMotion ? 'none' : 'spin 3s linear infinite' }} />
-                {/* Selection handles */}
-                <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full" />
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
-                <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-500 rounded-full" />
-                <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
+                {/* Simple static border */}
+                <div className="absolute inset-0 border-2 border-blue-500 rounded-full" />
               </div>
             )
           })}
           
-          {/* Enhanced preview decoration with snap feedback */}
+          {/* Simple preview decoration */}
           {(snapPreview || previewPosition) && (selectedItem || draggedItem) && (
             <div
-              className={`absolute pointer-events-none decoration-item ${isDragging ? 'placing' : ''} ${prefersReducedMotion ? 'reduce-motion' : ''}`}
+              className="absolute pointer-events-none"
               style={{
                 left: snapPreview?.position.pixelX || previewPosition?.x || 0,
                 top: snapPreview?.position.pixelY || previewPosition?.y || 0,
                 zIndex: 20,
-                opacity: isDragging ? 0.9 : (snapPreview?.valid === false ? 0.4 : 0.7),
-                transform: `scale(${isDragging ? 1.1 : (snapPreview?.snapType !== 'none' ? 1.05 : 1)})`,
-                transition: prefersReducedMotion ? 'none' : 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                opacity: 0.7
               }}
             >
               {(() => {
                 const previewItem = draggedItem || selectedItem
                 if (!previewItem || previewItem.type === 'sky' || previewItem.type === 'house_custom' || previewItem.type === 'house_template' || previewItem.type === 'house_color') return null
                 return (
-                  <>
-                    <DecorationSVG
-                      decorationType={previewItem.type}
-                      decorationId={previewItem.id}
-                      variant="default"
-                      size={previewItem.size || "medium"}
-                      className={`drop-shadow-lg ${snapPreview?.valid === false ? 'filter grayscale' : 'filter brightness-110'}`}
-                    />
-                    {/* Snap indicator */}
-                    {snapPreview?.snapType !== 'none' && (
-                      <div className={`absolute inset-0 border-2 rounded-full opacity-70 ${
-                        snapPreview?.snapType === 'grid' ? 'border-blue-400' :
-                        snapPreview?.snapType === 'spacing' ? 'border-green-400' :
-                        'border-purple-400'
-                      }`}>
-                        {snapPreview?.snapType === 'grid' && (
-                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs">⊞</span>
-                          </div>
-                        )}
-                        {snapPreview?.snapType === 'spacing' && (
-                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs">↔</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {/* Invalid placement indicator */}
-                    {snapPreview?.valid === false && (
-                      <div className="absolute inset-0 border-2 border-red-400 border-dashed rounded-full opacity-70">
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs">✕</span>
-                        </div>
-                      </div>
-                    )}
-                    {/* Fallback placement hint for non-snapped items */}
-                    {snapPreview?.snapType === 'none' && snapPreview?.valid !== false && (
-                      <div className="absolute inset-0 border-2 border-blue-400 border-dashed rounded-full opacity-50 animate-spin" style={{ animationDuration: '3s' }} />
-                    )}
-                  </>
+                  <DecorationSVG
+                    decorationType={previewItem.type}
+                    decorationId={previewItem.id}
+                    variant="default"
+                    size={previewItem.size || "medium"}
+                  />
                 )
               })()
               }
@@ -1463,7 +1298,54 @@ export default function DecorationMode({
             {placedDecorations.length} decoration{placedDecorations.length !== 1 ? 's' : ''} placed
           </div>
         </div>
-        
+
+        {/* Floating Cancel Button - appears when placing items */}
+        {isPlacing && selectedItem && (
+          <button
+            onClick={() => {
+              setSelectedItem(null)
+              setIsPlacing(false)
+            }}
+            className={`absolute bg-red-500 text-white rounded-lg shadow-lg border-2 border-white hover:bg-red-600 active:scale-95 transition-all font-medium flex items-center gap-2 ${
+              isMobile ? 'bottom-2 left-1/2 -translate-x-1/2 px-4 py-2 text-sm' : 'top-4 right-4 px-4 py-2'
+            }`}
+            style={{ zIndex: 30 }}
+          >
+            <span className="text-lg">✕</span>
+            <span>{isMobile ? 'Cancel' : 'Cancel Placement'}</span>
+          </button>
+        )}
+
+        {/* Currently Placing Status Banner */}
+        {isPlacing && selectedItem && !isMobile && (
+          <div
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white rounded-lg shadow-lg border-2 border-white backdrop-blur-sm flex items-center gap-3 px-4 py-2"
+            style={{ zIndex: 30 }}
+          >
+            <DecorationIcon
+              type={selectedItem.type as "path" | "feature" | "plant" | "furniture" | "lighting" | "water" | "structure" | "sky" | "seasonal" | "house_custom" | "house_template" | "house_color"}
+              id={selectedItem.id}
+              size={24}
+              className="drop-shadow-sm"
+              color={selectedItem.color}
+              iconSvg={selectedItem.iconSvg}
+            />
+            <span className="font-medium text-sm">
+              Placing: <span className="font-bold">{selectedItem.name}</span>
+            </span>
+            <button
+              onClick={() => {
+                setSelectedItem(null)
+                setIsPlacing(false)
+              }}
+              className="ml-2 hover:bg-blue-600 rounded px-2 py-1 transition-colors flex items-center gap-1 text-sm border border-white border-opacity-50"
+            >
+              <span>✕</span>
+              <span>Stop</span>
+            </button>
+          </div>
+        )}
+
         {/* Mobile Quick Actions */}
         {isMobile && (
           <div className="absolute top-2 right-2 flex flex-col gap-2">
