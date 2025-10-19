@@ -188,7 +188,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               gridWidth: item.type === 'structure' ? 3 : item.type === 'water' ? 2 : item.type === 'furniture' ? 2 : 1,
               gridHeight: item.type === 'structure' ? 3 : item.type === 'water' ? 2 : item.type === 'feature' ? 2 : 1,
               isActive: true,
-              releaseType: item.isDefault ? 'DEFAULT' : 'PUBLIC', // Use DEFAULT for default items
+              releaseType: (item as any).isDefault ? 'DEFAULT' : 'PUBLIC', // Use DEFAULT for default items
               createdBy: user.id
             }
           });
