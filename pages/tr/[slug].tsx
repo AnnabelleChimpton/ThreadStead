@@ -127,6 +127,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
             lineage: [], // Not used for Spool
             directChildrenCount: stats.totalRings - 1, // Total rings minus The Spool itself
             totalDescendantsCount: stats.totalRings, // All rings for total communities
+            siblingsCount: 0, // The Spool has no siblings
             lineageDepth: 0,
             lineagePath: "Root"
           });
@@ -145,8 +146,8 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
   }, [ring]);
 
   return (
-    <Layout siteConfig={siteConfig}>
-      <div className="tr-spool-landing max-w-4xl mx-auto">
+    <Layout siteConfig={siteConfig} fullWidth={true}>
+      <div className="tr-spool-landing max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Section */}
         <div className="tr-spool-hero text-center py-12 mb-12">
           <div className="tr-spool-header mb-6">
@@ -422,6 +423,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'siblings' | 'family'>('current');
   const [sidebarTab, setSidebarTab] = useState<'stats' | 'lineage' | 'discovery'>('stats');
+  const [showSidebarModal, setShowSidebarModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [isPublicMemberInfo, setIsPublicMemberInfo] = useState(false);
@@ -440,6 +443,45 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   
   // Toast notifications
   const { toasts, showError, showSuccess, showWarning, hideToast } = useToast();
+
+  // Detect if viewport is mobile (< 1024px)
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    // Check on mount
+    checkIsMobile();
+
+    // Check on resize
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  // Lock body scroll when mobile sidebar modal is open
+  useEffect(() => {
+    if (showSidebarModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showSidebarModal]);
+
+  // Close mobile modal when window is resized to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024 && showSidebarModal) {
+        setShowSidebarModal(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [showSidebarModal]);
 
   // Fetch members using user-authenticated API
   useEffect(() => {
@@ -506,7 +548,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       try {
         setLineageLoading(true);
         const response = await fetch(`/api/threadrings/${ring.slug}/lineage`);
-        
+
         if (response.ok) {
           const data = await response.json();
           setLineageData(data);
@@ -739,7 +781,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           <meta name="description" content="The requested ThreadRing could not be found." />
           <meta name="robots" content="noindex, nofollow" />
         </Head>
-        <Layout siteConfig={siteConfig}>
+        <Layout siteConfig={siteConfig} fullWidth={true}>
           <div className="text-center py-8 text-red-600">
             {error || "ThreadRing not found"}
           </div>
@@ -794,15 +836,15 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         )}
       </Head>
 
-      <Layout siteConfig={siteConfig}>
+      <Layout siteConfig={siteConfig} fullWidth={true}>
       {/* Welcome Ring Guide - shows only on welcome ring */}
       {ring.slug === 'welcome' && (
         <WelcomeRingGuide ringSlug={ring.slug} viewer={currentUser} ring={ring} />
       )}
-      
-      <div className="tr-page-container grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <div className="tr-page-container grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 sm:px-6 lg:px-8">
         {/* Main content area - posts feed */}
-        <div className="tr-main-content lg:col-span-2">
+        <div className="tr-main-content col-span-1 lg:col-span-2">
           <div className="tr-header-card border border-black bg-white shadow-[3px_3px_0_#000]">
             <div className="p-6 border-b-2 border-gray-200">
               <div className="flex items-start justify-between gap-4 mb-4">
@@ -945,8 +987,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="tr-sidebar lg:col-span-1 space-y-4">
+        {/* Sidebar - Hidden on mobile, visible on desktop */}
+        <div className="tr-sidebar hidden lg:block lg:col-span-1 space-y-4">
           {/* Primary Actions - Always Visible */}
           <div className="tr-sidebar-section tr-primary-actions border border-black bg-white shadow-[2px_2px_0_#000] p-4">
             {isMember ? (
@@ -1262,7 +1304,221 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           </div>
         </div>
       </div>
-      
+
+      {/* Ring Info Toggle Button - Mobile Only */}
+      {isMobile && (
+        <button
+          onClick={() => setShowSidebarModal(!showSidebarModal)}
+          className={`fixed top-24 right-4 z-[9999] text-white px-3 py-2 rounded-lg shadow-lg border-2 border-black transition-all flex items-center gap-2 font-semibold ${
+            showSidebarModal
+              ? 'bg-red-600 hover:bg-red-700'
+              : 'bg-thread-pine hover:bg-thread-sage'
+          }`}
+          aria-label={showSidebarModal ? "Close ring information" : "Open ring information"}
+        >
+          <span className="text-lg">{showSidebarModal ? '✕' : 'ℹ️'}</span>
+          <span className="text-sm">{showSidebarModal ? 'Close' : 'Ring Info'}</span>
+        </button>
+      )}
+
+      {/* Full-Screen Sidebar Modal - Mobile Only */}
+      {isMobile && showSidebarModal && (
+        <div className="fixed inset-x-0 top-36 bottom-0 z-[50]">
+          {/* Modal Content */}
+          <div className="absolute inset-0 bg-white overflow-y-auto shadow-lg">
+            {/* Modal Header */}
+            <div className="sticky top-0 z-10 bg-gray-100 text-gray-900 px-4 py-3 border-b-2 border-gray-300">
+              <h2 className="text-lg font-bold">Ring Info</h2>
+            </div>
+
+            {/* Modal Body - Sidebar Content */}
+            <div className="p-4 space-y-4">
+              {/* Primary Actions */}
+              <div className="tr-sidebar-section tr-primary-actions border border-black bg-white shadow-[2px_2px_0_#000] p-4">
+                {isMember ? (
+                  <div className="space-y-3">
+                    {/* Member Status */}
+                    <div className="tr-member-status bg-green-50 px-3 py-2 border border-green-300 text-center">
+                      <span className="tr-role-indicator font-semibold text-green-800">
+                        {currentUserRole === 'CURATOR' ? '👑 Ring Host' : '✓ Member'}
+                      </span>
+                    </div>
+
+                    {/* Create Post Button */}
+                    <Link
+                      href={`/resident/${currentUser?.primaryHandle}/create?ring=${ring.slug}`}
+                      className="tr-create-post-button block w-full text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[1px_1px_0_#000] transition-all"
+                    >
+                      + New Post
+                    </Link>
+
+                    {/* Leave Button */}
+                    {currentUserRole !== 'CURATOR' && (
+                      <button
+                        onClick={handleLeave}
+                        disabled={joining}
+                        className="tr-leave-button w-full px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {joining ? 'Leaving...' : 'Leave Ring'}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Join Button */}
+                    <button
+                      onClick={handleJoin}
+                      disabled={joining}
+                      className="tr-join-button w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-bold text-lg border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {joining ? 'Joining...' : '+ Join Ring'}
+                    </button>
+
+                    {/* Badge Preview */}
+                    {ring.badge && ring.badge.isActive && (
+                      <div className="tr-badge-preview-section bg-gray-50 p-3 border border-gray-200 text-center">
+                        <div className="tr-badge-preview-label text-xs text-gray-600 mb-2">
+                          Badge Preview
+                        </div>
+                        <div className="tr-badge-preview-image-container flex justify-center">
+                          {ring.badge.imageUrl ? (
+                            <img
+                              src={ring.badge.imageUrl}
+                              alt={ring.badge.title || `${ring.name} Badge`}
+                              className="tr-badge-preview-image w-24 h-24 object-contain"
+                            />
+                          ) : (
+                            <div className="tr-badge-placeholder w-24 h-24 border-2 border-gray-300 bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
+                              No Badge Image
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-xs text-gray-600 text-center">
+                      Join to post and earn this ring&apos;s badge
+                    </div>
+                  </div>
+                )}
+
+                {/* Badge Management - Ring Hosts Only */}
+                {currentUserRole === 'CURATOR' && ring.badge && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => setShowBadgeOptions(!showBadgeOptions)}
+                      className="w-full text-sm text-gray-700 hover:text-black font-medium flex items-center justify-between"
+                    >
+                      <span>⚙️ Badge Options</span>
+                      <span>{showBadgeOptions ? '▼' : '▶'}</span>
+                    </button>
+
+                    {showBadgeOptions && (
+                      <div className="mt-2 space-y-2">
+                        <Link
+                          href={`/threadrings/${ring.slug}/badge/design`}
+                          className="block text-sm px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-300 text-center"
+                        >
+                          Edit Badge Design
+                        </Link>
+                        <Link
+                          href={`/threadrings/${ring.slug}/badge/manage`}
+                          className="block text-sm px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-300 text-center"
+                        >
+                          Manage Badges
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Tabbed Content */}
+              <div className="tr-sidebar-section border border-black bg-white shadow-[2px_2px_0_#000]">
+                {/* Tab Navigation */}
+                <div className="flex border-b border-gray-300">
+                  <button
+                    onClick={() => setSidebarTab('stats')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium border-r border-gray-300 transition-colors ${
+                      sidebarTab === 'stats'
+                        ? 'bg-yellow-100 text-black'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    📊 Stats
+                  </button>
+                  <button
+                    onClick={() => setSidebarTab('lineage')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium border-r border-gray-300 transition-colors ${
+                      sidebarTab === 'lineage'
+                        ? 'bg-yellow-100 text-black'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    🌳 Tree
+                  </button>
+                  <button
+                    onClick={() => setSidebarTab('discovery')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+                      sidebarTab === 'discovery'
+                        ? 'bg-yellow-100 text-black'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    🎲 Discover
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className={sidebarTab === 'discovery' ? '' : 'p-4'}>
+                  {sidebarTab === 'stats' && (
+                    <div className="-m-4">
+                      <ThreadRingStats threadRingSlug={ring.slug} className="border-none shadow-none" />
+                    </div>
+                  )}
+
+                  {sidebarTab === 'lineage' && (
+                    <div className="-m-4">
+                      <ThreadRingLineage
+                        threadRingSlug={ring.slug}
+                        ringName={ring.name}
+                        className="border-none shadow-none"
+                      />
+                    </div>
+                  )}
+
+                  {sidebarTab === 'discovery' && ring.memberCount > 1 && (
+                    <div className="-m-4 -mt-0">
+                      <RandomMemberDiscovery
+                        threadRingSlug={ring.slug}
+                        threadRingName={ring.name}
+                        enableLineageDiscovery={(lineageData.totalDescendantsCount || ring.totalDescendantsCount || 0) > 0 || (lineageData.lineageDepth || ring.lineageDepth || 0) > 0}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Info */}
+              <div className="border border-black bg-gray-50 shadow-[2px_2px_0_#000] p-3 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Created:</span>
+                  <span className="font-medium">{new Date(ring.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Visibility:</span>
+                  <span className="font-medium capitalize">{ring.visibility}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Join Type:</span>
+                  <span className="font-medium capitalize">{ring.joinType}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notifications */}
       {toasts.map(toast => (
         <Toast
@@ -1336,9 +1592,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
               ...transformedRing,
               curator: null, // Ring Hub doesn't provide curator details
               members: [], // Members will be fetched client-side with user authentication
-              parentId: null,
+              // parentId is preserved from transformedRing - don't override it!
               // Use Ring Hub stats for Spool, lineage data for other rings
-              directChildrenCount: slug === 'spool' 
+              directChildrenCount: slug === 'spool'
                 ? (ringHubStats ? ringHubStats.totalRings - 1 : 0) // Total rings minus The Spool itself for direct children
                 : (lineageData?.descendants?.length || 0),
               totalDescendantsCount: slug === 'spool'

@@ -21,6 +21,7 @@ export interface ThreadRing {
   themeCss?: string;
   createdAt: string;
   updatedAt: string;
+  parentId?: string; // Parent ring ID for genealogy/lineage
   // Badge
   badge?: {
     id: string;

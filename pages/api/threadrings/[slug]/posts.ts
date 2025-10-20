@@ -209,6 +209,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           case 'current': return 'ring';
           case 'parent': return 'parent';
           case 'children': return 'children';
+          case 'siblings': return 'siblings';
           case 'family': return 'family';
           default: return 'ring';
         }
@@ -217,7 +218,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const feedOptions = {
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
-        scope: mapScope(scope as string) as 'ring' | 'parent' | 'children' | 'family'
+        scope: mapScope(scope as string) as 'ring' | 'parent' | 'children' | 'siblings' | 'family'
       };
 
       if (viewer) {

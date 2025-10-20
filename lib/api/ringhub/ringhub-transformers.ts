@@ -136,6 +136,7 @@ export function transformRingDescriptorToThreadRing(
     themeCss: undefined, // Not supported in Ring Hub initially
     createdAt: descriptor.createdAt,
     updatedAt: descriptor.updatedAt || descriptor.createdAt,
+    parentId: descriptor.parentId || undefined, // Parent ring ID from Ring Hub genealogy
     badge
   }
 }

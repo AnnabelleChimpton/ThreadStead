@@ -459,7 +459,7 @@ export class RingHubClient {
   async getRingFeed(slug: string, options?: {
     limit?: number
     offset?: number
-    scope?: 'ring' | 'parent' | 'children' | 'family'
+    scope?: 'ring' | 'parent' | 'children' | 'siblings' | 'family'
   }): Promise<{ posts: PostRef[], total: number }> {
     const params = new URLSearchParams()
     if (options?.limit) params.append('limit', options.limit.toString())
