@@ -102,6 +102,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
     lineage: [],
     directChildrenCount: 0,
     totalDescendantsCount: 0,
+    siblingsCount: 0,
     lineageDepth: 0,
     lineagePath: ""
   });
@@ -419,7 +420,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const { trackCommentCreated } = useWelcomeRingTracking(ring?.slug);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
-  const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'family'>('current');
+  const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'siblings' | 'family'>('current');
   const [sidebarTab, setSidebarTab] = useState<'stats' | 'lineage' | 'discovery'>('stats');
   const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -430,6 +431,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     lineage: [],
     directChildrenCount: 0,
     totalDescendantsCount: 0,
+    siblingsCount: 0,
     lineageDepth: 0,
     lineagePath: ""
   });
@@ -868,12 +870,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           </div>
 
           {/* Feed Scope Selector */}
-          {(ring.parentId || (lineageData.directChildrenCount || ring.directChildrenCount || 0) > 0) && (
+          {(ring.parentId || (lineageData.directChildrenCount || ring.directChildrenCount || 0) > 0 || (lineageData.siblingsCount || 0) > 0) && (
             <div className="mt-6">
               <ThreadRingFeedScope
                 threadRingSlug={ring.slug}
                 hasParent={!!ring.parentId}
                 hasChildren={(lineageData.directChildrenCount || ring.directChildrenCount || 0) > 0}
+                hasSiblings={(lineageData.siblingsCount || 0) > 0}
                 currentScope={feedScope}
                 onScopeChange={(newScope) => setFeedScope(newScope)}
               />
@@ -886,6 +889,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 {feedScope === 'current' ? 'Recent Posts' :
                  feedScope === 'parent' ? 'Posts from Parent Ring' :
                  feedScope === 'children' ? 'Posts from Descendant Rings' :
+                 feedScope === 'siblings' ? 'Posts from Sibling Rings' :
                  feedScope === 'family' ? 'Family Feed' : 'Recent Posts'}
               </h2>
             </div>

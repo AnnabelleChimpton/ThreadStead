@@ -66,15 +66,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const ring = lineageData?.ring;
       const ancestors = lineageData?.ancestors || [];
       const descendants = lineageData?.descendants || [];
-      
+
       // Calculate parent (immediate ancestor) and children (immediate descendants)
       const parent = ancestors.length > 0 ? ancestors[ancestors.length - 1] : null;
       const parents = parent ? [parent] : [];
       const children = descendants; // Direct children are at the top level of descendants
-      
+
       const lineageDepth = ancestors.length;
       const lineagePath = ancestors.map(r => r.name).join(' → ') || (ring?.name || 'Root');
-      
+
       // Count all descendants recursively
       const countDescendants = (nodes: any[]): number => {
         let count = 0;
@@ -86,19 +86,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         return count;
       };
-      
+
       const directChildrenCount = descendants.length;
       const totalDescendantsCount = countDescendants(descendants);
+
+      // Fetch siblings if ring has a parent
+      let siblings: any[] = [];
+      let siblingsCount = 0;
+
+      if (parent && parent.slug) {
+        try {
+          // Fetch parent's lineage to get all its descendants (siblings of current ring)
+          let parentLineageData;
+
+          if (viewer) {
+            const authenticatedClient = await createAuthenticatedRingHubClient(viewer.id);
+            parentLineageData = await authenticatedClient.getRingLineage(parent.slug);
+          } else {
+            const publicClient = getRingHubClient();
+            if (publicClient) {
+              parentLineageData = await publicClient.getRingLineage(parent.slug);
+            }
+          }
+
+          if (parentLineageData?.descendants) {
+            // Siblings are parent's descendants excluding current ring
+            siblings = parentLineageData.descendants.filter((d: any) => d.slug !== slug);
+            siblingsCount = siblings.length;
+          }
+        } catch (error) {
+          console.error('Error fetching siblings from Ring Hub:', error);
+          // Continue without siblings data rather than failing
+        }
+      }
 
       return res.json({
         lineage: ancestors, // Full lineage path from root to current
         ring, // Current ring info
         parents,
         children,
+        siblings, // Sibling rings (other children of same parent)
         ancestors,
         descendants, // Full descendants tree
         directChildrenCount,
         totalDescendantsCount,
+        siblingsCount,
         lineageDepth,
         lineagePath,
         authenticated: !!viewer,

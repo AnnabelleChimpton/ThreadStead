@@ -9,8 +9,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { slug } = req.query;
-  const { 
-    scope = "current" // "current", "parent", "children", "family" (parent + current + children)
+  const {
+    scope = "current" // "current", "parent", "children", "siblings", "family" (parent + siblings + current + children)
   } = req.query;
 
   if (typeof slug !== "string") {
@@ -98,8 +98,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         targetRingIds = accessibleChildren;
         break;
 
+      case "siblings":
+        // Get sibling rings (other children of same parent, excluding current ring)
+        if (baseRing.parentId) {
+          const siblingRings = await db.threadRing.findMany({
+            where: {
+              parentId: baseRing.parentId,
+              id: { not: baseRing.id } // Exclude current ring
+            },
+            select: { id: true, visibility: true }
+          });
+
+          const accessibleSiblings = [];
+          for (const sibling of siblingRings) {
+            if (await canAccessRing(sibling, viewer)) {
+              accessibleSiblings.push(sibling.id);
+            }
+          }
+          targetRingIds = accessibleSiblings;
+        }
+        break;
+
       case "family":
-        // Include parent + current + children (direct family only)
+        // Include parent + siblings + current + children (full extended family)
         const familyIds = new Set<string>([baseRing.id]);
 
         // Add direct parent
@@ -111,6 +132,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           if (parentRing && await canAccessRing(parentRing, viewer)) {
             familyIds.add(baseRing.parentId);
+          }
+
+          // Add siblings (other children of same parent)
+          const siblingsForFamily = await db.threadRing.findMany({
+            where: {
+              parentId: baseRing.parentId,
+              id: { not: baseRing.id }
+            },
+            select: { id: true, visibility: true }
+          });
+
+          for (const sibling of siblingsForFamily) {
+            if (await canAccessRing(sibling, viewer)) {
+              familyIds.add(sibling.id);
+            }
           }
         }
 
@@ -130,7 +166,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
 
       default:
-        return res.status(400).json({ error: "Invalid scope. Use: current, parent, children, or family" });
+        return res.status(400).json({ error: "Invalid scope. Use: current, parent, children, siblings, or family" });
     }
 
     if (targetRingIds.length === 0) {

@@ -4,20 +4,22 @@ interface ThreadRingFeedScopeProps {
   threadRingSlug: string;
   hasParent: boolean;
   hasChildren: boolean;
-  onScopeChange: (scope: 'current' | 'parent' | 'children' | 'family') => void;
-  currentScope?: 'current' | 'parent' | 'children' | 'family';
+  hasSiblings: boolean;
+  onScopeChange: (scope: 'current' | 'parent' | 'children' | 'siblings' | 'family') => void;
+  currentScope?: 'current' | 'parent' | 'children' | 'siblings' | 'family';
 }
 
 export default function ThreadRingFeedScope({
   threadRingSlug,
   hasParent,
   hasChildren,
+  hasSiblings,
   onScopeChange,
   currentScope = 'current'
 }: ThreadRingFeedScopeProps) {
-  const [scope, setScope] = useState<'current' | 'parent' | 'children' | 'family'>(currentScope);
+  const [scope, setScope] = useState<'current' | 'parent' | 'children' | 'siblings' | 'family'>(currentScope);
 
-  const handleScopeChange = (newScope: 'current' | 'parent' | 'children' | 'family') => {
+  const handleScopeChange = (newScope: 'current' | 'parent' | 'children' | 'siblings' | 'family') => {
     setScope(newScope);
     onScopeChange(newScope);
   };
@@ -27,6 +29,7 @@ export default function ThreadRingFeedScope({
       case 'current': return 'This Ring';
       case 'parent': return 'Parent Ring';
       case 'children': return 'Descendant Rings';
+      case 'siblings': return 'Sibling Rings';
       case 'family': return 'Family Feed';
       default: return scopeValue;
     }
@@ -37,7 +40,8 @@ export default function ThreadRingFeedScope({
       case 'current': return 'Posts from members of this ThreadRing only';
       case 'parent': return 'Posts from the parent ThreadRing';
       case 'children': return 'Posts from all direct descendant ThreadRings';
-      case 'family': return 'Posts from parent, current, and descendant ThreadRings';
+      case 'siblings': return 'Posts from sibling ThreadRings (same parent)';
+      case 'family': return 'Posts from parent, siblings, current, and descendant ThreadRings';
       default: return '';
     }
   };
@@ -47,17 +51,19 @@ export default function ThreadRingFeedScope({
       case 'current': return '📍';
       case 'parent': return '⬆️';
       case 'children': return '⬇️';
+      case 'siblings': return '↔️';
       case 'family': return '👨‍👩‍👧‍👦';
       default: return '📍';
     }
   };
 
   // Available scope options based on ring relationships
-  const availableScopes: Array<'current' | 'parent' | 'children' | 'family'> = [
+  const availableScopes: Array<'current' | 'parent' | 'children' | 'siblings' | 'family'> = [
     'current',
     ...(hasParent ? ['parent'] as const : []),
     ...(hasChildren ? ['children'] as const : []),
-    ...(hasParent || hasChildren ? ['family'] as const : [])
+    ...(hasSiblings ? ['siblings'] as const : []),
+    ...(hasParent || hasChildren || hasSiblings ? ['family'] as const : [])
   ];
 
   if (availableScopes.length <= 1) {
