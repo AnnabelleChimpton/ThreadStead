@@ -26,7 +26,7 @@ export default function ThreadRingFeedScope({
     switch (scopeValue) {
       case 'current': return 'This Ring';
       case 'parent': return 'Parent Ring';
-      case 'children': return 'Child Rings';
+      case 'children': return 'Descendant Rings';
       case 'family': return 'Family Feed';
       default: return scopeValue;
     }
@@ -36,8 +36,8 @@ export default function ThreadRingFeedScope({
     switch (scopeValue) {
       case 'current': return 'Posts from members of this ThreadRing only';
       case 'parent': return 'Posts from the parent ThreadRing';
-      case 'children': return 'Posts from all direct child ThreadRings';
-      case 'family': return 'Posts from parent, current, and child ThreadRings';
+      case 'children': return 'Posts from all direct descendant ThreadRings';
+      case 'family': return 'Posts from parent, current, and descendant ThreadRings';
       default: return '';
     }
   };

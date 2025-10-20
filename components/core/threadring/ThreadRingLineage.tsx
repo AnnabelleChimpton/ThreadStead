@@ -145,7 +145,7 @@ export default function ThreadRingLineage({
           <div className="bg-gray-50 border border-gray-200 p-3 rounded">
             <div className="text-sm text-gray-700 space-y-1">
               <div><strong>Lineage Depth:</strong> {lineageData?.lineageDepth || 0} levels from root</div>
-              <div><strong>Direct Children:</strong> {lineageData?.directChildrenCount || 0}</div>
+              <div><strong>Direct Descendants:</strong> {lineageData?.directChildrenCount || 0}</div>
               <div><strong>Total Descendants:</strong> {lineageData?.totalDescendantsCount || 0}</div>
               {lineageData?.lineagePath && (
                 <div><strong>Path:</strong> {lineageData.lineagePath}</div>

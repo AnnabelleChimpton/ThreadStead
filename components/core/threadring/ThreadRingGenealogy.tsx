@@ -181,7 +181,7 @@ export default function ThreadRingGenealogy({
           ${d.data.description ? `<em>${d.data.description}</em><br/>` : ''}
           Members: ${d.data.memberCount}<br/>
           Posts: ${d.data.postCount}<br/>
-          Direct Children: ${d.data.directChildrenCount}<br/>
+          Direct Descendants: ${d.data.directChildrenCount}<br/>
           Total Descendants: ${d.data.totalDescendantsCount}<br/>
           ${d.data.curatorHandle ? `Ring Host: @${d.data.curatorHandle}` : ''}
         `)

@@ -367,7 +367,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
             <div>
               <strong>Genealogy Stats:</strong>
               <ul className="mt-1 space-y-1">
-                <li>• Direct Children: {lineageData.directChildrenCount || ring.directChildrenCount || 0}</li>
+                <li>• Direct Descendants: {lineageData.directChildrenCount || ring.directChildrenCount || 0}</li>
                 <li>• Total Descendants: {lineageData.totalDescendantsCount || ring.totalDescendantsCount || 0}</li>
                 <li>• Lineage Path: {lineageData.lineagePath || ring.lineagePath || 'Root'}</li>
               </ul>
@@ -885,7 +885,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               <h2 className="tr-posts-title text-xl font-bold">
                 {feedScope === 'current' ? 'Recent Posts' :
                  feedScope === 'parent' ? 'Posts from Parent Ring' :
-                 feedScope === 'children' ? 'Posts from Child Rings' :
+                 feedScope === 'children' ? 'Posts from Descendant Rings' :
                  feedScope === 'family' ? 'Family Feed' : 'Recent Posts'}
               </h2>
             </div>
