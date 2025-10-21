@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 interface ThreadRingInvite {
   id: string;
@@ -140,7 +141,12 @@ export default function ThreadRingInvites({
                   {invite.threadRing.name}
                 </Link>
                 <div className="text-xs text-gray-600 mt-1">
-                  Invited by {invite.inviter.displayName || `@${invite.inviter.handle}`}
+                  Invited by{" "}
+                  <UserMention
+                    username={invite.inviter.handle.split('@')[0]}
+                    displayName={invite.inviter.displayName || invite.inviter.handle.split('@')[0]}
+                    className="text-gray-900"
+                  />
                   {" • "}
                   {invite.threadRing.memberCount} members
                   {" • "}

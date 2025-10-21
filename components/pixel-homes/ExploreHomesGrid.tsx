@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 import HouseDetailsPopup from './HouseDetailsPopup'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
+import UserMention from '@/components/ui/navigation/UserMention'
 
 interface HomeExploreData {
   userId: string
@@ -332,9 +333,11 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
                       />
                     )}
                     <div>
-                      <div className="font-medium text-sm text-thread-pine">
-                        {home.displayName || home.username}
-                      </div>
+                      <UserMention
+                        username={home.username}
+                        displayName={home.displayName || home.username}
+                        className="font-medium text-sm text-thread-pine"
+                      />
                       {home.displayName && (
                         <div className="text-xs text-thread-sage">
                           @{home.username}
@@ -415,9 +418,11 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
                         className="w-6 h-6 rounded-full"
                       />
                     )}
-                    <div className="font-medium text-thread-pine">
-                      {home.displayName || home.username}
-                    </div>
+                    <UserMention
+                      username={home.username}
+                      displayName={home.displayName || home.username}
+                      className="font-medium text-thread-pine"
+                    />
                     {home.displayName && (
                       <div className="text-sm text-thread-sage">
                         @{home.username}

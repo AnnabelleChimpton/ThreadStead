@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { WidgetProps, WidgetConfig } from '../types/widget';
+import UserMention from '@/components/ui/navigation/UserMention';
 
 const trendingContentConfig: WidgetConfig = {
   id: 'trending-content',
@@ -164,12 +165,11 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
                   {post.authorUsername ? (
-                    <Link
-                      href={`/resident/${post.authorUsername}`}
-                      className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors truncate"
-                    >
-                      {post.authorDisplayName || post.authorUsername}
-                    </Link>
+                    <UserMention
+                      username={post.authorUsername}
+                      displayName={post.authorDisplayName || post.authorUsername}
+                      className="text-sm font-medium text-gray-900 transition-colors truncate"
+                    />
                   ) : (
                     <span className="text-sm font-medium text-gray-700 truncate">
                       {post.authorDisplayName || 'External User'}

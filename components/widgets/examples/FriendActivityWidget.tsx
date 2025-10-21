@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { WidgetProps, WidgetConfig } from '../types/widget';
+import UserMention from '@/components/ui/navigation/UserMention';
 
 const friendActivityConfig: WidgetConfig = {
   id: 'friend-activity',
@@ -147,12 +148,15 @@ function FriendActivityWidget({ data, isLoading, error, user }: WidgetProps & { 
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
-                    <Link
-                      href={`/resident/${extractUsername(post.authorUsername)}`}
-                      className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors truncate"
-                    >
-                      {post.authorDisplayName || extractUsername(post.authorUsername) || 'Anonymous'}
-                    </Link>
+                    {extractUsername(post.authorUsername) ? (
+                      <UserMention
+                        username={extractUsername(post.authorUsername)!}
+                        displayName={post.authorDisplayName || extractUsername(post.authorUsername)!}
+                        className="text-sm font-medium text-gray-900 transition-colors truncate"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-gray-900 truncate">Anonymous</span>
+                    )}
                     <span className="text-xs text-gray-500">
                       {formatTimeAgo(post.createdAt)}
                     </span>

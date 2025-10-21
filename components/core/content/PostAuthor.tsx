@@ -1,8 +1,8 @@
 // components/PostAuthor.tsx
 import React from 'react'
-import Link from 'next/link'
 import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay'
 import { UserWithRole } from '@/lib/utils/features/feature-flags'
+import UserMention from '@/components/ui/navigation/UserMention'
 
 interface PostAuthorProps {
   author?: { 
@@ -37,36 +37,41 @@ export default function PostAuthor({
   const displayName = author.profile?.displayName || author.primaryHandle?.split('@')[0] || 'User'
   const username = author.primaryHandle?.split('@')[0]
 
-  const content = (
-    <>
-      <div className="text-sm text-gray-600">
-        <span className="font-medium">{displayName}</span>
-        {intent && <span> is {intent}</span>}
-      </div>
-      {showBadges && author.id && (
-        <ImprovedBadgeDisplay 
-          userId={author.id} 
-          context="posts" 
-          layout={badgeLayout}
-        />
-      )}
-    </>
-  )
-
   if (username) {
     return (
-      <Link 
-        href={`/resident/${username}`}
-        className={`block hover:bg-gray-50 -m-1 p-1 rounded transition-colors ${className}`}
-      >
-        {content}
-      </Link>
+      <div className={`block -m-1 p-1 rounded ${className}`}>
+        <div className="text-sm text-gray-600">
+          <UserMention
+            username={username}
+            displayName={displayName}
+            className="font-medium"
+          />
+          {intent && <span> is {intent}</span>}
+        </div>
+        {showBadges && author.id && (
+          <ImprovedBadgeDisplay
+            userId={author.id}
+            context="posts"
+            layout={badgeLayout}
+          />
+        )}
+      </div>
     )
   }
 
   return (
     <div className={className}>
-      {content}
+      <div className="text-sm text-gray-600">
+        <span className="font-medium">{displayName}</span>
+        {intent && <span> is {intent}</span>}
+      </div>
+      {showBadges && author.id && (
+        <ImprovedBadgeDisplay
+          userId={author.id}
+          context="posts"
+          layout={badgeLayout}
+        />
+      )}
     </div>
   )
 }

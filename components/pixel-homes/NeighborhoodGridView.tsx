@@ -3,6 +3,7 @@ import Link from 'next/link'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 import HouseDetailsPopup from './HouseDetailsPopup'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
+import UserMention from '@/components/ui/navigation/UserMention'
 
 interface NeighborhoodMember {
   userId: string
@@ -143,15 +144,13 @@ export default function NeighborhoodGridView({ members, ringSlug }: Neighborhood
               </div>
               
               {/* User info */}
-              <div className="text-center">
+              <div className="text-center" onClick={(e) => e.stopPropagation()}>
                 <div className="font-medium text-thread-pine group-hover:text-thread-sage transition-colors">
-                  @{member.username}
+                  <UserMention
+                    username={member.username}
+                    displayName={member.displayName || undefined}
+                  />
                 </div>
-                {member.displayName && (
-                  <div className="text-xs text-thread-sage">
-                    {member.displayName}
-                  </div>
-                )}
               </div>
             </div>
           </button>

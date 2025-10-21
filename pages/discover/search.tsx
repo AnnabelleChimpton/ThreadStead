@@ -13,6 +13,7 @@ import EnhancedCommunityBrowser from '@/components/features/search/EnhancedCommu
 import { useAutoIndexer, IndexingNotification } from '@/components/features/search/AutoIndexer';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { contentMetadataGenerator } from '@/lib/utils/metadata/content-metadata';
+import UserMention from '@/components/ui/navigation/UserMention';
 
 interface DiscoverProps {
   siteConfig: SiteConfig;
@@ -841,21 +842,20 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                   if (!username) return null;
 
                   return (
-                    <Link
+                    <div
                       key={user.id}
-                      href={`/${username}`}
-                      className="block p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                      className="block p-3 bg-white border border-gray-200 rounded-lg"
                     >
                       <h3 className="font-medium text-gray-900 truncate">
-                        {displayName}
-                        {displayName !== username && (
-                          <span className="text-sm text-gray-500 ml-1">(@{username})</span>
-                        )}
+                        <UserMention
+                          username={username}
+                          displayName={displayName !== username ? displayName : undefined}
+                        />
                       </h3>
                       {user.bio && (
                         <p className="text-xs text-gray-600 mt-1 truncate">{user.bio}</p>
                       )}
-                    </Link>
+                    </div>
                   );
                 })}
               </div>

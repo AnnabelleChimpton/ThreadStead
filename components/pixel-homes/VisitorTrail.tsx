@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
+import UserQuickView from '@/components/ui/feedback/UserQuickView'
 
 interface Visitor {
   id: string
@@ -17,6 +17,7 @@ interface VisitorTrailProps {
 export default function VisitorTrail({ username, className = '' }: VisitorTrailProps) {
   const [visitors, setVisitors] = useState<Visitor[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedVisitorUsername, setSelectedVisitorUsername] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchVisitors = async () => {
@@ -69,10 +70,10 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
         {/* Visitor Avatars */}
         <div className="flex items-center space-x-2">
           {visitors.map((visitor, index) => (
-            <Link
+            <button
               key={visitor.id}
-              href={`/resident/${visitor.username}`}
-              className="group relative transform transition-all duration-300 hover:scale-125 hover:-translate-y-1"
+              onClick={() => setSelectedVisitorUsername(visitor.username)}
+              className="group relative transform transition-all duration-300 hover:scale-125 hover:-translate-y-1 cursor-pointer"
               style={{
                 // Stagger the avatars with slight z-index and position variations
                 zIndex: visitors.length - index,
@@ -105,7 +106,7 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-thread-charcoal"></div>
                 </div>
               </div>
-            </Link>
+            </button>
           ))}
         </div>
 
@@ -144,6 +145,15 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
           }
         }
       `}</style>
+
+      {/* User Quick View Modal */}
+      {selectedVisitorUsername && (
+        <UserQuickView
+          username={selectedVisitorUsername}
+          isOpen={!!selectedVisitorUsername}
+          onClose={() => setSelectedVisitorUsername(null)}
+        />
+      )}
     </div>
   )
 }

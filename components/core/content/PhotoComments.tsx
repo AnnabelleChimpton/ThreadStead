@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay';
 import { CommentMarkupWithEmojis } from '@/lib/comment-markup';
+import UserMention from '@/components/ui/navigation/UserMention';
 
 interface PhotoComment {
   id: string;
@@ -171,9 +172,11 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
           <div className="flex-1 min-w-0">
             {/* Author and timestamp */}
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium text-thread-pine text-sm">
-                {getDisplayName(comment.author)}
-              </span>
+              <UserMention
+                username={comment.author.primaryHandle?.split('@')[0] || ''}
+                displayName={getDisplayName(comment.author)}
+                className="font-medium text-thread-pine text-sm"
+              />
               <span className="text-thread-sage text-xs">
                 {formatDate(comment.createdAt)}
               </span>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 interface ThreadRingStatsProps {
   threadRingSlug: string;
@@ -139,7 +140,11 @@ export default function ThreadRingStats({
               {stats.topPosters.slice(0, 5).map((poster, index) => (
                 <div key={poster.username} className="flex justify-between text-xs">
                   <span>
-                    {index + 1}. {poster.displayName || `@${poster.username}`}
+                    {index + 1}.{" "}
+                    <UserMention
+                      username={poster.username}
+                      displayName={poster.displayName || undefined}
+                    />
                   </span>
                   <span className="font-medium">{poster.postCount} posts</span>
                 </div>
@@ -176,7 +181,10 @@ export default function ThreadRingStats({
               <div>
                 <div className="font-medium text-gray-700">Owner</div>
                 <div className="pl-2">
-                  {stats.membershipInfo.owner.displayName}
+                  <UserMention
+                    username={stats.membershipInfo.owner.actorName || stats.membershipInfo.owner.displayName}
+                    displayName={stats.membershipInfo.owner.displayName}
+                  />
                   <span className="text-gray-500 ml-1">
                     (joined {new Date(stats.membershipInfo.owner.joinedAt).toLocaleDateString()})
                   </span>
@@ -189,7 +197,10 @@ export default function ThreadRingStats({
                   <div className="pl-2 space-y-1">
                     {stats.membershipInfo.moderators.map((mod, index) => (
                       <div key={index}>
-                        {mod.displayName}
+                        <UserMention
+                          username={mod.actorName || mod.displayName}
+                          displayName={mod.displayName}
+                        />
                         <span className="text-gray-500 ml-1">
                           (joined {new Date(mod.joinedAt).toLocaleDateString()})
                         </span>

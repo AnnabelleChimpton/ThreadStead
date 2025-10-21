@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 export type DirectoryUser = {
   id: string;
@@ -57,13 +58,12 @@ export default function UserCard({ user }: UserCardProps) {
 
         {/* Name and Username */}
         <div className="flex-1 min-w-0">
-          {profileLink ? (
-            <Link 
-              href={profileLink}
-              className="thread-headline text-lg font-bold text-thread-pine hover:text-thread-sunset transition-colors block truncate"
-            >
-              {displayName}
-            </Link>
+          {user.username ? (
+            <UserMention
+              username={user.username}
+              displayName={displayName}
+              className="thread-headline text-lg font-bold text-thread-pine transition-colors block truncate"
+            />
           ) : (
             <h3 className="thread-headline text-lg font-bold text-thread-pine truncate">
               {displayName}

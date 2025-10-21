@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 import ImprovedBadgeDisplay from "./ImprovedBadgeDisplay";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 type Entry = {
   id: string;
@@ -228,14 +229,19 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="thread-label mb-2">
-                      {new Date(e.createdAt).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
+                      {new Date(e.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
                         year: 'numeric',
                         hour: 'numeric',
                         minute: '2-digit'
                       })}
-                      {e.authorUsername ? ` · by ${e.authorUsername}` : " · anonymous visitor"}
+                      {e.authorUsername ? (
+                        <>
+                          {" · by "}
+                          <UserMention username={e.authorUsername} />
+                        </>
+                      ) : " · anonymous visitor"}
                     </div>
                     
                     {/* User badges for authenticated users */}

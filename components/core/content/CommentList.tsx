@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import NewCommentForm from "../../ui/forms/NewCommentForm";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import ReportButton from "../../ui/feedback/ReportButton";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 export type CommentWire = {
   id: string;
@@ -211,19 +211,19 @@ export default function CommentList({
                 ) : null}
                 <div className="flex items-center flex-wrap">
                   {comment.author?.handle ? (
-                    <Link 
-                      href={`/resident/${comment.author.handle.split('@')[0]}`}
-                      className="comment-author-name font-semibold text-sm md:text-base hover:underline user-link"
+                    <UserMention
+                      username={comment.author.handle.split('@')[0]}
+                      className="comment-author-name font-semibold text-sm md:text-base user-link"
                     >
                       {comment.author.handle}
-                    </Link>
+                    </UserMention>
                   ) : (
                     <span className="comment-author-name font-semibold text-sm md:text-base">anon</span>
                   )}
                   {comment.author?.id && (
-                    <ImprovedBadgeDisplay 
-                      userId={comment.author.id} 
-                      context="comments" 
+                    <ImprovedBadgeDisplay
+                      userId={comment.author.id}
+                      context="comments"
                       layout="inline"
                     />
                   )}
@@ -241,19 +241,19 @@ export default function CommentList({
               ) : null}
               <div className="flex items-center">
                 {comment.author?.handle ? (
-                  <Link 
-                    href={`/resident/${comment.author.handle.split('@')[0]}`}
-                    className="font-semibold hover:underline user-link"
+                  <UserMention
+                    username={comment.author.handle.split('@')[0]}
+                    className="font-semibold user-link"
                   >
                     {comment.author.handle}
-                  </Link>
+                  </UserMention>
                 ) : (
                   <span className="font-semibold">anon</span>
                 )}
                 {comment.author?.id && (
-                  <ImprovedBadgeDisplay 
-                    userId={comment.author.id} 
-                    context="comments" 
+                  <ImprovedBadgeDisplay
+                    userId={comment.author.id}
+                    context="comments"
                     layout="tooltip"
                   />
                 )}

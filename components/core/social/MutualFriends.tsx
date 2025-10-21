@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 type MFItem = { userId: string; handle: string; avatarUrl: string };
 
@@ -53,10 +54,13 @@ export default function MutualFriends({ username }: { username: string }) {
       {expanded && (
         <div className="mt-2 grid grid-cols-3 sm:grid-cols-6 gap-2 p-2 bg-white border border-black shadow-[2px_2px_0_#000]">
           {sample.map(m => (
-            <a key={m.userId} href={`/${m.handle}`} className="flex flex-col items-center gap-1 no-underline hover:underline">
+            <div key={m.userId} className="flex flex-col items-center gap-1">
               <Image src={m.avatarUrl} alt={m.handle} width={40} height={40} className="w-10 h-10 object-cover border border-black" />
-              <span className="text-xs">{m.handle}</span>
-            </a>
+              <UserMention
+                username={m.handle}
+                className="text-xs"
+              />
+            </div>
           ))}
         </div>
       )}

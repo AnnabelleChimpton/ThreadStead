@@ -11,6 +11,7 @@ import PostActionsDropdown from "./PostActionsDropdown";
 import ThreadRingBadge from "../threadring/ThreadRingBadge";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import { useMe } from "@/hooks/useMe";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 
@@ -233,10 +234,12 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
         )}
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            {authorLink ? (
-              <Link href={authorLink} className="font-medium text-thread-pine hover:text-thread-sunset transition-colors">
-                {authorName}
-              </Link>
+            {post.authorUsername ? (
+              <UserMention
+                username={post.authorUsername}
+                displayName={authorName}
+                className="font-medium text-thread-pine transition-colors"
+              />
             ) : (
               <span className="font-medium text-thread-pine">{authorName}</span>
             )}

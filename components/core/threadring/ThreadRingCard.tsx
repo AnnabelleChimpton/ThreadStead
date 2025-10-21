@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import ThreadRing88x31Badge from "./ThreadRing88x31Badge";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 interface ThreadRingCardProps {
   threadRing: {
@@ -98,9 +99,11 @@ export default function ThreadRingCard({
           {threadRing.curator && (
             <div className="text-sm text-gray-600 mt-1">
               hosted by{" "}
-              <span className="font-medium">
-                {threadRing.curator.displayName || `@${threadRing.curator.handle}`}
-              </span>
+              <UserMention
+                username={threadRing.curator.handle.split('@')[0]}
+                displayName={threadRing.curator.displayName || threadRing.curator.handle.split('@')[0]}
+                className="font-medium text-gray-900"
+              />
             </div>
           )}
         </div>

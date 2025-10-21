@@ -8,6 +8,7 @@ import { getSessionUser } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 interface Member {
   id: string;
@@ -187,11 +188,12 @@ export default function ThreadRingMembersPage({
                     )}
                     <div>
                       <div className="font-medium">
-                        {getMemberDisplayName(member)}
+                        <UserMention
+                          username={getMemberHandle(member)}
+                          displayName={member.user.profile?.displayName || undefined}
+                        />
                       </div>
                       <div className="text-sm text-gray-600">
-                        @{getMemberHandle(member)}
-                        {" • "}
                         Joined {new Date(member.joinedAt).toLocaleDateString()}
                       </div>
                     </div>

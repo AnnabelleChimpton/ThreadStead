@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { WidgetProps, WidgetConfig } from '../types/widget';
+import UserMention from '@/components/ui/navigation/UserMention';
 
 const newNeighborsConfig: WidgetConfig = {
   id: 'new-neighbors',
@@ -106,12 +107,11 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
               {user.username && (
-                <Link
-                  href={`/resident/${user.username}`}
-                  className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  {user.username}
-                </Link>
+                <UserMention
+                  username={user.username}
+                  displayName={user.displayName || user.username}
+                  className="text-xs text-blue-600 transition-colors"
+                />
               )}
             </div>
 

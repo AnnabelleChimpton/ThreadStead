@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import HouseSVG, { HouseTemplate, ColorPalette } from './HouseSVG'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
+import UserMention from '@/components/ui/navigation/UserMention'
 
 interface HomeMember {
   userId: string
@@ -145,9 +146,11 @@ export default function NeighborhoodGrid({ members, ringSlug }: NeighborhoodGrid
                     />
                   )}
                   <div>
-                    <div className="font-medium text-sm text-thread-pine">
-                      {member.displayName || member.username}
-                    </div>
+                    <UserMention
+                      username={member.username}
+                      displayName={member.displayName || member.username}
+                      className="font-medium text-sm text-thread-pine"
+                    />
                     {member.displayName && (
                       <div className="text-xs text-thread-sage">
                         @{member.username}

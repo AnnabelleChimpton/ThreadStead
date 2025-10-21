@@ -1,7 +1,7 @@
 import React from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { SelectedFriend } from "./FriendManager";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 interface FriendDisplayProps {
   friends: SelectedFriend[];
@@ -22,12 +22,11 @@ export default function FriendDisplay({ friends }: FriendDisplayProps) {
       <h4 className="section-heading font-bold mb-3">Friends</h4>
       <div className="grid grid-cols-2 gap-3">
         {friends.map((friend) => (
-          <Link
+          <div
             key={friend.id}
-            href={`/${friend.handle}`}
-            className="friend-card flex items-center gap-2 p-2 border border-gray-300 bg-gray-50 hover:bg-yellow-100 shadow-[1px_1px_0_#000] transition-colors"
+            className="friend-card flex items-center gap-2 p-2 border border-gray-300 bg-gray-50 shadow-[1px_1px_0_#000]"
           >
-            <Image 
+            <Image
               src={friend.avatarUrl}
               alt={friend.displayName}
               width={32}
@@ -35,14 +34,16 @@ export default function FriendDisplay({ friends }: FriendDisplayProps) {
               className="w-8 h-8 border border-black object-cover flex-shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <div className="font-semibold text-sm truncate">
-                {friend.displayName}
-              </div>
+              <UserMention
+                username={friend.handle}
+                displayName={friend.displayName}
+                className="font-semibold text-sm truncate block"
+              />
               <div className="text-xs text-gray-600 truncate">
                 @{friend.handle}
               </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

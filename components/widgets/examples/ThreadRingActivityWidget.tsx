@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { WidgetProps, WidgetConfig } from '../types/widget';
+import UserMention from '@/components/ui/navigation/UserMention';
 
 const threadRingActivityConfig: WidgetConfig = {
   id: 'threadring-activity',
@@ -160,9 +161,15 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2 mb-1">
-                <span className="text-sm font-medium text-gray-900 truncate">
-                  {post.authorDisplayName || post.authorUsername || 'Anonymous'}
-                </span>
+                {post.authorUsername ? (
+                  <UserMention
+                    username={post.authorUsername}
+                    displayName={post.authorDisplayName || post.authorUsername}
+                    className="text-sm font-medium text-gray-900 truncate"
+                  />
+                ) : (
+                  <span className="text-sm font-medium text-gray-900 truncate">Anonymous</span>
+                )}
                 <span className="text-xs text-gray-500">
                   {formatTimeAgo(post.createdAt)}
                 </span>

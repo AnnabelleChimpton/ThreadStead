@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay'
+import UserMention from '@/components/ui/navigation/UserMention'
 
 interface PromptResponse {
   id: string
@@ -143,12 +144,11 @@ export default function ThreadRingPromptResponses({
             {/* Post Content */}
             <div className="flex-1">
               <div className="flex items-baseline gap-2 mb-1">
-                <Link 
-                  href={`/resident/${response.post.author.username}`}
-                  className="font-semibold text-gray-900 hover:underline"
-                >
-                  {response.post.author.displayName || response.post.author.username}
-                </Link>
+                <UserMention
+                  username={response.post.author.username}
+                  displayName={response.post.author.displayName || response.post.author.username}
+                  className="font-semibold text-gray-900"
+                />
                 <span className="text-sm text-gray-500">
                   {formatDistanceToNow(new Date(response.post.createdAt))} ago
                 </span>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
+import UserMention from "@/components/ui/navigation/UserMention";
 
 export type NotificationData = {
   id: string;
@@ -123,12 +124,13 @@ export default function NotificationList({
   const getNotificationMessage = (notification: NotificationData): React.ReactNode => {
     const actorName = notification.actor.displayName || notification.actor.handle || "Someone";
     const username = getUsername(notification.actor.handle);
-    const actorLink = username ? `/resident/${username}` : null;
 
-    const ActorComponent = actorLink ? (
-      <Link href={actorLink} className="font-semibold text-thread-pine hover:text-thread-sunset">
-        {actorName}
-      </Link>
+    const ActorComponent = username ? (
+      <UserMention
+        username={username}
+        displayName={actorName}
+        className="font-semibold text-thread-pine"
+      />
     ) : (
       <span className="font-semibold text-thread-pine">{actorName}</span>
     );

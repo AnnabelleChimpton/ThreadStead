@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
+import UserMention from '@/components/ui/navigation/UserMention'
 
 interface HomeDecoration {
   id: string
@@ -202,7 +203,11 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
             {/* User Info */}
             <div className="flex-1 min-w-0">
               <h2 className="text-2xl font-headline font-bold text-thread-paper mb-1">
-                {displayName}
+                <UserMention
+                  username={member.username}
+                  displayName={displayName}
+                  className="text-thread-paper"
+                />
               </h2>
               <p className="text-thread-cream opacity-90 text-lg">
                 @{member.username}
