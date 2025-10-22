@@ -44,6 +44,7 @@ interface UserSettingsProps {
     profile?: {
       displayName?: string | null;
       bio?: string | null;
+      visibility?: 'public' | 'private' | 'friends' | 'followers' | null;
       avatarUrl?: string | null;
       customCSS?: string | null;
       templateEnabled?: boolean | null;
@@ -64,6 +65,9 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
   // Profile state
   const [displayName, setDisplayName] = useState(initialUser.profile?.displayName || "");
   const [bio, setBio] = useState(initialUser.profile?.bio || "");
+  const [visibility, setVisibility] = useState<'public' | 'private' | 'friends' | 'followers'>(
+    (initialUser.profile?.visibility as 'public' | 'private' | 'friends' | 'followers') || 'public'
+  );
   const [avatarUrl, setAvatarUrl] = useState(initialUser.profile?.avatarUrl || "");
   const [websites, setWebsites] = useState<Website[]>(
     initialUser.profile?.blogroll?.map((item: any, index: number) => ({
@@ -179,12 +183,13 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
       const response = await fetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          displayName, 
-          bio, 
-          blogroll, 
+        body: JSON.stringify({
+          displayName,
+          bio,
+          visibility,
+          blogroll,
           featuredFriends: featuredFriendsData,
-          cap: token 
+          cap: token
         }),
       });
 
@@ -561,7 +566,86 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
                 placeholder="Tell people about yourself..."
               />
             </div>
-            
+
+            <div>
+              <label className="block mb-2">
+                <span className="font-bold text-black">Profile Visibility</span>
+              </label>
+              <p className="text-sm text-gray-600 mb-3">
+                Control who can see your profile and how your information appears in federated ThreadRings.
+              </p>
+              <div className="space-y-2">
+                <label className="flex items-center p-3 border-2 border-black cursor-pointer hover:bg-yellow-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    value="public"
+                    checked={visibility === 'public'}
+                    onChange={(e) => setVisibility(e.target.value as 'public')}
+                    className="mr-3"
+                  />
+                  <div>
+                    <div className="font-bold">🌐 Public</div>
+                    <div className="text-sm text-gray-600">
+                      Anyone can see your profile. Your name and avatar will be shared with federated instances.
+                    </div>
+                  </div>
+                </label>
+                <label className="flex items-center p-3 border-2 border-black cursor-pointer hover:bg-yellow-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    value="followers"
+                    checked={visibility === 'followers'}
+                    onChange={(e) => setVisibility(e.target.value as 'followers')}
+                    className="mr-3"
+                  />
+                  <div>
+                    <div className="font-bold">👥 Followers Only</div>
+                    <div className="text-sm text-gray-600">
+                      Only people who follow you can see your profile. Limited federated sharing.
+                    </div>
+                  </div>
+                </label>
+                <label className="flex items-center p-3 border-2 border-black cursor-pointer hover:bg-yellow-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    value="friends"
+                    checked={visibility === 'friends'}
+                    onChange={(e) => setVisibility(e.target.value as 'friends')}
+                    className="mr-3"
+                  />
+                  <div>
+                    <div className="font-bold">🤝 Friends Only</div>
+                    <div className="text-sm text-gray-600">
+                      Only mutual friends can see your profile. Limited federated sharing.
+                    </div>
+                  </div>
+                </label>
+                <label className="flex items-center p-3 border-2 border-black cursor-pointer hover:bg-yellow-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    value="private"
+                    checked={visibility === 'private'}
+                    onChange={(e) => setVisibility(e.target.value as 'private')}
+                    className="mr-3"
+                  />
+                  <div>
+                    <div className="font-bold">🔒 Private</div>
+                    <div className="text-sm text-gray-600">
+                      Only you can see your profile. Minimal federated sharing (profile link only).
+                    </div>
+                  </div>
+                </label>
+              </div>
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 text-sm text-gray-700">
+                <strong>Federated ThreadRings:</strong> Your profile link is always shared when you join federated rings.
+                If set to Public, your name and avatar will also be shared. Other visibility settings share only the link.
+              </div>
+            </div>
+
             <div className="border-t border-black pt-6">
               <ProfilePhotoUpload 
                 currentAvatarUrl={avatarUrl}
@@ -1474,6 +1558,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
           profile: userData.profile ? {
             displayName: userData.profile.displayName || null,
             bio: userData.profile.bio || null,
+            visibility: (userData.profile.visibility as 'public' | 'private' | 'friends' | 'followers') || 'public',
             avatarUrl: userData.profile.avatarUrl || null,
             customCSS: userData.profile.customCSS || null,
             templateEnabled: userData.profile.templateEnabled ?? null,

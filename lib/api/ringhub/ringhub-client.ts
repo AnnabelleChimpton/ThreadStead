@@ -358,6 +358,25 @@ export class RingHubClient {
   }
 
   /**
+   * Notify RingHub that this actor's profile has been updated
+   *
+   * RingHub will re-resolve the DID document to get updated profile data.
+   * This enables real-time profile synchronization across federated instances.
+   *
+   * NOTE: This endpoint must be implemented by RingHub team.
+   * Expected endpoint: POST /trp/actors/{did}/profile-updated
+   *
+   * @param actorDid - The DID of the actor whose profile changed
+   */
+  async notifyProfileUpdate(actorDid: string): Promise<void> {
+    const encodedDid = encodeURIComponent(actorDid)
+    await this.post(`/trp/actors/${encodedDid}/profile-updated`, {
+      actorDid,
+      updatedAt: new Date().toISOString()
+    })
+  }
+
+  /**
    * Get ring members
    */
   async getRingMembers(slug: string): Promise<{

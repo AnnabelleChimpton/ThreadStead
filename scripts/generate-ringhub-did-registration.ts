@@ -40,7 +40,7 @@ async function generateRegistrationSQL() {
       }
 
       // Generate DID document to get public key
-      const didDocument = generateUserDIDDocument(mapping)
+      const didDocument = await generateUserDIDDocument(mapping)
       const publicKeyBase64 = didDocument.verificationMethod[0].publicKeyBase64
       
       // Create SQL statement to register this DID with Ring Hub

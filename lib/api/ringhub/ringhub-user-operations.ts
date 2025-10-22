@@ -121,9 +121,20 @@ export class AuthenticatedRingHubClient {
   async leaveRing(slug: string, reason?: string): Promise<void> {
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
-    
+
     console.log(`User ${userDID} leaving ring ${slug}`)
     return await userClient.leaveRing(slug)
+  }
+
+  /**
+   * Notify RingHub that this user's profile has been updated
+   *
+   * RingHub will re-resolve the DID document to get updated profile data.
+   * This enables real-time profile synchronization across federated instances.
+   */
+  async notifyProfileUpdate(actorDid: string): Promise<void> {
+    const userClient = await this.getUserClient()
+    return await userClient.notifyProfileUpdate(actorDid)
   }
 
   /**

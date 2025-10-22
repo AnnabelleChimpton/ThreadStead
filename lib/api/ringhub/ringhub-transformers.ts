@@ -220,25 +220,37 @@ export async function transformRingMemberWithUserResolution(
   } catch (error) {
     console.warn('Failed to resolve DID to ThreadStead user:', error)
   }
-  
+
+  // DEBUG: Log raw RingHub member data
+  console.log(`[RingHub Member Transform] DID: ${member.actorDid}`)
+  console.log(`  - actorName: ${member.actorName ? `"${member.actorName}"` : 'null'}`)
+  console.log(`  - role: ${member.role}`)
+  console.log(`  - status: ${member.status}`)
+  console.log(`  - hasLocalUser: ${!!threadSteadUser}`)
+
   // Enhanced display name logic with better fallbacks
   let displayName = 'Ring Hub User'
-  
+
   if (threadSteadUser?.profile?.displayName) {
     displayName = threadSteadUser.profile.displayName
+    console.log(`  - [Display Name] Using local profile: "${displayName}"`)
   } else if (threadSteadUser?.handles?.[0]?.handle) {
     displayName = threadSteadUser.handles[0].handle
+    console.log(`  - [Display Name] Using local handle: "${displayName}"`)
   } else if (member.actorName) {
     displayName = member.actorName
+    console.log(`  - [Display Name] Using RingHub actorName: "${displayName}"`)
   } else {
     // Handle placeholder users and unknown users more gracefully
     const didParts = member.actorDid.split(':')
     const lastPart = didParts.pop() || 'unknown'
-    
+
     if (resolvedUserId && resolvedUserId.startsWith('unknown-user-')) {
       displayName = `External User (${lastPart})`
+      console.log(`  - [Display Name] Fallback to DID (external): "${displayName}"`)
     } else {
       displayName = `Ring Hub User (${lastPart})`
+      console.log(`  - [Display Name] Fallback to DID (ringhub): "${displayName}"`)
     }
   }
   

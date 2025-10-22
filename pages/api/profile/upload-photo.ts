@@ -7,6 +7,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import multer from "multer";
 import { promisify } from "util";
+import { notifyRingHubIfMember } from "@/lib/api/ringhub/ringhub-profile-sync";
 
 
 
@@ -215,19 +216,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Update user profile with new avatar URLs (all sizes)
     await db.profile.upsert({
       where: { userId: me.id },
-      update: { 
+      update: {
         avatarUrl: urls.mediumUrl, // Keep medium as primary
         avatarThumbnailUrl: urls.thumbnailUrl,
         avatarMediumUrl: urls.mediumUrl,
         avatarFullUrl: urls.fullUrl,
       },
-      create: { 
-        userId: me.id, 
+      create: {
+        userId: me.id,
         avatarUrl: urls.mediumUrl,
         avatarThumbnailUrl: urls.thumbnailUrl,
         avatarMediumUrl: urls.mediumUrl,
         avatarFullUrl: urls.fullUrl,
       },
+    });
+
+    // Notify RingHub of avatar update if user is in any federated rings
+    // (Fire-and-forget - don't wait for response or block on errors)
+    notifyRingHubIfMember(me.id, db).catch(err => {
+      console.error('Failed to notify RingHub of avatar update:', err);
     });
 
     return res.status(200).json({

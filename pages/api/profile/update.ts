@@ -4,6 +4,7 @@ import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { cleanCss } from "@/lib/utils/sanitization/css";
+import { notifyRingHubIfMember } from "@/lib/api/ringhub/ringhub-profile-sync";
 
 
 
@@ -12,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const me = await getSessionUser(req);
   if (!me) return res.status(401).json({ error: "not logged in" });
 
-  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, includeSiteCSS, hideNavigation, cap } = (req.body || {}) as {
+  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, includeSiteCSS, hideNavigation, visibility, cap } = (req.body || {}) as {
     displayName?: string;
     bio?: string;
     customCSS?: string;
@@ -21,6 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     templateMode?: 'default' | 'enhanced' | 'advanced';
     includeSiteCSS?: boolean;
     hideNavigation?: boolean;
+    visibility?: 'public' | 'private' | 'friends' | 'followers';
     cap?: string;
   };
 
@@ -28,6 +30,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const resource = `user:${me.id}/profile`;
   const ok = await requireAction("write:profile", (resStr) => resStr === resource)(cap).catch(() => null);
   if (!ok) return res.status(403).json({ error: "invalid capability" });
+
+  // Get current profile to check for visibility changes
+  const currentProfile = await db.profile.findUnique({
+    where: { userId: me.id },
+    select: { visibility: true }
+  });
 
   // Basic trims & constraints
   const data: Record<string, unknown> = {};
@@ -39,6 +47,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   if (typeof includeSiteCSS === "boolean") data.includeSiteCSS = includeSiteCSS;
   if (typeof hideNavigation === "boolean") data.hideNavigation = hideNavigation;
+
+  // Handle visibility changes
+  let visibilityChanged = false;
+  const oldVisibility = currentProfile?.visibility;
+  if (typeof visibility === "string" && ['public', 'private', 'friends', 'followers'].includes(visibility)) {
+    data.visibility = visibility;
+    // Track if visibility is changing to/from public (affects federated profile data)
+    visibilityChanged = oldVisibility !== visibility && (oldVisibility === 'public' || visibility === 'public');
+  }
   
   // Handle blogroll/websites
   if (Array.isArray(blogroll)) {
@@ -90,6 +107,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     update: data,
     create: { userId: me.id, ...data },
   });
+
+  // Notify RingHub of profile update if user is in any federated rings
+  // (Fire-and-forget - don't wait for response or block on errors)
+  // Trigger notification if:
+  // - Display name changed
+  // - Bio changed
+  // - Visibility changed to/from public (affects what data is in DID document)
+  if (data.displayName || data.bio || visibilityChanged) {
+    notifyRingHubIfMember(me.id, db).catch(err => {
+      console.error('Failed to notify RingHub of profile update:', err);
+    });
+  }
 
   return res.status(200).json({ ok: true });
 }

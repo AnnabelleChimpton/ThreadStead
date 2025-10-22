@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-
+import { getSessionUser } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/config/site/constants";
 
 
@@ -24,6 +24,62 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!handle) return res.status(404).json({ error: "not found" });
 
   const u = handle.user;
+
+  // Check profile visibility and enforce access control
+  const visibility = u.profile?.visibility || 'public';
+  const profileOwnerId = u.id;
+
+  // Get current viewer (if logged in)
+  const viewer = await getSessionUser(req);
+  const viewerId = viewer?.id;
+
+  // Public profiles are accessible to everyone
+  if (visibility !== 'public') {
+    // If not logged in and profile is not public, deny access
+    if (!viewerId) {
+      return res.status(404).json({ error: "not found" });
+    }
+
+    // Profile owner can always view their own profile
+    if (viewerId !== profileOwnerId) {
+      // Check relationship for non-public profiles
+      if (visibility === 'private') {
+        // Private profiles are only visible to the owner
+        return res.status(404).json({ error: "not found" });
+      }
+
+      // Check follow relationships for 'followers' and 'friends' visibility
+      const [viewerFollowsOwner, ownerFollowsViewer] = await Promise.all([
+        db.follow.findUnique({
+          where: {
+            followerId_followeeId: {
+              followerId: viewerId,
+              followeeId: profileOwnerId
+            }
+          }
+        }),
+        db.follow.findUnique({
+          where: {
+            followerId_followeeId: {
+              followerId: profileOwnerId,
+              followeeId: viewerId
+            }
+          }
+        })
+      ]);
+
+      const isFollower = viewerFollowsOwner?.status === 'accepted';
+      const isFriend = isFollower && ownerFollowsViewer?.status === 'accepted';
+
+      if (visibility === 'followers' && !isFollower) {
+        return res.status(404).json({ error: "not found" });
+      }
+
+      if (visibility === 'friends' && !isFriend) {
+        return res.status(404).json({ error: "not found" });
+      }
+    }
+  }
   
   // Get profile MIDI if set
   let profileMidi = null;

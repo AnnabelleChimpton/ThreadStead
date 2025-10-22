@@ -17,6 +17,8 @@ import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
 import Toast from "../../components/ui/feedback/Toast";
+import UserQuickView from "../../components/ui/feedback/UserQuickView";
+import ExternalUserPopup from "../../components/ui/feedback/ExternalUserPopup";
 import { useToast } from "../../hooks/useToast";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import WelcomeRingGuide from "../../components/features/onboarding/WelcomeRingGuide";
@@ -428,6 +430,15 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [members, setMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [isPublicMemberInfo, setIsPublicMemberInfo] = useState(false);
+  const [selectedMemberUsername, setSelectedMemberUsername] = useState<string | null>(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  const [externalUserData, setExternalUserData] = useState<{
+    displayName: string;
+    actorDid: string;
+    role: string;
+    joinedAt: string;
+  } | null>(null);
+  const [isExternalPopupOpen, setIsExternalPopupOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [lineageData, setLineageData] = useState({
@@ -1179,12 +1190,33 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     const memberHandle = member.user?.handles?.find((h: any) => h.host === "local")?.handle ||
                                        member.user?.handles?.[0]?.handle ||
                                        "unknown";
-                    const displayName = member.user?.profile?.displayName || memberHandle;
+                    const displayName = member.user?.profile?.displayName || member.user?.displayName || memberHandle;
+
+                    // Detect if this is an external user (no handles means external)
+                    const isExternal = !member.user?.handles || member.user.handles.length === 0;
+
+                    const handleMemberClick = () => {
+                      if (isExternal) {
+                        // External user - show limited info popup
+                        setExternalUserData({
+                          displayName: displayName,
+                          actorDid: member.userId || "unknown",
+                          role: member.role || "member",
+                          joinedAt: member.joinedAt || new Date().toISOString(),
+                        });
+                        setIsExternalPopupOpen(true);
+                      } else {
+                        // Local user - show full UserQuickView
+                        setSelectedMemberUsername(memberHandle);
+                        setIsQuickViewOpen(true);
+                      }
+                    };
 
                     return (
-                      <div
+                      <button
                         key={member.id}
-                        className="relative group"
+                        onClick={handleMemberClick}
+                        className="relative group cursor-pointer"
                         title={displayName}
                       >
                         {member.user?.profile?.avatarUrl ? (
@@ -1201,7 +1233,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         {member.role === "curator" && (
                           <div className="absolute -top-1 -right-1 text-xs">👑</div>
                         )}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -1220,6 +1252,33 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               </>
             )}
           </div>
+
+          {/* User Quick View Modal */}
+          {selectedMemberUsername && (
+            <UserQuickView
+              username={selectedMemberUsername}
+              isOpen={isQuickViewOpen}
+              onClose={() => {
+                setIsQuickViewOpen(false);
+                setSelectedMemberUsername(null);
+              }}
+            />
+          )}
+
+          {/* External User Popup Modal */}
+          {externalUserData && (
+            <ExternalUserPopup
+              displayName={externalUserData.displayName}
+              actorDid={externalUserData.actorDid}
+              role={externalUserData.role}
+              joinedAt={externalUserData.joinedAt}
+              isOpen={isExternalPopupOpen}
+              onClose={() => {
+                setIsExternalPopupOpen(false);
+                setExternalUserData(null);
+              }}
+            />
+          )}
 
           {/* Ring Info & Insights - Tabbed Interface */}
           <div className="border border-black bg-white shadow-[2px_2px_0_#000]">

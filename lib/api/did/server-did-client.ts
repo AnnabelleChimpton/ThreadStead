@@ -207,6 +207,18 @@ export interface DIDDocument {
   assertionMethod: string[];
   capabilityDelegation: string[];
   capabilityInvocation: string[];
+
+  // Profile data (Tier 1: REQUIRED for federation)
+  service?: Array<{
+    id: string;
+    type: string;
+    serviceEndpoint: string;
+  }>;
+
+  // Profile data (Tier 2: CONDITIONAL - only if visibility = 'public')
+  name?: string;              // Display name
+  image?: string;             // Avatar URL
+  alsoKnownAs?: string[];     // Alternative identifiers (handles, profile URLs)
 }
 
 /**
@@ -241,13 +253,21 @@ export async function generateDIDDocument(): Promise<DIDDocument> {
 }
 
 /**
- * Generate DID document for a user
+ * Generate DID document for a user with privacy-aware profile data
+ *
+ * @param userDIDMapping - User's DID mapping from database
+ * @param db - Prisma database client (optional - for profile data)
+ * @returns Complete DID document with appropriate profile data based on privacy settings
  */
-export function generateUserDIDDocument(userDIDMapping: UserDIDMapping): DIDDocument {
+export async function generateUserDIDDocument(
+  userDIDMapping: UserDIDMapping,
+  db?: any
+): Promise<DIDDocument> {
   // Convert base64url public key to multibase format for Ring Hub compatibility
   const publicKeyMultibase = publicKeyToMultibase(userDIDMapping.publicKey);
 
-  return {
+  // Base DID document with cryptographic verification (always present)
+  const didDocument: DIDDocument = {
     "@context": [
       "https://www.w3.org/ns/did/v1",
       "https://w3id.org/security/suites/ed25519-2020/v1"
@@ -264,6 +284,61 @@ export function generateUserDIDDocument(userDIDMapping: UserDIDMapping): DIDDocu
     "capabilityDelegation": [`${userDIDMapping.did}#key-1`],
     "capabilityInvocation": [`${userDIDMapping.did}#key-1`]
   };
+
+  // If database connection provided, add privacy-aware profile data
+  if (db) {
+    try {
+      // Fetch user's handle (required for profile URL - Tier 1)
+      const handle = await db.handle.findFirst({
+        where: { userId: userDIDMapping.userId },
+        orderBy: { id: 'asc' }
+      });
+
+      if (handle) {
+        // Extract domain from DID (did:web:DOMAIN:users:hash)
+        const domain = userDIDMapping.did.split(':')[2].replace(/%3A/g, ':');
+        const profileUrl = `https://${domain}/resident/${handle.handle}`;
+
+        // REQUIRED (Tier 1): Always include profile service endpoint
+        didDocument.service = [{
+          "id": `${userDIDMapping.did}#profile`,
+          "type": "Profile",
+          "serviceEndpoint": profileUrl
+        }];
+
+        // Fetch user's profile for privacy check (Tier 2)
+        const profile = await db.profile.findUnique({
+          where: { userId: userDIDMapping.userId },
+          select: {
+            visibility: true,
+            displayName: true,
+            avatarUrl: true
+          }
+        });
+
+        // CONDITIONAL (Tier 2): Add profile data only if visibility is public
+        if (profile?.visibility === 'public') {
+          // Add display name
+          if (profile.displayName) {
+            didDocument.name = profile.displayName;
+          }
+
+          // Add avatar
+          if (profile.avatarUrl) {
+            didDocument.image = profile.avatarUrl;
+          }
+
+          // Add handle as alternative identifier
+          didDocument.alsoKnownAs = [profileUrl];
+        }
+      }
+    } catch (error) {
+      // Log error but return base document - profile data is optional
+      console.error('Failed to add profile data to DID document:', error);
+    }
+  }
+
+  return didDocument;
 }
 
 /**
