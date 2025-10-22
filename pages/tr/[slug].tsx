@@ -16,7 +16,6 @@ import ThreadRing88x31Badge from "../../components/core/threadring/ThreadRing88x
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
-import { SITE_NAME } from "@/lib/config/site/constants";
 import Toast from "../../components/ui/feedback/Toast";
 import UserQuickView from "../../components/ui/feedback/UserQuickView";
 import ExternalUserPopup from "../../components/ui/feedback/ExternalUserPopup";
@@ -1195,10 +1194,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                                        "unknown";
                     const displayName = member.user?.profile?.displayName || member.user?.displayName || memberHandle;
 
-                    // Detect if this is an external user (different host or no handles)
-                    const isExternal = !member.user?.handles ||
-                                       member.user.handles.length === 0 ||
-                                       member.user.handles[0].host !== SITE_NAME;
+                    // Detect if this is an external user
+                    // More reliable: Check if userId is a DID (external) vs UUID (local)
+                    const isExternal = member.userId?.startsWith('did:');
 
                     const handleMemberClick = () => {
                       if (isExternal) {
