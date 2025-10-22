@@ -261,7 +261,7 @@ export class CrawlerWorker {
       this.log(`✅ Updated site: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
     } else {
       // Site not in index - USE PHASE 2 AUTO-VALIDATION SYSTEM
-      if (qualityScore.shouldAutoSubmit && qualityScore.totalScore >= 40) {
+      if (qualityScore.shouldAutoSubmit && qualityScore.totalScore >= 50) {
         try {
           await this.addToIndexForAutoValidation(result.url, content, qualityScore);
           autoSubmitted = true;

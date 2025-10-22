@@ -123,8 +123,21 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
   // Running individual items
   const [runningItemId, setRunningItemId] = useState<string | null>(null);
 
+  // Blocked sites management
+  const [blockedSites, setBlockedSites] = useState<any[]>([]);
+  const [blockedSitesCategories, setBlockedSitesCategories] = useState<{ category: string; count: number }[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [newBlockedDomain, setNewBlockedDomain] = useState('');
+  const [newBlockedCategory, setNewBlockedCategory] = useState('social_media');
+  const [newBlockedReason, setNewBlockedReason] = useState('');
+  const [addingBlockedSite, setAddingBlockedSite] = useState(false);
+  const [cleanupReport, setCleanupReport] = useState<any>(null);
+  const [cleaningUp, setCleaningUp] = useState(false);
+  const [showCleanupModal, setShowCleanupModal] = useState(false);
+
   useEffect(() => {
     fetchData();
+    fetchBlockedSites();
   }, []);
 
   useEffect(() => {
@@ -361,6 +374,129 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
       alert('Failed to cleanup items');
     }
   };
+
+  // Blocked sites handlers
+  const fetchBlockedSites = async () => {
+    try {
+      const url = selectedCategory
+        ? `/api/admin/blocked-sites?category=${selectedCategory}`
+        : '/api/admin/blocked-sites';
+
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        setBlockedSites(data.sites);
+        setBlockedSitesCategories(data.categories);
+      }
+    } catch (error) {
+      console.error('Failed to fetch blocked sites:', error);
+    }
+  };
+
+  const addBlockedSite = async () => {
+    if (!newBlockedDomain) return;
+
+    try {
+      setAddingBlockedSite(true);
+      const response = await fetch('/api/admin/blocked-sites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain: newBlockedDomain,
+          category: newBlockedCategory,
+          reason: newBlockedReason || undefined
+        })
+      });
+
+      if (response.ok) {
+        alert('Blocked site added successfully');
+        setNewBlockedDomain('');
+        setNewBlockedCategory('social_media');
+        setNewBlockedReason('');
+        await fetchBlockedSites();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to add blocked site');
+      }
+    } catch (error) {
+      console.error('Failed to add blocked site:', error);
+      alert('Failed to add blocked site');
+    } finally {
+      setAddingBlockedSite(false);
+    }
+  };
+
+  const deleteBlockedSite = async (id: string, domain: string) => {
+    if (!confirm(`Remove ${domain} from blocked list?`)) return;
+
+    try {
+      const response = await fetch(`/api/admin/blocked-sites/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        alert('Blocked site removed successfully');
+        await fetchBlockedSites();
+      } else {
+        alert('Failed to remove blocked site');
+      }
+    } catch (error) {
+      console.error('Failed to delete blocked site:', error);
+      alert('Failed to delete blocked site');
+    }
+  };
+
+  const previewCleanup = async () => {
+    try {
+      setCleaningUp(true);
+      const response = await fetch('/api/admin/blocked-sites/cleanup?dryRun=true', {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCleanupReport(data);
+        setShowCleanupModal(true);
+      } else {
+        alert('Failed to preview cleanup');
+      }
+    } catch (error) {
+      console.error('Failed to preview cleanup:', error);
+      alert('Failed to preview cleanup');
+    } finally {
+      setCleaningUp(false);
+    }
+  };
+
+  const executeCleanup = async () => {
+    if (!confirm('Execute cleanup? This will mark affected sites as rejected and remove them from the crawl queue.')) return;
+
+    try {
+      setCleaningUp(true);
+      const response = await fetch('/api/admin/blocked-sites/cleanup?dryRun=false', {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCleanupReport(data);
+        alert(`Cleanup completed! Updated ${data.totalAffected.indexedSites} indexed sites and removed ${data.totalAffected.crawlQueue} queue items.`);
+        setShowCleanupModal(false);
+        await fetchData();
+      } else {
+        alert('Failed to execute cleanup');
+      }
+    } catch (error) {
+      console.error('Failed to execute cleanup:', error);
+      alert('Failed to execute cleanup');
+    } finally {
+      setCleaningUp(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBlockedSites();
+  }, [selectedCategory]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -850,6 +986,207 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
                   >
                     Next
                   </button>
+                </div>
+              )}
+            </div>
+
+            {/* Blocked Sites Management */}
+            <div className="border-t-4 border-red-300 pt-6 mt-6">
+              <h2 className="text-2xl font-bold mb-4">🚫 Blocked Sites Management</h2>
+
+              {/* Category Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {blockedSitesCategories.map((cat) => (
+                  <div
+                    key={cat.category}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition ${
+                      selectedCategory === cat.category
+                        ? 'bg-red-100 border-red-400'
+                        : 'bg-gray-50 border-gray-300 hover:border-gray-400'
+                    }`}
+                    onClick={() => setSelectedCategory(selectedCategory === cat.category ? '' : cat.category)}
+                  >
+                    <div className="text-xs text-gray-600 mb-1">{cat.category.replace(/_/g, ' ').toUpperCase()}</div>
+                    <div className="text-2xl font-bold">{cat.count}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add Blocked Site Form */}
+              <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300 mb-6">
+                <h3 className="text-lg font-semibold mb-3">Add Blocked Site</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Domain (e.g., example.com)"
+                    value={newBlockedDomain}
+                    onChange={(e) => setNewBlockedDomain(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded"
+                  />
+                  <select
+                    value={newBlockedCategory}
+                    onChange={(e) => setNewBlockedCategory(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded"
+                  >
+                    <option value="social_media">Social Media</option>
+                    <option value="big_tech">Big Tech</option>
+                    <option value="news_media">News Media</option>
+                    <option value="ecommerce">E-commerce</option>
+                    <option value="knowledge_base">Knowledge Base</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Reason (optional)"
+                    value={newBlockedReason}
+                    onChange={(e) => setNewBlockedReason(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded"
+                  />
+                  <button
+                    onClick={addBlockedSite}
+                    disabled={addingBlockedSite || !newBlockedDomain}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50"
+                  >
+                    {addingBlockedSite ? '⏳ Adding...' : '➕ Add'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Blocked Sites List */}
+              <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
+                <div className="bg-red-50 px-4 py-3 border-b border-red-200">
+                  <h3 className="font-semibold">
+                    {selectedCategory
+                      ? `${selectedCategory.replace(/_/g, ' ').toUpperCase()} (${blockedSites.length})`
+                      : `All Blocked Sites (${blockedSites.length})`
+                    }
+                  </h3>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="py-2 px-3 text-left text-xs font-semibold">Domain</th>
+                        <th className="py-2 px-3 text-left text-xs font-semibold">Category</th>
+                        <th className="py-2 px-3 text-left text-xs font-semibold">Reason</th>
+                        <th className="py-2 px-3 text-left text-xs font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {blockedSites.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-8 text-center text-gray-500">
+                            {selectedCategory ? 'No blocked sites in this category' : 'No blocked sites found'}
+                          </td>
+                        </tr>
+                      ) : (
+                        blockedSites.map((site) => (
+                          <tr key={site.id} className="border-b hover:bg-gray-50">
+                            <td className="py-2 px-3 font-mono text-sm">{site.domain}</td>
+                            <td className="py-2 px-3">
+                              <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
+                                {site.category.replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-sm text-gray-600 max-w-xs truncate" title={site.reason || ''}>
+                              {site.reason || '-'}
+                            </td>
+                            <td className="py-2 px-3">
+                              <button
+                                onClick={() => deleteBlockedSite(site.id, site.domain)}
+                                className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                              >
+                                🗑️ Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Cleanup Section */}
+              <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-300">
+                <h3 className="text-lg font-semibold mb-3">🧹 Cleanup Existing Entries</h3>
+                <p className="text-sm text-gray-700 mb-4">
+                  Remove sites from the index that match the current blocked list. This will mark them as rejected
+                  in the IndexedSite table and remove them from the CrawlQueue.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={previewCleanup}
+                    disabled={cleaningUp}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                  >
+                    {cleaningUp ? '⏳ Loading...' : '🔍 Preview Cleanup'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Cleanup Modal */}
+              {showCleanupModal && cleanupReport && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <h3 className="text-xl font-bold mb-4">Cleanup Preview</h3>
+
+                    <div className="mb-4 grid grid-cols-2 gap-4">
+                      <div className="bg-blue-50 p-3 rounded">
+                        <div className="text-sm text-gray-600">Indexed Sites Affected</div>
+                        <div className="text-2xl font-bold">{cleanupReport.totalAffected.indexedSites}</div>
+                      </div>
+                      <div className="bg-purple-50 p-3 rounded">
+                        <div className="text-sm text-gray-600">Queue Items to Remove</div>
+                        <div className="text-2xl font-bold">{cleanupReport.totalAffected.crawlQueue}</div>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <h4 className="font-semibold mb-2">Breakdown by Category:</h4>
+                      {Object.entries(cleanupReport.summary).map(([category, counts]: [string, any]) => (
+                        <div key={category} className="flex justify-between py-1 text-sm">
+                          <span className="font-mono">{category.replace(/_/g, ' ')}</span>
+                          <span>
+                            IndexedSites: {counts.indexedSites}, Queue: {counts.crawlQueue}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mb-4">
+                      <h4 className="font-semibold mb-2">Sample Affected Sites:</h4>
+                      <div className="max-h-48 overflow-y-auto border rounded p-2 bg-gray-50">
+                        {cleanupReport.affectedSites.indexedSites.slice(0, 10).map((site: any, idx: number) => (
+                          <div key={idx} className="text-xs py-1">
+                            <span className="font-mono">{site.url}</span> - {site.title}
+                          </div>
+                        ))}
+                        {cleanupReport.affectedSites.indexedSites.length > 10 && (
+                          <div className="text-xs text-gray-500 py-1">
+                            ... and {cleanupReport.affectedSites.indexedSites.length - 10} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 justify-end">
+                      <button
+                        onClick={() => setShowCleanupModal(false)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={executeCleanup}
+                        disabled={cleaningUp}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50"
+                      >
+                        {cleaningUp ? '⏳ Cleaning...' : '🚀 Execute Cleanup'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

@@ -39,7 +39,7 @@ export class CommunityIndexSeeder {
     const {
       maxQueries = 5,
       maxSitesPerQuery = 20,
-      minScore = 40,
+      minScore = 50, // Raised from 40 to align with new quality filter threshold
       dryRun = false
     } = options;
 

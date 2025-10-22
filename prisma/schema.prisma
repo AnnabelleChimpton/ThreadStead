@@ -1171,6 +1171,18 @@ model CrawlQueue {
   @@index([url])
 }
 
+model BlockedSite {
+  id        String   @id @default(cuid())
+  domain    String   @unique
+  category  String // social_media, big_tech, news_media, ecommerce, knowledge_base, entertainment, etc.
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([domain])
+}
+
 model DiscoveryLink {
   id             String   @id @default(cuid())
   sourceUrl      String // Corporate profile URL

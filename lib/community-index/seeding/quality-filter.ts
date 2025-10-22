@@ -6,6 +6,7 @@
 import type { ExtSearchResultItem } from '@/lib/extsearch/types';
 import { SiteType } from './discovery-queries';
 import { domainClassifier } from './domain-classifier';
+import { db } from '@/lib/config/database/connection';
 
 export interface SeedingScore {
   score: number; // 0-100
@@ -27,6 +28,30 @@ export interface SiteEvaluation {
   isIndieWeb?: boolean;
   privacyScore?: number;
   hasTrackers?: boolean;
+}
+
+// Cache for blocked sites to avoid repeated database queries
+let blockedSitesCache: Set<string> | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getBlockedDomains(): Promise<Set<string>> {
+  const now = Date.now();
+
+  // Return cached data if still valid
+  if (blockedSitesCache && (now - cacheTimestamp) < CACHE_TTL) {
+    return blockedSitesCache;
+  }
+
+  // Fetch from database
+  const blockedSites = await db.blockedSite.findMany({
+    select: { domain: true }
+  });
+
+  blockedSitesCache = new Set(blockedSites.map(site => site.domain.toLowerCase()));
+  cacheTimestamp = now;
+
+  return blockedSitesCache;
 }
 
 export class SeedingFilter {
@@ -189,10 +214,22 @@ export class SeedingFilter {
     score = Math.max(0, Math.min(100, score));
 
     // Determine if we should seed this site
-    // For indie platforms and independent sites, use very inclusive threshold
-    // The indie web embraces minimal sites and experiments
-    const shouldSeed = score >= 20 &&
-                      !this.hasBlockingIssues(site) &&
+    // Raised threshold to 50 to reduce false positives while still supporting quality indie sites
+    // Requires multiple positive signals, not just keyword matches
+    const hasBlockingIssues = await this.hasBlockingIssues(site);
+
+    // Count different types of positive indicators (not just total score)
+    const indicatorTypes = new Set<string>();
+    for (const reason of reasons) {
+      if (!reason.includes('commercial') && !reason.includes('spam') && !reason.includes('low_quality') && !reason.includes('parked')) {
+        indicatorTypes.add(reason.split('_')[0]); // Group similar indicators
+      }
+    }
+
+    const hasMultipleIndicators = indicatorTypes.size >= 2;
+    const shouldSeed = score >= 50 &&
+                      hasMultipleIndicators &&
+                      !hasBlockingIssues &&
                       classification.indexingPurpose === 'full_index';
 
     // Calculate priority for crawl queue
@@ -219,45 +256,20 @@ export class SeedingFilter {
   /**
    * Check for blocking issues that prevent seeding regardless of score
    */
-  private hasBlockingIssues(site: ExtSearchResultItem): boolean {
+  private async hasBlockingIssues(site: ExtSearchResultItem): Promise<boolean> {
     const url = site.url.toLowerCase();
 
-    // Block known problematic domains - corporate, mainstream media, and non-indie platforms
-    const blockedDomains = [
-      // Social Media Giants
-      'facebook.com', 'twitter.com', 'x.com', 'instagram.com', 'tiktok.com',
-      'reddit.com', 'pinterest.com', 'linkedin.com', 'snapchat.com',
+    // Get blocked domains from database (with caching)
+    const blockedDomains = await getBlockedDomains();
 
-      // Google/Alphabet Properties
-      'google.com', 'youtube.com', 'gmail.com', 'googleblog.com',
-      'googleadservices.com', 'googlesyndication.com', 'doubleclick.net',
-      'googleusercontent.com', 'gstatic.com', 'googleapis.com',
+    // Check if URL contains any blocked domain
+    for (const domain of blockedDomains) {
+      if (url.includes(domain)) {
+        return true;
+      }
+    }
 
-      // Other Big Tech
-      'microsoft.com', 'apple.com', 'adobe.com', 'amazon.com',
-
-      // E-commerce Giants
-      'ebay.com', 'walmart.com', 'target.com', 'alibaba.com',
-
-      // Wikipedia/Wikimedia (institutional knowledge bases, not indie)
-      'wikipedia.org', 'wikimedia.org', 'wikidata.org', 'wikiquote.org',
-      'wiktionary.org', 'wikinews.org', 'commons.wikimedia.org', 'meta.wikimedia.org',
-
-      // Major News/Media Corporations
-      'cnn.com', 'bbc.com', 'nytimes.com', 'washingtonpost.com', 'theguardian.com',
-      'reuters.com', 'ap.org', 'wsj.com', 'npr.org', 'cbs.com', 'nbc.com',
-      'abc.com', 'fox.com', 'foxnews.com', 'msnbc.com', 'bloomberg.com',
-
-      // Stack Exchange Network (corporate Q&A platforms)
-      'stackoverflow.com', 'stackexchange.com', 'serverfault.com',
-      'superuser.com', 'askubuntu.com', 'mathoverflow.net',
-
-      // Major Streaming/Entertainment Platforms
-      'netflix.com', 'hulu.com', 'disneyplus.com', 'hbomax.com',
-      'paramount.com', 'peacocktv.com', 'crunchyroll.com', 'twitch.tv'
-    ];
-
-    return blockedDomains.some(domain => url.includes(domain));
+    return false;
   }
 
   /**
@@ -464,27 +476,70 @@ export class SeedingFilter {
 
   /**
    * Check for low quality content indicators
-   * Be very conservative - simple/minimal is beautiful in the indie web
+   * Updated to catch more junk while still respecting minimal/simple indie sites
    */
   private hasLowQualityIndicators(title: string, snippet: string): boolean {
-    // Only flag truly problematic content, not simple/minimal sites
+    const titleLower = title.toLowerCase();
+    const snippetLower = (snippet || '').toLowerCase();
+    const combined = `${titleLower} ${snippetLower}`;
 
-    // Truly generic or missing titles
-    if (title === 'untitled' || title === '' || title === 'null' || title === 'undefined') {
+    // Generic or missing titles
+    if (!title || title.length < 2 || ['untitled', 'null', 'undefined', 'n/a', 'home', 'index'].includes(titleLower)) {
       return true;
     }
 
-    // Excessive spam indicators
-    if (title.includes('!!!') || (title === title.toUpperCase() && title.length > 20)) {
+    // Placeholder/template content
+    const placeholderPatterns = [
+      'lorem ipsum', 'sample text', 'dummy text', 'placeholder',
+      'coming soon', 'under construction', 'work in progress',
+      'this page', 'default page', 'welcome to', 'homepage'
+    ];
+    if (placeholderPatterns.some(pattern => combined.includes(pattern))) {
       return true;
     }
 
-    // Snippet spam indicators
-    if (snippet && snippet.includes('click here') && snippet.includes('buy now')) {
+    // Auto-generated / thin content indicators
+    const thinContentPatterns = [
+      'auto-generated', 'automatically generated', 'generated by',
+      'powered by wordpress', 'default wordpress',
+      'page not found', '404', 'error page',
+      'no content', 'empty page'
+    ];
+    if (thinContentPatterns.some(pattern => combined.includes(pattern))) {
       return true;
     }
 
-    return false; // Be generous - minimal is good!
+    // SEO spam patterns
+    const seoSpamPatterns = [
+      'best [0-9]+ ', 'top [0-9]+ ', '[0-9]+ best',
+      'read more', 'find out more', 'discover how',
+      'limited time', 'act now', 'hurry'
+    ];
+    for (const pattern of seoSpamPatterns) {
+      if (new RegExp(pattern, 'i').test(combined)) {
+        return true;
+      }
+    }
+
+    // Excessive punctuation / ALL CAPS
+    if (title.includes('!!!') || title.includes('???') ||
+        (title === title.toUpperCase() && title.length > 15 && /[A-Z]/.test(title))) {
+      return true;
+    }
+
+    // Multiple commercial triggers together
+    const commercialTriggers = ['buy', 'sale', 'discount', 'offer', 'deal', 'price', 'shop', 'store'];
+    const commercialCount = commercialTriggers.filter(trigger => combined.includes(trigger)).length;
+    if (commercialCount >= 3) {
+      return true;
+    }
+
+    // Very short snippet (likely thin content) - but allow no snippet for minimal sites
+    if (snippet && snippet.length < 20 && snippet.length > 0) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
