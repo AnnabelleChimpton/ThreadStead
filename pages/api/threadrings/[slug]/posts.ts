@@ -196,8 +196,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         hasMore: false
       });
     }
-
-    console.log(`Fetching Ring Hub posts for ${slug} with scope: ${scope}${viewer ? ' (authenticated)' : ' (unauthenticated)'}...`);
     
     try {
       // Create Ring Hub client (authenticated if user available, otherwise unauthenticated)
@@ -236,8 +234,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         posts = await publicClient.getRingFeed(slug, feedOptions);
       }
       
-      console.log(`Fetched ${posts?.posts?.length || 0} posts for ${slug} (scope: ${scope})`);
-
       // Filter out prompts from the posts feed (they're displayed separately as active prompts)
       const nonPromptPosts = posts?.posts?.filter(post => 
         post.metadata?.type !== 'threadring_prompt'
@@ -245,7 +241,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       // Resolve Ring Hub post references to actual ThreadStead post objects
       const resolvedPosts = await resolveRingHubPosts(nonPromptPosts, viewer);
-      console.log(`Resolved ${resolvedPosts.length} posts for ${slug} (filtered out ${(posts?.posts?.length || 0) - nonPromptPosts.length} prompts)`);
 
       // Calculate hasMore based on returned data (accounting for filtered prompts)
       const currentOffset = parseInt(offset as string);

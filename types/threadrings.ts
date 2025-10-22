@@ -45,6 +45,7 @@ export interface ThreadRingMember {
     id: string;
     displayName?: string;
     avatarUrl?: string;
+    profileUrl?: string;
     handles: Array<{ handle: string; host: string }>;
   };
 }

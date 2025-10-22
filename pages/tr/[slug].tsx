@@ -16,6 +16,7 @@ import ThreadRing88x31Badge from "../../components/core/threadring/ThreadRing88x
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
+import { SITE_NAME } from "@/lib/config/site/constants";
 import Toast from "../../components/ui/feedback/Toast";
 import UserQuickView from "../../components/ui/feedback/UserQuickView";
 import ExternalUserPopup from "../../components/ui/feedback/ExternalUserPopup";
@@ -437,6 +438,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     actorDid: string;
     role: string;
     joinedAt: string;
+    profileUrl?: string;
+    avatarUrl?: string;
   } | null>(null);
   const [isExternalPopupOpen, setIsExternalPopupOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
@@ -1192,8 +1195,10 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                                        "unknown";
                     const displayName = member.user?.profile?.displayName || member.user?.displayName || memberHandle;
 
-                    // Detect if this is an external user (no handles means external)
-                    const isExternal = !member.user?.handles || member.user.handles.length === 0;
+                    // Detect if this is an external user (different host or no handles)
+                    const isExternal = !member.user?.handles ||
+                                       member.user.handles.length === 0 ||
+                                       member.user.handles[0].host !== SITE_NAME;
 
                     const handleMemberClick = () => {
                       if (isExternal) {
@@ -1203,6 +1208,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                           actorDid: member.userId || "unknown",
                           role: member.role || "member",
                           joinedAt: member.joinedAt || new Date().toISOString(),
+                          profileUrl: member.user?.profileUrl,
+                          avatarUrl: member.user?.profile?.avatarUrl,
                         });
                         setIsExternalPopupOpen(true);
                       } else {
@@ -1272,6 +1279,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               actorDid={externalUserData.actorDid}
               role={externalUserData.role}
               joinedAt={externalUserData.joinedAt}
+              profileUrl={externalUserData.profileUrl}
+              avatarUrl={externalUserData.avatarUrl}
               isOpen={isExternalPopupOpen}
               onClose={() => {
                 setIsExternalPopupOpen(false);

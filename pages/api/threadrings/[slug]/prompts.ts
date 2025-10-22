@@ -21,33 +21,20 @@ export default withThreadRingSupport(async function handler(
     const promptService = createPromptService(slug)
 
     if (req.method === 'GET') {
-      try {
-        console.log(`🎯 Fetching prompts for ring: ${slug}`);
-        console.log(`📍 Ring Hub API call starting for ring: ${slug}`);
-        
+      try {  
         const prompts = await promptService.getPrompts({
           includeInactive: false,
           includePinned: true,
           limit: 50
         })
 
-        console.log(`📝 Raw prompts from Ring Hub:`, JSON.stringify(prompts, null, 2));
-        console.log(`📝 Found ${prompts.length} prompts from Ring Hub:`, prompts.map(p => ({
-          id: p.id,
-          uri: p.uri,
-          metadataType: p.metadata?.type,
-          promptId: (p.metadata as any)?.prompt?.promptId
-        })));
-
         // Transform to match old API format for frontend compatibility
         const response = prompts.map(postRef => {
           if (postRef.metadata?.type !== 'threadring_prompt') {
-            console.log(`⚠️ Skipping non-prompt PostRef: ${postRef.id} (type: ${postRef.metadata?.type})`);
             return null
           }
 
           const promptMeta = postRef.metadata.prompt
-          console.log(`✅ Processing prompt: ${promptMeta.promptId}`, promptMeta);
           
           return {
             id: promptMeta.promptId,
@@ -71,20 +58,16 @@ export default withThreadRingSupport(async function handler(
         }).filter(Boolean)
 
         // Calculate actual response counts dynamically for each prompt
-        console.log(`📊 Calculating response counts for ${response.length} prompts...`);
         for (const prompt of response) {
           if (!prompt) continue; // Skip null entries
           try {
             const responses = await promptService.getPromptResponses(prompt.id);
             const actualCount = responses.length;
             prompt.responseCount = actualCount;
-            console.log(`📊 Prompt ${prompt.id}: ${actualCount} responses`);
           } catch (error) {
             console.log(`⚠️ Could not get response count for prompt ${prompt.id}, keeping 0`);
           }
         }
-
-        console.log(`📤 Sending ${response.length} processed prompts to frontend`);
         
         // Prevent caching of prompt data
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');

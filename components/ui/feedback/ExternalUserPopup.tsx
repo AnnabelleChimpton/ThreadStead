@@ -8,6 +8,8 @@ interface ExternalUserPopupProps {
   actorDid: string;
   role: string;
   joinedAt: string;
+  profileUrl?: string;
+  avatarUrl?: string;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -17,6 +19,8 @@ export default function ExternalUserPopup({
   actorDid,
   role,
   joinedAt,
+  profileUrl,
+  avatarUrl,
   isOpen,
   onClose,
 }: ExternalUserPopupProps) {
@@ -111,12 +115,20 @@ export default function ExternalUserPopup({
 
           {/* User Info */}
           <div className="text-center mb-6">
-            {/* Avatar Placeholder */}
-            <div className="w-20 h-20 rounded-full bg-thread-cream border-2 border-thread-sage mx-auto mb-3 flex items-center justify-center">
-              <span className="text-3xl font-bold text-thread-charcoal">
-                {displayName[0]?.toUpperCase() || "?"}
-              </span>
-            </div>
+            {/* Avatar */}
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                className="w-20 h-20 rounded-full border-2 border-thread-sage mx-auto mb-3 object-cover"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-thread-cream border-2 border-thread-sage mx-auto mb-3 flex items-center justify-center">
+                <span className="text-3xl font-bold text-thread-charcoal">
+                  {displayName[0]?.toUpperCase() || "?"}
+                </span>
+              </div>
+            )}
 
             {/* Display Name */}
             <h2 className="text-xl font-bold text-thread-charcoal mb-1">
@@ -167,6 +179,18 @@ export default function ExternalUserPopup({
             This user is from another site in the federated network. Limited
             profile information is available.
           </div>
+
+          {/* View Profile Button */}
+          {profileUrl && (
+            <a
+              href={profileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full mt-4 px-4 py-3 bg-blue-600 hover:bg-blue-700 !text-white text-center font-bold border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[2px_2px_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+            >
+              View Full Profile →
+            </a>
+          )}
         </div>
       </div>
     </>,

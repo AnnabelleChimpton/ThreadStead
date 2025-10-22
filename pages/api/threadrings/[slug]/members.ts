@@ -25,9 +25,7 @@ export default async function handler(
     // Use Ring Hub if enabled
     if (featureFlags.ringhub()) {
       // If user is not authenticated, use public membership info endpoint
-      if (!viewer) {
-        console.log('Fetching Ring Hub membership info for non-authenticated user...');
-        
+      if (!viewer) {        
         try {
           const publicClient = getPublicRingHubClient();
           if (!publicClient) {
@@ -37,23 +35,6 @@ export default async function handler(
           // Get membership info from public endpoint
           const membershipInfo = await publicClient.getRingMembershipInfo(slug as string);
 
-          console.log(`Fetched membership info: ${membershipInfo.memberCount} members`);
-
-          // DEBUG: Log complete raw RingHub response
-          console.log(`\n[RingHub Raw Response - Guest View]`)
-          console.log('Full membershipInfo object:')
-          console.log(JSON.stringify(membershipInfo, null, 2))
-
-          // DEBUG: Log RingHub membership info data (Guest View)
-          console.log(`\n[RingHub Membership Info - Guest View]`)
-          console.log(`  - Total members: ${membershipInfo.memberCount}`)
-          console.log(`  - Owner actorName: ${membershipInfo.owner?.actorName ? `"${membershipInfo.owner.actorName}"` : 'null'}`)
-          console.log(`  - Owner DID: ${membershipInfo.owner?.actorDid}`)
-          console.log(`  - Moderators: ${membershipInfo.moderators.length}`)
-          membershipInfo.moderators.forEach((mod, i) => {
-            console.log(`    ${i+1}. actorName: ${mod.actorName ? `"${mod.actorName}"` : 'null'}, DID: ${mod.actorDid}`)
-          })
-
           // Transform membership info to member format for display
           const transformedMembers = [];
 
@@ -61,7 +42,6 @@ export default async function handler(
           if (membershipInfo.owner) {
             const ownerDisplayName = membershipInfo.owner.actorName ||
                                     membershipInfo.owner.actorDid.split(':').pop() || 'Owner'
-            console.log(`  - [Owner Display] Using: "${ownerDisplayName}" (source: ${membershipInfo.owner.actorName ? 'actorName' : 'DID'})`)
 
             transformedMembers.push({
               id: `owner-${membershipInfo.owner.actorDid}`,
@@ -83,7 +63,6 @@ export default async function handler(
           membershipInfo.moderators.forEach((mod, index) => {
             const modDisplayName = mod.actorName ||
                                   mod.actorDid.split(':').pop() || 'Moderator'
-            console.log(`  - [Mod ${index+1} Display] Using: "${modDisplayName}" (source: ${mod.actorName ? 'actorName' : 'DID'})`)
 
             transformedMembers.push({
               id: `mod-${index}-${mod.actorDid}`,
@@ -119,8 +98,6 @@ export default async function handler(
         }
       }
       
-      // Authenticated user path
-      console.log('Fetching Ring Hub members with user authentication...');
       
       try {
         // Create user-authenticated Ring Hub client
@@ -129,43 +106,16 @@ export default async function handler(
         // Fetch members using user's DID authentication
         const membersResponse = await authenticatedClient.getRingMembers(slug);
 
-        console.log(`Fetched ${membersResponse.members?.length || 0} members from Ring Hub for user ${viewer.id}`);
-
-        // DEBUG: Log complete raw RingHub member response (first member as sample)
-        if (membersResponse.members && membersResponse.members.length > 0) {
-          console.log(`\n[RingHub Raw Member Response - Authenticated View]`)
-          console.log('Sample member object (first member):')
-          console.log(JSON.stringify(membersResponse.members[0], null, 2))
-        }
-
-        // DEBUG: Analyze actorName population in RingHub data
-        const membersWithActorName = membersResponse.members?.filter(m => m.actorName) || []
-        const membersWithoutActorName = membersResponse.members?.filter(m => !m.actorName) || []
-        console.log(`[RingHub Member Stats]`)
-        console.log(`  - Total members: ${membersResponse.members?.length || 0}`)
-        console.log(`  - With actorName: ${membersWithActorName.length}`)
-        console.log(`  - Without actorName: ${membersWithoutActorName.length}`)
-        if (membersWithoutActorName.length > 0) {
-          console.log(`  - Example members without actorName:`)
-          membersWithoutActorName.slice(0, 3).forEach(m => {
-            console.log(`    - ${m.actorDid} (${m.role})`)
-          })
-        }
-
         // Transform Ring Hub member format with proper user resolution
         const { transformRingMemberWithUserResolution } = await import('@/lib/api/ringhub/ringhub-transformers')
 
         const transformedMembers = await Promise.all(
           (membersResponse.members || []).map(async (member) => {
-            console.log(`\n[Transforming Member] ${member.actorDid}`)
-
             const resolvedMember = await transformRingMemberWithUserResolution(
               member,
               slug as string,
               db
             )
-
-            console.log(`  ✓ Final result: "${resolvedMember.user.displayName}" (userId: ${resolvedMember.userId})`)
 
             // Convert to API response format
             return {
@@ -176,6 +126,7 @@ export default async function handler(
               user: {
                 id: resolvedMember.user.id,
                 handles: resolvedMember.user.handles,
+                profileUrl: resolvedMember.user.profileUrl,
                 profile: {
                   displayName: resolvedMember.user.displayName,
                   avatarUrl: resolvedMember.user.avatarUrl
@@ -201,9 +152,6 @@ export default async function handler(
         });
       }
     }
-
-    // Local database fallback
-    console.log('Using local database for member fetching...');
     
     // Find the ThreadRing
     const threadRing = await db.threadRing.findUnique({

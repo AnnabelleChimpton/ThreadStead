@@ -221,25 +221,15 @@ export async function transformRingMemberWithUserResolution(
     console.warn('Failed to resolve DID to ThreadStead user:', error)
   }
 
-  // DEBUG: Log raw RingHub member data
-  console.log(`[RingHub Member Transform] DID: ${member.actorDid}`)
-  console.log(`  - actorName: ${member.actorName ? `"${member.actorName}"` : 'null'}`)
-  console.log(`  - role: ${member.role}`)
-  console.log(`  - status: ${member.status}`)
-  console.log(`  - hasLocalUser: ${!!threadSteadUser}`)
-
   // Enhanced display name logic with better fallbacks
   let displayName = 'Ring Hub User'
 
   if (threadSteadUser?.profile?.displayName) {
     displayName = threadSteadUser.profile.displayName
-    console.log(`  - [Display Name] Using local profile: "${displayName}"`)
   } else if (threadSteadUser?.handles?.[0]?.handle) {
     displayName = threadSteadUser.handles[0].handle
-    console.log(`  - [Display Name] Using local handle: "${displayName}"`)
   } else if (member.actorName) {
     displayName = member.actorName
-    console.log(`  - [Display Name] Using RingHub actorName: "${displayName}"`)
   } else {
     // Handle placeholder users and unknown users more gracefully
     const didParts = member.actorDid.split(':')
@@ -247,13 +237,31 @@ export async function transformRingMemberWithUserResolution(
 
     if (resolvedUserId && resolvedUserId.startsWith('unknown-user-')) {
       displayName = `External User (${lastPart})`
-      console.log(`  - [Display Name] Fallback to DID (external): "${displayName}"`)
     } else {
       displayName = `Ring Hub User (${lastPart})`
-      console.log(`  - [Display Name] Fallback to DID (ringhub): "${displayName}"`)
     }
   }
   
+  // Extract handle from profileUrl if available
+  let handles: Array<{ handle: string; host: string }> = []
+
+  if (threadSteadUser?.handles && threadSteadUser.handles.length > 0) {
+    // Use local ThreadStead handles
+    handles = threadSteadUser.handles.map((h: any) => ({
+      handle: h.handle,
+      host: h.host
+    }))
+  } else if (member.profileUrl && member.instanceDomain) {
+    // Extract handle from federated profile URL
+    const handleFromUrl = member.profileUrl.split('/').pop()
+    if (handleFromUrl) {
+      handles = [{
+        handle: handleFromUrl,
+        host: member.instanceDomain
+      }]
+    }
+  }
+
   return {
     id: generateMemberId(member.actorDid, threadRingId),
     threadRingId,
@@ -263,11 +271,9 @@ export async function transformRingMemberWithUserResolution(
     user: {
       id: resolvedUserId || member.actorDid,
       displayName,
-      avatarUrl: threadSteadUser?.profile?.avatarUrl,
-      handles: threadSteadUser?.handles?.map((h: any) => ({
-        handle: h.handle,
-        host: h.host
-      })) || []
+      avatarUrl: threadSteadUser?.profile?.avatarUrl || member.avatarUrl,
+      profileUrl: member.profileUrl,
+      handles
     }
   }
 }

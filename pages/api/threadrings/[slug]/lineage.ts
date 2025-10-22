@@ -34,8 +34,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         lineagePath: ""
       });
     }
-
-    console.log(`Fetching Ring Hub lineage for ${slug}${viewer ? ' (authenticated - full genealogy tree)' : ' (unauthenticated - public lineage)'}...`);
     
     try {
       // Fetch lineage data (authenticated gets full genealogy tree, unauthenticated gets public data)
@@ -55,12 +53,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         lineageData = await publicClient.getRingLineage(slug);
       }
-      
-      console.log(`Fetched lineage data for ${slug}:`, {
-        ring: lineageData?.ring?.name,
-        ancestors: lineageData?.ancestors?.length || 0,
-        descendants: lineageData?.descendants?.length || 0
-      });
 
       // Extract data from Ring Hub response format
       const ring = lineageData?.ring;

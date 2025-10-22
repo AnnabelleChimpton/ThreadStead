@@ -64,8 +64,11 @@ export interface RingDescriptor {
 }
 
 export interface RingMember {
-  actorDid: string         // User DID 
+  actorDid: string         // User DID
   actorName?: string       // Display name (if available)
+  avatarUrl?: string       // Avatar image URL (from federated profile)
+  profileUrl?: string      // Profile page URL (from federated profile)
+  instanceDomain?: string  // Home instance domain (from federated profile)
   status: 'ACTIVE' | 'PENDING' | 'BANNED'
   role: 'owner' | 'moderator' | 'member'
   joinedAt: string | null  // ISO timestamp

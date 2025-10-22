@@ -17,6 +17,7 @@ interface Member {
   user: {
     id: string;
     handles: Array<{ handle: string; host: string }>;
+    profileUrl?: string;
     profile: {
       displayName?: string | null;
       avatarUrl?: string | null;
@@ -191,6 +192,8 @@ export default function ThreadRingMembersPage({
                         <UserMention
                           username={getMemberHandle(member)}
                           displayName={member.user.profile?.displayName || undefined}
+                          handleHost={member.user.handles[0]?.host}
+                          profileUrl={member.user.profileUrl}
                         />
                       </div>
                       <div className="text-sm text-gray-600">
@@ -323,6 +326,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   user: {
                     id: transformedMember.user.id,
                     handles: transformedMember.user.handles,
+                    profileUrl: transformedMember.user.profileUrl,
                     profile: {
                       displayName: transformedMember.user.displayName,
                       avatarUrl: transformedMember.user.avatarUrl,
