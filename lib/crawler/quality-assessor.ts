@@ -139,7 +139,7 @@ export class QualityAssessor {
   }
 
   /**
-   * Check for personal domain patterns
+   * Check for personal domain patterns (expanded detection)
    */
   private hasPersonalDomainPattern(url: string): boolean {
     const domain = new URL(url).hostname.toLowerCase();
@@ -148,12 +148,20 @@ export class QualityAssessor {
     const namePattern = /^[a-z]+-[a-z]+\./;
     if (namePattern.test(domain)) return true;
 
-    // Pattern: short domains that could be personal (3-15 chars before TLD)
-    const shortPersonalPattern = /^[a-z]{3,15}\.(me|dev|xyz|blog|site|page|co|io)$/;
+    // Pattern: short domains that could be personal (expanded TLD list)
+    const shortPersonalPattern = /^[a-z]{3,15}\.(me|dev|xyz|blog|site|page|co|cc|io|net|org|info|art|design|studio|works|space|world|digital|online|website|fyi)$/;
     if (shortPersonalPattern.test(domain)) return true;
 
+    // Personal naming patterns (expanded)
+    const personalPatterns = [
+      /^[a-z]+s?(blog|site|web|page|portfolio|works)\./,  // *blog, *site, etc.
+      /^(hello|hey|hi|my|the)[a-z]+\./,                   // hello*, hey*, my*, the*
+      /^[a-z]{3,12}\.(me|dev|blog|site|page)$/            // single word on personal TLD
+    ];
+    if (personalPatterns.some(pattern => pattern.test(domain))) return true;
+
     // Subdomain patterns: name.github.io, name.netlify.app, etc.
-    const hostedPersonalPattern = /^[a-z0-9-]+\.(github\.io|netlify\.app|vercel\.app|surge\.sh|neocities\.org)$/;
+    const hostedPersonalPattern = /^[a-z0-9-]+\.(github\.io|netlify\.app|vercel\.app|surge\.sh|neocities\.org|pages\.dev)$/;
     if (hostedPersonalPattern.test(domain)) return true;
 
     return false;

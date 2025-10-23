@@ -75,7 +75,17 @@ const INDIE_PLATFORMS = [
   'dimension.sh',
   'circumlunar.space',
   'rawtext.club',
-  'republic.circumlunar.space'
+  'republic.circumlunar.space',
+
+  // Indie Federated Platforms (small/indie Mastodon/Pixelfed/Pleroma instances)
+  // Note: Large instances (mastodon.social, etc.) are in corporate-platforms.ts for link extraction
+  'indieweb.social',
+  'fosstodon.org',
+  'hachyderm.io',
+  'tech.lgbt',
+  'ruby.social',
+  'phpc.social',
+  'pixelfed.social'
 ];
 
 /**
@@ -182,14 +192,27 @@ export class DomainClassifier {
         };
       }
 
-      // Check for custom subdomains on content platforms (often indie)
+      // Check for custom subdomains on content platforms (corporate blogs - extract links)
       if (this.isCustomSubdomainBlog(domain)) {
         return {
+          platformType: 'corporate_profile',
+          indexingPurpose: 'link_extraction',
+          confidence: 0.9,
+          reasons: ['corporate_subdomain_blog', `platform:${this.getCustomSubdomainPlatform(domain)}`],
+          scoreModifier: 0,
+          platformName: this.getCustomSubdomainPlatform(domain),
+          shouldExtractLinks: true
+        };
+      }
+
+      // Check for indie federated instances (smaller Mastodon/Pixelfed/Pleroma)
+      if (this.isIndieFederatedInstance(domain)) {
+        return {
           platformType: 'indie_platform',
-          indexingPurpose: 'pending_review',
-          confidence: 0.7,
-          reasons: ['custom_subdomain_blog'],
-          scoreModifier: 0.8,
+          indexingPurpose: 'full_index',
+          confidence: 0.85,
+          reasons: ['indie_federated_instance', 'community_platform'],
+          scoreModifier: 1.1,
           shouldExtractLinks: false
         };
       }
@@ -329,41 +352,111 @@ export class DomainClassifier {
   }
 
   /**
+   * Get the platform name from a custom subdomain blog
+   */
+  private getCustomSubdomainPlatform(domain: string): string {
+    if (domain.includes('wordpress.com')) return 'wordpress.com';
+    if (domain.includes('blogspot.com')) return 'blogger.com';
+    if (domain.includes('tumblr.com')) return 'tumblr.com';
+    if (domain.includes('medium.com')) return 'medium.com';
+    if (domain.includes('substack.com')) return 'substack.com';
+    if (domain.includes('ghost.io')) return 'ghost.io';
+    if (domain.includes('wixsite.com')) return 'wix.com';
+    if (domain.includes('squarespace.com')) return 'squarespace.com';
+    if (domain.includes('weebly.com')) return 'weebly.com';
+    return 'unknown';
+  }
+
+  /**
+   * Check if domain is an indie federated instance (Mastodon, Pixelfed, Pleroma)
+   * These are smaller community-run instances that should be indexed
+   */
+  private isIndieFederatedInstance(domain: string): boolean {
+    // Pattern matching for indie federated instances
+    // We want to capture: *.social, *.community, *.club that are NOT in the corporate list
+    const federatedTLDs = ['.social', '.community', '.club', '.im'];
+    const hasIndieTLD = federatedTLDs.some(tld => domain.endsWith(tld));
+
+    if (!hasIndieTLD) return false;
+
+    // Large corporate instances are already in corporate-platforms.ts
+    // If they're not caught as corporate, treat as indie
+    const largeCorporateInstances = [
+      'mastodon.social',
+      'mastodon.online',
+      'mastodon.world',
+      'mstdn.social',
+      'mas.to',
+      'techhub.social'
+    ];
+
+    return !largeCorporateInstances.includes(domain);
+  }
+
+  /**
    * Score how likely a domain is to be truly independent
    */
   private scoreIndependence(domain: string, pathname: string): number {
     let score = 0.5; // Base score
 
-    // Custom TLD suggests independence
-    const customTlds = ['.com', '.net', '.org', '.io', '.dev', '.me', '.co', '.xyz', '.app', '.blog', '.site', '.page', '.tech', '.codes', '.wtf', '.cool', '.fun'];
+    // Custom TLD suggests independence (expanded list)
+    const customTlds = [
+      '.com', '.net', '.org', '.io', '.dev', '.me', '.co', '.cc', '.info',
+      '.xyz', '.app', '.blog', '.site', '.page', '.tech', '.codes',
+      '.wtf', '.cool', '.fun', '.art', '.design', '.studio', '.works',
+      '.space', '.world', '.digital', '.online', '.website', '.fyi'
+    ];
     if (customTlds.some(tld => domain.endsWith(tld))) {
       score += 0.2;
     }
 
-    // Short domain (likely personal)
-    if (domain.split('.').length === 2 && domain.split('.')[0].length < 20) {
-      score += 0.1;
+    // Short domain (likely personal) - expanded to include more TLDs
+    const domainParts = domain.split('.');
+    if (domainParts.length === 2) {
+      const name = domainParts[0];
+      // 3-20 chars for common TLDs, 3-15 for personal TLDs
+      const personalTlds = ['.me', '.dev', '.blog', '.site', '.page', '.co', '.cc', '.io'];
+      const isPersonalTLD = personalTlds.some(tld => domain.endsWith(tld));
+      const maxLength = isPersonalTLD ? 15 : 20;
+
+      if (name.length >= 3 && name.length <= maxLength) {
+        score += 0.15;
+      }
     }
 
-    // Personal naming patterns
+    // Personal naming patterns (expanded)
     const personalPatterns = [
       /^[a-z]+-[a-z]+\./, // firstname-lastname
       /^[a-z]{3,15}\./, // short personal name
-      /^(my|the)[a-z]+\./ // my*, the*
+      /^(my|the)[a-z]+\./, // my*, the*
+      /^[a-z]+s?(blog|site|web|page|portfolio|works)\./, // *blog, *site, etc.
+      /^(hello|hey|hi)[a-z]*\./ // hello*, hey*, hi*
     ];
     if (personalPatterns.some(pattern => pattern.test(domain))) {
       score += 0.15;
     }
 
-    // Not on any known platform subdomain
-    const platformSubdomains = ['www', 'blog', 'shop', 'store', 'app', 'api', 'cdn', 'images', 'static'];
-    const subdomain = domain.split('.')[0];
-    if (!platformSubdomains.includes(subdomain)) {
-      score += 0.1;
+    // Single word domain on personal TLD (e.g., "alice.dev", "bob.me")
+    if (domainParts.length === 2 && !domainParts[0].includes('-')) {
+      const personalTlds = ['.me', '.dev', '.blog', '.site', '.page'];
+      if (personalTlds.some(tld => domain.endsWith(tld))) {
+        score += 0.1;
+      }
     }
 
-    // Path suggests personal site
-    const pathIndicators = ['/about', '/blog', '/projects', '/portfolio', '/contact'];
+    // Not on any known platform subdomain
+    const platformSubdomains = ['www', 'blog', 'shop', 'store', 'app', 'api', 'cdn', 'images', 'static', 'assets', 'media'];
+    const subdomain = domainParts[0];
+    if (!platformSubdomains.includes(subdomain)) {
+      score += 0.05;
+    }
+
+    // Path suggests personal site (expanded list)
+    const pathIndicators = [
+      '/about', '/blog', '/projects', '/portfolio', '/contact',
+      '/work', '/writing', '/posts', '/notes', '/now', '/uses',
+      '/garden', '/wiki', '/links', '/bookmarks'
+    ];
     if (pathIndicators.some(indicator => pathname.includes(indicator))) {
       score += 0.1;
     }

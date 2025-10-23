@@ -226,9 +226,23 @@ export class SeedingFilter {
       }
     }
 
+    // Strong indicators that are sufficient on their own (20+ points each)
+    const strongIndicators = [
+      'indie_web_detected',        // +25 points
+      'indie_web_domain',          // +25 points
+      'personal_domain',           // +15 points
+      'privacy_friendly'           // +15 points
+    ];
+    const hasStrongIndicator = reasons.some(r => strongIndicators.includes(r));
+
+    // Allow sites with EITHER:
+    // 1. One strong indicator (clear personal/indie site), OR
+    // 2. Multiple indicators (2+ different signal types)
     const hasMultipleIndicators = indicatorTypes.size >= 2;
+    const meetsIndicatorRequirement = hasStrongIndicator || hasMultipleIndicators;
+
     const shouldSeed = score >= 50 &&
-                      hasMultipleIndicators &&
+                      meetsIndicatorRequirement &&
                       !hasBlockingIssues &&
                       classification.indexingPurpose === 'full_index';
 

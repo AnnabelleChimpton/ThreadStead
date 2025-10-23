@@ -70,10 +70,10 @@ async function autoValidateSite(site: any, force: boolean) {
   const score = site.seedingScore || 0;
 
   // Phase 2 aligned thresholds - simplified binary decision
-  const AUTO_REJECT_THRESHOLD = 30;  // Clear low-quality sites (Phase 2 standard)
-  // Everything above 30 gets auto-approved (no limbo state)
+  const AUTO_REJECT_THRESHOLD = 49;  // Reject sites below 50 points (aligned with seeding threshold)
+  // Everything above 49 (50+) gets auto-approved (no limbo state)
 
-  // Note: Sites need 40+ to be added by crawler/seeding, then 31+ to auto-approve
+  // Note: Sites need 50+ to be added by crawler/seeding AND 50+ to auto-approve (consistent quality bar)
 
   // Quality indicators for scoring
   let qualityBonus = 0;

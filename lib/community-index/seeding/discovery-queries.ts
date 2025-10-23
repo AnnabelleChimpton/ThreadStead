@@ -48,12 +48,18 @@ export const DISCOVERY_QUERIES: SeedingQuery[] = [
   { query: "creative portfolio", category: SiteType.PORTFOLIO, priority: 4, expectedResults: 30 },
   { query: "personal portfolio", category: SiteType.PORTFOLIO, priority: 3, expectedResults: 45 },
 
-  // Indie web infrastructure
+  // Indie web infrastructure (expanded for better indie site discovery)
   { query: "indie web", category: SiteType.COMMUNITY, priority: 5, expectedResults: 30 },
+  { query: "indie website", category: SiteType.PERSONAL_BLOG, priority: 5, expectedResults: 25 },
   { query: "webring", category: SiteType.COMMUNITY, priority: 5, expectedResults: 25 },
-  { query: "small web", category: SiteType.COMMUNITY, priority: 4, expectedResults: 20 },
+  { query: "web ring", category: SiteType.COMMUNITY, priority: 5, expectedResults: 20 },
+  { query: "small web", category: SiteType.COMMUNITY, priority: 5, expectedResults: 20 },
   { query: "indieweb", category: SiteType.COMMUNITY, priority: 5, expectedResults: 25 },
-  { query: "personal web", category: SiteType.COMMUNITY, priority: 4, expectedResults: 30 },
+  { query: "personal web", category: SiteType.COMMUNITY, priority: 5, expectedResults: 30 },
+  { query: "personal homepage", category: SiteType.PERSONAL_BLOG, priority: 5, expectedResults: 35 },
+  { query: "handmade website", category: SiteType.OTHER, priority: 5, expectedResults: 15 },
+  { query: "handcrafted website", category: SiteType.OTHER, priority: 5, expectedResults: 12 },
+  { query: "one page website", category: SiteType.OTHER, priority: 4, expectedResults: 18 },
 
   // Tools and resources
   { query: "web tool", category: SiteType.TOOL, priority: 3, expectedResults: 25 },
@@ -81,15 +87,22 @@ export const DISCOVERY_QUERIES: SeedingQuery[] = [
   { query: "lightweight website", category: SiteType.OTHER, priority: 4, expectedResults: 20 },
   { query: "no javascript", category: SiteType.OTHER, priority: 4, expectedResults: 12 },
 
-  // Alternative platforms
+  // Alternative platforms (expanded for indie discovery)
   { query: "neocities", category: SiteType.COMMUNITY, priority: 5, expectedResults: 30 },
+  { query: "neocities site", category: SiteType.PERSONAL_BLOG, priority: 5, expectedResults: 25 },
   { query: "tilde club", category: SiteType.COMMUNITY, priority: 5, expectedResults: 15 },
+  { query: "tilde site", category: SiteType.COMMUNITY, priority: 5, expectedResults: 18 },
+  { query: "tildeverse", category: SiteType.COMMUNITY, priority: 5, expectedResults: 12 },
   { query: "self hosted", category: SiteType.OTHER, priority: 4, expectedResults: 25 },
+  { query: "self hosted blog", category: SiteType.PERSONAL_BLOG, priority: 4, expectedResults: 20 },
 
   // Documentation and knowledge
   { query: "personal wiki", category: SiteType.DOCUMENTATION, priority: 4, expectedResults: 20 },
   { query: "knowledge base", category: SiteType.DOCUMENTATION, priority: 3, expectedResults: 30 },
   { query: "personal notes", category: SiteType.DOCUMENTATION, priority: 4, expectedResults: 25 },
+  { query: "link directory", category: SiteType.RESOURCE, priority: 5, expectedResults: 20 },
+  { query: "link collection", category: SiteType.RESOURCE, priority: 4, expectedResults: 18 },
+  { query: "bookmarks page", category: SiteType.RESOURCE, priority: 4, expectedResults: 15 },
 
   // Community and social
   { query: "community site", category: SiteType.COMMUNITY, priority: 3, expectedResults: 30 },

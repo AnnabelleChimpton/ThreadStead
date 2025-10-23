@@ -581,23 +581,11 @@ export class CorporatePlatformRegistry implements PlatformRegistry {
       }
     }
 
-    // Check for Mastodon-like federated instances
-    // Common patterns: mastodon.*, *.social, *.community
-    const federatedPatterns = [
-      /^mastodon\./,
-      /^mstdn\./,
-      /^mas\./,
-      /\.social$/,
-      /\.community$/,
-      /\.im$/,
-      /\.club$/
-    ];
-
-    if (federatedPatterns.some(pattern => pattern.test(normalizedDomain))) {
-      // Additional check: does it look like a Mastodon instance?
-      // This is a heuristic, may need refinement
-      return true;
-    }
+    // NOTE: Removed blanket federated pattern matching
+    // Previously, ALL *.social, *.community, *.club domains were treated as corporate
+    // Now only explicitly listed large instances (mastodon.social, etc.) are corporate
+    // This allows indie Mastodon/Pixelfed/Pleroma instances to be indexed
+    // See domain-classifier.ts for indie federated instance detection
 
     return false;
   }
@@ -658,24 +646,10 @@ export class CorporatePlatformRegistry implements PlatformRegistry {
       }
     }
 
-    // Check if it might be a Mastodon instance
-    const federatedPatterns = [
-      /^mastodon\./,
-      /^mstdn\./,
-      /^mas\./,
-      /\.social$/,
-      /\.community$/
-    ];
-
-    if (federatedPatterns.some(pattern => pattern.test(normalizedDomain))) {
-      // Return a generic Mastodon configuration
-      return {
-        domain: normalizedDomain,
-        profilePatterns: ['/@*'],
-        linkLocations: ['bio', 'profile_metadata'],
-        category: 'federated'
-      };
-    }
+    // NOTE: Removed blanket federated pattern matching
+    // Previously returned generic Mastodon config for ALL *.social domains
+    // Now only explicitly listed instances are treated as corporate
+    // Indie federated instances are handled in domain-classifier.ts
 
     return null;
   }
