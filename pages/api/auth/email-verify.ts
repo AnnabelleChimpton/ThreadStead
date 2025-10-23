@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { checkEmailLoginToken, verifyEmailLoginToken } from "@/lib/email-login";
+import crypto from "crypto";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -75,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     // Create session (similar to verify.ts)
-    const secret = crypto.randomUUID().replace(/-/g, "");
+    const secret = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7 days
     
     await db.session.create({ 
@@ -88,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.setHeader(
       "Set-Cookie",
-      `retro_session=${selectedUser.id}.${secret}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax`
+      `retro_session=${selectedUser.id}.${secret}; HttpOnly; Secure; Path=/; Max-Age=604800; SameSite=Strict`
     );
     
     res.json({ 

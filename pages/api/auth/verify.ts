@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { rateLimitMiddleware } from "@/lib/middleware/rateLimiting";
+import crypto from "crypto";
 
 import * as ed from "@noble/ed25519";
 import { fromBase64Url } from "@/lib/utils/encoding/base64url";
@@ -151,13 +152,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  const secret = crypto.randomUUID().replace(/-/g, "");
+  const secret = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
   await db.session.create({ data: { userId: user.id, secret, expiresAt } });
 
   res.setHeader(
     "Set-Cookie",
-    `retro_session=${user.id}.${secret}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax`
+    `retro_session=${user.id}.${secret}; HttpOnly; Secure; Path=/; Max-Age=604800; SameSite=Strict`
   );
   res.json({ ok: true, userId: user.id });
 }
