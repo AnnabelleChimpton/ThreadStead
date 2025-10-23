@@ -50,6 +50,7 @@ export class DiscoveryFeedsManager {
   ): Promise<DiscoveryFeed> {
     const where: any = {
       communityValidated: true,
+      indexingPurpose: { not: 'rejected' }, // Exclude rejected sites
       discoveredAt: {
         gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
       }
@@ -99,6 +100,7 @@ export class DiscoveryFeedsManager {
   ): Promise<DiscoveryFeed> {
     const where: any = {
       communityValidated: true,
+      indexingPurpose: { not: 'rejected' }, // Exclude rejected sites
       communityScore: { gte: 15 }, // High community score threshold
       validationVotes: { gte: 5 }  // Minimum votes for statistical relevance
     };
@@ -152,6 +154,7 @@ export class DiscoveryFeedsManager {
     // Hidden gems: sites with good quality scores but low discovery/vote counts
     const where: any = {
       communityValidated: true,
+      indexingPurpose: { not: 'rejected' }, // Exclude rejected sites
       communityScore: { gte: 8 },   // Decent quality
       validationVotes: { lte: 8 },  // Not many votes yet
       discoveredAt: {
@@ -257,7 +260,8 @@ export class DiscoveryFeedsManager {
     // Get site details
     const where: any = {
       url: { in: trendingSites.map(t => t.url) },
-      communityValidated: true
+      communityValidated: true,
+      indexingPurpose: { not: 'rejected' } // Exclude rejected sites
     };
 
     if (category && category !== 'all') {
@@ -333,6 +337,7 @@ export class DiscoveryFeedsManager {
     // Get all sites first, then filter out user interactions manually to avoid schema conflicts
     const baseWhere: any = {
       communityValidated: true,
+      indexingPurpose: { not: 'rejected' }, // Exclude rejected sites
       // Exclude sites the user has already discovered
       url: {
         notIn: discoveredUrls

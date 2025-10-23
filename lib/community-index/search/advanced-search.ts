@@ -250,13 +250,19 @@ export class AdvancedSearchEngine {
   private buildWhereClause(filters: SearchFilters): any {
     const where: any = {};
 
+    // ALWAYS exclude rejected sites from all queries
+    // Rejected sites should never appear in search results or counts
+    where.indexingPurpose = {
+      not: 'rejected'
+    };
+
     // Validation status filter
     if (filters.validationStatus === 'validated') {
       where.communityValidated = true;
     } else if (filters.validationStatus === 'pending') {
       where.communityValidated = false;
     }
-    // 'all' means no filter
+    // 'all' means no validation filter, but still excludes rejected sites above
 
     // Category filter
     if (filters.categories && filters.categories.length > 0) {
