@@ -7,6 +7,8 @@ import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitizat
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { validatePostTitle } from "@/lib/domain/validation";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 /**
  * Generate a text preview from post content (max 300 chars for Ring Hub)
@@ -79,7 +81,7 @@ function generateExcerpt(bodyText?: string | null, bodyHtml?: string | null, bod
 
 
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
   const viewer = await getSessionUser(req);
@@ -446,11 +448,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Note: Prompt response logic is now integrated into the main Ring Hub submission loop above
 
-  res.status(201).json({ 
+  res.status(201).json({
     post: {
       ...post,
       authorUsername: postWithAuthor?.author?.primaryHandle?.split('@')[0],
     }
   });
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('posts')(withCsrfProtection(handler));
 

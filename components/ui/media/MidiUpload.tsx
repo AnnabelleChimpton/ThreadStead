@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface MidiUploadProps {
   onUploadSuccess: (media: any) => void;
@@ -153,7 +154,7 @@ export default function MidiUpload({ onUploadSuccess, onCancel, disabled = false
       }
 
       // Upload MIDI file
-      const response = await fetch('/api/media/upload', {
+      const response = await csrfFetch('/api/media/upload', {
         method: 'POST',
         body: formData,
       });

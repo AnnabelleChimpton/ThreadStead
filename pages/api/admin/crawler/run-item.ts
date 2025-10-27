@@ -7,8 +7,10 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { CrawlerWorker } from '@/lib/crawler/crawler-worker';
 import { db } from '@/lib/config/database/connection';
+import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
+import { withRateLimit } from '@/lib/api/middleware/withRateLimit';
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -91,3 +93,6 @@ export default async function handler(
     });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

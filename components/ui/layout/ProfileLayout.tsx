@@ -14,17 +14,21 @@ interface ProfileLayoutProps {
   includeSiteCSS?: boolean;
   templateMode?: TemplateMode;
   cssMode?: CSSMode;
+  initialSiteCSS?: string; // Pre-fetched site CSS from SSR to prevent hydration mismatches
+  preRenderedCSS?: string; // Pre-rendered complete CSS from SSR to prevent hydration mismatches
 }
 
-export default function ProfileLayout({ 
-  children, 
-  customCSS, 
+export default function ProfileLayout({
+  children,
+  customCSS,
   sidebarContent,
   showSidebar = false,
   hideNavigation = false,
   includeSiteCSS = true,
   templateMode = 'default',
-  cssMode = 'inherit'
+  cssMode = 'inherit',
+  initialSiteCSS,
+  preRenderedCSS
 }: ProfileLayoutProps) {
   // Extract CSS mode from custom CSS if not explicitly provided
   const extractCSSMode = (css: string | undefined): CSSMode => {
@@ -40,15 +44,18 @@ export default function ProfileLayout({
 
   const { css: siteWideCSS } = useSiteCSS({
     skipDOMInjection: templateMode === 'advanced', // Advanced templates manage their own CSS
-    cssMode: actualCSSMode
+    cssMode: actualCSSMode,
+    initialCSS: initialSiteCSS // Pass SSR-fetched CSS to prevent hydration mismatch
   });
 
-  // Generate layered CSS instead of direct injection
-  // Use a stable profile ID that doesn't change between server and client
-  const layeredCSS = generateOptimizedCSS({
+  // Use pre-rendered CSS from SSR if available, otherwise generate on client
+  // Pre-rendered CSS ensures server/client consistency and prevents hydration mismatches
+  // Site CSS should only be included if cssMode allows it (not 'disable') AND includeSiteCSS is true
+  const shouldIncludeSiteCSS = includeSiteCSS && actualCSSMode !== 'disable';
+  const layeredCSS = preRenderedCSS ?? generateOptimizedCSS({
     cssMode: actualCSSMode,
     templateMode,
-    siteWideCSS: includeSiteCSS ? siteWideCSS : '',
+    siteWideCSS: shouldIncludeSiteCSS ? siteWideCSS : '',
     userCustomCSS: customCSS || '',
     profileId: 'profile-layout'
   });

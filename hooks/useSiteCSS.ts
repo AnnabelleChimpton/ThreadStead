@@ -3,11 +3,14 @@ import { useEffect, useState, useRef } from "react";
 interface UseSiteCSSOptions {
   skipDOMInjection?: boolean; // For Visual Builder templates that manage their own CSS
   cssMode?: 'inherit' | 'override' | 'disable'; // Respect CSS mode
+  initialCSS?: string; // Pre-fetched CSS from SSR to prevent hydration mismatches
 }
 
 export function useSiteCSS(options: UseSiteCSSOptions = {}) {
-  const [css, setCSS] = useState("/* Site CSS loading... */");
-  const [loading, setLoading] = useState(true);
+  // Use initialCSS if provided (from SSR), otherwise use loading placeholder
+  // Use ?? instead of || to treat empty string as valid "no CSS" state
+  const [css, setCSS] = useState(options.initialCSS ?? "/* Site CSS loading... */");
+  const [loading, setLoading] = useState(options.initialCSS === undefined);
   const hasInitialized = useRef(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -17,6 +20,12 @@ export function useSiteCSS(options: UseSiteCSSOptions = {}) {
   }, []);
 
   useEffect(() => {
+    // Skip fetching if initialCSS was provided (SSR case)
+    if (options.initialCSS) {
+      setLoading(false);
+      return;
+    }
+
     // Only run on client side and prevent multiple initializations
     if (!isClient || hasInitialized.current) {
       return;
@@ -32,7 +41,7 @@ export function useSiteCSS(options: UseSiteCSSOptions = {}) {
           const siteCSS = data.css || "";
           // Store the raw CSS for use by other components that handle layering themselves
           setCSS(siteCSS);
-          
+
           // Only inject into DOM if not skipped and CSS mode allows it
           const shouldInjectToDOM = !options.skipDOMInjection &&
                                   options.cssMode !== 'disable';
@@ -50,7 +59,7 @@ export function useSiteCSS(options: UseSiteCSSOptions = {}) {
               styleElement.innerHTML = '';
             }
           }
-          
+
         }
       } catch (error) {
         console.error("Failed to load site CSS:", error);
@@ -60,7 +69,7 @@ export function useSiteCSS(options: UseSiteCSSOptions = {}) {
     }
 
     fetchSiteCSS();
-  }, [isClient, options.skipDOMInjection, options.cssMode]);
+  }, [isClient, options.skipDOMInjection, options.cssMode, options.initialCSS]);
 
   return { css, loading };
 }

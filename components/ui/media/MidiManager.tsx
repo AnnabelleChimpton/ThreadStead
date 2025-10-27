@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface MidiFile {
   id: string;
@@ -110,14 +111,14 @@ export default function MidiManager({ username }: MidiManagerProps) {
       }
       const { token } = await capRes.json();
 
-      const response = await fetch('/api/profile/midi', {
+      const response = await csrfFetch('/api/profile/midi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           midiId: id,
           autoplay: autoplayEnabled,
           loop: loopEnabled,
-          cap: token 
+          cap: token
         }),
       });
 
@@ -141,14 +142,14 @@ export default function MidiManager({ username }: MidiManagerProps) {
       }
       const { token } = await capRes.json();
 
-      const response = await fetch('/api/profile/midi', {
+      const response = await csrfFetch('/api/profile/midi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           midiId: selectedMidi,
           autoplay: autoplayEnabled,
           loop: loopEnabled,
-          cap: token 
+          cap: token
         }),
       });
 
@@ -229,7 +230,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
         formData.append('title', file.name.replace(/\.(mid|midi)$/i, '')); // Auto title from filename
 
         // Upload file
-        const response = await fetch('/api/media/upload', {
+        const response = await csrfFetch('/api/media/upload', {
           method: 'POST',
           body: formData,
         });

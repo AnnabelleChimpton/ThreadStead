@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getUserDisplayName } from '@/lib/domain/threadrings/blocks'
+import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 
 interface ThreadRingBlock {
   id: string
@@ -70,7 +71,7 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
         ...(addForm.blockType === 'actor' && { actorUri: addForm.target.trim() })
       }
 
-      const response = await fetch(`/api/threadrings/${threadRingSlug}/blocks`, {
+      const response = await csrfFetch(`/api/threadrings/${threadRingSlug}/blocks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData)
@@ -97,7 +98,7 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
     if (!confirm('Are you sure you want to remove this block?')) return
 
     try {
-      const response = await fetch(`/api/threadrings/${threadRingSlug}/blocks/${blockId}`, {
+      const response = await csrfFetch(`/api/threadrings/${threadRingSlug}/blocks/${blockId}`, {
         method: 'DELETE'
       })
 

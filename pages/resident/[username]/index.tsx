@@ -26,6 +26,8 @@ import { useRouter } from "next/router";
 import dynamic from 'next/dynamic';
 import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
+import { getSiteCSS } from "@/lib/utils/css/site-css-server";
+import { generateOptimizedCSS } from "@/lib/utils/css/layers";
 
 
 // Dynamically import components to avoid SSR issues
@@ -44,7 +46,7 @@ const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
 /* ---------------- types ---------------- */
 type ProfileProps = {
   username: string;
-  ownerUserId: string; 
+  ownerUserId: string;
   bio?: string;
   photoUrl?: string;
   customCSS?: string;
@@ -57,6 +59,8 @@ type ProfileProps = {
   templateMode?: 'default' | 'enhanced' | 'advanced';
   includeSiteCSS?: boolean;
   cssMode?: 'inherit' | 'override' | 'disable';
+  initialSiteCSS?: string; // Pre-fetched site CSS from SSR to prevent hydration mismatches
+  preRenderedCSS?: string; // Pre-rendered complete CSS from SSR to prevent hydration mismatches
   // Islands compilation data
   compiledTemplate?: any;
   templateIslands?: any[];
@@ -88,6 +92,8 @@ export default function ProfilePage({
   templateMode = 'default',
   includeSiteCSS = true,
   cssMode = 'inherit',
+  initialSiteCSS,
+  preRenderedCSS,
   compiledTemplate,
   templateIslands,
   templateCompiledAt,
@@ -351,6 +357,8 @@ export default function ProfilePage({
       includeSiteCSS={includeSiteCSS}
       templateMode={templateMode}
       cssMode={cssMode}
+      initialSiteCSS={initialSiteCSS}
+      preRenderedCSS={preRenderedCSS}
     >
       <RetroCard>
         <ProfileHeader
@@ -457,6 +465,9 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   } catch (error) {
     console.error("Failed to fetch admin default CSS:", error);
   }
+
+  // Fetch site-wide CSS server-side to prevent hydration mismatches
+  const siteWideCSS = await getSiteCSS();
   
   // If no admin default CSS is set, leave empty to use clean ThreadStead styling
   // (removing automatic fallback to professional template)
@@ -771,6 +782,22 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (data.profile?.displayName) props.displayName = data.profile.displayName;
   // Note: We don't have user creation date in the current API response,
   // but we can add it if needed in the future
+
+  // Add site-wide CSS for SSR (prevents hydration mismatch)
+  props.initialSiteCSS = siteWideCSS;
+
+  // Generate complete CSS on server to prevent hydration mismatches
+  // This ensures server and client render identical CSS
+  // Site CSS should only be included if cssMode allows it (not 'disable') AND includeSiteCSS is true
+  const shouldIncludeSiteCSS = props.includeSiteCSS && cssMode !== 'disable';
+  const preRenderedCSS = generateOptimizedCSS({
+    cssMode,
+    templateMode,
+    siteWideCSS: shouldIncludeSiteCSS ? siteWideCSS : '',
+    userCustomCSS: props.customCSS || '',
+    profileId: 'profile-layout'
+  });
+  props.preRenderedCSS = preRenderedCSS;
 
   return { props };
 };

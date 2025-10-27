@@ -6,12 +6,17 @@ import { BADGE_TEMPLATES } from "@/lib/domain/threadrings/badges";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-export default withThreadRingSupport(async function handler(
-  req: NextApiRequest, 
-  res: NextApiResponse,
-  system: 'ringhub' | 'local'
-) {
+// Apply CSRF protection and rate limiting
+export default withRateLimit('threadring_operations')(
+  withCsrfProtection(
+    withThreadRingSupport(async function handler(
+      req: NextApiRequest,
+      res: NextApiResponse,
+      system: 'ringhub' | 'local'
+    ) {
   const { slug } = req.query;
 
   if (typeof slug !== "string") {
@@ -336,4 +341,6 @@ export default withThreadRingSupport(async function handler(
   // Method not allowed
   res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
   return res.status(405).json({ error: "Method Not Allowed" });
-});
+    })
+  )
+);

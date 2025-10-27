@@ -2,8 +2,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
 import { shouldUseRingHub } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -91,3 +93,6 @@ export default async function handler(
     });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('threadring_operations')(withCsrfProtection(handler));

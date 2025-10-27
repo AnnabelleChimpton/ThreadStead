@@ -6,6 +6,7 @@ import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
 import EnhancedTemplateEditor from '@/components/features/templates/EnhancedTemplateEditor';
 import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface TemplateEditorPageProps {
   username: string;
@@ -112,7 +113,7 @@ export default function TemplateEditorPage({
   // Clean CSS mode comment from CSS for editor
   const cleanedCssContent = extractedCssContent.replace(/\/\* CSS_MODE:\w+ \*\/\n?/, '');
 
-  const handleSave = async (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean) => {
+  const handleSave = async (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, explicitTemplateMode?: 'default' | 'enhanced' | 'advanced') => {
     // Combine HTML and CSS for API
     const fullTemplate = `${template}${css.trim() ? `\n<style>\n${css}\n</style>` : ''}`;
 
@@ -126,7 +127,7 @@ export default function TemplateEditorPage({
     };
     try {
       // Save the template
-      const response = await fetch(`/api/profile/${username}/template`, {
+      const response = await csrfFetch(`/api/profile/${username}/template`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -164,16 +165,18 @@ export default function TemplateEditorPage({
       const responseData = await response.json();
 
       // Automatically enable template mode and set to advanced
-      const capRes = await fetch("/api/cap/profile", { method: "POST" });
+      const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
       if (capRes.status === 401) {
         throw new Error("Failed to update layout mode. Please check Layout Settings.");
       }
       const { token } = await capRes.json();
 
-      // Set template mode based on whether user has a custom template
-      const templateMode = template.trim() === '' ? 'enhanced' : 'advanced';
-      
-      const layoutResponse = await fetch("/api/profile/update", {
+      // Determine template mode:
+      // 1. If explicitly provided (e.g., from Reset to Default), use it
+      // 2. Otherwise, infer from template content: empty = 'enhanced', has content = 'advanced'
+      const templateMode = explicitTemplateMode || (template.trim() === '' ? 'enhanced' : 'advanced');
+
+      const layoutResponse = await csrfFetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -188,7 +191,7 @@ export default function TemplateEditorPage({
       }
 
       // Also enable the template
-      const templateToggleResponse = await fetch(`/api/profile/${username}/template-toggle`, {
+      const templateToggleResponse = await csrfFetch(`/api/profile/${username}/template-toggle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: true }),

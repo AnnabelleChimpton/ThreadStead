@@ -1,11 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-
 import { requireAdmin } from "@/lib/auth/server";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "DELETE") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -57,3 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(500).json({ error: "Failed to delete comment" });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

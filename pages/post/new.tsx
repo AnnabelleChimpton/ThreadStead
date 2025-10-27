@@ -5,6 +5,7 @@ import Layout from "@/components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import PostEditor from "@/components/ui/forms/PostEditor";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface PostEditorPageProps {
   siteConfig: SiteConfig;
@@ -71,7 +72,7 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
         payload.promptId = respondingToPrompt.id;
       }
 
-      const res = await fetch("/api/posts/create", {
+      const res = await csrfFetch("/api/posts/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

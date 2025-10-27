@@ -8,6 +8,8 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import multer from "multer";
 import { promisify } from "util";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 
 
@@ -232,7 +234,7 @@ async function processAndUploadMedia(
   };
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
@@ -396,3 +398,6 @@ export const config = {
     bodyParser: false,
   },
 };
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('uploads')(withCsrfProtection(handler));

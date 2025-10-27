@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BADGE_TEMPLATES, type BadgeTemplate } from '@/lib/domain/threadrings/badges';
 import ThreadRing88x31Badge from './ThreadRing88x31Badge';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface ThreadRingBadgeManagerProps {
   threadRingSlug: string;
@@ -91,7 +92,7 @@ export default function ThreadRingBadgeManager({
         badgeData.imageUrl = editedBadge.imageUrl;
       }
 
-      const response = await fetch(`/api/threadrings/${threadRingSlug}/badge`, {
+      const response = await csrfFetch(`/api/threadrings/${threadRingSlug}/badge`, {
         method: currentBadge?.id ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +124,7 @@ export default function ThreadRingBadgeManager({
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/threadrings/${threadRingSlug}/badge`, {
+      const response = await csrfFetch(`/api/threadrings/${threadRingSlug}/badge`, {
         method: 'DELETE',
       });
 

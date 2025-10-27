@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 export default function FoundersNoteSection() {
   const [message, setMessage] = useState('');
@@ -23,9 +24,9 @@ export default function FoundersNoteSection() {
   const handleSave = async () => {
     setSaving(true);
     setSaveSuccess(false);
-    
+
     try {
-      const res = await fetch('/api/admin/founders-note', {
+      const res = await csrfFetch('/api/admin/founders-note', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message })

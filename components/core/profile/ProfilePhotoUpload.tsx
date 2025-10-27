@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import ImageCropper from '../../ui/feedback/ImageCropper';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface ProfilePhotoUploadProps {
   currentAvatarUrl?: string;
@@ -64,7 +65,7 @@ export default function ProfilePhotoUpload({
       formData.append('cap', token);
 
       // Upload photo
-      const response = await fetch('/api/profile/upload-photo', {
+      const response = await csrfFetch('/api/profile/upload-photo', {
         method: 'POST',
         body: formData,
       });

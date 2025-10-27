@@ -10,6 +10,7 @@ import { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface QueueStats {
   pending: number;
@@ -219,7 +220,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
   const runCrawler = async () => {
     try {
       setRunning(true);
-      const response = await fetch('/api/admin/crawler/run', {
+      const response = await csrfFetch('/api/admin/crawler/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ batchSize, concurrency })
@@ -246,7 +247,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
     try {
       setTesting(true);
       setTestResult(null);
-      const response = await fetch('/api/admin/crawler/test', {
+      const response = await csrfFetch('/api/admin/crawler/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
@@ -271,7 +272,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
   const runQueueItem = async (itemId: string) => {
     try {
       setRunningItemId(itemId);
-      const response = await fetch('/api/admin/crawler/run-item', {
+      const response = await csrfFetch('/api/admin/crawler/run-item', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: itemId })
@@ -302,7 +303,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
 
     try {
       setAddingUrl(true);
-      const response = await fetch('/api/admin/crawler/queue', {
+      const response = await csrfFetch('/api/admin/crawler/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -334,7 +335,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
     if (!confirm('Retry all failed items?')) return;
 
     try {
-      const response = await fetch('/api/admin/crawler/retry', {
+      const response = await csrfFetch('/api/admin/crawler/retry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -356,7 +357,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
     if (!confirm('Clean up completed items older than 30 days?')) return;
 
     try {
-      const response = await fetch('/api/admin/crawler/cleanup', {
+      const response = await csrfFetch('/api/admin/crawler/cleanup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ olderThanDays: 30 })
@@ -398,7 +399,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
 
     try {
       setAddingBlockedSite(true);
-      const response = await fetch('/api/admin/blocked-sites', {
+      const response = await csrfFetch('/api/admin/blocked-sites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -430,7 +431,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
     if (!confirm(`Remove ${domain} from blocked list?`)) return;
 
     try {
-      const response = await fetch(`/api/admin/blocked-sites/${id}`, {
+      const response = await csrfFetch(`/api/admin/blocked-sites/${id}`, {
         method: 'DELETE'
       });
 
@@ -449,7 +450,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
   const previewCleanup = async () => {
     try {
       setCleaningUp(true);
-      const response = await fetch('/api/admin/blocked-sites/cleanup?dryRun=true', {
+      const response = await csrfFetch('/api/admin/blocked-sites/cleanup?dryRun=true', {
         method: 'POST'
       });
 
@@ -473,7 +474,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
 
     try {
       setCleaningUp(true);
-      const response = await fetch('/api/admin/blocked-sites/cleanup?dryRun=false', {
+      const response = await csrfFetch('/api/admin/blocked-sites/cleanup?dryRun=false', {
         method: 'POST'
       });
 

@@ -7,6 +7,7 @@ import PostEditor from "@/components/ui/forms/PostEditor";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Post } from "@/components/core/content/PostItem";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface EditPostPageProps {
   siteConfig: SiteConfig;
@@ -86,7 +87,7 @@ export default function EditPostPage({ siteConfig, post, username }: EditPostPag
       // Add capability token to payload
       payload.cap = token;
 
-      const res = await fetch("/api/posts/update", {
+      const res = await csrfFetch("/api/posts/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

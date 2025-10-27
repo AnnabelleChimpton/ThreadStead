@@ -7,6 +7,7 @@ import { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface AutoValidationStats {
   pending: {
@@ -78,7 +79,7 @@ export default function AutoValidationDashboard({ siteConfig, user }: Props) {
   const runAutoValidation = async (force = false) => {
     setRunning(true);
     try {
-      const response = await fetch('/api/community-index/auto-validate', {
+      const response = await csrfFetch('/api/community-index/auto-validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force })

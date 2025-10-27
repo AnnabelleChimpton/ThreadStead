@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PostModerationAction, PostModerationStatus } from '@/types/threadrings';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface PostModerationActionsProps {
   postId: string;
@@ -38,7 +39,7 @@ export default function PostModerationActions({
 
     setIsProcessing(true);
     try {
-      const response = await fetch(`/api/threadrings/moderate/${postId}`, {
+      const response = await csrfFetch(`/api/threadrings/moderate/${postId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

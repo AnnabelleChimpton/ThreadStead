@@ -1,10 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { PrismaClient } from '@prisma/client';
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+
 
 const prisma = new PrismaClient();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const user = await getSessionUser(req);
   
   if (!user || user.role !== 'admin') {
@@ -74,3 +77,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.setHeader('Allow', ['GET', 'PUT']);
   res.status(405).json({ error: 'Method not allowed' });
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

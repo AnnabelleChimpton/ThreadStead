@@ -10,6 +10,7 @@ import { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface SeedingStats {
   totalSeeded: number;
@@ -70,7 +71,7 @@ export default function CommunityIndexAdmin({ siteConfig }: Props) {
       setSeeding(true);
       setSeedingReport(null);
 
-      const response = await fetch('/api/admin/community-index/seeding?action=run-daily', {
+      const response = await csrfFetch('/api/admin/community-index/seeding?action=run-daily', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(seedingOptions)

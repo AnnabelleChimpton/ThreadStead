@@ -3,6 +3,8 @@ import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 // Configure S3 client for R2
 let s3Client: S3Client | null = null;
@@ -22,7 +24,7 @@ function getS3Client(): S3Client {
   return s3Client;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "DELETE") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
@@ -67,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Extract keys from URLs to delete from R2
     const baseUrl = process.env.R2_CDN_URL || process.env.R2_PUBLIC_URL;
     const keysToDelete: string[] = [];
-    
+
     if (media.thumbnailUrl) {
       const key = media.thumbnailUrl.replace(`${baseUrl}/`, '');
       keysToDelete.push(key);
@@ -107,3 +109,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('uploads')(withCsrfProtection(handler));

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import UserMention from "@/components/ui/navigation/UserMention";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface ThreadRingInvite {
   id: string;
@@ -68,8 +69,8 @@ export default function ThreadRingInvites({
   const handleInviteResponse = async (inviteId: string, action: "accept" | "decline") => {
     try {
       setResponding(inviteId);
-      
-      const response = await fetch(`/api/threadrings/invites/${inviteId}`, {
+
+      const response = await csrfFetch(`/api/threadrings/invites/${inviteId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

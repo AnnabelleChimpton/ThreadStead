@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
 import { getSessionUser } from '@/lib/auth/server';
+import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
+import { withRateLimit } from '@/lib/api/middleware/withRateLimit';
 
 /**
  * API endpoint for cleaning up blocked sites from the index
@@ -182,7 +184,7 @@ async function performCleanup(dryRun: boolean = true): Promise<CleanupReport> {
   return report;
 }
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse<CleanupReport | { error: string }>
 ) {
@@ -211,3 +213,6 @@ export default async function handler(
     res.status(500).json({ error: 'Failed to perform cleanup' });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

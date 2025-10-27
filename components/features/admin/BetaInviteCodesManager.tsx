@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface BetaInviteCode {
   id: string;
@@ -46,7 +47,7 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
 
   const trackShare = async (codeId: string, shareMethod: string, platform?: string) => {
     try {
-      await fetch(`/api/beta-invite-codes/${codeId}/track-share`, {
+      await csrfFetch(`/api/beta-invite-codes/${codeId}/track-share`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

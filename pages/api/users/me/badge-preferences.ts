@@ -5,6 +5,7 @@ import { db } from '@/lib/config/database/connection'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { getUserDID } from '@/lib/api/did/server-did-client'
+import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection'
 
 export type UserBadgePreferences = {
   selectedBadges: Array<{
@@ -22,7 +23,7 @@ export type UserBadgePreferences = {
   showBadgesOnProfile: boolean
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const user = await getSessionUser(req)
   if (!user) {
     return res.status(401).json({ error: 'Authentication required' })
@@ -224,3 +225,5 @@ async function updateBadgePreferences(req: NextApiRequest, res: NextApiResponse,
     return res.status(500).json({ error: 'Failed to update badge preferences' })
   }
 }
+
+export default withCsrfProtection(handler);

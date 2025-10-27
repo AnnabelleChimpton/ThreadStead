@@ -9,11 +9,15 @@ import CSSGeneratorTools from '@/components/features/templates/CSSGeneratorTools
 import { fetchResidentData } from '@/lib/templates/core/template-data';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { getDefaultProfileTemplate } from '@/lib/templates/default-profile-templates';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToastContext } from '@/lib/templates/state/ToastProvider';
+import ConfirmModal from '@/components/ui/feedback/ConfirmModal';
 
 interface CSSEditorPageProps {
   username: string;
   isOwner: boolean;
   initialCSS: string;
+  initialCSSMode?: 'inherit' | 'override' | 'disable';
   templateMode?: 'default' | 'enhanced' | 'advanced';
   currentUser?: {
     id: string;
@@ -25,11 +29,14 @@ export default function CSSEditorPage({
   username,
   isOwner,
   initialCSS,
+  initialCSSMode = 'inherit',
   templateMode = 'default',
   currentUser
 }: CSSEditorPageProps) {
   const router = useRouter();
+  const { showSuccess, showError } = useToastContext();
   const [css, setCSS] = useState(initialCSS || '/* Add your custom CSS here */\n\n');
+  const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [showReference, setShowReference] = useState(true);
@@ -38,6 +45,7 @@ export default function CSSEditorPage({
   const [residentData, setResidentData] = useState<ResidentData | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [currentTemplateMode, setCurrentTemplateMode] = useState<'default' | 'enhanced' | 'advanced'>(templateMode);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   const handleSave = async () => {
     await performSave(css);
@@ -48,13 +56,13 @@ export default function CSSEditorPage({
     setSaveMessage(null);
 
     try {
-      // Save CSS
-      const response = await fetch(`/api/profile/${username}/css`, {
+      // Save CSS and CSS mode
+      const response = await csrfFetch(`/api/profile/${username}/css`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ customCSS: cssToSave }),
+        body: JSON.stringify({ customCSS: cssToSave, cssMode }),
       });
 
       if (!response.ok) {
@@ -62,18 +70,21 @@ export default function CSSEditorPage({
         throw new Error(errorData.error || 'Failed to save CSS');
       }
 
-      // Automatically switch to enhanced mode
+      // Update template mode: upgrade 'default' to 'enhanced', preserve 'advanced'
+      // This allows CSS editing without breaking custom HTML templates
+      const newTemplateMode = currentTemplateMode === 'default' ? 'enhanced' : currentTemplateMode;
+
       const capRes = await fetch("/api/cap/profile", { method: "POST" });
       if (capRes.status === 401) {
         throw new Error("Failed to update layout mode. Please log in again.");
       }
       const { token } = await capRes.json();
 
-      const layoutResponse = await fetch("/api/profile/update", {
+      const layoutResponse = await csrfFetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          templateMode: 'enhanced',
+          templateMode: newTemplateMode,
           cap: token
         }),
       });
@@ -82,8 +93,14 @@ export default function CSSEditorPage({
         throw new Error("CSS saved, but failed to enable CSS mode. Please check Settings.");
       }
 
-      setCurrentTemplateMode('enhanced');
-      setSaveMessage('✓ CSS saved and activated successfully!');
+      setCurrentTemplateMode(newTemplateMode);
+
+      // Show appropriate success message based on mode change
+      if (currentTemplateMode === 'default') {
+        setSaveMessage('✓ CSS saved and enhanced mode activated!');
+      } else {
+        setSaveMessage('✓ CSS saved successfully!');
+      }
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       setSaveMessage(`Error: ${error instanceof Error ? error.message : 'Failed to save'}`);
@@ -119,21 +136,43 @@ export default function CSSEditorPage({
   }, [css]);
 
   const handleResetToDefault = async () => {
-    if (!confirm('Switch to default layout? Your CSS will be preserved but not displayed until you switch back to CSS mode.')) {
-      return;
-    }
-
     setSaving(true);
-    setSaveMessage(null);
 
     try {
-      const capRes = await fetch("/api/cap/profile", { method: "POST" });
+      // First, clear the CSS
+      const cssResponse = await csrfFetch(`/api/profile/${username}/css`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ customCSS: '', cssMode: 'inherit' }),
+      });
+
+      if (!cssResponse.ok) {
+        throw new Error('Failed to clear CSS');
+      }
+
+      // Clear the template
+      const templateResponse = await csrfFetch(`/api/profile/${username}/template`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ template: '', customCSS: '' }),
+      });
+
+      if (!templateResponse.ok) {
+        throw new Error('Failed to clear template');
+      }
+
+      // Set template mode to 'default'
+      const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
       if (capRes.status === 401) {
         throw new Error("Failed to update layout mode. Please log in again.");
       }
       const { token } = await capRes.json();
 
-      const layoutResponse = await fetch("/api/profile/update", {
+      const layoutResponse = await csrfFetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -143,14 +182,18 @@ export default function CSSEditorPage({
       });
 
       if (!layoutResponse.ok) {
-        throw new Error("Failed to switch to default layout.");
+        throw new Error("Failed to set default mode.");
       }
 
+      // Update local state - stay on CSS editor with cleared CSS
+      setCSS('/* Add your custom CSS here */\n\n');
+      setCSSMode('inherit');
       setCurrentTemplateMode('default');
-      setSaveMessage('✓ Switched to default layout. Your CSS is preserved.');
-      setTimeout(() => setSaveMessage(null), 3000);
+
+      // Show success toast
+      showSuccess('Reset to default successfully! Your profile now uses the site default template.');
     } catch (error) {
-      setSaveMessage(`Error: ${error instanceof Error ? error.message : 'Failed to switch mode'}`);
+      showError(error instanceof Error ? error.message : 'Failed to reset');
     } finally {
       setSaving(false);
     }
@@ -301,10 +344,11 @@ export default function CSSEditorPage({
   }
 
   return (
-    <Layout fullWidth={true}>
-      <Head>
-        <title>{`Simple CSS Editor - ${username} | ThreadStead`}</title>
-      </Head>
+    <>
+      <Layout fullWidth={true}>
+        <Head>
+          <title>{`Simple CSS Editor - ${username} | ThreadStead`}</title>
+        </Head>
       <div className="flex flex-col h-full bg-white overflow-x-hidden">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm flex-shrink-0">
@@ -440,6 +484,14 @@ export default function CSSEditorPage({
                     </span>
                   )}
                   <button
+                    onClick={() => setShowResetModal(true)}
+                    disabled={saving}
+                    className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded font-medium transition-colors disabled:opacity-50 text-sm border border-gray-300"
+                    title="Remove all customizations and return to site default"
+                  >
+                    🔄 Reset to Default
+                  </button>
+                  <button
                     onClick={handleSave}
                     disabled={saving}
                     className="px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded font-medium transition-colors disabled:opacity-50 text-sm"
@@ -485,6 +537,45 @@ export default function CSSEditorPage({
                   </p>
                 </div>
               </details>
+
+              {/* CSS Mode Selector */}
+              <div className="bg-white border-b border-gray-200 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-gray-700">Site CSS Mode:</span>
+                  <select
+                    value={cssMode}
+                    onChange={(e) => setCSSMode(e.target.value as 'inherit' | 'override' | 'disable')}
+                    className="text-sm px-3 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-50"
+                  >
+                    <option value="inherit">✅ Inherit - Extend site styles</option>
+                    <option value="override">⚠️ Override - Priority over site</option>
+                    <option value="disable">🚫 Disable - Full control</option>
+                  </select>
+                </div>
+                <div className={`mt-2 text-xs p-2 rounded ${
+                  cssMode === 'inherit'
+                    ? 'bg-green-50 text-green-800'
+                    : cssMode === 'override'
+                    ? 'bg-yellow-50 text-yellow-800'
+                    : 'bg-red-50 text-red-800'
+                }`}>
+                  {cssMode === 'inherit' && (
+                    <>
+                      <strong>Inherit Mode:</strong> Your CSS adds to ThreadStead&apos;s base styles. Site CSS will be included and your styles extend it.
+                    </>
+                  )}
+                  {cssMode === 'override' && (
+                    <>
+                      <strong>Override Mode:</strong> Your CSS takes priority over ThreadStead&apos;s styles. Site CSS is included but your styles win conflicts.
+                    </>
+                  )}
+                  {cssMode === 'disable' && (
+                    <>
+                      <strong>Disable Mode:</strong> All ThreadStead CSS is disabled - you style everything from scratch. Only your CSS applies.
+                    </>
+                  )}
+                </div>
+              </div>
 
               <div className="flex-1 overflow-hidden">
                 <textarea
@@ -566,7 +657,30 @@ export default function CSSEditorPage({
             </div>
           </div>
         </div>
-    </Layout>
+      </Layout>
+
+      {/* Reset Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showResetModal}
+        title="Reset to Default Template?"
+        message={
+          <div className="space-y-3">
+            <p className="text-gray-700">This will:</p>
+            <ul className="list-disc list-inside text-gray-700 space-y-1 ml-2">
+              <li>Remove all your custom CSS</li>
+              <li>Remove any custom HTML templates</li>
+              <li>Return your profile to the site&apos;s default appearance</li>
+            </ul>
+            <p className="text-gray-900 font-semibold mt-4">This action cannot be undone.</p>
+          </div>
+        }
+        confirmText="Yes, Reset to Default"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleResetToDefault}
+        onCancel={() => setShowResetModal(false)}
+      />
+    </>
   );
 }
 
@@ -621,6 +735,7 @@ export const getServerSideProps: GetServerSideProps<CSSEditorPageProps> = async 
     );
 
     const initialCSS = profileData.profile?.customCSS || '';
+    const initialCSSMode = (profileData.profile?.cssMode as 'inherit' | 'override' | 'disable') || 'inherit';
     const templateMode = (profileData.profile?.templateMode as 'default' | 'enhanced' | 'advanced') || 'default';
 
     return {
@@ -628,6 +743,7 @@ export const getServerSideProps: GetServerSideProps<CSSEditorPageProps> = async 
         username,
         isOwner,
         initialCSS,
+        initialCSSMode,
         templateMode,
         currentUser: currentUser ? JSON.parse(JSON.stringify(currentUser)) : null,
       },

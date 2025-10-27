@@ -13,6 +13,7 @@ import SiteNewsSection from "@/components/features/admin/SiteNewsSection";
 import BetaLandingPagesSection from "@/components/features/admin/BetaLandingPagesSection";
 import IpManagementSection from "@/components/features/admin/IpManagementSection";
 import BetaInviteAnalyticsSection from "@/components/features/admin/BetaInviteAnalyticsSection";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 // Collapsible Section Component
 function CollapsibleSection({ 
@@ -431,7 +432,7 @@ export default function AdminPage() {
   async function generateBetaKey() {
     setGeneratingKey(true);
     try {
-      const res = await fetch("/api/admin/generate-beta-key", {
+      const res = await csrfFetch("/api/admin/generate-beta-key", {
         method: "POST",
       });
       if (res.ok) {
@@ -454,7 +455,7 @@ export default function AdminPage() {
 
     setDeletingUserId(userId);
     try {
-      const res = await fetch("/api/admin/delete-user", {
+      const res = await csrfFetch("/api/admin/delete-user", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
@@ -497,7 +498,7 @@ export default function AdminPage() {
     setSavingConfig(true);
     setConfigMessage(null);
     try {
-      const res = await fetch("/api/admin/site-config", {
+      const res = await csrfFetch("/api/admin/site-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ config: siteConfig }),
@@ -640,7 +641,7 @@ export default function AdminPage() {
     setSavingCSS(true);
     setCSSMessage(null);
     try {
-      const res = await fetch("/api/admin/site-css", {
+      const res = await csrfFetch("/api/admin/site-css", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ css: siteCSS }),
@@ -677,9 +678,9 @@ export default function AdminPage() {
     // Auto-save the template and refresh
     setSavingCSS(true);
     setCSSMessage("Applying template...");
-    
+
     try {
-      const res = await fetch("/api/admin/site-css", {
+      const res = await csrfFetch("/api/admin/site-css", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ css: newCSS }),
@@ -713,9 +714,9 @@ export default function AdminPage() {
       // Auto-save and refresh
       setSavingCSS(true);
       setCSSMessage("Restoring default template...");
-      
+
       try {
-        const res = await fetch("/api/admin/site-css", {
+        const res = await csrfFetch("/api/admin/site-css", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ css: defaultCSS }),
@@ -758,11 +759,11 @@ export default function AdminPage() {
     setSavingHomeSetting(true);
     setHomeMessage(null);
     try {
-      const res = await fetch("/api/admin/site-config", {
+      const res = await csrfFetch("/api/admin/site-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          config: { 
+        body: JSON.stringify({
+          config: {
             disable_default_home: disableDefaultHome ? "true" : "false" 
           } 
         }),
@@ -802,7 +803,7 @@ export default function AdminPage() {
     setSavingLandingSetting(true);
     setLandingMessage(null);
     try {
-      const res = await fetch("/api/admin/site-config", {
+      const res = await csrfFetch("/api/admin/site-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -845,11 +846,11 @@ export default function AdminPage() {
     setSavingDefaultProfileCSS(true);
     setDefaultProfileMessage(null);
     try {
-      const res = await fetch("/api/admin/site-config", {
+      const res = await csrfFetch("/api/admin/site-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          config: { 
+        body: JSON.stringify({
+          config: {
             default_profile_css: defaultProfileCSS 
           } 
         }),
@@ -878,13 +879,13 @@ export default function AdminPage() {
     // Auto-save the template
     setSavingDefaultProfileCSS(true);
     setDefaultProfileMessage("Applying template...");
-    
+
     try {
-      const res = await fetch("/api/admin/site-config", {
+      const res = await csrfFetch("/api/admin/site-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          config: { 
+        body: JSON.stringify({
+          config: {
             default_profile_css: newCSS 
           } 
         }),
@@ -909,7 +910,7 @@ export default function AdminPage() {
     // Generating seed phrase for user
     setGeneratingSeed(userId);
     try {
-      const res = await fetch("/api/admin/generate-user-seed", {
+      const res = await csrfFetch("/api/admin/generate-user-seed", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
@@ -957,7 +958,7 @@ export default function AdminPage() {
     setSavingPolicies(true);
     setPolicyMessage(null);
     try {
-      const res = await fetch("/api/admin/policies", {
+      const res = await csrfFetch("/api/admin/policies", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ policies }),
@@ -1011,11 +1012,11 @@ export default function AdminPage() {
     setSavingEmoji(true);
     setEmojiMessage(null);
     try {
-      const res = await fetch("/api/admin/emojis", {
+      const res = await csrfFetch("/api/admin/emojis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          name: newEmojiName.trim(), 
+        body: JSON.stringify({
+          name: newEmojiName.trim(),
           imageUrl: newEmojiUrl.trim() 
         }),
       });
@@ -1051,7 +1052,7 @@ export default function AdminPage() {
       formData.append('emoji', selectedFile);
       formData.append('name', newEmojiName.trim());
 
-      const res = await fetch("/api/admin/emojis/upload", {
+      const res = await csrfFetch("/api/admin/emojis/upload", {
         method: "POST",
         body: formData,
       });
@@ -1080,7 +1081,7 @@ export default function AdminPage() {
     }
 
     try {
-      const res = await fetch(`/api/admin/emojis/${emojiId}`, {
+      const res = await csrfFetch(`/api/admin/emojis/${emojiId}`, {
         method: "DELETE",
       });
 

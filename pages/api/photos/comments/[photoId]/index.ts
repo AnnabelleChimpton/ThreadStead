@@ -4,10 +4,10 @@ import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { createNotification } from "@/lib/domain/notifications";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const photoId = String(req.query.photoId || "");
   
   if (!photoId) {
@@ -211,3 +211,6 @@ async function handleCreateComment(req: NextApiRequest, res: NextApiResponse, ph
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
+// Apply CSRF protection and rate limiting (CSRF skips GET automatically)
+export default withRateLimit('comments')(withCsrfProtection(handler));

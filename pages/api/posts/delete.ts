@@ -3,10 +3,10 @@ import { db } from "@/lib/config/database/connection";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
   const me = await getSessionUser(req);
@@ -145,10 +145,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Delete the post from local database (cascade will handle all associations)
   await db.post.delete({ where: { id } });
   
-  res.json({ 
+  res.json({
     ok: true,
     ringHubSynced,
     affectedRings: affectedRingsResult,
     threadRingsRemoved: post.threadRings.map(ptr => ptr.threadRing.name),
   });
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('posts')(withCsrfProtection(handler));

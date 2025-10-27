@@ -3,6 +3,8 @@ import { getSessionUser } from '@/lib/auth/server'
 import { generateBadge } from '@/lib/badge-generator'
 import { uploadBadgeImage } from '@/lib/badge-uploader'
 import { db } from '@/lib/config/database/connection'
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 interface BadgeGenerationRequest {
   title: string;
@@ -12,7 +14,7 @@ interface BadgeGenerationRequest {
   textColor?: string;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const user = await getSessionUser(req)
   if (!user) {
     return res.status(401).json({ error: 'Authentication required' })
@@ -84,3 +86,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Failed to generate and upload badge' })
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('threadring_operations')(withCsrfProtection(handler));

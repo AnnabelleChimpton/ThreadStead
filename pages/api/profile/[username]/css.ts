@@ -2,8 +2,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from '@/lib/auth/server';
 import { SITE_NAME } from "@/lib/config/site/constants";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -13,7 +15,7 @@ export default async function handler(
 
   try {
     const username = String(req.query.username);
-    const { customCSS } = req.body;
+    const { customCSS, cssMode } = req.body;
 
     // Get current user
     const currentUser = await getSessionUser(req);
@@ -41,18 +43,33 @@ export default async function handler(
       return res.status(403).json({ error: "Not authorized to edit this profile" });
     }
 
-    // Update the CSS
+    // Validate cssMode if provided
+    if (cssMode && !['inherit', 'override', 'disable'].includes(cssMode)) {
+      return res.status(400).json({ error: "Invalid CSS mode. Must be 'inherit', 'override', or 'disable'" });
+    }
+
+    // Build update data object
+    const updateData: { customCSS: string; cssMode?: string } = { customCSS };
+    if (cssMode !== undefined) {
+      updateData.cssMode = cssMode;
+    }
+
+    // Update the CSS and optionally the CSS mode
     const updatedProfile = await db.profile.update({
       where: { id: handle.user.profile.id },
-      data: { customCSS }
+      data: updateData
     });
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
-      customCSS: updatedProfile.customCSS 
+      customCSS: updatedProfile.customCSS,
+      cssMode: updatedProfile.cssMode
     });
   } catch (error) {
     console.error("Error saving CSS:", error);
     return res.status(500).json({ error: "Failed to save CSS" });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('template_editing')(withCsrfProtection(handler));

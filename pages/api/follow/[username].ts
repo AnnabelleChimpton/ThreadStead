@@ -5,10 +5,9 @@ import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { createFollowNotification, createFriendNotification, checkForMutualFollow } from "@/lib/domain/notifications";
 import { SITE_NAME } from "@/lib/config/site/constants";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 
-
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const viewer = await getSessionUser(req);
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
@@ -59,3 +58,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.setHeader("Allow", ["POST", "DELETE"]);
   res.status(405).json({ error: "Method Not Allowed" });
 }
+
+export default withCsrfProtection(handler);

@@ -2,8 +2,12 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { getSessionUser } from '@/lib/auth/server'
 import { createPromptService } from '@/lib/utils/data/prompt-service'
 import { withThreadRingSupport } from '@/lib/api/ringhub/ringhub-middleware'
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-export default withThreadRingSupport(async function handler(
+export default withRateLimit('threadring_operations')(
+  withCsrfProtection(
+    withThreadRingSupport(async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
   system: 'ringhub' | 'local'
@@ -164,4 +168,6 @@ export default withThreadRingSupport(async function handler(
 
   // Local system fallback (deprecated)
   return res.status(404).json({ error: 'Local prompt system no longer supported' })
-})
+    })
+  )
+)

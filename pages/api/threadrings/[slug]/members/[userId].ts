@@ -2,12 +2,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 // Note: Member role management is currently local-only
 // Ring Hub doesn't expose member management APIs yet
 // TODO: Integrate with Ring Hub member management when available
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "PUT" && req.method !== "DELETE") {
     res.setHeader("Allow", ["PUT", "DELETE"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -172,3 +174,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('threadring_operations')(withCsrfProtection(handler));

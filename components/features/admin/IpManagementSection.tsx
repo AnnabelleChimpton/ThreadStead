@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface IpTracking {
   id: string;
@@ -82,7 +83,7 @@ export default function IpManagementSection() {
 
   const handleBlockIp = async (ipAddress: string, reason = 'Manual block') => {
     try {
-      const response = await fetch(`/api/admin/ip-tracking/${encodeURIComponent(ipAddress)}/block`, {
+      const response = await csrfFetch(`/api/admin/ip-tracking/${encodeURIComponent(ipAddress)}/block`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason })
@@ -104,7 +105,7 @@ export default function IpManagementSection() {
 
   const handleUnblockIp = async (ipAddress: string) => {
     try {
-      const response = await fetch(`/api/admin/ip-tracking/${encodeURIComponent(ipAddress)}/unblock`, {
+      const response = await csrfFetch(`/api/admin/ip-tracking/${encodeURIComponent(ipAddress)}/unblock`, {
         method: 'POST'
       });
 
@@ -143,7 +144,7 @@ export default function IpManagementSection() {
         return;
       }
 
-      const response = await fetch('/api/admin/ip-tracking', {
+      const response = await csrfFetch('/api/admin/ip-tracking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import EmojiPicker from "../feedback/EmojiPicker";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 export type CommentWire = {
   id: string;
@@ -103,7 +104,7 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
       if (!capRes.ok) { setError(`Couldn't get permission (status ${capRes.status}).`); return; }
       const { token } = await capRes.json();
 
-      const res = await fetch(`/api/comments/${encodeURIComponent(postId)}`, {
+      const res = await csrfFetch(`/api/comments/${encodeURIComponent(postId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: text, cap: token, parentId }),

@@ -13,6 +13,7 @@ import FriendManager, { SelectedFriend } from "@/components/core/social/FriendMa
 import ProfilePhotoUpload from "@/components/core/profile/ProfilePhotoUpload";
 import ProfileBadgeSelector from "@/components/core/profile/ProfileBadgeSelector";
 import BetaInviteCodesManager from "@/components/features/admin/BetaInviteCodesManager";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
 import { TemplateEngine } from "@/lib/templates/core/template-engine";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
@@ -120,7 +121,7 @@ export default function ProfileEditPage({
     setSaveMessage(null);
 
     try {
-      const response = await fetch(`/api/profile/${username}/template`, {
+      const response = await csrfFetch(`/api/profile/${username}/template`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -159,7 +160,7 @@ export default function ProfileEditPage({
       const shouldResetNavigation = !newTemplateEnabled && isNavigationHidden;
       
       // First, handle template toggle
-      const response = await fetch(`/api/profile/${username}/template-toggle`, {
+      const response = await csrfFetch(`/api/profile/${username}/template-toggle`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -213,7 +214,7 @@ export default function ProfileEditPage({
         setIsNavigationHidden(false);
         // Also save the navigation change to the server
         try {
-          await fetch(`/api/profile/${username}/navigation-toggle`, {
+          await csrfFetch(`/api/profile/${username}/navigation-toggle`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ hideNavigation: false }),
@@ -249,7 +250,7 @@ export default function ProfileEditPage({
     setSaveMessage(null);
 
     try {
-      const response = await fetch(`/api/profile/${username}/navigation-toggle`, {
+      const response = await csrfFetch(`/api/profile/${username}/navigation-toggle`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1475,3 +1475,17 @@ enum ClaimMethod {
   ADMIN_GRANT // Manually granted by admin
   BETA_ACCESS // Access via beta status
 }
+
+// Rate limiting table for database-backed rate limiting
+model RateLimit {
+  id           String   @id @default(cuid())
+  identifier   String   // userId or IP address
+  category     String   // endpoint category (e.g., "posts", "comments", "uploads")
+  requestCount Int      @default(1)
+  windowStart  DateTime @default(now())
+  expiresAt    DateTime
+
+  @@unique([identifier, category])
+  @@index([identifier, category, windowStart])
+  @@index([expiresAt])
+}

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface BadgeUploadProps {
   onUploadSuccess: (badgeUrls: { badgeImageUrl: string; badgeImageHighResUrl: string }) => void;
@@ -76,7 +77,7 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
       formData.append('context', 'threadring_badge');
       formData.append('ringSlug', ringSlug); // Include ring slug for badge processing
 
-      const response = await fetch('/api/media/upload', {
+      const response = await csrfFetch('/api/media/upload', {
         method: 'POST',
         body: formData,
       });

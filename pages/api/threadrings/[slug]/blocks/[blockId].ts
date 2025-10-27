@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -141,3 +143,6 @@ export default async function handler(
 
   return res.status(405).json({ error: 'Method not allowed' })
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('threadring_operations')(withCsrfProtection(handler));

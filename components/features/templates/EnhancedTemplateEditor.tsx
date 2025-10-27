@@ -17,6 +17,8 @@ import VisualTemplateBuilder from './visual-builder/VisualTemplateBuilder';
 import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
 import { extractLegacyValues, generateConvertedTemplate, generateConvertedCSS, generateConvertedTemplateWithCSS, validateExtractedValues, generateConversionSummary, generateGlobalSettingsFromLegacy } from '@/lib/utils/css/legacy-conversion';
 import ValidationFeedbackPanel from './ValidationFeedbackPanel';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useRouter } from 'next/router';
 
 // Warning dialog for data loss prevention
 interface DataLossWarningProps {
@@ -196,7 +198,7 @@ interface EnhancedTemplateEditorProps {
   initialTemplateMode?: 'default' | 'enhanced' | 'advanced';
   initialShowNavigation?: boolean;
   initialEditorMode?: 'visual' | 'template' | 'css'; // URL mode parameter
-  onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean) => void;
+  onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, templateMode?: 'default' | 'enhanced' | 'advanced') => void;
 }
 
 export default function EnhancedTemplateEditor({
@@ -209,6 +211,8 @@ export default function EnhancedTemplateEditor({
   initialEditorMode,
   onSave
 }: EnhancedTemplateEditorProps) {
+  const router = useRouter();
+
   // AUTO-FIX: Detect and unwrap flow templates that were incorrectly wrapped
   // This fixes templates corrupted by the previous auto-wrap bug
   // CRITICAL: Only unwrap if components have NO positioning attributes (true flow mode)
@@ -276,6 +280,7 @@ export default function EnhancedTemplateEditor({
 
   const [customCSS, setCustomCSS] = useState(initialCSS);
   const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
+  const [currentTemplateMode, setCurrentTemplateMode] = useState<'default' | 'enhanced' | 'advanced'>(initialTemplateMode);
 
   // Pop-up preview window management
   const [previewWindow, setPreviewWindow] = useState<Window | null>(null);
@@ -346,6 +351,69 @@ export default function EnhancedTemplateEditor({
         setCSSMode('inherit');
         setSaveMessage('✓ Switched to Standard Layout mode');
         setTimeout(() => setSaveMessage(null), 3000);
+      }
+    );
+  };
+
+  const resetToDefaultTemplate = () => {
+    showDataLossWarning(
+      "Reset to Default Template",
+      "This will remove all your customizations and return your profile to the admin's default template. Your custom CSS and HTML will be cleared and you'll use the site's default styling.",
+      async () => {
+        // Get username from user prop
+        const username = user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0];
+        if (!username) {
+          setSaveMessage('❌ Could not determine username');
+          setTimeout(() => setSaveMessage(null), 3000);
+          return;
+        }
+
+        // Clear all customizations in local state
+        setUseStandardLayout(true);
+        setTemplate('');
+        setCustomCSS('');
+        setCSSMode('inherit');
+        setHideNavigation(false);
+        setHasUnsavedChanges(false);
+        setSaveState('saving');
+
+        try {
+          // 1. Clear CSS via CSS API
+          await csrfFetch(`/api/profile/${username}/css`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customCSS: '', cssMode: 'inherit' }),
+          });
+
+          // 2. Clear template via template API
+          await csrfFetch(`/api/profile/${username}/template`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ template: '', customCSS: '' }),
+          });
+
+          // 3. Set mode to 'default'
+          const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
+          const { token } = await capRes.json();
+
+          await csrfFetch("/api/profile/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ templateMode: 'default', cap: token }),
+          });
+
+          setSaveState('saved');
+          setSaveMessage('✓ Reset to default template successfully!');
+
+          // Refresh page data to show updated mode without full reload
+          setTimeout(() => {
+            router.replace(router.asPath);
+          }, 500);
+        } catch (error) {
+          setSaveState('error');
+          setSaveMessage('❌ Failed to reset to default');
+          setTimeout(() => setSaveMessage(null), 3000);
+        }
       }
     );
   };
@@ -1210,6 +1278,10 @@ export default function EnhancedTemplateEditor({
       await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, hideNavigation);
       setSaveState('saved');
 
+      // Update template mode - saving moves from 'default' to advanced/enhanced
+      const newMode = useStandardLayout ? 'enhanced' : 'advanced';
+      setCurrentTemplateMode(newMode);
+
       // Check if we have warnings or stripped components
       // Use passed validationInfo first (most current), fall back to state
       const hasIssues = validationInfo
@@ -1505,15 +1577,13 @@ export default function EnhancedTemplateEditor({
               Database: {initialTemplateMode} → {useStandardLayout ? 'enhanced' : 'advanced'}
             </span>
             <div className="flex items-center gap-2">
+              {/* Reset to Default Template Button */}
               <button
-                onClick={useStandardLayout ? loadDefaultTemplate : useStandardLayoutOption}
-                className={`px-2 py-1 text-xs rounded font-medium transition-colors ${
-                  useStandardLayout
-                    ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                }`}
+                onClick={resetToDefaultTemplate}
+                className="px-2 py-1 text-xs rounded font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                title="Remove all customizations and return to site default"
               >
-                Switch to {useStandardLayout ? 'Custom Template' : 'Standard Layout'}
+                🔄 Reset to Default
               </button>
 
               {/* Save State Indicator */}
@@ -1588,6 +1658,21 @@ export default function EnhancedTemplateEditor({
           }
         </div>
       </div>
+
+      {/* Default Mode Warning Banner */}
+      {currentTemplateMode === 'default' && (
+        <div className="mx-4 mt-3 mb-2 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">ℹ️</span>
+            <div className="flex-1">
+              <h4 className="font-semibold text-blue-900 mb-1">Profile in Default Mode</h4>
+              <p className="text-sm text-blue-800 leading-relaxed">
+                Your profile is currently using the site&apos;s default template. Any changes you save here will automatically switch your profile to <strong>Advanced Template Mode</strong>, giving you full control over your design.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tab Navigation - exactly matching original style */}
       <div className="flex gap-1 px-4">

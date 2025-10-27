@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 export interface Collection {
   id: string;
@@ -40,7 +41,7 @@ export function useBookmarks() {
     setError(null);
 
     try {
-      const response = await fetch('/api/bookmarks/save', {
+      const response = await csrfFetch('/api/bookmarks/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

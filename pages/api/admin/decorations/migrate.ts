@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
 import { db } from "@/lib/config/database/connection";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 // Import the existing BETA_ITEMS for migration
 const BETA_ITEMS = {
@@ -125,7 +127,7 @@ const getSVGTemplate = (type: string, itemId: string) => {
   }
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const user = await getSessionUser(req);
     if (!user) {
@@ -210,3 +212,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

@@ -7,6 +7,7 @@ import { validatePostTitle } from "@/lib/domain/validation";
 import EmojiPicker from "@/components/ui/feedback/EmojiPicker";
 import SmartUrlShortener from "@/components/ui/forms/SmartUrlShortener";
 import Link from "next/link";
+import { getCsrfToken } from '@/lib/api/client/csrf-fetch';
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
@@ -317,6 +318,13 @@ export default function PostEditor({
       });
 
       xhr.open('POST', '/api/media/upload');
+
+      // Add CSRF token header
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+      }
+
       xhr.send(formData);
 
       const response = await uploadPromise;

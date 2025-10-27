@@ -4,6 +4,7 @@ import { useSiteConfig } from "@/hooks/useSiteConfig";
 import ImprovedBadgeDisplay from "./ImprovedBadgeDisplay";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import UserMention from "@/components/ui/navigation/UserMention";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 type Entry = {
   id: string;
@@ -99,7 +100,7 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
       const { token } = await capRes.json();
 
       // 2) use the capability in the POST
-      const res = await fetch(`/api/guestbook/${encodeURIComponent(username)}`, {
+      const res = await csrfFetch(`/api/guestbook/${encodeURIComponent(username)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg.trim(), cap: token }),
@@ -136,13 +137,13 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
     try {
       let res;
       if (confirmDelete.isAdmin) {
-        res = await fetch("/api/admin/delete-guestbook", {
+        res = await csrfFetch("/api/admin/delete-guestbook", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ entryId: confirmDelete.entryId })
         });
       } else {
-        res = await fetch(`/api/guestbook/delete/${confirmDelete.entryId}`, {
+        res = await csrfFetch(`/api/guestbook/delete/${confirmDelete.entryId}`, {
           method: "DELETE"
         });
       }

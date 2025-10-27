@@ -1,5 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+
 
 import { requireAdmin } from "@/lib/auth/server";
 
@@ -7,7 +10,7 @@ import { requireAdmin } from "@/lib/auth/server";
 
 const SITE_CSS_KEY = "site_custom_css";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const adminUser = await requireAdmin(req);
   if (!adminUser) {
     return res.status(403).json({ error: "Admin access required" });
@@ -56,3 +59,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(405).json({ error: "Method not allowed" });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

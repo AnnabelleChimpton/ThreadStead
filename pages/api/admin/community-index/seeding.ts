@@ -1,3 +1,6 @@
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+
 /**
  * Admin API for community index seeding controls
  */
@@ -6,7 +9,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { CommunityIndexSeeder } from '@/lib/community-index';
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
@@ -83,3 +86,6 @@ export default async function handler(
     });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

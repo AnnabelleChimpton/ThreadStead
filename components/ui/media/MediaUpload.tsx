@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface MediaUploadProps {
   onUploadSuccess: (media: any) => void;
@@ -109,7 +110,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
       if (title.trim()) formData.append('title', title.trim());
 
       // Upload media
-      const response = await fetch('/api/media/upload', {
+      const response = await csrfFetch('/api/media/upload', {
         method: 'POST',
         body: formData,
       });

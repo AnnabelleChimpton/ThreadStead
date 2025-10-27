@@ -9,6 +9,7 @@ import NoRingsEmptyState from "../../components/features/onboarding/NoRingsEmpty
 import FeatureGate, { NewUserTooltip } from "../../components/features/onboarding/FeatureGate";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { MetadataGenerator } from "@/lib/utils/metadata/metadata-generator";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface ThreadRingsPageProps {
   siteConfig: SiteConfig;
@@ -139,7 +140,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
 
   const handleJoin = async (ringSlug: string) => {
     try {
-      const response = await fetch(`/api/threadrings/${ringSlug}/join`, {
+      const response = await csrfFetch(`/api/threadrings/${ringSlug}/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

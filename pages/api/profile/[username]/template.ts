@@ -10,10 +10,12 @@ import { parseTemplateError, formatTemplateErrorForAPI } from '@/lib/templates/e
 import { getCompiledTemplateWithMetrics, getCacheStats } from '@/lib/templates/compilation/template-cache';
 
 import { SITE_NAME } from '@/lib/config/site/constants';
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { username } = req.query;
     
@@ -116,16 +118,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             };
           }
         );
-
-        const endTime = performance.now();
-        const totalTime = endTime - startTime;
-
-        // Log performance in development
-        if (process.env.NODE_ENV === 'development') {
-          const stats = getCacheStats();
-          console.log(`[TemplateAPI] Compilation completed in ${totalTime.toFixed(0)}ms`);
-          console.log(`[TemplateAPI] Cache stats: ${JSON.stringify(stats)}`);
-        }
 
         // Debug: Check positioning data in final static HTML
         const hasPositioningInStaticHTML = staticHTML.includes('data-positioning-mode') ||
@@ -263,3 +255,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('template_editing')(withCsrfProtection(handler));

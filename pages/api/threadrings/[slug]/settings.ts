@@ -3,12 +3,17 @@ import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-export default withThreadRingSupport(async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-  system: 'ringhub' | 'local'
-) {
+// Apply CSRF protection and rate limiting
+export default withRateLimit('threadring_operations')(
+  withCsrfProtection(
+    withThreadRingSupport(async function handler(
+      req: NextApiRequest,
+      res: NextApiResponse,
+      system: 'ringhub' | 'local'
+    ) {
   if (req.method !== "PUT") {
     res.setHeader("Allow", ["PUT"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -215,4 +220,6 @@ export default withThreadRingSupport(async function handler(
     console.error("Error updating ThreadRing settings:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-});
+    })
+  )
+);

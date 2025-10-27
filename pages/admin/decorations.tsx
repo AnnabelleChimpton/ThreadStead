@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface Decoration {
   id: string;
@@ -96,7 +97,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
     e.preventDefault();
 
     try {
-      const response = await fetch('/api/admin/decorations', {
+      const response = await csrfFetch('/api/admin/decorations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -130,7 +131,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
     if (!confirm('Are you sure you want to delete this decoration?')) return;
 
     try {
-      const response = await fetch(`/api/admin/decorations/${id}`, {
+      const response = await csrfFetch(`/api/admin/decorations/${id}`, {
         method: 'DELETE'
       });
 
@@ -145,7 +146,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
   const handleMigrateBetaItems = async () => {
     setMigrating(true);
     try {
-      const response = await fetch('/api/admin/decorations/migrate', {
+      const response = await csrfFetch('/api/admin/decorations/migrate', {
         method: 'POST'
       });
 
@@ -169,7 +170,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
     const maxClaims = prompt('Enter max claims (leave empty for unlimited):');
 
     try {
-      const response = await fetch(`/api/admin/decorations/${id}/release`, {
+      const response = await csrfFetch(`/api/admin/decorations/${id}/release`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -195,7 +196,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
     if (!userId) return;
 
     try {
-      const response = await fetch(`/api/admin/decorations/${decorationId}/grant`, {
+      const response = await csrfFetch(`/api/admin/decorations/${decorationId}/grant`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

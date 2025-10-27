@@ -7,6 +7,7 @@ import { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface CuratedSite {
   id: string;
@@ -91,7 +92,7 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
       : { ...formData, tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean) };
 
     try {
-      const response = await fetch('/api/admin/curated-sites', {
+      const response = await csrfFetch('/api/admin/curated-sites', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -129,7 +130,7 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
     }
 
     try {
-      const response = await fetch(`/api/admin/curated-sites?id=${id}`, {
+      const response = await csrfFetch(`/api/admin/curated-sites?id=${id}`, {
         method: 'DELETE'
       });
 
@@ -144,7 +145,7 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
 
   const toggleActive = async (site: CuratedSite) => {
     try {
-      const response = await fetch('/api/admin/curated-sites', {
+      const response = await csrfFetch('/api/admin/curated-sites', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

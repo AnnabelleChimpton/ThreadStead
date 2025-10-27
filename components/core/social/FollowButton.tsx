@@ -1,5 +1,6 @@
 // components/FollowButton.tsx
 import React, { useEffect, useState, useCallback } from "react";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 type Rel = "loading" | "anon" | "owner" | "none" | "following" | "followed_by" | "friends";
 
@@ -26,7 +27,7 @@ export default function FollowButton({
   async function follow() {
     setBusy(true); setErr(null);
     try {
-      const r = await fetch(`/api/follow/${encodeURIComponent(username)}`, { method: "POST" });
+      const r = await csrfFetch(`/api/follow/${encodeURIComponent(username)}`, { method: "POST" });
       if (r.status === 401) { setErr("Please log in."); return; }
       if (!r.ok) throw new Error(`follow ${r.status}`);
       await refresh();
@@ -40,7 +41,7 @@ export default function FollowButton({
   async function unfollow() {
     setBusy(true); setErr(null);
     try {
-      const r = await fetch(`/api/follow/${encodeURIComponent(username)}`, { method: "DELETE" });
+      const r = await csrfFetch(`/api/follow/${encodeURIComponent(username)}`, { method: "DELETE" });
       if (!r.ok) throw new Error(`unfollow ${r.status}`);
       await refresh();
     } catch (e:any) {

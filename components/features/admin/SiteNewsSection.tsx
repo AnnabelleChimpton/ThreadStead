@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface SiteNewsItem {
   id: string;
@@ -69,7 +70,7 @@ export default function SiteNewsSection() {
 
   const createNewsItem = async () => {
     try {
-      const response = await fetch('/api/admin/site-news', {
+      const response = await csrfFetch('/api/admin/site-news', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -103,7 +104,7 @@ export default function SiteNewsSection() {
 
   const updateNewsItem = async (item: SiteNewsItem) => {
     try {
-      const response = await fetch(`/api/admin/site-news/${item.id}`, {
+      const response = await csrfFetch(`/api/admin/site-news/${item.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -140,7 +141,7 @@ export default function SiteNewsSection() {
     }
 
     try {
-      const response = await fetch(`/api/admin/site-news/${id}`, {
+      const response = await csrfFetch(`/api/admin/site-news/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       });

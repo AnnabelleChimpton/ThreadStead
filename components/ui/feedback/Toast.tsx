@@ -61,10 +61,11 @@ export default function Toast({ message, type = 'info', duration = 5000, onClose
 
   return (
     <div
-      className={`toast-container fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-md w-full mx-4 transition-all duration-300 ${
+      className={`toast-container fixed inset-0 flex items-center justify-center z-[9999] p-4 pointer-events-none transition-all duration-300 ${
         isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
       }`}
     >
+      <div className="pointer-events-auto max-w-md w-full">
         <div className={`${colors.bg} ${colors.border} ${colors.text} border-2 rounded-xl shadow-2xl p-6`}>
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
@@ -110,6 +111,7 @@ export default function Toast({ message, type = 'info', duration = 5000, onClose
             </button>
           </div>
         </div>
+      </div>
     </div>
   )
 }

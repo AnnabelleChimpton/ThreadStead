@@ -22,6 +22,9 @@ import { GlobalAudioProvider } from "@/contexts/GlobalAudioContext";
 // Import Cookie Consent Banner
 import CookieConsentBanner from "@/components/ui/feedback/CookieConsentBanner";
 
+// Import Toast Provider
+import { ToastProvider } from "@/lib/templates/state/ToastProvider";
+
 // Initialize ThreadRing reconciliation scheduler (server-side only)
 import "@/lib/domain/threadrings/reconciliation-bootstrap";
 
@@ -155,11 +158,12 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <GlobalAudioProvider>
-      <CSSModeProvider
-        cssMode={actualCSSMode}
-        templateMode={templateMode}
-        isVisualBuilder={isVisualBuilder}
-      >
+      <ToastProvider>
+        <CSSModeProvider
+          cssMode={actualCSSMode}
+          templateMode={templateMode}
+          isVisualBuilder={isVisualBuilder}
+        >
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="color-scheme" content="light" />
@@ -366,6 +370,7 @@ ${pageProps.customCSS}`
         />
       </div>
       </CSSModeProvider>
+      </ToastProvider>
     </GlobalAudioProvider>
   );
 }

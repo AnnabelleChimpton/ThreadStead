@@ -2,6 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '../../../lib/auth/server';
 import { db } from '../../../lib/config/database/connection';
 import { z } from 'zod';
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+
 
 const createNewsSchema = z.object({
   title: z.string().min(1).max(255),
@@ -16,7 +19,7 @@ const createNewsSchema = z.object({
 
 const updateNewsSchema = createNewsSchema.partial();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const user = await getSessionUser(req);
 
   if (!user || user.role !== 'admin') {
@@ -125,3 +128,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

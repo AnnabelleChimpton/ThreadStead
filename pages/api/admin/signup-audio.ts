@@ -3,6 +3,9 @@ import { requireAdmin } from '@/lib/auth/server';
 import fs from 'fs';
 import path from 'path';
 import formidable from 'formidable';
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+
 
 export const config = {
   api: {
@@ -45,7 +48,7 @@ function saveAudioConfig(config: AudioConfig) {
   fs.writeFileSync(AUDIO_CONFIG_FILE, JSON.stringify(config, null, 2));
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const user = await requireAdmin(req);
   if (!user) {
     return res.status(403).json({ error: 'Admin access required' });
@@ -141,3 +144,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   res.status(405).json({ error: 'Method not allowed' });
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

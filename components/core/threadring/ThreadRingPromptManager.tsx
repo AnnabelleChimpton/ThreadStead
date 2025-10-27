@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import ThreadRingPromptResponses from './ThreadRingPromptResponses'
+import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 
 interface ThreadRingPrompt {
   id: string
@@ -102,7 +103,7 @@ export default function ThreadRingPromptManager({
     }
 
     try {
-      const response = await fetch(`/api/threadrings/${threadRingSlug}/prompts/${promptId}`, {
+      const response = await csrfFetch(`/api/threadrings/${threadRingSlug}/prompts/${promptId}`, {
         method: 'DELETE'
       })
 

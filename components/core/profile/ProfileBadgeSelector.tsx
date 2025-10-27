@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import ThreadRing88x31Badge from '../threadring/ThreadRing88x31Badge'
 import { UserBadgePreferences } from '@/pages/api/users/me/badge-preferences'
+import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 
 interface AvailableBadge {
   threadRingId: string
@@ -61,7 +62,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
       setSaving(true)
       setError(null)
 
-      const response = await fetch('/api/users/me/badge-preferences', {
+      const response = await csrfFetch('/api/users/me/badge-preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ preferences })

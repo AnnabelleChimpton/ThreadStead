@@ -3,9 +3,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { createCommentNotification, createReplyNotification } from "@/lib/domain/notifications";
 import { db } from "@/lib/config/database/connection";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const postId = String(req.query.postId || "");
   if (!postId) return res.status(400).json({ error: "postId required" });
 
@@ -196,3 +197,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.setHeader("Allow", ["GET", "POST"]);
   return res.status(405).json({ error: "Method Not Allowed" });
 }
+
+// Apply CSRF protection and rate limiting (CSRF skips GET automatically)
+export default withRateLimit('comments')(withCsrfProtection(handler));

@@ -4,6 +4,7 @@ import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import Link from 'next/link';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface BookmarksProps {
   siteConfig: SiteConfig;
@@ -112,7 +113,7 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
     if (!newCollectionName.trim()) return;
 
     try {
-      const response = await fetch('/api/bookmarks/collections', {
+      const response = await csrfFetch('/api/bookmarks/collections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -140,7 +141,7 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
   const visitBookmark = async (bookmark: Bookmark) => {
     // Track visit
     try {
-      await fetch(`/api/bookmarks/${bookmark.id}/visit`, { method: 'POST' });
+      await csrfFetch(`/api/bookmarks/${bookmark.id}/visit`, { method: 'POST' });
     } catch (error) {
       console.error('Failed to track visit:', error);
     }

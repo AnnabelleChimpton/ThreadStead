@@ -4,10 +4,12 @@ import { db } from "@/lib/config/database/connection";
 
 import { getSessionUser } from "@/lib/auth/server";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
   const me = await getSessionUser(req);
@@ -180,3 +182,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   res.json({ post: updated });
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('posts')(withCsrfProtection(handler));

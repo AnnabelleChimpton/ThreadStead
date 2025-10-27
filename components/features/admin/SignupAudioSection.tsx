@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface AudioConfig {
   enabled: boolean;
@@ -41,7 +42,7 @@ export default function SignupAudioSection() {
       const formData = new FormData();
       formData.append('audio', file);
 
-      const response = await fetch('/api/admin/signup-audio', {
+      const response = await csrfFetch('/api/admin/signup-audio', {
         method: 'POST',
         body: formData,
       });
@@ -67,7 +68,7 @@ export default function SignupAudioSection() {
   const handleToggle = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/signup-audio', {
+      const response = await csrfFetch('/api/admin/signup-audio', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !config.enabled }),
@@ -85,7 +86,7 @@ export default function SignupAudioSection() {
 
   const handleVolumeChange = async (volume: number) => {
     try {
-      const response = await fetch('/api/admin/signup-audio', {
+      const response = await csrfFetch('/api/admin/signup-audio', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ volume }),
@@ -103,7 +104,7 @@ export default function SignupAudioSection() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/signup-audio', {
+      const response = await csrfFetch('/api/admin/signup-audio', {
         method: 'DELETE',
       });
 

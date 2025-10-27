@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
 import { getSessionUser } from '@/lib/auth/server';
+import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
+import { withRateLimit } from '@/lib/api/middleware/withRateLimit';
 
 /**
  * API endpoint for managing blocked sites
@@ -130,7 +132,7 @@ async function handlePost(
   }
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Require admin authentication
   const user = await getSessionUser(req);
   if (!user || user.role !== 'admin') {
@@ -146,3 +148,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

@@ -3,6 +3,8 @@
  * Automatically tracks when users navigate to community-indexed sites
  */
 
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+
 export interface ClientDiscoveryEvent {
   fromSite?: string;
   toSite: string;
@@ -122,7 +124,7 @@ export class ClientDiscoveryTracker {
    */
   private async isIndexedSite(siteUrl: string): Promise<boolean> {
     try {
-      const response = await fetch('/api/community-index/check-indexed', {
+      const response = await csrfFetch('/api/community-index/check-indexed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: siteUrl })
@@ -143,7 +145,7 @@ export class ClientDiscoveryTracker {
    */
   private async trackDiscovery(event: ClientDiscoveryEvent): Promise<void> {
     try {
-      await fetch('/api/community-index/track-discovery', {
+      await csrfFetch('/api/community-index/track-discovery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(event)

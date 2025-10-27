@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface BetaLandingPage {
   id: string;
@@ -140,7 +141,7 @@ export default function BetaLandingPagesSection() {
     setFormLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/admin/beta-landing-pages', {
+      const response = await csrfFetch('/api/admin/beta-landing-pages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -172,7 +173,7 @@ export default function BetaLandingPagesSection() {
     setFormLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/admin/beta-landing-pages/${editingPage.id}`, {
+      const response = await csrfFetch(`/api/admin/beta-landing-pages/${editingPage.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -196,7 +197,7 @@ export default function BetaLandingPagesSection() {
 
   const handleCampaignAction = async (pageId: string, action: 'pause' | 'resume' | 'end') => {
     try {
-      const response = await fetch(`/api/admin/beta-landing-pages/${pageId}/${action}`, {
+      const response = await csrfFetch(`/api/admin/beta-landing-pages/${pageId}/${action}`, {
         method: 'POST'
       });
 
@@ -220,7 +221,7 @@ export default function BetaLandingPagesSection() {
 
   const handleUpdateLimit = async (pageId: string, newLimit: number) => {
     try {
-      const response = await fetch(`/api/admin/beta-landing-pages/${pageId}/limit`, {
+      const response = await csrfFetch(`/api/admin/beta-landing-pages/${pageId}/limit`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ signupLimit: newLimit })
@@ -247,7 +248,7 @@ export default function BetaLandingPagesSection() {
     }
 
     try {
-      const response = await fetch(`/api/admin/beta-landing-pages/${pageId}`, {
+      const response = await csrfFetch(`/api/admin/beta-landing-pages/${pageId}`, {
         method: 'DELETE'
       });
 

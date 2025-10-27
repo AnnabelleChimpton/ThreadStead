@@ -2,8 +2,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "DELETE") {
     res.setHeader("Allow", ["DELETE"]);
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -121,3 +123,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('threadring_operations')(withCsrfProtection(handler));

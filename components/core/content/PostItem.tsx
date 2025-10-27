@@ -16,6 +16,7 @@ import ReportButton from "../../ui/feedback/ReportButton";
 import PostActionsDropdown from "./PostActionsDropdown";
 import { useWelcomeRingTracking } from "@/hooks/useWelcomeRingTracking";
 import { useViewportTracking, trackEngagement } from "@/hooks/usePostView";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 
@@ -225,7 +226,7 @@ const countLabel = hasServerCount
     setErr(null);
     try {
       const token = await mintPostCap();
-      const res = await fetch("/api/posts/delete", {
+      const res = await csrfFetch("/api/posts/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: post.id, cap: token }),
@@ -246,13 +247,13 @@ const countLabel = hasServerCount
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/delete-post", {
+      const res = await csrfFetch("/api/admin/delete-post", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postId: post.id }),
       });
       if (!res.ok) throw new Error(`admin delete ${res.status}`);
-      
+
       // Notify parent component that the post was removed
       await onChanged?.();
     } catch (e: any) {
@@ -265,17 +266,17 @@ const countLabel = hasServerCount
 
   async function handlePinToggle() {
     if (!threadRingContext || !canModerateRing) return;
-    
+
     setBusy(true);
     setErr(null);
     try {
       const method = post.isPinned ? "DELETE" : "POST";
-      const res = await fetch(`/api/threadrings/${threadRingContext.slug}/posts/${post.id}/pin`, {
+      const res = await csrfFetch(`/api/threadrings/${threadRingContext.slug}/posts/${post.id}/pin`, {
         method,
         headers: { "Content-Type": "application/json" },
       });
       if (!res.ok) throw new Error(`pin toggle ${res.status}`);
-      
+
       await onChanged?.();
     } catch (e: any) {
       setErr(e?.message || "Failed to toggle pin");
@@ -287,11 +288,11 @@ const countLabel = hasServerCount
   async function handleRemoveFromRing() {
     if (!threadRingContext || !canModerateRing) return;
     if (!confirm(`Remove this post from ${threadRingContext.name}?`)) return;
-    
+
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/threadrings/${threadRingContext.slug}/posts/${post.id}/remove`, {
+      const res = await csrfFetch(`/api/threadrings/${threadRingContext.slug}/posts/${post.id}/remove`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
       });

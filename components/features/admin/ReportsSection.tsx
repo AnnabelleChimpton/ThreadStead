@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface Report {
   id: string;
@@ -81,7 +82,7 @@ export default function ReportsSection() {
   async function updateReportStatus(reportId: string, status: string, resolution?: string) {
     setUpdating(reportId);
     try {
-      const res = await fetch("/api/admin/reports", {
+      const res = await csrfFetch("/api/admin/reports", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reportId, status, resolution })
@@ -135,7 +136,7 @@ export default function ReportsSection() {
           return;
       }
 
-      const res = await fetch(deleteEndpoint, {
+      const res = await csrfFetch(deleteEndpoint, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(deletePayload)

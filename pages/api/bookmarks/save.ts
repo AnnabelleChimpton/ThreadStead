@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { db } from '@/lib/config/database/connection';
+import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
 
 interface SaveRequest {
   url: string;
@@ -13,7 +14,7 @@ interface SaveRequest {
   notes?: string;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -211,3 +212,5 @@ function inferSiteType(metadata: any): string {
 
   return 'other';
 }
+
+export default withCsrfProtection(handler);

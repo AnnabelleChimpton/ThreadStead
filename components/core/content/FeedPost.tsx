@@ -12,6 +12,7 @@ import ThreadRingBadge from "../threadring/ThreadRingBadge";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import { useMe } from "@/hooks/useMe";
 import UserMention from "@/components/ui/navigation/UserMention";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 
@@ -173,7 +174,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
     
     try {
       const token = await mintPostCap();
-      const res = await fetch("/api/posts/delete", {
+      const res = await csrfFetch("/api/posts/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: post.id, cap: token }),

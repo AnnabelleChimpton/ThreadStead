@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface SimilarSite {
   url: string;
@@ -77,7 +78,7 @@ export function SiteLikeThis({
   const handleSiteClick = async (targetUrl: string, recommendationType: string) => {
     try {
       // Track the recommendation click
-      await fetch('/api/community-index/track-discovery', {
+      await csrfFetch('/api/community-index/track-discovery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

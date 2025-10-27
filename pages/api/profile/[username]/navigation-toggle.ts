@@ -3,10 +3,12 @@ import { getSessionUser } from '@/lib/auth/server';
 import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from '@/lib/config/site/constants';
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { username } = req.query;
     
@@ -64,3 +66,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('profile_toggles')(withCsrfProtection(handler));

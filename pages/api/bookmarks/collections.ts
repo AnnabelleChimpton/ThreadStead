@@ -1,8 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { db } from '@/lib/config/database/connection';
+import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const user = await getSessionUser(req as any);
     if (!user) {
@@ -193,3 +194,5 @@ async function deleteCollection(req: NextApiRequest, res: NextApiResponse, userI
 
   return res.json({ success: true });
 }
+
+export default withCsrfProtection(handler);

@@ -7,6 +7,9 @@ import RetroCard from "@/components/ui/layout/RetroCard";
 import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import { getSessionUser } from "@/lib/auth/server";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToastContext } from '@/lib/templates/state/ToastProvider';
+import ConfirmModal from '@/components/ui/feedback/ConfirmModal';
 
 // Import existing components
 import ProfilePhotoUpload from "@/components/core/profile/ProfilePhotoUpload";
@@ -59,8 +62,10 @@ interface UserSettingsProps {
 export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) {
   const router = useRouter();
   const { user: currentUser } = useCurrentUser();
+  const { showSuccess, showError } = useToastContext();
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   // Profile state
   const [displayName, setDisplayName] = useState(initialUser.profile?.displayName || "");
@@ -180,7 +185,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
         avatarUrl: f.avatarUrl
       }));
 
-      const response = await fetch("/api/profile/update", {
+      const response = await csrfFetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -767,6 +772,79 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
               Learn more about customization options →
             </Link>
           </div>
+
+          {/* Reset Section */}
+          <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+            <h4 className="font-semibold text-gray-900 mb-2">🔄 Reset to Default</h4>
+            <p className="text-sm text-gray-700 mb-3">
+              Want to start fresh? Remove all your customizations and return your profile to the site&apos;s default appearance.
+            </p>
+            <button
+              onClick={() => setShowResetModal(true)}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded border border-gray-400 transition-colors text-sm"
+            >
+              🔄 Reset to Default Template
+            </button>
+          </div>
+
+          {/* Reset Confirmation Modal */}
+          <ConfirmModal
+            isOpen={showResetModal}
+            title="Reset to Default Template?"
+            message={
+              <div className="space-y-3">
+                <p className="text-gray-700">This will:</p>
+                <ul className="list-disc list-inside text-gray-700 space-y-1 ml-2">
+                  <li>Remove all your custom CSS</li>
+                  <li>Remove any custom HTML templates</li>
+                  <li>Return your profile to the site&apos;s default appearance</li>
+                </ul>
+                <p className="text-gray-900 font-semibold mt-4">This action cannot be undone.</p>
+              </div>
+            }
+            confirmText="Yes, Reset to Default"
+            cancelText="Cancel"
+            variant="danger"
+            onConfirm={async () => {
+              try {
+                // Clear CSS
+                const cssResponse = await csrfFetch(`/api/profile/${username}/css`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ customCSS: '', cssMode: 'inherit' }),
+                });
+
+                // Clear template
+                const templateResponse = await csrfFetch(`/api/profile/${username}/template`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ template: '', customCSS: '' }),
+                });
+
+                // Set mode to default
+                const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
+                const { token } = await capRes.json();
+
+                const layoutResponse = await csrfFetch("/api/profile/update", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ templateMode: 'default', cap: token }),
+                });
+
+                if (cssResponse.ok && templateResponse.ok && layoutResponse.ok) {
+                  showSuccess('Reset to default successfully!');
+                  setTimeout(() => {
+                    window.location.href = `/resident/${username}`;
+                  }, 1000);
+                } else {
+                  showError('Failed to reset. Please try again.');
+                }
+              } catch (error) {
+                showError(error instanceof Error ? error.message : 'Failed to reset');
+              }
+            }}
+            onCancel={() => setShowResetModal(false)}
+          />
         </div>
       )
     },

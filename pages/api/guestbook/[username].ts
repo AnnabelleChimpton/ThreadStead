@@ -4,9 +4,11 @@ import { db } from "@/lib/config/database/connection";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { createGuestbookNotification } from "@/lib/domain/notifications";
 import { SITE_NAME } from "@/lib/config/site/constants";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const username = String(req.query.username || "");
   if (!username) return res.status(400).json({ error: "username required" });
 
@@ -115,3 +117,6 @@ if (req.method === "POST") {
   res.setHeader("Allow", ["GET", "POST"]);
   return res.status(405).json({ error: "Method Not Allowed" });
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('guestbook')(withCsrfProtection(handler));

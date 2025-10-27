@@ -23,6 +23,7 @@ import { useToast } from "../../hooks/useToast";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import WelcomeRingGuide from "../../components/features/onboarding/WelcomeRingGuide";
 import { useWelcomeTracking } from "../../hooks/useWelcomeTracking";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useWelcomeRingTracking } from "../../hooks/useWelcomeRingTracking";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 
@@ -676,7 +677,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     try {
       setJoining(true);
       
-      const response = await fetch(`/api/threadrings/${ring.slug}/join`, {
+      const response = await csrfFetch(`/api/threadrings/${ring.slug}/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -731,7 +732,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     try {
       setJoining(true); // Reuse the loading state
       
-      const response = await fetch(`/api/threadrings/${ring.slug}/leave`, {
+      const response = await csrfFetch(`/api/threadrings/${ring.slug}/leave`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

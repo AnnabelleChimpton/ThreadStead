@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface Post {
   id: string;
@@ -92,7 +93,7 @@ export default function PostsSection() {
 
     setDeleting(post.id);
     try {
-      const res = await fetch("/api/admin/delete-post", {
+      const res = await csrfFetch("/api/admin/delete-post", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postId: post.id }),

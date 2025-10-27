@@ -2,11 +2,14 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { requireAdmin } from "@/lib/auth/server";
 import { generateSeedPhrase, createKeypairFromSeedPhrase } from "@/lib/api/did/did-client";
 import { db } from "@/lib/config/database/connection";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
+import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
 
 
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const adminUser = await requireAdmin(req);
   if (!adminUser) {
     return res.status(403).json({ error: "Admin access required" });
@@ -77,3 +80,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Failed to generate seed phrase" });
   }
 }
+
+// Apply CSRF protection and rate limiting
+export default withRateLimit('admin')(withCsrfProtection(handler));

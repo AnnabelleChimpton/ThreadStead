@@ -446,12 +446,21 @@ export function generatePreviewCSS({
  * Check if CSS Layers are supported by the browser
  */
 export function supportsCSSLayers(): boolean {
-  if (typeof window === 'undefined') return true; // SSR assumes support
-  
+  // During SSR, always return true to ensure server/client consistency
+  // Modern browsers all support CSS layers, and fallback is handled if needed
+  if (typeof window === 'undefined') return true;
+
+  // During client-side rendering, check actual browser support
   try {
-    return CSS.supports('@layer base {}');
+    // Check if CSS global exists and supports layers
+    if (typeof CSS !== 'undefined' && CSS.supports) {
+      return CSS.supports('@layer base {}');
+    }
+    // If CSS.supports doesn't exist, assume modern browser with layer support
+    return true;
   } catch {
-    return false;
+    // If any error occurs, assume support to match SSR behavior
+    return true;
   }
 }
 
