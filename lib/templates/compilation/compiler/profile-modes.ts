@@ -1,14 +1,15 @@
 // Profile mode compilation logic
-import type { 
-  ProfileRenderContext, 
-  CompiledTemplate, 
+import type {
+  ProfileRenderContext,
+  CompiledTemplate,
   CompilationResult,
   ProfileMode,
-  CompilationOptions 
+  CompilationOptions
 } from './types';
 import { compileTemplate } from '@/lib/templates/compilation/template-parser';
 import { identifyIslandsWithTransform } from './island-detector';
 import { generateStaticHTML } from './html-optimizer';
+import { cleanCss } from '@/lib/utils/sanitization/css';
 
 // Main profile template compilation function
 export async function compileProfileTemplate(
@@ -77,10 +78,11 @@ async function compileEnhancedMode(
   
   const customCSS = context.user.profile?.customCSS;
   let staticHTML = defaultCompilation.compiled.staticHTML;
-  
-  // Inject custom CSS if provided
+
+  // Inject custom CSS if provided (sanitize as defensive measure)
   if (customCSS) {
-    const styleTag = `<style type="text/css">${customCSS}</style>`;
+    const sanitizedCSS = cleanCss(customCSS);
+    const styleTag = `<style type="text/css">${sanitizedCSS}</style>`;
     staticHTML = injectCSS(staticHTML, styleTag);
   }
   

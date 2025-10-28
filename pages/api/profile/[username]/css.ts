@@ -4,6 +4,7 @@ import { getSessionUser } from '@/lib/auth/server';
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { cleanCss } from "@/lib/utils/sanitization/css";
 
 async function handler(
   req: NextApiRequest,
@@ -48,8 +49,11 @@ async function handler(
       return res.status(400).json({ error: "Invalid CSS mode. Must be 'inherit', 'override', or 'disable'" });
     }
 
+    // Sanitize CSS to prevent XSS attacks
+    const sanitizedCSS = cleanCss(customCSS || '');
+
     // Build update data object
-    const updateData: { customCSS: string; cssMode?: string } = { customCSS };
+    const updateData: { customCSS: string; cssMode?: string } = { customCSS: sanitizedCSS };
     if (cssMode !== undefined) {
       updateData.cssMode = cssMode;
     }

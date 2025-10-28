@@ -76,6 +76,25 @@ function isValidUrl(url: string): boolean {
   }
 }
 
+// Validate image URLs (for emojis and other images)
+// Prevents javascript:, data:text/html and other XSS vectors
+function isValidImageUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    // Allow http, https, and data:image/* URLs only
+    if (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') {
+      return true;
+    }
+    // Allow data URLs only for images
+    if (urlObj.protocol === 'data:') {
+      return url.startsWith('data:image/');
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 // Parse inline markup (bold, italic, links, emojis)
 function parseInline(text: string): (string | ParsedContent)[] {
   const parts: (string | ParsedContent)[] = [];
@@ -155,7 +174,7 @@ function parseInline(text: string): (string | ParsedContent)[] {
         const [fullMatch, emojiName] = emojiMatch;
         const emojiUrl = emojiMap.get(emojiName);
 
-        if (emojiUrl) {
+        if (emojiUrl && isValidImageUrl(emojiUrl)) {
           if (current) {
             parts.push(current);
             current = '';
@@ -170,7 +189,7 @@ function parseInline(text: string): (string | ParsedContent)[] {
           i += fullMatch.length;
           continue;
         }
-        // If emoji not found, continue as regular text
+        // If emoji not found or invalid URL, continue as regular text
       }
     }
 
@@ -235,8 +254,10 @@ export function processHtmlWithEmojis(html: string): string {
 
   return html.replace(/:([a-zA-Z0-9_-]+):/g, (match, emojiName) => {
     const emojiUrl = emojiMap.get(emojiName);
-    if (emojiUrl) {
-      return `<img src="${emojiUrl}" alt="${match}" title="${match}" class="inline-block mx-1 align-text-bottom" style="display: inline-block; width: 20px; height: 20px; margin: 0 0.25rem; vertical-align: text-bottom; object-fit: contain; image-rendering: -webkit-optimize-contrast; -webkit-backface-visibility: hidden; transform: translateZ(0); filter: contrast(1.05);" />`;
+    if (emojiUrl && isValidImageUrl(emojiUrl)) {
+      // Escape the URL to prevent attribute injection attacks
+      const escapedUrl = escapeHtml(emojiUrl);
+      return `<img src="${escapedUrl}" alt="${escapeHtml(match)}" title="${escapeHtml(match)}" class="inline-block mx-1 align-text-bottom" style="display: inline-block; width: 20px; height: 20px; margin: 0 0.25rem; vertical-align: text-bottom; object-fit: contain; image-rendering: -webkit-optimize-contrast; -webkit-backface-visibility: hidden; transform: translateZ(0); filter: contrast(1.05);" />`;
     }
     return match;
   });
@@ -569,7 +590,7 @@ function parseEmojiText(text: string): React.ReactNode {
         const [fullMatch, emojiName] = emojiMatch;
         const emojiUrl = emojiMap.get(emojiName);
 
-        if (emojiUrl) {
+        if (emojiUrl && isValidImageUrl(emojiUrl)) {
           if (current) {
             parts.push(current);
             current = '';
@@ -603,7 +624,7 @@ function parseEmojiText(text: string): React.ReactNode {
           i += fullMatch.length;
           continue;
         }
-        // If emoji not found, continue as regular text
+        // If emoji not found or invalid URL, continue as regular text
       }
     }
 

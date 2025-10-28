@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import ProfileModeRenderer, { ProfileUser } from '@/components/core/profile/ProfileModeRenderer';
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
@@ -15,6 +15,7 @@ import MediaGrid from '@/components/core/profile/tabs/MediaGrid';
 import FriendsWebsitesGrid from '@/components/core/profile/tabs/FriendsWebsitesGrid';
 import ProfileBadgeDisplay from '@/components/core/profile/ProfileBadgeDisplay';
 import Guestbook from '@/components/shared/Guestbook';
+import { cleanCss } from '@/lib/utils/sanitization/css';
 // Removed unused imports - now using ProfileModeRenderer like production
 
 interface PreviewData {
@@ -110,6 +111,12 @@ export default function PreviewTemp() {
     };
   }, [isReady, previewData]);
 
+  // Sanitize custom CSS to prevent XSS attacks (must be before early return)
+  const sanitizedCSS = useMemo(() => {
+    if (!previewData?.customCSS) return '';
+    return cleanCss(previewData.customCSS);
+  }, [previewData?.customCSS]);
+
   if (!isReady || !previewData) {
     return (
       <>
@@ -128,7 +135,7 @@ export default function PreviewTemp() {
   }
 
   const { user, residentData, customCSS, showNavigation = false, template, cssMode } = previewData;
-  
+
   // Ensure cssMode is properly typed
   const typedCSSMode: 'inherit' | 'override' | 'disable' = (cssMode as 'inherit' | 'override' | 'disable') || 'inherit';
 
@@ -299,10 +306,10 @@ export default function PreviewTemp() {
           </ResidentDataProvider>
           
           {/* EMERGENCY CSS INJECTION - Force user CSS to win no matter what */}
-          {customCSS && (
+          {sanitizedCSS && (
             <style dangerouslySetInnerHTML={{ __html: `
-              /* EMERGENCY OVERRIDE - USER CSS MUST WIN - RAW INJECTION */
-              ${customCSS}
+              /* EMERGENCY OVERRIDE - USER CSS MUST WIN - SANITIZED INJECTION */
+              ${sanitizedCSS}
             ` }} />
           )}
         </div>
@@ -383,8 +390,8 @@ export default function PreviewTemp() {
       {/* User content with optional navigation and ResidentDataProvider */}
       <div style={{ paddingTop: showNavigation ? '120px' : '40px' }}>
         {/* Apply user's custom CSS FIRST - this is the ONLY styling that should affect the page */}
-        {customCSS && (
-          <style dangerouslySetInnerHTML={{ __html: customCSS }} />
+        {sanitizedCSS && (
+          <style dangerouslySetInnerHTML={{ __html: sanitizedCSS }} />
         )}
         
         {/* Show site navigation if toggle is enabled */}
