@@ -9,7 +9,10 @@ const nextConfig: NextConfig = {
 
   // Configure external image domains
   images: {
-    domains: ['cdn.homepageagain.com'],
+    domains: [
+      'cdn.homepageagain.com',
+      'cdn.discordapp.com',
+    ],
   },
 
   // Rewrite DID document paths to API routes
