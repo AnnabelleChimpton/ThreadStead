@@ -405,6 +405,65 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
     <>
       <Head>
         <title>Create Your Account | {siteConfig.site_name}</title>
+        <style>{`
+          /* Protect signup theme cards from global site CSS overrides */
+          .signup-theme-cards-protected button.theme-card {
+            /* Reset unwanted admin button styles (use !important only for resets) */
+            background-image: none !important;
+            text-shadow: none !important;
+            text-decoration: none !important;
+            filter: none !important;
+
+            /* Apply theme card layout styles (these don't conflict with inline styles) */
+            border-width: 2px !important;
+            border-radius: 0.5rem !important;
+            padding: 1rem !important;
+            transition: all 0.2s !important;
+            text-align: left !important;
+            cursor: pointer !important;
+            font-weight: normal !important;
+          }
+
+          /* Preserve hover effects */
+          .signup-theme-cards-protected button.theme-card:hover {
+            transform: translate(1px, 1px) !important;
+          }
+
+          /* Preserve selected state shadow */
+          .signup-theme-cards-protected button.theme-card.selected {
+            box-shadow: 4px 4px 0 #3B82F6 !important;
+          }
+
+          .signup-theme-cards-protected button.theme-card.unselected {
+            box-shadow: 2px 2px 0 #000 !important;
+          }
+
+          .signup-theme-cards-protected button.theme-card.unselected:hover {
+            box-shadow: 1px 1px 0 #000 !important;
+          }
+
+          /* Protect preview elements inside cards */
+          .signup-theme-cards-protected button.theme-card .preview-element {
+            padding: 0.25rem 0.5rem !important;
+            font-size: 0.75rem !important;
+            font-weight: 500 !important;
+            border-radius: 0.25rem !important;
+          }
+
+          /* Protect selection badge */
+          .signup-theme-cards-protected button.theme-card .selection-badge {
+            position: absolute !important;
+            top: 0.5rem !important;
+            right: 0.5rem !important;
+            background-color: #3B82F6 !important;
+            color: white !important;
+            padding: 0.25rem 0.5rem !important;
+            border-radius: 0.25rem !important;
+            font-size: 0.75rem !important;
+            font-weight: bold !important;
+            z-index: 10 !important;
+          }
+        `}</style>
       </Head>
       <Layout siteConfig={siteConfig}>
         <div className="max-w-2xl mx-auto p-6">
@@ -861,17 +920,17 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-6">
+              <div className="signup-theme-cards-protected grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-6">
                 {(['abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social', 'classic-linen'] as ProfileTemplateType[]).map((templateType) => {
                   const templateInfo = DEFAULT_PROFILE_TEMPLATE_INFO[templateType];
                   const previewStyle = getTemplatePreviewStyle(templateType);
                   const isSelected = selectedTemplate === templateType;
-                  
+
                   return (
                     <button
                       key={templateType}
                       onClick={() => setSelectedTemplate(templateType)}
-                      className={`relative border-2 ${isSelected ? 'border-blue-500 shadow-[4px_4px_0_#3B82F6]' : 'border-black shadow-[2px_2px_0_#000]'} rounded-lg p-4 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] text-left overflow-hidden`}
+                      className={`theme-card ${isSelected ? 'selected' : 'unselected'} relative border-2 ${isSelected ? 'border-blue-500 shadow-[4px_4px_0_#3B82F6]' : 'border-black shadow-[2px_2px_0_#000]'} rounded-lg p-4 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] text-left overflow-hidden`}
                       style={{
                         ...previewStyle,
                         borderColor: isSelected ? '#3B82F6' : '#000'
@@ -882,7 +941,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       
                       {/* Selection Badge */}
                       {isSelected && (
-                        <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold z-10">
+                        <div className="selection-badge absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold z-10">
                           Selected
                         </div>
                       )}
@@ -903,8 +962,8 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                         
                         {/* Preview Elements */}
                         <div className="mt-3 flex gap-2">
-                          <div 
-                            className="px-2 py-1 text-xs font-medium rounded"
+                          <div
+                            className="preview-element px-2 py-1 text-xs font-medium rounded"
                             style={{
                               backgroundColor: TEMPLATE_PREVIEW_STYLES[templateType]?.primaryColor + '20',
                               color: TEMPLATE_PREVIEW_STYLES[templateType]?.primaryColor,
@@ -915,8 +974,8 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                           >
                             Button
                           </div>
-                          <div 
-                            className="px-2 py-1 text-xs font-medium rounded"
+                          <div
+                            className="preview-element px-2 py-1 text-xs font-medium rounded"
                             style={{
                               backgroundColor: TEMPLATE_PREVIEW_STYLES[templateType]?.secondaryColor + '20',
                               color: TEMPLATE_PREVIEW_STYLES[templateType]?.secondaryColor,
@@ -928,8 +987,8 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                             Link
                           </div>
                           {TEMPLATE_PREVIEW_STYLES[templateType]?.accentColor && (
-                            <div 
-                              className="px-2 py-1 text-xs font-medium rounded"
+                            <div
+                              className="preview-element px-2 py-1 text-xs font-medium rounded"
                               style={{
                                 backgroundColor: TEMPLATE_PREVIEW_STYLES[templateType].accentColor + '20',
                                 color: TEMPLATE_PREVIEW_STYLES[templateType].accentColor,

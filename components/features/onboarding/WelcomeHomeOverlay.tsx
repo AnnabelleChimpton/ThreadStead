@@ -64,7 +64,7 @@ export default function WelcomeHomeOverlay({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9998] pointer-events-none">
+    <div className="fixed inset-0 z-[10000] pointer-events-none">
       {/* Theme-colored background overlay */}
       <div 
         className={`absolute inset-0 transition-opacity duration-1000 ${
@@ -104,129 +104,122 @@ export default function WelcomeHomeOverlay({
             </button>
 
             {/* Main welcome text with enhanced visibility */}
-            <div className="bg-white border border-black rounded-none p-6 shadow-[4px_4px_0_#000] mb-3 w-full">
-              <h1
-                className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 tracking-wide text-center"
-                style={{ color: primaryColor }}
-              >
-                Welcome Home
+            <div className="bg-white border border-black rounded-none p-3 shadow-[4px_4px_0_#000] mb-3 w-full">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 tracking-wide text-center">
+                <span style={{ color: primaryColor }}>Welcome Home</span>
+                <span style={{ color: secondaryColor }}>, {username}</span>
               </h1>
 
-              {/* Subtitle */}
-              <p
-                className="text-lg sm:text-xl md:text-2xl font-semibold text-center mb-3"
-                style={{ color: secondaryColor }}
-              >
-                @{username}
-              </p>
-              
-              {/* Founder's Note */}
-              {foundersNote && (
+              {/* Side-by-side layout for Founder's Note and First Steps */}
+              <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {/* Founder's Note */}
+                {foundersNote && (
+                  <div
+                    className="p-3 rounded-xl"
+                    style={{
+                      background: `${backgroundColor}80`,
+                      border: `1px solid ${primaryColor}30`
+                    }}
+                  >
+                    <h3
+                      className="text-sm font-semibold mb-2 flex items-center justify-center gap-2"
+                      style={{ color: primaryColor }}
+                    >
+                      <span>💌</span> A Note from the Founder
+                    </h3>
+                    <p
+                      className="text-sm leading-snug text-center"
+                      style={{ color: primaryColor + 'DD' }}
+                    >
+                      {foundersNote}
+                    </p>
+                  </div>
+                )}
+
+                {/* First Steps Action Items */}
                 <div
-                  className="mt-4 p-4 rounded-xl mx-auto max-w-xl"
+                  className="p-3 rounded-xl"
                   style={{
-                    background: `${backgroundColor}80`,
-                    border: `1px solid ${primaryColor}30`
+                    background: `${secondaryColor}15`,
+                    border: `1px solid ${secondaryColor}30`
                   }}
                 >
                   <h3
-                    className="text-sm font-semibold mb-2 flex items-center justify-center gap-2"
-                    style={{ color: primaryColor }}
+                    className="text-sm font-bold mb-2 text-center flex items-center justify-center gap-2"
+                    style={{ color: secondaryColor }}
                   >
-                    <span>💌</span> A Note from the Founder
+                    <span>✨</span> Your First Steps
                   </h3>
-                  <p
-                    className="text-sm leading-relaxed text-center"
-                    style={{ color: primaryColor + 'DD' }}
-                  >
-                    {foundersNote}
-                  </p>
-                </div>
-              )}
 
-              {/* First Steps Action Items */}
-              <div
-                className="mt-4 p-4 rounded-xl mx-auto max-w-xl"
-                style={{
-                  background: `${secondaryColor}15`,
-                  border: `1px solid ${secondaryColor}30`
-                }}
-              >
-                <h3
-                  className="text-base font-bold mb-3 text-center flex items-center justify-center gap-2"
-                  style={{ color: secondaryColor }}
-                >
-                  <span>✨</span> Your First Steps
-                </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      href="/post/new"
+                      className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                      style={{
+                        background: `${backgroundColor}90`,
+                        border: `1px solid ${primaryColor}40`,
+                        color: primaryColor
+                      }}
+                      onClick={handleClose}
+                    >
+                      <span className="text-lg">📝</span>
+                      <div className="text-xs font-medium">Make Your First Post</div>
+                    </Link>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <Link
-                    href="/post/new"
-                    className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
-                    style={{
-                      background: `${backgroundColor}90`,
-                      border: `1px solid ${primaryColor}40`,
-                      color: primaryColor
-                    }}
-                    onClick={handleClose}
-                  >
-                    <span className="text-lg">📝</span>
-                    <div className="text-xs font-medium">Make Your First Post</div>
-                  </Link>
+                    <Link
+                      href="/neighborhood/explore/all"
+                      className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                      style={{
+                        background: `${backgroundColor}90`,
+                        border: `1px solid ${primaryColor}40`,
+                        color: primaryColor
+                      }}
+                      onClick={handleClose}
+                    >
+                      <span className="text-lg">🏘️</span>
+                      <div className="text-xs font-medium">Explore Homes</div>
+                    </Link>
 
-                  <Link
-                    href="/neighborhood/explore/all"
-                    className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
-                    style={{
-                      background: `${backgroundColor}90`,
-                      border: `1px solid ${primaryColor}40`,
-                      color: primaryColor
-                    }}
-                    onClick={handleClose}
-                  >
-                    <span className="text-lg">🏘️</span>
-                    <div className="text-xs font-medium">Explore Homes</div>
-                  </Link>
+                    <Link
+                      href="/threadrings"
+                      className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                      style={{
+                        background: `${backgroundColor}90`,
+                        border: `1px solid ${primaryColor}40`,
+                        color: primaryColor
+                      }}
+                      onClick={handleClose}
+                    >
+                      <span className="text-lg">💍</span>
+                      <div className="text-xs font-medium">Join a ThreadRing</div>
+                    </Link>
 
-                  <Link
-                    href="/threadrings"
-                    className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
-                    style={{
-                      background: `${backgroundColor}90`,
-                      border: `1px solid ${primaryColor}40`,
-                      color: primaryColor
-                    }}
-                    onClick={handleClose}
-                  >
-                    <span className="text-lg">💍</span>
-                    <div className="text-xs font-medium">Join a ThreadRing</div>
-                  </Link>
-
-                  <Link
-                    href={`/home/${username}`}
-                    className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
-                    style={{
-                      background: `${backgroundColor}90`,
-                      border: `1px solid ${primaryColor}40`,
-                      color: primaryColor
-                    }}
-                    onClick={handleClose}
-                  >
-                    <span className="text-lg">🎨</span>
-                    <div className="text-xs font-medium">Customize Home</div>
-                  </Link>
+                    <Link
+                      href={`/home/${username}`}
+                      className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                      style={{
+                        background: `${backgroundColor}90`,
+                        border: `1px solid ${primaryColor}40`,
+                        color: primaryColor
+                      }}
+                      onClick={handleClose}
+                    >
+                      <span className="text-lg">🎨</span>
+                      <div className="text-xs font-medium">Customize Home</div>
+                    </Link>
+                  </div>
                 </div>
               </div>
 
-              {/* Welcome Ring Invitation - Compact */}
+              {/* Welcome Ring Invitation - Horizontal Compact */}
               <div
-                className="mt-3 p-3 rounded-lg mx-auto max-w-sm text-center"
+                className="mt-3 flex flex-wrap items-center justify-center gap-2 p-2 rounded-lg text-center"
                 style={{
                   background: `${primaryColor}10`,
                   border: `1px solid ${primaryColor}30`
                 }}
               >
-                <div className="flex items-center justify-center gap-1 mb-2">
+                <div className="flex items-center gap-1">
                   <span className="text-sm">🎓</span>
                   <span
                     className="text-sm font-semibold"
@@ -235,30 +228,28 @@ export default function WelcomeHomeOverlay({
                     New to ThreadRings?
                   </span>
                 </div>
-                <div className="flex gap-2 justify-center">
-                  <button
-                    onClick={() => window.location.href = '/tr/welcome'}
-                    className="px-3 py-1 text-xs font-medium rounded transition-all hover:scale-105 pointer-events-auto"
-                    style={{
-                      background: primaryColor,
-                      color: 'white',
-                      border: 'none'
-                    }}
-                  >
-                    Start Tutorial
-                  </button>
-                  <button
-                    onClick={() => window.location.href = '/threadrings'}
-                    className="px-3 py-1 text-xs font-medium rounded transition-all hover:scale-105 pointer-events-auto"
-                    style={{
-                      background: 'transparent',
-                      color: primaryColor,
-                      border: `1px solid ${primaryColor}40`
-                    }}
-                  >
-                    Browse Rings
-                  </button>
-                </div>
+                <button
+                  onClick={() => window.location.href = '/tr/welcome'}
+                  className="px-3 py-1 text-xs font-medium rounded transition-all hover:scale-105 pointer-events-auto"
+                  style={{
+                    background: primaryColor,
+                    color: 'white',
+                    border: 'none'
+                  }}
+                >
+                  Start Tutorial
+                </button>
+                <button
+                  onClick={() => window.location.href = '/threadrings'}
+                  className="px-3 py-1 text-xs font-medium rounded transition-all hover:scale-105 pointer-events-auto"
+                  style={{
+                    background: 'transparent',
+                    color: primaryColor,
+                    border: `1px solid ${primaryColor}40`
+                  }}
+                >
+                  Browse Rings
+                </button>
               </div>
             </div>
             

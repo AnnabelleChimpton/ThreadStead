@@ -70,6 +70,7 @@ a:hover {
   border-radius: 8px;
   box-shadow: 3px 3px 0 #A18463;
   position: relative;
+  z-index: 1;
 
   /* Consistent width across feed, directory, and profile pages */
   min-width: 900px; /* Adjust this value to match your directory page width */
