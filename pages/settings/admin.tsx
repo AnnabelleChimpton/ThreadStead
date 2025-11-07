@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import type { GetServerSideProps } from "next";
 import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
@@ -333,7 +334,11 @@ type Emoji = {
   };
 };
 
-export default function AdminPage() {
+interface AdminPageProps {
+  isBetaEnabled: boolean;
+}
+
+export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   const { me, isLoading } = useMe();
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -2110,7 +2115,7 @@ We collect information you provide when creating an account..."
         <CollapsibleSection title="User & Access Management" defaultOpen={false} icon="👥">
 
           {/* Beta Invite Analytics */}
-          <BetaInviteAnalyticsSection />
+          {isBetaEnabled && <BetaInviteAnalyticsSection />}
 
           {/* Beta Landing Pages */}
           <BetaLandingPagesSection />
@@ -2314,3 +2319,13 @@ We collect information you provide when creating an account..."
     </Layout>
   );
 }
+
+export const getServerSideProps: GetServerSideProps<AdminPageProps> = async () => {
+  const { isBetaKeysEnabled } = await import('@/lib/config/beta-keys');
+
+  return {
+    props: {
+      isBetaEnabled: isBetaKeysEnabled(),
+    },
+  };
+};

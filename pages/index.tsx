@@ -1031,7 +1031,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
           siteConfig,
           pageType: 'homepage' as const,
           ogImageUrl,
-          customLandingPageSlug: customLandingPage?.slug,
+          ...(customLandingPage?.slug ? { customLandingPageSlug: customLandingPage.slug } : {}),
           // user is undefined, which will trigger visitor mode in PersonalizedHomepage
         },
       };

@@ -37,6 +37,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
   const [username, setUsername] = useState('');
   const [betaKey, setBetaKey] = useState(urlBetaKey || '');
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [isBetaEnabled, setIsBetaEnabled] = useState<boolean>(true); // Default to true for safe fallback
 
   // Step 2: Password Setup (if password auth)
   const [password, setPassword] = useState('');
@@ -81,6 +82,16 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
     if (source) setSignupSource(source);
     if (landing) setLandingSlug(landing);
     if (tracking) setTrackingId(tracking);
+
+    // Check if beta keys are enabled
+    fetch('/api/auth/beta-status')
+      .then((res) => res.json())
+      .then((data) => setIsBetaEnabled(data.enabled))
+      .catch((err) => {
+        console.error('Failed to fetch beta status:', err);
+        // Default to true (safe fallback - require beta key if unsure)
+        setIsBetaEnabled(true);
+      });
   }, [urlBetaKey, betaKey, router.query]);
 
   useEffect(() => {
@@ -575,27 +586,29 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                   })()}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold mb-2">
-                    Beta Invite Code
-                    {urlBetaKey && <span className="text-green-600 ml-1">(Auto-filled)</span>}
-                  </label>
-                  <input
-                    type="text"
-                    value={betaKey}
-                    onChange={(e) => setBetaKey(e.target.value.toUpperCase())}
-                    placeholder="BETA-XXXX-XXXX-XXXX"
-                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                    disabled={isLoading}
-                  />
-                  <p className="text-xs text-gray-600 mt-1">
-                    Required during beta. Get one from a friend or contact support.
-                  </p>
-                </div>
+                {isBetaEnabled && (
+                  <div>
+                    <label className="block text-sm font-bold mb-2">
+                      Beta Invite Code
+                      {urlBetaKey && <span className="text-green-600 ml-1">(Auto-filled)</span>}
+                    </label>
+                    <input
+                      type="text"
+                      value={betaKey}
+                      onChange={(e) => setBetaKey(e.target.value.toUpperCase())}
+                      placeholder="BETA-XXXX-XXXX-XXXX"
+                      className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                      disabled={isLoading}
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Required during beta. Get one from a friend or contact support.
+                    </p>
+                  </div>
+                )}
 
                 <button
                   onClick={handleCreateAccount}
-                  disabled={isLoading || !username || usernameAvailable !== true || !betaKey}
+                  disabled={isLoading || !username || usernameAvailable !== true || (isBetaEnabled && !betaKey)}
                   className="w-full px-6 py-4 text-lg bg-yellow-200 hover:bg-yellow-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Creating Account..." : "Create My Account"}

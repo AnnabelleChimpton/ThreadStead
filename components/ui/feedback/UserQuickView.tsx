@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import type { UserQuickViewData } from "@/types/user-quick-view";
 import ImprovedBadgeDisplay from "@/components/shared/ImprovedBadgeDisplay";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface UserQuickViewProps {
   username: string;
@@ -63,7 +64,7 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
   const handleFollow = async () => {
     setFollowBusy(true);
     try {
-      const response = await fetch(`/api/follow/${encodeURIComponent(username)}`, {
+      const response = await csrfFetch(`/api/follow/${encodeURIComponent(username)}`, {
         method: "POST",
       });
       if (response.status === 401) {
@@ -100,7 +101,7 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
   const handleUnfollow = async () => {
     setFollowBusy(true);
     try {
-      const response = await fetch(`/api/follow/${encodeURIComponent(username)}`, {
+      const response = await csrfFetch(`/api/follow/${encodeURIComponent(username)}`, {
         method: "DELETE",
       });
       if (!response.ok) {

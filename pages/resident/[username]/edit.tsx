@@ -32,6 +32,7 @@ interface ProfileEditProps {
   avatarUrl?: string;
   websites?: Website[];
   featuredFriends?: SelectedFriend[];
+  isBetaEnabled: boolean;
 }
 
 export default function ProfileEditPage({
@@ -46,7 +47,8 @@ export default function ProfileEditPage({
   bio: initialBio = "",
   avatarUrl: initialAvatarUrl = "",
   websites: initialWebsites = [],
-  featuredFriends: initialFeaturedFriends = []
+  featuredFriends: initialFeaturedFriends = [],
+  isBetaEnabled
 }: ProfileEditProps) {
   const router = useRouter();
   
@@ -602,15 +604,15 @@ export default function ProfileEditPage({
         </div>
       )
     },
-    {
-      id: "beta-codes",
+    ...(isBetaEnabled ? [{
+      id: "beta-codes" as const,
       label: "Beta Invite Codes",
       content: (
         <div className="space-y-6">
           <BetaInviteCodesManager />
         </div>
       )
-    }
+    }] : [])
   ];
 
   return (
@@ -677,10 +679,12 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
     
     if (!profileRes.ok) {
       // If profile API fails, still allow edit but with minimal data
+      const { isBetaKeysEnabled } = await import('@/lib/config/beta-keys');
       return {
         props: {
           username,
           isOwner: false,
+          isBetaEnabled: isBetaKeysEnabled(),
         },
       };
     }
@@ -754,6 +758,10 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
       }
     }
 
+    // Check if beta keys are enabled
+    const { isBetaKeysEnabled } = await import('@/lib/config/beta-keys');
+    const betaEnabled = isBetaKeysEnabled();
+
     return {
       props: {
         username,
@@ -768,6 +776,7 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
         avatarUrl,
         websites,
         featuredFriends,
+        isBetaEnabled: betaEnabled,
       },
     };
   } catch (error) {

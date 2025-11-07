@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto';
 import { db } from '../../config/database/connection';
+import { isBetaKeysEnabled } from '../../config/beta-keys';
 
 export interface BetaInviteCode {
   id: string;
@@ -157,8 +158,8 @@ export async function markBetaInviteCodeAsUsed(code: string, userId: string): Pr
  * This checks both the traditional BetaKey system and the new BetaInviteCode system
  */
 export async function checkBetaAccess(betaKey?: string): Promise<{ valid: boolean; type?: 'admin' | 'invite'; error?: string }> {
-  const betaEnabled = process.env.BETA_KEYS_ENABLED === "true";
-  
+  const betaEnabled = isBetaKeysEnabled();
+
   if (!betaEnabled) {
     return { valid: true };
   }

@@ -7,6 +7,7 @@ import crypto from "crypto";
 import * as ed from "@noble/ed25519";
 import { fromBase64Url } from "@/lib/utils/encoding/base64url";
 import { generateCsrfToken, createCsrfCookie, getCookieSecureFlag } from "@/lib/middleware/csrf";
+import { isBetaKeysEnabled } from "@/lib/config/beta-keys";
 
 
 
@@ -114,11 +115,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       
       // Generate 5 beta invite codes for the new user (outside transaction)
-      try {
-        await generateUserBetaInviteCodes(user.id);
-      } catch (codeError) {
-        // Log error but don't fail user creation
-        console.error('Failed to generate beta invite codes for new user:', codeError);
+      // Only generate codes if beta system is enabled
+      if (isBetaKeysEnabled()) {
+        try {
+          await generateUserBetaInviteCodes(user.id);
+        } catch (codeError) {
+          // Log error but don't fail user creation
+          console.error('Failed to generate beta invite codes for new user:', codeError);
+        }
       }
       
       // Create default pixel home configuration for new user

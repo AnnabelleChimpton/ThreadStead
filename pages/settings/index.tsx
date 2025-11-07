@@ -57,9 +57,10 @@ interface UserSettingsProps {
       featuredFriends?: any[] | null;
     } | null;
   };
+  isBetaEnabled: boolean;
 }
 
-export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) {
+export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: UserSettingsProps) {
   const router = useRouter();
   const { user: currentUser } = useCurrentUser();
   const { showSuccess, showError } = useToastContext();
@@ -1508,8 +1509,8 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
         </div>
       )
     },
-    {
-      id: "beta",
+    ...(isBetaEnabled ? [{
+      id: "beta" as const,
       label: "🎫 Beta Invites",
       content: (
         <div className="space-y-6">
@@ -1523,7 +1524,7 @@ export default function UnifiedSettingsPage({ initialUser }: UserSettingsProps) 
           <BetaInviteCodesManager />
         </div>
       )
-    }
+    }] : [])
   ];
 
   // Add admin tab for admins
@@ -1625,6 +1626,10 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
       };
     }
 
+    // Check if beta keys are enabled
+    const { isBetaKeysEnabled } = await import('@/lib/config/beta-keys');
+    const betaEnabled = isBetaKeysEnabled();
+
     return {
       props: {
         initialUser: {
@@ -1646,6 +1651,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
             featuredFriends: (userData.profile.featuredFriends as any[]) || null,
           } : null,
         },
+        isBetaEnabled: betaEnabled,
       },
     };
   } catch (error) {

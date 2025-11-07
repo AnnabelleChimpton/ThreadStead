@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import type { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
@@ -304,3 +305,21 @@ export default function BetaLandingPage() {
     </Layout>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  const { isBetaKeysEnabled } = await import('@/lib/config/beta-keys');
+
+  // If beta keys are disabled, redirect to regular signup
+  if (!isBetaKeysEnabled()) {
+    return {
+      redirect: {
+        destination: '/signup',
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {},
+  };
+};
