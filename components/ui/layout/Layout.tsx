@@ -159,6 +159,11 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
                     </Link>
                   </li>
                   <li>
+                    <Link href="/help/music-guide" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                      Music Guide
+                    </Link>
+                  </li>
+                  <li>
                     <Link href="/help/contact" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
                       Contact
                     </Link>
@@ -340,6 +345,11 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
                 <li>
                   <Link href="/help/faq" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
                     FAQ
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/help/music-guide" className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    Music Guide
                   </Link>
                 </li>
                 <li>

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface MidiUploadProps {
@@ -337,9 +338,12 @@ export default function MidiUpload({ onUploadSuccess, onCancel, disabled = false
 
         {/* MIDI Info Box */}
         <div className="bg-purple-50 border border-purple-200 rounded p-3">
-          <p className="text-xs text-purple-700">
-            <strong>💡 Pro tip:</strong> MIDI files are perfect for profile music because they&apos;re tiny, 
+          <p className="text-xs text-purple-700 mb-2">
+            <strong>💡 Pro tip:</strong> MIDI files are perfect for profile music because they&apos;re tiny,
             load instantly, and create a nostalgic web 1.0 vibe!
+          </p>
+          <p className="text-xs text-purple-600">
+            <strong>Need help?</strong> Our <Link href="/help/music-guide" className="underline hover:text-purple-900">music creator&apos;s guide</Link> has composition tips, software recommendations, and technical specifications.
           </p>
         </div>
 

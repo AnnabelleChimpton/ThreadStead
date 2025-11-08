@@ -923,23 +923,21 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
           {/* Music Tips */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-semibold text-blue-800 mb-2">💡 Music Tips</h4>
+            <div className="flex items-start justify-between mb-2">
+              <h4 className="font-semibold text-blue-800">💡 Music Tips</h4>
+              <Link
+                href="/help/music-guide"
+                className="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium"
+              >
+                Full Guide →
+              </Link>
+            </div>
             <div className="text-sm text-blue-700 space-y-2">
               <p>• <strong>MIDI files are perfect</strong> for profile music - they&apos;re tiny, load instantly, and create a nostalgic web atmosphere</p>
               <p>• <strong>Keep it subtle</strong> - background music should enhance, not distract from your content</p>
               <p>• <strong>Consider your visitors</strong> - some prefer browsing without sound, so make music easy to control</p>
               <p>• <strong>Shorter loops work best</strong> - 30-60 second tracks that loop seamlessly are ideal</p>
-            </div>
-          </div>
-
-          {/* Future Features Preview */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 opacity-75">
-            <h4 className="font-semibold text-gray-600 mb-2">🚀 Coming Soon</h4>
-            <div className="text-sm text-gray-500 space-y-1">
-              <p>• Multiple music tracks with playlist support</p>
-              <p>• Mood-based music selection (energetic, calm, mysterious)</p>
-              <p>• Seasonal music rotation</p>
-              <p>• Music visualization themes</p>
+              <p>• <strong>Need help getting started?</strong> Check our <Link href="/help/music-guide" className="underline hover:text-blue-900">complete music creator&apos;s guide</Link> for technical specs, composition tips, and software recommendations</p>
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ interface HelpHubProps {
 export default function HelpHub({ siteConfig }: HelpHubProps) {
   const tabs = [
     { href: '/help/faq', label: 'FAQ', icon: '❓', description: 'Frequently asked questions' },
+    { href: '/help/music-guide', label: 'Music Guide', icon: '🎵', description: 'Complete guide for creating and uploading MIDI music' },
     { href: '/help/guidelines', label: 'Guidelines', icon: '📋', description: 'Community standards and expectations' },
     { href: '/help/privacy', label: 'Privacy', icon: '🔒', description: 'How we protect your data' },
     { href: '/help/terms', label: 'Terms', icon: '📜', description: 'Terms of service' },

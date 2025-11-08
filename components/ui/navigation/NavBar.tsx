@@ -98,43 +98,44 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
   const getItemIcon = (label: string): string => {
     const iconMap: { [key: string]: string } = {
       // Discover items
-      'Neighborhoods': '🏘️',
-      'Search': '🔍',
-      'Feed': '📰',
-      'Residents': '👥',
-      'All Homes': '🏘️',
-      'Recent Activity': '⚡',
-      'Bookmarks': '🔖',
-      'Demo Pixel Home': '🎨',
-      'My Pixel Home': '🏠',
-      'My Profile': '👤',
+      'Neighborhoods': '',
+      'Search': '',
+      'Feed': '',
+      'Residents': '',
+      'All Homes': '',
+      'Recent Activity': '',
+      'Bookmarks': '',
+      'Demo Pixel Home': '',
+      'My Pixel Home': '',
+      'My Profile': '',
 
       // ThreadRings items
-      'ThreadRings': '💍',
-      'Browse Rings': '💍',
-      'All Rings': '💍',
-      'The Spool': '🧵',
-      'My Rings': '⭐',
-      'Create a Ring': '➕',
+      'ThreadRings': '',
+      'Browse Rings': '',
+      'All Rings': '',
+      'The Spool': '',
+      'My Rings': '',
+      'Create a Ring': '',
 
       // Build items
-      'Templates': '🎨',
-      'Getting Started': '🚀',
+      'Templates': '',
+      'Getting Started': '',
 
       // Help items
-      'FAQ': '❓',
-      'Guidelines': '📋',
-      'Privacy': '🔒',
-      'Terms': '📜',
-      'Contact': '✉️',
+      'FAQ': '',
+      'Music Guide': '',
+      'Guidelines': '',
+      'Privacy': '',
+      'Terms': '',
+      'Contact': '',
 
       // Legacy items
-      'Directory': '📚',
-      'Genealogy': '🌳',
-      'Community Index': '📋',
-      'Engagement': '💬',
+      'Directory': '',
+      'Genealogy': '',
+      'Community Index': '',
+      'Engagement': '',
     };
-    return iconMap[label] || '•';
+    return iconMap[label] || '';
   };
 
   return (
@@ -352,6 +353,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 href="/help"
                 items={[
                   { href: "/help/faq", label: "FAQ" },
+                  { href: "/help/music-guide", label: "Music Guide" },
                   { href: "/help/contact", label: "Contact" },
                 ]}
               />
@@ -432,35 +434,31 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 <div className="ml-4 mt-2 space-y-1">
                   <Link
                     href="/neighborhood/explore/all"
-                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span>🏘️</span>
-                    <span>Neighborhoods</span>
+                    Neighborhoods
                   </Link>
                   <Link
                     href="/discover/residents"
-                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span>👥</span>
-                    <span>Residents</span>
+                    Residents
                   </Link>
                   <Link
                     href="/discover/feed"
-                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span>📰</span>
-                    <span>Feed</span>
+                    Feed
                   </Link>
                   <Link
                     href="/discover/search"
-                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span>🔍</span>
-                    <span>Search</span>
+                    Search
                   </Link>
                 </div>
               )}
@@ -522,19 +520,17 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 <div className="ml-4 mt-2 space-y-1">
                   <Link
                     href="/threadrings"
-                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span>💍</span>
-                    <span>Browse Rings</span>
+                    Browse Rings
                   </Link>
                   <Link
                     href="/tr/spool"
-                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span>🧵</span>
-                    <span>The Spool</span>
+                    The Spool
                   </Link>
                 </div>
               )}
@@ -560,19 +556,24 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 <div className="ml-4 mt-2 space-y-1">
                   <Link
                     href="/help/faq"
-                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span>❓</span>
-                    <span>FAQ</span>
+                    FAQ
+                  </Link>
+                  <Link
+                    href="/help/music-guide"
+                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Music Guide
                   </Link>
                   <Link
                     href="/help/contact"
-                    className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
+                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span>✉️</span>
-                    <span>Contact</span>
+                    Contact
                   </Link>
                 </div>
               )}

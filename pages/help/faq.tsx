@@ -163,7 +163,15 @@ export default function FAQ({ siteConfig }: FAQProps) {
         },
         {
           question: 'How do I add music to my profile?',
-          answer: 'You can add background music to your profile using MIDI files! Upload a MIDI file in your profile settings, and visitors will hear it when they view your page. It\'s a throwback to classic web homepages with a modern twist.'
+          answer: (
+            <>
+              You can add background music to your profile using MIDI files! Go to Settings → Music to upload a .mid or .midi file (max 1MB). Visitors will hear it when they view your page - it&apos;s a throwback to classic web homepages with a modern twist.{' '}
+              <Link href="/help/music-guide" className="text-thread-sunset hover:underline font-medium">
+                Check out our complete music creator&apos;s guide
+              </Link>{' '}
+              for technical specs, composition tips, software recommendations, and more.
+            </>
+          )
         },
         {
           question: 'What are guestbooks?',
