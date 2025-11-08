@@ -3,17 +3,19 @@
 /**
  * Script to safely delete a user and all associated data
  * Usage: npx tsx scripts/delete-user.ts <user-id-or-handle>
- * 
+ *
  * This script:
  * - Finds user by ID or handle
- * - Shows what will be deleted
+ * - Shows what will be deleted (including DID status)
  * - Requires confirmation
+ * - Cleans up DID mappings and private keys from .threadstead-user-dids.json
  * - Performs cascading deletion in proper order
  * - Handles foreign key constraints safely
  */
 
 import { db } from '../lib/config/database/connection';
 import { SITE_NAME } from '../lib/config/site/constants';
+import { loadUserDIDMappings, storeUserDIDMappings } from '../lib/api/did/server-did-client';
 
 interface UserDeletionSummary {
   user: {
@@ -21,6 +23,7 @@ interface UserDeletionSummary {
     primaryHandle: string | null;
     displayName: string | null;
     createdAt: Date;
+    hasDID: boolean;
   };
   counts: {
     handles: number;
@@ -147,12 +150,17 @@ async function getUserDeletionSummary(userId: string): Promise<UserDeletionSumma
     throw new Error('User not found');
   }
 
+  // Check if user has a DID mapping
+  const didMappings = await loadUserDIDMappings();
+  const hasDID = didMappings.some(m => m.userId === userId);
+
   return {
     user: {
       id: user.id,
       primaryHandle: user.primaryHandle,
       displayName: user.profile?.displayName || null,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      hasDID
     },
     counts: {
       handles: handles.length,
@@ -186,6 +194,7 @@ function displayDeletionSummary(summary: UserDeletionSummary) {
   console.log(`   Handle: ${summary.user.primaryHandle || 'None'}`);
   console.log(`   Display Name: ${summary.user.displayName || 'None'}`);
   console.log(`   Created: ${summary.user.createdAt.toISOString()}`);
+  console.log(`   Has DID: ${summary.user.hasDID ? 'Yes' : 'No'}`);
   console.log('');
   console.log('📊 DATA TO DELETE:');
   console.log(`   Handles: ${summary.counts.handles}`);
@@ -213,7 +222,24 @@ function displayDeletionSummary(summary: UserDeletionSummary) {
 async function deleteUser(userId: string) {
   console.log('');
   console.log('🗑️  Starting user deletion...');
-  
+
+  // First, clean up DID mappings (before database transaction)
+  console.log('   🔄 Cleaning up DID mappings...');
+  try {
+    const didMappings = await loadUserDIDMappings();
+    const filteredMappings = didMappings.filter(m => m.userId !== userId);
+
+    if (filteredMappings.length < didMappings.length) {
+      await storeUserDIDMappings(filteredMappings);
+      console.log('   ✅ DID mapping removed');
+    } else {
+      console.log('   ℹ️  No DID mapping found for user');
+    }
+  } catch (error) {
+    console.warn('   ⚠️  Could not clean up DID mappings:', error);
+    // Continue with deletion even if DID cleanup fails
+  }
+
   await db.$transaction(async (tx) => {
     // Delete in reverse dependency order to avoid foreign key constraint issues
     
