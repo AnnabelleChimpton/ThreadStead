@@ -6,6 +6,7 @@ import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { retryWithBackoff } from "@/lib/api/ringhub/ringhub-retry";
 
 // Apply CSRF protection and rate limiting
 export default withRateLimit('threadring_operations')(
@@ -35,21 +36,29 @@ export default withRateLimit('threadring_operations')(
     if (system === 'ringhub') {
       try {
         console.log('Attempting to join Ring Hub ring:', slug, 'for user:', viewer.id);
-        
+
         console.log('Creating AuthenticatedRingHubClient...');
         const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
-        
-        // Join ring via Ring Hub
-        console.log('Calling joinRing on authenticated client...');
-        const membership = await authenticatedClient.joinRing(slug as string);
+
+        // Join ring via Ring Hub with automatic retry for registration errors
+        // This handles the case where RingHub auto-registers the user on first request
+        // but needs a retry to complete the join operation successfully
+        console.log('Calling joinRing on authenticated client with retry logic...');
+        const membership = await retryWithBackoff(
+          () => authenticatedClient.joinRing(slug as string),
+          {
+            maxRetries: 3,
+            baseDelay: 500, // 500ms, 1s, 2s exponential backoff
+          }
+        );
         console.log('Join successful, membership:', membership);
-        
+
         return res.json({
           success: true,
           message: `Successfully joined the ThreadRing!`,
           badgeId: membership.badgeId // Include badge ID if available
         });
-        
+
       } catch (ringHubError: any) {
         console.error("Ring Hub join error:", ringHubError);
         if (ringHubError.status === 404) {
@@ -61,9 +70,9 @@ export default withRateLimit('threadring_operations')(
         if (ringHubError.status === 400) {
           return res.status(400).json({ error: ringHubError.message || "Already a member or invalid request" });
         }
-        return res.status(500).json({ 
-          error: "Failed to join ThreadRing via Ring Hub", 
-          details: ringHubError.message 
+        return res.status(500).json({
+          error: "Failed to join ThreadRing via Ring Hub",
+          details: ringHubError.message
         });
       }
     }
