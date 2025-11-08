@@ -13,6 +13,20 @@ import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { transformRingDescriptorToThreadRing, transformRingMemberWithUserResolution } from '@/lib/api/ringhub/ringhub-transformers'
 import { weatherWidget } from '@/components/widgets/examples/WeatherWidget'
 
+// Helper to format temperature with correct unit based on country
+const formatTemperature = (temp: number, countryCode?: string): string => {
+  // Only US, Liberia, Myanmar, and US territories use Fahrenheit
+  const usesImperial = countryCode && ['US', 'LR', 'MM', 'PR', 'GU', 'VI', 'AS', 'MP'].includes(countryCode.toUpperCase())
+
+  if (usesImperial) {
+    return `${temp}°F`
+  } else {
+    // Convert Fahrenheit to Celsius for metric countries
+    const celsius = Math.round((temp - 32) * 5/9)
+    return `${celsius}°C`
+  }
+}
+
 // Neighborhood member data structure
 interface NeighborhoodMember {
   userId: string
@@ -436,7 +450,7 @@ export default function UnifiedNeighborhood({
                     </div>
                   ) : weatherData ? (
                     <div className="text-xs text-thread-pine">
-                      <span>It&apos;s a {weatherData.condition.toLowerCase()} {weatherData.temperature}° day in the neighborhood</span>
+                      <span>It&apos;s a {weatherData.condition.toLowerCase()} {formatTemperature(weatherData.temperature, weatherData.countryCode)} day in the neighborhood</span>
                       <span className="ml-2">{weatherData.emoji}</span>
                     </div>
                   ) : (

@@ -21,6 +21,7 @@ interface WeatherData {
   low: number;
   humidity: number;
   windSpeed: number;
+  countryCode?: string; // ISO country code for unit detection
   forecast: {
     day: string;
     high: number;
@@ -29,6 +30,18 @@ interface WeatherData {
     emoji: string;
   }[];
 }
+
+// Helper function to determine if a country uses metric system
+// Returns true for metric (Celsius/km/h), false for imperial (Fahrenheit/mph)
+const shouldUseMetric = (countryCode?: string): boolean => {
+  if (!countryCode) return true; // Default to metric for unknown locations
+
+  // Only US, Liberia, and Myanmar use imperial system
+  // US territories also use Fahrenheit
+  const imperialCountries = ['US', 'LR', 'MM', 'PR', 'GU', 'VI', 'AS', 'MP'];
+
+  return !imperialCountries.includes(countryCode.toUpperCase());
+};
 
 // Mock weather data for demo
 const mockWeatherData: WeatherData = {
@@ -48,10 +61,11 @@ const mockWeatherData: WeatherData = {
 };
 
 function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: WeatherData }) {
-  const [useMetric, setUseMetric] = useState(false);
-
   // Use mock data if no real data provided
   const weatherData = data || mockWeatherData;
+
+  // Determine default unit based on country code (smart default)
+  const [useMetric, setUseMetric] = useState(shouldUseMetric(weatherData.countryCode));
 
   const convertTemp = (fahrenheit: number) => {
     if (!useMetric) return `${fahrenheit}°F`;
@@ -197,6 +211,7 @@ export const weatherWidget = {
       let latitude = user?.latitude;
       let longitude = user?.longitude;
       let locationName = user?.location;
+      let countryCode: string | undefined;
 
       // If no user location data, try IP geolocation
       if (!latitude || !longitude) {
@@ -207,6 +222,7 @@ export const weatherWidget = {
             const geoData = await geoResponse.json();
             latitude = geoData.latitude;
             longitude = geoData.longitude;
+            countryCode = geoData.country_code; // ISO 2-letter country code
             locationName = geoData.city && geoData.region
               ? `${geoData.city}, ${geoData.region}`
               : geoData.city || geoData.region || 'Your Location';
@@ -221,6 +237,7 @@ export const weatherWidget = {
         latitude = 40.7128;
         longitude = -74.0060;
         locationName = 'New York';
+        countryCode = 'US'; // Default to US for New York fallback
       }
 
       // Fetch current weather and 3-day forecast from Open-Meteo
@@ -268,6 +285,7 @@ export const weatherWidget = {
         low: Math.round(daily.temperature_2m_min[0] * 9/5 + 32), // Today's low
         humidity: Math.round(current.relative_humidity_2m),
         windSpeed: Math.round(current.wind_speed_10m * 0.621371), // Convert km/h to mph
+        countryCode, // Include country code for unit detection
         forecast
       };
 
