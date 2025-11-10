@@ -293,7 +293,7 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
           </Link>
           {data.hasCustomPixelHome && (
             <Link
-              href={`/home/${encodeURIComponent(data.primaryHandle)}`}
+              href={`/home/${data.username}`}
               className="flex-1 text-center px-3 py-2 text-sm border border-thread-sage bg-white hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all"
             >
               Visit Pixel Home

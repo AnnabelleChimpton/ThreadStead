@@ -36,15 +36,15 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 const DEV_MULTIPLIER = isDevelopment ? 10 : 1;
 
 const RATE_LIMIT_CONFIGS: Record<RateLimitCategory, RateLimitConfig> = {
-  posts: { limit: 10 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 10 per minute (100 in dev)
-  comments: { limit: 20 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 20 per minute (200 in dev)
+  posts: { limit: 20 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 20 per minute (200 in dev)
+  comments: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 100 per minute (1000 in dev)
   uploads: { limit: 5 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 5 per hour (50 in dev)
   profile_updates: { limit: 10 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 10 per hour (100 in dev) - LEGACY
   template_editing: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 100 per hour (1000 in dev)
   profile_metadata: { limit: 30 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 30 per hour (300 in dev)
   profile_toggles: { limit: 50 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 50 per hour (500 in dev)
   threadring_operations: { limit: 20 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 20 per hour (200 in dev)
-  guestbook: { limit: 5 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 5 per hour (50 in dev)
+  guestbook: { limit: 50 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 50 per hour (500 in dev)
   admin: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 100 per minute (1000 in dev)
   default: { limit: 60 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 60 per minute (600 in dev)
 };
