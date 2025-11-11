@@ -4,6 +4,7 @@ import BadgeSelector from "../../shared/BadgeSelector";
 import Toast from "../feedback/Toast";
 import { useToast } from "@/hooks/useToast";
 import { validateThreadRingName } from "@/lib/domain/validation";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface ForkThreadRingFormProps {
   originalRing: {
@@ -238,7 +239,7 @@ export default function ForkThreadRingForm({
       setCreating(true);
       setError(null);
       
-      const response = await fetch(`/api/threadrings/${originalRing.slug}/fork`, {
+      const response = await csrfFetch(`/api/threadrings/${originalRing.slug}/fork`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

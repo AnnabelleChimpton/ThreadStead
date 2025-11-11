@@ -12,6 +12,7 @@ import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
 import { db } from '@/lib/config/database/connection';
 import { BADGE_TEMPLATES, type BadgeTemplate } from '@/lib/domain/threadrings/badges';
 import { generateBadge, type BadgeGenerationOptions } from '@/lib/badge-generator';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface BadgeManagerPageProps {
   ring: {
@@ -164,7 +165,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
       // Always regenerate existing badges when updating
       ringHubUpdateData.updateExistingBadges = true;
 
-      const ringHubResponse = await fetch(`/api/threadrings/${ring.slug}/update-badge`, {
+      const ringHubResponse = await csrfFetch(`/api/threadrings/${ring.slug}/update-badge`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +187,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
           isActive: true
         };
 
-        await fetch(`/api/threadrings/${ring.slug}/badge`, {
+        await csrfFetch(`/api/threadrings/${ring.slug}/badge`, {
           method: currentBadge ? 'PUT' : 'POST',
           headers: {
             'Content-Type': 'application/json',

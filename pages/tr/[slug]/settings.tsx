@@ -10,6 +10,7 @@ import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import ThreadRingInviteForm from "../../../components/ui/forms/ThreadRingInviteForm";
 import ThreadRingPromptManager from "../../../components/core/threadring/ThreadRingPromptManager";
 import ThreadRingBlockManager from "../../../components/core/threadring/ThreadRingBlockManager";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface ThreadRingSettingsPageProps {
   siteConfig: SiteConfig;
@@ -94,7 +95,7 @@ export default function ThreadRingSettingsPage({
     setSaveSuccess(false);
 
     try {
-      const response = await fetch(`/api/threadrings/${ring.slug}/settings`, {
+      const response = await csrfFetch(`/api/threadrings/${ring.slug}/settings`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

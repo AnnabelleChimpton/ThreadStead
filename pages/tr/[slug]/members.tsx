@@ -9,6 +9,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import UserMention from "@/components/ui/navigation/UserMention";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface Member {
   id: string;
@@ -66,7 +67,7 @@ export default function ThreadRingMembersPage({
     setManaging(userId);
     
     try {
-      const response = await fetch(`/api/threadrings/${ring.slug}/members/${userId}`, {
+      const response = await csrfFetch(`/api/threadrings/${ring.slug}/members/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +110,7 @@ export default function ThreadRingMembersPage({
     setManaging(userId);
     
     try {
-      const response = await fetch(`/api/threadrings/${ring.slug}/members/${userId}`, {
+      const response = await csrfFetch(`/api/threadrings/${ring.slug}/members/${userId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

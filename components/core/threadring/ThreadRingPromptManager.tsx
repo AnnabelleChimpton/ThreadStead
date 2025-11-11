@@ -76,7 +76,7 @@ export default function ThreadRingPromptManager({
         ? `/api/threadrings/${threadRingSlug}/prompts/${editingPrompt.id}`
         : `/api/threadrings/${threadRingSlug}/prompts`
       
-      const response = await fetch(url, {
+      const response = await csrfFetch(url, {
         method: editingPrompt ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
