@@ -14,6 +14,7 @@ interface HomeDecoration {
   x: number
   y: number
   layer: number
+  renderSvg?: string | null
 }
 
 interface NeighborhoodMember {

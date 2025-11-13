@@ -15,6 +15,7 @@ interface HomeDecoration {
   x: number
   y: number
   layer: number
+  renderSvg?: string | null
 }
 
 interface HouseDetailsPopupProps {
@@ -247,7 +248,8 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
                       zone: 'front_yard' as const,
                       position: { x: dec.x, y: dec.y, layer: dec.layer },
                       variant: dec.variant,
-                      size: dec.size
+                      size: dec.size,
+                      renderSvg: dec.renderSvg ?? undefined
                     }))
                   })()}
                   atmosphere={atmosphere}

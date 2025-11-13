@@ -933,7 +933,8 @@ code block
             </div>
           )}
 
-          {/* ThreadRing Selection */}
+          {/* ThreadRing Selection - only available during post creation */}
+          {mode === "create" && (
           <div className="mt-6 border border-black p-4 bg-gradient-to-r from-blue-50 to-purple-50">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-lg">🔗</span>
@@ -1048,6 +1049,7 @@ code block
                 </div>
               )}
             </div>
+          )}
         </div>
 
         {/* Action Buttons */}

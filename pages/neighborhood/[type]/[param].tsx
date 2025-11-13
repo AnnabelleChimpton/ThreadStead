@@ -697,20 +697,29 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         const homeConfigs = await db.userHomeConfig.findMany({
           where: { userId: { in: memberUserIds } },
           include: {
-            decorations: {
-              select: {
-                id: true,
-                decorationType: true,
-                decorationId: true,
-                variant: true,
-                size: true,
-                positionX: true,
-                positionY: true,
-                layer: true
-              }
-            }
+            decorations: true
           }
         })
+
+        // Get all unique decoration IDs from all decorations
+        const allDecorationIds = new Set<string>()
+        homeConfigs.forEach(config => {
+          config.decorations?.forEach(dec => {
+            allDecorationIds.add(dec.decorationId)
+          })
+        })
+
+        // Fetch decoration items for renderSvg
+        const decorationItems = await db.decorationItem.findMany({
+          where: {
+            itemId: { in: Array.from(allDecorationIds) }
+          },
+          select: {
+            itemId: true,
+            renderSvg: true
+          }
+        })
+        const decorationItemMap = new Map(decorationItems.map(item => [item.itemId, item.renderSvg]))
 
         const homeConfigMap = new Map(homeConfigs.map(c => [c.userId, c]))
 
@@ -766,7 +775,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   ...(d.size && { size: d.size as 'small' | 'medium' | 'large' }),
                   x: d.positionX,
                   y: d.positionY,
-                  layer: d.layer
+                  layer: d.layer,
+                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) })
                 })) : []
               },
               stats: {
@@ -805,22 +815,31 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                 profile: true
               }
             },
-            decorations: {
-              select: {
-                id: true,
-                decorationType: true,
-                decorationId: true,
-                variant: true,
-                size: true,
-                positionX: true,
-                positionY: true,
-                layer: true
-              }
-            }
+            decorations: true
           },
           take: 30
         })
-        
+
+        // Get all unique decoration IDs from all decorations
+        const allDecorationIds = new Set<string>()
+        homeConfigs.forEach(config => {
+          config.decorations?.forEach(dec => {
+            allDecorationIds.add(dec.decorationId)
+          })
+        })
+
+        // Fetch decoration items for renderSvg
+        const decorationItems = await db.decorationItem.findMany({
+          where: {
+            itemId: { in: Array.from(allDecorationIds) }
+          },
+          select: {
+            itemId: true,
+            renderSvg: true
+          }
+        })
+        const decorationItemMap = new Map(decorationItems.map(item => [item.itemId, item.renderSvg]))
+
         members = homeConfigs
           .filter(config => config.user.handles.length > 0)
           .map(config => {
@@ -866,7 +885,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   ...(d.size && { size: d.size as 'small' | 'medium' | 'large' }),
                   x: d.positionX,
                   y: d.positionY,
-                  layer: d.layer
+                  layer: d.layer,
+                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) })
                 })) : []
               },
               stats: {
@@ -924,23 +944,32 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                 }
               }
             },
-            decorations: {
-              select: {
-                id: true,
-                decorationType: true,
-                decorationId: true,
-                variant: true,
-                size: true,
-                positionX: true,
-                positionY: true,
-                layer: true
-              }
-            }
+            decorations: true
           },
           orderBy,
           take
         })
-        
+
+        // Get all unique decoration IDs from all decorations
+        const allDecorationIds = new Set<string>()
+        homeConfigs.forEach(config => {
+          config.decorations?.forEach(dec => {
+            allDecorationIds.add(dec.decorationId)
+          })
+        })
+
+        // Fetch decoration items for renderSvg
+        const decorationItems = await db.decorationItem.findMany({
+          where: {
+            itemId: { in: Array.from(allDecorationIds) }
+          },
+          select: {
+            itemId: true,
+            renderSvg: true
+          }
+        })
+        const decorationItemMap = new Map(decorationItems.map(item => [item.itemId, item.renderSvg]))
+
         let processedMembers = homeConfigs
           .filter(config => config.user.handles.length > 0)
           .map(config => {
@@ -986,7 +1015,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   ...(d.size && { size: d.size as 'small' | 'medium' | 'large' }),
                   x: d.positionX,
                   y: d.positionY,
-                  layer: d.layer
+                  layer: d.layer,
+                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) })
                 })) : []
               },
               stats: {

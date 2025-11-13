@@ -29,7 +29,14 @@ export default function Feed({ type }: FeedProps) {
     setError(null);
 
     try {
-      const offset = isInitial ? 0 : posts.length;
+      // Use a variable to capture the current offset before the async call
+      let offset = 0;
+      if (!isInitial) {
+        setPosts(prev => {
+          offset = prev.length;
+          return prev;
+        });
+      }
       const res = await fetch(`${endpoint}?limit=10&offset=${offset}`);
       
       if (!res.ok) {
@@ -51,8 +58,6 @@ export default function Feed({ type }: FeedProps) {
       setLoading(false);
       setLoadingMore(false);
     }
-     
-    // posts.length is used inside but intentionally omitted to prevent unnecessary recreations
   }, [endpoint]);
 
   // Load initial posts

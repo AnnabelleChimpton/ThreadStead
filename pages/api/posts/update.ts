@@ -123,62 +123,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
   });
 
-  // Handle ThreadRing associations if provided
-  if (Array.isArray(threadRingIds)) {
-    // Remove existing associations
-    await db.postThreadRing.deleteMany({
-      where: { postId: id }
-    });
-
-    // Add new associations
-    if (threadRingIds.length > 0) {
-      // First, get the ThreadRing IDs from slugs
-      const threadRings = await db.threadRing.findMany({
-        where: {
-          slug: { in: threadRingIds }
-        }
-      });
-
-      const threadRingIdMap = threadRings.reduce((acc, tr) => {
-        acc[tr.slug] = tr.id;
-        return acc;
-      }, {} as Record<string, string>);
-
-      // Create new associations
-      const associations = threadRingIds
-        .filter(slug => threadRingIdMap[slug])
-        .map(slug => ({
-          postId: id,
-          threadRingId: threadRingIdMap[slug],
-          addedBy: me.id
-        }));
-
-      if (associations.length > 0) {
-        await db.postThreadRing.createMany({
-          data: associations
-        });
-      }
-    }
-
-    // Fetch the updated post with new associations
-    const finalPost = await db.post.findUnique({
-      where: { id },
-      include: {
-        author: {
-          include: {
-            profile: true
-          }
-        },
-        threadRings: {
-          include: {
-            threadRing: true
-          }
-        }
-      }
-    });
-
-    return res.json({ post: finalPost });
-  }
+  // ThreadRing associations cannot be updated after post creation
+  // They are set during initial post creation and are immutable
 
   res.json({ post: updated });
 }
