@@ -96,22 +96,22 @@ export default function ThreadRingStats({
       <div className="tr-stats-content space-y-6 text-sm">
         {/* Overview */}
         <div className="tr-stats-overview">
-          <h4 className="tr-stats-section-title font-medium mb-2">Overview</h4>
+          <h4 className="tr-stats-section-title font-medium text-gray-900 mb-2">Overview</h4>
           <div className="tr-stats-grid grid grid-cols-2 gap-3">
             <div className="tr-stats-item tr-member-count-stat bg-gray-50 p-2 border border-gray-300">
-              <div className="tr-stat-value font-medium">{stats.memberCount}</div>
+              <div className="tr-stat-value font-medium text-gray-900">{stats.memberCount}</div>
               <div className="tr-stat-label text-xs text-gray-600">Total Members</div>
             </div>
             <div className="tr-stats-item tr-post-count-stat bg-gray-50 p-2 border border-gray-300">
-              <div className="tr-stat-value font-medium">{stats.postCount}</div>
+              <div className="tr-stat-value font-medium text-gray-900">{stats.postCount}</div>
               <div className="tr-stat-label text-xs text-gray-600">Total Posts</div>
             </div>
             <div className="tr-stats-item tr-pinned-count-stat bg-gray-50 p-2 border border-gray-300">
-              <div className="tr-stat-value font-medium">{stats.pinnedPostCount}</div>
+              <div className="tr-stat-value font-medium text-gray-900">{stats.pinnedPostCount}</div>
               <div className="tr-stat-label text-xs text-gray-600">Pinned Posts</div>
             </div>
             <div className="tr-stats-item tr-moderator-count-stat bg-gray-50 p-2 border border-gray-300">
-              <div className="tr-stat-value font-medium">{stats.moderatorCount}</div>
+              <div className="tr-stat-value font-medium text-gray-900">{stats.moderatorCount}</div>
               <div className="tr-stat-label text-xs text-gray-600">Moderators</div>
             </div>
           </div>
@@ -119,15 +119,15 @@ export default function ThreadRingStats({
 
         {/* Recent Activity */}
         <div className="tr-stats-activity">
-          <h4 className="tr-stats-section-title font-medium mb-2">This Week</h4>
-          <div className="tr-stats-activity-list space-y-1">
+          <h4 className="tr-stats-section-title font-medium text-gray-900 mb-2">This Week</h4>
+          <div className="tr-stats-activity-list space-y-1 text-gray-700">
             <div className="tr-stats-activity-item flex justify-between">
               <span className="tr-activity-label">New Members:</span>
-              <span className="tr-activity-value font-medium">{stats.recentActivity.newMembersThisWeek}</span>
+              <span className="tr-activity-value font-medium text-gray-900">{stats.recentActivity.newMembersThisWeek}</span>
             </div>
             <div className="tr-stats-activity-item flex justify-between">
               <span className="tr-activity-label">New Posts:</span>
-              <span className="tr-activity-value font-medium">{stats.recentActivity.newPostsThisWeek}</span>
+              <span className="tr-activity-value font-medium text-gray-900">{stats.recentActivity.newPostsThisWeek}</span>
             </div>
           </div>
         </div>
@@ -135,10 +135,10 @@ export default function ThreadRingStats({
         {/* Top Posters */}
         {stats.topPosters.length > 0 && (
           <div>
-            <h4 className="font-medium mb-2">Top Contributors</h4>
+            <h4 className="font-medium text-gray-900 mb-2">Top Contributors</h4>
             <div className="space-y-1">
               {stats.topPosters.slice(0, 5).map((poster, index) => (
-                <div key={poster.username} className="flex justify-between text-xs">
+                <div key={poster.username} className="flex justify-between text-xs text-gray-700">
                   <span>
                     {index + 1}.{" "}
                     <UserMention
@@ -146,7 +146,7 @@ export default function ThreadRingStats({
                       displayName={poster.displayName || undefined}
                     />
                   </span>
-                  <span className="font-medium">{poster.postCount} posts</span>
+                  <span className="font-medium text-gray-900">{poster.postCount} posts</span>
                 </div>
               ))}
             </div>
@@ -156,14 +156,14 @@ export default function ThreadRingStats({
         {/* Growth Trend (simplified) */}
         {stats.membershipTrend.length > 0 && (
           <div>
-            <h4 className="font-medium mb-2">Growth</h4>
-            <div className="text-xs text-gray-600">
+            <h4 className="font-medium text-gray-900 mb-2">Growth</h4>
+            <div className="text-xs text-gray-700">
               {stats.membershipTrend.length > 1 ? (
                 <span>
-                  {stats.membershipTrend[stats.membershipTrend.length - 1].count - 
-                   stats.membershipTrend[0].count > 0 ? "↗" : "→"} 
+                  {stats.membershipTrend[stats.membershipTrend.length - 1].count -
+                   stats.membershipTrend[0].count > 0 ? "↗" : "→"}
                   {" "}
-                  {Math.abs(stats.membershipTrend[stats.membershipTrend.length - 1].count - 
+                  {Math.abs(stats.membershipTrend[stats.membershipTrend.length - 1].count -
                            stats.membershipTrend[0].count)} members this month
                 </span>
               ) : (
@@ -176,24 +176,24 @@ export default function ThreadRingStats({
         {/* Membership Info (for non-members) */}
         {stats.membershipInfo && (
           <div>
-            <h4 className="font-medium mb-2">Leadership</h4>
-            <div className="space-y-2 text-xs">
+            <h4 className="font-medium text-gray-900 mb-2">Leadership</h4>
+            <div className="space-y-2 text-xs text-gray-700">
               <div>
-                <div className="font-medium text-gray-700">Owner</div>
+                <div className="font-medium text-gray-900">Owner</div>
                 <div className="pl-2">
                   <UserMention
                     username={stats.membershipInfo.owner.actorName || stats.membershipInfo.owner.displayName}
                     displayName={stats.membershipInfo.owner.displayName}
                   />
-                  <span className="text-gray-500 ml-1">
+                  <span className="text-gray-600 ml-1">
                     (joined {new Date(stats.membershipInfo.owner.joinedAt).toLocaleDateString()})
                   </span>
                 </div>
               </div>
-              
+
               {stats.membershipInfo.moderators.length > 0 && (
                 <div>
-                  <div className="font-medium text-gray-700">Moderators</div>
+                  <div className="font-medium text-gray-900">Moderators</div>
                   <div className="pl-2 space-y-1">
                     {stats.membershipInfo.moderators.map((mod, index) => (
                       <div key={index}>
@@ -201,7 +201,7 @@ export default function ThreadRingStats({
                           username={mod.actorName || mod.displayName}
                           displayName={mod.displayName}
                         />
-                        <span className="text-gray-500 ml-1">
+                        <span className="text-gray-600 ml-1">
                           (joined {new Date(mod.joinedAt).toLocaleDateString()})
                         </span>
                       </div>

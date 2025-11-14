@@ -891,10 +891,102 @@
     transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
+    max-height: 85vh;
+    background: white;
+    border-radius: 1.5rem 1.5rem 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
-  
+
   .mobile-bottom-sheet.open {
     transform: translateY(0);
+  }
+
+  /* Bottom sheet drag handle */
+  .bottom-sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: #D1D5DB;
+    border-radius: 2px;
+    margin: 0.75rem auto 0.5rem;
+    flex-shrink: 0;
+  }
+
+  /* Bottom sheet content area */
+  .bottom-sheet-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Bottom sheet backdrop */
+  .bottom-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+
+  .bottom-sheet-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Bottom center button for bottom sheet trigger */
+  .bottom-center-button {
+    position: fixed;
+    bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+    right: 0.5rem;
+    z-index: 9999;
+    padding: 0.75rem 1rem;
+    border-radius: 9999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid #000;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 48px;
+    min-width: 48px;
+    will-change: transform;
+  }
+
+  .bottom-center-button:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .bottom-center-button:not(:active) {
+    transform: scale(1);
+  }
+
+  /* Hide text label on mobile, show only icon */
+  @media (max-width: 767px) {
+    .bottom-center-button .button-text {
+      display: none !important;
+    }
+
+    .bottom-center-button {
+      padding: 0.75rem !important;
+      width: 56px !important;
+      height: 56px !important;
+      min-width: 56px !important;
+      max-width: 56px !important;
+      justify-content: center !important;
+      gap: 0 !important;
+    }
+  }
+
+  /* Safe area padding for bottom sheet */
+  .bottom-sheet-safe-area {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
   }
   
   /* Mobile fab (floating action button) */

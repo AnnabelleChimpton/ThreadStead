@@ -85,9 +85,9 @@ export default function ThreadRingFeedScope({
           <label
             key={scopeOption}
             className={`tr-scope-option flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer transition-colors border ${
-              scope === scopeOption 
-                ? 'tr-scope-active bg-blue-100 border-blue-300 text-blue-800' 
-                : 'tr-scope-inactive bg-gray-50 border-gray-200 hover:bg-gray-100'
+              scope === scopeOption
+                ? 'tr-scope-active bg-blue-100 border-blue-300 text-blue-800'
+                : 'tr-scope-inactive bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900'
             }`}
           >
             <input

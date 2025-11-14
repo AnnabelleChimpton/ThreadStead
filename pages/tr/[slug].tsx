@@ -497,6 +497,76 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     return () => window.removeEventListener('resize', handleResize);
   }, [showSidebarModal]);
 
+  // Handle swipe-down gesture to close bottom sheet
+  useEffect(() => {
+    if (!isMobile || !showSidebarModal) return;
+
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      // Only handle touches on the bottom sheet content
+      if (target.closest('.mobile-bottom-sheet')) {
+        const bottomSheet = document.querySelector('.mobile-bottom-sheet');
+        const scrollContainer = bottomSheet?.querySelector('.bottom-sheet-content');
+
+        // Only allow swipe if at top of scroll
+        if (scrollContainer && scrollContainer.scrollTop === 0) {
+          startY = e.touches[0].clientY;
+          isDragging = true;
+        }
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging) return;
+
+      currentY = e.touches[0].clientY;
+      const deltaY = currentY - startY;
+
+      // Only allow downward swipes
+      if (deltaY > 0) {
+        const bottomSheet = document.querySelector('.mobile-bottom-sheet');
+        if (bottomSheet) {
+          (bottomSheet as HTMLElement).style.transform = `translateY(${deltaY}px)`;
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (!isDragging) return;
+
+      const deltaY = currentY - startY;
+      const bottomSheet = document.querySelector('.mobile-bottom-sheet');
+
+      if (bottomSheet) {
+        // If swiped down more than 100px, close the sheet
+        if (deltaY > 100) {
+          setShowSidebarModal(false);
+        }
+
+        // Reset transform
+        (bottomSheet as HTMLElement).style.transform = '';
+      }
+
+      isDragging = false;
+      startY = 0;
+      currentY = 0;
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isMobile, showSidebarModal]);
+
   // Fetch members using user-authenticated API
   useEffect(() => {
     if (!ring) return;
@@ -856,11 +926,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         <WelcomeRingGuide ringSlug={ring.slug} viewer={currentUser} ring={ring} />
       )}
 
-      <div className="tr-page-container grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 sm:px-6 lg:px-8">
+      <div className="tr-page-container grid grid-cols-1 lg:grid-cols-3 gap-6 px-0 sm:px-4 lg:px-6">
         {/* Main content area - posts feed */}
         <div className="tr-main-content col-span-1 lg:col-span-2">
           <div className="tr-header-card border border-black bg-white shadow-[3px_3px_0_#000]">
-            <div className="p-6 border-b-2 border-gray-200">
+            <div className="p-3 sm:p-6 border-b-2 border-gray-200">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <h1 className="tr-title text-3xl sm:text-4xl font-bold text-thread-pine" title={ring.name}>
                   {ring.name}
@@ -901,7 +971,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             </div>
 
             {ring.curatorNote && (
-              <div className="tr-curator-note bg-gradient-to-r from-yellow-50 to-orange-50 border-b-2 border-gray-200 p-4">
+              <div className="tr-curator-note bg-gradient-to-r from-yellow-50 to-orange-50 border-b-2 border-gray-200 p-3 sm:p-4">
                 <div className="tr-curator-note-content flex items-start gap-3">
                   <div className="tr-curator-note-icon text-2xl">📌</div>
                   <div className="tr-curator-note-text flex-1">
@@ -912,7 +982,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               </div>
             )}
 
-            <div className="tr-footer px-6 py-3 bg-gray-50">
+            <div className="tr-footer px-3 sm:px-6 py-3 bg-gray-50">
               <span className="tr-slug text-xs text-gray-500 font-mono">threadring/{ring.slug}</span>
             </div>
           </div>
@@ -940,7 +1010,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           )}
 
           <div className="tr-posts-container mt-6 border border-black bg-white shadow-[2px_2px_0_#000]">
-            <div className="border-b-2 border-gray-200 px-6 py-4 bg-gray-50">
+            <div className="border-b-2 border-gray-200 px-3 sm:px-6 py-4 bg-gray-50">
               <h2 className="tr-posts-title text-xl font-bold">
                 {feedScope === 'current' ? 'Recent Posts' :
                  feedScope === 'parent' ? 'Posts from Parent Ring' :
@@ -950,23 +1020,23 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               </h2>
             </div>
 
-            <div className="p-6">
+            <div className="p-0 sm:p-6">
               {postsLoading ? (
-                <div className="tr-posts-loading text-gray-600 text-center py-8">
+                <div className="tr-posts-loading text-gray-600 text-center py-8 px-3">
                   Loading posts...
                 </div>
               ) : loadError ? (
-                <div className="tr-posts-error text-red-600 text-center py-8">
+                <div className="tr-posts-error text-red-600 text-center py-8 px-3">
                   {loadError}
                 </div>
               ) : posts.length === 0 ? (
-                <div className="tr-posts-empty text-gray-600 text-center py-12">
+                <div className="tr-posts-empty text-gray-600 text-center py-12 px-3">
                   <div className="text-4xl mb-3">📝</div>
                   <p className="font-medium">No posts yet</p>
                   <p className="text-sm mt-1">Posts from members will appear here</p>
                 </div>
               ) : (
-                <div className="tr-posts-list space-y-6">
+                <div className="tr-posts-list space-y-0 sm:space-y-6">
                 {posts.map((post, index) => (
                   <PostItem
                     key={post.id}
@@ -1004,7 +1074,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         {/* Sidebar - Hidden on mobile, visible on desktop */}
         <div className="tr-sidebar hidden lg:block lg:col-span-1 space-y-4">
           {/* Primary Actions - Always Visible */}
-          <div className="tr-sidebar-section tr-primary-actions border border-black bg-white shadow-[2px_2px_0_#000] p-4">
+          <div className="tr-sidebar-section tr-primary-actions border border-black bg-white shadow-[2px_2px_0_#000] p-3 sm:p-4">
             {isMember ? (
               <div className="space-y-3">
                 {/* Member Status */}
@@ -1372,36 +1442,42 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         </div>
       </div>
 
-      {/* Ring Info Toggle Button - Mobile Only */}
+      {/* Ring Info Toggle Button - Mobile Only (Bottom Right) */}
       {isMobile && (
         <button
           onClick={() => setShowSidebarModal(!showSidebarModal)}
-          className={`fixed top-24 right-4 z-[9999] text-white px-3 py-2 rounded-lg shadow-lg border-2 border-black transition-all flex items-center gap-2 font-semibold ${
+          className={`bottom-center-button text-white ${
             showSidebarModal
               ? 'bg-red-600 hover:bg-red-700'
               : 'bg-thread-pine hover:bg-thread-sage'
           }`}
           aria-label={showSidebarModal ? "Close ring information" : "Open ring information"}
         >
-          <span className="text-lg">{showSidebarModal ? '✕' : 'ℹ️'}</span>
-          <span className="text-sm">{showSidebarModal ? 'Close' : 'Ring Info'}</span>
+          <span className="text-xl">{showSidebarModal ? '✕' : 'ℹ️'}</span>
+          <span className="button-text text-sm font-semibold">{showSidebarModal ? 'Close' : 'Ring Info'}</span>
         </button>
       )}
 
-      {/* Full-Screen Sidebar Modal - Mobile Only */}
-      {isMobile && showSidebarModal && (
-        <div className="fixed inset-x-0 top-36 bottom-0 z-[50]">
-          {/* Modal Content */}
-          <div className="absolute inset-0 bg-white overflow-y-auto shadow-lg">
-            {/* Modal Header */}
-            <div className="sticky top-0 z-10 bg-gray-100 text-gray-900 px-4 py-3 border-b-2 border-gray-300">
-              <h2 className="text-lg font-bold">Ring Info</h2>
-            </div>
+      {/* Backdrop - Mobile Only */}
+      {isMobile && (
+        <div
+          className={`bottom-sheet-backdrop ${showSidebarModal ? 'visible' : ''}`}
+          onClick={() => setShowSidebarModal(false)}
+          aria-hidden="true"
+        />
+      )}
 
-            {/* Modal Body - Sidebar Content */}
-            <div className="p-4 space-y-4">
+      {/* Bottom Sheet - Mobile Only */}
+      {isMobile && (
+        <div className={`mobile-bottom-sheet ${showSidebarModal ? 'open' : ''}`}>
+          {/* Drag Handle */}
+          <div className="bottom-sheet-handle" />
+
+          {/* Bottom Sheet Content */}
+          <div className="bottom-sheet-content">
+            <div className="p-4 pb-6 space-y-4 bottom-sheet-safe-area">
               {/* Primary Actions */}
-              <div className="tr-sidebar-section tr-primary-actions border border-black bg-white shadow-[2px_2px_0_#000] p-4">
+              <div className="tr-sidebar-section tr-primary-actions border border-black bg-white shadow-[2px_2px_0_#000] p-3 sm:p-4">
                 {isMember ? (
                   <div className="space-y-3">
                     {/* Member Status */}
@@ -1506,7 +1582,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 <div className="flex border-b border-gray-300">
                   <button
                     onClick={() => setSidebarTab('stats')}
-                    className={`flex-1 px-3 py-2 text-sm font-medium border-r border-gray-300 transition-colors ${
+                    className={`flex-1 px-3 py-3 min-h-[48px] text-sm font-medium border-r border-gray-300 transition-colors ${
                       sidebarTab === 'stats'
                         ? 'bg-yellow-100 text-black'
                         : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -1516,7 +1592,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   </button>
                   <button
                     onClick={() => setSidebarTab('lineage')}
-                    className={`flex-1 px-3 py-2 text-sm font-medium border-r border-gray-300 transition-colors ${
+                    className={`flex-1 px-3 py-3 min-h-[48px] text-sm font-medium border-r border-gray-300 transition-colors ${
                       sidebarTab === 'lineage'
                         ? 'bg-yellow-100 text-black'
                         : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -1526,7 +1602,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   </button>
                   <button
                     onClick={() => setSidebarTab('discovery')}
-                    className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+                    className={`flex-1 px-3 py-3 min-h-[48px] text-sm font-medium transition-colors ${
                       sidebarTab === 'discovery'
                         ? 'bg-yellow-100 text-black'
                         : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -1570,15 +1646,15 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               <div className="border border-black bg-gray-50 shadow-[2px_2px_0_#000] p-3 text-xs space-y-1">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Created:</span>
-                  <span className="font-medium">{new Date(ring.createdAt).toLocaleDateString()}</span>
+                  <span className="font-medium text-gray-900">{new Date(ring.createdAt).toLocaleDateString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Visibility:</span>
-                  <span className="font-medium capitalize">{ring.visibility}</span>
+                  <span className="font-medium text-gray-900 capitalize">{ring.visibility}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Join Type:</span>
-                  <span className="font-medium capitalize">{ring.joinType}</span>
+                  <span className="font-medium text-gray-900 capitalize">{ring.joinType}</span>
                 </div>
               </div>
             </div>
