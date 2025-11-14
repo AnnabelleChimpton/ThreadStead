@@ -90,14 +90,22 @@ export default function ThreadRingGenealogy({
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
+    // Detect mobile for responsive tree sizing
+    const isMobile = window.innerWidth < 768;
+
+    // On mobile, multiply width to spread tree horizontally for better readability
+    const treeWidth = isMobile ? width * 5 : width;
+
     // Create tree layout
     const treeLayout = d3.tree<ThreadRingNode>()
-      .size([height, width])
+      .size([height, treeWidth])
       .separation((a, b) => {
         // Increase separation for nodes with many children
         const aChildren = a.data.directChildrenCount || 0;
         const bChildren = b.data.directChildrenCount || 0;
-        return (a.parent === b.parent ? 1 : 2) * (1 + Math.min(aChildren + bChildren, 10) * 0.1);
+        const baseSeparation = (a.parent === b.parent ? 1 : 2) * (1 + Math.min(aChildren + bChildren, 10) * 0.1);
+        // Increase separation even more on mobile for readability
+        return isMobile ? baseSeparation * 2 : baseSeparation;
       });
 
     // Create hierarchy
@@ -122,9 +130,9 @@ export default function ThreadRingGenealogy({
         .x(d => d.y)
         .y(d => d.x))
       .style("fill", "none")
-      .style("stroke", "#64748b")
+      .style("stroke", "#475569")
       .style("stroke-width", 1.5)
-      .style("opacity", 0.6);
+      .style("opacity", 0.75);
 
     // Draw nodes
     const node = g.selectAll(".node")
@@ -160,7 +168,7 @@ export default function ThreadRingGenealogy({
       .attr("dy", ".31em")
       .attr("x", d => d.children ? -10 : 10)
       .style("text-anchor", d => d.children ? "end" : "start")
-      .style("font-size", "12px")
+      .style("font-size", isMobile ? "14px" : "12px")
       .style("font-weight", "500")
       .text(d => d.data.name)
       .on("mouseover", function(event, d) {
@@ -172,7 +180,7 @@ export default function ThreadRingGenealogy({
           .style("color", "white")
           .style("padding", "8px 12px")
           .style("border-radius", "4px")
-          .style("font-size", "12px")
+          .style("font-size", isMobile ? "14px" : "12px")
           .style("pointer-events", "none")
           .style("z-index", 1000);
 
@@ -197,8 +205,8 @@ export default function ThreadRingGenealogy({
       .attr("dy", "1.5em")
       .attr("x", 0)
       .style("text-anchor", "middle")
-      .style("font-size", "10px")
-      .style("fill", "#64748b")
+      .style("font-size", isMobile ? "13px" : "11px")
+      .style("fill", "#374151")
       .text(d => {
         if (d.data.totalDescendantsCount > 0) {
           return `↓${d.data.totalDescendantsCount}`;
@@ -232,9 +240,10 @@ export default function ThreadRingGenealogy({
     const handleResize = () => {
       const container = document.getElementById('genealogy-container');
       if (container) {
+        const isMobile = window.innerWidth < 768;
         setDimensions({
           width: container.clientWidth,
-          height: Math.min(container.clientHeight, 800)
+          height: Math.min(container.clientHeight, isMobile ? 500 : 800)
         });
       }
     };
@@ -272,39 +281,39 @@ export default function ThreadRingGenealogy({
     <div id="genealogy-container" className="w-full h-full">
       {stats && (
         <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Ring Hub Network Statistics</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
+          <h3 className="text-sm font-semibold text-gray-900 mb-2">Ring Hub Network Statistics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 text-sm md:text-base">
             <div>
-              <span className="text-gray-500">Total Rings:</span>
-              <span className="ml-2 font-semibold">{stats.totalRings.toLocaleString()}</span>
+              <span className="text-gray-700">Total Rings:</span>
+              <span className="ml-2 font-semibold text-gray-900">{stats.totalRings.toLocaleString()}</span>
             </div>
             {stats.totalActors !== undefined && (
               <div>
-                <span className="text-gray-500">Total Users:</span>
-                <span className="ml-2 font-semibold">{stats.totalActors.toLocaleString()}</span>
+                <span className="text-gray-700">Total Users:</span>
+                <span className="ml-2 font-semibold text-gray-900">{stats.totalActors.toLocaleString()}</span>
               </div>
             )}
             <div>
-              <span className="text-gray-500">Active Members:</span>
-              <span className="ml-2 font-semibold">{stats.totalMembers.toLocaleString()}</span>
+              <span className="text-gray-700">Active Members:</span>
+              <span className="ml-2 font-semibold text-gray-900">{stats.totalMembers.toLocaleString()}</span>
             </div>
             <div>
-              <span className="text-gray-500">Total Posts:</span>
-              <span className="ml-2 font-semibold">{stats.totalPosts.toLocaleString()}</span>
+              <span className="text-gray-700">Total Posts:</span>
+              <span className="ml-2 font-semibold text-gray-900">{stats.totalPosts.toLocaleString()}</span>
             </div>
             <div>
-              <span className="text-gray-500">Max Depth:</span>
-              <span className="ml-2 font-semibold">{stats.maxDepth}</span>
+              <span className="text-gray-700">Max Depth:</span>
+              <span className="ml-2 font-semibold text-gray-900">{stats.maxDepth}</span>
             </div>
             <div>
-              <span className="text-gray-500">Avg Children:</span>
-              <span className="ml-2 font-semibold">{stats.averageChildren.toFixed(1)}</span>
+              <span className="text-gray-700">Avg Children:</span>
+              <span className="ml-2 font-semibold text-gray-900">{stats.averageChildren.toFixed(1)}</span>
             </div>
           </div>
         </div>
       )}
       
-      <div className="mb-2 text-xs text-gray-500">
+      <div className="mb-2 text-sm md:text-xs text-gray-700">
         Click on any node to visit the ThreadRing. Scroll to zoom, drag to pan.
       </div>
       
@@ -312,11 +321,11 @@ export default function ThreadRingGenealogy({
         <svg ref={svgRef}></svg>
       </div>
 
-      <div className="mt-4 flex items-center gap-4 text-xs text-gray-600">
+      <div className="mt-4 flex flex-wrap items-center gap-4 text-sm md:text-xs text-gray-700">
         <div className="flex items-center gap-2">
           <span>Node Size = Total Descendants</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span>Color:</span>
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded-full bg-indigo-500"></span> Root

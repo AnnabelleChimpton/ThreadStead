@@ -20,18 +20,18 @@ export default function GenealogyPage({ siteConfig }: GenealogyPageProps) {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <h1 className="text-3xl font-bold text-gray-900">ThreadRing Genealogy</h1>
-              <div className="flex gap-2">
-                <Link 
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Link
                   href="/threadrings"
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="px-3 py-2.5 text-sm md:px-4 md:py-2 min-h-[2.5rem] font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-center"
                 >
                   Browse All
                 </Link>
-                <Link 
+                <Link
                   href="/tr/spool/fork"
-                  className="px-4 py-2 text-sm font-medium !text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                  className="px-3 py-2.5 text-sm md:px-4 md:py-2 min-h-[2.5rem] font-medium !text-white bg-indigo-600 rounded-md hover:bg-indigo-700 text-center"
                 >
                   Create ThreadRing
                 </Link>

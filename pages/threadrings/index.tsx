@@ -226,7 +226,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="bg-gradient-to-br from-purple-100 via-fuchsia-50 to-pink-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
               <div>
                 <h1 className="text-3xl font-bold">ThreadRings</h1>
                 <p className="text-gray-600 mt-1">
@@ -234,18 +234,18 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                   {total !== null && ` • ${total} total rings`}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Link
                   href="/threadrings/genealogy"
-                  className="border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+                  className="border border-black px-3 py-2 text-sm md:px-4 md:text-base bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium text-center"
                 >
                   🌳 Genealogy
                 </Link>
                 <Link
                   href="/tr/spool/fork"
-                  className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium"
+                  className="border border-black px-3 py-2 text-sm md:px-4 md:text-base bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium text-center"
                 >
-                  Branch from The Spool
+                  Branch <span className="hidden md:inline">from The Spool</span>
                 </Link>
               </div>
             </div>
@@ -275,7 +275,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
           </div>
 
           {/* Search and Filters */}
-          <div className="flex gap-3 items-center flex-wrap">
+          <div className="flex flex-col md:flex-row gap-3">
             <div className="flex-1 min-w-0">
               <input
                 type="text"
@@ -288,7 +288,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="border border-black px-3 py-2 bg-white focus:outline-none"
+              className="w-full md:w-auto border border-black px-3 py-2 bg-white focus:outline-none"
             >
               {sortOptions.map(option => (
                 <option key={option.value} value={option.value}>
