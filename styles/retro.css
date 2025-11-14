@@ -496,12 +496,22 @@ html {
 }
 
 /* Enhanced form styling for directory */
-input[type="text"], 
-input[type="email"], 
-input[type="password"], 
-select, 
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select,
 textarea {
-  /* Form styling without transitions */
+  color: #2F2F2F;
+  background-color: #FFFFFF;
+  border: 1px solid #A18463;
+}
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+textarea::placeholder {
+  color: #A18463;
+  opacity: 0.7;
 }
 
 input[type="text"]:focus, 
