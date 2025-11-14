@@ -97,6 +97,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "isomorphic-dompurify": "^2.26.0",

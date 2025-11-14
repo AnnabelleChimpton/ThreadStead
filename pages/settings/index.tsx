@@ -538,7 +538,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "profile",
       label: "👤 Profile",
       content: (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Profile Information</h2>
             <p className="text-gray-600 mb-6">
@@ -588,10 +588,10 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     value="public"
                     checked={visibility === 'public'}
                     onChange={(e) => setVisibility(e.target.value as 'public')}
-                    className="mr-3"
+                    className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold">🌐 Public</div>
+                    <div className="font-bold text-gray-900">🌐 Public</div>
                     <div className="text-sm text-gray-600">
                       Anyone can see your profile. Your name and avatar will be shared with federated instances.
                     </div>
@@ -604,10 +604,10 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     value="followers"
                     checked={visibility === 'followers'}
                     onChange={(e) => setVisibility(e.target.value as 'followers')}
-                    className="mr-3"
+                    className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold">👥 Followers Only</div>
+                    <div className="font-bold text-gray-900">👥 Followers Only</div>
                     <div className="text-sm text-gray-600">
                       Only people who follow you can see your profile. Limited federated sharing.
                     </div>
@@ -620,10 +620,10 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     value="friends"
                     checked={visibility === 'friends'}
                     onChange={(e) => setVisibility(e.target.value as 'friends')}
-                    className="mr-3"
+                    className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold">🤝 Friends Only</div>
+                    <div className="font-bold text-gray-900">🤝 Friends Only</div>
                     <div className="text-sm text-gray-600">
                       Only mutual friends can see your profile. Limited federated sharing.
                     </div>
@@ -636,10 +636,10 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     value="private"
                     checked={visibility === 'private'}
                     onChange={(e) => setVisibility(e.target.value as 'private')}
-                    className="mr-3"
+                    className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold">🔒 Private</div>
+                    <div className="font-bold text-gray-900">🔒 Private</div>
                     <div className="text-sm text-gray-600">
                       Only you can see your profile. Minimal federated sharing (profile link only).
                     </div>
@@ -679,7 +679,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             <button
               onClick={handleSaveProfile}
               disabled={saving}
-              className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50"
+              className="px-4 py-3 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 min-h-[48px]"
             >
               {saving ? "Saving..." : "Save Profile"}
             </button>
@@ -691,9 +691,9 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "appearance",
       label: "🎨 Appearance",
       content: (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2">Profile Customization</h2>
+            <h2 className="text-xl font-bold mb-2 text-gray-900">Profile Customization</h2>
             <p className="text-gray-600 mb-6">
               Choose how you want to customize your profile - from simple styling to advanced layouts.
             </p>
@@ -702,23 +702,23 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {/* CSS Styling - Simplest */}
             <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 rounded-lg p-6 text-center shadow-md relative">
-              <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded font-bold">
+              <div className="absolute top-2 right-2 bg-green-500 text-white text-sm px-2 py-1 rounded font-bold">
                 SIMPLEST
               </div>
               <div className="mb-3">
                 <span className="text-4xl">✨</span>
               </div>
-              <h3 className="text-lg font-bold mb-2">CSS Styling</h3>
+              <h3 className="text-lg font-bold mb-2 text-gray-900">CSS Styling</h3>
               <p className="text-sm text-gray-700 mb-4">
                 Change colors, fonts, and spacing on your default layout. Perfect for quick customization.
               </p>
               <a
                 href={`/resident/${username}/css-editor`}
-                className="px-4 py-2 bg-green-500 hover:bg-green-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm"
+                className="px-4 py-3 bg-green-500 hover:bg-green-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm min-h-[48px] flex items-center justify-center"
               >
                 Open CSS Editor →
               </a>
-              <p className="text-xs text-gray-600 mt-2">5 minutes</p>
+              <p className="text-sm text-gray-600 mt-2">5 minutes</p>
             </div>
 
             {/* Visual Builder */}
@@ -726,17 +726,17 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               <div className="mb-3">
                 <span className="text-4xl">🏗️</span>
               </div>
-              <h3 className="text-lg font-bold mb-2">Visual Builder</h3>
+              <h3 className="text-lg font-bold mb-2 text-gray-900">Visual Builder</h3>
               <p className="text-sm text-gray-700 mb-4">
                 Drag & drop custom layouts with grid positioning. Build unique page structures.
               </p>
               <a
                 href={`/resident/${username}/template-editor?mode=visual`}
-                className="px-4 py-2 bg-purple-500 hover:bg-purple-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm"
+                className="px-4 py-3 bg-purple-500 hover:bg-purple-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm min-h-[48px] flex items-center justify-center"
               >
                 Open Visual Builder →
               </a>
-              <p className="text-xs text-gray-600 mt-2">30 minutes</p>
+              <p className="text-sm text-gray-600 mt-2">30 minutes</p>
             </div>
 
             {/* Template Language */}
@@ -744,17 +744,17 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               <div className="mb-3">
                 <span className="text-4xl">💻</span>
               </div>
-              <h3 className="text-lg font-bold mb-2">Template Code</h3>
+              <h3 className="text-lg font-bold mb-2 text-gray-900">Template Code</h3>
               <p className="text-sm text-gray-700 mb-4">
                 Code dynamic features with variables, loops, and conditionals. For developers.
               </p>
               <a
                 href={`/resident/${username}/template-editor?mode=template`}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm"
+                className="px-4 py-3 bg-blue-500 hover:bg-blue-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm min-h-[48px] flex items-center justify-center"
               >
                 Open Code Editor →
               </a>
-              <p className="text-xs text-gray-600 mt-2">1+ hour</p>
+              <p className="text-sm text-gray-600 mt-2">1+ hour</p>
             </div>
           </div>
 
@@ -782,7 +782,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             </p>
             <button
               onClick={() => setShowResetModal(true)}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded border border-gray-400 transition-colors text-sm"
+              className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded border border-gray-400 transition-colors text-sm min-h-[48px]"
             >
               🔄 Reset to Default Template
             </button>
@@ -853,14 +853,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "pixel-home",
       label: "🏠 Pixel Home",
       content: (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2">Pixel Home Customization</h2>
+            <h2 className="text-xl font-bold mb-2 text-gray-900">Pixel Home Customization</h2>
             <p className="text-gray-600 mb-6">
               Customize your interactive Pixel Home - choose your house style and color palette to create your unique digital front door.
             </p>
           </div>
-          
+
           {currentUser?.primaryHandle && (
             <div className="bg-thread-paper border border-thread-sage rounded-lg p-4 mb-4">
               <div className="text-center text-sm text-thread-sage mb-2">
@@ -868,26 +868,26 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               </div>
               <div className="text-center space-y-2">
                 <div>
-                  <a 
+                  <a
                     href={`/home/${username}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors mr-2"
+                    className="inline-flex items-center gap-2 px-4 py-3 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors mr-2 min-h-[48px]"
                   >
                     View My Pixel Home
-                    <span className="text-xs">↗</span>
+                    <span className="text-sm">↗</span>
                   </a>
-                  <a 
+                  <a
                     href={`/home/${username}/decorate`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors mr-2"
+                    className="inline-flex items-center gap-2 px-4 py-3 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors mr-2 min-h-[48px]"
                   >
                     Decorate Home
-                    <span className="text-xs">↗</span>
+                    <span className="text-sm">↗</span>
                   </a>
                 </div>
-                <div className="text-xs text-thread-sage">
+                <div className="text-sm text-thread-sage">
                   Use the decorator to place decorations, change themes, and customize your home&apos;s atmosphere
                 </div>
               </div>
@@ -900,9 +900,9 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "music",
       label: "🎵 Music",
       content: (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2">Profile Music</h2>
+            <h2 className="text-xl font-bold mb-2 text-gray-900">Profile Music</h2>
             <p className="text-gray-600 mb-6">
               Add background music to your profile with MIDI files. Create the perfect soundtrack for your digital home.
             </p>
@@ -945,9 +945,9 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     },
     {
       id: "account",
-      label: "🔐 Account & Security", 
+      label: "🔐 Account & Security",
       content: (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Account & Security</h2>
             <p className="text-gray-600 mb-6">
@@ -957,7 +957,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
           {/* Seed Phrase Management */}
           <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
               <span>🌱</span>
               Recovery Seed Phrase
             </h3>
@@ -974,7 +974,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 <button
                   onClick={handleGenerateSeedPhrase}
                   disabled={isLoading}
-                  className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50"
+                  className="px-4 py-3 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 min-h-[48px]"
                 >
                   {isLoading ? "Generating..." : "Generate Seed Phrase"}
                 </button>
@@ -990,7 +990,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   <button
                     onClick={handleRegenerateSeedPhrase}
                     disabled={isLoading}
-                    className="px-3 py-2 text-sm bg-yellow-100 hover:bg-yellow-200 border border-yellow-300 font-medium transition-all disabled:opacity-50"
+                    className="px-3 py-3 text-sm bg-yellow-100 hover:bg-yellow-200 border border-yellow-300 font-medium transition-all disabled:opacity-50 min-h-[48px]"
                   >
                     {isLoading ? "Regenerating..." : "Regenerate Seed Phrase"}
                   </button>
@@ -1006,31 +1006,31 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   <strong>Save these 12 words in order!</strong> You&apos;ll need them to recover your account.
                 </p>
                 <div className="bg-white border border-blue-300 p-3 rounded mb-3">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {seedPhrase.split(' ').map((word, index) => (
                       <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                        <span className="text-xs font-bold text-blue-600 w-6">{index + 1}.</span>
-                        <span className="font-mono">{word}</span>
+                        <span className="text-sm font-bold text-blue-600 w-6">{index + 1}.</span>
+                        <span className="font-mono text-gray-900">{word}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={() => copyToClipboard(seedPhrase)}
-                    className="px-3 py-2 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all"
+                    className="px-3 py-3 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all min-h-[48px]"
                   >
                     📋 Copy
                   </button>
                   <button
                     onClick={() => downloadSeedPhrase(seedPhrase)}
-                    className="px-3 py-2 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all"
+                    className="px-3 py-3 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all min-h-[48px]"
                   >
                     💾 Download
                   </button>
                   <button
                     onClick={() => setSeedPhrase("")}
-                    className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all"
+                    className="px-3 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all min-h-[48px]"
                   >
                     ✓ I&apos;ve Saved It
                   </button>
@@ -1042,11 +1042,11 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             <div className="border-t border-gray-200 pt-4">
               <button
                 onClick={() => setShowRecovery(!showRecovery)}
-                className="px-4 py-2 text-sm bg-white hover:bg-gray-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                className="px-4 py-3 text-sm bg-white hover:bg-gray-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
               >
                 🔄 Recover Account from Seed Phrase
               </button>
-              
+
               {showRecovery && (
                 <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded">
                   <p className="text-sm text-gray-600 mb-3">
@@ -1059,17 +1059,17 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     className="w-full h-24 text-sm border border-gray-300 p-3 resize-none bg-white rounded"
                     disabled={isLoading}
                   />
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex gap-2 flex-wrap">
                     <button
                       onClick={handleRecoverFromSeed}
                       disabled={isLoading || !recoveryPhrase.trim()}
-                      className="px-4 py-2 text-sm bg-blue-200 hover:bg-blue-100 border border-black font-medium transition-all disabled:opacity-50"
+                      className="px-4 py-3 text-sm bg-blue-200 hover:bg-blue-100 border border-black font-medium transition-all disabled:opacity-50 min-h-[48px]"
                     >
                       {isLoading ? "Recovering..." : "Recover Account"}
                     </button>
                     <button
                       onClick={() => setShowRecovery(false)}
-                      className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all"
+                      className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all min-h-[48px]"
                     >
                       Cancel
                     </button>
@@ -1081,7 +1081,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
           {/* Password Authentication */}
           <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
               <span>🔐</span>
               Password Authentication
             </h3>
@@ -1099,7 +1099,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 {!showPasswordSection ? (
                   <button
                     onClick={() => setShowPasswordSection(true)}
-                    className="px-4 py-2 border border-black bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                    className="px-4 py-3 border border-black bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
                   >
                     Add Password Login
                   </button>
@@ -1152,11 +1152,11 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                       </ul>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap">
                       <button
                         onClick={handleAddPassword}
                         disabled={isLoading || !newPassword || !confirmNewPassword || passwordErrors.length > 0}
-                        className="px-4 py-2 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50"
+                        className="px-4 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 min-h-[48px]"
                       >
                         {isLoading ? "Adding..." : "Add Password"}
                       </button>
@@ -1168,7 +1168,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                           setPasswordErrors([]);
                         }}
                         disabled={isLoading}
-                        className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all disabled:opacity-50"
+                        className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all disabled:opacity-50 min-h-[48px]"
                       >
                         Cancel
                       </button>
@@ -1187,13 +1187,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 {!showPasswordChangeSection ? (
                   <button
                     onClick={() => setShowPasswordChangeSection(true)}
-                    className="px-4 py-2 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all"
+                    className="px-4 py-3 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all min-h-[48px]"
                   >
                     Change Password
                   </button>
                 ) : (
                   <div className="bg-white border border-gray-200 rounded p-4 space-y-4">
-                    <h4 className="font-bold text-gray-800">Change Password</h4>
+                    <h4 className="font-bold text-gray-800 text-gray-900">Change Password</h4>
                     
                     <div>
                       <label className="block text-sm font-bold mb-2">Current Password</label>
@@ -1256,11 +1256,11 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                       </div>
                     )}
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap">
                       <button
                         onClick={handleChangePassword}
                         disabled={isLoading || !currentPassword || !newPasswordChange || !confirmNewPasswordChange || changePasswordErrors.length > 0}
-                        className="px-4 py-2 bg-blue-200 hover:bg-blue-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50"
+                        className="px-4 py-3 bg-blue-200 hover:bg-blue-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 min-h-[48px]"
                       >
                         {isLoading ? "Changing..." : "Change Password"}
                       </button>
@@ -1273,7 +1273,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                           setChangePasswordErrors([]);
                         }}
                         disabled={isLoading}
-                        className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all disabled:opacity-50"
+                        className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all disabled:opacity-50 min-h-[48px]"
                       >
                         Cancel
                       </button>
@@ -1286,7 +1286,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
           {/* Email Management */}
           <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
               <span>📧</span>
               Email Login
             </h3>
@@ -1300,12 +1300,12 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   {emailVerifiedAt ? (
                     <>
                       <span className="text-green-600 text-sm font-medium">✓ {userEmail}</span>
-                      <span className="text-xs text-gray-500">(verified)</span>
+                      <span className="text-sm text-gray-500">(verified)</span>
                     </>
                   ) : (
                     <>
                       <span className="text-amber-600 text-sm font-medium">⏳ {userEmail}</span>
-                      <span className="text-xs text-gray-500">(pending verification)</span>
+                      <span className="text-sm text-gray-500">(pending verification)</span>
                     </>
                   )}
                 </div>
@@ -1316,25 +1316,25 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               {userEmail ? (
                 <div className="flex gap-2">
                   {emailVerifiedAt ? (
-                    <p className="text-green-700 text-xs">
+                    <p className="text-green-700 text-sm">
                       You can now login using magic links sent to this email address.
                     </p>
                   ) : (
-                    <p className="text-amber-700 text-xs">
+                    <p className="text-amber-700 text-sm">
                       Check your email and click the verification link to enable email login.
                     </p>
                   )}
                 </div>
               ) : (
-                <p className="text-gray-700 text-xs mb-3">
+                <p className="text-gray-700 text-sm mb-3">
                   Add an email address to enable magic link login as an alternative to your DID key.
                 </p>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => setShowEmailSection(!showEmailSection)}
-                  className="px-3 py-2 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all"
+                  className="px-3 py-3 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all min-h-[48px]"
                 >
                   {userEmail ? "Change Email" : "Add Email"}
                 </button>
@@ -1342,7 +1342,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   <button
                     onClick={handleRemoveEmail}
                     disabled={isEmailLoading}
-                    className="px-3 py-2 text-sm bg-red-100 hover:bg-red-200 border border-red-300 font-medium transition-all disabled:opacity-50"
+                    className="px-3 py-3 text-sm bg-red-100 hover:bg-red-200 border border-red-300 font-medium transition-all disabled:opacity-50 min-h-[48px]"
                   >
                     Remove Email
                   </button>
@@ -1408,7 +1408,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "privacy",
       label: "🚫 Privacy & Consent",
       content: (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Privacy & Consent</h2>
             <p className="text-gray-600 mb-6">
@@ -1479,13 +1479,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   setSaveMessage(`Error: ${error instanceof Error ? error.message : 'Failed to export data'}`);
                 }
               }}
-              className="px-4 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+              className="px-4 py-3 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
             >
               📥 Export All My Data
             </button>
 
             <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded">
-              <p className="text-xs text-gray-600">
+              <p className="text-sm text-gray-600">
                 <strong>GDPR Compliance:</strong> This export provides your personal data in a structured, commonly used, and machine-readable format as required by data protection regulations.
               </p>
             </div>
@@ -1493,7 +1493,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
           {/* Blocking Management */}
           <div className="bg-blue-50 border border-black rounded-none p-4 shadow-[2px_2px_0_#000]">
-            <h3 className="text-lg font-bold mb-2">User & Community Blocking</h3>
+            <h3 className="text-lg font-bold mb-2 text-gray-900">User & Community Blocking</h3>
             <p className="text-sm text-gray-700 mb-3">
               <strong>Blocked users and communities are managed separately.</strong>
             </p>
@@ -1511,7 +1511,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "beta" as const,
       label: "🎫 Beta Invites",
       content: (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Beta Invite Codes</h2>
             <p className="text-gray-600 mb-6">
@@ -1531,7 +1531,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "admin",
       label: "⚙️ Admin",
       content: (
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Admin Panel</h2>
             <p className="text-gray-600 mb-6">
@@ -1545,7 +1545,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             </p>
             <Link
               href="/settings/admin"
-              className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline text-sm"
+              className="px-4 py-3 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline text-sm min-h-[48px] flex items-center"
             >
               Open Admin Panel →
             </Link>
@@ -1560,14 +1560,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       <Head>
         <title>Settings | ThreadStead</title>
       </Head>
-      <Layout>
+      <Layout fullWidth={true}>
         <RetroCard>
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 px-4 sm:px-0">
             <h1 className="text-2xl font-bold">Settings</h1>
             <div className="flex gap-2">
-              <a 
+              <a
                 href={`/resident/${username}`}
-                className="px-4 py-2 border border-black bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] no-underline"
+                className="px-4 py-3 border border-black bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] no-underline min-h-[48px] flex items-center"
               >
                 View Profile
               </a>
@@ -1575,9 +1575,9 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           </div>
 
           {saveMessage && (
-            <div className={`mb-4 p-3 rounded ${
-              saveMessage.includes("Error") 
-                ? "bg-red-100 text-red-700 border border-red-300" 
+            <div className={`mb-4 p-3 rounded mx-4 sm:mx-0 ${
+              saveMessage.includes("Error")
+                ? "bg-red-100 text-red-700 border border-red-300"
                 : "bg-green-100 text-green-700 border border-green-300"
             }`}>
               {saveMessage}

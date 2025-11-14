@@ -501,10 +501,34 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
         `}</style>
       </Head>
       <Layout siteConfig={siteConfig}>
-        <div className="max-w-2xl mx-auto p-6">
+        <div className="max-w-full sm:max-w-2xl mx-auto px-0 sm:px-6 py-6">
           {/* Progress Indicator */}
           <div className="mb-8">
-            <div className="flex items-center justify-center gap-2 text-sm">
+            {/* Mobile: Compact progress bar */}
+            <div className="flex sm:hidden flex-col items-center gap-3 px-4">
+              <span className="text-sm font-medium text-gray-700">
+                Step {(() => {
+                  const steps: SignupStep[] = ['welcome', 'auth-method', 'password-setup', 'seed-phrase', 'email', 'guidelines', 'profile', 'template', 'finale'];
+                  const currentIndex = steps.indexOf(currentStep);
+                  return currentIndex !== -1 ? currentIndex + 1 : 1;
+                })()} of 9
+              </span>
+              <div className="w-full max-w-xs bg-gray-200 h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${(() => {
+                      const steps: SignupStep[] = ['welcome', 'auth-method', 'password-setup', 'seed-phrase', 'email', 'guidelines', 'profile', 'template', 'finale'];
+                      const currentIndex = steps.indexOf(currentStep);
+                      return currentIndex !== -1 ? ((currentIndex + 1) / 9) * 100 : 0;
+                    })()}%`
+                  }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Desktop: Full stepper */}
+            <div className="hidden sm:flex items-center justify-center gap-2 text-sm">
               <div className={`flex items-center gap-2 ${currentStep === 'welcome' ? 'text-blue-600 font-medium' : ['seed-phrase', 'email', 'guidelines', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
                 <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'welcome' ? 'bg-blue-100' : ['seed-phrase', 'email', 'guidelines', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
                   1
@@ -558,7 +582,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 1: Welcome & Username */}
           {currentStep === 'welcome' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
                 <span className="text-6xl mb-4 block">👋</span>
                 <h1 className="text-3xl font-bold mb-2">Welcome to {siteConfig.site_name}!</h1>
@@ -633,7 +657,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <button
                   onClick={handleCreateAccount}
                   disabled={isLoading || !username || usernameAvailable !== true || (isBetaEnabled && !betaKey)}
-                  className="w-full px-6 py-4 text-lg bg-yellow-200 hover:bg-yellow-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-6 py-4 text-lg bg-yellow-200 hover:bg-yellow-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                 >
                   {isLoading ? "Creating Account..." : "Create My Account"}
                 </button>
@@ -649,7 +673,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 2: Auth Method Selection */}
           {currentStep === 'auth-method' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
                 <span className="text-6xl mb-4 block">🔑</span>
                 <h2 className="text-3xl font-bold mb-2">Choose Your Security Method</h2>
@@ -680,7 +704,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       </ul>
                       <button
                         onClick={() => handleAuthMethodSelected('password')}
-                        className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                        className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
                       >
                         Continue with Password →
                       </button>
@@ -709,7 +733,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       </ul>
                       <button
                         onClick={() => handleAuthMethodSelected('seedphrase')}
-                        className="w-full px-6 py-3 bg-gray-200 hover:bg-gray-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
+                        className="w-full px-6 py-3 bg-gray-200 hover:bg-gray-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
                       >
                         Continue with Seed Phrase →
                       </button>
@@ -732,7 +756,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 2b: Password Setup */}
           {currentStep === 'password-setup' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
                 <span className="text-6xl mb-4 block">🔐</span>
                 <h2 className="text-3xl font-bold mb-2">Create Your Password</h2>
@@ -801,7 +825,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <button
                   onClick={handlePasswordSetup}
                   disabled={isLoading || !password || !confirmPassword || passwordErrors.length > 0}
-                  className="w-full px-6 py-4 text-lg bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-6 py-4 text-lg bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                 >
                   {isLoading ? "Creating Account..." : "Create Account with Password"}
                 </button>
@@ -823,7 +847,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 3: Seed Phrase */}
           {currentStep === 'seed-phrase' && generatedSeedPhrase && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
                 <span className="text-6xl mb-4 block">🛡️</span>
                 <h2 className="text-3xl font-bold mb-2">Secure Your Account</h2>
@@ -839,7 +863,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     {generatedSeedPhrase.split(' ').map((word, index) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-white rounded border border-blue-300">
                         <span className="text-sm font-bold text-blue-600 min-w-[24px]">{index + 1}.</span>
-                        <span className="font-mono font-medium">{word}</span>
+                        <span className="font-mono font-medium text-gray-900">{word}</span>
                       </div>
                     ))}
                   </div>
@@ -874,7 +898,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
                 <button
                   onClick={handleSeedPhraseSaved}
-                  className="w-full px-6 py-4 text-lg bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000]"
+                  className="w-full px-6 py-4 text-lg bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] min-h-[48px]"
                 >
                   ✓ I&apos;ve Safely Saved My Recovery Phrase
                 </button>
@@ -884,7 +908,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 3: Email (Optional) */}
           {currentStep === 'email' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
                 <span className="text-6xl mb-4 block">📧</span>
                 <h2 className="text-3xl font-bold mb-2">Add Email (Optional)</h2>
@@ -921,7 +945,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                   <button
                     onClick={handleEmailSetup}
                     disabled={isLoading}
-                    className="w-full px-6 py-3 bg-blue-200 hover:bg-blue-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50"
+                    className="w-full px-6 py-3 bg-blue-200 hover:bg-blue-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 min-h-[48px]"
                   >
                     {isLoading ? "Setting up..." : email.trim() ? "Add Email & Continue" : "Skip Email Setup"}
                   </button>
@@ -929,7 +953,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                   {email.trim() && (
                     <button
                       onClick={() => setCurrentStep('guidelines')}
-                      className="text-sm text-gray-600 hover:text-gray-800 underline"
+                      className="w-full sm:w-auto px-4 py-2 sm:py-0 text-sm text-gray-600 hover:text-gray-800 underline sm:no-underline border sm:border-0 border-gray-300 rounded sm:rounded-none min-h-[48px] sm:min-h-0"
                     >
                       Skip for now
                     </button>
@@ -947,7 +971,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 4: Template Selection */}
           {currentStep === 'template' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
                 <span className="text-6xl mb-4 block">🎨</span>
                 <h2 className="text-3xl font-bold mb-2">Choose Your Theme</h2>
@@ -967,7 +991,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     <button
                       key={templateType}
                       onClick={() => setSelectedTemplate(templateType)}
-                      className={`theme-card ${isSelected ? 'selected' : 'unselected'} relative border-2 ${isSelected ? 'border-blue-500 shadow-[4px_4px_0_#3B82F6]' : 'border-black shadow-[2px_2px_0_#000]'} rounded-lg p-4 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] text-left overflow-hidden`}
+                      className={`theme-card ${isSelected ? 'selected' : 'unselected'} relative border-2 ${isSelected ? 'border-blue-500 shadow-[4px_4px_0_#3B82F6]' : 'border-black shadow-[2px_2px_0_#000]'} rounded-lg p-4 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] active:scale-[0.98] text-left overflow-hidden`}
                       style={{
                         ...previewStyle,
                         borderColor: isSelected ? '#3B82F6' : '#000'
@@ -1048,7 +1072,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <button
                   onClick={handleTemplateSelected}
                   disabled={!selectedTemplate || isLoading}
-                  className="w-full px-6 py-4 text-lg bg-blue-200 hover:bg-blue-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-6 py-4 text-lg bg-blue-200 hover:bg-blue-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                 >
                   {isLoading ? 'Saving Template...' : `Continue with ${DEFAULT_PROFILE_TEMPLATE_INFO[selectedTemplate]?.name || 'Template'} →`}
                 </button>
@@ -1064,7 +1088,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 4: Community Guidelines Agreement */}
           {currentStep === 'guidelines' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
                 <span className="text-6xl mb-4 block">📋</span>
                 <h2 className="text-3xl font-bold mb-2">Legal & Community Agreements</h2>
@@ -1076,23 +1100,23 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
               {/* TODO: Make community guidelines content configurable via admin portal */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6 max-h-64 overflow-y-auto">
-                <h3 className="font-bold text-lg mb-3">Our Core Values:</h3>
-                <div className="space-y-2 text-sm">
+                <h3 className="font-bold text-lg mb-3 text-gray-900">Our Core Values:</h3>
+                <div className="space-y-2 text-sm text-gray-700">
                   <div className="flex items-start gap-2">
                     <span className="text-yellow-500">🎨</span>
-                    <span><strong>Be Creative:</strong> Express yourself authentically and celebrate creativity in all forms.</span>
+                    <span className="text-gray-700"><strong className="text-gray-900">Be Creative:</strong> Express yourself authentically and celebrate creativity in all forms.</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-green-500">💚</span>
-                    <span><strong>Be Kind:</strong> Treat others with respect and empathy.</span>
+                    <span className="text-gray-700"><strong className="text-gray-900">Be Kind:</strong> Treat others with respect and empathy.</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-blue-500">🌟</span>
-                    <span><strong>Be Yourself:</strong> Your unique perspective makes our community special.</span>
+                    <span className="text-gray-700"><strong className="text-gray-900">Be Yourself:</strong> Your unique perspective makes our community special.</span>
                   </div>
                 </div>
 
-                <h3 className="font-bold text-lg mt-4 mb-3">Key Rules:</h3>
+                <h3 className="font-bold text-lg mt-4 mb-3 text-gray-900">Key Rules:</h3>
                 <div className="space-y-1 text-sm text-gray-700">
                   <div>• No harassment, bullying, or hate speech</div>
                   <div>• Share original content and respect others&apos; work</div>
@@ -1118,7 +1142,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     type="checkbox"
                     checked={agreedToGuidelines}
                     onChange={(e) => setAgreedToGuidelines(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="mt-1 w-6 h-6 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700">
                     I have read and agree to the{' '}
@@ -1154,7 +1178,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <button
                   onClick={handleGuidelinesAgreement}
                   disabled={!agreedToGuidelines}
-                  className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                 >
                   {agreedToGuidelines ? "Continue to Profile Setup" : "Please agree to all terms to continue"}
                 </button>
@@ -1170,7 +1194,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 5: Profile Setup (Optional) */}
           {currentStep === 'profile' && (
-            <div className="bg-white border border-black rounded-none p-8 shadow-[4px_4px_0_#000]">
+            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
                 <span className="text-6xl mb-4 block">📸</span>
                 <h2 className="text-3xl font-bold mb-2">Set up your profile</h2>
@@ -1181,7 +1205,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
               <div className="space-y-6 max-w-md mx-auto">
                 <div>
-                  <label className="block text-sm font-bold mb-3">Profile Photo</label>
+                  <label className="block text-sm font-bold mb-3 text-gray-900">Profile Photo</label>
                   <div className="flex items-center gap-4">
                     <div className="w-20 h-20 rounded-full border-2 border-black bg-gray-100 flex items-center justify-center overflow-hidden">
                       {profilePhotoPreview ? (
@@ -1201,7 +1225,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       />
                       <label
                         htmlFor="profile-photo"
-                        className="cursor-pointer inline-block px-4 py-2 bg-gray-200 hover:bg-gray-100 border border-black font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] shadow-[3px_3px_0_#000]"
+                        className="cursor-pointer inline-block px-4 py-2 bg-gray-200 hover:bg-gray-100 border border-black font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] shadow-[3px_3px_0_#000] text-gray-900"
                       >
                         Choose Photo
                       </label>
@@ -1211,7 +1235,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold mb-2">Bio</label>
+                  <label className="block text-sm font-bold mb-2 text-gray-900">Bio</label>
                   <textarea
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
@@ -1228,7 +1252,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                   <button
                     onClick={handleProfileSetup}
                     disabled={isLoading || (!profilePhoto && !bio.trim())}
-                    className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                   >
                     {isLoading ? "Saving..." : "Save Profile & Continue"}
                   </button>

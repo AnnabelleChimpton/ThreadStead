@@ -186,7 +186,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
       )}
 
       <div className="space-y-6">
-        {consents.map((consent) => (
+        {consents.filter(consent => consent.type !== ConsentType.MARKETING).map((consent) => (
           <div key={consent.type} className="border border-gray-200 p-4 rounded">
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">

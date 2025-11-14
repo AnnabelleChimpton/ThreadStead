@@ -78,19 +78,22 @@ export default function WelcomeHomeOverlay({
       />
 
       {/* Welcome Home message */}
-      <div className="absolute inset-0 flex items-center justify-center p-4 pt-20">
+      <div className="absolute inset-0 flex items-center justify-center p-4 pt-20 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div
-          className={`max-w-3xl w-full transition-all duration-1000 transform ${
+          className={`max-w-3xl w-full max-h-[85vh] overflow-y-auto transition-all duration-1000 transform ${
             showWelcome
               ? 'opacity-100 scale-100 translate-y-0'
               : 'opacity-0 scale-95 translate-y-4'
           }`}
+          style={{
+            WebkitOverflowScrolling: 'touch'
+          }}
         >
           <div className="relative">
             {/* Close button */}
             <button
               onClick={handleClose}
-              className="absolute top-2 right-2 z-10 p-2 rounded-full transition-all hover:scale-110 pointer-events-auto"
+              className="absolute top-2 right-2 z-10 p-3 rounded-full transition-all hover:scale-110 pointer-events-auto min-w-[48px] min-h-[48px] flex items-center justify-center"
               style={{
                 background: `${backgroundColor}90`,
                 border: `2px solid ${primaryColor}40`,
@@ -98,7 +101,7 @@ export default function WelcomeHomeOverlay({
               }}
               aria-label="Close welcome message"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -107,7 +110,9 @@ export default function WelcomeHomeOverlay({
             <div className="bg-white border border-black rounded-none p-3 shadow-[4px_4px_0_#000] mb-3 w-full">
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 tracking-wide text-center">
                 <span style={{ color: primaryColor }}>Welcome Home</span>
-                <span style={{ color: secondaryColor }}>, {username}</span>
+                <span style={{ color: secondaryColor }}>
+                  , <span className="inline-block max-w-[200px] truncate align-bottom">{username}</span>
+                </span>
               </h1>
 
               {/* Side-by-side layout for Founder's Note and First Steps */}
@@ -122,13 +127,13 @@ export default function WelcomeHomeOverlay({
                     }}
                   >
                     <h3
-                      className="text-sm font-semibold mb-2 flex items-center justify-center gap-2"
+                      className="text-sm font-semibold mb-2 flex items-center justify-center gap-2 text-gray-900"
                       style={{ color: primaryColor }}
                     >
                       <span>💌</span> A Note from the Founder
                     </h3>
                     <p
-                      className="text-sm leading-snug text-center"
+                      className="text-sm leading-snug text-center text-gray-700"
                       style={{ color: primaryColor + 'DD' }}
                     >
                       {foundersNote}
@@ -145,7 +150,7 @@ export default function WelcomeHomeOverlay({
                   }}
                 >
                   <h3
-                    className="text-sm font-bold mb-2 text-center flex items-center justify-center gap-2"
+                    className="text-sm font-bold mb-2 text-center flex items-center justify-center gap-2 text-gray-900"
                     style={{ color: secondaryColor }}
                   >
                     <span>✨</span> Your First Steps
@@ -154,7 +159,7 @@ export default function WelcomeHomeOverlay({
                   <div className="grid grid-cols-2 gap-2">
                     <Link
                       href="/post/new"
-                      className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                      className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center min-h-[48px] justify-center"
                       style={{
                         background: `${backgroundColor}90`,
                         border: `1px solid ${primaryColor}40`,
@@ -163,12 +168,12 @@ export default function WelcomeHomeOverlay({
                       onClick={handleClose}
                     >
                       <span className="text-lg">📝</span>
-                      <div className="text-xs font-medium">Make Your First Post</div>
+                      <div className="text-sm font-medium text-gray-900">Make Your First Post</div>
                     </Link>
 
                     <Link
                       href="/neighborhood/explore/all"
-                      className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                      className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center min-h-[48px] justify-center"
                       style={{
                         background: `${backgroundColor}90`,
                         border: `1px solid ${primaryColor}40`,
@@ -177,12 +182,12 @@ export default function WelcomeHomeOverlay({
                       onClick={handleClose}
                     >
                       <span className="text-lg">🏘️</span>
-                      <div className="text-xs font-medium">Explore Homes</div>
+                      <div className="text-sm font-medium text-gray-900">Explore Homes</div>
                     </Link>
 
                     <Link
                       href="/threadrings"
-                      className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                      className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center min-h-[48px] justify-center"
                       style={{
                         background: `${backgroundColor}90`,
                         border: `1px solid ${primaryColor}40`,
@@ -191,12 +196,12 @@ export default function WelcomeHomeOverlay({
                       onClick={handleClose}
                     >
                       <span className="text-lg">💍</span>
-                      <div className="text-xs font-medium">Join a ThreadRing</div>
+                      <div className="text-sm font-medium text-gray-900">Join a ThreadRing</div>
                     </Link>
 
                     <Link
                       href={`/home/${username}`}
-                      className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center"
+                      className="flex flex-col items-center gap-1 p-3 rounded-lg transition-all hover:scale-105 pointer-events-auto text-center min-h-[48px] justify-center"
                       style={{
                         background: `${backgroundColor}90`,
                         border: `1px solid ${primaryColor}40`,
@@ -205,7 +210,7 @@ export default function WelcomeHomeOverlay({
                       onClick={handleClose}
                     >
                       <span className="text-lg">🎨</span>
-                      <div className="text-xs font-medium">Customize Home</div>
+                      <div className="text-sm font-medium text-gray-900">Customize Home</div>
                     </Link>
                   </div>
                 </div>
@@ -213,7 +218,7 @@ export default function WelcomeHomeOverlay({
 
               {/* Welcome Ring Invitation - Horizontal Compact */}
               <div
-                className="mt-3 flex flex-wrap items-center justify-center gap-2 p-2 rounded-lg text-center"
+                className="mt-3 flex flex-wrap items-center justify-center gap-2 p-3 rounded-lg text-center"
                 style={{
                   background: `${primaryColor}10`,
                   border: `1px solid ${primaryColor}30`
@@ -222,7 +227,7 @@ export default function WelcomeHomeOverlay({
                 <div className="flex items-center gap-1">
                   <span className="text-sm">🎓</span>
                   <span
-                    className="text-sm font-semibold"
+                    className="text-sm font-semibold text-gray-900"
                     style={{ color: primaryColor }}
                   >
                     New to ThreadRings?
@@ -230,7 +235,7 @@ export default function WelcomeHomeOverlay({
                 </div>
                 <button
                   onClick={() => window.location.href = '/tr/welcome'}
-                  className="px-3 py-1 text-xs font-medium rounded transition-all hover:scale-105 pointer-events-auto"
+                  className="px-4 py-2 text-sm font-medium rounded transition-all hover:scale-105 pointer-events-auto min-h-[48px]"
                   style={{
                     background: primaryColor,
                     color: 'white',
@@ -241,7 +246,7 @@ export default function WelcomeHomeOverlay({
                 </button>
                 <button
                   onClick={() => window.location.href = '/threadrings'}
-                  className="px-3 py-1 text-xs font-medium rounded transition-all hover:scale-105 pointer-events-auto"
+                  className="px-4 py-2 text-sm font-medium rounded transition-all hover:scale-105 pointer-events-auto min-h-[48px] text-gray-900"
                   style={{
                     background: 'transparent',
                     color: primaryColor,

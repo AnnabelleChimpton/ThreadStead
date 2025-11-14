@@ -243,7 +243,7 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
   }, [currentStep, username, router, onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[9999]">
+    <div className="fixed inset-0 z-[9999] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       {/* Inject custom animations */}
       <style dangerouslySetInnerHTML={{ __html: floatingAnimations }} />
       {/* Enhanced background with pattern and animation */}
@@ -426,7 +426,7 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
 
       {/* MidiPlayer for audio control during animation */}
       {showMidiPlayer && (
-        <div className="fixed bottom-4 right-4 z-[10000]">
+        <div className="fixed right-4 z-[10000]" style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
           <div className="bg-white rounded-lg shadow-lg border-2 border-black p-3">
             <div className="flex items-center gap-3">
               <button

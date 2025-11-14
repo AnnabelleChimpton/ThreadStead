@@ -4,12 +4,13 @@ import LoginStatus from "../../features/auth/LoginStatus";
 import UserDropdown from "../../features/auth/UserDropdown";
 import AuthenticationDropdown from "../../features/auth/AuthenticationDropdown";
 import NotificationDropdown from "../feedback/NotificationDropdown";
+import UserAccountBottomSheet from "../../features/auth/UserAccountBottomSheet";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useMe } from "@/hooks/useMe";
 
 // Mobile-specific login status component
-function MobileLoginStatus({ onItemClick }: { onItemClick: () => void }) {
+function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
   const { me } = useMe();
 
   if (!me?.loggedIn) {
@@ -21,30 +22,59 @@ function MobileLoginStatus({ onItemClick }: { onItemClick: () => void }) {
     );
   }
 
-  return <UserDropdown isMobile={true} onItemClick={onItemClick} />;
+  const username = me.user?.primaryHandle?.split("@")[0] || "User";
+
+  return (
+    <button
+      onClick={onAccountClick}
+      className="w-full px-3 py-3 bg-thread-pine text-thread-paper hover:bg-thread-sunset rounded flex items-center justify-between min-h-[48px] font-medium active:scale-[0.98] transition-transform"
+    >
+      <div className="flex items-center gap-3">
+        <span className="text-lg">👤</span>
+        <div className="text-left">
+          <div className="text-xs opacity-75">signed in as</div>
+          <div className="font-medium">{username}</div>
+        </div>
+      </div>
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+  );
 }
 
 // Swipe gesture hook for mobile menu
 const useSwipeGesture = (onSwipe: (direction: 'left' | 'right') => void) => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchEndY, setTouchEndY] = useState<number | null>(null);
 
   const minSwipeDistance = 50;
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
+    setTouchEndY(null);
     setTouchStart(e.targetTouches[0].clientX);
+    setTouchStartY(e.targetTouches[0].clientY);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
     setTouchEnd(e.targetTouches[0].clientX);
+    setTouchEndY(e.targetTouches[0].clientY);
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    if (!touchStart || !touchEnd || !touchStartY || !touchEndY) return;
+
+    const distanceX = touchStart - touchEnd;
+    const distanceY = touchStartY - touchEndY;
+
+    // Only trigger horizontal swipe if horizontal movement is dominant over vertical
+    if (Math.abs(distanceX) < Math.abs(distanceY)) return;
+
+    const isLeftSwipe = distanceX > minSwipeDistance;
+    const isRightSwipe = distanceX < -minSwipeDistance;
 
     if (isLeftSwipe) onSwipe('left');
     if (isRightSwipe) onSwipe('right');
@@ -210,6 +240,8 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   // State for mobile menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileDropdownOpen, setMobileDropdownOpen] = useState<string | null>(null);
+  // State for mobile account bottom sheet
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
 
   // Prevent hydration mismatch by only rendering user-dependent content after hydration
   const [isClient, setIsClient] = useState(false);
@@ -270,7 +302,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   // Advanced template mode: ZERO styling to avoid conflicts
   const headerClasses = advancedTemplate
     ? "" // Completely unstyled for advanced templates
-    : "site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative";
+    : "site-header border-b border-thread-sage bg-thread-cream px-4 sm:px-6 py-4 sticky top-0 z-[9999] backdrop-blur-sm bg-thread-cream/95 relative overflow-visible";
 
   const navClasses = advancedTemplate
     ? "" // Completely unstyled for advanced templates
@@ -399,12 +431,15 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
           <div
             id="mobile-menu"
             className="md:hidden absolute left-0 right-0 top-full z-[9997] bg-thread-cream border-b border-thread-sage shadow-lg overflow-y-auto mobile-menu-animated"
-            style={{ maxHeight: 'calc(100vh - 80px)' }}
+            style={{
+              maxHeight: 'calc(100vh - 64px)',
+              WebkitOverflowScrolling: 'touch'
+            }}
             role="navigation"
             aria-label="Mobile navigation menu"
             {...swipeHandlers}
           >
-          <div className="px-4 py-4 space-y-3">
+          <div className="px-4 py-2 pb-[calc(3rem+env(safe-area-inset-bottom))] space-y-2">
             {/* Home link */}
             <Link
               href="/"
@@ -582,13 +617,26 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             {/* Login Status */}
             <div className="border-t border-thread-sage pt-3 mt-3">
               <div className="px-3 py-2">
-                <MobileLoginStatus onItemClick={() => setMobileMenuOpen(false)} />
+                <MobileLoginStatus
+                  onAccountClick={() => {
+                    setMobileMenuOpen(false);
+                    setAccountSheetOpen(true);
+                  }}
+                />
               </div>
             </div>
           </div>
         </div>
         )}
       </header>
+
+      {/* Mobile Account Bottom Sheet - Hidden on desktop */}
+      <div className="md:hidden">
+        <UserAccountBottomSheet
+          isOpen={accountSheetOpen}
+          onClose={() => setAccountSheetOpen(false)}
+        />
+      </div>
     </>
   );
 }

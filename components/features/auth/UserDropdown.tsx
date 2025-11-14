@@ -79,7 +79,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
         {/* User menu items - Personal Navigation */}
         <Link
           href={`/home/${username}`}
-          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
         >
           <span>🏠</span>
@@ -88,7 +88,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
 
         <Link
           href={`/resident/${username}`}
-          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
         >
           <span>👤</span>
@@ -97,7 +97,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
 
         <Link
           href="/bookmarks"
-          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
         >
           <span>🔖</span>
@@ -108,7 +108,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
 
         <Link
           href="/me"
-          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
         >
           <span>📄</span>
@@ -117,7 +117,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
 
         <Link
           href="/settings"
-          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
         >
           <span>⚙️</span>
@@ -127,7 +127,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
         {isAdmin && (
           <Link
             href="/settings/admin"
-            className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+            className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
             onClick={onItemClick}
           >
             <span>⚙️</span>
@@ -142,7 +142,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
             onItemClick?.();
             logout();
           }}
-          className="block w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2"
+          className="block w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
         >
           <span>🚪</span>
           Log Out

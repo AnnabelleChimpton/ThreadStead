@@ -264,10 +264,10 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       {/* Creative header section - users can style this wildly! */}
       <div className="site-creative-header"></div>
 
-      <main 
+      <main
         id="main-content"
         tabIndex={-1}
-        className={`site-main flex-1 ${fullWidth ? 'w-full mobile-content-container' : 'responsive-content mobile-content-container'}`}
+        className={`site-main flex-1 ${fullWidth ? 'w-full max-w-full sm:max-w-[640px] md:max-w-[768px] lg:max-w-[1024px] xl:max-w-[1200px] mx-auto sm:px-6 md:px-8' : 'responsive-content mobile-content-container'}`}
       >
         {children}
       </main>

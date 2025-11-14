@@ -1362,3 +1362,16 @@
 .breadcrumb-item {
   color: #2F2F2F;
 }
+
+/* Account Bottom Sheet Styles */
+.account-sheet-header {
+  background: rgba(248, 245, 240, 0.5);
+}
+
+.account-logout-button {
+  transition: all 0.2s ease;
+}
+
+.account-logout-button:active {
+  transform: scale(0.98);
+}
