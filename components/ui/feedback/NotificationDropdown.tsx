@@ -304,6 +304,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
                         width={32}
                         height={32}
                         className="w-8 h-8 rounded-full border border-thread-sage/30 flex-shrink-0"
+                        unoptimized={notification.actor.avatarUrl?.endsWith('.gif')}
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-thread-sage/20 flex items-center justify-center text-sm flex-shrink-0">

@@ -32,6 +32,7 @@ export default function FriendDisplay({ friends }: FriendDisplayProps) {
               width={32}
               height={32}
               className="w-8 h-8 border border-black object-cover flex-shrink-0"
+              unoptimized={friend.avatarUrl?.endsWith('.gif')}
             />
             <div className="min-w-0 flex-1">
               <UserMention

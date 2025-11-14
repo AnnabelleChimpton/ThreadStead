@@ -55,7 +55,7 @@ export default function MutualFriends({ username }: { username: string }) {
         <div className="mt-2 grid grid-cols-3 sm:grid-cols-6 gap-2 p-2 bg-white border border-black shadow-[2px_2px_0_#000]">
           {sample.map(m => (
             <div key={m.userId} className="flex flex-col items-center gap-1">
-              <Image src={m.avatarUrl} alt={m.handle} width={40} height={40} className="w-10 h-10 object-cover border border-black" />
+              <Image src={m.avatarUrl} alt={m.handle} width={40} height={40} className="w-10 h-10 object-cover border border-black" unoptimized={m.avatarUrl?.endsWith('.gif')} />
               <UserMention
                 username={m.handle}
                 className="text-xs"

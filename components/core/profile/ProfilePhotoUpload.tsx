@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import ImageCropper from '../../ui/feedback/ImageCropper';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import imageCompression from 'browser-image-compression';
 
 interface ProfilePhotoUploadProps {
   currentAvatarUrl?: string;
@@ -20,28 +21,49 @@ export default function ProfilePhotoUpload({
   const [showCropper, setShowCropper] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     if (!file) return;
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      setError('Please select a valid image file (JPEG, PNG, WebP, or GIF)');
+    // Validate file type (GIFs blocked for avatars - use media uploads for animated GIFs)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' ||
+                   file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+
+    if (!allowedTypes.includes(file.type) && !isHEIC) {
+      setError('Please select a valid image file (JPEG, PNG, WebP, or HEIC). For animated GIFs, use media uploads.');
       return;
     }
 
-    // Validate file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('File size must be less than 10MB');
+    // Validate file size (20MB limit for modern phone cameras)
+    if (file.size > 20 * 1024 * 1024) {
+      setError('File size must be less than 20MB');
       return;
     }
 
     setError(null);
-    
-    // Create URL for cropping
-    const imageUrl = URL.createObjectURL(file);
-    setSelectedImageUrl(imageUrl);
-    setShowCropper(true);
+    setUploading(true);
+
+    try {
+      // Compress image before cropping (handles HEIC conversion automatically)
+      const options = {
+        maxSizeMB: 3,          // Target 3MB max
+        maxWidthOrHeight: 2400, // High quality for displays
+        useWebWorker: true,     // Don't block UI
+        fileType: 'image/jpeg'  // Convert to JPEG (handles HEIC conversion)
+      };
+
+      const compressedFile = await imageCompression(file, options);
+
+      // Create URL for cropping
+      const imageUrl = URL.createObjectURL(compressedFile);
+      setSelectedImageUrl(imageUrl);
+      setShowCropper(true);
+      setUploading(false);
+    } catch (compressionError: any) {
+      console.error('Image compression error:', compressionError);
+      setError('Failed to process image. Please try a different file.');
+      setUploading(false);
+    }
   };
 
   const handleCropComplete = async (croppedBlob: Blob) => {
@@ -163,7 +185,7 @@ export default function ProfilePhotoUpload({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             onChange={handleFileInputChange}
             className="hidden"
             disabled={disabled || uploading}

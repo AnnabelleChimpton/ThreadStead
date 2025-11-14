@@ -42,7 +42,7 @@ function getS3Client(): S3Client {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 15 * 1024 * 1024, // 15MB limit for media
+    fileSize: 25 * 1024 * 1024, // 25MB limit for media (modern phone cameras)
   },
   fileFilter: (req, file, cb) => {
     // Allow image files
@@ -130,13 +130,16 @@ async function processAndUploadMedia(
   // Check if this is a MIDI file (check both MIME type and extension)
   const midiMimeTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi', 'audio/mid'];
   const isMidiByMime = midiMimeTypes.includes(mimeType);
-  const isMidiByExtension = originalName.toLowerCase().endsWith('.mid') || 
+  const isMidiByExtension = originalName.toLowerCase().endsWith('.mid') ||
                             originalName.toLowerCase().endsWith('.midi');
   const isMidi = isMidiByMime || isMidiByExtension;
-  
+
+  // Check if this is a GIF (preserve animation by skipping Sharp processing)
+  const isGif = mimeType === 'image/gif' || originalName.toLowerCase().endsWith('.gif');
+
   let uploads: Array<{ key: string; buffer: Buffer; size: string }>;
   let metadata: { width?: number; height?: number; fileSize: number };
-  
+
   if (isMidi) {
     // For MIDI files, just upload the original file
     const extension = originalName.split('.').pop() || 'mid';
@@ -145,6 +148,15 @@ async function processAndUploadMedia(
       // Create placeholder entries for thumbnails (we'll use a MIDI icon on frontend)
       { key: `${baseKey}_thumb.${extension}`, buffer: buffer, size: 'thumbnail' },
       { key: `${baseKey}_medium.${extension}`, buffer: buffer, size: 'medium' },
+    ];
+    metadata = { fileSize: buffer.length };
+  } else if (isGif) {
+    // For GIF files, upload as-is to preserve animation (no Sharp processing)
+    // Sharp would convert to static JPEG and lose animation
+    uploads = [
+      { key: `${baseKey}.gif`, buffer: buffer, size: 'full' },
+      { key: `${baseKey}_medium.gif`, buffer: buffer, size: 'medium' },
+      { key: `${baseKey}_thumb.gif`, buffer: buffer, size: 'thumbnail' },
     ];
     metadata = { fileSize: buffer.length };
   } else {
@@ -208,6 +220,7 @@ async function processAndUploadMedia(
 
   for (const { key, buffer: imageBuffer, size } of uploads) {
     const contentType = isMidi ? mimeType :
+                        isGif ? 'image/gif' :
                         uploadContext === 'threadring_badge' ? 'image/png' :
                         'image/jpeg';
     await getS3Client().send(
@@ -230,7 +243,7 @@ async function processAndUploadMedia(
     mediumUrl: urls.mediumUrl,
     fullUrl: urls.fullUrl,
     metadata,
-    mediaType: isMidi ? 'midi' : 'image',
+    mediaType: isMidi ? 'midi' : isGif ? 'gif' : 'image',
   };
 }
 
@@ -267,8 +280,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Validate file type and size
-    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
+    // Validate file type and size (HEIC removed - handled by client-side compression)
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     const allowedMidiTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi', 'audio/mid'];
     const allowedTypes = [...allowedImageTypes, ...allowedMidiTypes];
 
@@ -279,13 +292,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const isMidiByExtension = file.originalname.toLowerCase().endsWith('.mid') ||
                               file.originalname.toLowerCase().endsWith('.midi');
 
-    // For HEIC files, also check by extension as fallback (mobile MIME types can be inconsistent)
-    const isHeicByExtension = file.originalname.toLowerCase().endsWith('.heic') ||
-                              file.originalname.toLowerCase().endsWith('.heif');
-
-    if (!isAllowedByMime && !isMidiByExtension && !isHeicByExtension) {
+    if (!isAllowedByMime && !isMidiByExtension) {
       return res.status(400).json({
-        error: "Invalid file type. Only JPEG, PNG, WebP, GIF, HEIC, and MIDI files are allowed."
+        error: "Invalid file type. Only JPEG, PNG, WebP, GIF, and MIDI files are allowed. (HEIC files are automatically converted on upload)"
       });
     }
 
@@ -378,13 +387,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ error: error.message });
       }
       if (error.message.includes('File too large')) {
-        return res.status(413).json({ error: "File too large. Maximum size is 15MB." });
-      }
-      // Handle HEIC conversion errors from Sharp
-      if (error.message.includes('heic') || error.message.includes('HEIC')) {
-        return res.status(400).json({
-          error: "HEIC file processing failed. Please try converting to JPEG first."
-        });
+        return res.status(413).json({ error: "File too large. Maximum size is 25MB." });
       }
     }
     

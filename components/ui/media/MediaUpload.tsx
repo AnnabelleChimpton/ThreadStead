@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import imageCompression from 'browser-image-compression';
 
 interface MediaUploadProps {
   onUploadSuccess: (media: any) => void;
@@ -41,41 +42,71 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
     uploadButtonTexts[Math.floor(Math.random() * uploadButtonTexts.length)]
   );
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     if (!file) return;
 
     // Validate file type
-    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
     const allowedMidiTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi'];
-    const allowedTypes = [...allowedImageTypes, ...allowedMidiTypes];
-    
-    if (!allowedTypes.includes(file.type)) {
-      setError('Please select a valid image file (JPEG, PNG, WebP, GIF) or MIDI file');
-      return;
-    }
-    
-    // Check if it's a MIDI file
+    const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' ||
+                   file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
     const isMidi = allowedMidiTypes.includes(file.type);
+    const isGif = file.type === 'image/gif';
 
-    // Validate file size (15MB limit)
-    if (file.size > 15 * 1024 * 1024) {
-      setError('File size must be less than 15MB');
+    if (!allowedImageTypes.includes(file.type) && !isMidi && !isHEIC) {
+      setError('Please select a valid image file (JPEG, PNG, WebP, GIF, or HEIC) or MIDI file');
       return;
     }
 
-    setSelectedFile(file);
+    // Validate file size (25MB limit for modern phone cameras)
+    if (file.size > 25 * 1024 * 1024) {
+      setError('File size must be less than 25MB');
+      return;
+    }
+
     setError(null);
-    
-    // Create preview (only for images)
-    if (!isMidi) {
+
+    // For MIDI files, skip compression
+    if (isMidi) {
+      setSelectedFile(file);
+      setPreviewUrl('midi-placeholder');
+      return;
+    }
+
+    // For GIFs, skip compression to preserve animation
+    if (isGif) {
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setPreviewUrl(e.target?.result as string);
       };
       reader.readAsDataURL(file);
-    } else {
-      // Set a placeholder for MIDI files
-      setPreviewUrl('midi-placeholder');
+      return;
+    }
+
+    // Compress other images (JPEG, PNG, WebP, HEIC)
+    try {
+      setUploading(true);
+      const options = {
+        maxSizeMB: 3,          // Target 3MB max
+        maxWidthOrHeight: 2400, // High quality for displays
+        useWebWorker: true,     // Don't block UI
+        fileType: 'image/jpeg'  // Convert to JPEG (handles HEIC conversion)
+      };
+
+      const compressedFile = await imageCompression(file, options);
+      setSelectedFile(compressedFile);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(compressedFile);
+      setUploading(false);
+    } catch (compressionError: any) {
+      console.error('Image compression error:', compressionError);
+      setError('Failed to process image. Please try a different file.');
+      setUploading(false);
     }
   };
 
@@ -234,7 +265,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,.mid,.midi,audio/midi"
+            accept="image/*,.mid,.midi,.heic,.heif,audio/midi"
             onChange={handleFileInputChange}
             className="hidden"
             disabled={disabled || uploading}

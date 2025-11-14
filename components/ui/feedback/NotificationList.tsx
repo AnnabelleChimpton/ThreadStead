@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import UserMention from "@/components/ui/navigation/UserMention";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 export type NotificationData = {
   id: string;
@@ -68,7 +69,7 @@ export default function NotificationList({
 
   const markAsRead = async (notificationIds: string[]) => {
     try {
-      const res = await fetch("/api/notifications", {
+      const res = await csrfFetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -76,11 +77,11 @@ export default function NotificationList({
           status: "read",
         }),
       });
-      
+
       if (res.ok) {
-        setNotifications(prev => 
-          prev.map(n => 
-            notificationIds.includes(n.id) 
+        setNotifications(prev =>
+          prev.map(n =>
+            notificationIds.includes(n.id)
               ? { ...n, status: "read" as const, readAt: new Date().toISOString() }
               : n
           )
@@ -95,16 +96,16 @@ export default function NotificationList({
 
   const markAllAsRead = async () => {
     try {
-      const res = await fetch("/api/notifications", {
+      const res = await csrfFetch("/api/notifications", {
         method: "POST",
       });
-      
+
       if (res.ok) {
-        setNotifications(prev => 
-          prev.map(n => ({ 
-            ...n, 
-            status: "read" as const, 
-            readAt: new Date().toISOString() 
+        setNotifications(prev =>
+          prev.map(n => ({
+            ...n,
+            status: "read" as const,
+            readAt: new Date().toISOString()
           }))
         );
         onNotificationUpdate?.();
@@ -328,6 +329,7 @@ export default function NotificationList({
                       width={40}
                       height={40}
                       className="w-10 h-10 rounded-full border-2 border-thread-sage/30"
+                      unoptimized={notification.actor.avatarUrl?.endsWith('.gif')}
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-thread-sage/20 flex items-center justify-center text-lg">

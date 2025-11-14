@@ -5,6 +5,7 @@ import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import ReportButton from "../../ui/feedback/ReportButton";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import UserMention from "@/components/ui/navigation/UserMention";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 // Helper function to format time ago
 function formatTimeAgo(date: Date): string {
@@ -173,8 +174,8 @@ export default function CommentList({
     try {
       const endpoint = useAdminEndpoint ? "/api/admin/delete-comment" : "/api/comments/remove";
       const method = useAdminEndpoint ? "DELETE" : "POST";
-      
-      const r = await fetch(endpoint, {
+
+      const r = await csrfFetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ commentId: id }),
@@ -220,7 +221,7 @@ export default function CommentList({
             <div className="comment-header-top md:hidden w-full">
               <div className="comment-author-info flex items-center gap-2 flex-wrap">
                 {comment.author?.avatarUrl ? (
-                  <Image src={comment.author.avatarUrl} alt="" width={32} height={32} className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" />
+                  <Image src={comment.author.avatarUrl} alt="" width={32} height={32} className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" unoptimized={comment.author.avatarUrl?.endsWith('.gif')} />
                 ) : null}
                 <div className="flex items-center gap-1 min-w-0 flex-1">
                   {comment.author?.handle ? (
@@ -254,7 +255,7 @@ export default function CommentList({
             {/* Desktop header (original layout) */}
             <div className="hidden md:flex md:items-center md:gap-2 md:w-full">
               {comment.author?.avatarUrl ? (
-                <Image src={comment.author.avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full" />
+                <Image src={comment.author.avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full" unoptimized={comment.author.avatarUrl?.endsWith('.gif')} />
               ) : null}
               <div className="flex items-center">
                 {comment.author?.handle ? (

@@ -8,6 +8,7 @@ import EmojiPicker from "@/components/ui/feedback/EmojiPicker";
 import SmartUrlShortener from "@/components/ui/forms/SmartUrlShortener";
 import Link from "next/link";
 import { getCsrfToken } from '@/lib/api/client/csrf-fetch';
+import imageCompression from 'browser-image-compression';
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
@@ -214,37 +215,6 @@ export default function PostEditor({
     return validExtensions.some(ext => fileName.endsWith(ext));
   };
 
-  const isHeicFile = (file: File): boolean => {
-    const fileName = file.name.toLowerCase();
-    return fileName.endsWith('.heic') || fileName.endsWith('.heif') ||
-           file.type === 'image/heic' || file.type === 'image/heif';
-  };
-
-  const convertHeicToJpeg = async (file: File): Promise<File> => {
-    try {
-      // Dynamic import to reduce bundle size
-      const heic2any = (await import('heic2any')).default;
-
-      const convertedBlob = await heic2any({
-        blob: file,
-        toType: 'image/jpeg',
-        quality: 0.9
-      }) as Blob;
-
-      // Create a new File object from the converted blob
-      const convertedFile = new File(
-        [convertedBlob],
-        file.name.replace(/\.(heic|heif)$/i, '.jpg'),
-        { type: 'image/jpeg' }
-      );
-
-      return convertedFile;
-    } catch (error) {
-      console.error('HEIC conversion failed:', error);
-      throw new Error('Failed to convert HEIC image. Please try a different image or convert to JPEG first.');
-    }
-  };
-
   const handleImageUpload = async (file: File) => {
     if (!file) return;
 
@@ -253,8 +223,8 @@ export default function PostEditor({
       return;
     }
 
-    if (file.size > 15 * 1024 * 1024) {
-      setError('Image must be less than 15MB');
+    if (file.size > 25 * 1024 * 1024) {
+      setError('Image must be less than 25MB');
       return;
     }
 
@@ -262,15 +232,25 @@ export default function PostEditor({
     setUploadProgress(0);
     setError(null);
 
-    // Handle HEIC conversion if needed
+    // Compress image (handles HEIC conversion automatically, preserves GIFs)
     let fileToUpload = file;
-    if (isHeicFile(file)) {
+    const isGif = file.type === 'image/gif';
+
+    if (!isGif) {
       try {
-        setUploadProgress(10); // Show some progress during conversion
-        fileToUpload = await convertHeicToJpeg(file);
+        setUploadProgress(10); // Show progress during compression
+        const options = {
+          maxSizeMB: 3,          // Target 3MB max
+          maxWidthOrHeight: 2400, // High quality for displays
+          useWebWorker: true,     // Don't block UI
+          fileType: 'image/jpeg'  // Convert to JPEG (handles HEIC conversion)
+        };
+
+        fileToUpload = await imageCompression(file, options);
         setUploadProgress(20);
-      } catch (conversionError: any) {
-        setError(conversionError.message);
+      } catch (compressionError: any) {
+        console.error('Image compression failed:', compressionError);
+        setError('Failed to process image. Please try a different file.');
         setUploadingImage(false);
         setUploadProgress(0);
         return;

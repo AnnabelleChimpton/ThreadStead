@@ -17,6 +17,7 @@ export default function ProfilePhoto({ src, alt }: ProfilePhotoProps) {
             width={128}
             height={128}
             className="profile-photo-image w-32 h-32 object-cover"
+            unoptimized={src?.endsWith('.gif')}
           />
         ) : (
           <div className="profile-photo-placeholder w-32 h-32 flex items-center justify-center bg-yellow-200 text-black text-sm">

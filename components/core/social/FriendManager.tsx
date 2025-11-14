@@ -129,12 +129,13 @@ export default function FriendManager({
                 className="flex items-center justify-between bg-green-50 border border-green-300 p-3 shadow-[2px_2px_0_#000]"
               >
                 <div className="flex items-center gap-3">
-                  <Image 
-                    src={friend.avatarUrl} 
+                  <Image
+                    src={friend.avatarUrl}
                     alt={friend.displayName}
                     width={32}
                     height={32}
                     className="w-8 h-8 border border-black object-cover"
+                    unoptimized={friend.avatarUrl?.endsWith('.gif')}
                   />
                   <div>
                     <div className="font-medium">{friend.displayName}</div>
@@ -199,12 +200,13 @@ export default function FriendManager({
                   onClick={() => canSelect || isSelected ? toggleFriend(friend) : undefined}
                 >
                   <div className="flex items-center gap-3">
-                    <Image 
-                      src={friend.avatarUrl} 
+                    <Image
+                      src={friend.avatarUrl}
                       alt={friend.displayName}
                       width={32}
                       height={32}
                       className="w-8 h-8 border border-black object-cover"
+                      unoptimized={friend.avatarUrl?.endsWith('.gif')}
                     />
                     <div>
                       <div className="font-medium text-sm">{friend.displayName}</div>

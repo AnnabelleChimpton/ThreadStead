@@ -138,6 +138,7 @@ export default function RandomMemberDiscovery({
                   width={48}
                   height={48}
                   className="w-12 h-12 rounded-full border-2 border-black"
+                  unoptimized={member.avatarUrl?.endsWith('.gif')}
                 />
               ) : (
                 <div className="w-12 h-12 rounded-full border-2 border-black bg-gray-300 flex items-center justify-center">

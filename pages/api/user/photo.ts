@@ -35,7 +35,7 @@ function getS3Client(): S3Client {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit for signup
+    fileSize: 20 * 1024 * 1024, // 20MB limit for signup (modern phone cameras)
   },
   fileFilter: (req, file, cb) => {
     // Only allow image files
@@ -133,11 +133,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Validate file type and size
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    // Validate file type and size (GIFs blocked for avatars - use media uploads instead)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.mimetype)) {
-      return res.status(400).json({ 
-        error: "Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed." 
+      return res.status(400).json({
+        error: "Invalid file type. Only JPEG, PNG, and WebP are allowed. For animated GIFs, use media uploads."
       });
     }
 
@@ -176,7 +176,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: error.message });
       }
       if (error.message.includes('File too large')) {
-        return res.status(413).json({ error: "File too large. Maximum size is 5MB." });
+        return res.status(413).json({ error: "File too large. Maximum size is 20MB." });
       }
     }
     

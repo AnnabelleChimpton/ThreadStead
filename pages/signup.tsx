@@ -11,6 +11,7 @@ import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_S
 import SignupFinaleAnimation from "@/components/features/onboarding/SignupFinaleAnimation";
 import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
+import imageCompression from 'browser-image-compression';
 
 interface SignupPageProps {
   betaKey?: string | null;
@@ -247,24 +248,47 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
     }
   }
 
-  function handleProfilePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleProfilePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setError('Profile photo must be smaller than 5MB');
-        return;
-      }
-      if (!file.type.startsWith('image/')) {
+      const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' ||
+                     file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+      const isImage = file.type.startsWith('image/') || isHEIC;
+
+      if (!isImage) {
         setError('Please select an image file');
         return;
       }
-      setProfilePhoto(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfilePhotoPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-      setError(null);
+      if (file.size > 20 * 1024 * 1024) { // 20MB limit (modern phone cameras)
+        setError('Profile photo must be smaller than 20MB');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Compress image (handles HEIC conversion automatically)
+        const options = {
+          maxSizeMB: 3,          // Target 3MB max
+          maxWidthOrHeight: 2400, // High quality for displays
+          useWebWorker: true,     // Don't block UI
+          fileType: 'image/jpeg'  // Convert to JPEG (handles HEIC conversion)
+        };
+
+        const compressedFile = await imageCompression(file, options);
+        setProfilePhoto(compressedFile);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setProfilePhotoPreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(compressedFile);
+        setError(null);
+        setIsLoading(false);
+      } catch (compressionError: any) {
+        console.error('Image compression error:', compressionError);
+        setError('Failed to process image. Please try a different file.');
+        setIsLoading(false);
+      }
     }
   }
 

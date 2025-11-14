@@ -194,14 +194,14 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
 
   async function adminDeletePost() {
     if (!confirm("Admin delete this post? This action cannot be undone.")) return;
-    
+
     try {
-      const res = await fetch("/api/admin/delete-post", {
+      const res = await csrfFetch("/api/admin/delete-post", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postId: post.id }),
       });
-      
+
       if (res.ok) {
         // Refresh the page to remove the deleted post from feed
         window.location.reload();
@@ -225,6 +225,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
             width={48}
             height={48}
             className="w-12 h-12 rounded-full border-2 border-thread-sage/30 shadow-sm"
+            unoptimized={post.authorAvatarUrl?.endsWith('.gif')}
           />
         ) : (
           <div className="w-12 h-12 rounded-full bg-thread-cream border-2 border-thread-sage/30 flex items-center justify-center">
