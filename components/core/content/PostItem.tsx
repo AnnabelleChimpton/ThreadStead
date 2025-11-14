@@ -540,7 +540,7 @@ const countLabel = hasServerCount
             aria-expanded={commentsOpen}
             aria-controls={`comments-${post.id}`}
             >
-            <span className="font-semibold">Comments</span>
+            <span className="font-semibold">Comments: </span>
             <span className="opacity-70">{countLabel}</span>
         </button>
 

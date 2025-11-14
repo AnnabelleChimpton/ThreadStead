@@ -19,7 +19,7 @@ type PostPageProps = {
   includeSiteCSS?: boolean;
 };
 
-export default function PostPage({ username, post, authorDisplayName, initialCommentsOpen = false, highlightCommentId, customCSS, hideNavigation = false, includeSiteCSS = true }: PostPageProps) {
+export default function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, customCSS, hideNavigation = false, includeSiteCSS = true }: PostPageProps) {
   // Generate metadata for this post
   const adaptedPost = {
     ...post,
@@ -144,8 +144,8 @@ export const getServerSideProps: GetServerSideProps<PostPageProps> = async ({ pa
   // Extract query parameters for comments and highlighting
   const commentsParam = String(query.comments || "");
   const highlightParam = String(query.highlight || "");
-  
-  const initialCommentsOpen = commentsParam === "open";
+
+  const initialCommentsOpen = commentsParam === "closed" ? false : true;
   const highlightCommentId = highlightParam || null;
 
   const proto = req?.headers?.["x-forwarded-proto"] || "http";

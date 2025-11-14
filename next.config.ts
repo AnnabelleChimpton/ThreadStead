@@ -9,9 +9,15 @@ const nextConfig: NextConfig = {
 
   // Configure external image domains
   images: {
-    domains: [
-      'cdn.homepageagain.com',
-      'cdn.discordapp.com',
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**', // Allow all HTTPS images
+      },
+      {
+        protocol: 'http',
+        hostname: '**', // Allow all HTTP images
+      },
     ],
   },
 

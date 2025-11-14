@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import PostItem from "./PostItem";
 import PromptItem from "./PromptItem";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -42,10 +42,10 @@ type RingHubFeedProps = {
   includeNotifications?: boolean;
 };
 
-export default function RingHubFeed({ 
-  type, 
-  timeWindow = "day", 
-  includeNotifications = true 
+export default function RingHubFeed({
+  type,
+  timeWindow = "day",
+  includeNotifications = true
 }: RingHubFeedProps) {
   const { user: currentUser } = useCurrentUser();
   const [posts, setPosts] = useState<RingHubPost[]>([]);
@@ -54,6 +54,7 @@ export default function RingHubFeed({
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [resolvedUsernames, setResolvedUsernames] = useState<Map<string, string>>(new Map());
+  const postsCountRef = useRef(0);
 
   const endpoint = type === "my-rings" ? "/api/feed/my-rings" : "/api/feed/trending";
 
@@ -62,7 +63,7 @@ export default function RingHubFeed({
     setError(null);
 
     try {
-      const offset = isInitial ? 0 : posts.length;
+      const offset = isInitial ? 0 : postsCountRef.current;
       let url = `${endpoint}?limit=20&offset=${offset}&includeNotifications=${includeNotifications}`;
       
       if (type === "trending") {
@@ -129,11 +130,13 @@ export default function RingHubFeed({
       
       // Filter out null entries (orphaned posts)
       const validPosts = enrichedPosts.filter(post => post !== null);
-      
+
       if (isInitial) {
         setPosts(validPosts);
+        postsCountRef.current = validPosts.length;
       } else {
         setPosts(prev => [...prev, ...validPosts]);
+        postsCountRef.current += validPosts.length;
       }
       
       // Resolve DIDs to usernames for posts we don't have resolved yet
@@ -187,12 +190,13 @@ export default function RingHubFeed({
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [endpoint, posts.length, timeWindow, includeNotifications, type]);
+  }, [endpoint, timeWindow, includeNotifications, type]);
 
   // Initial load
   useEffect(() => {
     setLoading(true);
     setPosts([]);
+    postsCountRef.current = 0;
     loadPosts(true);
   }, [type, timeWindow, includeNotifications]);
 

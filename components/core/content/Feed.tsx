@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import FeedPost, { FeedPostData } from "./FeedPost";
 import { PostSkeletonList } from "./PostSkeleton";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
@@ -21,6 +21,7 @@ export default function Feed({ type }: FeedProps) {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const postsCountRef = useRef(0);
 
   const endpoint = type === "recent" ? "/api/feed/recent" : "/api/feed/active";
 
@@ -29,14 +30,7 @@ export default function Feed({ type }: FeedProps) {
     setError(null);
 
     try {
-      // Use a variable to capture the current offset before the async call
-      let offset = 0;
-      if (!isInitial) {
-        setPosts(prev => {
-          offset = prev.length;
-          return prev;
-        });
-      }
+      const offset = isInitial ? 0 : postsCountRef.current;
       const res = await fetch(`${endpoint}?limit=10&offset=${offset}`);
       
       if (!res.ok) {
@@ -44,13 +38,15 @@ export default function Feed({ type }: FeedProps) {
       }
 
       const data: FeedResponse = await res.json();
-      
+
       if (isInitial) {
         setPosts(data.posts);
+        postsCountRef.current = data.posts.length;
       } else {
         setPosts(prev => [...prev, ...data.posts]);
+        postsCountRef.current += data.posts.length;
       }
-      
+
       setHasMore(data.hasMore);
     } catch (err) {
       setError((err as Error)?.message || "Failed to load posts");
@@ -62,6 +58,7 @@ export default function Feed({ type }: FeedProps) {
 
   // Load initial posts
   useEffect(() => {
+    postsCountRef.current = 0;
     loadPosts(true);
   }, [type, loadPosts]);
 

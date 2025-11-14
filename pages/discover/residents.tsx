@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Layout from "@/components/ui/layout/Layout";
 import UserCard, { DirectoryUser } from "@/components/ui/feedback/UserCard";
 import { UserCardSkeletonGrid } from "@/components/ui/feedback/UserCardSkeleton";
@@ -22,10 +22,11 @@ export default function Directory() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [total, setTotal] = useState(0);
+  const usersCountRef = useRef(0);
 
   // Debounced search
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setSearchQuery(search);
@@ -39,7 +40,7 @@ export default function Directory() {
     setError(null);
 
     try {
-      const offset = isInitial ? 0 : users.length;
+      const offset = isInitial ? 0 : usersCountRef.current;
       const params = new URLSearchParams({
         limit: "12",
         offset: offset.toString(),
@@ -54,13 +55,15 @@ export default function Directory() {
       }
 
       const data: DirectoryResponse = await res.json();
-      
+
       if (isInitial) {
         setUsers(data.users);
+        usersCountRef.current = data.users.length;
       } else {
         setUsers(prev => [...prev, ...data.users]);
+        usersCountRef.current += data.users.length;
       }
-      
+
       setHasMore(data.hasMore);
       setTotal(data.total);
     } catch (err) {
@@ -69,16 +72,15 @@ export default function Directory() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [users.length, sortBy, searchQuery]);
+  }, [sortBy, searchQuery]);
 
   // Load initial data and when filters change
   useEffect(() => {
     setLoading(true);
     setUsers([]);
+    usersCountRef.current = 0;
     loadUsers(true);
-     
-    // loadUsers is intentionally omitted to prevent infinite loops (it depends on users.length)
-  }, [sortBy, searchQuery]);
+  }, [sortBy, searchQuery, loadUsers]);
 
   function loadMore() {
     if (!hasMore || loadingMore) return;

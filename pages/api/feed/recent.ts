@@ -51,9 +51,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         }
       },
-      orderBy: {
-        createdAt: "desc"
-      },
+      orderBy: [
+        {
+          createdAt: "desc"
+        },
+        {
+          id: "asc" // Stable ordering: ensures consistent results across paginated queries
+        }
+      ],
       take: limit,
       skip: offset
     });
