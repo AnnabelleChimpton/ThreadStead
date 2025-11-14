@@ -37,6 +37,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         comments: {
           select: {
             id: true
+          },
+          where: {
+            status: "visible"
           }
         },
         threadRings: {

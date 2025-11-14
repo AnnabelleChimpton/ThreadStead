@@ -3,6 +3,7 @@ import Image from "next/image";
 import NewCommentForm from "../../ui/forms/NewCommentForm";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import ReportButton from "../../ui/feedback/ReportButton";
+import ConfirmModal from "../../ui/feedback/ConfirmModal";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
@@ -26,6 +27,7 @@ export type CommentWire = {
   createdAt?: string;
   author?: { id?: string | null; handle?: string | null; avatarUrl?: string | null } | null;
   parentId?: string | null;
+  status?: string;
   replies?: CommentWire[];
 };
 
@@ -36,7 +38,6 @@ type CommentListProps = {
   optimistic?: CommentWire[];
   canModerate?: boolean;
   isAdmin?: boolean;
-  onRemoved?: (id: string) => void;
   onCommentAdded?: (comment: CommentWire) => void;
   highlightCommentId?: string | null;
 };
@@ -48,7 +49,6 @@ export default function CommentList({
   optimistic = [],
   canModerate = false,
   isAdmin = false,
-  onRemoved,
   onCommentAdded,
   highlightCommentId,
 }: CommentListProps) {
@@ -56,8 +56,8 @@ export default function CommentList({
   const [loading, setLoading] = useState(true);
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; useAdminEndpoint: boolean } | null>(null);
 
   // Auto-scroll to highlighted comment
   useEffect(() => {
@@ -106,8 +106,10 @@ export default function CommentList({
   }, [postId, version]);
 
   useEffect(() => {
-    onLoaded?.(serverComments.length);
-  }, [serverComments.length, onLoaded]);
+    // Only count visible comments (exclude deleted/hidden)
+    const visibleCount = serverComments.filter(c => c.status !== 'hidden').length;
+    onLoaded?.(visibleCount);
+  }, [serverComments, onLoaded]);
 
   const merged = useMemo(() => {
     const seen = new Set<string>();
@@ -127,7 +129,8 @@ export default function CommentList({
 
   // Build nested comment tree
   const commentTree = useMemo(() => {
-    const filtered = merged.filter((c) => !hiddenIds.has(c.id));
+    // Don't filter by hiddenIds - let status: "hidden" handle visibility in rendering
+    const filtered = merged;
     const topLevel: CommentWire[] = [];
     const byParent: Record<string, CommentWire[]> = {};
 
@@ -160,17 +163,40 @@ export default function CommentList({
       }));
     };
 
-    return buildTree(topLevel);
-  }, [merged, hiddenIds]);
+    // Helper to check if a comment or any descendant has visible content
+    const hasVisibleContent = (comment: CommentWire): boolean => {
+      // If the comment itself is visible, return true
+      if (comment.status !== 'hidden') return true;
+      // If deleted, check if any children have visible content
+      return comment.replies?.some(hasVisibleContent) ?? false;
+    };
+
+    // Build the tree and filter out:
+    // 1. Deleted leaf comments (deleted with no children)
+    // 2. Entire subtrees where root + all descendants are deleted
+    const tree = buildTree(topLevel);
+    return tree.filter(hasVisibleContent);
+  }, [merged]);
 
   const handleReply = (comment: CommentWire) => {
     onCommentAdded?.(comment);
     setReplyingTo(null);
   };
 
+  const initiateDelete = (id: string, useAdminEndpoint = false) => {
+    setConfirmDelete({ id, useAdminEndpoint });
+  };
+
   const handleRemove = async (id: string, useAdminEndpoint = false) => {
-    setHiddenIds((s) => { const n = new Set(s); n.add(id); return n; });
     setRemoving(id);
+
+    // Optimistically update the comment status to "hidden" in local state
+    setServerComments((prevComments) =>
+      prevComments.map((c) =>
+        c.id === id ? { ...c, status: "hidden" } : c
+      )
+    );
+
     try {
       const endpoint = useAdminEndpoint ? "/api/admin/delete-comment" : "/api/comments/remove";
       const method = useAdminEndpoint ? "DELETE" : "POST";
@@ -180,10 +206,24 @@ export default function CommentList({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ commentId: id }),
       });
+
       if (!r.ok) {
-        setHiddenIds((s) => { const n = new Set(s); n.delete(id); return n; });
+        // Revert the optimistic update on failure
+        setServerComments((prevComments) =>
+          prevComments.map((c) =>
+            c.id === id ? { ...c, status: "visible" } : c
+          )
+        );
       } else {
-        onRemoved?.(id);
+        // Re-fetch comments to get authoritative state from server
+        // This ensures consistency, especially for admin deletes
+        try {
+          const res = await fetch(`/api/comments/${encodeURIComponent(postId)}`);
+          const data = res.ok ? await res.json() : { comments: [] };
+          setServerComments(Array.isArray(data.comments) ? data.comments : []);
+        } catch (error) {
+          console.error("Failed to refresh comments after deletion:", error);
+        }
       }
     } finally {
       setRemoving(null);
@@ -194,6 +234,7 @@ export default function CommentList({
   if (commentTree.length === 0) return <div className="text-sm opacity-70 px-1">Be the first to comment.</div>;
 
   const renderComment = (comment: CommentWire, depth = 0): React.ReactNode => {
+    const isDeleted = comment.status === 'hidden';
     const isOwner = !!viewerId && comment.author?.id === viewerId;
     const canDelete = canModerate || isOwner;
     const canAdminDelete = isAdmin && !isOwner;
@@ -220,32 +261,38 @@ export default function CommentList({
           <div className="comment-header flex md:flex-row items-center md:items-center gap-2 mb-1 md:mb-1">
             <div className="comment-header-top md:hidden w-full">
               <div className="comment-author-info flex items-center gap-2 flex-wrap">
-                {comment.author?.avatarUrl ? (
-                  <Image src={comment.author.avatarUrl} alt="" width={32} height={32} className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" unoptimized={comment.author.avatarUrl?.endsWith('.gif')} />
-                ) : null}
-                <div className="flex items-center gap-1 min-w-0 flex-1">
-                  {comment.author?.handle ? (
-                    <span title={comment.author.handle}>
-                      <UserMention
-                        username={comment.author.handle.split('@')[0]}
-                        className="comment-author-name font-semibold text-sm md:text-base user-link truncate max-w-[120px]"
-                      >
-                        {comment.author.handle}
-                      </UserMention>
-                    </span>
-                  ) : (
-                    <span className="comment-author-name font-semibold text-sm md:text-base">anon</span>
-                  )}
-                  {comment.author?.id && (
-                    <div className="flex-shrink-0">
-                      <ImprovedBadgeDisplay
-                        userId={comment.author.id}
-                        context="comments"
-                        layout="inline"
-                      />
+                {!isDeleted ? (
+                  <>
+                    {comment.author?.avatarUrl ? (
+                      <Image src={comment.author.avatarUrl} alt="" width={32} height={32} className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" unoptimized={comment.author.avatarUrl?.endsWith('.gif')} />
+                    ) : null}
+                    <div className="flex items-center gap-1 min-w-0 flex-1">
+                      {comment.author?.handle ? (
+                        <span title={comment.author.handle}>
+                          <UserMention
+                            username={comment.author.handle.split('@')[0]}
+                            className="comment-author-name font-semibold text-sm md:text-base user-link truncate max-w-[120px]"
+                          >
+                            {comment.author.handle}
+                          </UserMention>
+                        </span>
+                      ) : (
+                        <span className="comment-author-name font-semibold text-sm md:text-base">anon</span>
+                      )}
+                      {comment.author?.id && (
+                        <div className="flex-shrink-0">
+                          <ImprovedBadgeDisplay
+                            userId={comment.author.id}
+                            context="comments"
+                            layout="inline"
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                ) : (
+                  <span className="comment-author-name font-semibold text-sm md:text-base text-gray-500">[deleted]</span>
+                )}
               </div>
               <span className="comment-timestamp text-xs opacity-70 whitespace-nowrap flex-shrink-0">
                 {comment.createdAt ? formatTimeAgo(new Date(comment.createdAt)) : ""}
@@ -254,34 +301,40 @@ export default function CommentList({
             
             {/* Desktop header (original layout) */}
             <div className="hidden md:flex md:items-center md:gap-2 md:w-full">
-              {comment.author?.avatarUrl ? (
-                <Image src={comment.author.avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full" unoptimized={comment.author.avatarUrl?.endsWith('.gif')} />
-              ) : null}
-              <div className="flex items-center">
-                {comment.author?.handle ? (
-                  <UserMention
-                    username={comment.author.handle.split('@')[0]}
-                    className="font-semibold user-link"
-                  >
-                    {comment.author.handle}
-                  </UserMention>
-                ) : (
-                  <span className="font-semibold">anon</span>
-                )}
-                {comment.author?.id && (
-                  <div className="flex-shrink-0">
-                    <ImprovedBadgeDisplay
-                      userId={comment.author.id}
-                      context="comments"
-                      layout="inline"
-                    />
+              {!isDeleted ? (
+                <>
+                  {comment.author?.avatarUrl ? (
+                    <Image src={comment.author.avatarUrl} alt="" width={24} height={24} className="w-6 h-6 rounded-full" unoptimized={comment.author.avatarUrl?.endsWith('.gif')} />
+                  ) : null}
+                  <div className="flex items-center">
+                    {comment.author?.handle ? (
+                      <UserMention
+                        username={comment.author.handle.split('@')[0]}
+                        className="font-semibold user-link"
+                      >
+                        {comment.author.handle}
+                      </UserMention>
+                    ) : (
+                      <span className="font-semibold">anon</span>
+                    )}
+                    {comment.author?.id && (
+                      <div className="flex-shrink-0">
+                        <ImprovedBadgeDisplay
+                          userId={comment.author.id}
+                          context="comments"
+                          layout="inline"
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              ) : (
+                <span className="font-semibold text-gray-500">[deleted]</span>
+              )}
               <span className="text-xs opacity-70 ml-auto">
                 {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
               </span>
-              {depth < maxDepth && (
+              {!isDeleted && depth < maxDepth && (
                 <button
                   className="border border-black px-2 py-0.5 bg-white hover:bg-blue-100 shadow-[2px_2px_0_#000] text-xs"
                   onClick={() => setReplyingTo(isReplying ? null : comment.id)}
@@ -289,10 +342,10 @@ export default function CommentList({
                   {isReplying ? "Cancel" : "Reply"}
                 </button>
               )}
-              {canDelete && (
+              {!isDeleted && canDelete && (
                 <button
                   className="ml-2 border border-black px-2 py-0.5 bg-white hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs disabled:opacity-50"
-                  onClick={() => handleRemove(comment.id)}
+                  onClick={() => initiateDelete(comment.id)}
                   disabled={removing === comment.id}
                   aria-busy={removing === comment.id}
                   title={isOwner ? "Delete your comment" : "Remove comment"}
@@ -300,10 +353,10 @@ export default function CommentList({
                   {removing === comment.id ? "Removing…" : (isOwner ? "Delete" : "Remove")}
                 </button>
               )}
-              {canAdminDelete && (
+              {!isDeleted && canAdminDelete && (
                 <button
                   className="ml-2 border border-black px-2 py-0.5 bg-red-200 hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs disabled:opacity-50"
-                  onClick={() => handleRemove(comment.id, true)}
+                  onClick={() => initiateDelete(comment.id, true)}
                   disabled={removing === comment.id}
                   aria-busy={removing === comment.id}
                   title="Admin: Delete comment"
@@ -311,9 +364,9 @@ export default function CommentList({
                   {removing === comment.id ? "Deleting…" : "🛡️ Delete"}
                 </button>
               )}
-              
+
               {/* Report Button - show for non-owners */}
-              {!isOwner && comment.author?.id && (
+              {!isDeleted && !isOwner && comment.author?.id && (
                 <ReportButton
                   reportType="comment"
                   targetId={comment.id}
@@ -326,55 +379,61 @@ export default function CommentList({
             </div>
 
             {/* Mobile action buttons */}
-            <div className="comment-header-bottom md:hidden w-full">
-              <div className="comment-actions">
-                {depth < maxDepth && (
-                  <button
-                    className="comment-button"
-                    onClick={() => setReplyingTo(isReplying ? null : comment.id)}
-                  >
-                    {isReplying ? "Cancel" : "Reply"}
-                  </button>
-                )}
-                {canDelete && (
-                  <button
-                    className="comment-button comment-button-delete"
-                    onClick={() => handleRemove(comment.id)}
-                    disabled={removing === comment.id}
-                    aria-busy={removing === comment.id}
-                    title={isOwner ? "Delete your comment" : "Remove comment"}
-                  >
-                    {removing === comment.id ? "Removing…" : (isOwner ? "Delete" : "Remove")}
-                  </button>
-                )}
-                {canAdminDelete && (
-                  <button
-                    className="comment-button comment-button-delete bg-red-200"
-                    onClick={() => handleRemove(comment.id, true)}
-                    disabled={removing === comment.id}
-                    aria-busy={removing === comment.id}
-                    title="Admin: Delete comment"
-                  >
-                    {removing === comment.id ? "Deleting…" : "🛡️ Delete"}
-                  </button>
-                )}
-                
-                {/* Report Button - mobile version */}
-                {!isOwner && comment.author?.id && (
-                  <ReportButton
-                    reportType="comment"
-                    targetId={comment.id}
-                    reportedUserId={comment.author.id}
-                    contentPreview={comment.content.length > 100 ? comment.content.substring(0, 100) + "..." : comment.content}
-                    size="small"
-                  />
-                )}
+            {!isDeleted && (
+              <div className="comment-header-bottom md:hidden w-full">
+                <div className="comment-actions">
+                  {depth < maxDepth && (
+                    <button
+                      className="comment-button"
+                      onClick={() => setReplyingTo(isReplying ? null : comment.id)}
+                    >
+                      {isReplying ? "Cancel" : "Reply"}
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      className="comment-button comment-button-delete"
+                      onClick={() => initiateDelete(comment.id)}
+                      disabled={removing === comment.id}
+                      aria-busy={removing === comment.id}
+                      title={isOwner ? "Delete your comment" : "Remove comment"}
+                    >
+                      {removing === comment.id ? "Removing…" : (isOwner ? "Delete" : "Remove")}
+                    </button>
+                  )}
+                  {canAdminDelete && (
+                    <button
+                      className="comment-button comment-button-delete bg-red-200"
+                      onClick={() => initiateDelete(comment.id, true)}
+                      disabled={removing === comment.id}
+                      aria-busy={removing === comment.id}
+                      title="Admin: Delete comment"
+                    >
+                      {removing === comment.id ? "Deleting…" : "🛡️ Delete"}
+                    </button>
+                  )}
+
+                  {/* Report Button - mobile version */}
+                  {!isOwner && comment.author?.id && (
+                    <ReportButton
+                      reportType="comment"
+                      targetId={comment.id}
+                      reportedUserId={comment.author.id}
+                      contentPreview={comment.content.length > 100 ? comment.content.substring(0, 100) + "..." : comment.content}
+                      size="small"
+                    />
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="comment-content text-sm md:text-sm leading-relaxed">
-            <CommentMarkupWithEmojis text={comment.content} />
+            {comment.status === 'hidden' ? (
+              <div className="text-gray-500 italic">[Comment removed]</div>
+            ) : (
+              <CommentMarkupWithEmojis text={comment.content} />
+            )}
           </div>
           
           {isReplying && (
@@ -399,8 +458,25 @@ export default function CommentList({
   };
 
   return (
-    <div className="space-y-3">
-      {commentTree.map(comment => renderComment(comment))}
-    </div>
+    <>
+      <div className="space-y-3">
+        {commentTree.map(comment => renderComment(comment))}
+      </div>
+
+      <ConfirmModal
+        isOpen={confirmDelete !== null}
+        title="Delete Comment?"
+        message="Are you sure you want to delete this comment? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={async () => {
+          if (confirmDelete) {
+            await handleRemove(confirmDelete.id, confirmDelete.useAdminEndpoint);
+          }
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
+    </>
   );
 }

@@ -272,7 +272,11 @@ export default withThreadRingSupport(async function handler(
           },
           _count: {
             select: {
-              comments: true
+              comments: {
+                where: {
+                  status: "visible"
+                }
+              }
             }
           }
         },

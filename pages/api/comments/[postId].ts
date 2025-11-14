@@ -5,6 +5,7 @@ import { createCommentNotification, createReplyNotification } from "@/lib/domain
 import { db } from "@/lib/config/database/connection";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { updateCommentCount } from "@/lib/domain/posts/updateCommentCount";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   const postId = String(req.query.postId || "");
@@ -38,7 +39,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   if (req.method === "GET") {
     const comments = await db.comment.findMany({
-      where: { postId, status: "visible" },
+      where: { postId },
       orderBy: { createdAt: "asc" },
       take: 200,
       include: {
@@ -53,6 +54,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       content: c.content,
       createdAt: c.createdAt,
       parentId: c.parentId,
+      status: c.status,
       author: {
         id: c.author?.id,
         handle: c.author?.primaryHandle ?? null,
@@ -175,6 +177,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         console.error("Failed to create comment notification:", notificationError);
         // Don't fail the comment creation if notification fails
       }
+
+      // Update PostMetrics comment count
+      await updateCommentCount(postId, 1);
 
       return res.status(201).json({
         comment: {

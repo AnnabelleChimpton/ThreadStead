@@ -345,7 +345,11 @@ async function getPostsFromRings(
       },
       _count: {
         select: {
-          comments: true
+          comments: {
+            where: {
+              status: "visible"
+            }
+          }
         }
       }
     },

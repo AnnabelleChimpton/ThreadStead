@@ -3,6 +3,7 @@ import { db } from "@/lib/config/database/connection";
 import { requireAdmin } from "@/lib/auth/server";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { updateCommentCount } from "@/lib/domain/posts/updateCommentCount";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "DELETE") {
@@ -43,6 +44,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     await db.comment.delete({
       where: { id: commentId },
     });
+
+    // Update PostMetrics comment count
+    await updateCommentCount(comment.postId, -1);
 
     res.json({ 
       success: true,

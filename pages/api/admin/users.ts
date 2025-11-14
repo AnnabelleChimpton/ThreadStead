@@ -24,7 +24,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           _count: {
             select: {
               posts: true,
-              comments: true,
+              comments: {
+                where: {
+                  status: "visible"
+                }
+              },
             },
           },
         },

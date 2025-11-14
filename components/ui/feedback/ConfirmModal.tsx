@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export default function ConfirmModal({
         confirmText: 'text-white'
       };
 
-  return (
+  const modalContent = (
     <>
       {/* Modal - No backdrop, lightweight confirmation */}
       <div className="fixed inset-0 flex items-center justify-center z-[9999] p-4 pointer-events-none">
@@ -92,4 +93,9 @@ export default function ConfirmModal({
       </div>
     </>
   );
+
+  // Render to document body using portal to ensure it appears above everything
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : null;
 }

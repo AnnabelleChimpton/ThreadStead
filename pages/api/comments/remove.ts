@@ -4,6 +4,7 @@ import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { updateCommentCount } from "@/lib/domain/posts/updateCommentCount";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -31,6 +32,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     where: { id: commentId },
     data: { status: "hidden" },
   });
+
+  // Update PostMetrics comment count
+  await updateCommentCount(comment.postId, -1);
 
   return res.json({ ok: true });
 }

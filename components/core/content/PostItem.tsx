@@ -555,9 +555,6 @@ const countLabel = hasServerCount
                 canModerate={isOwner}
                 isAdmin={isAdmin}
                 onCommentAdded={handleCommentAdded}
-                onRemoved={() =>
-                    setCommentCount((n) => (typeof n === "number" ? Math.max(0, n - 1) : n))
-                }
                 highlightCommentId={highlightCommentId}
             />
             </div>
