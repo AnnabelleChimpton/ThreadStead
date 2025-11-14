@@ -267,7 +267,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       <main 
         id="main-content"
         tabIndex={-1}
-        className={`site-main flex-1 ${fullWidth ? 'w-full mobile-content-container' : 'responsive-content mobile-content-spacing'}`}
+        className={`site-main flex-1 ${fullWidth ? 'w-full mobile-content-container' : 'responsive-content mobile-content-container'}`}
       >
         {children}
       </main>

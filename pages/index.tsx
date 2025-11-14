@@ -266,7 +266,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
       </Head>
 
       <Layout siteConfig={siteConfig}>
-      <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <div className="w-full max-w-full sm:max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SimpleCard title={`Welcome to ${siteConfig.site_name}`}>
           <div className="text-center py-4 sm:py-6">
             <div className="text-4xl sm:text-5xl mb-4">🏘️✨</div>
@@ -560,7 +560,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
       </Head>
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
-      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">
         {/* Hero Statement */}
         {!user && (
           <div className="mb-6 sm:mb-8">
@@ -853,7 +853,7 @@ function UnifiedHomepage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; o
       </Head>
 
       <Layout siteConfig={siteConfig}>
-      <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <div className="w-full max-w-full sm:max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SimpleCard title={`Welcome to ${siteConfig.site_name}`}>
           <div className="text-center py-4 sm:py-6">
             <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>

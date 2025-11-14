@@ -78,11 +78,11 @@ export default function EmojiPicker({ onEmojiSelect, className = "" }: EmojiPick
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute bottom-full mb-1 bg-white border border-black shadow-[2px_2px_0_#000] z-50 
-                        w-64 sm:w-64 max-w-[90vw] 
-                        max-h-48 sm:max-h-48 max-h-[60vh]
+        <div className="absolute bottom-full mb-1 bg-white border border-black shadow-[2px_2px_0_#000] z-50
+                        w-64 max-w-[calc(100vw-2rem)]
+                        max-h-48 max-h-[60vh]
                         overflow-y-auto
-                        left-0 sm:right-0 sm:left-auto
+                        right-0
                         mobile-emoji-picker">
           {loading ? (
             <div className="p-3 text-center text-sm text-gray-500">Loading emojis...</div>

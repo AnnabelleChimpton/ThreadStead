@@ -138,7 +138,7 @@ export default function ImprovedBadgeDisplay({
               <img
                 src={badge.imageUrl}
                 alt={badge.title}
-                className="w-4 h-4 object-contain border border-gray-300 hover:scale-110 transition-transform rounded-sm"
+                className="inline-badge-image object-contain border border-gray-300 hover:scale-110 transition-transform rounded-sm"
                 style={{ imageRendering: 'pixelated' }}
               />
             ) : (

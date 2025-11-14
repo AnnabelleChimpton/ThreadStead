@@ -17,11 +17,11 @@ interface PostAuthorProps {
   currentUser?: UserWithRole | null
 }
 
-export default function PostAuthor({ 
-  author, 
-  intent, 
+export default function PostAuthor({
+  author,
+  intent,
   showBadges = true,
-  badgeLayout = 'showcase',
+  badgeLayout = 'inline',
   className = '',
   currentUser
 }: PostAuthorProps) {

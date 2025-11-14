@@ -361,7 +361,7 @@
 @media (max-width: 767px) {
   /* Improved content containers */
   .mobile-content-container {
-    padding: 1rem;
+    padding: 0;
     margin: 0;
     width: 100%;
     max-width: none;
@@ -369,7 +369,7 @@
   
   /* Better content spacing */
   .mobile-content-spacing {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0;
     margin-bottom: 1rem;
   }
   
@@ -460,7 +460,7 @@
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0;
 }
 
 @media (min-width: 640px) {
@@ -787,16 +787,20 @@
     overflow-wrap: break-word;
   }
   
-  /* Mobile emoji picker positioning */
+  /* Mobile emoji picker positioning - centered regardless of nesting */
   @media (max-width: 639px) {
     .mobile-emoji-picker {
-      left: 0 !important;
+      position: fixed !important;
+      left: 50% !important;
       right: auto !important;
+      transform: translateX(-50%) !important;
+      bottom: auto !important;
+      top: 12rem !important;
       max-width: calc(100vw - 2rem);
       width: calc(100vw - 2rem);
     }
   }
-  
+
   /* Very small screens - ensure it fits */
   @media (max-width: 320px) {
     .mobile-emoji-picker {
@@ -805,6 +809,15 @@
     }
   }
   
+  /* Inline badge display - mobile size maintains 88:31 aspect ratio, scaled to match text */
+  .inline-badge-image {
+    height: 14px;
+    width: 40px;
+    max-height: 14px;
+    max-width: 40px;
+    object-fit: contain;
+  }
+
   /* Mobile badge display improvements */
   .mobile-badge-compact {
     min-height: 20px;
@@ -894,6 +907,17 @@
   .mobile-fab:active {
     transform: scale(0.9);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Desktop badge sizing - slightly larger than before */
+@media (min-width: 768px) {
+  .inline-badge-image {
+    height: 13px;
+    width: 37px;
+    max-height: 13px;
+    max-width: 37px;
+    object-fit: contain;
   }
 }
 

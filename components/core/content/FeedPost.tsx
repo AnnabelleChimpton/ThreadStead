@@ -248,10 +248,10 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
           </div>
           {/* User badges */}
           <div className="mt-1">
-            <ImprovedBadgeDisplay 
-              userId={post.authorId} 
-              context="posts" 
-              layout="compact"
+            <ImprovedBadgeDisplay
+              userId={post.authorId}
+              context="posts"
+              layout="inline"
             />
           </div>
           {showActivity && post.lastCommentAt && (

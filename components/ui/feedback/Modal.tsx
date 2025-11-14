@@ -12,13 +12,13 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = "ma
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 z-50"
+    <div
+      className="fixed inset-0 z-[10000]"
       onClick={onClose}
     >
-      <div className="fixed top-30 left-1/2 transform -translate-x-1/2 p-4">
-        <div 
-          className={`bg-thread-paper border-2 border-thread-sage rounded-lg shadow-lg w-full ${maxWidth} max-h-[85vh] overflow-y-auto`}
+      <div className="fixed top-24 md:top-30 left-0 md:left-1/2 md:transform md:-translate-x-1/2 p-0 md:p-4 w-full md:w-auto">
+        <div
+          className={`bg-thread-paper border-2 border-thread-sage md:rounded-lg shadow-lg w-full ${maxWidth} max-h-[calc(100vh-6rem)] md:max-h-[85vh] overflow-y-auto`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between p-4 border-b border-thread-sage bg-thread-cream">

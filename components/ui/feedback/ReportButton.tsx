@@ -8,7 +8,7 @@ interface ReportButtonProps {
   reportedUserId?: string;
   contentPreview?: string;
   className?: string;
-  size?: "small" | "normal" | "dropdown";
+  size?: "small" | "normal" | "dropdown" | "desktop";
 }
 
 const REPORT_REASONS: { value: ReportReason; label: string; description: string }[] = [
@@ -87,11 +87,11 @@ export default function ReportButton({
     }
   };
 
-  const buttonClasses = size === "small" 
-    ? "text-xs px-2 py-1 text-gray-500 hover:text-red-600 hover:bg-red-50"
-    : size === "dropdown"
+  const buttonClasses = size === "dropdown"
     ? "flex items-center gap-2 w-full text-sm text-left hover:bg-gray-100"
-    : "text-sm px-3 py-1 text-gray-600 hover:text-red-600 hover:bg-red-50";
+    : size === "desktop"
+    ? ""
+    : "comment-button";
 
   return (
     <>
@@ -101,7 +101,7 @@ export default function ReportButton({
         title="Report this content"
       >
         <span>🚩</span>
-        {size !== "dropdown" ? " Report" : "Report"}
+        <span className="hidden md:inline">{size !== "dropdown" ? " Report" : "Report"}</span>
       </button>
 
       {showModal && (

@@ -6,6 +6,19 @@ import ReportButton from "../../ui/feedback/ReportButton";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import UserMention from "@/components/ui/navigation/UserMention";
 
+// Helper function to format time ago
+function formatTimeAgo(date: Date): string {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
+
 export type CommentWire = {
   id: string;
   content: string;
@@ -209,28 +222,32 @@ export default function CommentList({
                 {comment.author?.avatarUrl ? (
                   <Image src={comment.author.avatarUrl} alt="" width={32} height={32} className="comment-avatar w-8 h-8 md:w-6 md:h-6 rounded-full" />
                 ) : null}
-                <div className="flex items-center flex-wrap">
+                <div className="flex items-center gap-1 min-w-0 flex-1">
                   {comment.author?.handle ? (
-                    <UserMention
-                      username={comment.author.handle.split('@')[0]}
-                      className="comment-author-name font-semibold text-sm md:text-base user-link"
-                    >
-                      {comment.author.handle}
-                    </UserMention>
+                    <span title={comment.author.handle}>
+                      <UserMention
+                        username={comment.author.handle.split('@')[0]}
+                        className="comment-author-name font-semibold text-sm md:text-base user-link truncate max-w-[120px]"
+                      >
+                        {comment.author.handle}
+                      </UserMention>
+                    </span>
                   ) : (
                     <span className="comment-author-name font-semibold text-sm md:text-base">anon</span>
                   )}
                   {comment.author?.id && (
-                    <ImprovedBadgeDisplay
-                      userId={comment.author.id}
-                      context="comments"
-                      layout="inline"
-                    />
+                    <div className="flex-shrink-0">
+                      <ImprovedBadgeDisplay
+                        userId={comment.author.id}
+                        context="comments"
+                        layout="inline"
+                      />
+                    </div>
                   )}
                 </div>
               </div>
-              <span className="comment-timestamp text-xs opacity-70">
-                {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
+              <span className="comment-timestamp text-xs opacity-70 whitespace-nowrap flex-shrink-0">
+                {comment.createdAt ? formatTimeAgo(new Date(comment.createdAt)) : ""}
               </span>
             </div>
             
@@ -251,11 +268,13 @@ export default function CommentList({
                   <span className="font-semibold">anon</span>
                 )}
                 {comment.author?.id && (
-                  <ImprovedBadgeDisplay
-                    userId={comment.author.id}
-                    context="comments"
-                    layout="tooltip"
-                  />
+                  <div className="flex-shrink-0">
+                    <ImprovedBadgeDisplay
+                      userId={comment.author.id}
+                      context="comments"
+                      layout="inline"
+                    />
+                  </div>
                 )}
               </div>
               <span className="text-xs opacity-70 ml-auto">
@@ -294,15 +313,14 @@ export default function CommentList({
               
               {/* Report Button - show for non-owners */}
               {!isOwner && comment.author?.id && (
-                <div className="ml-2">
-                  <ReportButton
-                    reportType="comment"
-                    targetId={comment.id}
-                    reportedUserId={comment.author.id}
-                    contentPreview={comment.content.length > 100 ? comment.content.substring(0, 100) + "..." : comment.content}
-                    size="small"
-                  />
-                </div>
+                <ReportButton
+                  reportType="comment"
+                  targetId={comment.id}
+                  reportedUserId={comment.author.id}
+                  contentPreview={comment.content.length > 100 ? comment.content.substring(0, 100) + "..." : comment.content}
+                  size="desktop"
+                  className="ml-2 border border-black px-2 py-0.5 bg-white hover:bg-red-100 shadow-[2px_2px_0_#000] text-xs"
+                />
               )}
             </div>
 
@@ -348,7 +366,6 @@ export default function CommentList({
                     reportedUserId={comment.author.id}
                     contentPreview={comment.content.length > 100 ? comment.content.substring(0, 100) + "..." : comment.content}
                     size="small"
-                    className="comment-button"
                   />
                 )}
               </div>
