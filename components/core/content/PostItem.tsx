@@ -18,6 +18,19 @@ import { useWelcomeRingTracking } from "@/hooks/useWelcomeRingTracking";
 import { useViewportTracking, trackEngagement } from "@/hooks/usePostView";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
+// Helper function to format time ago
+function formatTimeAgo(date: Date): string {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+}
+
 type Visibility = "public" | "followers" | "friends" | "private";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
@@ -315,13 +328,13 @@ const countLabel = hasServerCount
     <article
       ref={viewportRef}
       id={`post-${post.id.slice(-6)}`}
-      className={`post-item blog-post-card border border-black p-3 bg-white shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
+      className={`post-item blog-post-card border border-black p-0 sm:p-3 bg-white shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
       data-post-id={post.id.slice(-6)}
     >
-      <div className="blog-post-header flex items-center justify-between gap-3 mb-2">
+      <div className="blog-post-header flex items-center justify-between gap-3 mb-2 px-3 sm:px-0">
         <div className="flex items-center gap-2">
-          <div className="blog-post-date text-xs opacity-70">
-            {new Date(post.createdAt).toLocaleString()}
+          <div className="blog-post-date text-xs text-gray-600 opacity-70">
+            {formatTimeAgo(new Date(post.createdAt))}
           </div>
           {post.isPinned && (
             <span className="text-xs bg-yellow-200 px-2 py-1 border border-black rounded">
@@ -355,7 +368,7 @@ const countLabel = hasServerCount
         </div>
       </div>
 
-      <div className="blog-post-content">
+      <div className="blog-post-content px-3 sm:px-0">
         {/* Check for fork notification */}
         {(() => {
           const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
@@ -452,7 +465,7 @@ const countLabel = hasServerCount
                 )}
 
                 {/* Post Content */}
-                <div className={`thread-content ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}`}>
+                <div className={`thread-content text-gray-700 ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}`}>
                   {(() => {
                     // Determine content source and check if truncation is needed
                     const rawContent = post.bodyMarkdown || post.bodyHtml || post.bodyText || "";
@@ -515,7 +528,7 @@ const countLabel = hasServerCount
         })()}
       </div>
 
-      {err && <div className="text-red-700 text-sm mt-2">{err}</div>}
+      {err && <div className="text-red-700 text-sm mt-2 px-3 sm:px-0">{err}</div>}
 
       {/* --- Comments --- */}
       {/* Disable comments for fork notifications */}
@@ -524,7 +537,7 @@ const countLabel = hasServerCount
                                   (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
         return !isForkNotification;
       })() && (
-        <section className="mt-4 border-t border-black pt-3">
+        <section className="mt-4 border-t border-black pt-3 px-3 sm:px-0">
         <button
             type="button"
             onClick={async () => {

@@ -271,10 +271,8 @@ export default function CommentList({
                         <span title={comment.author.handle}>
                           <UserMention
                             username={comment.author.handle.split('@')[0]}
-                            className="comment-author-name font-semibold text-sm md:text-base user-link truncate max-w-[120px]"
-                          >
-                            {comment.author.handle}
-                          </UserMention>
+                            className="comment-author-name font-semibold text-sm md:text-base user-link truncate max-w-[180px]"
+                          />
                         </span>
                       ) : (
                         <span className="comment-author-name font-semibold text-sm md:text-base">anon</span>
@@ -294,7 +292,7 @@ export default function CommentList({
                   <span className="comment-author-name font-semibold text-sm md:text-base text-gray-500">[deleted]</span>
                 )}
               </div>
-              <span className="comment-timestamp text-xs opacity-70 whitespace-nowrap flex-shrink-0">
+              <span className="comment-timestamp text-xs text-gray-600 opacity-70 whitespace-nowrap flex-shrink-0">
                 {comment.createdAt ? formatTimeAgo(new Date(comment.createdAt)) : ""}
               </span>
             </div>
@@ -311,9 +309,7 @@ export default function CommentList({
                       <UserMention
                         username={comment.author.handle.split('@')[0]}
                         className="font-semibold user-link"
-                      >
-                        {comment.author.handle}
-                      </UserMention>
+                      />
                     ) : (
                       <span className="font-semibold">anon</span>
                     )}
@@ -331,8 +327,8 @@ export default function CommentList({
               ) : (
                 <span className="font-semibold text-gray-500">[deleted]</span>
               )}
-              <span className="text-xs opacity-70 ml-auto">
-                {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
+              <span className="text-xs text-gray-600 opacity-70 ml-auto">
+                {comment.createdAt ? formatTimeAgo(new Date(comment.createdAt)) : ""}
               </span>
               {!isDeleted && depth < maxDepth && (
                 <button
@@ -428,7 +424,7 @@ export default function CommentList({
             )}
           </div>
 
-          <div className="comment-content text-sm md:text-sm leading-relaxed">
+          <div className="comment-content text-sm md:text-sm leading-relaxed text-gray-700">
             {comment.status === 'hidden' ? (
               <div className="text-gray-500 italic">[Comment removed]</div>
             ) : (

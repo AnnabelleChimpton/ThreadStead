@@ -30,7 +30,7 @@ export default function PostHeader({ post, className = '', currentUser }: PostHe
   const canLinkToExternalPost = isExternal && externalUrl
 
   const titleElement = (
-    <h2 className="text-xl font-semibold text-black leading-tight">
+    <h2 className="text-lg sm:text-xl font-semibold text-black leading-tight">
       {title}
       {isExternal && <span className="ml-2 text-sm text-gray-500">↗</span>}
     </h2>

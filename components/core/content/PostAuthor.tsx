@@ -40,12 +40,14 @@ export default function PostAuthor({
   if (username) {
     return (
       <div className={`block -m-1 p-1 rounded ${className}`}>
-        <div className="text-sm text-gray-600">
-          <UserMention
-            username={username}
-            displayName={displayName}
-            className="font-medium"
-          />
+        <div className="text-sm text-gray-600 flex items-center gap-1 flex-wrap">
+          <span className="truncate max-w-[200px]" title={displayName}>
+            <UserMention
+              username={username}
+              displayName={displayName}
+              className="font-medium"
+            />
+          </span>
           {intent && <span> is {intent}</span>}
         </div>
         {showBadges && author.id && (

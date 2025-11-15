@@ -142,6 +142,7 @@ a:hover {
 /* Enhanced visual rhythm */
 .thread-content {
   line-height: 1.7;
+  color: #374151; /* gray-700 for readability */
 }
 
 .thread-content h1 + *, 
@@ -1035,6 +1036,7 @@ textarea:focus {
     margin-bottom: 0.75rem;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    color: #374151; /* gray-700 for readability */
   }
   
   .comment-actions {
