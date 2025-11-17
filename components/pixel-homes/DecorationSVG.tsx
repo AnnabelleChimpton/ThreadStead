@@ -26,16 +26,8 @@ export default function DecorationSVG({
 }: DecorationSVGProps) {
   const scale = SIZE_SCALES[size]
 
-  // If custom SVG is provided from database, use it
-  if (renderSvg) {
-    return (
-      <div
-        className={className}
-        style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
-        dangerouslySetInnerHTML={{ __html: renderSvg }}
-      />
-    )
-  }
+  // First, try to use hardcoded SVGs (they're higher quality than database placeholders)
+  // Only fall back to renderSvg for custom/unknown decorations
   
   const renderPlant = (id: string, variant: string) => {
     // Color variants for roses
@@ -1408,6 +1400,17 @@ export default function DecorationSVG({
     case 'structure':
       return renderStructure(decorationId, variant)
     default:
+      // For unknown decoration types, use renderSvg from database if available
+      if (renderSvg) {
+        return (
+          <div
+            className={className}
+            style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
+            dangerouslySetInnerHTML={{ __html: renderSvg }}
+          />
+        )
+      }
+      // Final fallback: generic placeholder
       return (
         <svg width={16 * scale} height={16 * scale} viewBox="0 0 16 16" className={className}>
           <rect x="2" y="2" width="12" height="12" fill="#9CA3AF" rx="2" />
