@@ -249,8 +249,7 @@ export default function PostEditor({
         fileToUpload = await imageCompression(file, options);
         setUploadProgress(20);
       } catch (compressionError: any) {
-        console.error('Image compression failed:', compressionError);
-        setError('Failed to process image. Please try a different file.');
+        setError(`Failed to compress image: ${compressionError?.message || 'Unknown error'}. Try a smaller photo or different format.`);
         setUploadingImage(false);
         setUploadProgress(0);
         return;
@@ -260,7 +259,8 @@ export default function PostEditor({
     try {
       const capRes = await fetch('/api/cap/media', { method: 'POST' });
       if (!capRes.ok) {
-        throw new Error('Failed to get upload permission');
+        const errorText = await capRes.text();
+        throw new Error(`Failed to get upload permission (${capRes.status}). Please refresh and try again.`);
       }
       const { token } = await capRes.json();
 
@@ -289,12 +289,15 @@ export default function PostEditor({
               const errorData = JSON.parse(xhr.responseText);
               errorMsg = errorData.error || errorMsg;
             } catch {
-              // If response is not JSON, use default message
+              // If response is not JSON, use status text
+              errorMsg = xhr.statusText || errorMsg;
             }
-            reject(new Error(errorMsg));
+            reject(new Error(`Upload failed (${xhr.status}): ${errorMsg}`));
           }
         };
-        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.onerror = () => {
+          reject(new Error('Network error - check your internet connection and try again'));
+        };
       });
 
       xhr.open('POST', '/api/media/upload');
@@ -329,7 +332,7 @@ export default function PostEditor({
         throw new Error('Upload succeeded but no media URL returned');
       }
     } catch (err: any) {
-      setError(err?.message || 'Failed to upload image');
+      setError(err?.message || 'Failed to upload image. Please try again.');
     } finally {
       setUploadingImage(false);
       setUploadProgress(0);

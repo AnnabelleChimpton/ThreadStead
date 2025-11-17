@@ -42,7 +42,7 @@ export function createCsrfCookie(token: string, maxAge: number = 604800): string
   // Session cookie remains HttpOnly for security (it contains actual secrets)
   // Secure flag is environment-dependent (HTTPS in production, HTTP in dev)
   // Max age: 7 days (same as session)
-  return `${CSRF_COOKIE_NAME}=${token}; ${getCookieSecureFlag()}Path=/; Max-Age=${maxAge}; SameSite=Strict`;
+  return `${CSRF_COOKIE_NAME}=${token}; ${getCookieSecureFlag()}Path=/; Max-Age=${maxAge}; SameSite=Lax`;
 }
 
 /**
