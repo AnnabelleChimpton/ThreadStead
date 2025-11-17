@@ -8,6 +8,7 @@ interface DecorationItem {
   position: { x: number; y: number; layer?: number };
   variant?: string;
   size?: string;
+  renderSvg?: string | null;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -56,6 +57,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     ]);
 
+    // Fetch decoration items for renderSvg
+    const allDecorationIds = new Set(decorations.map(d => d.decorationId));
+    const decorationItemsFromCatalog = await db.decorationItem.findMany({
+      where: {
+        itemId: { in: Array.from(allDecorationIds) }
+      },
+      select: {
+        itemId: true,
+        renderSvg: true
+      }
+    });
+    const decorationItemMap = new Map(decorationItemsFromCatalog.map(item => [item.itemId, item.renderSvg]));
+
     // Transform to the format expected by the frontend
     const decorationItems: DecorationItem[] = decorations.map(decoration => ({
       id: `${decoration.decorationId}_${decoration.id}`,
@@ -67,7 +81,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         layer: decoration.layer
       },
       variant: decoration.variant || 'default',
-      size: decoration.size || 'medium'
+      size: decoration.size || 'medium',
+      ...(decorationItemMap.has(decoration.decorationId) && { renderSvg: decorationItemMap.get(decoration.decorationId) })
     }));
 
     // Extract atmosphere settings from home config
