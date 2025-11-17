@@ -44,6 +44,7 @@ interface HomeExploreData {
       x: number
       y: number
       layer: number
+      renderSvg?: string | null
     }[]
   }
   stats: {

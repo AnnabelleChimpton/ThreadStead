@@ -63,6 +63,7 @@ interface NeighborhoodMember {
       x: number
       y: number
       layer: number
+      renderSvg?: string | null
     }[]
   }
   stats: {

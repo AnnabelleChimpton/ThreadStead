@@ -34,6 +34,17 @@ interface NeighborhoodMember {
     }
     hasDecorations?: boolean
     decorationCount?: number
+    decorations?: {
+      id: string
+      decorationType: 'plant' | 'path' | 'feature' | 'seasonal'
+      decorationId: string
+      variant?: string
+      size?: 'small' | 'medium' | 'large'
+      x: number
+      y: number
+      layer: number
+      renderSvg?: string | null
+    }[]
   }
   stats?: {
     isActive: boolean
