@@ -177,6 +177,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' https: data: blob:",
               "media-src 'self' https: data:",
               "connect-src 'self' https:",
+              "worker-src 'self' blob:",
               "frame-src 'self'",
               "object-src 'none'",
               "base-uri 'self'",
