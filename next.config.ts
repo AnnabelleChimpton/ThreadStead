@@ -104,7 +104,8 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
-        source: '/threadrings/:slug',
+        // Redirect ring slugs to /tr/:slug, but exclude static pages like 'genealogy'
+        source: '/threadrings/:slug((?!genealogy$).*)',
         destination: '/tr/:slug',
         permanent: true,
       },
