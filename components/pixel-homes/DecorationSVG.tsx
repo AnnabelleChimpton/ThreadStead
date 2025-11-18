@@ -6,7 +6,7 @@ interface DecorationSVGProps {
   variant?: string
   size?: 'small' | 'medium' | 'large'
   className?: string
-  renderSvg?: string  // Custom SVG from database
+  renderSvg?: string | null  // Custom SVG from database
 }
 
 // Size multipliers for different decoration sizes

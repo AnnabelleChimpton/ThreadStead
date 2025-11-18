@@ -3,6 +3,7 @@ import { db } from "@/lib/config/database/connection";
 
 interface DecorationItem {
   id: string;
+  decorationId: string;
   type: string;
   zone: string;
   position: { x: number; y: number; layer?: number };
@@ -73,6 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Transform to the format expected by the frontend
     const decorationItems: DecorationItem[] = decorations.map(decoration => ({
       id: `${decoration.decorationId}_${decoration.id}`,
+      decorationId: decoration.decorationId, // Base decoration ID for matching hardcoded SVGs
       type: decoration.decorationType,
       zone: decoration.zone,
       position: {

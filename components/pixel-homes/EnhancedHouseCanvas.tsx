@@ -22,12 +22,13 @@ interface EnhancedHouseCanvasProps {
 
 interface DecorationItem {
   id: string
+  decorationId?: string
   type: 'plant' | 'path' | 'feature' | 'seasonal'
   zone: 'front_yard' | 'house_facade' | 'background'
   position: { x: number; y: number; layer?: number }
   variant?: string
   size?: 'small' | 'medium' | 'large'
-  renderSvg?: string
+  renderSvg?: string | null
 }
 
 interface AtmosphereSettings {
@@ -192,7 +193,7 @@ export default function EnhancedHouseCanvas({
             >
               <DecorationSVG
                 decorationType={item.type}
-                decorationId={item.id.split('_').slice(0, -1).join('_')} // Extract base decoration ID by removing timestamp
+                decorationId={item.decorationId || item.id.split('_').slice(0, -1).join('_')}
                 variant={item.variant}
                 size={item.size}
                 className="drop-shadow-sm"

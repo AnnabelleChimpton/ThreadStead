@@ -244,6 +244,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
                   decorations={(() => {
                     return decorations.map(dec => ({
                       id: dec.decorationId + '_' + Date.now(), // Add timestamp suffix that EnhancedHouseCanvas expects
+                      decorationId: dec.decorationId, // Pass base decorationId separately for matching hardcoded SVGs
                       type: dec.decorationType,
                       zone: 'front_yard' as const,
                       position: { x: dec.x, y: dec.y, layer: dec.layer },

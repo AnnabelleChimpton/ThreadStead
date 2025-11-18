@@ -18,11 +18,13 @@ const pixelHomesNeighborhoodConfig: WidgetConfig = {
 
 interface DecorationItem {
   id: string;
+  decorationId: string;
   type: 'plant' | 'path' | 'feature' | 'seasonal';
   zone: 'front_yard' | 'house_facade' | 'background';
   position: { x: number; y: number; layer?: number };
   variant?: string;
   size?: 'small' | 'medium' | 'large';
+  renderSvg?: string | null;
 }
 
 interface HomeDecoration {
@@ -34,6 +36,7 @@ interface HomeDecoration {
   x: number;
   y: number;
   layer: number;
+  renderSvg?: string | null;
 }
 
 interface AtmosphereSettings {
@@ -240,7 +243,17 @@ function PixelHomesNeighborhoodWidget({
             avatarUrl: home.avatarUrl,
             homeConfig: {
               ...home.homeConfig,
-              decorations: home.homeConfig.homeDecorations
+              decorations: home.homeConfig.decorations?.map(dec => ({
+                id: dec.id,
+                decorationType: dec.type,
+                decorationId: dec.decorationId,
+                variant: dec.variant,
+                size: dec.size,
+                x: dec.position.x,
+                y: dec.position.y,
+                layer: dec.position.layer || 10,
+                renderSvg: dec.renderSvg
+              }))
             },
             stats: home.stats,
             connections: {
@@ -258,16 +271,30 @@ function PixelHomesNeighborhoodWidget({
 
 // Helper function to transform DecorationItem to HomeDecoration
 const transformDecorations = (decorations: DecorationItem[]): HomeDecoration[] => {
-  return decorations.map(decoration => ({
-    id: decoration.id,
-    decorationType: decoration.type,
-    decorationId: decoration.id, // Use same ID for decorationId
-    variant: decoration.variant,
-    size: decoration.size,
-    x: decoration.position.x,
-    y: decoration.position.y,
-    layer: decoration.position.layer || 10
-  }));
+  return decorations.map(decoration => {
+    console.log('[PixelHomesWidget] transformDecorations INPUT:', {
+      id: decoration.id,
+      decorationId: decoration.decorationId,
+      type: decoration.type,
+      hasRenderSvg: !!decoration.renderSvg,
+      renderSvgLength: decoration.renderSvg?.length
+    });
+
+    const result = {
+      id: decoration.id,
+      decorationType: decoration.type,
+      decorationId: decoration.decorationId, // Use base decorationId for matching hardcoded SVGs
+      variant: decoration.variant,
+      size: decoration.size,
+      x: decoration.position.x,
+      y: decoration.position.y,
+      layer: decoration.position.layer || 10,
+      renderSvg: decoration.renderSvg
+    };
+
+    console.log('[PixelHomesWidget] transformDecorations OUTPUT:', result);
+    return result;
+  });
 };
 
 // Helper function to safely convert API customizations to HouseCustomizations
