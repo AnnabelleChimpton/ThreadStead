@@ -11,8 +11,8 @@ interface NeighborhoodMember {
   displayName?: string | null
   avatarUrl?: string | null
   homeConfig: {
-    houseTemplate: HouseTemplate
-    palette: ColorPalette
+    houseTemplate: string
+    palette: string
     seasonalOptIn: boolean
     houseCustomizations?: {
       windowStyle?: string | null
@@ -112,8 +112,8 @@ export default function NeighborhoodGridView({ members, ringSlug }: Neighborhood
               {/* House */}
               <div className="relative bg-gradient-to-b from-thread-paper to-thread-cream border border-thread-sage rounded-lg p-4 transition-all group-hover:shadow-lg group-hover:-translate-y-1">
                 <HouseSVG
-                  template={member.homeConfig.houseTemplate}
-                  palette={member.homeConfig.palette}
+                  template={member.homeConfig.houseTemplate as any}
+                  palette={member.homeConfig.palette as any}
                   customizations={member.homeConfig.houseCustomizations as HouseCustomizations}
                   className="w-full h-auto"
                 />

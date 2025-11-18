@@ -3,7 +3,9 @@ import Head from "next/head";
 import React, { useEffect } from "react";
 import 'highlight.js/styles/github.css'; // Restore highlight.js for non-profile pages
 import "../styles/globals.css"; // Restore global CSS
+import "../styles/components.css"; // Component-specific styles (including bottom sheets)
 import "../styles/neighborhood.css"; // Neighborhood street view styles
+import "../styles/neighborhood-card-view.css"; // Card view mobile experience styles
 import "../styles/pixel-homes-interactive.css"; // Interactive elements for pixel homes
 import "../styles/pixel-homes-animations.css"; // Visual polish and animations for pixel homes
 import "../styles/visual-builder.module.css"; // Visual template builder styles

@@ -10,8 +10,8 @@ interface NeighborhoodMember {
   displayName?: string | null
   avatarUrl?: string | null
   homeConfig: {
-    houseTemplate: HouseTemplate
-    palette: ColorPalette
+    houseTemplate: string
+    palette: string
     seasonalOptIn: boolean
     houseCustomizations?: {
       windowStyle?: string | null
@@ -128,8 +128,8 @@ export default function NeighborhoodMapView({
                     {/* House */}
                     <div className="relative z-10 mb-2">
                       <HouseSVG
-                        template={member.homeConfig.houseTemplate}
-                        palette={member.homeConfig.palette}
+                        template={member.homeConfig.houseTemplate as any}
+                        palette={member.homeConfig.palette as any}
                         className="w-16 h-16 transform group-hover:scale-110 transition-transform"
                       />
                       

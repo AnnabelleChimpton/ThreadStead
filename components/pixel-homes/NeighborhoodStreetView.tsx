@@ -23,8 +23,8 @@ interface NeighborhoodMember {
   displayName?: string | null
   avatarUrl?: string | null
   homeConfig: {
-    houseTemplate: HouseTemplate
-    palette: ColorPalette
+    houseTemplate: string
+    palette: string
     seasonalOptIn: boolean
     houseCustomizations?: {
       windowStyle?: string | null
@@ -259,12 +259,15 @@ export default function NeighborhoodStreetView({
 }: NeighborhoodStreetViewProps) {
   const router = useRouter()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const rafIdRef = useRef<number | null>(null)
   const [scrollOffset, setScrollOffset] = useState(0)
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night'>('afternoon')
   const [selectedMember, setSelectedMember] = useState<NeighborhoodMember | null>(null)
   const [showPopup, setShowPopup] = useState(false)
   const [currentStreet, setCurrentStreet] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(true)
+  const [visibleHouses, setVisibleHouses] = useState<Set<string>>(new Set())
 
   // Determine time of day
   useEffect(() => {
@@ -275,11 +278,76 @@ export default function NeighborhoodStreetView({
     else setTimeOfDay('night')
   }, [])
 
-  // Handle horizontal scrolling
+  // Auto-hide instructions after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowInstructions(false)
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Handle horizontal scrolling with requestAnimationFrame for performance
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement
-    setScrollOffset(target.scrollLeft)
+
+    // Cancel any pending animation frame
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+    }
+
+    // Schedule update for next animation frame
+    rafIdRef.current = requestAnimationFrame(() => {
+      setScrollOffset(target.scrollLeft)
+      rafIdRef.current = null
+    })
   }
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current)
+      }
+    }
+  }, [])
+
+  // Intersection Observer to optimize animations - only animate visible houses
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setVisibleHouses((prev) => {
+          const next = new Set(prev)
+          entries.forEach((entry) => {
+            const houseId = entry.target.getAttribute('data-house-id')
+            if (houseId) {
+              if (entry.isIntersecting) {
+                next.add(houseId)
+              } else {
+                next.delete(houseId)
+              }
+            }
+          })
+          return next
+        })
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: '50px', // Start animating slightly before entering viewport
+        threshold: 0.1
+      }
+    )
+
+    // Observe all house containers after a short delay to ensure they're rendered
+    const timer = setTimeout(() => {
+      const houseElements = document.querySelectorAll('[data-house-id]')
+      houseElements.forEach((el) => observer.observe(el))
+    }, 100)
+
+    return () => {
+      clearTimeout(timer)
+      observer.disconnect()
+    }
+  }, [currentStreet, members.length]) // Re-observe when street changes
 
   // Navigate to house popup
   const handleHouseClick = (member: NeighborhoodMember) => {
@@ -329,13 +397,13 @@ export default function NeighborhoodStreetView({
 
       {/* Street Indicator Overlay */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
-        <div className={`bg-thread-paper bg-opacity-95 border border-thread-sage rounded-lg px-4 py-2 shadow-lg transition-all duration-300 ${isTransitioning ? 'scale-110 shadow-xl' : 'scale-100'}`}>
+        <div className={`bg-thread-paper bg-opacity-95 border border-thread-sage rounded-lg px-2 py-1 md:px-4 md:py-2 shadow-lg transition-all duration-300 ${isTransitioning ? 'scale-110 shadow-xl' : 'scale-100'}`}>
           <div className="text-center">
-            <div className="text-sm font-headline font-medium text-thread-pine">
+            <div className="text-xs md:text-sm font-headline font-medium text-thread-pine">
               {getStreetName(currentStreet)}
             </div>
             {totalStreets > 1 && (
-              <div className="text-xs text-thread-sage mt-1">
+              <div className="hidden md:block text-xs text-thread-sage mt-1">
                 Street {currentStreet + 1} of {totalStreets} • {currentStreetMembers.length} homes
               </div>
             )}
@@ -368,10 +436,12 @@ export default function NeighborhoodStreetView({
                 {currentStreetMembers.map((member) => {
                   // Get visible decorations for this member
                   const visibleDecorations = getVisibleDecorations(member.homeConfig.decorations)
-                  
+                  const isHouseVisible = visibleHouses.has(member.userId)
+
                   return (
                     <div
                       key={member.userId}
+                      data-house-id={member.userId}
                       className="house-container relative cursor-pointer hover-lift group flex-shrink-0 motion-safe:transition-transform"
                       onClick={() => handleHouseClick(member)}
                       style={{
@@ -411,6 +481,8 @@ export default function NeighborhoodStreetView({
                                 style={{
                                   left: `${scaledX}px`,
                                   top: `${scaledY}px`,
+                                  transform: 'scale(0.57)',
+                                  transformOrigin: 'top left',
                                   zIndex: decoration.layer <= 5 ? 1 : 10 // Behind house (z-index 5) or in front
                                 }}
                               >
@@ -437,16 +509,16 @@ export default function NeighborhoodStreetView({
                             }}
                           >
                             <HouseSVG
-                              template={member.homeConfig.houseTemplate}
-                              palette={member.homeConfig.palette}
+                              template={member.homeConfig.houseTemplate as any}
+                              palette={member.homeConfig.palette as any}
                               customizations={member.homeConfig.houseCustomizations as HouseCustomizations}
                               className="w-full h-full"
                             />
                           </div>
                         </div>
-                        
-                        {/* Enhanced Activity indicators */}
-                        {member.stats.isActive && (
+
+                        {/* Enhanced Activity indicators - only animate when visible */}
+                        {member.stats.isActive && isHouseVisible && (
                           <>
                             {/* Enhanced window glow */}
                             <div className="absolute top-1/3 left-1/3 z-20">
@@ -486,12 +558,19 @@ export default function NeighborhoodStreetView({
         <>
           {/* Previous Street Portal */}
           {currentStreet > 0 && (
-            <div className="absolute left-8 bottom-16 z-50">
+            <div
+              className="absolute z-50"
+              style={{
+                left: 'calc(0.5rem + env(safe-area-inset-left, 0px))',
+                bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))'
+              }}
+            >
               <div className="flex flex-col items-center">
                 <button
                   onClick={goToPreviousStreet}
                   disabled={isTransitioning}
                   className="group bg-thread-paper bg-opacity-90 border border-thread-sage rounded-md px-2 py-1.5 shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                  aria-label={`Previous street: ${getStreetName(currentStreet - 1)}`}
                 >
                   <div className="flex items-center gap-1 text-xs text-thread-pine">
                     <div className="text-center">
@@ -506,12 +585,19 @@ export default function NeighborhoodStreetView({
 
           {/* Next Street Portal */}
           {currentStreet < totalStreets - 1 && (
-            <div className="absolute right-8 bottom-16 z-50">
+            <div
+              className="absolute z-50"
+              style={{
+                right: 'calc(0.5rem + env(safe-area-inset-right, 0px))',
+                bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))'
+              }}
+            >
               <div className="flex flex-col items-center">
                 <button
                   onClick={goToNextStreet}
                   disabled={isTransitioning}
                   className="group bg-thread-paper bg-opacity-90 border border-thread-sage rounded-md px-2 py-1.5 shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+                  aria-label={`Next street: ${getStreetName(currentStreet + 1)}`}
                 >
                   <div className="flex items-center gap-1 text-xs text-thread-pine">
                     <div className="text-center">
@@ -526,29 +612,31 @@ export default function NeighborhoodStreetView({
         </>
       )}
 
-      {/* Horizontal Scroll Indicators (within current street) */}
+      {/* Horizontal Scroll Indicators (within current street) - Desktop only */}
       {currentStreetMembers.length > 8 && (
         <>
-          <div className="absolute left-1/4 top-1/2 -translate-y-1/2 z-40">
+          <div className="hidden md:block absolute left-4 top-1/2 -translate-y-1/2 z-40">
             <button
               onClick={() => {
                 if (scrollContainerRef.current) {
-                  scrollContainerRef.current.scrollLeft -= 300
+                  scrollContainerRef.current.scrollLeft -= 400
                 }
               }}
-              className="p-3 sm:p-2 bg-thread-paper bg-opacity-60 rounded-full shadow-md hover:bg-opacity-80 transition-all text-thread-sage hover:text-thread-pine min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="p-2 bg-thread-paper bg-opacity-90 hover:bg-opacity-100 rounded-full shadow-lg hover:shadow-xl transition-all border-2 border-thread-sage text-thread-pine hover:scale-110 min-w-[48px] min-h-[48px] flex items-center justify-center font-bold text-xl"
+              aria-label="Scroll left"
             >
               ←
             </button>
           </div>
-          <div className="absolute right-1/4 top-1/2 -translate-y-1/2 z-40">
+          <div className="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 z-40">
             <button
               onClick={() => {
                 if (scrollContainerRef.current) {
-                  scrollContainerRef.current.scrollLeft += 300
+                  scrollContainerRef.current.scrollLeft += 400
                 }
               }}
-              className="p-3 sm:p-2 bg-thread-paper bg-opacity-60 rounded-full shadow-md hover:bg-opacity-80 transition-all text-thread-sage hover:text-thread-pine min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="p-2 bg-thread-paper bg-opacity-90 hover:bg-opacity-100 rounded-full shadow-lg hover:shadow-xl transition-all border-2 border-thread-sage text-thread-pine hover:scale-110 min-w-[48px] min-h-[48px] flex items-center justify-center font-bold text-xl"
+              aria-label="Scroll right"
             >
               →
             </button>
@@ -556,15 +644,25 @@ export default function NeighborhoodStreetView({
         </>
       )}
       
-      {/* Instructions */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
-        <div className="bg-thread-paper bg-opacity-90 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm text-thread-sage">
-          {totalStreets > 1
-            ? 'Explore this street • Use street portals to visit other streets • Click houses to visit'
-            : 'Scroll to explore the street • Click houses to visit'
-          }
+      {/* Instructions - Auto-hide after 3s, dismissible on tap */}
+      {showInstructions && (
+        <div
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 cursor-pointer"
+          onClick={() => setShowInstructions(false)}
+        >
+          <div className="bg-thread-paper bg-opacity-90 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm text-thread-sage transition-opacity duration-300 hover:bg-opacity-100">
+            {/* Mobile: Short and concise */}
+            <span className="md:hidden">Swipe to explore • Tap houses</span>
+            {/* Desktop: Full instructions */}
+            <span className="hidden md:inline">
+              {totalStreets > 1
+                ? 'Explore this street • Use street portals to visit other streets • Click houses to visit'
+                : 'Scroll to explore the street • Click houses to visit'
+              }
+            </span>
+          </div>
         </div>
-      </div>
+      )}
       
       {/* House Details Popup */}
       {selectedMember && (

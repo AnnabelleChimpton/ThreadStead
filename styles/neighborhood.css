@@ -60,10 +60,7 @@
 .house-container {
   transition: transform 0.3s ease;
   min-width: fit-content;
-}
-
-.house-container.hover-lift:hover {
-  transform: translateY(-20px);
+  will-change: transform;
 }
 
 .house-wrapper.interactive {
@@ -79,10 +76,18 @@
   transition: opacity 0.3s ease;
   pointer-events: none;
   border-radius: 50%;
+  will-change: opacity;
 }
 
-.house-wrapper.interactive:hover::after {
-  opacity: 1;
+/* Hover effects - only on devices with hover capability (desktop) */
+@media (hover: hover) and (pointer: fine) {
+  .house-container.hover-lift:hover {
+    transform: translateY(-20px);
+  }
+
+  .house-wrapper.interactive:hover::after {
+    opacity: 1;
+  }
 }
 
 /* Window light glow for active houses */
@@ -91,6 +96,7 @@
   height: 20px;
   background: radial-gradient(circle, rgba(255, 255, 200, 0.8), transparent);
   animation: pulse-light 2s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 @keyframes pulse-light {
@@ -111,6 +117,7 @@
   background: radial-gradient(circle, rgba(255, 220, 120, 0.9), rgba(255, 180, 80, 0.6), transparent);
   animation: window-glow 3s ease-in-out infinite;
   border-radius: 2px;
+  will-change: opacity, transform;
 }
 
 @keyframes window-glow {
@@ -132,6 +139,7 @@
   background: rgba(200, 200, 200, 0.7);
   border-radius: 50%;
   animation: smoke-rise 4s ease-out infinite;
+  will-change: transform, opacity;
 }
 
 @keyframes smoke-rise {

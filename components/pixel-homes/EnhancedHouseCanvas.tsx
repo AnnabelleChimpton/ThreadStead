@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
 import AnimatedDecoration from './DecorationAnimations'
@@ -83,6 +83,26 @@ export default function EnhancedHouseCanvas({
   selectedDecorations,
   onAnimationComplete
 }: EnhancedHouseCanvasProps) {
+  // Refs and state for responsive scaling
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+
+  // ResizeObserver to calculate scale based on container width
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width
+        const calculatedScale = width / CANVAS_WIDTH
+        setScale(calculatedScale)
+      }
+    })
+
+    resizeObserver.observe(containerRef.current)
+
+    return () => resizeObserver.disconnect()
+  }, [])
 
   const renderBackground = () => {
     const zone = DECORATION_ZONES.background
@@ -208,75 +228,88 @@ export default function EnhancedHouseCanvas({
 
   return (
     <div className={`relative ${className}`}>
-      <div 
+      <div
+        ref={containerRef}
         className="relative border-2 border-gray-300 rounded-lg overflow-hidden"
-        style={{ 
-          width: CANVAS_WIDTH, 
-          height: CANVAS_HEIGHT,
+        style={{
+          width: '100%',
+          maxWidth: CANVAS_WIDTH,
+          aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
           background: '#f0f8ff' // Light sky blue base
         }}
       >
-        {/* Background Layer (Sky, weather effects) */}
-        {renderBackground()}
-        
-        {/* Front Yard Layer (Grass, decorations) */}
-        {renderFrontYard()}
-        
-        {/* Decorations Layer (Above grass, below house) */}
-        {renderDecorations()}
-
-        {/* House Layer (Centered in canvas) */}
-        <div 
-          className="absolute"
+        {/* Scaled content wrapper - scales all content proportionally */}
+        <div
           style={{
-            left: HOUSE_POSITION.x,
-            top: HOUSE_POSITION.y,
-            width: HOUSE_POSITION.width,
-            height: HOUSE_POSITION.height,
-            zIndex: 5
+            width: CANVAS_WIDTH,
+            height: CANVAS_HEIGHT,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+            position: 'relative'
           }}
         >
-          <HouseSVG
-            template={template}
-            palette={palette}
-            customizations={houseCustomizations}
-            className="w-full h-full drop-shadow-lg"
-          />
-        </div>
-        
-        {/* Decoration Mode Overlay */}
-        {isDecorationMode && (
-          <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
-            {/* Zone guides */}
-            <div 
-              className="absolute border-2 border-dashed border-blue-300 opacity-50"
-              style={{
-                left: DECORATION_ZONES.background.x,
-                top: DECORATION_ZONES.background.y,
-                width: DECORATION_ZONES.background.width,
-                height: DECORATION_ZONES.background.height
-              }}
-            >
-              <div className="absolute top-1 left-1 text-xs text-blue-600 font-medium bg-white/80 px-1 rounded">
-                {DECORATION_ZONES.background.label}
-              </div>
-            </div>
-            
-            <div 
-              className="absolute border-2 border-dashed border-green-300 opacity-50"
-              style={{
-                left: DECORATION_ZONES.front_yard.x,
-                top: DECORATION_ZONES.front_yard.y,
-                width: DECORATION_ZONES.front_yard.width,
-                height: DECORATION_ZONES.front_yard.height
-              }}
-            >
-              <div className="absolute top-1 left-1 text-xs text-green-600 font-medium bg-white/80 px-1 rounded">
-                {DECORATION_ZONES.front_yard.label}
-              </div>
-            </div>
+          {/* Background Layer (Sky, weather effects) */}
+          {renderBackground()}
+
+          {/* Front Yard Layer (Grass, decorations) */}
+          {renderFrontYard()}
+
+          {/* Decorations Layer (Above grass, below house) */}
+          {renderDecorations()}
+
+          {/* House Layer (Centered in canvas) */}
+          <div
+            className="absolute"
+            style={{
+              left: HOUSE_POSITION.x,
+              top: HOUSE_POSITION.y,
+              width: HOUSE_POSITION.width,
+              height: HOUSE_POSITION.height,
+              zIndex: 5
+            }}
+          >
+            <HouseSVG
+              template={template}
+              palette={palette}
+              customizations={houseCustomizations}
+              className="w-full h-full drop-shadow-lg"
+            />
           </div>
-        )}
+
+          {/* Decoration Mode Overlay */}
+          {isDecorationMode && (
+            <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
+              {/* Zone guides */}
+              <div
+                className="absolute border-2 border-dashed border-blue-300 opacity-50"
+                style={{
+                  left: DECORATION_ZONES.background.x,
+                  top: DECORATION_ZONES.background.y,
+                  width: DECORATION_ZONES.background.width,
+                  height: DECORATION_ZONES.background.height
+                }}
+              >
+                <div className="absolute top-1 left-1 text-xs text-blue-600 font-medium bg-white/80 px-1 rounded">
+                  {DECORATION_ZONES.background.label}
+                </div>
+              </div>
+
+              <div
+                className="absolute border-2 border-dashed border-green-300 opacity-50"
+                style={{
+                  left: DECORATION_ZONES.front_yard.x,
+                  top: DECORATION_ZONES.front_yard.y,
+                  width: DECORATION_ZONES.front_yard.width,
+                  height: DECORATION_ZONES.front_yard.height
+                }}
+              >
+                <div className="absolute top-1 left-1 text-xs text-green-600 font-medium bg-white/80 px-1 rounded">
+                  {DECORATION_ZONES.front_yard.label}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Canvas Info (for development) */}

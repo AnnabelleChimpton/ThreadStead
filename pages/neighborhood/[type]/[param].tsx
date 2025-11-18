@@ -5,6 +5,10 @@ import Layout from '../../../components/ui/layout/Layout'
 import NeighborhoodStreetView from '../../../components/pixel-homes/NeighborhoodStreetView'
 import NeighborhoodGridView from '../../../components/pixel-homes/NeighborhoodGridView'
 import NeighborhoodMapView from '../../../components/pixel-homes/NeighborhoodMapView'
+import NeighborhoodCardView from '../../../components/pixel-homes/NeighborhoodCardView'
+import NeighborhoodFABs from '../../../components/pixel-homes/NeighborhoodFABs'
+import NeighborhoodFilterSheet, { FilterState } from '../../../components/pixel-homes/NeighborhoodFilterSheet'
+import HouseDetailsPopup from '../../../components/pixel-homes/HouseDetailsPopup'
 import { HouseTemplate, ColorPalette } from '../../../components/pixel-homes/HouseSVG'
 import { db } from '../../../lib/config/database/connection'
 import Link from 'next/link'
@@ -12,6 +16,7 @@ import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { transformRingDescriptorToThreadRing, transformRingMemberWithUserResolution } from '@/lib/api/ringhub/ringhub-transformers'
 import { weatherWidget } from '@/components/widgets/examples/WeatherWidget'
+import useIsMobile from '../../../hooks/useIsMobile'
 
 // Helper to format temperature with correct unit based on country
 const formatTemperature = (temp: number, countryCode?: string): string => {
@@ -31,21 +36,24 @@ const formatTemperature = (temp: number, countryCode?: string): string => {
 interface NeighborhoodMember {
   userId: string
   username: string
-  displayName?: string
-  avatarUrl?: string
+  displayName?: string | null
+  avatarUrl?: string | null
   homeConfig: {
-    houseTemplate: HouseTemplate
-    palette: ColorPalette
+    houseTemplate: string
+    palette: string
     seasonalOptIn: boolean
     houseCustomizations?: {
-      windowStyle?: string
-      doorStyle?: string
-      roofTrim?: string
-      wallColor?: string
-      roofColor?: string
-      trimColor?: string
-      windowColor?: string
-      detailColor?: string
+      windowStyle?: string | null
+      doorStyle?: string | null
+      roofTrim?: string | null
+      wallColor?: string | null
+      roofColor?: string | null
+      trimColor?: string | null
+      windowColor?: string | null
+      detailColor?: string | null
+      houseTitle?: string | null
+      houseDescription?: string | null
+      houseBoardText?: string | null
     }
     atmosphere?: {
       sky: string
@@ -97,7 +105,7 @@ interface UnifiedNeighborhoodProps {
   currentUserId?: string
 }
 
-type ViewMode = 'street' | 'grid' | 'map'
+type ViewMode = 'street' | 'grid' | 'map' | 'card'
 
 export default function UnifiedNeighborhood({
   type,
@@ -109,6 +117,7 @@ export default function UnifiedNeighborhood({
   metadata,
   currentUserId
 }: UnifiedNeighborhoodProps) {
+  const isMobile = useIsMobile(768)
   const [viewMode, setViewMode] = useState<ViewMode>('street')
   const [filterActive, setFilterActive] = useState(false)
   const [sortBy, setSortBy] = useState<'recent' | 'alphabetical' | 'random'>('recent')
@@ -117,14 +126,29 @@ export default function UnifiedNeighborhood({
   const [paletteFilter, setPaletteFilter] = useState<string>('')
   const [weatherData, setWeatherData] = useState<any>(null)
   const [weatherLoading, setWeatherLoading] = useState(true)
+  const [showFilterSheet, setShowFilterSheet] = useState(false)
+  const [selectedMember, setSelectedMember] = useState<NeighborhoodMember | null>(null)
+  const [showHouseDetails, setShowHouseDetails] = useState(false)
+  const [showViewModeSelector, setShowViewModeSelector] = useState(false)
   
-  // Load user's preferred view mode from localStorage
+  // Load user's preferred view mode from localStorage and auto-select card on mobile
   useEffect(() => {
-    const savedMode = localStorage.getItem('neighborhoodViewMode') as ViewMode
-    if (savedMode && ['street', 'grid', 'map'].includes(savedMode)) {
-      setViewMode(savedMode)
+    if (isMobile) {
+      // On mobile, default to card view
+      const savedMode = localStorage.getItem('neighborhoodViewModeMobile') as ViewMode
+      if (savedMode && ['card', 'grid', 'map'].includes(savedMode)) {
+        setViewMode(savedMode)
+      } else {
+        setViewMode('card')
+      }
+    } else {
+      // On desktop, use saved preference or default to street
+      const savedMode = localStorage.getItem('neighborhoodViewMode') as ViewMode
+      if (savedMode && ['street', 'grid', 'map', 'card'].includes(savedMode)) {
+        setViewMode(savedMode)
+      }
     }
-  }, [])
+  }, [isMobile])
 
   // Load weather data
   useEffect(() => {
@@ -146,7 +170,32 @@ export default function UnifiedNeighborhood({
   // Save view mode preference
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode)
-    localStorage.setItem('neighborhoodViewMode', mode)
+    const storageKey = isMobile ? 'neighborhoodViewModeMobile' : 'neighborhoodViewMode'
+    localStorage.setItem(storageKey, mode)
+  }
+
+  // Handle filter application
+  const handleFiltersChange = (filters: FilterState) => {
+    setFilterActive(filters.activeOnly || filters.templates.length > 0 || filters.palettes.length > 0)
+    setTemplateFilter(filters.templates[0] || '')
+    setPaletteFilter(filters.palettes[0] || '')
+    setSortBy(filters.sortBy)
+  }
+
+  // Handle random house jump
+  const handleRandomJump = () => {
+    const randomIndex = Math.floor(Math.random() * processedMembers.length)
+    const randomMember = processedMembers[randomIndex]
+    if (randomMember) {
+      setSelectedMember(randomMember)
+      setShowHouseDetails(true)
+    }
+  }
+
+  // Handle card swipe up (show details)
+  const handleCardSwipeUp = (member: NeighborhoodMember) => {
+    setSelectedMember(member)
+    setShowHouseDetails(true)
   }
   
   // Filter and sort members
@@ -191,11 +240,24 @@ export default function UnifiedNeighborhood({
 
       <Layout>
         <div className="min-h-screen bg-gradient-to-b from-thread-paper to-thread-cream">
-          {/* Header - more compact for street view */}
-          <div className="bg-thread-paper border-b border-thread-sage sticky top-0 z-40">
-            <div className="container mx-auto px-4 py-2">
-              {/* Breadcrumb */}
-              <div className="flex items-center gap-2 text-sm text-thread-sage mb-2">
+          {/* Condensed header for mobile card view */}
+          {viewMode === 'card' && isMobile && (
+            <div
+              className="fixed top-0 left-0 right-0 z-50 bg-thread-paper/95 backdrop-blur-sm border-b border-thread-sage px-4 py-2"
+              style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
+            >
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-thread-pine truncate flex-1 mr-2">{title}</span>
+                <span className="text-thread-sage whitespace-nowrap">{processedMembers.length} homes</span>
+              </div>
+            </div>
+          )}
+
+          {/* Header - more compact for street view, hidden in card view on mobile */}
+          <div className={`bg-thread-paper border-b border-thread-sage sticky top-0 z-40 ${viewMode === 'card' && isMobile ? 'hidden' : ''}`}>
+            <div className="container mx-auto px-3 md:px-4 py-1.5 md:py-2">
+              {/* Breadcrumb - hidden on mobile to save space */}
+              <div className="hidden md:flex items-center gap-2 text-sm text-thread-sage mb-2">
                 <Link href="/" className="hover:text-thread-pine transition-colors">
                   Home
                 </Link>
@@ -206,14 +268,14 @@ export default function UnifiedNeighborhood({
                 <span>→</span>
                 <span className="text-thread-pine font-medium">{title}</span>
               </div>
-              
+
               {/* Unified header with flex layout */}
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
                 <div className="flex-1">
-                  <h1 className="text-xl font-headline font-bold text-thread-pine mb-1">
+                  <h1 className="text-base md:text-xl font-headline font-bold text-thread-pine mb-1">
                     {title}
                   </h1>
-                  <p className="text-thread-sage max-w-2xl mb-2 text-sm">
+                  <p className="hidden md:block text-thread-sage max-w-2xl mb-2 text-sm">
                     {description}
                   </p>
                   
@@ -235,12 +297,12 @@ export default function UnifiedNeighborhood({
                     )}
                   </div>
                   
-                  {/* Compact navigation for explore */}
+                  {/* Compact navigation for explore - horizontal scroll on mobile */}
                   {type === 'explore' && (
-                    <div className="flex flex-wrap gap-2 mt-3">
+                    <div className="flex gap-1.5 md:gap-2 mt-2 md:mt-3 overflow-x-auto pb-1 -mx-3 px-3 md:mx-0 md:px-0 scrollbar-hide">
                       <Link
                         href="/neighborhood/explore/all"
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${
                           param === 'all'
                             ? 'bg-thread-sage text-thread-paper'
                             : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
@@ -250,7 +312,7 @@ export default function UnifiedNeighborhood({
                       </Link>
                       <Link
                         href="/neighborhood/explore/recent"
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${
                           param === 'recent'
                             ? 'bg-thread-sage text-thread-paper'
                             : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
@@ -260,7 +322,7 @@ export default function UnifiedNeighborhood({
                       </Link>
                       <Link
                         href="/neighborhood/explore/popular"
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${
                           param === 'popular'
                             ? 'bg-thread-sage text-thread-paper'
                             : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
@@ -270,7 +332,7 @@ export default function UnifiedNeighborhood({
                       </Link>
                       <Link
                         href="/neighborhood/explore/random"
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${
                           param === 'random'
                             ? 'bg-thread-sage text-thread-paper'
                             : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
@@ -281,20 +343,20 @@ export default function UnifiedNeighborhood({
                     </div>
                   )}
 
-                  {/* Demo Banner for visitors exploring pixel homes */}
+                  {/* Demo Banner for visitors exploring pixel homes - compact on mobile */}
                   {type === 'explore' && !currentUserId && (
-                    <div className="mt-3 bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-300 rounded-lg p-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl flex-shrink-0">🎨</span>
-                        <div className="flex-1">
-                          <div className="font-semibold text-thread-pine text-sm">New to Pixel Homes?</div>
-                          <div className="text-xs text-thread-sage">Try our interactive demo to see what you can build!</div>
+                    <div className="mt-2 md:mt-3 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-300 md:border-2 rounded-lg p-2 md:p-3">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <span className="text-lg md:text-2xl flex-shrink-0">🎨</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-thread-pine text-xs md:text-sm truncate">New to Pixel Homes?</div>
+                          <div className="hidden md:block text-xs text-thread-sage">Try our interactive demo to see what you can build!</div>
                         </div>
                         <Link
                           href="/home/demo"
-                          className="px-4 py-2 bg-pink-200 hover:bg-pink-300 border border-pink-400 rounded-md text-sm font-medium transition-colors shadow-sm hover:shadow-md flex-shrink-0"
+                          className="px-2.5 md:px-4 py-1.5 md:py-2 bg-pink-200 hover:bg-pink-300 border border-pink-400 rounded-md text-xs md:text-sm font-medium transition-colors shadow-sm hover:shadow-md flex-shrink-0"
                         >
-                          Try Demo →
+                          Demo
                         </Link>
                       </div>
                     </div>
@@ -302,60 +364,78 @@ export default function UnifiedNeighborhood({
                 </div>
               
                 {/* View Controls */}
-                <div className="flex flex-col gap-3">
-                  {/* View Mode Toggle */}
-                  <div className="flex bg-thread-cream border border-thread-sage rounded-lg p-1">
+                <div className="flex flex-col gap-2 md:gap-3">
+                  {/* View Mode Toggle - icon only on mobile */}
+                  <div className="flex bg-thread-cream border border-thread-sage rounded-lg p-0.5 md:p-1">
                     <button
                       onClick={() => handleViewModeChange('street')}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
                         viewMode === 'street'
                           ? 'bg-thread-sage text-thread-paper shadow-sm'
                           : 'text-thread-sage hover:text-thread-pine'
                       }`}
-                      title="Street View - Immersive neighborhood experience"
+                      title={isMobile ? "Street View - Swipe horizontally to explore" : "Street View - Immersive neighborhood experience"}
                     >
-                      🏘️ Street
+                      <span className="md:hidden">🏘️</span>
+                      <span className="hidden md:inline">🏘️ Street</span>
                     </button>
+                    {/* Card View - Mobile Only */}
+                    {isMobile && (
+                      <button
+                        onClick={() => handleViewModeChange('card')}
+                        className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
+                          viewMode === 'card'
+                            ? 'bg-thread-sage text-thread-paper shadow-sm'
+                            : 'text-thread-sage hover:text-thread-pine'
+                        }`}
+                        title="Card View - Swipeable discovery"
+                      >
+                        🃏
+                      </button>
+                    )}
                     <button
                       onClick={() => handleViewModeChange('grid')}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
                         viewMode === 'grid'
                           ? 'bg-thread-sage text-thread-paper shadow-sm'
                           : 'text-thread-sage hover:text-thread-pine'
                       }`}
                       title="Grid View - Efficient browsing"
                     >
-                      ⊞ Grid
+                      <span className="md:hidden">⊞</span>
+                      <span className="hidden md:inline">⊞ Grid</span>
                     </button>
                     <button
                       onClick={() => handleViewModeChange('map')}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
                         viewMode === 'map'
                           ? 'bg-thread-sage text-thread-paper shadow-sm'
                           : 'text-thread-sage hover:text-thread-pine'
                       }`}
                       title="Map View - Bird's eye perspective"
                     >
-                      🗺️ Map
+                      <span className="md:hidden">🗺️</span>
+                      <span className="hidden md:inline">🗺️ Map</span>
                     </button>
                   </div>
-                  
-                  {/* Filter Options */}
-                  <div className="flex gap-2">
+
+                  {/* Filter Options - more compact on mobile */}
+                  <div className="flex gap-1.5 md:gap-2">
                     <button
                       onClick={() => setFilterActive(!filterActive)}
-                      className={`px-3 py-1.5 text-sm rounded-md border transition-all ${
+                      className={`px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md border transition-all ${
                         filterActive
                           ? 'bg-green-100 border-green-300 text-green-700'
                           : 'bg-thread-paper border-thread-sage text-thread-sage hover:bg-thread-cream'
                       }`}
                     >
-                      {filterActive ? '✓ Active Only' : '○ Active Only'}
+                      <span className="md:hidden">{filterActive ? '✓' : '○'}</span>
+                      <span className="hidden md:inline">{filterActive ? '✓ Active Only' : '○ Active Only'}</span>
                     </button>
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      className="px-3 py-1.5 text-sm rounded-md border border-thread-sage bg-thread-paper text-thread-pine"
+                      className="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md border border-thread-sage bg-thread-paper text-thread-pine"
                     >
                       <option value="recent">Recent</option>
                       <option value="alphabetical">A-Z</option>
@@ -363,10 +443,10 @@ export default function UnifiedNeighborhood({
                     </select>
                     <button
                       onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                      className="px-3 py-1.5 text-sm rounded-md border border-thread-sage text-thread-sage hover:bg-thread-cream transition-colors"
+                      className="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md border border-thread-sage text-thread-sage hover:bg-thread-cream transition-colors"
                       title="Advanced filtering options"
                     >
-                      🔍 {showAdvancedFilters ? 'Less' : 'More'}
+                      🔍 <span className="hidden md:inline">{showAdvancedFilters ? 'Less' : 'More'}</span>
                     </button>
                   </div>
                 </div>
@@ -440,8 +520,8 @@ export default function UnifiedNeighborhood({
 
           {/* Neighborhood View */}
           <div className="relative">
-            {/* Weather Overlay - Top Left Corner for explore pages */}
-            {type === 'explore' && (
+            {/* Weather Overlay - Top Left Corner for explore pages (hide in card view on mobile since card has its own) */}
+            {type === 'explore' && !(viewMode === 'card' && isMobile) && (
               <div className="absolute top-4 left-4 z-30">
                 <div className="bg-thread-paper bg-opacity-95 border border-thread-sage rounded-lg px-3 py-2 shadow-lg">
                   {weatherLoading ? (
@@ -462,24 +542,39 @@ export default function UnifiedNeighborhood({
             )}
 
             {viewMode === 'street' && (
-              <NeighborhoodStreetView 
+              <NeighborhoodStreetView
                 members={processedMembers}
                 currentUserId={currentUserId}
                 neighborhoodType={type}
               />
             )}
-            
+
+            {viewMode === 'card' && (
+              <div className={isMobile ? "h-[calc(100dvh-9rem)]" : "h-[calc(100vh-200px)]"}>
+                <NeighborhoodCardView
+                  members={processedMembers}
+                  currentUserId={currentUserId}
+                  onSwipeUp={handleCardSwipeUp}
+                  weatherData={weatherData ? {
+                    temp: weatherData.temperature,
+                    condition: weatherData.condition,
+                    icon: weatherData.emoji
+                  } : undefined}
+                />
+              </div>
+            )}
+
             {viewMode === 'grid' && (
               <div className="container mx-auto px-4 py-8">
-                <NeighborhoodGridView 
+                <NeighborhoodGridView
                   members={processedMembers}
                   ringSlug={metadata.ringSlug || type}
                 />
               </div>
             )}
-            
+
             {viewMode === 'map' && (
-              <NeighborhoodMapView 
+              <NeighborhoodMapView
                 members={processedMembers}
                 currentUserId={currentUserId}
                 neighborhoodType={type}
@@ -569,6 +664,145 @@ export default function UnifiedNeighborhood({
               </div>
             )}
           </div>
+
+          {/* Mobile FABs - Only show in card view */}
+          {viewMode === 'card' && (
+            <NeighborhoodFABs
+              onFilterClick={() => setShowFilterSheet(true)}
+              onRandomClick={handleRandomJump}
+              onViewModeClick={() => setShowViewModeSelector(true)}
+              filterActive={filterActive || templateFilter !== '' || paletteFilter !== ''}
+              filterCount={
+                (filterActive ? 1 : 0) +
+                (templateFilter !== '' ? 1 : 0) +
+                (paletteFilter !== '' ? 1 : 0) +
+                (sortBy !== 'recent' ? 1 : 0)
+              }
+            />
+          )}
+
+          {/* Mobile Filter Sheet */}
+          <NeighborhoodFilterSheet
+            isOpen={showFilterSheet}
+            onClose={() => setShowFilterSheet(false)}
+            filters={{
+              activeOnly: filterActive,
+              templates: templateFilter ? [templateFilter] : [],
+              palettes: paletteFilter ? [paletteFilter] : [],
+              sortBy: sortBy
+            }}
+            onFiltersChange={handleFiltersChange}
+            availableTemplates={Array.from(new Set(members.map(m => m.homeConfig.houseTemplate)))}
+            availablePalettes={Array.from(new Set(members.map(m => m.homeConfig.palette)))}
+            resultCount={processedMembers.length}
+            totalCount={members.length}
+          />
+
+          {/* House Details Popup */}
+          {selectedMember && (
+            <HouseDetailsPopup
+              isOpen={showHouseDetails}
+              onClose={() => setShowHouseDetails(false)}
+              member={selectedMember}
+            />
+          )}
+
+          {/* View Mode Selector Sheet (Mobile only) */}
+          {showViewModeSelector && isMobile && (
+            <>
+              <div
+                className="bottom-sheet-backdrop visible"
+                onClick={() => setShowViewModeSelector(false)}
+              />
+              <div className={`mobile-bottom-sheet ${showViewModeSelector ? 'open' : ''}`}>
+                <div className="bottom-sheet-handle" />
+                <div className="bottom-sheet-content">
+                  <div className="bg-gradient-to-r from-thread-sage to-thread-pine text-thread-paper p-6 rounded-t-lg">
+                    <h3 className="text-lg font-semibold">View Mode</h3>
+                    <p className="text-sm text-thread-cream mt-1">Choose how to explore</p>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <button
+                      onClick={() => {
+                        handleViewModeChange('card')
+                        setShowViewModeSelector(false)
+                      }}
+                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${
+                        viewMode === 'card'
+                          ? 'bg-thread-sage text-thread-paper'
+                          : 'bg-thread-cream text-thread-pine border border-thread-sage'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">🎴</span>
+                        <div className="text-left">
+                          <div className="font-semibold">Card View</div>
+                          <div className="text-xs opacity-75">Swipe through homes</div>
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleViewModeChange('street')
+                        setShowViewModeSelector(false)
+                      }}
+                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${
+                        viewMode === 'street'
+                          ? 'bg-thread-sage text-thread-paper'
+                          : 'bg-thread-cream text-thread-pine border border-thread-sage'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">🏘️</span>
+                        <div className="text-left">
+                          <div className="font-semibold">Street View</div>
+                          <div className="text-xs opacity-75">Scroll horizontally</div>
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleViewModeChange('grid')
+                        setShowViewModeSelector(false)
+                      }}
+                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${
+                        viewMode === 'grid'
+                          ? 'bg-thread-sage text-thread-paper'
+                          : 'bg-thread-cream text-thread-pine border border-thread-sage'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">⬜</span>
+                        <div className="text-left">
+                          <div className="font-semibold">Grid View</div>
+                          <div className="text-xs opacity-75">Browse all at once</div>
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleViewModeChange('map')
+                        setShowViewModeSelector(false)
+                      }}
+                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${
+                        viewMode === 'map'
+                          ? 'bg-thread-sage text-thread-paper'
+                          : 'bg-thread-cream text-thread-pine border border-thread-sage'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">🗺️</span>
+                        <div className="text-left">
+                          <div className="font-semibold">Map View</div>
+                          <div className="text-xs opacity-75">Spatial layout</div>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </Layout>
     </>
