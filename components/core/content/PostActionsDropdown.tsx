@@ -50,8 +50,9 @@ export default function PostActionsDropdown({
   }, []);
 
   const copyPostLink = async () => {
-    const postUrl = post.author?.primaryHandle 
-      ? `${window.location.origin}/resident/${post.author.primaryHandle}/post/${post.id}`
+    const username = post.author?.primaryHandle?.split('@')[0];
+    const postUrl = username
+      ? `${window.location.origin}/resident/${username}/post/${post.id}`
       : `${window.location.origin}/post/${post.id}`;
     try {
       await navigator.clipboard.writeText(postUrl);

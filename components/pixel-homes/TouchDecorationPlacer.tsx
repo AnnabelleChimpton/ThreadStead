@@ -339,17 +339,6 @@ export default function TouchDecorationPlacer({
         </div>
       )}
 
-      {!showTouchOverlay && !isDeleteMode && (
-        <div className="absolute bottom-4 left-4 pointer-events-none">
-          <div className="bg-gray-800 text-white px-3 py-2 rounded-lg text-xs font-medium shadow-lg space-y-1">
-            <div>• Tap: Select decoration</div>
-            <div>• Long press: Context menu</div>
-            <div>• Drag: Multi-select or move</div>
-            <div>• Swipe: Navigate categories</div>
-          </div>
-        </div>
-      )}
-
       {/* Touch targets for decorations */}
       {!showTouchOverlay && decorations.map(decoration => (
         <div

@@ -31,7 +31,7 @@ interface DecorationPaletteProps {
 // Primary categories with better organization
 const PRIMARY_CATEGORIES = {
   decorations: {
-    label: 'Decorations',
+    label: 'Decor',
     icon: '🎨',
     subcategories: {
       plants: { label: 'Plants', icon: '🌱' },
@@ -181,7 +181,8 @@ export default function DecorationPalette({
             placeholder="Search decorations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 bg-white touch-manipulation"
+            style={{ minHeight: '48px' }}
           />
           <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
             🔍
@@ -199,19 +200,22 @@ export default function DecorationPalette({
 
       {/* Primary Category Navigation */}
       <div className="px-4 pb-2">
-        <div className={`flex ${isMobile ? 'overflow-x-auto' : 'flex-wrap'} gap-2`}>
+        <div className={`flex ${isMobile ? 'overflow-x-auto -mx-4 px-4 pb-1' : 'flex-wrap'} gap-2`}>
           {Object.entries(PRIMARY_CATEGORIES).map(([key, category]) => (
             <button
               key={key}
               onClick={() => handlePrimaryChange(key)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 rounded-lg text-sm font-medium transition-all touch-manipulation active:scale-95 ${
+                isMobile ? 'flex-col px-3 py-2 min-w-[72px] flex-shrink-0' : 'px-3 py-2 whitespace-nowrap'
+              } ${
                 primaryCategory === key
                   ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
-                  : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                  : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100 hover:text-gray-900'
               }`}
+              style={isMobile ? { minHeight: '64px' } : {}}
             >
-              <span>{category.icon}</span>
-              <span>{category.label}</span>
+              <span className={isMobile ? 'text-xl' : ''}>{category.icon}</span>
+              <span className={isMobile ? 'text-xs font-medium whitespace-nowrap' : ''}>{category.label}</span>
             </button>
           ))}
         </div>
@@ -220,18 +224,21 @@ export default function DecorationPalette({
       {/* Secondary Category Navigation */}
       {hasSecondaryCategories && !searchQuery && (
         <div className="px-4 pb-3">
-          <div className={`flex ${isMobile ? 'overflow-x-auto' : 'flex-wrap'} gap-1`}>
+          <div className={`flex ${isMobile ? 'overflow-x-auto -mx-4 px-4 pb-1' : 'flex-wrap'} gap-1`}>
             {Object.entries(secondaryCategories).map(([key, subcategory]) => (
               <button
                 key={key}
                 onClick={() => setSecondaryCategory(key)}
-                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium whitespace-nowrap transition-all ${
+                className={`flex flex-nowrap items-center gap-1 px-3 py-2 rounded text-xs font-medium whitespace-nowrap transition-all touch-manipulation active:scale-95 ${
+                  isMobile ? 'flex-shrink-0' : ''
+                } ${
                   secondaryCategory === key
                     ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100 hover:text-gray-900'
                 }`}
+                style={isMobile ? { minHeight: '44px' } : {}}
               >
-                <span className="text-sm">{(subcategory as any).icon}</span>
+                <span className="text-sm flex-shrink-0">{(subcategory as any).icon}</span>
                 <span>{(subcategory as any).label}</span>
               </button>
             ))}
@@ -242,33 +249,40 @@ export default function DecorationPalette({
       {/* Search Results Info */}
       {searchQuery && (
         <div className="px-4 pb-2">
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-600">
             {currentItems.length} result{currentItems.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;
           </div>
         </div>
       )}
 
       {/* Items Grid */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      <div
+        className="flex-1 overflow-y-auto px-4 pb-4 relative"
+        style={isMobile ? {
+          WebkitOverflowScrolling: 'touch',
+          scrollSnapType: 'y proximity'
+        } : undefined}
+      >
         {currentItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-gray-400">
+          <div className="flex flex-col items-center justify-center h-32 text-gray-500">
             <div className="text-2xl mb-2">🔍</div>
-            <div className="text-sm text-center">
+            <div className="text-sm text-center text-gray-600">
               {searchQuery ? 'No items found' : 'No items in this category'}
             </div>
           </div>
         ) : (
-          <div className={`grid gap-3 ${
-            isMobile ? 'grid-cols-3' : 'grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+          <div className={`grid ${
+            isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4'
           }`}>
             {currentItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => onItemSelect(item)}
                 className={`
-                  relative aspect-square p-3 rounded-xl border-2
+                  relative aspect-square rounded-xl border-2
                   transition-all duration-200 hover:scale-105 hover:shadow-lg
                   flex flex-col items-center justify-center
+                  ${isMobile ? 'p-2' : 'p-3'}
                   ${selectedItem?.id === item.id
                     ? 'border-blue-500 bg-blue-50 shadow-md transform scale-105'
                     : 'border-gray-200 bg-white hover:border-gray-300'
@@ -281,7 +295,7 @@ export default function DecorationPalette({
                   <DecorationIcon
                     type={item.type as "path" | "feature" | "plant" | "furniture" | "lighting" | "water" | "structure" | "sky" | "seasonal" | "house_custom" | "house_template" | "house_color"}
                     id={item.id}
-                    size={isMobile ? 28 : 32}
+                    size={isMobile ? 36 : 32}
                     className="drop-shadow-sm"
                     color={item.color}
                     iconSvg={item.iconSvg}
@@ -289,12 +303,15 @@ export default function DecorationPalette({
                 </div>
 
                 {/* Item Name */}
-                <div className={`mt-2 text-center ${isMobile ? 'text-xs' : 'text-xs'} font-medium text-gray-700 leading-tight px-1`}>
+                <div
+                  className={`mt-1 text-center text-xs font-medium text-gray-700 leading-tight px-0.5 ${isMobile ? 'line-clamp-1' : 'line-clamp-2'} overflow-hidden`}
+                  title={item.name}
+                >
                   {item.name}
                 </div>
 
-                {/* Selected - Click to deselect hint */}
-                {selectedItem?.id === item.id && (
+                {/* Selected - Click to deselect hint (desktop only) */}
+                {selectedItem?.id === item.id && !isMobile && (
                   <div className="mt-1 text-center text-[10px] font-semibold text-blue-600 leading-tight px-1">
                     Click to deselect
                   </div>
@@ -344,6 +361,11 @@ export default function DecorationPalette({
               </button>
             ))}
           </div>
+        )}
+
+        {/* Scroll Indicator Gradient - Mobile Only */}
+        {isMobile && currentItems.length > 6 && (
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
         )}
       </div>
     </div>

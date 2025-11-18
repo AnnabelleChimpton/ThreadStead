@@ -114,7 +114,7 @@ export default function ThemePicker({
                 <div>Your customizable content hub & blog</div>
               </div>
             </div>
-            <p className="text-xs text-thread-sage">
+            <p className="text-xs text-gray-600">
               Choose your house style and colors - this theme will apply to both interfaces!
             </p>
           </div>
@@ -123,7 +123,7 @@ export default function ThemePicker({
 
       {/* Template Selection */}
       <div className="space-y-4">
-        <h4 className="text-md font-headline font-medium text-thread-pine">
+        <h4 className="text-md font-headline font-medium text-gray-900">
           Choose Your House Style
         </h4>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -131,24 +131,24 @@ export default function ThemePicker({
             <div
               key={template.id}
               className={`
-                border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 flex flex-col
-                ${selectedTemplate === template.id 
-                  ? 'border-thread-sage bg-thread-cream bg-opacity-30' 
+                border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 flex flex-col touch-manipulation active:scale-95
+                ${selectedTemplate === template.id
+                  ? 'border-thread-sage bg-thread-cream bg-opacity-30'
                   : 'border-gray-200 hover:border-thread-sage hover:bg-thread-cream hover:bg-opacity-20'
                 }
               `}
               onClick={() => handleTemplateChange(template.id)}
             >
-              <div className="w-full h-32 mb-4 flex items-center justify-center">
-                <HouseSVG 
-                  template={template.id} 
+              <div className="w-full h-36 sm:h-32 mb-3 flex items-center justify-center">
+                <HouseSVG
+                  template={template.id}
                   palette={selectedPalette}
-                  className="w-full h-full max-w-24 max-h-24"
+                  className="w-full h-full max-w-28 max-h-28 sm:max-w-24 sm:max-h-24"
                 />
               </div>
               <div className="text-center flex-shrink-0">
-                <div className="font-medium text-sm text-thread-pine mb-1">{template.name}</div>
-                <div className="text-xs text-thread-sage leading-tight">{template.description}</div>
+                <div className="font-medium text-sm text-gray-900 mb-1">{template.name}</div>
+                <div className="text-xs text-gray-600 leading-tight">{template.description}</div>
               </div>
             </div>
           ))}
@@ -157,7 +157,7 @@ export default function ThemePicker({
 
       {/* Palette Selection */}
       <div className="space-y-4">
-        <h4 className="text-md font-headline font-medium text-thread-pine">
+        <h4 className="text-md font-headline font-medium text-gray-900">
           Choose Your Color Palette
         </h4>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
