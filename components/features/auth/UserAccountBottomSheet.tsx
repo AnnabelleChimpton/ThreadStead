@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { useMe } from "@/hooks/useMe";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface UserAccountBottomSheetProps {
   isOpen: boolean;
@@ -87,7 +88,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
               className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
               onClick={onClose}
             >
-              <span className="text-lg">🏠</span>
+              <PixelIcon name="home" size={20} />
               <span className="font-medium">My Pixel Home</span>
             </Link>
 
@@ -96,7 +97,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
               className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
               onClick={onClose}
             >
-              <span className="text-lg">👤</span>
+              <PixelIcon name="user" size={20} />
               <span className="font-medium">My Profile</span>
             </Link>
 
@@ -105,7 +106,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
               className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
               onClick={onClose}
             >
-              <span className="text-lg">🔖</span>
+              <PixelIcon name="bookmark" size={20} />
               <span className="font-medium">Bookmarks</span>
             </Link>
 
@@ -117,7 +118,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
               className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
               onClick={onClose}
             >
-              <span className="text-lg">📄</span>
+              <PixelIcon name="file" size={20} />
               <span className="font-medium">My Page</span>
             </Link>
 
@@ -126,7 +127,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
               className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
               onClick={onClose}
             >
-              <span className="text-lg">⚙️</span>
+              <PixelIcon name="sliders" size={20} />
               <span className="font-medium">Settings</span>
             </Link>
 
@@ -136,7 +137,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
                 className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
                 onClick={onClose}
               >
-                <span className="text-lg">⚙️</span>
+                <PixelIcon name="sliders" size={20} />
                 <span className="font-medium">Admin Panel</span>
               </Link>
             )}
@@ -157,7 +158,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
             }}
             className="account-logout-button w-full px-3 py-3 bg-red-50 border-2 border-red-400 text-red-700 hover:bg-red-100 hover:border-red-500 rounded flex items-center justify-center gap-3 min-h-[48px] font-medium active:scale-[0.98] transition-transform"
           >
-            <span className="text-lg">🚪</span>
+            <PixelIcon name="external-link" size={20} />
             <span>Log Out</span>
           </button>
         </div>

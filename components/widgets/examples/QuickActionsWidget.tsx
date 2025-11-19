@@ -103,7 +103,7 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
             href={action.href}
             className={`
               ${action.color}
-              text-white rounded-lg p-3 text-center transition-all duration-200
+              !text-white rounded-lg p-3 text-center transition-all duration-200
               hover:scale-105 hover:shadow-md
               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
               flex flex-col items-center justify-center space-y-1
@@ -112,7 +112,6 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
             title={action.description}
           >
             <PixelIcon name={action.icon} size={20} />
-            <span className="text-xs font-medium leading-tight">{action.label}</span>
           </Link>
         ))}
       </div>

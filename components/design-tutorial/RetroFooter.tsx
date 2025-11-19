@@ -12,7 +12,7 @@ export default function RetroFooter({ isCSSPage= false }: RetroFooterProps) {
       <div className="bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 border-4 border-black shadow-[12px_12px_0_#000] p-8 mb-8 transform -rotate-1">
         <div className="bg-white border-4 border-black p-6 transform rotate-1">
           <h3 className="text-3xl font-black text-black mb-4">
-            🚀 READY TO CREATE?
+            READY TO CREATE?
           </h3>
           <p className="text-lg text-gray-700 mb-6 font-medium">
             Your retro digital space awaits! Start building something awesome.
@@ -23,14 +23,14 @@ export default function RetroFooter({ isCSSPage= false }: RetroFooterProps) {
               href="/design-tutorial?category=css-classes"
               className="inline-flex items-center px-8 py-4 bg-purple-400 text-black font-black text-lg border-4 border-black shadow-[4px_4px_0_#000] hover:bg-purple-300 hover:shadow-[6px_6px_0_#000] transform hover:-translate-x-1 hover:-translate-y-1 transition-all"
             >
-              🎨 CSS CLASSES GUIDE
+              CSS CLASSES GUIDE
             </Link>
             ) : (
             <Link
               href="/templates/components?filter=visual-builder"
               className="inline-flex items-center px-8 py-4 bg-purple-400 text-black font-black text-lg border-4 border-black shadow-[4px_4px_0_#000] hover:bg-purple-300 hover:shadow-[6px_6px_0_#000] transform hover:-translate-x-1 hover:-translate-y-1 transition-all"
             >
-              📚 BROWSE ALL COMPONENTS
+              BROWSE ALL COMPONENTS
             </Link>
             )}
         </div>
@@ -39,7 +39,7 @@ export default function RetroFooter({ isCSSPage= false }: RetroFooterProps) {
       {!isCSSPage ? (
       <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
         <div className="bg-blue-200 border-4 border-black shadow-[6px_6px_0_#000] p-6">
-          <h4 className="font-black text-black text-xl mb-3">💡 Pro Tips</h4>
+          <h4 className="font-black text-black text-xl mb-3">Pro Tips</h4>
           <ul className="text-left space-y-2 text-gray-800">
             <li>• Start simple, then add more components</li>
             <li>• Use Advanced mode for complete control</li>

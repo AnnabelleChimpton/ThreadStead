@@ -53,7 +53,6 @@ export default function TutorialStep({ step, stepNumber }: TutorialStepProps) {
       {step.concepts.length > 0 && (
         <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-300">
           <h4 className="font-bold mb-2 flex items-center gap-2">
-            <span>📦</span>
             <span>Components Used:</span>
           </h4>
           <div className="flex flex-wrap gap-2">
@@ -77,7 +76,6 @@ export default function TutorialStep({ step, stepNumber }: TutorialStepProps) {
       {processedTips && processedTips.length > 0 && (
         <div className="p-4 bg-yellow-50 border-3 border-yellow-400 shadow-[3px_3px_0_#000]">
           <h4 className="font-bold mb-2 flex items-center gap-2">
-            <span>💡</span>
             <span>Pro Tips:</span>
           </h4>
           <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">

@@ -7,6 +7,7 @@ import RetroCard from "@/components/ui/layout/RetroCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import ComponentSearch from "@/components/templates-docs/ComponentSearch";
 import ComponentCard from "@/components/templates-docs/ComponentCard";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import {
   unifiedCategories,
   unifiedComponentData,
@@ -94,7 +95,7 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
           {/* Mode Banner */}
           <div className="mb-4 p-3 bg-blue-50 border-2 border-blue-300 rounded flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-lg">💻</span>
+              <PixelIcon name="code" size={20} />
               <span className="text-sm font-semibold">Template Language Mode</span>
             </div>
             <Link
@@ -116,8 +117,8 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
 
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-4xl sm:text-5xl font-black mb-4 text-gray-900 text-center">
-              📚 Component Reference
+            <h1 className="text-4xl sm:text-5xl font-black mb-4 text-gray-900 text-center flex items-center justify-center gap-3">
+              <PixelIcon name="script" size={48} /> Component Reference
             </h1>
             <p className="text-lg text-gray-700 text-center max-w-3xl mx-auto">
               Browse all {filteredComponents.length === 0 ? '200+' : filteredComponents.length} components. Filter by Visual Builder availability, categories, or search by name.
@@ -191,7 +192,7 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
             <div className="text-center py-12">
               <RetroCard>
                 <div className="py-8">
-                  <div className="text-6xl mb-4">🔍</div>
+                  <div className="text-6xl mb-4"><PixelIcon name="search" size={48} /></div>
                   <h3 className="text-2xl font-bold mb-2">No components found</h3>
                   <p className="text-gray-600 mb-6">
                     Try adjusting your search or filter criteria
@@ -222,7 +223,7 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
               onClick={() => router.push('/templates/tutorials/your-first-template')}
               className="px-6 py-4 bg-green-200 border-3 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] transition-all font-bold text-center"
             >
-              📚 Start Learning
+              <span className="flex items-center justify-center gap-2"><PixelIcon name="script" size={16} /> Start Learning</span>
             </button>
             <button
               onClick={() => router.push('/templates/examples/todo-list')}

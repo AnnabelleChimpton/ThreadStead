@@ -6,6 +6,7 @@ import { GetServerSideProps } from "next";
 import Link from "next/link";
 import FeatureGate, { NewUserTooltip } from "@/components/features/onboarding/FeatureGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface GettingStartedProps {
   siteConfig: SiteConfig;
@@ -15,14 +16,14 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "visual-builder" | "threadrings" | "profiles" | "pixel-homes" | "social" | "content">("overview");
   const { user } = useCurrentUser();
 
-  const TabButton = ({ 
-    tabId, 
-    label, 
-    icon 
-  }: { 
+  const TabButton = ({
+    tabId,
+    label,
+    icon
+  }: {
     tabId: typeof activeTab;
     label: string;
-    icon: string;
+    icon: React.ReactNode;
   }) => (
     <button
       onClick={() => setActiveTab(tabId)}
@@ -44,7 +45,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
         {/* Hero Section - Simplified and Action-Focused */}
         <RetroCard title="Getting Started">
           <div className="text-center py-4">
-            <div className="text-4xl mb-4">🚀</div>
+            <div className="text-4xl mb-4"><PixelIcon name="zap" size={48} /></div>
             <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900">
               Welcome to {siteConfig.site_name}!
             </h1>
@@ -95,13 +96,13 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
         {/* Navigation Tabs */}
         <div className="bg-white border border-black shadow-[2px_2px_0_#000] p-4">
           <div className="flex flex-wrap gap-2 justify-center">
-            <TabButton tabId="overview" label="Quick Start" icon="⚡" />
-            <TabButton tabId="visual-builder" label="Visual Builder" icon="🎨" />
-            <TabButton tabId="threadrings" label="ThreadRings" icon="🧵" />
-            <TabButton tabId="profiles" label="Your Profile" icon="👤" />
-            <TabButton tabId="pixel-homes" label="Pixel Homes" icon="🏠" />
-            <TabButton tabId="social" label="Social Features" icon="💬" />
-            <TabButton tabId="content" label="Creating Content" icon="✍️" />
+            <TabButton tabId="overview" label="Quick Start" icon={<PixelIcon name="zap" size={14} />} />
+            <TabButton tabId="visual-builder" label="Visual Builder" icon={<PixelIcon name="paint-bucket" size={14} />} />
+            <TabButton tabId="threadrings" label="ThreadRings" icon={<PixelIcon name="link" size={14} />} />
+            <TabButton tabId="profiles" label="Your Profile" icon={<PixelIcon name="user" size={14} />} />
+            <TabButton tabId="pixel-homes" label="Pixel Homes" icon={<PixelIcon name="home" size={14} />} />
+            <TabButton tabId="social" label="Social Features" icon={<PixelIcon name="chat" size={14} />} />
+            <TabButton tabId="content" label="Creating Content" icon={<PixelIcon name="edit" size={14} />} />
           </div>
         </div>
 
@@ -114,7 +115,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 <RetroCard title="Your First Steps">
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 p-3 bg-green-50 border-l-4 border-green-400">
-                      <div className="text-2xl">👤</div>
+                      <div className="text-2xl"><PixelIcon name="user" size={24} /></div>
                       <div className="flex-1">
                         <h3 className="font-bold mb-1">1. Create Your Profile</h3>
                         <p className="text-sm text-gray-600">Choose a username and set up your personal space.</p>
@@ -128,7 +129,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
                     
                     <div className="flex items-center gap-3 p-3 bg-blue-50 border-l-4 border-blue-400">
-                      <div className="text-2xl">🧵</div>
+                      <div className="text-2xl"><PixelIcon name="link" size={24} /></div>
                       <div className="flex-1">
                         <h3 className="font-bold mb-1">2. Join Communities</h3>
                         <p className="text-sm text-gray-600">Find ThreadRings that match your interests.</p>
@@ -142,7 +143,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
                     
                     <div className="flex items-center gap-3 p-3 bg-purple-50 border-l-4 border-purple-400">
-                      <div className="text-2xl">💬</div>
+                      <div className="text-2xl"><PixelIcon name="chat" size={24} /></div>
                       <div className="flex-1">
                         <h3 className="font-bold mb-1">3. Start Connecting</h3>
                         <p className="text-sm text-gray-600">Share posts, leave comments, meet people.</p>
@@ -161,21 +162,21 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                           href="/tr/welcome" 
                           className="block p-3 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors"
                         >
-                          <div className="font-medium">🎓 Try Welcome Ring</div>
+                          <div className="font-medium">Try Welcome Ring</div>
                           <div className="text-sm text-gray-600">Learn through guided activities</div>
                         </Link>
                         <Link 
                           href="/post/new" 
                           className="block p-3 bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
                         >
-                          <div className="font-medium">✍️ Write a Post</div>
+                          <div className="font-medium">Write a Post</div>
                           <div className="text-sm text-gray-600">Share your thoughts</div>
                         </Link>
                         <Link 
                           href="/threadrings" 
                           className="block p-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
                         >
-                          <div className="font-medium">🔍 Discover Rings</div>
+                          <div className="font-medium">Discover Rings</div>
                           <div className="text-sm text-gray-600">Find new communities</div>
                         </Link>
                       </div>
@@ -188,7 +189,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                           href="/settings/profile"
                           className="block p-3 bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-colors"
                         >
-                          <div className="font-medium">🎨 Visual Builder</div>
+                          <div className="font-medium">Visual Builder</div>
                           <div className="text-sm text-gray-600">Drag-and-drop profile designer</div>
                         </Link>
                         {user ? (
@@ -196,7 +197,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                             href={`/home/${user.primaryHandle?.split('@')[0]}/decorate`}
                             className="block p-3 bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
                           >
-                            <div className="font-medium">🏠 Decorate Pixel Home</div>
+                            <div className="font-medium">Decorate Pixel Home</div>
                             <div className="text-sm text-gray-600">Customize your 8-bit house</div>
                           </Link>
                         ) : (
@@ -204,7 +205,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                             href="/onboarding"
                             className="block p-3 bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
                           >
-                            <div className="font-medium">🏠 Decorate Pixel Home</div>
+                            <div className="font-medium">Decorate Pixel Home</div>
                             <div className="text-sm text-gray-600">Sign up to create your 8-bit house</div>
                           </Link>
                         )}
@@ -212,7 +213,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                           href="/templates"
                           className="block p-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
                         >
-                          <div className="font-medium">📚 Templates & CSS</div>
+                          <div className="font-medium">Templates & CSS</div>
                           <div className="text-sm text-gray-600">Visual Builder, Template Language & CSS guides</div>
                         </Link>
                       </div>
@@ -224,7 +225,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title={`What Makes ${siteConfig.site_name} Special?`}>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0">🎨</div>
+                    <div className="text-2xl flex-shrink-0"><PixelIcon name="paint-bucket" size={24} /></div>
                     <div>
                       <h3 className="font-bold mb-1">Full Customization</h3>
                       <p className="text-sm text-gray-600">Style your profile with custom CSS, just like the old web.</p>
@@ -232,7 +233,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
                   
                   <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0">🏠</div>
+                    <div className="text-2xl flex-shrink-0"><PixelIcon name="home" size={24} /></div>
                     <div>
                       <h3 className="font-bold mb-1">Pixel Homes</h3>
                       <p className="text-sm text-gray-600">Decorate your own customizable 8-bit house with gardens and atmosphere.</p>
@@ -240,7 +241,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
                   
                   <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0">🧵</div>
+                    <div className="text-2xl flex-shrink-0"><PixelIcon name="link" size={24} /></div>
                     <div>
                       <h3 className="font-bold mb-1">Growing Communities</h3>
                       <p className="text-sm text-gray-600">ThreadRings can branch and evolve, creating rich family trees.</p>
@@ -248,7 +249,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
                   
                   <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0">🔐</div>
+                    <div className="text-2xl flex-shrink-0"><PixelIcon name="lock" size={24} /></div>
                     <div>
                       <h3 className="font-bold mb-1">Own Your Identity</h3>
                       <p className="text-sm text-gray-600">Your digital identity belongs to you, not a platform.</p>
@@ -256,7 +257,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
                   
                   <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0">📖</div>
+                    <div className="text-2xl flex-shrink-0"><PixelIcon name="script" size={24} /></div>
                     <div>
                       <h3 className="font-bold mb-1">Retro Charm</h3>
                       <p className="text-sm text-gray-600">Experience the creativity of the early internet, modernized.</p>
@@ -269,10 +270,10 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
           {activeTab === "visual-builder" && (
             <div className="space-y-6">
-              <RetroCard title="🎨 Visual Template Builder - Our Flagship Feature">
+              <RetroCard title="Visual Template Builder - Our Flagship Feature">
                 <div className="space-y-4">
                   <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-l-4 border-purple-400 p-4 rounded">
-                    <h3 className="font-bold text-purple-800 mb-2">🚀 Design Without Code</h3>
+                    <h3 className="font-bold text-purple-800 mb-2">Design Without Code</h3>
                     <p className="text-purple-700 leading-relaxed">
                       {siteConfig.site_name}&apos;s Visual Builder brings together retro aesthetics and modern drag-and-drop design.
                       Create stunning, professional profiles without writing a single line of CSS!
@@ -281,7 +282,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="border border-green-300 p-4 bg-green-50 rounded">
-                      <h4 className="font-bold text-green-800 mb-2">✨ Drag & Drop Magic</h4>
+                      <h4 className="font-bold text-green-800 mb-2">Drag & Drop Magic</h4>
                       <ul className="text-sm text-green-700 space-y-1">
                         <li>• Intuitive drag-and-drop interface</li>
                         <li>• Smart drop zones with visual feedback</li>
@@ -292,7 +293,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
 
                     <div className="border border-blue-300 p-4 bg-blue-50 rounded">
-                      <h4 className="font-bold text-blue-800 mb-2">🎮 Retro Component Library</h4>
+                      <h4 className="font-bold text-blue-800 mb-2">Retro Component Library</h4>
                       <ul className="text-sm text-blue-700 space-y-1">
                         <li>• CRT Monitors with authentic scanlines</li>
                         <li>• Neon Signs with glow effects</li>
@@ -304,7 +305,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                    <h3 className="font-bold text-yellow-800 mb-2">🔧 Professional Workflow</h3>
+                    <h3 className="font-bold text-yellow-800 mb-2">Professional Workflow</h3>
                     <p className="text-sm text-yellow-700 mb-3">
                       Built for both beginners and power users with advanced features:
                     </p>
@@ -329,7 +330,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title="Getting Started with Visual Builder">
                 <div className="space-y-4">
                   <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 p-4 rounded">
-                    <h3 className="font-bold text-green-800 mb-3">🎯 Quick Start Guide</h3>
+                    <h3 className="font-bold text-green-800 mb-3">Quick Start Guide</h3>
                     <div className="space-y-3 text-sm">
                       <div className="flex items-start gap-3">
                         <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span>
@@ -375,14 +376,14 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         href="/settings/profile"
                         className="inline-block border border-black px-6 py-3 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-bold"
                       >
-                        🎨 Open Visual Builder
+                        Open Visual Builder
                       </Link>
                     ) : (
                       <Link
                         href="/onboarding"
                         className="inline-block border border-black px-6 py-3 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-bold"
                       >
-                        🎨 Sign Up to Try Visual Builder
+                        Sign Up to Try Visual Builder
                       </Link>
                     )}
                   </div>
@@ -393,33 +394,33 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 <div className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <h4 className="font-bold mb-3 text-green-700">✅ Visual Builder Benefits</h4>
+                      <h4 className="font-bold mb-3 text-green-700">Visual Builder Benefits</h4>
                       <ul className="space-y-2 text-sm">
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><PixelIcon name="check" size={12} /></span>
                           <span><strong>No coding required</strong> - Anyone can create beautiful profiles</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><PixelIcon name="check" size={12} /></span>
                           <span><strong>Instant results</strong> - See changes in real-time</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><PixelIcon name="check" size={12} /></span>
                           <span><strong>Professional quality</strong> - Polished, responsive designs</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><PixelIcon name="check" size={12} /></span>
                           <span><strong>Retro components</strong> - Authentic vintage design elements</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><PixelIcon name="check" size={12} /></span>
                           <span><strong>Fast workflow</strong> - Multi-select, bulk editing, and shortcuts</span>
                         </li>
                       </ul>
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-3 text-blue-700">⚙️ For Advanced Users</h4>
+                      <h4 className="font-bold mb-3 text-blue-700">For Advanced Users</h4>
                       <ul className="space-y-2 text-sm">
                         <li className="flex items-start gap-2">
                           <span className="text-blue-600">•</span>
@@ -446,7 +447,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div className="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4 rounded">
-                    <h3 className="font-bold text-pink-800 mb-2">🎭 Express Your Digital Identity</h3>
+                    <h3 className="font-bold text-pink-800 mb-2">Express Your Digital Identity</h3>
                     <p className="text-sm text-pink-700">
                       The Visual Builder brings back the creative freedom of the early web, where personal expression
                       mattered more than conformity. Create something uniquely yours with authentic retro components
@@ -464,7 +465,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="border border-blue-300 p-4 bg-blue-50 rounded">
-                      <h4 className="font-bold text-blue-800 mb-2">📚 Learn More</h4>
+                      <h4 className="font-bold text-blue-800 mb-2">Learn More</h4>
                       <p className="text-sm text-blue-700 mb-3">
                         Check out our comprehensive design tutorial for detailed guides and component references.
                       </p>
@@ -477,7 +478,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
 
                     <div className="border border-green-300 p-4 bg-green-50 rounded">
-                      <h4 className="font-bold text-green-800 mb-2">💡 Still Prefer CSS?</h4>
+                      <h4 className="font-bold text-green-800 mb-2">Still Prefer CSS?</h4>
                       <p className="text-sm text-green-700 mb-3">
                         Power users can still edit CSS directly. The Visual Builder and CSS editor work together seamlessly.
                       </p>
@@ -541,12 +542,12 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     
                     <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 p-4 rounded">
                       <div className="text-center">
-                        <div className="text-3xl mb-2">🧵 The Spool</div>
+                        <div className="text-3xl mb-2">The Spool</div>
                         <div className="text-sm text-gray-600 mb-3">↓ branches into ↓</div>
                         <div className="flex justify-center gap-4 text-lg">
-                          <span>📚 BookLovers</span>
-                          <span>🎮 GameDevs</span>
-                          <span>🌱 Gardening</span>
+                          <span>BookLovers</span>
+                          <span>GameDevs</span>
+                          <span>Gardening</span>
                         </div>
                         <div className="text-sm text-gray-600 mt-2">...which can branch into more specialized communities</div>
                       </div>
@@ -629,7 +630,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </p>
 
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-400 p-4">
-                    <h3 className="font-bold text-purple-800 mb-2">🎨 Design Your Profile</h3>
+                    <h3 className="font-bold text-purple-800 mb-2">Design Your Profile</h3>
                     <p className="text-sm text-purple-700 mb-3">
                       Choose between our intuitive Visual Builder or direct CSS editing for complete creative control:
                     </p>
@@ -663,32 +664,32 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <p className="text-sm text-gray-600">Get started quickly with professionally designed themes, then customize to make them your own:</p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100">
-                        <div className="text-lg mb-1">🎨</div>
+                        <div className="text-lg mb-1"><PixelIcon name="paint-bucket" size={18} /></div>
                         <div className="font-bold text-xs">Abstract Art</div>
                         <div className="text-xs text-gray-600 mt-1">Colorful & artistic</div>
                       </div>
                       <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-gray-900 text-white">
-                        <div className="text-lg mb-1">🖤</div>
+                        <div className="text-lg mb-1"><PixelIcon name="heart" size={18} /></div>
                         <div className="font-bold text-xs text-green-400 font-mono">Charcoal Nights</div>
                         <div className="text-xs text-green-300 mt-1">Terminal aesthetic</div>
                       </div>
                       <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-gradient-to-br from-pink-200 to-purple-100">
-                        <div className="text-lg mb-1">🌸</div>
+                        <div className="text-lg mb-1"><PixelIcon name="drop" size={18} /></div>
                         <div className="font-bold text-xs text-pink-700">Pixel Petals</div>
                         <div className="text-xs text-pink-600 mt-1">Kawaii paradise</div>
                       </div>
                       <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-gradient-to-br from-blue-100 to-purple-100">
-                        <div className="text-lg mb-1">📱</div>
+                        <div className="text-lg mb-1"><PixelIcon name="users" size={18} /></div>
                         <div className="font-bold text-xs text-blue-700">Retro Social</div>
                         <div className="text-xs text-blue-600 mt-1">MySpace vibes</div>
                       </div>
                       <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3" style={{background: 'repeating-linear-gradient(45deg, #f5f5f0, #f5f5f0 10px, #fafaf5 10px, #fafaf5 20px)'}}>
-                        <div className="text-lg mb-1">🧵</div>
+                        <div className="text-lg mb-1"><PixelIcon name="link" size={18} /></div>
                         <div className="font-bold text-xs text-amber-800">Classic Linen</div>
                         <div className="text-xs text-amber-700 mt-1">Vintage elegance</div>
                       </div>
                       <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-white">
-                        <div className="text-lg mb-1">✨</div>
+                        <div className="text-lg mb-1"><PixelIcon name="zap" size={18} /></div>
                         <div className="font-bold text-xs">Start Fresh</div>
                         <div className="text-xs text-gray-600 mt-1">Build from scratch</div>
                       </div>
@@ -703,7 +704,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-400 p-4 rounded">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="bg-green-500 text-white text-xs px-2 py-1 rounded font-bold">SIMPLEST</span>
-                      <h3 className="font-bold">✨ CSS Styling - Start Here!</h3>
+                      <h3 className="font-bold">CSS Styling - Start Here!</h3>
                     </div>
                     <p className="text-sm mb-3">
                       Just want to change colors and fonts? Start with simple CSS styling on your default layout!
@@ -716,7 +717,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
-                      <h4 className="font-bold mb-2 text-sm">✨ CSS Styling</h4>
+                      <h4 className="font-bold mb-2 text-sm">CSS Styling</h4>
                       <div className="space-y-2 text-sm">
                         <Link
                           href="/settings?tab=appearance"
@@ -727,12 +728,12 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         <p className="text-gray-600 text-xs">
                           Change colors, fonts, spacing on default layout. Simple text editor with class reference.
                         </p>
-                        <div className="text-xs text-gray-500">⏱ 5 minutes</div>
+                        <div className="text-xs text-gray-500"> 5 minutes</div>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-2 text-sm">🎨 Visual Builder</h4>
+                      <h4 className="font-bold mb-2 text-sm">Visual Builder</h4>
                       <div className="space-y-2 text-sm">
                         <Link
                           href="/settings/profile"
@@ -743,12 +744,12 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         <p className="text-gray-600 text-xs">
                           Drag-and-drop custom layouts with grid positioning. Build unique page structures.
                         </p>
-                        <div className="text-xs text-gray-500">⏱ 30 minutes</div>
+                        <div className="text-xs text-gray-500"> 30 minutes</div>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-2 text-sm">💻 Template Code</h4>
+                      <h4 className="font-bold mb-2 text-sm">Template Code</h4>
                       <div className="space-y-2 text-sm">
                         <Link
                           href="/templates/tutorials/your-first-template"
@@ -759,7 +760,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         <p className="text-gray-600 text-xs">
                           Code dynamic features with variables, loops, and conditionals. For developers.
                         </p>
-                        <div className="text-xs text-gray-500">⏱ 1+ hour</div>
+                        <div className="text-xs text-gray-500"> 1+ hour</div>
                       </div>
                     </div>
                   </div>
@@ -771,7 +772,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         href="/settings/profile"
                         className="block border border-black px-3 py-2 bg-green-100 hover:bg-green-200 shadow-[1px_1px_0_#000] text-center"
                       >
-                        ⚙️ Edit Profile Settings
+                        Edit Profile Settings
                       </Link>
                       <p className="text-gray-600 text-xs">
                         Update your display name, bio, avatar, theme selection, and add background music with MIDI files.
@@ -826,9 +827,9 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         Traditional and familiar! Sign in with a secure username and password combination.
                       </p>
                       <div className="mt-2 text-xs text-green-600">
-                        ✓ Easy to use<br/>
-                        ✓ Can be changed<br/>
-                        ✓ Recommended
+                        - Easy to use<br/>
+                        - Can be changed<br/>
+                        - Recommended
                       </div>
                     </div>
                     
@@ -838,9 +839,9 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         Quick and convenient! Get a magic link sent to your email address.
                       </p>
                       <div className="mt-2 text-xs text-blue-600">
-                        ✓ No password needed<br/>
-                        ✓ Secure links<br/>
-                        ✓ Fast access
+                        - No password needed<br/>
+                        - Secure links<br/>
+                        - Fast access
                       </div>
                     </div>
                     
@@ -850,9 +851,9 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         Maximum security with a 12-word recovery phrase for full control.
                       </p>
                       <div className="mt-2 text-xs text-purple-600">
-                        ✓ Most secure<br/>
-                        ✓ Full ownership<br/>
-                        ✓ Advanced users
+                        - Most secure<br/>
+                        - Full ownership<br/>
+                        - Advanced users
                       </div>
                     </div>
                   </div>
@@ -912,7 +913,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </p>
 
                   <div className="bg-gradient-to-br from-green-50 to-blue-50 border-l-4 border-green-400 p-4 rounded">
-                    <h3 className="font-bold text-green-800 mb-2">✨ What Makes Pixel Homes Special</h3>
+                    <h3 className="font-bold text-green-800 mb-2">What Makes Pixel Homes Special</h3>
                     <ul className="text-sm text-green-700 space-y-1">
                       <li>• <strong>Multiple House Templates:</strong> Choose from cottage, townhouse, modern loft, or log cabin styles</li>
                       <li>• <strong>Complete Customization:</strong> Change colors, door styles, windows, roof trim, and more</li>
@@ -925,7 +926,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="border border-gray-300 p-4 bg-blue-50 rounded">
-                      <h4 className="font-bold text-blue-800 mb-2">🏠 House Templates</h4>
+                      <h4 className="font-bold text-blue-800 mb-2">House Templates</h4>
                       <ul className="text-sm text-blue-700 space-y-1">
                         <li><strong>Cottage:</strong> Classic cozy home with pitched roof</li>
                         <li><strong>Townhouse:</strong> Modern city dwelling with flat roof</li>
@@ -935,7 +936,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
                     
                     <div className="border border-gray-300 p-4 bg-purple-50 rounded">
-                      <h4 className="font-bold text-purple-800 mb-2">🎨 Customization Options</h4>
+                      <h4 className="font-bold text-purple-800 mb-2">Customization Options</h4>
                       <ul className="text-sm text-purple-700 space-y-1">
                         <li><strong>Colors:</strong> Walls, roof, trim, windows, details</li>
                         <li><strong>Doors:</strong> Default, arched, double, cottage styles</li>
@@ -950,7 +951,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title="Decorating Your Pixel Home">
                 <div className="space-y-4">
                   <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                    <h3 className="font-bold text-yellow-800 mb-2">🌱 Garden & Yard Decorations</h3>
+                    <h3 className="font-bold text-yellow-800 mb-2">Garden & Yard Decorations</h3>
                     <p className="text-sm text-yellow-700 mb-3">
                       Transform your front yard into a personalized garden space with a wide variety of decorative elements:
                     </p>
@@ -971,7 +972,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div className="bg-orange-50 border-l-4 border-orange-400 p-4">
-                    <h3 className="font-bold text-orange-800 mb-2">🍂 Seasonal Decorations</h3>
+                    <h3 className="font-bold text-orange-800 mb-2">Seasonal Decorations</h3>
                     <p className="text-sm text-orange-700">
                       Celebrate the seasons with special decorations that automatically appear during holidays 
                       and special times of year - or add them manually to create year-round festive vibes!
@@ -979,7 +980,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <h3 className="font-bold text-blue-800 mb-2">🌤️ Atmosphere & Ambiance</h3>
+                    <h3 className="font-bold text-blue-800 mb-2">Atmosphere & Ambiance</h3>
                     <p className="text-sm text-blue-700 mb-2">
                       Set the perfect mood for your home with atmospheric controls:
                     </p>
@@ -1004,7 +1005,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title="Getting Started with Your Pixel Home">
                 <div className="space-y-4">
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 p-4 rounded">
-                    <h3 className="font-bold text-purple-800 mb-2">🎯 Quick Start Guide</h3>
+                    <h3 className="font-bold text-purple-800 mb-2">Quick Start Guide</h3>
                     <div className="space-y-3 text-sm">
                       <div className="flex items-start gap-3">
                         <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span>
@@ -1050,7 +1051,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         href={`/home/${user.primaryHandle?.split('@')[0]}/decorate`}
                         className="inline-block border border-black px-6 py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-bold"
                       >
-                        🎨 Decorate Your Home Now
+                        Decorate Your Home Now
                       </Link>
                     </div>
                   ) : (
@@ -1059,7 +1060,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         href="/onboarding"
                         className="inline-block border border-black px-6 py-3 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-bold"
                       >
-                        🎨 Sign Up to Create Your Home
+                        Sign Up to Create Your Home
                       </Link>
                     </div>
                   )}
@@ -1075,7 +1076,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="border border-gray-300 p-4 bg-green-50 rounded">
-                      <h4 className="font-bold text-green-800 mb-2">👥 Visitor Experience</h4>
+                      <h4 className="font-bold text-green-800 mb-2">Visitor Experience</h4>
                       <ul className="text-sm text-green-700 space-y-1">
                         <li>• Interactive elements show activity status</li>
                         <li>• Mailbox indicates guestbook messages</li>
@@ -1085,7 +1086,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
                     
                     <div className="border border-gray-300 p-4 bg-blue-50 rounded">
-                      <h4 className="font-bold text-blue-800 mb-2">🏘️ Neighborhood Views</h4>
+                      <h4 className="font-bold text-blue-800 mb-2">Neighborhood Views</h4>
                       <ul className="text-sm text-blue-700 space-y-1">
                         <li>• Appears in community neighborhood pages</li>
                         <li>• Part of the broader {siteConfig.site_name} community</li>
@@ -1096,7 +1097,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div className="bg-pink-50 border-l-4 border-pink-400 p-4">
-                    <h3 className="font-bold text-pink-800 mb-2">💡 Pro Tips</h3>
+                    <h3 className="font-bold text-pink-800 mb-2">Pro Tips</h3>
                     <ul className="text-sm text-pink-700 space-y-1">
                       <li>• <strong>Seasonal Updates:</strong> Change decorations to match holidays and seasons</li>
                       <li>• <strong>Personal Themes:</strong> Match your home style to your profile theme</li>
@@ -1190,23 +1191,23 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       <h4 className="font-bold mb-3 text-green-700">Do&apos;s</h4>
                       <ul className="space-y-2 text-sm">
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><PixelIcon name="check" size={12} /></span>
                           <span>Be respectful and kind in all interactions</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><PixelIcon name="check" size={12} /></span>
                           <span>Contribute meaningful content to discussions</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><PixelIcon name="check" size={12} /></span>
                           <span>Help newcomers feel welcome</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><PixelIcon name="check" size={12} /></span>
                           <span>Follow ThreadRing-specific guidelines</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-green-600">✓</span>
+                          <span className="text-green-600"><PixelIcon name="check" size={12} /></span>
                           <span>Use clear, descriptive post titles</span>
                         </li>
                       </ul>
@@ -1216,23 +1217,23 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       <h4 className="font-bold mb-3 text-red-700">Don&apos;ts</h4>
                       <ul className="space-y-2 text-sm">
                         <li className="flex items-start gap-2">
-                          <span className="text-red-600">✗</span>
+                          <span className="text-red-600"><PixelIcon name="close" size={12} /></span>
                           <span>Share others&apos; private information</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-red-600">✗</span>
+                          <span className="text-red-600"><PixelIcon name="close" size={12} /></span>
                           <span>Post spam or off-topic content</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-red-600">✗</span>
+                          <span className="text-red-600"><PixelIcon name="close" size={12} /></span>
                           <span>Engage in harassment or bullying</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-red-600">✗</span>
+                          <span className="text-red-600"><PixelIcon name="close" size={12} /></span>
                           <span>Share inappropriate or harmful content</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <span className="text-red-600">✗</span>
+                          <span className="text-red-600"><PixelIcon name="close" size={12} /></span>
                           <span>Impersonate other users</span>
                         </li>
                       </ul>

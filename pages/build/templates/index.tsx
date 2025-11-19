@@ -66,19 +66,19 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
 
                 <div className="space-y-3 mb-6 text-left max-w-md mx-auto">
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">Simple text editor with CSS</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">Built-in class reference</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">Live preview of changes</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">No layout building required</span>
                   </div>
                 </div>
@@ -104,7 +104,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
             {/* Visual Builder Mode */}
             <RetroCard>
               <div className="text-center">
-                <div className="text-6xl mb-4">🏗️</div>
+                <div className="text-6xl mb-4"><PixelIcon name="drag-and-drop" size={48} /></div>
                 <h2 className="text-3xl font-black mb-3">Visual Builder</h2>
                 <p className="text-gray-600 mb-6">
                   Build completely custom layouts with drag-and-drop. Create unique page structures without code. Perfect for creative designs.
@@ -112,19 +112,19 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
 
                 <div className="space-y-3 mb-6 text-left max-w-md mx-auto">
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">Drag & drop interface</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">200+ retro components</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">Grid positioning system</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">Custom page layouts</span>
                   </div>
                 </div>
@@ -134,7 +134,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                     href={username ? `/resident/${username}/template-editor?mode=visual` : "/settings?tab=appearance"}
                     className="px-6 py-3 bg-purple-200 border-3 border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] transition-all font-bold text-center"
                   >
-                    🎨 Open Visual Builder
+                    <PixelIcon name="paint-bucket" size={16} className="inline-block align-middle mr-1" /> Open Visual Builder
                   </Link>
                   <Link
                     href="/templates/components?filter=visual-builder"
@@ -150,7 +150,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
             {/* Template Language Mode */}
             <RetroCard>
               <div className="text-center">
-                <div className="text-6xl mb-4">💻</div>
+                <div className="text-6xl mb-4"><PixelIcon name="code" size={48} /></div>
                 <h2 className="text-3xl font-black mb-3">Template Language</h2>
                 <p className="text-gray-600 mb-6">
                   Build dynamic, interactive features with code. Perfect for developers who want variables, loops, conditionals, and full programming control.
@@ -158,19 +158,19 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
 
                 <div className="space-y-3 mb-6 text-left max-w-md mx-auto">
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">XML-like syntax</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">Variables, loops, conditionals</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">Interactive components</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
                     <span className="text-sm">Dynamic content generation</span>
                   </div>
                 </div>
@@ -180,13 +180,13 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                     href={username ? `/resident/${username}/template-editor?mode=template` : "/settings?tab=appearance"}
                     className="px-6 py-3 bg-blue-200 border-3 border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] transition-all font-bold text-center"
                   >
-                    💻 Open Template Editor
+                    <PixelIcon name="code" size={16} className="inline-block align-middle mr-1" /> Open Template Editor
                   </Link>
                   <Link
                     href="/templates/tutorials/your-first-template"
                     className="px-6 py-3 bg-white border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium text-center"
                   >
-                    📚 Coding Tutorial
+                    <PixelIcon name="script" size={16} className="inline-block align-middle mr-1" /> Coding Tutorial
                   </Link>
                 </div>
                 <p className="text-xs text-gray-500 mt-3">(1+ hour - requires coding knowledge)</p>
@@ -209,33 +209,33 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                 <tbody>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">No coding required</td>
-                    <td className="text-center p-3 bg-green-50"><span className="text-green-600 font-bold text-xl">✓</span></td>
-                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl">✓</span></td>
+                    <td className="text-center p-3 bg-green-50"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
+                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                     <td className="text-center p-3"><span className="text-gray-300">−</span></td>
                   </tr>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">Change colors & fonts</td>
-                    <td className="text-center p-3 bg-green-50"><span className="text-green-600 font-bold text-xl">✓</span></td>
-                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl">✓</span></td>
-                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl">✓</span></td>
+                    <td className="text-center p-3 bg-green-50"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
+                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
+                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                   </tr>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">Custom layouts</td>
                     <td className="text-center p-3 bg-green-50"><span className="text-gray-300">−</span></td>
-                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl">✓</span></td>
-                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl">✓</span></td>
+                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
+                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                   </tr>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">Variables & state</td>
                     <td className="text-center p-3 bg-green-50"><span className="text-gray-300">−</span></td>
                     <td className="text-center p-3"><span className="text-gray-300">−</span></td>
-                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl">✓</span></td>
+                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                   </tr>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">Conditionals & loops</td>
                     <td className="text-center p-3 bg-green-50"><span className="text-gray-300">−</span></td>
                     <td className="text-center p-3"><span className="text-gray-300">−</span></td>
-                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl">✓</span></td>
+                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                   </tr>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">Learning time</td>

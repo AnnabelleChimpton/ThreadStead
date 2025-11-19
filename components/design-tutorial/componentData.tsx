@@ -5,13 +5,13 @@ export const componentCategories = [
   {
     id: 'visual-builder',
     title: 'Visual Builder Tutorials',
-    icon: '🎨',
+    icon: 'paint-bucket',
     description: 'Learn to use our flagship drag-and-drop builder with professional workflow features'
   },
   {
     id: 'css-classes',
     title: 'CSS Classes Reference',
-    icon: '💻',
+    icon: 'code',
     description: 'CSS class reference and styling guide for customizing your components'
   }
 ];
@@ -29,7 +29,7 @@ export const componentData = {
 4. Click to customize properties
 5. Save your beautiful template!`,
       preview: <div className="text-center p-4 bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded">
-        <div className="text-2xl mb-2">🎨</div>
+        <div className="text-2xl mb-2"><PixelIcon name="paint-bucket" size={24} /></div>
         <div className="font-bold">Visual Builder</div>
         <div className="text-sm text-gray-600">Drag & Drop Design</div>
       </div>,
@@ -71,10 +71,10 @@ Navigate to Profile Settings → Template Editor → "Switch to Visual Builder"
       preview: <div className="p-3 bg-gray-50 border rounded">
         <div className="text-sm font-bold mb-2">Components</div>
         <div className="grid grid-cols-2 gap-1 text-xs">
-          <div className="p-1 bg-white border">📝 Text</div>
-          <div className="p-1 bg-white border">📺 CRT</div>
-          <div className="p-1 bg-white border">🎮 Button</div>
-          <div className="p-1 bg-white border">📱 Card</div>
+          <div className="p-1 bg-white border flex items-center gap-1"><PixelIcon name="edit" size={10} /> Text</div>
+          <div className="p-1 bg-white border flex items-center gap-1"><PixelIcon name="zap" size={10} /> CRT</div>
+          <div className="p-1 bg-white border flex items-center gap-1"><PixelIcon name="plus" size={10} /> Button</div>
+          <div className="p-1 bg-white border flex items-center gap-1"><PixelIcon name="article" size={10} /> Card</div>
         </div>
       </div>,
       tutorial: `
@@ -618,7 +618,7 @@ Every component in the Visual Builder now extends UniversalCSSProps, which means
             CHANNEL 3
           </div>
         </div>
-        <div className="text-center mt-1 text-xs text-gray-300">📺</div>
+        <div className="text-center mt-1 text-xs text-gray-300"><PixelIcon name="zap" size={12} /></div>
       </div>
     },
     {
@@ -675,7 +675,7 @@ Every component in the Visual Builder now extends UniversalCSSProps, which means
   content: [
     {
       name: 'DisplayName',
-      description: 'Shows your display name with customizable styling and element type. ✨ Supports UniversalCSSProps!',
+      description: 'Shows your display name with customizable styling and element type. Supports UniversalCSSProps!',
       props: [
         { name: 'as', type: 'string', options: ['h1', 'h2', 'h3', 'h4', 'div', 'span', 'p'], default: 'h2', description: 'HTML element to render as' },
         { name: 'showLabel', type: 'boolean', options: ['true', 'false'], default: 'false', description: 'Show "Name:" label before display name' },
@@ -735,7 +735,7 @@ Every component in the Visual Builder now extends UniversalCSSProps, which means
     },
     {
       name: 'ProfileHero',
-      description: '📦 CONTAINER - Wraps hero section with profile photo, name, and social links in one container',
+      description: 'CONTAINER - Wraps hero section with profile photo, name, and social links in one container',
       props: [
         { name: 'layout', type: 'string', options: ['horizontal', 'vertical'], default: 'horizontal', description: 'Layout direction' },
         { name: 'showBio', type: 'boolean', options: ['true', 'false'], default: 'true', description: 'Include bio in hero section' },
@@ -810,7 +810,7 @@ Every component in the Visual Builder now extends UniversalCSSProps, which means
           <div className="font-semibold mb-2">Sign My Guestbook!</div>
           <div className="bg-yellow-50 p-2 rounded mb-2 text-xs">
             <div className="font-medium">Visitor says:</div>
-            <div className="text-gray-600">Great profile! 👍</div>
+            <div className="text-gray-600">Great profile!</div>
           </div>
           <button className="bg-blue-500 text-white text-xs px-3 py-1 rounded">Add Entry</button>
         </div>
@@ -883,7 +883,7 @@ Every component in the Visual Builder now extends UniversalCSSProps, which means
     },
     {
       name: 'BlogPosts',
-      description: '📦 CONTAINER - Wraps and displays your recent blog posts in a styled list',
+      description: 'CONTAINER - Wraps and displays your recent blog posts in a styled list',
       props: [
         { name: 'limit', type: 'number', options: ['1', '2', '3', '5', '10'], default: '5', description: 'Maximum number of posts to show' },
         { name: 'class', type: 'string', options: ['any CSS classes'], default: 'none', description: 'Custom CSS classes for the posts container' },
@@ -1058,7 +1058,7 @@ Every component in the Visual Builder now extends UniversalCSSProps, which means
       }
     },
     {
-      name: '✨ Universal CSS Styling',
+      name: 'Universal CSS Styling',
       description: 'ALL content components support UniversalCSSProps for complete styling control',
       props: [
         { name: 'backgroundColor', type: 'string', options: [], default: '', description: 'Background color (hex, rgb, named)' },
@@ -1095,7 +1095,7 @@ Every component in the Visual Builder now extends UniversalCSSProps, which means
 />`,
       preview: (
         <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-lg shadow-lg">
-          <div className="text-sm font-bold mb-2">🎨 Universal CSS Props</div>
+          <div className="text-sm font-bold mb-2"><PixelIcon name="paint-bucket" size={14} /> Universal CSS Props</div>
           <div className="text-xs space-y-1">
             <div><PixelIcon name="check" /> All 59 components migrated</div>
             <div><PixelIcon name="check" /> Standard CSS property names</div>
@@ -1165,7 +1165,7 @@ You can apply standard CSS properties to ANY component in the content category (
   layout: [
     {
       name: 'FlexContainer',
-      description: '📦 CONTAINER - Wraps content in flexible box layouts using CSS Flexbox property names',
+      description: 'CONTAINER - Wraps content in flexible box layouts using CSS Flexbox property names',
       props: [
         { name: 'flexDirection', type: 'string', options: ['row', 'row-reverse', 'column', 'column-reverse'], default: 'row', description: 'CSS flex-direction property' },
         { name: 'alignItems', type: 'string', options: ['flex-start', 'center', 'flex-end', 'stretch', 'baseline'], default: 'flex-start', description: 'CSS align-items (cross-axis alignment)' },
@@ -1316,7 +1316,7 @@ Like all components, FlexContainer also accepts all universal CSS properties:
     },
     {
       name: 'Grid',
-      description: '🎯 NEW - Professional CSS Grid container with visual overlay and complete CSS Grid support',
+      description: 'NEW - Professional CSS Grid container with visual overlay and complete CSS Grid support',
       props: [
         { name: 'gridTemplateColumns', type: 'string', options: [], default: 'repeat(3, 1fr)', description: 'CSS Grid column template (e.g., "repeat(3, 1fr)", "200px auto 1fr")' },
         { name: 'gridTemplateRows', type: 'string', options: [], default: 'auto', description: 'CSS Grid row template (e.g., "auto", "100px 1fr auto")' },
@@ -1419,7 +1419,7 @@ Instead of writing \`gridTemplateColumns="repeat(3, 1fr)"\`, you can use:
     },
     {
       name: 'GridItem',
-      description: '🎯 NEW - Grid child component with CSS Grid positioning properties',
+      description: 'NEW - Grid child component with CSS Grid positioning properties',
       props: [
         { name: 'gridColumn', type: 'string', options: [], default: '', description: 'CSS Grid column position (e.g., "1 / 3", "span 2")' },
         { name: 'gridRow', type: 'string', options: [], default: '', description: 'CSS Grid row position (e.g., "1 / 3", "span 2")' },
@@ -1566,7 +1566,7 @@ Like every component, GridItem also accepts:
   visual: [
     {
       name: 'GradientBox',
-      description: '📦 CONTAINER - Wraps content with colorful gradient backgrounds and customizable colors',
+      description: 'CONTAINER - Wraps content with colorful gradient backgrounds and customizable colors',
       props: [
         { name: 'colors', type: 'string', options: ['pink-purple', 'blue-green', 'yellow-orange', 'cyan-blue'], default: 'pink-purple', description: 'Gradient color scheme' },
         { name: 'direction', type: 'string', options: ['to-r', 'to-l', 'to-t', 'to-b', 'to-br', 'to-bl'], default: 'to-br', description: 'Gradient direction' }
@@ -1582,7 +1582,7 @@ Like every component, GridItem also accepts:
     },
     {
       name: 'NeonBorder',
-      description: '📦 CONTAINER - Wraps content with glowing neon border effects and customizable colors and intensity',
+      description: 'CONTAINER - Wraps content with glowing neon border effects and customizable colors and intensity',
       props: [
         { name: 'color', type: 'string', options: ['blue', 'pink', 'green', 'purple', 'cyan', 'yellow'], default: 'blue', description: 'Neon glow color' },
         { name: 'intensity', type: 'string', options: ['soft', 'medium', 'bright'], default: 'medium', description: 'Glow intensity' },
@@ -1645,7 +1645,7 @@ Like every component, GridItem also accepts:
     },
     {
       name: 'StickyNote',
-      description: '📦 CONTAINER - Wraps content in sticky note styling with various colors and rotation effects',
+      description: 'CONTAINER - Wraps content in sticky note styling with various colors and rotation effects',
       props: [
         { name: 'color', type: 'string', options: ['yellow', 'pink', 'blue', 'green', 'orange'], default: 'yellow', description: 'Note color' },
         { name: 'size', type: 'string', options: ['sm', 'md', 'lg'], default: 'md', description: 'Note size' },
@@ -1686,7 +1686,7 @@ Like every component, GridItem also accepts:
     },
     {
       name: 'RetroTerminal',
-      description: '📦 CONTAINER - Wraps content in old-school computer terminal styling',
+      description: 'CONTAINER - Wraps content in old-school computer terminal styling',
       props: [
         { name: 'color', type: 'string', options: [], default: '', description: '' },
         { name: 'title', type: 'string', options: [], default: '', description: '' }
@@ -1706,7 +1706,7 @@ Like every component, GridItem also accepts:
   interactive: [
     {
       name: 'RevealBox',
-      description: '📦 CONTAINER - Wraps content that shows/hides with hover or click',
+      description: 'CONTAINER - Wraps content that shows/hides with hover or click',
       props: [
         { name: 'trigger', type: 'string', options: ['hover', 'click', 'focus'], default: 'hover', description: 'What triggers the reveal' },
         { name: 'effect', type: 'string', options: ['fade', 'slide', 'scale', 'flip'], default: 'fade', description: 'Animation effect' }
@@ -1723,7 +1723,7 @@ Like every component, GridItem also accepts:
     },
     {
       name: 'Tabs',
-      description: '📦 CONTAINER - Wraps Tab components to create a tabbed interface for organizing content',
+      description: 'CONTAINER - Wraps Tab components to create a tabbed interface for organizing content',
       props: [
         { name: 'defaultTab', type: 'string', options: ['any tab name'], default: 'first', description: 'Initially active tab' },
         { name: 'orientation', type: 'string', options: ['horizontal', 'vertical'], default: 'horizontal', description: 'Tab layout direction' },
@@ -1775,7 +1775,7 @@ Like every component, GridItem also accepts:
 <NotificationBell count="0" />`,
       preview: (
         <div className="relative">
-          <div className="w-6 h-6 text-gray-600">🔔</div>
+          <div className="w-6 h-6 text-gray-600"><PixelIcon name="notification" size={24} /></div>
           <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
             3
           </div>
@@ -2019,7 +2019,7 @@ Like every component, GridItem also accepts:
       preview: (
         <div className="text-xs bg-gray-100 rounded-lg overflow-hidden">
           <div className="bg-blue-200 h-32 flex items-center justify-center relative">
-            <div className="text-blue-700 font-medium">🖼️ Main Image Display</div>
+            <div className="text-blue-700 font-medium"><PixelIcon name="image" size={14} /> Main Image Display</div>
             <div className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
               ←
             </div>
@@ -2256,28 +2256,28 @@ Like every component, GridItem also accepts:
         <div className="text-xs bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 flex justify-between items-center">
             <div className="font-semibold text-gray-800">Contact Me</div>
-            <div className="text-gray-500">↕</div>
+            <div className="text-gray-500"><PixelIcon name="chevron-down" size={12} /></div>
           </div>
           <div className="p-3 space-y-2">
             <div className="flex justify-between items-center group">
               <div>
                 <div className="flex items-center gap-1 mb-1">
-                  <span>📧</span>
+                  <span><PixelIcon name="mail" size={12} /></span>
                   <span className="text-gray-600">Email</span>
                 </div>
                 <div className="text-blue-600 underline">john@example.com</div>
               </div>
-              <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100">📋</button>
+              <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100"><PixelIcon name="clipboard" size={12} /></button>
             </div>
             <div className="flex justify-between items-center group">
               <div>
                 <div className="flex items-center gap-1 mb-1">
-                  <span>📞</span>
+                  <span><PixelIcon name="chat" size={12} /></span>
                   <span className="text-gray-600">Phone</span>
                 </div>
                 <div className="text-blue-600 underline">+1-555-0123</div>
               </div>
-              <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100">📋</button>
+              <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100"><PixelIcon name="clipboard" size={12} /></button>
             </div>
           </div>
         </div>
@@ -2433,17 +2433,17 @@ Like every component, GridItem also accepts:
       ],
       example: `<!-- Tech skills with bars -->
 <SkillChart title="Technical Skills" display="bars" theme="modern">
-  <Skill name="React" level="90" category="Frontend" color="#3B82F6" icon="⚛️" />
-  <Skill name="TypeScript" level="85" category="Languages" color="#3178C6" icon="📘" />
-  <Skill name="Node.js" level="80" category="Backend" color="#339933" icon="🟢" />
-  <Skill name="PostgreSQL" level="75" category="Database" color="#8B5CF6" icon="🐘" />
+  <Skill name="React" level="90" category="Frontend" color="#3B82F6" />
+  <Skill name="TypeScript" level="85" category="Languages" color="#3178C6" />
+  <Skill name="Node.js" level="80" category="Backend" color="#339933" />
+  <Skill name="PostgreSQL" level="75" category="Database" color="#8B5CF6" />
 </SkillChart>
 
 <!-- Design skills with radial indicators -->
 <SkillChart title="Design Tools" display="radial" theme="neon" layout="grid">
-  <Skill name="Figma" level="95" icon="🎨" yearsExperience="4" description="UI/UX Design" />
-  <Skill name="Photoshop" level="80" icon="📸" yearsExperience="6" description="Photo editing" />
-  <Skill name="Illustrator" level="70" icon="✏️" yearsExperience="3" description="Vector graphics" />
+  <Skill name="Figma" level="95" yearsExperience="4" description="UI/UX Design" />
+  <Skill name="Photoshop" level="80" yearsExperience="6" description="Photo editing" />
+  <Skill name="Illustrator" level="70" yearsExperience="3" description="Vector graphics" />
 </SkillChart>
 
 <!-- Language proficiency bubbles -->
@@ -2462,12 +2462,12 @@ Like every component, GridItem also accepts:
 
 <!-- Advanced example with priorities and custom layout -->
 <SkillChart title="Full Stack Development" display="bars" sortBy="custom" maxDisplay="6">
-  <Skill name="Frontend" level="95" category="Development" priority="10" icon="🌐" />
-  <Skill name="Backend APIs" level="88" category="Development" priority="9" icon="⚙️" />
-  <Skill name="Database Design" level="82" category="Development" priority="8" icon="💾" />
-  <Skill name="DevOps" level="75" category="Development" priority="7" icon="🚀" />
-  <Skill name="Mobile Dev" level="65" category="Development" priority="6" icon="📱" />
-  <Skill name="AI/ML" level="45" category="Development" priority="5" icon="🤖" />
+  <Skill name="Frontend" level="95" category="Development" priority="10" />
+  <Skill name="Backend APIs" level="88" category="Development" priority="9" />
+  <Skill name="Database Design" level="82" category="Development" priority="8" />
+  <Skill name="DevOps" level="75" category="Development" priority="7" />
+  <Skill name="Mobile Dev" level="65" category="Development" priority="6" />
+  <Skill name="AI/ML" level="45" category="Development" priority="5" />
 </SkillChart>`,
       preview: (
         <div className="text-xs bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -2479,7 +2479,7 @@ Like every component, GridItem also accepts:
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-1">
-                  <span>⚛️</span>
+                  <span><PixelIcon name="code" size={10} /></span>
                   <span className="font-medium">React</span>
                 </div>
                 <span className="text-blue-600 text-xs">90/100 (90%)</span>
@@ -2491,7 +2491,7 @@ Like every component, GridItem also accepts:
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-1">
-                  <span>📘</span>
+                  <span><PixelIcon name="script" size={10} /></span>
                   <span className="font-medium">TypeScript</span>
                 </div>
                 <span className="text-blue-600 text-xs">85/100 (85%)</span>
@@ -2503,7 +2503,7 @@ Like every component, GridItem also accepts:
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-1">
-                  <span>🟢</span>
+                  <span><PixelIcon name="check" size={10} /></span>
                   <span className="font-medium">Node.js</span>
                 </div>
                 <span className="text-blue-600 text-xs">80/100 (80%)</span>
@@ -2823,14 +2823,14 @@ Like every component, GridItem also accepts:
     },
     {
       name: 'Choose (conditional)',
-      description: '📦 CONTAINER - Wraps When/Otherwise components for advanced conditional rendering with multiple logic branches. Evaluates When conditions in order and renders the first match.',
+      description: 'CONTAINER - Wraps When/Otherwise components for advanced conditional rendering with multiple logic branches. Evaluates When conditions in order and renders the first match.',
       props: [
         { name: 'children', type: 'components', options: ['When', 'Otherwise'], default: 'required', description: 'When and Otherwise components as children (evaluates in order)' }
       ],
       example: `<!-- Basic if-else logic -->
 <Choose>
   <When data="posts.length" greater-than="10">
-    <h3>Prolific Poster! 🌟</h3>
+    <h3>Prolific Poster!</h3>
     <BlogPosts limit="10" />
   </When>
   <When data="posts.length" greater-than="0">
@@ -2846,14 +2846,14 @@ Like every component, GridItem also accepts:
 <Choose>
   <When data="viewer.isFriend">
     <div class="vip-content">
-      <h2>💚 Friend-Exclusive Content</h2>
+      <h2>Friend-Exclusive Content</h2>
       <p>Thanks for being my friend! Here's special content just for you.</p>
       <ImageGallery limit="20" />
     </div>
   </When>
   <When data="viewer.isFollowing">
     <div class="follower-content">
-      <h3>Thanks for following! 🎉</h3>
+      <h3>Thanks for following!</h3>
       <ImageGallery limit="10" />
     </div>
   </When>
@@ -2920,7 +2920,7 @@ Like every component, GridItem also accepts:
 </When>`,
       preview: (
         <div className="bg-blue-50 border border-blue-200 p-2 text-xs rounded">
-          <div className="text-blue-800">✓ When condition met - content renders</div>
+          <div className="text-blue-800"><PixelIcon name="check" size={10} /> When condition met - content renders</div>
           <div className="text-gray-500 text-xs">Used inside Choose for multi-branch conditional logic</div>
         </div>
       )
@@ -2946,7 +2946,7 @@ Like every component, GridItem also accepts:
     },
     {
       name: 'Show (conditional)',
-      description: '📦 CONTAINER - Wraps content to show/hide based on conditional evaluation. Supports existence checks, comparisons, logical operators, and relationship status.',
+      description: 'CONTAINER - Wraps content to show/hide based on conditional evaluation. Supports existence checks, comparisons, logical operators, and relationship status.',
       props: [
         { name: 'when', type: 'string', options: ['true', 'false', 'has:path.to.data', 'path.to.data'], default: 'none', description: 'Simple condition string to evaluate' },
         { name: 'data', type: 'string', options: ['owner.displayName', 'posts', 'viewer.isFriend', 'any.data.path'], default: 'none', description: 'Data path to check (supports owner.*, viewer.*, posts, guestbook, etc.)' },
@@ -2971,12 +2971,12 @@ Like every component, GridItem also accepts:
 <!-- Relationship-based personalization -->
 <Show data="viewer.isFriend">
   <div class="friend-only-message">
-    💚 Thanks for being my friend! Here's exclusive content just for you.
+    Thanks for being my friend! Here's exclusive content just for you.
   </div>
 </Show>
 
 <Show data="viewer.isFollowing">
-  <p>Thanks for following me! 🎉</p>
+  <p>Thanks for following me!</p>
 </Show>
 
 <!-- Comparison operators -->
@@ -2990,7 +2990,7 @@ Like every component, GridItem also accepts:
 
 <!-- String matching -->
 <Show data="owner.displayName" contains="artist">
-  <div>🎨 Artist Badge</div>
+  <div>Artist Badge</div>
 </Show>
 
 <!-- Logical operators (AND) -->
@@ -3004,14 +3004,14 @@ Like every component, GridItem also accepts:
 </Show>`,
       preview: (
         <div className="bg-green-50 border border-green-200 p-2 text-xs rounded">
-          <div className="text-green-800">✓ Content is shown based on conditions</div>
+          <div className="text-green-800"><PixelIcon name="check" size={10} /> Content is shown based on conditions</div>
           <div className="text-gray-500 text-xs">Powerful conditional logic with comparisons, relationships, and logical operators</div>
         </div>
       )
     },
     {
       name: 'IfOwner (conditional)',
-      description: '📦 CONTAINER - Wraps content to show only to the profile owner (viewer === owner)',
+      description: 'CONTAINER - Wraps content to show only to the profile owner (viewer === owner)',
       props: [
         { name: 'children', type: 'ReactNode', options: ['any content'], default: 'required', description: 'Content visible only to profile owner' }
       ],
@@ -3021,14 +3021,14 @@ Like every component, GridItem also accepts:
 </IfOwner>`,
       preview: (
         <div className="bg-purple-50 border border-purple-200 p-2 text-xs rounded">
-          <div className="text-purple-800">👤 Owner-only: Edit Profile button</div>
+          <div className="text-purple-800"><PixelIcon name="user" size={10} /> Owner-only: Edit Profile button</div>
           <div className="text-gray-500 text-xs">Visible only when viewer.id === owner.id</div>
         </div>
       )
     },
     {
       name: 'IfVisitor (conditional)',
-      description: '📦 CONTAINER - Wraps content to show only to visitors (viewer !== owner). Combine with Show component to personalize based on relationship status.',
+      description: 'CONTAINER - Wraps content to show only to visitors (viewer !== owner). Combine with Show component to personalize based on relationship status.',
       props: [
         { name: 'children', type: 'ReactNode', options: ['any content'], default: 'required', description: 'Content visible only to visitors' }
       ],
@@ -3042,7 +3042,7 @@ Like every component, GridItem also accepts:
 <IfVisitor>
   <Show data="viewer.isFriend">
     <div class="friend-welcome">
-      💚 Hey friend! Great to see you here!
+      Hey friend! Great to see you here!
     </div>
   </Show>
 
@@ -3072,7 +3072,7 @@ Like every component, GridItem also accepts:
 </IfVisitor>`,
       preview: (
         <div className="bg-indigo-50 border border-indigo-200 p-2 text-xs rounded">
-          <div className="text-indigo-800">👥 Visitor-only: Relationship-aware content</div>
+          <div className="text-indigo-800"><PixelIcon name="users" size={10} /> Visitor-only: Relationship-aware content</div>
           <div className="text-gray-500 text-xs">Visible only when viewer.id !== owner.id, with personalization based on viewer.isFriend, viewer.isFollowing, and viewer.isFollower</div>
         </div>
       )

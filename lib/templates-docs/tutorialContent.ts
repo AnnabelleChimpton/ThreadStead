@@ -494,7 +494,7 @@ export const tutorials: Tutorial[] = [
 <p>Age: <ShowVar name="age" /></p>
 
 <If condition="$vars.age" greaterThanOrEqual="18">
-  <p>✓ You are an adult</p>
+  <p>You are an adult</p>
 </If>
 
 <If condition="$vars.age" lessThan="18">
@@ -574,13 +574,13 @@ export const tutorials: Tutorial[] = [
 
 <Switch value="$vars.status">
   <Case value="pending">
-    <p>⏳ Application is pending review</p>
+    <p>Application is pending review</p>
   </Case>
   <Case value="approved">
-    <p>✓ Application approved!</p>
+    <p>Application approved!</p>
   </Case>
   <Case value="rejected">
-    <p>✗ Application rejected</p>
+    <p>Application rejected</p>
   </Case>
 </Switch>`,
         concepts: ['Switch', 'Cycle'],
@@ -849,7 +849,7 @@ export const tutorials: Tutorial[] = [
 <p>Filtered: <ShowVar name="filtered" /></p>`,
         concepts: ['Filter', 'Button', 'OnClick'],
         tips: [
-          '⚠️ IMPORTANT: Filter is an ACTION component - must be used inside event handlers (OnClick, OnChange, OnMount, OnInterval, Sequence)',
+          'IMPORTANT: Filter is an ACTION component - must be used inside event handlers (OnClick, OnChange, OnMount, OnInterval, Sequence)',
           'Actions cannot be used directly in the template - they must be triggered by events',
           'Use var for source array and target for result',
           'Condition expression uses "item" to reference each array element',
@@ -1198,7 +1198,7 @@ export const tutorials: Tutorial[] = [
   </Button>
 
   <If condition="$vars.isFinished">
-    <p style="color: red; font-weight: bold">⏰ Time's Up!</p>
+    <p style="color: red; font-weight: bold">Time's Up!</p>
   </If>
 </div>`,
         concepts: ['OnInterval', 'Decrement', 'If', 'Toggle', 'Set'],
@@ -1356,7 +1356,7 @@ export const tutorials: Tutorial[] = [
         tips: [
           'Use value for literal values',
           'Use expression with $vars.varName to use a variable\'s value',
-          '⚠️ IMPORTANT: ObjectSet creates a NEW object (immutable update) - the original object is not modified directly'
+          'IMPORTANT: ObjectSet creates a NEW object (immutable update) - the original object is not modified directly'
         ]
       },
       {

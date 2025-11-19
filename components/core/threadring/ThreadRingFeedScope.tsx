@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface ThreadRingFeedScopeProps {
   threadRingSlug: string;
@@ -46,14 +47,14 @@ export default function ThreadRingFeedScope({
     }
   };
 
-  const getScopeIcon = (scopeValue: string) => {
+  const getScopeIcon = (scopeValue: string): React.ReactNode => {
     switch (scopeValue) {
-      case 'current': return '📍';
-      case 'parent': return '⬆️';
-      case 'children': return '⬇️';
-      case 'siblings': return '↔️';
-      case 'family': return '👨‍👩‍👧‍👦';
-      default: return '📍';
+      case 'current': return <PixelIcon name="gps" size={14} />;
+      case 'parent': return <PixelIcon name="arrow-up" size={14} />;
+      case 'children': return <PixelIcon name="arrow-down" size={14} />;
+      case 'siblings': return <PixelIcon name="link" size={14} />;
+      case 'family': return <PixelIcon name="users" size={14} />;
+      default: return <PixelIcon name="gps" size={14} />;
     }
   };
 

@@ -101,7 +101,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
           className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
         >
-          <span>🔖</span>
+          <PixelIcon name="bookmark" />
           Bookmarks
         </Link>
 
@@ -112,7 +112,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
           className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
         >
-          <span>📄</span>
+          <PixelIcon name="file" />
           My Page
         </Link>
 
@@ -145,7 +145,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
           }}
           className="block w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
         >
-          <span>🚪</span>
+          <PixelIcon name="external-link" />
           Log Out
         </button>
       </div>
@@ -207,7 +207,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
               className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
               onClick={() => setIsOpen(false)}
             >
-              <span>🔖</span>
+              <PixelIcon name="bookmark" />
               Bookmarks
             </Link>
 
@@ -219,7 +219,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
               className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
               onClick={() => setIsOpen(false)}
             >
-              <span>📄</span>
+              <PixelIcon name="file" />
               My Page
             </Link>
 
@@ -252,7 +252,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
               }}
               className="user-dropdown-item flex items-center gap-2 w-full px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream text-left"
             >
-              <span>🚪</span>
+              <PixelIcon name="external-link" />
               Log Out
             </button>
           </div>

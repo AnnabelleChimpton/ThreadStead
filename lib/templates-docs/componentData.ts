@@ -52,7 +52,7 @@ export const componentCategories: ComponentCategory[] = [
     id: 'state',
     title: 'Variables & Display',
     description: 'Declare and display template variables',
-    icon: '💾',
+    icon: 'save',
     color: 'bg-purple-200',
     hoverColor: 'hover:bg-purple-100',
   },
@@ -60,7 +60,7 @@ export const componentCategories: ComponentCategory[] = [
     id: 'inputs',
     title: 'User Input',
     description: 'Interactive form components',
-    icon: '⌨️',
+    icon: 'edit',
     color: 'bg-cyan-200',
     hoverColor: 'hover:bg-cyan-100',
   },
@@ -68,7 +68,7 @@ export const componentCategories: ComponentCategory[] = [
     id: 'actions',
     title: 'Actions',
     description: 'Manipulate state, arrays, and UI',
-    icon: '⚡',
+    icon: 'zap',
     color: 'bg-yellow-200',
     hoverColor: 'hover:bg-yellow-100',
   },
@@ -76,7 +76,7 @@ export const componentCategories: ComponentCategory[] = [
     id: 'collections',
     title: 'Collection Operations',
     description: 'Filter, sort, and transform arrays',
-    icon: '📊',
+    icon: 'chart-bar',
     color: 'bg-blue-200',
     hoverColor: 'hover:bg-blue-100',
   },
@@ -84,7 +84,7 @@ export const componentCategories: ComponentCategory[] = [
     id: 'objects',
     title: 'Object Operations',
     description: 'Work with nested objects and properties',
-    icon: '🧩',
+    icon: 'sliders',
     color: 'bg-indigo-200',
     hoverColor: 'hover:bg-indigo-100',
   },
@@ -92,7 +92,7 @@ export const componentCategories: ComponentCategory[] = [
     id: 'events',
     title: 'Event Handlers',
     description: 'Respond to user interactions',
-    icon: '👆',
+    icon: 'mouse',
     color: 'bg-pink-200',
     hoverColor: 'hover:bg-pink-100',
   },
@@ -100,7 +100,7 @@ export const componentCategories: ComponentCategory[] = [
     id: 'timing',
     title: 'Timing & Sequences',
     description: 'Delayed actions and animations',
-    icon: '⏱️',
+    icon: 'clock',
     color: 'bg-red-200',
     hoverColor: 'hover:bg-red-100',
   },
@@ -108,7 +108,7 @@ export const componentCategories: ComponentCategory[] = [
     id: 'conditionals',
     title: 'Conditional Logic',
     description: 'Show/hide content based on conditions',
-    icon: '🔀',
+    icon: 'git-branch',
     color: 'bg-green-200',
     hoverColor: 'hover:bg-green-100',
   },
@@ -116,7 +116,7 @@ export const componentCategories: ComponentCategory[] = [
     id: 'loops',
     title: 'Loops & Iteration',
     description: 'Repeat content with ForEach',
-    icon: '🔁',
+    icon: 'repeat',
     color: 'bg-orange-200',
     hoverColor: 'hover:bg-orange-100',
   },
@@ -1182,9 +1182,9 @@ export const componentData: Record<string, Component[]> = {
         {
           title: 'Status indicator',
           code: `<Switch value="$vars.status">
-  <Case value="pending">⏳ Pending</Case>
-  <Case value="active">✅ Active</Case>
-  <Default>❓ Unknown</Default>
+  <Case value="pending">Pending</Case>
+  <Case value="active">Active</Case>
+  <Default>Unknown</Default>
 </Switch>`,
         },
       ],

@@ -4,19 +4,20 @@ import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import Head from "next/head";
 import RetroFooter from "@/components/design-tutorial/RetroFooter";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 // CSS Class Categories
 const cssCategories = [
   {
     id: 'getting-started',
     title: 'Getting Started',
-    icon: '🚀',
+    icon: 'zap',
     description: 'Step-by-step tutorial for beginners - learn by example!'
   },
   {
     id: 'css-modes',
     title: 'CSS Modes',
-    icon: '⚙️',
+    icon: 'sliders',
     description: 'Understanding CSS layering and mode system'
   },
   {
@@ -60,16 +61,16 @@ const cssCategories = [
 const cssData = {
   'getting-started': [
     {
-      name: '👋 Welcome to CSS Customization!',
+      name: 'Welcome to CSS Customization!',
       description: 'Don\'t worry if you\'re new to CSS! These templates show you exactly how powerful CSS can be. Follow along step-by-step.',
       classes: [
-        { name: '💡 Prefer Visual?', description: 'Check out our Visual Builder (drag-and-drop, no code!) at /templates' },
+        { name: 'Prefer Visual?', description: 'Check out our Visual Builder (drag-and-drop, no code!) at /templates' },
         { name: 'Step 1', description: 'Choose a template that speaks to you' },
         { name: 'Step 2', description: 'Copy the CSS code and paste it into your profile editor' },
         { name: 'Step 3', description: 'See the magic happen instantly!' },
         { name: 'Step 4', description: 'Tweak colors, fonts, and effects to make it yours' }
       ],
-      example: `/* 🎯 Getting Started - Copy this example! */
+      example: `/* Getting Started - Copy this example! */
 
 /* This simple CSS transforms your entire profile */
 .thread-surface {
@@ -97,14 +98,14 @@ const cssData = {
               Your Site Title
             </span>
           </div>
-          <div className="text-sm text-gray-600 text-center">
-            ✨ Just a few lines of CSS created this look!
+          <div className="text-sm text-gray-600 text-center flex items-center justify-center gap-1">
+            <PixelIcon name="zap" size={14} /> Just a few lines of CSS created this look!
           </div>
         </div>
       )
     },
     {
-      name: '🎨 Template Showcase: Abstract Art Gallery',
+      name: 'Template Showcase: Abstract Art Gallery',
       description: 'See how our Abstract Art template transforms a profile into a modern art gallery. Every element is styled with purpose!',
       classes: [
         { name: '.thread-surface', description: 'Canvas background with paint splatters' },
@@ -112,7 +113,7 @@ const cssData = {
         { name: '.site-title', description: 'Animated gradient text like a gallery sign' },
         { name: '.nav-link', description: 'Professional gallery-style navigation' }
       ],
-      example: `/* 🎨 Abstract Art Gallery Template - Full Power of CSS! */
+      example: `/* Abstract Art Gallery Template - Full Power of CSS! */
 
 /* Transform the entire page into an art gallery */
 .thread-surface {
@@ -180,13 +181,13 @@ const cssData = {
             </div>
           </div>
           <div className="text-sm text-green-600 font-medium text-center">
-            🎭 Professional art gallery aesthetic achieved purely with CSS!
+            Professional art gallery aesthetic achieved purely with CSS!
           </div>
         </div>
       )
     },
     {
-      name: '📱 Template Showcase: Retro Social (MySpace 2005)',
+      name: 'Template Showcase: Retro Social (MySpace 2005)',
       description: 'Travel back to 2005 with authentic MySpace styling! See how CSS can completely change the vibe of your profile.',
       classes: [
         { name: '.thread-surface', description: 'Classic black background with twinkling stars' },
@@ -194,7 +195,7 @@ const cssData = {
         { name: '.site-title', description: 'Classic MySpace styling with heart animations' },
         { name: '::before elements', description: 'Decorative elements like "★ Online Now ★"' }
       ],
-      example: `/* 📱 MySpace 2005 Template - Nostalgic Social Media! */
+      example: `/* MySpace 2005 Template - Nostalgic Social Media! */
 
 /* Authentic MySpace black background with stars */
 .thread-surface {
@@ -271,7 +272,7 @@ const cssData = {
       )
     },
     {
-      name: '🛠️ How to Customize These Templates',
+      name: 'How to Customize These Templates',
       description: 'Ready to make a template your own? Here are easy modifications you can make to any template!',
       classes: [
         { name: 'Change Colors', description: 'Replace hex codes like #ff1493 with your favorites' },
@@ -279,9 +280,9 @@ const cssData = {
         { name: 'Modify Animations', description: 'Speed up, slow down, or remove animations entirely' },
         { name: 'Add Your Touch', description: 'Include personal elements like custom backgrounds' }
       ],
-      example: `/* 🎯 Easy Customizations - Make Any Template Yours! */
+      example: `/* Easy Customizations - Make Any Template Yours! */
 
-/* 🎨 CHANGE COLORS - Replace these hex codes */
+/* CHANGE COLORS - Replace these hex codes */
 /* Find: #ff1493 (hot pink) Replace with: #your-color */
 .site-header {
   background: linear-gradient(180deg, #4477cc 0%, #336699 100%) !important;
@@ -304,7 +305,7 @@ const cssData = {
   /*                       ^^ Try: 2s (faster) or 15s (slower) */
 }
 
-/* 🖼️ ADD YOUR BACKGROUND IMAGE */
+/* ADD YOUR BACKGROUND IMAGE */
 .thread-surface {
   background: 
     url('your-image-url.jpg'), /* Add your image on top */
@@ -312,7 +313,7 @@ const cssData = {
   background-size: cover, 100% 100% !important; /* Make image fill screen */
 }
 
-/* 🎭 REMOVE ANIMATIONS - Just delete or comment out */
+/* REMOVE ANIMATIONS - Just delete or comment out */
 /* 
 .site-title {
   animation: paintBrush 6s ease infinite !important; <-- Delete this line
@@ -337,15 +338,15 @@ const cssData = {
             </div>
           </div>
           <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded text-center">
-            <span className="text-blue-600 font-medium">
-              🎨 Mix and match colors, fonts, and effects to create something uniquely yours!
+            <span className="text-blue-600 font-medium flex items-center justify-center gap-1">
+              <PixelIcon name="paint-bucket" size={14} /> Mix and match colors, fonts, and effects to create something uniquely yours!
             </span>
           </div>
         </div>
       )
     },
     {
-      name: '🎓 Next Steps: Beyond Templates',
+      name: 'Next Steps: Beyond Templates',
       description: 'Ready to go beyond templates? Learn the key concepts that will help you create completely custom designs!',
       classes: [
         { name: 'CSS Selectors', description: 'Target specific parts of your profile (.site-header, .nav-link, etc.)' },
@@ -353,7 +354,7 @@ const cssData = {
         { name: '!important', description: 'Makes your styles take priority over defaults' },
         { name: 'Animations', description: 'Add movement and life to your profile (@keyframes)' }
       ],
-      example: `/* 🎓 Understanding CSS Structure */
+      example: `/* Understanding CSS Structure */
 
 /* SELECTOR - What you're styling */
 .site-title {
@@ -410,8 +411,8 @@ const cssData = {
             </div>
           </div>
           <div className="bg-yellow-50 border-2 border-yellow-300 p-3 rounded text-center text-sm">
-            <span className="font-bold text-yellow-800">
-              💡 Ready to explore? Check out the other tabs for all available CSS classes!
+            <span className="font-bold text-yellow-800 flex items-center justify-center gap-1">
+              <PixelIcon name="lightbulb" size={14} /> Ready to explore? Check out the other tabs for all available CSS classes!
             </span>
           </div>
         </div>
@@ -492,7 +493,7 @@ body {
    enhancements always apply over the defaults */`,
       preview: (
         <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded text-xs">
-          <div className="font-bold mb-2">💡 Pro Tip</div>
+          <div className="font-bold mb-2 flex items-center gap-1"><PixelIcon name="lightbulb" size={12} /> Pro Tip</div>
           <div>Always use <code className="bg-white px-1">!important</code> in your custom CSS to ensure your styles take precedence over the base styles.</div>
         </div>
       )
@@ -1736,9 +1737,9 @@ body {
 }`,
       preview: (
         <div className="space-y-2 text-xs">
-          <div className="bg-blue-100 p-2 rounded">📱 Mobile: padding: 0.5rem</div>
-          <div className="bg-green-100 p-2 rounded">📟 Tablet: padding: 1.5rem</div>
-          <div className="bg-purple-100 p-2 rounded">🖥️ Desktop: padding: 2rem</div>
+          <div className="bg-blue-100 p-2 rounded">Mobile: padding: 0.5rem</div>
+          <div className="bg-green-100 p-2 rounded">Tablet: padding: 1.5rem</div>
+          <div className="bg-purple-100 p-2 rounded">Desktop: padding: 2rem</div>
         </div>
       )
     },
@@ -1854,7 +1855,7 @@ export default function DesignCSSTutorialPage() {
             {/* Simple CSS Editor Banner */}
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-3 border-green-500 rounded-lg p-4 flex items-center justify-between gap-4 shadow-lg">
               <div className="flex items-center gap-3 flex-1">
-                <div className="text-3xl">✨</div>
+                <div className="text-3xl"><PixelIcon name="zap" size={32} /></div>
                 <div>
                   <div className="font-bold text-green-900">Ready to Customize?</div>
                   <div className="text-sm text-green-700">Use our Simple CSS Editor with built-in class reference and live preview</div>
@@ -1871,7 +1872,7 @@ export default function DesignCSSTutorialPage() {
             {/* Alternative Options Banner */}
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-3 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 flex-1">
-                <div className="text-2xl">🎨</div>
+                <div className="text-2xl"><PixelIcon name="paint-bucket" size={24} /></div>
                 <div>
                   <div className="font-semibold text-purple-900 text-sm">Don&apos;t want to write CSS?</div>
                   <div className="text-xs text-purple-700">Try Visual Builder (drag & drop) or Template Language (for developers)</div>

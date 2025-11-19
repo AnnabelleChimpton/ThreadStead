@@ -1,4 +1,5 @@
 import React from "react";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface ComponentSearchProps {
   searchTerm: string;
@@ -27,12 +28,15 @@ export default function ComponentSearch({
     <div className="space-y-4">
       {/* Search Input */}
       <div className="relative">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+          <PixelIcon name="search" size={20} />
+        </div>
         <input
           type="text"
-          placeholder="🔍 Search components..."
+          placeholder="Search components..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full px-6 py-4 text-lg border-3 border-black shadow-[4px_4px_0_#000] focus:shadow-[6px_6px_0_#000] focus:outline-none transition-all"
+          className="w-full pl-12 pr-6 py-4 text-lg border-3 border-black shadow-[4px_4px_0_#000] focus:shadow-[6px_6px_0_#000] focus:outline-none transition-all"
         />
         {searchTerm && (
           <button
@@ -56,7 +60,7 @@ export default function ComponentSearch({
                 : 'bg-white hover:bg-gray-50'
             }`}
           >
-            🌐 All Components
+            <PixelIcon name="folder" size={14} className="inline mr-1" /> All Components
           </button>
           <button
             onClick={() => onAvailabilityFilterChange('visual-builder')}
@@ -66,7 +70,7 @@ export default function ComponentSearch({
                 : 'bg-white hover:bg-gray-50'
             }`}
           >
-            🎨 Visual Builder
+            <PixelIcon name="paint-bucket" size={14} className="inline mr-1" /> Visual Builder
           </button>
           <button
             onClick={() => onAvailabilityFilterChange('code-only')}
@@ -76,7 +80,7 @@ export default function ComponentSearch({
                 : 'bg-white hover:bg-gray-50'
             }`}
           >
-            💻 Code Only
+            <PixelIcon name="code" size={14} className="inline mr-1" /> Code Only
           </button>
         </div>
       )}
@@ -103,7 +107,7 @@ export default function ComponentSearch({
                 : 'bg-white hover:bg-gray-50'
             }`}
           >
-            🌱 Beginner
+            <PixelIcon name="drop" size={14} className="inline mr-1" /> Beginner
           </button>
           <button
             onClick={() => onDifficultyFilterChange('intermediate')}
@@ -113,7 +117,7 @@ export default function ComponentSearch({
                 : 'bg-white hover:bg-gray-50'
             }`}
           >
-            🔧 Intermediate
+            <PixelIcon name="sliders" size={14} className="inline mr-1" /> Intermediate
           </button>
           <button
             onClick={() => onDifficultyFilterChange('advanced')}
@@ -123,7 +127,7 @@ export default function ComponentSearch({
                 : 'bg-white hover:bg-gray-50'
             }`}
           >
-            🚀 Advanced
+            <PixelIcon name="zap" size={14} className="inline mr-1" /> Advanced
           </button>
         </div>
       )}
@@ -150,7 +154,7 @@ export default function ComponentSearch({
                 : 'bg-white hover:bg-gray-50'
             }`}
           >
-            <span className="mr-1">{category.icon}</span>
+            {category.icon && <span className="mr-1"><PixelIcon name={category.icon as any} size={14} /></span>}
             <span className="hidden sm:inline">{category.title}</span>
           </button>
         ))}

@@ -49,7 +49,6 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
         {/* Mode Banner */}
         <div className="mb-4 p-3 bg-blue-50 border-2 border-blue-300 rounded flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-lg">💻</span>
             <span className="text-sm font-semibold">Template Language Mode</span>
           </div>
           <Link
@@ -79,7 +78,6 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-bold flex items-center gap-1.5">
-              <span className="text-base">📚</span>
               <span>Tutorials</span>
             </h2>
             <div className="text-xs text-gray-600">
@@ -148,7 +146,6 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
                 {/* Learning Objectives */}
                 <div className="mb-8 p-4 bg-blue-50 border-3 border-blue-300 shadow-[3px_3px_0_#000]">
                   <h3 className="font-bold mb-2 flex items-center gap-2">
-                    <span>🎯</span>
                     <span>What You&apos;ll Learn:</span>
                   </h3>
                   <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
@@ -162,7 +159,6 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
                 {currentTutorial.prerequisites.length > 0 && (
                   <div className="mb-8 p-4 bg-yellow-50 border-2 border-yellow-300">
                     <h3 className="font-bold mb-2 flex items-center gap-2">
-                      <span>⚠️</span>
                       <span>Prerequisites:</span>
                     </h3>
                     <p className="text-sm text-gray-700">
@@ -190,7 +186,6 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
                 {/* Summary */}
                 <div className="mb-8 p-6 bg-gradient-to-br from-green-100 to-cyan-100 border-3 border-black shadow-[4px_4px_0_#000]">
                   <h3 className="text-xl font-black mb-2 flex items-center gap-2">
-                    <span>🎉</span>
                     <span>Summary</span>
                   </h3>
                   <p className="text-gray-700 leading-relaxed">{currentTutorial.summary}</p>
@@ -200,7 +195,6 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
                 {currentTutorial.relatedComponents.length > 0 && (
                   <div className="mb-8 p-4 bg-purple-50 border-2 border-purple-300">
                     <h3 className="font-bold mb-3 flex items-center gap-2">
-                      <span>🔗</span>
                       <span>Related Components:</span>
                     </h3>
                     <div className="flex flex-wrap gap-2">
@@ -219,7 +213,7 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
 
                 {/* Want Visual Design? */}
                 <div className="mb-8 p-6 bg-gradient-to-r from-purple-100 to-pink-100 border-3 border-black shadow-[4px_4px_0_#000]">
-                  <h3 className="text-xl font-black mb-2">🎨 Prefer Visual Design?</h3>
+                  <h3 className="text-xl font-black mb-2">Prefer Visual Design?</h3>
                   <p className="text-sm text-gray-700 mb-3">
                     Template Language is powerful but requires coding. If you want a no-code experience,
                     try <strong>Visual Builder</strong> with drag-and-drop components and real-time preview.
@@ -228,7 +222,7 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
                     href="/design-tutorial"
                     className="inline-block px-4 py-2 bg-purple-400 border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] font-bold text-sm transition-all"
                   >
-                    📖 Try Visual Builder Guide →
+                    Try Visual Builder Guide →
                   </Link>
                 </div>
 
