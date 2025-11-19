@@ -8,6 +8,7 @@ import UserAccountBottomSheet from "../../features/auth/UserAccountBottomSheet";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useMe } from "@/hooks/useMe";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 // Mobile-specific login status component
 function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
@@ -30,7 +31,7 @@ function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
       className="w-full px-3 py-3 bg-thread-pine text-thread-paper hover:bg-thread-sunset rounded flex items-center justify-between min-h-[48px] font-medium active:scale-[0.98] transition-transform"
     >
       <div className="flex items-center gap-3">
-        <span className="text-lg">👤</span>
+        <PixelIcon name="user" size={20} />
         <div className="text-left">
           <div className="text-xs opacity-75">signed in as</div>
           <div className="font-medium">{username}</div>

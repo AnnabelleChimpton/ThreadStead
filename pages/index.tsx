@@ -175,7 +175,7 @@ function UserPixelHome({ user }: { user: any }) {
     return (
       <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-4 sm:p-8 text-center min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
         <div className="space-y-3 sm:space-y-4">
-          <div className="text-4xl sm:text-6xl">🏗️</div>
+          <div className="text-4xl sm:text-6xl"><PixelIcon name="building" size={48} /></div>
           <div>
             <p className="text-gray-700 text-sm sm:text-base font-medium mb-2">Your home isn&apos;t ready yet</p>
             <p className="text-gray-600 text-xs sm:text-sm mb-3">Don&apos;t worry, let&apos;s get you set up!</p>
@@ -293,14 +293,14 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
                 href="/feed"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-black shadow-[2px_2px_0_#000] font-medium text-sm transition-colors"
               >
-                <span>👀</span>
+                <PixelIcon name="eye" size={16} />
                 <span>Browse as Guest</span>
               </Link>
               <Link
                 href="/getting-started"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-black shadow-[2px_2px_0_#000] font-medium text-sm transition-colors"
               >
-                <span>📖</span>
+                <PixelIcon name="article" size={16} />
                 <span>Learn More</span>
               </Link>
             </div>
@@ -333,7 +333,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
                 <p className="text-xs sm:text-sm text-gray-600">Build a unique pixel home and customize your profile</p>
               </div>
               <div className="border border-gray-300 p-4 bg-green-50 rounded text-center">
-                <div className="text-2xl mb-2">💍</div>
+                <div className="text-2xl mb-2"><PixelIcon name="link" size={32} /></div>
                 <h3 className="font-bold mb-2 text-sm sm:text-base">Join ThreadRings</h3>
                 <p className="text-xs sm:text-sm text-gray-600">Find communities around your interests and hobbies</p>
               </div>
@@ -349,7 +349,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
                 href="/threadrings"
                 className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] inline-block font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
               >
-                💍 Explore Communities
+                <PixelIcon name="link" size={16} className="inline-block align-middle" /> Explore Communities
               </Link>
             </div>
           </div>
@@ -378,7 +378,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
                 href="/feed"
                 className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 border border-gray-300 rounded-lg transition-colors group"
               >
-                <span className="text-2xl flex-shrink-0">📰</span>
+                <span className="text-2xl flex-shrink-0"><PixelIcon name="article" size={32} /></span>
                 <div>
                   <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Community Feed</h3>
                   <p className="text-xs sm:text-sm text-gray-600">See what everyone is posting and sharing</p>
@@ -400,7 +400,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
                 href="/threadrings"
                 className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 border border-gray-300 rounded-lg transition-colors group"
               >
-                <span className="text-2xl flex-shrink-0">💍</span>
+                <span className="text-2xl flex-shrink-0"><PixelIcon name="link" size={32} /></span>
                 <div>
                   <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">ThreadRings</h3>
                   <p className="text-xs sm:text-sm text-gray-600">Discover themed communities to join</p>
@@ -411,7 +411,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
                 href="/directory"
                 className="flex items-center gap-3 p-4 bg-yellow-50 hover:bg-yellow-100 border border-gray-300 rounded-lg transition-colors group"
               >
-                <span className="text-2xl flex-shrink-0">📚</span>
+                <span className="text-2xl flex-shrink-0"><PixelIcon name="archive" size={32} /></span>
                 <div>
                   <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Member Directory</h3>
                   <p className="text-xs sm:text-sm text-gray-600">Find and connect with community members</p>
@@ -667,7 +667,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-200 hover:bg-blue-100 border-2 border-black shadow-[3px_3px_0_#000] font-medium text-sm transition-all mx-auto"
                 >
-                  <span className="text-lg">⚡</span>
+                  <PixelIcon name="zap" size={18} />
                   <span>Quick Actions</span>
                   <span className={`text-sm transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
                 </button>

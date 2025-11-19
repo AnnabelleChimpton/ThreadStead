@@ -20,7 +20,7 @@ export default function WidgetCard({
 }: WidgetCardProps) {
   return (
     <div className="widget-card h-fit">
-      <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 w-full max-w-full overflow-hidden h-full">
+      <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-3 sm:p-4 w-full max-w-full overflow-hidden h-full">
         {/* Widget Header */}
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-bold text-[#2E4B3F]">{title}</h3>

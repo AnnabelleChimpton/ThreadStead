@@ -105,30 +105,30 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
   const getPriorityIndicator = (priority: NewsItem['priority']) => {
     switch (priority) {
       case 'high':
-        return <div className="w-2 h-2 bg-red-500 rounded-full"></div>;
+        return <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full flex-shrink-0"></div>;
       case 'medium':
-        return <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>;
+        return <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>;
       case 'low':
       default:
-        return <div className="w-2 h-2 bg-green-500 rounded-full"></div>;
+        return <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full flex-shrink-0"></div>;
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* News Items */}
-      <div className="space-y-3">
+      <div className="space-y-2.5 sm:space-y-3">
         {data.news.slice(0, 4).map((item) => {
           const typeInfo = getTypeInfo(item.type);
 
           return (
-            <div key={item.id} className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0">
-              <div className="flex items-start space-x-3">
+            <div key={item.id} className="border-b border-gray-100 pb-2.5 sm:pb-3 last:border-b-0 last:pb-0">
+              <div className="flex items-start space-x-2 sm:space-x-3">
                 {getPriorityIndicator(item.priority)}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
                     <span className="text-sm">{typeInfo.emoji}</span>
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${typeInfo.bgColor} ${typeInfo.color}`}>
+                    <span className={`text-xs font-medium px-2 py-0.5 sm:px-2.5 rounded ${typeInfo.bgColor} ${typeInfo.color}`}>
                       {item.type}
                     </span>
                     <span className="text-xs text-gray-500">

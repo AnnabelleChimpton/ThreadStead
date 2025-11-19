@@ -234,7 +234,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
         <div className="bg-amber-100 border-b border-amber-300 px-6 py-2">
           <div className="mx-auto max-w-5xl flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-amber-600">⚠️</span>
+              <span className="text-amber-600"><PixelIcon name="alert" size={16} /></span>
               <span className="text-amber-800">
                 Identity conflict detected. Your browser has keys for a different account than you&apos;re logged in as.
               </span>
