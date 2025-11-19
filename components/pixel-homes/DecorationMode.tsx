@@ -11,6 +11,7 @@ import useIsMobile, { useIsTouch, usePrefersReducedMotion } from '../../hooks/us
 import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping'
 import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 import { DEFAULT_DECORATION_GRID, DecorationGridConfig } from '@/lib/pixel-homes/decoration-grid-utils'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 // Import palette colors to convert themes to explicit colors
 const PALETTE_COLORS = {
@@ -1009,10 +1010,10 @@ export default function DecorationMode({
         isMobile ? 'px-4 py-3' : 'px-6 py-4'
       }`}>
         <div className="flex items-center gap-2">
-          <h2 className={`font-headline font-bold text-thread-pine ${
+          <h2 className={`font-headline font-bold text-thread-pine flex items-center gap-2 ${
             isMobile ? 'text-lg' : 'text-xl'
           }`}>
-            🎨 {isMobile ? 'Decorate' : 'Decorate Your Home'}
+            <PixelIcon name="paint-bucket" size={isMobile ? 20 : 24} /> {isMobile ? 'Decorate' : 'Decorate Your Home'}
           </h2>
           {!isMobile && (
             <span className="text-sm text-thread-sage bg-thread-cream px-3 py-1 rounded-full">
@@ -1129,7 +1130,7 @@ export default function DecorationMode({
             }`}
             title="Return to Home Page"
           >
-            🏠
+            <PixelIcon name="home" />
           </button>
 
           <button
@@ -1154,7 +1155,7 @@ export default function DecorationMode({
             }`}
             title="Save Changes (Ctrl+S)"
           >
-            💾 Save
+            <PixelIcon name="save" /> Save
           </button>
         </div>
       </div>
@@ -1508,11 +1509,11 @@ export default function DecorationMode({
             <div className="px-4 pt-4 pb-2">
               <div className={`flex ${isMobile ? 'overflow-x-auto -mx-4 px-4 pb-1' : 'flex-wrap'} gap-2`}>
                 {[
-                  { key: 'decorations', label: 'Decor', icon: '🎨' },
-                  { key: 'house', label: 'House', icon: '🏠' },
-                  { key: 'themes', label: 'Themes', icon: '🎭' },
-                  { key: 'atmosphere', label: 'Sky', icon: '🌤️' },
-                  { key: 'text', label: 'Text', icon: '📝' }
+                  { key: 'decorations', label: 'Decor', icon: 'paint-bucket' as const },
+                  { key: 'house', label: 'House', icon: 'home' as const },
+                  { key: 'themes', label: 'Themes', icon: 'sliders' as const },
+                  { key: 'atmosphere', label: 'Sky', icon: 'cloud' as const },
+                  { key: 'text', label: 'Text', icon: 'file' as const }
                 ].map(({key, label, icon}) => (
                   <button
                     key={key}
@@ -1526,7 +1527,7 @@ export default function DecorationMode({
                     }`}
                     style={isMobile ? { minHeight: '64px' } : {}}
                   >
-                    <span className={isMobile ? 'text-xl' : ''}>{icon}</span>
+                    <PixelIcon name={icon} size={isMobile ? 20 : 16} />
                     <span className={isMobile ? 'text-xs font-medium whitespace-nowrap' : ''}>{label}</span>
                   </button>
                 ))}
@@ -1550,11 +1551,11 @@ export default function DecorationMode({
             <div className="px-4 pt-4 pb-2">
               <div className={`flex ${isMobile ? 'overflow-x-auto -mx-4 px-4 pb-1' : 'flex-wrap'} gap-2`}>
                 {[
-                  { key: 'decorations', label: 'Decor', icon: '🎨' },
-                  { key: 'house', label: 'House', icon: '🏠' },
-                  { key: 'themes', label: 'Themes', icon: '🎭' },
-                  { key: 'atmosphere', label: 'Sky', icon: '🌤️' },
-                  { key: 'text', label: 'Text', icon: '📝' }
+                  { key: 'decorations', label: 'Decor', icon: 'paint-bucket' as const },
+                  { key: 'house', label: 'House', icon: 'home' as const },
+                  { key: 'themes', label: 'Themes', icon: 'sliders' as const },
+                  { key: 'atmosphere', label: 'Sky', icon: 'cloud' as const },
+                  { key: 'text', label: 'Text', icon: 'file' as const }
                 ].map(({key, label, icon}) => (
                   <button
                     key={key}
@@ -1568,7 +1569,7 @@ export default function DecorationMode({
                     }`}
                     style={isMobile ? { minHeight: '64px' } : {}}
                   >
-                    <span className={isMobile ? 'text-xl' : ''}>{icon}</span>
+                    <PixelIcon name={icon} size={isMobile ? 20 : 16} />
                     <span className={isMobile ? 'text-xs font-medium whitespace-nowrap' : ''}>{label}</span>
                   </button>
                 ))}

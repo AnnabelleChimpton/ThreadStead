@@ -4,6 +4,7 @@ import { NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Layout from "@/components/ui/layout/Layout";
 import { getSessionUser } from "@/lib/auth/server";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 import { 
   getExistingDid, 
   exportIdentityToken, 
@@ -431,7 +432,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
 
               <div className="bg-gradient-to-r from-thread-cream to-blue-50 border-2 border-thread-sage rounded-lg p-8">
                 <div className="text-center mb-8">
-                  <h1 className="thread-headline text-3xl mb-4">📧 Add Email Address (Optional)</h1>
+                  <h1 className="thread-headline text-3xl mb-4"><PixelIcon name="mail" className="inline-block align-middle mr-1" /> Add Email Address (Optional)</h1>
                   <h2 className="text-xl font-medium text-thread-pine mb-4">Enable Email Login</h2>
                 </div>
 
@@ -504,7 +505,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                     >
                       {isEmailLoading ? (
                         <>
-                          <span>⏳</span>
+                          <PixelIcon name="clock" className="inline-block align-middle" />
                           Adding...
                         </>
                       ) : (
@@ -734,7 +735,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                       </>
                     ) : (
                       <>
-                        <span className="text-amber-600 text-sm font-medium">⏳ {userEmail}</span>
+                        <span className="text-amber-600 text-sm font-medium"><PixelIcon name="clock" className="inline-block align-middle mr-1" /> {userEmail}</span>
                         <span className="text-xs text-amber-500">(pending verification)</span>
                       </>
                     )}
@@ -818,7 +819,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
           {currentIdentity && (
             <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
               <h3 className="thread-label text-lg mb-3 flex items-center gap-2">
-                <span>📧</span>
+                <PixelIcon name="mail" />
                 Email Login
               </h3>
               <div className="space-y-3">
@@ -855,7 +856,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                   ) : (
                     <div className="bg-amber-50 border border-amber-200 p-3 rounded text-sm">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-amber-800 font-medium">⏳ Email pending verification</span>
+                        <span className="text-amber-800 font-medium"><PixelIcon name="clock" className="inline-block align-middle mr-1" /> Email pending verification</span>
                         <span className="text-xs text-amber-600">Unverified</span>
                       </div>
                       <p className="text-amber-700 text-xs mb-3">
@@ -884,7 +885,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                   )
                 ) : (
                   <div className="bg-gray-50 border border-gray-200 p-3 rounded text-sm">
-                    <p className="text-gray-800 font-medium mb-2">📧 Email login not set</p>
+                    <p className="text-gray-800 font-medium mb-2"><PixelIcon name="mail" className="inline-block align-middle mr-1" /> Email login not set</p>
                     <p className="text-gray-700 text-xs mb-3">
                       Add an email address to enable magic link login as an alternative to your DID key. You&apos;ll need to verify the email before it can be used for login.
                     </p>

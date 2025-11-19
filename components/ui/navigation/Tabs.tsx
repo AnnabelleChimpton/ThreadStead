@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-export type TabSpec = { id: string; label: string; content: React.ReactNode };
+export type TabSpec = { id: string; label: React.ReactNode; content: React.ReactNode };
 type TabsProps = {
   tabs: TabSpec[];
   initialId?: string;   // from server

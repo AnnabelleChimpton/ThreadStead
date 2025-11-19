@@ -1,4 +1,5 @@
 import { isWelcomeGraduate } from '@/lib/welcome/progress';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface WelcomeGraduateBadgeProps {
   size?: 'small' | 'medium' | 'large';
@@ -21,11 +22,11 @@ export default function WelcomeGraduateBadge({
   };
 
   return (
-    <div 
+    <div
       className={`inline-flex items-center gap-1 bg-gradient-to-r from-green-100 to-blue-100 border-2 border-green-400 rounded-full font-bold text-green-700 shadow-[2px_2px_0_#000] ${sizeClasses[size]}`}
       title="Completed the Welcome Ring tutorial!"
     >
-      <span>🎓</span>
+      <PixelIcon name="trophy" />
       <span>Welcome Graduate</span>
     </div>
   );
@@ -38,11 +39,11 @@ export function WelcomeGraduateMiniBadge() {
   }
 
   return (
-    <span 
-      className="inline-block text-lg"
+    <span
+      className="inline-block"
       title="Welcome Ring Graduate"
     >
-      🎓
+      <PixelIcon name="trophy" size={18} />
     </span>
   );
 }

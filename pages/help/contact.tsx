@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface ContactProps {
   siteConfig: SiteConfig;
@@ -43,7 +44,9 @@ export default function Contact({ siteConfig }: ContactProps) {
           {/* Contact Options */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             <div className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6">
-              <div className="text-4xl mb-4">💬</div>
+              <div className="mb-4 flex justify-center">
+                <PixelIcon name="chat" size={32} />
+              </div>
               <h2 className="text-2xl font-bold text-thread-pine mb-3">
                 General Inquiries
               </h2>

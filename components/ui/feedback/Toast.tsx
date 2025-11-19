@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon'
 
 export interface ToastProps {
   message: string
@@ -19,12 +20,12 @@ export default function Toast({ message, type = 'info', duration = 5000, onClose
     return () => clearTimeout(timer)
   }, [duration, onClose])
 
-  const getIcon = () => {
+  const getIcon = (): PixelIconName => {
     switch (type) {
-      case 'success': return '✅'
-      case 'error': return '❌'
-      case 'warning': return '⚠️'
-      default: return 'ℹ️'
+      case 'success': return 'check'
+      case 'error': return 'close'
+      case 'warning': return 'alert'
+      default: return 'info-box'
     }
   }
 
@@ -70,7 +71,7 @@ export default function Toast({ message, type = 'info', duration = 5000, onClose
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <span className={`text-2xl ${colors.icon}`}>{getIcon()}</span>
+              <PixelIcon name={getIcon()} size={24} className={colors.icon} />
               <h3 className="text-lg font-semibold">
                 {type === 'success' && 'Success'}
                 {type === 'error' && 'Error'}

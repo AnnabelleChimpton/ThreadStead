@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface Decoration {
   id: string;
@@ -270,7 +271,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
               disabled={migrating}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
             >
-              {migrating ? '⏳ Migrating...' : '🔄 Migrate BETA_ITEMS'}
+              {migrating ? <><PixelIcon name="clock" /> Migrating...</> : <><PixelIcon name="reload" /> Migrate BETA_ITEMS</>}
             </button>
 
             <input

@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface DiscoverHubProps {
   siteConfig: SiteConfig;
@@ -44,7 +45,9 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
           <div className="mb-12">
             <div className="bg-gradient-to-br from-thread-cream via-thread-paper to-pink-50 border-2 border-thread-sage rounded-lg shadow-[4px_4px_0_#A18463] p-8 sm:p-10 hover:shadow-[6px_6px_0_#A18463] transition-shadow">
               <div className="text-center mb-8">
-                <div className="text-6xl mb-4">🏘️</div>
+                <div className="mb-4 flex justify-center">
+                  <PixelIcon name="home" size={48} />
+                </div>
                 <h2 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-3">
                   Pixel Home Neighborhoods
                 </h2>
@@ -59,7 +62,9 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                   href="/neighborhood/explore/all"
                   className="bg-white border-2 border-thread-sage rounded-lg p-5 hover:bg-thread-cream transition-colors shadow-sm hover:shadow-md text-center"
                 >
-                  <div className="text-3xl mb-2">🏘️</div>
+                  <div className="mb-2 flex justify-center">
+                    <PixelIcon name="home" size={32} />
+                  </div>
                   <div className="font-bold text-thread-pine mb-1">Street View</div>
                   <div className="text-sm text-thread-sage">Immersive stroll</div>
                 </Link>
@@ -98,7 +103,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                   href="/neighborhood/explore/all"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-thread-sage !text-white text-lg font-bold rounded-lg hover:bg-thread-pine transition-colors shadow-md hover:shadow-lg"
                 >
-                  🏘️ Explore Pixel Homes
+                  <PixelIcon name="home" size={16} className="inline-block align-middle" /> Explore Pixel Homes
                 </Link>
               </div>
             </div>
@@ -115,7 +120,9 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                 href="/discover/residents"
                 className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6 hover:shadow-[4px_4px_0_#A18463] transition-shadow"
               >
-                <div className="text-4xl mb-4">👥</div>
+                <div className="mb-4 flex justify-center">
+                  <PixelIcon name="users" size={32} />
+                </div>
                 <h3 className="text-xl font-bold text-thread-pine mb-2">
                   Meet Residents
                 </h3>
@@ -149,7 +156,9 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                 href="/discover/search"
                 className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6 hover:shadow-[4px_4px_0_#A18463] transition-shadow"
               >
-                <div className="text-4xl mb-4">🔍</div>
+                <div className="mb-4 flex justify-center">
+                  <PixelIcon name="search" size={32} />
+                </div>
                 <h3 className="text-xl font-bold text-thread-pine mb-2">
                   Search
                 </h3>

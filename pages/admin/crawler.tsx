@@ -11,6 +11,7 @@ import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface QueueStats {
   pending: number;
@@ -695,7 +696,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
                       disabled={running}
                       className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
                     >
-                      {running ? '⏳ Running...' : '▶️ Run Crawler'}
+                      {running ? <><PixelIcon name="clock" /> Running...</> : <><PixelIcon name="play" /> Run Crawler</>}
                     </button>
                   </div>
                 </div>
@@ -730,7 +731,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
                       disabled={addingUrl || !newUrl}
                       className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
                     >
-                      {addingUrl ? '⏳ Adding...' : '➕ Add URL'}
+                      {addingUrl ? <><PixelIcon name="clock" /> Adding...</> : <><PixelIcon name="plus" /> Add URL</>}
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
@@ -751,15 +752,15 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
                 <div className="border-t pt-6 flex gap-4">
                   <button
                     onClick={retryFailed}
-                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 flex items-center gap-2"
                   >
-                    🔄 Retry Failed Items
+                    <PixelIcon name="reload" /> Retry Failed Items
                   </button>
                   <button
                     onClick={cleanupOld}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 flex items-center gap-2"
                   >
-                    🧹 Cleanup Old Items
+                    <PixelIcon name="delete" /> Cleanup Old Items
                   </button>
                 </div>
 
@@ -782,7 +783,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
                       disabled={testing || !testUrl}
                       className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50"
                     >
-                      {testing ? '⏳ Testing...' : '🧪 Test Crawl'}
+                      {testing ? <><PixelIcon name="clock" /> Testing...</> : <><PixelIcon name="debug" /> Test Crawl</>}
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
@@ -956,7 +957,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
                                 disabled={runningItemId === item.id}
                                 className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
                               >
-                                {runningItemId === item.id ? '⏳' : '▶️ Run Now'}
+                                {runningItemId === item.id ? <PixelIcon name="clock" /> : <><PixelIcon name="play" /> Run Now</>}
                               </button>
                             )}
                           </td>
@@ -1049,7 +1050,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
                     disabled={addingBlockedSite || !newBlockedDomain}
                     className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50"
                   >
-                    {addingBlockedSite ? '⏳ Adding...' : '➕ Add'}
+                    {addingBlockedSite ? <><PixelIcon name="clock" /> Adding...</> : <><PixelIcon name="plus" /> Add</>}
                   </button>
                 </div>
               </div>
@@ -1098,7 +1099,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
                                 onClick={() => deleteBlockedSite(site.id, site.domain)}
                                 className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
                               >
-                                🗑️ Remove
+                                <PixelIcon name="trash" /> Remove
                               </button>
                             </td>
                           </tr>
@@ -1122,7 +1123,7 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
                     disabled={cleaningUp}
                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
                   >
-                    {cleaningUp ? '⏳ Loading...' : '🔍 Preview Cleanup'}
+                    {cleaningUp ? <><PixelIcon name="clock" /> Loading...</> : <><PixelIcon name="search" /> Preview Cleanup</>}
                   </button>
                 </div>
               </div>

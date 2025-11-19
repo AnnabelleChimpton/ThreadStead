@@ -75,6 +75,7 @@
     "multer": "^2.0.2",
     "next": "15.4.6",
     "node-fetch": "^3.3.2",
+    "pixelarticons": "^1.8.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-image-crop": "^11.0.10",
@@ -88,6 +89,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",

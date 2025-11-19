@@ -1,8 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
+import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: PixelIconName;
   title: string;
   description: string;
   actionLabel?: string;
@@ -13,7 +14,7 @@ interface EmptyStateProps {
 }
 
 export default function EmptyState({
-  icon = '📭',
+  icon = 'mail',
   title,
   description,
   actionLabel,
@@ -44,7 +45,9 @@ export default function EmptyState({
 
   return (
     <div className={`p-8 rounded-lg border-2 text-center space-y-4 ${styles.container} ${className}`}>
-      <div className="text-4xl mb-2">{icon}</div>
+      <div className="mb-2 flex justify-center">
+        <PixelIcon name={icon} size={48} />
+      </div>
       <h3 className={`text-lg font-medium ${styles.title}`}>{title}</h3>
       <p className="text-sm max-w-sm mx-auto">{description}</p>
 
@@ -75,7 +78,7 @@ export default function EmptyState({
 export function FirstPostEmptyState({ username }: { username?: string }) {
   return (
     <EmptyState
-      icon="✍️"
+      icon="edit"
       title="Ready for your first post?"
       description={`${username ? `Welcome ${username}! ` : ''}Share something with the community to get started. Introduce yourself, share a project, or just say hello!`}
       actionLabel="Create Your First Post"
@@ -88,7 +91,7 @@ export function FirstPostEmptyState({ username }: { username?: string }) {
 export function NoPostsEmptyState() {
   return (
     <EmptyState
-      icon="📝"
+      icon="file"
       title="No posts yet"
       description="This user hasn't shared anything yet. Check back later or explore other profiles!"
       actionLabel="Explore More Profiles"
@@ -101,7 +104,7 @@ export function NoPostsEmptyState() {
 export function NoHomesEmptyState() {
   return (
     <EmptyState
-      icon="🏠"
+      icon="home"
       title="No homes to explore yet"
       description="The neighborhood is still growing! Be one of the first to create a pixel home."
       actionLabel="Create Your Home"
@@ -114,7 +117,7 @@ export function NoHomesEmptyState() {
 export function NoThreadRingsEmptyState() {
   return (
     <EmptyState
-      icon="💍"
+      icon="coin"
       title="No ThreadRings yet"
       description="Communities are forming! Create the first ThreadRing around your interests."
       actionLabel="Create a ThreadRing"
@@ -127,7 +130,7 @@ export function NoThreadRingsEmptyState() {
 export function NoBookmarksEmptyState() {
   return (
     <EmptyState
-      icon="🔖"
+      icon="script"
       title="No bookmarks saved"
       description="When you find posts you love, bookmark them to save for later. Start exploring to find interesting content!"
       actionLabel="Explore Posts"
@@ -141,7 +144,7 @@ export function NoGuestbookEntriesEmptyState({ isOwner = false }: { isOwner?: bo
   if (isOwner) {
     return (
       <EmptyState
-        icon="📝"
+        icon="file"
         title="Your guestbook is empty"
         description="When visitors leave messages on your profile, they'll appear here. Share your profile link to get your first entry!"
         actionLabel="Share Your Profile"
@@ -159,7 +162,7 @@ export function NoGuestbookEntriesEmptyState({ isOwner = false }: { isOwner?: bo
 
   return (
     <EmptyState
-      icon="✨"
+      icon="bookmark"
       title="Be the first to sign their guestbook!"
       description="Leave a friendly message to let them know you visited."
       actionLabel="Sign Guestbook"

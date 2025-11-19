@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface BadgeUploadProps {
   onUploadSuccess: (badgeUrls: { badgeImageUrl: string; badgeImageHighResUrl: string }) => void;
@@ -147,7 +148,7 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
                 disabled={uploading || disabled}
                 className="px-4 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_#000]"
               >
-                {uploading ? '🔄 Uploading...' : '🚀 Upload Badge'}
+                {uploading ? <><PixelIcon name="reload" /> Uploading...</> : <><PixelIcon name="zap" /> Upload Badge</>}
               </button>
               <button
                 onClick={() => {

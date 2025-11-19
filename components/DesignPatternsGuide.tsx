@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface PatternExample {
   name: string;
@@ -628,7 +629,7 @@ function toggleFAQ(element) {
                       : 'bg-blue-500 text-white hover:bg-blue-600'
                   }`}
                 >
-                  {copiedCode === pattern.name ? '✓ Copied!' : '📋 Copy Code'}
+                  {copiedCode === pattern.name ? <><PixelIcon name="check" /> Copied!</> : <><PixelIcon name="clipboard" /> Copy Code</>}
                 </button>
               </div>
             </div>

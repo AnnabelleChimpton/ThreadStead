@@ -5,6 +5,7 @@ import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import Link from 'next/link';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface BookmarksProps {
   siteConfig: SiteConfig;
@@ -152,11 +153,11 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
 
   const getSourceIcon = (sourceType: string) => {
     switch (sourceType) {
-      case 'community_index': return '🌟';
-      case 'site_content': return '🏠';
+      case 'community_index': return <PixelIcon name="bookmark" className="inline-block" />;
+      case 'site_content': return <PixelIcon name="home" className="inline-block" />;
       case 'external_search': return '🌐';
-      case 'manual': return '📝';
-      default: return '🔗';
+      case 'manual': return <PixelIcon name="file" className="inline-block" />;
+      default: return <PixelIcon name="link" className="inline-block" />;
     }
   };
 

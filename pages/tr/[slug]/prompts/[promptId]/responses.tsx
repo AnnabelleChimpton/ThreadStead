@@ -8,6 +8,7 @@ import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic'
 import { db } from '@/lib/config/database/connection'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface PromptResponse {
   id: string
@@ -284,7 +285,9 @@ export default function PromptResponsesPage({
 
           {responses.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <span className="text-4xl mb-4 block">📝</span>
+              <span className="mb-4 block flex justify-center">
+                <PixelIcon name="file" size={32} />
+              </span>
               <p className="text-lg">No responses yet.</p>
               <p className="text-sm mt-2">Be the first to respond to this challenge!</p>
             </div>

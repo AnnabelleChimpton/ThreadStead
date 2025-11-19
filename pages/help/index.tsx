@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface HelpHubProps {
   siteConfig: SiteConfig;
@@ -11,11 +12,11 @@ interface HelpHubProps {
 export default function HelpHub({ siteConfig }: HelpHubProps) {
   const tabs = [
     { href: '/help/faq', label: 'FAQ', icon: '❓', description: 'Frequently asked questions' },
-    { href: '/help/music-guide', label: 'Music Guide', icon: '🎵', description: 'Complete guide for creating and uploading MIDI music' },
-    { href: '/help/guidelines', label: 'Guidelines', icon: '📋', description: 'Community standards and expectations' },
+    { href: '/help/music-guide', label: 'Music Guide', icon: <PixelIcon name="music" />, description: 'Complete guide for creating and uploading MIDI music' },
+    { href: '/help/guidelines', label: 'Guidelines', icon: <PixelIcon name="clipboard" />, description: 'Community standards and expectations' },
     { href: '/help/privacy', label: 'Privacy', icon: '🔒', description: 'How we protect your data' },
     { href: '/help/terms', label: 'Terms', icon: '📜', description: 'Terms of service' },
-    { href: '/help/contact', label: 'Contact', icon: '✉️', description: 'Get in touch with us' },
+    { href: '/help/contact', label: 'Contact', icon: <PixelIcon name="mail" />, description: 'Get in touch with us' },
   ];
 
   return (

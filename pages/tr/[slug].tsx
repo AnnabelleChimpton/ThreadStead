@@ -26,6 +26,7 @@ import { useWelcomeTracking } from "../../hooks/useWelcomeTracking";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useWelcomeRingTracking } from "../../hooks/useWelcomeRingTracking";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 // Helper function to count total descendants recursively
 function countTotalDescendants(descendants: any[]): number {
@@ -1031,7 +1032,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 </div>
               ) : posts.length === 0 ? (
                 <div className="tr-posts-empty text-gray-600 text-center py-12 px-3">
-                  <div className="text-4xl mb-3">📝</div>
+                  <div className="mb-3 flex justify-center">
+                    <PixelIcon name="file" size={32} />
+                  </div>
                   <p className="font-medium">No posts yet</p>
                   <p className="text-sm mt-1">Posts from members will appear here</p>
                 </div>

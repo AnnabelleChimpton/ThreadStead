@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { WidgetProps, WidgetConfig } from '../types/widget';
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon';
 
 const quickActionsConfig: WidgetConfig = {
   id: 'quick-actions',
@@ -16,7 +17,7 @@ interface QuickAction {
   id: string;
   label: string;
   href: string;
-  icon: string;
+  icon: PixelIconName;
   color: string;
   description?: string;
 }
@@ -27,7 +28,7 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
       id: 'new-post',
       label: 'New Post',
       href: '/post/new',
-      icon: '✏️',
+      icon: 'edit',
       color: 'bg-blue-500 hover:bg-blue-600',
       description: 'Create a new post'
     },
@@ -35,7 +36,7 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
       id: 'profile',
       label: 'Profile',
       href: user?.primaryHandle ? `/resident/${user.primaryHandle.split('@')[0]}` : '/profile',
-      icon: '👤',
+      icon: 'user',
       color: 'bg-green-500 hover:bg-green-600',
       description: 'View your profile'
     },
@@ -43,7 +44,7 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
       id: 'pixel-home',
       label: 'Pixel Home',
       href: '/pixel-homes/build',
-      icon: '🏠',
+      icon: 'home',
       color: 'bg-purple-500 hover:bg-purple-600',
       description: 'Customize your pixel home'
     },
@@ -51,7 +52,7 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
       id: 'settings',
       label: 'Settings',
       href: '/settings',
-      icon: '⚙️',
+      icon: 'sliders',
       color: 'bg-gray-500 hover:bg-gray-600',
       description: 'Account settings'
     },
@@ -59,7 +60,7 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
       id: 'feed',
       label: 'Feed',
       href: '/feed',
-      icon: '📰',
+      icon: 'file',
       color: 'bg-orange-500 hover:bg-orange-600',
       description: 'View your feed'
     },
@@ -67,7 +68,7 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
       id: 'discover',
       label: 'Discover',
       href: '/discover',
-      icon: '🔍',
+      icon: 'search',
       color: 'bg-indigo-500 hover:bg-indigo-600',
       description: 'Discover new content'
     }
@@ -110,7 +111,7 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
             `}
             title={action.description}
           >
-            <span className="text-lg">{action.icon}</span>
+            <PixelIcon name={action.icon} size={20} />
             <span className="text-xs font-medium leading-tight">{action.label}</span>
           </Link>
         ))}

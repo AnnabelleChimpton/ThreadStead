@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
 import { createNewIdentityWithSeedPhrase, createNewIdentityWithPassword } from "@/lib/api/did/did-client";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 import { validatePasswordStrength } from "@/lib/auth/password";
 import { validateUsername } from "@/lib/domain/validation/username";
 import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/templates/default-profile-templates";
@@ -584,7 +585,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           {currentStep === 'welcome' && (
             <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block">👋</span>
+                <div className="text-6xl mb-4 flex justify-center"><PixelIcon name="human-handsup" size={64} /></div>
                 <h1 className="text-3xl font-bold mb-2">Welcome to {siteConfig.site_name}!</h1>
                 <p className="text-gray-600">
                   Let&apos;s create your decentralized identity. You&apos;ll own your account completely.
@@ -721,7 +722,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       </span>
                     </div>
                     <div className="flex-grow">
-                      <h3 className="text-xl font-bold mb-2">🌱 Passwordless Keypair</h3>
+                      <h3 className="text-xl font-bold mb-2"><PixelIcon name="drop" className="inline-block align-middle mr-1" /> Passwordless Keypair</h3>
                       <p className="text-gray-700 mb-4">
                         Maximum security with a 12-word recovery phrase. No passwords needed.
                       </p>
@@ -891,7 +892,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     onClick={() => downloadSeedPhrase(generatedSeedPhrase)}
                     className="flex-1 px-4 py-3 bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all flex items-center justify-center gap-2"
                   >
-                    <span>💾</span>
+                    <PixelIcon name="save" />
                     Download Backup
                   </button>
                 </div>

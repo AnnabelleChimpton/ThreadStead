@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/useToast';
 import Toast from '@/components/ui/feedback/Toast';
 import { useWelcomeRingIntro } from '@/hooks/useWelcomeRingIntro';
 import WelcomeRingIntroPopup from './WelcomeRingIntroPopup';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface WelcomeRingGuideProps {
   ringSlug: string;
@@ -182,7 +183,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
     return (
       <div className="bg-gradient-to-r from-green-100 to-blue-100 border-b-2 border-green-400 p-3">
         <div className="text-center">
-          <span className="text-green-700 font-bold">🎓 Welcome Ring Graduate!</span>
+          <span className="text-green-700 font-bold"><PixelIcon name="trophy" className="inline-block align-middle mr-1" /> Welcome Ring Graduate!</span>
           <span className="ml-2 text-green-600 text-sm">You&apos;ve completed the welcome tour!</span>
         </div>
       </div>

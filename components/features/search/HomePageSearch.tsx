@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useExtSearchStatus } from '@/hooks/useExtSearch';
 import { SurpriseMeButtonCompact } from './SurpriseMeButton';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface HomePageSearchProps {
   className?: string;
@@ -57,7 +58,7 @@ export default function HomePageSearch({ className }: HomePageSearchProps) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={searchMode === 'web' ? '🌍 Search the indie web...' : '🔍 Search ThreadRings, users, posts...'}
+              placeholder={searchMode === 'web' ? 'Search the indie web...' : 'Search ThreadRings, users, posts...'}
               className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
@@ -86,7 +87,7 @@ export default function HomePageSearch({ className }: HomePageSearchProps) {
               }`}
             >
               <div className="flex items-center justify-center gap-2">
-                <span className="text-lg">🏠</span>
+                <PixelIcon name="home" />
                 <span>ThreadStead</span>
               </div>
             </button>
@@ -100,7 +101,7 @@ export default function HomePageSearch({ className }: HomePageSearchProps) {
               }`}
             >
               <div className="flex items-center justify-center gap-2">
-                <span className="text-lg">🌍</span>
+                <PixelIcon name="map" />
                 <span>WorldWideWeb</span>
               </div>
             </button>
@@ -112,13 +113,13 @@ export default function HomePageSearch({ className }: HomePageSearchProps) {
       <div className="text-xs mt-2 text-center">
         {searchMode === 'web' && hasExternalEngines ? (
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded px-3 py-1">
-            <span className="text-purple-700 font-medium">🌍 Searching the WorldWideWeb</span>
+            <span className="text-purple-700 font-medium"><PixelIcon name="map" className="inline-block align-middle" /> Searching the WorldWideWeb</span>
             <span className="text-gray-500 mx-2">•</span>
             <span className="text-gray-600">Discover indie sites & small web content</span>
           </div>
         ) : (
           <div className="bg-blue-50 border border-blue-200 rounded px-3 py-1">
-            <span className="text-blue-700 font-medium">🏠 Searching ThreadStead</span>
+            <span className="text-blue-700 font-medium"><PixelIcon name="home" className="inline-block align-middle" /> Searching ThreadStead</span>
             <span className="text-gray-500 mx-2">•</span>
             <span className="text-gray-600">Find community content & ThreadRings</span>
           </div>

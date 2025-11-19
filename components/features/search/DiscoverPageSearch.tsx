@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SurpriseMeButtonCompact } from './SurpriseMeButton';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface DiscoverPageSearchProps {
   searchQuery: string;
@@ -56,15 +57,15 @@ export default function DiscoverPageSearch({
   const getSearchPlaceholder = () => {
     switch (searchTab) {
       case 'all':
-        return '🔍 Search everything: indie sites, local content, and the web...';
+        return 'Search everything: indie sites, local content, and the web...';
       case 'indie':
-        return '🌟 Search indie index sites...';
+        return 'Search indie index sites...';
       case 'site':
-        return '🏠 Search ThreadRings, users, and posts...';
+        return 'Search ThreadRings, users, and posts...';
       case 'web':
-        return '🌍 Search the indie web...';
+        return 'Search the indie web...';
       default:
-        return '🔍 Search...';
+        return 'Search...';
     }
   };
 
@@ -72,31 +73,31 @@ export default function DiscoverPageSearch({
     switch (searchTab) {
       case 'all':
         return {
-          icon: '🔍',
+          icon: <PixelIcon name="search" />,
           title: 'Unified Search',
           description: 'Search across indie sites, local content, and the web all at once'
         };
       case 'indie':
         return {
-          icon: '🌐',
+          icon: <PixelIcon name="map" />,
           title: 'Indie Index',
           description: 'Discover curated sites from our indie web collection'
         };
       case 'site':
         return {
-          icon: '🏠',
+          icon: <PixelIcon name="home" />,
           title: 'Site Content',
           description: 'Find ThreadRings, users, and posts on this site'
         };
       case 'web':
         return {
-          icon: '🌍',
+          icon: <PixelIcon name="map" />,
           title: 'Web Search',
           description: 'Search the broader indie web and small sites'
         };
       default:
         return {
-          icon: '🔍',
+          icon: <PixelIcon name="search" />,
           title: 'Search',
           description: 'Search content'
         };
@@ -120,7 +121,7 @@ export default function DiscoverPageSearch({
             }`}
           >
             <span className="flex items-center justify-center gap-1">
-              <span className="hidden sm:inline">🔍</span>
+              <span className="hidden sm:inline"><PixelIcon name="search" /></span>
               <span>All</span>
             </span>
             {searchTab === 'all' && (
@@ -137,7 +138,7 @@ export default function DiscoverPageSearch({
             }`}
           >
             <span className="flex items-center justify-center gap-1">
-              <span className="hidden sm:inline">🌐</span>
+              <span className="hidden sm:inline"><PixelIcon name="map" /></span>
               <span className="hidden sm:inline">Indie Index</span>
               <span className="sm:hidden">Indie</span>
             </span>
@@ -155,7 +156,7 @@ export default function DiscoverPageSearch({
             }`}
           >
             <span className="flex items-center justify-center gap-1">
-              <span className="hidden sm:inline">🏠</span>
+              <span className="hidden sm:inline"><PixelIcon name="home" /></span>
               <span>Site</span>
             </span>
             {searchTab === 'site' && (
@@ -173,7 +174,7 @@ export default function DiscoverPageSearch({
               }`}
             >
               <span className="flex items-center justify-center gap-1">
-                <span className="hidden sm:inline">🌍</span>
+                <span className="hidden sm:inline"><PixelIcon name="map" /></span>
                 <span>Web</span>
               </span>
               {searchTab === 'web' && (
@@ -195,7 +196,7 @@ export default function DiscoverPageSearch({
             <div className={`flex items-center gap-1 sm:gap-2 ${
               searchTab === 'indie' ? 'text-purple-700' : 'text-blue-700'
             }`}>
-              <span className="text-sm sm:text-base">💫</span>
+              <span className="text-sm sm:text-base"><PixelIcon name="bookmark" /></span>
               <span className="font-medium text-[10px] sm:text-xs">
                 {searchTab === 'indie'
                   ? 'Help build our indie index!'
@@ -223,7 +224,7 @@ export default function DiscoverPageSearch({
                 }`}
                 title="Submit your favorite indie sites to our indie index"
               >
-                <span>➕</span>
+                <PixelIcon name="plus" />
                 <span className="hidden sm:inline">Submit</span>
               </Link>
               <Link
@@ -235,7 +236,7 @@ export default function DiscoverPageSearch({
                 }`}
                 title="Help review and validate indie sites"
               >
-                <span>✅</span>
+                <PixelIcon name="check" />
                 <span className="hidden sm:inline">Review</span>
               </Link>
               <Link
@@ -247,7 +248,7 @@ export default function DiscoverPageSearch({
                 }`}
                 title="See how our community index is growing"
               >
-                <span>📊</span>
+                <PixelIcon name="chart" />
                 <span className="hidden sm:inline">Stats</span>
               </Link>
             </div>
@@ -321,7 +322,7 @@ export default function DiscoverPageSearch({
             title="Surprise me with something interesting!"
           >
             <span className="flex items-center gap-1">
-              <span>🎲</span>
+              <PixelIcon name="zap" />
               <span className="hidden sm:inline">Surprise</span>
             </span>
           </button>
@@ -338,7 +339,7 @@ export default function DiscoverPageSearch({
                 onChange={(e) => setIndieOnly(e.target.checked)}
                 className="rounded-sm w-3 h-3"
               />
-              <span>🌱 Indie</span>
+              <span><PixelIcon name="drop" className="inline-block" /> Indie</span>
             </label>
             <label className="inline-flex items-center gap-1 cursor-pointer text-xs">
               <input
@@ -347,7 +348,7 @@ export default function DiscoverPageSearch({
                 onChange={(e) => setPrivacyOnly(e.target.checked)}
                 className="rounded-sm w-3 h-3"
               />
-              <span>🔒 Privacy</span>
+              <span><PixelIcon name="shield" className="inline-block" /> Privacy</span>
             </label>
             <label className="inline-flex items-center gap-1 cursor-pointer text-xs">
               <input
@@ -356,7 +357,7 @@ export default function DiscoverPageSearch({
                 onChange={(e) => setNoTrackers(e.target.checked)}
                 className="rounded-sm w-3 h-3"
               />
-              <span>🛡️ No Trackers</span>
+              <span><PixelIcon name="shield" className="inline-block" /> No Trackers</span>
             </label>
           </div>
         )}
@@ -371,7 +372,7 @@ export default function DiscoverPageSearch({
                 onChange={(e) => setIncludeUnvalidated(e.target.checked)}
                 className="rounded-sm w-3 h-3"
               />
-              <span>🔄 Include unvalidated sites</span>
+              <span><PixelIcon name="reload" className="inline-block" /> Include unvalidated sites</span>
             </label>
           </div>
         )}

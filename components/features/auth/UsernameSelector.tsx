@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 type PolicyDocuments = {
   terms_simple: string;
@@ -189,9 +190,9 @@ export default function UsernameSelector({
 
   const getStatusIcon = () => {
     if (!username || !isValidFormat) return null;
-    if (isChecking) return <span className="text-gray-500">⏳</span>;
-    if (isAvailable === true) return <span className="text-green-600">✓</span>;
-    if (isAvailable === false) return <span className="text-red-600">✗</span>;
+    if (isChecking) return <span className="text-gray-500"><PixelIcon name="clock" /></span>;
+    if (isAvailable === true) return <span className="text-green-600"><PixelIcon name="check" /></span>;
+    if (isAvailable === false) return <span className="text-red-600"><PixelIcon name="close" /></span>;
     return null;
   };
 

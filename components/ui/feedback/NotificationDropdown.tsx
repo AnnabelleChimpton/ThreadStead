@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { NotificationData } from "./NotificationList";
+import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
 
 interface NotificationDropdownProps {
   className?: string;
@@ -196,22 +197,22 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     }
   };
 
-  const getNotificationIcon = (type: string): string => {
+  const getNotificationIcon = (type: string): PixelIconName => {
     switch (type) {
       case "comment":
       case "reply":
-        return "💬";
+        return "chat";
       case "photo_comment":
       case "photo_reply":
-        return "📸";
+        return "camera";
       case "follow":
-        return "👥";
+        return "users";
       case "friend":
-        return "🤝";
+        return "users";
       case "guestbook":
-        return "📝";
+        return "file";
       default:
-        return "🔔";
+        return "notification";
     }
   };
 
@@ -307,8 +308,8 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
                         unoptimized={notification.actor.avatarUrl?.endsWith('.gif')}
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-thread-sage/20 flex items-center justify-center text-sm flex-shrink-0">
-                        {getNotificationIcon(notification.type)}
+                      <div className="w-8 h-8 rounded-full bg-thread-sage/20 flex items-center justify-center flex-shrink-0">
+                        <PixelIcon name={getNotificationIcon(notification.type)} />
                       </div>
                     )}
                     

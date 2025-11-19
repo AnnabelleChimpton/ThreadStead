@@ -1,4 +1,5 @@
 import React from 'react';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 export const componentCategories = [
   {
@@ -1096,9 +1097,9 @@ Every component in the Visual Builder now extends UniversalCSSProps, which means
         <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-lg shadow-lg">
           <div className="text-sm font-bold mb-2">🎨 Universal CSS Props</div>
           <div className="text-xs space-y-1">
-            <div>✅ All 59 components migrated</div>
-            <div>✅ Standard CSS property names</div>
-            <div>✅ Real-time preview in Visual Builder</div>
+            <div><PixelIcon name="check" /> All 59 components migrated</div>
+            <div><PixelIcon name="check" /> Standard CSS property names</div>
+            <div><PixelIcon name="check" /> Real-time preview in Visual Builder</div>
           </div>
         </div>
       ),

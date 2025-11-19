@@ -1,6 +1,7 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface MediaGridProps extends UniversalCSSProps {
   className?: string;
@@ -28,7 +29,9 @@ export default function MediaGrid(props: MediaGridProps) {
     return (
       <div className={containerClassName} style={style}>
         <div className="text-center py-12">
-          <div className="text-6xl mb-4">🖼️</div>
+          <div className="mb-4 flex justify-center">
+            <PixelIcon name="image" size={48} />
+          </div>
           <h3 className="text-lg font-medium text-thread-pine mb-2">No featured photos</h3>
           <p className="text-thread-sage">
             {owner?.displayName || owner?.handle || 'This user'} hasn&apos;t featured any photos yet.

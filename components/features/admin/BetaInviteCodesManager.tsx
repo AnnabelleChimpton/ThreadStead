@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface BetaInviteCode {
   id: string;
@@ -258,7 +259,9 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
 
       {codes.length === 0 && (
         <div className="text-center py-8 text-gray-500">
-          <span className="text-4xl mb-4 block">📭</span>
+          <span className="mb-4 block flex justify-center">
+            <PixelIcon name="mail" size={32} />
+          </span>
           <p>No beta invite codes found.</p>
           <p className="text-sm mt-2">Beta invite codes are generated automatically when you create your account.</p>
         </div>

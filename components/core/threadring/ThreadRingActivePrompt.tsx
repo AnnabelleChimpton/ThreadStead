@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface ThreadRingPrompt {
   id: string
@@ -165,11 +166,11 @@ export default function ThreadRingActivePrompt({
               )}
               
               {activePrompt.responseCount > 0 && (
-                <Link 
+                <Link
                   href={`/threadrings/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
                   className="tr-prompt-button-white inline-flex items-center px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors no-underline hover:no-underline"
                 >
-                  <span className="mr-2">👥</span>
+                  <PixelIcon name="users" className="mr-2" />
                   View All {activePrompt.responseCount} Responses
                 </Link>
               )}

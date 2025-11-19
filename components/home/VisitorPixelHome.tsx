@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import EnhancedHouseCanvas from '../pixel-homes/EnhancedHouseCanvas';
 import { HouseTemplate, ColorPalette, HouseCustomizations } from '../pixel-homes/HouseSVG';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 /**
  * VisitorPixelHome - Shows demo pixel home to visitors on unified homepage
@@ -125,7 +126,7 @@ export default function VisitorPixelHome() {
                   : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
               }`}
             >
-              <span>🌙</span>
+              <PixelIcon name="moon" />
               Night
             </button>
           </div>
@@ -136,9 +137,9 @@ export default function VisitorPixelHome() {
       <div className="text-center">
         <Link
           href="/signup"
-          className="inline-block px-6 py-3 bg-yellow-200 hover:bg-yellow-100 border border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] text-sm font-bold transition-all transform hover:-translate-y-0.5"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-200 hover:bg-yellow-100 border border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] text-sm font-bold transition-all transform hover:-translate-y-0.5"
         >
-          🏠 Create Your Own Home
+          <PixelIcon name="home" /> Create Your Own Home
         </Link>
         <div className="mt-2 text-xs text-gray-600">
           Join to customize your pixel home with your own style!

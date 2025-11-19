@@ -4,6 +4,7 @@ import NavBar from "../navigation/NavBar";
 import ScrollToTop from "../feedback/ScrollToTop";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -41,7 +42,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
           <div className="bg-amber-100 border-b border-amber-300 px-6 py-2 relative z-[10000]">
             <div className="mx-auto max-w-5xl flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-amber-600">⚠️</span>
+                <PixelIcon name="alert" />
                 <span className="text-amber-800">
                   Identity conflict detected. Your browser has keys for a different account than you&apos;re logged in as.
                 </span>

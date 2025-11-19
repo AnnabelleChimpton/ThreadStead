@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import UserMention from "@/components/ui/navigation/UserMention";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 type MFItem = { userId: string; handle: string; avatarUrl: string };
 
@@ -47,7 +48,7 @@ export default function MutualFriends({ username }: { username: string }) {
         aria-expanded={expanded}
         title="Mutual friends"
       >
-        <span>🫂</span>
+        <PixelIcon name="users" />
         <span>Mutual friends: {count}</span>
       </button>
 

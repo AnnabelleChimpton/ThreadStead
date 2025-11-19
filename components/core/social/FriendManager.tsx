@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 export interface SelectedFriend {
   id: string;
@@ -215,7 +216,7 @@ export default function FriendManager({
                   </div>
                   <div className="text-sm">
                     {isSelected ? (
-                      <span className="text-green-700 font-medium">✓ Selected</span>
+                      <span className="text-green-700 font-medium"><PixelIcon name="check" /> Selected</span>
                     ) : canSelect ? (
                       <span className="text-gray-600">Click to add</span>
                     ) : (

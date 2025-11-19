@@ -6,6 +6,7 @@ import Link from "next/link";
 import Head from "next/head";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import Image from "next/image";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface LandingPageProps {
   siteConfig: SiteConfig;
@@ -131,7 +132,7 @@ export default function LandingPage({ siteConfig }: LandingPageProps) {
               </div>
 
               <div className="feature-card p-4 rounded">
-                <h3 className="font-bold text-lg mb-2">💬 Connect Without Algorithms</h3>
+                <h3 className="font-bold text-lg mb-2"><PixelIcon name="chat" className="inline-block align-middle mr-1" /> Connect Without Algorithms</h3>
                 <p className="text-gray-600 text-sm">
                   Follow people and see their posts in chronological order. That's it. No AI deciding what you should see. No engagement optimization. Sign guestbooks, make friends (yes, there's a Top 8), and actually talk to people.
                 </p>

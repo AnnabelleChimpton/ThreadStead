@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { WidgetProps, WidgetConfig } from '../types/widget';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 const welcomeConfig: WidgetConfig = {
   id: 'welcome',
@@ -24,7 +25,7 @@ function WelcomeWidget({ user, data }: WelcomeWidgetProps) {
     const username = user.primaryHandle?.split('@')[0] || 'friend';
     return (
       <div className="text-center py-4 space-y-2">
-        <p className="text-lg font-semibold text-[#2E4B3F]">Welcome back, {username}! 👋</p>
+        <p className="text-lg font-semibold text-[#2E4B3F]">Welcome back, {username}! <PixelIcon name="human-handsup" className="inline-block align-middle" /></p>
         <p className="text-sm text-gray-600">
           Your space on the web, your rules.
         </p>
@@ -36,7 +37,7 @@ function WelcomeWidget({ user, data }: WelcomeWidgetProps) {
   return (
     <div className="py-4 space-y-3">
       <div className="text-center">
-        <p className="text-lg font-semibold text-[#2E4B3F] mb-2">👋 The internet doesn&apos;t have to suck</p>
+        <p className="text-lg font-semibold text-[#2E4B3F] mb-2"><PixelIcon name="human-handsup" className="inline-block align-middle mr-1" /> The internet doesn&apos;t have to suck</p>
       </div>
 
       <div className="text-sm text-gray-700 space-y-2 px-2">

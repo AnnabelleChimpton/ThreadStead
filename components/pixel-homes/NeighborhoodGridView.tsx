@@ -4,6 +4,7 @@ import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './Ho
 import HouseDetailsPopup from './HouseDetailsPopup'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
 import UserMention from '@/components/ui/navigation/UserMention'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface NeighborhoodMember {
   userId: string
@@ -76,7 +77,9 @@ export default function NeighborhoodGridView({ members, ringSlug }: Neighborhood
   if (members.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="text-6xl mb-4">🏘️</div>
+        <div className="mb-4 flex justify-center">
+          <PixelIcon name="home" size={48} />
+        </div>
         <div className="text-xl font-headline text-thread-pine mb-2">No homes found</div>
         <div className="text-thread-sage">
           This neighborhood is empty right now. Check back later!
@@ -179,8 +182,8 @@ export default function NeighborhoodGridView({ members, ringSlug }: Neighborhood
 
       {/* Statistics */}
       <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
-        <h3 className="text-lg font-headline font-medium text-thread-pine mb-4">
-          🏘️ Neighborhood Statistics
+        <h3 className="text-lg font-headline font-medium text-thread-pine mb-4 flex items-center gap-2">
+          <PixelIcon name="home" size={16} /> Neighborhood Statistics
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

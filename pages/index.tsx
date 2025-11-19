@@ -16,6 +16,7 @@ import { useRouter } from "next/router";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import VisitorPixelHome from "@/components/home/VisitorPixelHome";
 import { getOgImageUrl } from "@/lib/utils/og-image-url";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 const db = new PrismaClient();
 
@@ -162,7 +163,7 @@ function UserPixelHome({ user }: { user: any }) {
     return (
       <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-4 sm:p-8 text-center min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
         <div className="space-y-3">
-          <div className="animate-spin text-2xl">🏠</div>
+          <div className="animate-spin text-2xl"><PixelIcon name="home" size={24} className="inline-block" /></div>
           <div className="text-gray-600 text-sm sm:text-base">Building your pixel home...</div>
           <div className="text-xs text-gray-500">This might take a moment</div>
         </div>
@@ -182,7 +183,7 @@ function UserPixelHome({ user }: { user: any }) {
               href={`/home/${user?.primaryHandle?.split('@')[0] || 'setup'}`}
               className="inline-block px-3 py-2 bg-yellow-200 hover:bg-yellow-100 border border-black shadow-[2px_2px_0_#000] text-xs sm:text-sm font-medium transition-colors"
             >
-              🎨 Customize Your Home
+              <PixelIcon name="paint-bucket" size={16} className="inline-block align-middle" /> Customize Your Home
             </Link>
           </div>
         </div>
@@ -269,7 +270,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
       <div className="w-full max-w-full sm:max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SimpleCard title={`Welcome to ${siteConfig.site_name}`}>
           <div className="text-center py-4 sm:py-6">
-            <div className="text-4xl sm:text-5xl mb-4">🏘️✨</div>
+            <div className="text-4xl sm:text-5xl mb-4"><PixelIcon name="home" size={48} className="inline-block" /><PixelIcon name="bookmark" size={48} className="inline-block" /></div>
             <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>
             <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-4 px-2">
               <strong>Create your pixel home, join ThreadRings (themed communities), and connect with creative people in a retro-inspired social platform on {siteConfig.site_name}.</strong>
@@ -282,7 +283,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
                 href="/signup"
                 className="border border-black px-6 sm:px-8 py-3 sm:py-4 bg-yellow-200 hover:bg-yellow-100 shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] inline-block text-lg sm:text-xl font-bold transition-all transform hover:-translate-y-0.5"
               >
-                🚀 Start Your Journey
+                <PixelIcon name="zap" size={20} className="inline-block align-middle" /> Start Your Journey
               </Link>
             </div>
 
@@ -327,7 +328,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div className="border border-gray-300 p-4 bg-blue-50 rounded text-center">
-                <div className="text-2xl mb-2">🏠</div>
+                <div className="text-2xl mb-2"><PixelIcon name="home" size={32} /></div>
                 <h3 className="font-bold mb-2 text-sm sm:text-base">Create Your Space</h3>
                 <p className="text-xs sm:text-sm text-gray-600">Build a unique pixel home and customize your profile</p>
               </div>
@@ -337,7 +338,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
                 <p className="text-xs sm:text-sm text-gray-600">Find communities around your interests and hobbies</p>
               </div>
               <div className="border border-gray-300 p-4 bg-purple-50 rounded text-center">
-                <div className="text-2xl mb-2">✨</div>
+                <div className="text-2xl mb-2"><PixelIcon name="bookmark" size={32} /></div>
                 <h3 className="font-bold mb-2 text-sm sm:text-base">Share & Connect</h3>
                 <p className="text-xs sm:text-sm text-gray-600">Post content that appears on your profile and in Ring feeds</p>
               </div>
@@ -366,7 +367,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
                 href="/home/demo"
                 className="flex items-center gap-3 p-4 bg-pink-50 hover:bg-pink-100 border-2 border-pink-300 rounded-lg transition-colors group shadow-sm hover:shadow-md"
               >
-                <span className="text-2xl flex-shrink-0">🎨</span>
+                <span className="text-2xl flex-shrink-0"><PixelIcon name="paint-bucket" size={32} /></span>
                 <div>
                   <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Try Pixel Home Demo</h3>
                   <p className="text-xs sm:text-sm text-gray-600">See what you can build - interactive preview!</p>
@@ -388,7 +389,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
                 href="/neighborhood/explore/all"
                 className="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 border border-gray-300 rounded-lg transition-colors group"
               >
-                <span className="text-2xl flex-shrink-0">🏘️</span>
+                <span className="text-2xl flex-shrink-0"><PixelIcon name="home" size={32} /></span>
                 <div>
                   <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Browse Homes</h3>
                   <p className="text-xs sm:text-sm text-gray-600">Visit member pixel homes and profiles</p>
@@ -621,7 +622,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                 href="/feed"
                 className="flex items-center gap-2 px-4 py-2 bg-green-200 hover:bg-green-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
               >
-                <span className="text-lg">📰</span>
+                <PixelIcon name="article" size={20} className="inline-block" />
                 <span>Browse Feed</span>
               </Link>
 
@@ -630,7 +631,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                   href={`/resident/${user.primaryHandle.split('@')[0]}`}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-200 hover:bg-blue-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
                 >
-                  <span className="text-lg">👤</span>
+                  <PixelIcon name="user" size={20} className="inline-block" />
                   <span>My Profile</span>
                 </Link>
               )}
@@ -639,7 +640,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                 href="/post/new"
                 className="flex items-center gap-2 px-4 py-2 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
               >
-                <span className="text-lg">✍️</span>
+                <PixelIcon name="edit" size={20} className="inline-block" />
                 <span>Create Post</span>
               </Link>
 
@@ -647,7 +648,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                 href="/neighborhood/explore/all"
                 className="flex items-center gap-2 px-4 py-2 bg-purple-200 hover:bg-purple-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
               >
-                <span className="text-lg">🏘️</span>
+                <PixelIcon name="home" size={20} className="inline-block" />
                 <span>Explore Homes</span>
               </Link>
 
@@ -655,7 +656,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                 href="/help/faq"
                 className="flex items-center gap-2 px-4 py-2 bg-orange-200 hover:bg-orange-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
               >
-                <span className="text-lg">❓</span>
+                <PixelIcon name="info-box" size={20} className="inline-block" />
                 <span>FAQ</span>
               </Link>
             </div>
@@ -678,7 +679,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                       onClick={() => setIsDropdownOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-green-50 border-b border-gray-300 transition-colors"
                     >
-                      <span className="text-lg">📰</span>
+                      <PixelIcon name="article" size={20} className="inline-block" />
                       <span className="font-medium text-sm">Browse Feed</span>
                     </Link>
 
@@ -688,7 +689,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                         onClick={() => setIsDropdownOpen(false)}
                         className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 border-b border-gray-300 transition-colors"
                       >
-                        <span className="text-lg">👤</span>
+                        <PixelIcon name="user" size={20} className="inline-block" />
                         <span className="font-medium text-sm">My Profile</span>
                       </Link>
                     )}
@@ -698,7 +699,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                       onClick={() => setIsDropdownOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-yellow-50 border-b border-gray-300 transition-colors"
                     >
-                      <span className="text-lg">✍️</span>
+                      <PixelIcon name="edit" size={20} className="inline-block" />
                       <span className="font-medium text-sm">Create Post</span>
                     </Link>
 
@@ -707,7 +708,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                       onClick={() => setIsDropdownOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 border-b border-gray-300 transition-colors"
                     >
-                      <span className="text-lg">🏘️</span>
+                      <PixelIcon name="home" size={20} className="inline-block" />
                       <span className="font-medium text-sm">Explore Homes</span>
                     </Link>
 
@@ -716,7 +717,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                       onClick={() => setIsDropdownOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 transition-colors"
                     >
-                      <span className="text-lg">❓</span>
+                      <PixelIcon name="info-box" size={20} className="inline-block" />
                       <span className="font-medium text-sm">FAQ</span>
                     </Link>
                   </div>
@@ -729,7 +730,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
         {!user && (
           <div className="text-center mb-3">
             <p className="text-xs sm:text-sm text-gray-600">
-              🔍 Search the indie web, not the corporate web
+              <PixelIcon name="search" size={16} className="inline-block align-middle" /> Search the indie web, not the corporate web
             </p>
           </div>
         )}
@@ -765,7 +766,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                 <>
                   <UserPixelHome user={user} />
                   <div className="text-center mt-3 text-xs text-gray-500">
-                    <span>💡 Click your home to visit your profile page</span>
+                    <span><PixelIcon name="lightbulb" size={16} className="inline-block align-middle" /> Click your home to visit your profile page</span>
                   </div>
                 </>
               ) : (
@@ -886,7 +887,7 @@ function UnifiedHomepage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; o
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               <div className="border border-gray-300 p-3 bg-blue-50 rounded">
-                <h3 className="font-bold mb-1 text-sm sm:text-base">🏠 Your Content Lives with You</h3>
+                <h3 className="font-bold mb-1 text-sm sm:text-base"><PixelIcon name="home" size={16} className="inline-block align-middle" /> Your Content Lives with You</h3>
                 <p className="text-xs sm:text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
               </div>
               <div className="border border-gray-300 p-3 bg-green-50 rounded">
@@ -894,7 +895,7 @@ function UnifiedHomepage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; o
                 <p className="text-xs sm:text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
               </div>
               <div className="border border-gray-300 p-3 bg-purple-50 rounded sm:col-span-2 md:col-span-1">
-                <h3 className="font-bold mb-1 text-sm sm:text-base">✨ Community-Focused</h3>
+                <h3 className="font-bold mb-1 text-sm sm:text-base"><PixelIcon name="bookmark" size={16} className="inline-block align-middle" /> Community-Focused</h3>
                 <p className="text-xs sm:text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
               </div>
             </div>

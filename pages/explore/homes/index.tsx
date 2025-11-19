@@ -5,6 +5,7 @@ import ExploreHomesGrid from '../../../components/pixel-homes/ExploreHomesGrid'
 import { HouseTemplate, ColorPalette } from '../../../components/pixel-homes/HouseSVG'
 import { db } from '../../../lib/config/database/connection'
 import Link from 'next/link'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface HomeExploreData {
   userId: string
@@ -72,7 +73,7 @@ export default function ExploreHomes({
             <div className="text-center mb-8">
               <div className="bg-thread-paper border border-thread-sage rounded-lg p-8 shadow-sm mb-6">
                 <h1 className="text-3xl font-headline font-bold text-thread-pine mb-4">
-                  🏘️ Explore ThreadStead Neighborhoods
+                  <PixelIcon name="home" size={32} className="inline-block align-middle" /> Explore ThreadStead Neighborhoods
                 </h1>
                 
                 <p className="text-thread-sage max-w-2xl mx-auto mb-6 leading-relaxed">
@@ -126,7 +127,7 @@ export default function ExploreHomes({
                           href={`/neighborhood/mutual-friends/${currentUserId}`}
                           className="px-4 py-2 bg-thread-paper border border-thread-sage text-thread-sage rounded-md text-sm font-medium hover:bg-thread-sage hover:text-thread-paper transition-colors"
                         >
-                          👥 Mutual Friends
+                          <PixelIcon name="users" size={16} className="inline-block align-middle" /> Mutual Friends
                         </Link>
                         <Link
                           href={`/neighborhood/following/${currentUserId}`}
@@ -154,18 +155,22 @@ export default function ExploreHomes({
             <div className="mt-8">
               <div className="bg-thread-paper border border-thread-sage rounded-lg p-8 shadow-sm">
                 <h3 className="text-lg font-headline font-medium text-thread-pine text-center mb-6">
-                  💡 Discovery Tips
+                  <PixelIcon name="lightbulb" size={16} className="inline-block align-middle" /> Discovery Tips
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
                   <div className="text-center p-4 bg-thread-cream rounded-lg border border-thread-sage">
-                    <div className="text-2xl mb-3">🎨</div>
+                    <div className="mb-3 flex justify-center">
+                      <PixelIcon name="paint-bucket" size={24} />
+                    </div>
                     <div className="font-medium text-thread-pine mb-2">Explore by Style</div>
                     <div className="text-sm text-thread-sage leading-relaxed">
                       Filter by house templates or color palettes to find homes that match your aesthetic
                     </div>
                   </div>
                   <div className="text-center p-4 bg-thread-cream rounded-lg border border-thread-sage">
-                    <div className="text-2xl mb-3">🔗</div>
+                    <div className="mb-3 flex justify-center">
+                      <PixelIcon name="link" size={24} />
+                    </div>
                     <div className="font-medium text-thread-pine mb-2">Find Connections</div>
                     <div className="text-sm text-thread-sage leading-relaxed">
                       Discover mutual friends, ThreadRing members, or people in your extended network

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import ReportButton from "../../ui/feedback/ReportButton";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface PostActionsDropdownProps {
   post: {
@@ -98,7 +99,7 @@ export default function PostActionsDropdown({
               onClick={copyPostLink}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-100"
             >
-              <span>🔗</span>
+              <PixelIcon name="link" />
               Share Link
             </button>
 
@@ -111,7 +112,7 @@ export default function PostActionsDropdown({
                   disabled={busy}
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-100 disabled:opacity-50"
                 >
-                  <span>✏️</span>
+                  <PixelIcon name="edit" />
                   Edit
                 </button>
                 <button
@@ -119,7 +120,7 @@ export default function PostActionsDropdown({
                   disabled={busy}
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-100 disabled:opacity-50"
                 >
-                  <span>🗑️</span>
+                  <PixelIcon name="trash" />
                   Delete
                 </button>
               </>
@@ -134,7 +135,7 @@ export default function PostActionsDropdown({
                   disabled={busy}
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-100 disabled:opacity-50"
                 >
-                  <span>{post.isPinned ? "📌" : "📍"}</span>
+                  <PixelIcon name="bookmark" />
                   {post.isPinned ? "Unpin" : "Pin"}
                 </button>
                 <button
@@ -142,7 +143,7 @@ export default function PostActionsDropdown({
                   disabled={busy}
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-100 disabled:opacity-50"
                 >
-                  <span>🗑️</span>
+                  <PixelIcon name="trash" />
                   Remove from Ring
                 </button>
               </>
@@ -157,7 +158,7 @@ export default function PostActionsDropdown({
                   disabled={busy}
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-100 disabled:opacity-50 text-red-600"
                 >
-                  <span>🛡️</span>
+                  <PixelIcon name="shield" />
                   Admin Delete
                 </button>
               </>

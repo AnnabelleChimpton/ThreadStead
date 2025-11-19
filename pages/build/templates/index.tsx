@@ -4,6 +4,7 @@ import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface TemplatesIndexProps {
   siteConfig: SiteConfig;
@@ -18,7 +19,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
           {/* Hero Section */}
           <div className="text-center mb-16">
             <h1 className="text-5xl sm:text-6xl font-black mb-4 text-gray-900">
-              🎨 Customize Your Profile
+              <PixelIcon name="paint-bucket" size={48} className="inline-block align-middle mr-2" /> Customize Your Profile
             </h1>
             <p className="text-xl text-gray-700 max-w-2xl mx-auto mb-4">
               Three ways to make your profile unique
@@ -33,7 +34,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
             <RetroCard>
               <div className="bg-gradient-to-r from-yellow-100 to-orange-100 border-3 border-yellow-400 p-6">
                 <div className="flex items-start gap-4">
-                  <div className="text-4xl">👋</div>
+                  <div className="text-4xl"><PixelIcon name="human-handsup" size={32} /></div>
                   <div className="flex-1">
                     <h2 className="text-2xl font-black mb-2">New to Threadstead?</h2>
                     <p className="text-gray-700 mb-3">
@@ -55,9 +56,9 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
             <RetroCard>
               <div className="text-center">
                 <div className="bg-green-100 border-2 border-green-500 rounded-lg px-4 py-2 inline-block mb-3">
-                  <span className="text-green-800 font-bold text-sm">✨ SIMPLEST - Start Here!</span>
+                  <span className="text-green-800 font-bold text-sm"><PixelIcon name="bookmark" className="inline-block align-middle mr-1" /> SIMPLEST - Start Here!</span>
                 </div>
-                <div className="text-6xl mb-4">🎨</div>
+                <div className="text-6xl mb-4"><PixelIcon name="paint-bucket" size={48} /></div>
                 <h2 className="text-3xl font-black mb-3">CSS Styling</h2>
                 <p className="text-gray-600 mb-6">
                   Just want to change colors, fonts, and spacing? Style your default profile layout without touching complex systems. Perfect for quick customization.
@@ -87,7 +88,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                     href={username ? `/resident/${username}/css-editor` : "/settings?tab=appearance"}
                     className="px-6 py-3 bg-green-200 border-3 border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] transition-all font-bold text-center"
                   >
-                    ✏️ Start CSS Styling
+                    <PixelIcon name="edit" className="inline-block align-middle mr-1" /> Start CSS Styling
                   </Link>
                   <Link
                     href="/design-css-tutorial"

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 import { WidgetProps, WidgetConfig } from '../types/widget';
 import { HouseTemplate, ColorPalette, HouseCustomizations } from '../../pixel-homes/HouseSVG';
 import EnhancedHouseCanvas from '../../pixel-homes/EnhancedHouseCanvas';
@@ -105,7 +106,7 @@ function PixelHomesNeighborhoodWidget({
   if (error) {
     return (
       <div className="text-center py-8 text-gray-500">
-        <div className="text-4xl mb-2">🏘️</div>
+        <div className="text-4xl mb-2"><PixelIcon name="home" size={32} /></div>
         <p className="text-sm mb-3">Unable to load neighborhood</p>
         {onRefresh && (
           <button
@@ -122,7 +123,7 @@ function PixelHomesNeighborhoodWidget({
   if (!data || !data.home) {
     return (
       <div className="text-center py-8 text-gray-500">
-        <div className="text-4xl mb-2">🏠</div>
+        <div className="text-4xl mb-2"><PixelIcon name="home" size={32} /></div>
         <p className="text-sm mb-3">No homes to explore</p>
         <div className="mt-2">
           <Link
@@ -169,7 +170,7 @@ function PixelHomesNeighborhoodWidget({
           title="Find another random home"
         >
           <span className={`text-sm ${isShuffling ? 'animate-spin' : ''}`}>
-            🎲
+            <PixelIcon name="zap" />
           </span>
         </button>
       </div>
@@ -202,13 +203,13 @@ function PixelHomesNeighborhoodWidget({
         {/* Stats */}
         <div className="flex justify-center space-x-4 text-xs text-gray-500">
           {home.stats.recentVisits > 0 && (
-            <span>👥 {home.stats.recentVisits} visits</span>
+            <span><PixelIcon name="users" className="inline-block align-middle" /> {home.stats.recentVisits} visits</span>
           )}
           {home.stats.ringMemberships > 0 && (
-            <span>🔗 {home.stats.ringMemberships} rings</span>
+            <span><PixelIcon name="link" className="inline-block align-middle" /> {home.stats.ringMemberships} rings</span>
           )}
           {home.homeConfig.hasDecorations && (
-            <span>🎨 Decorated</span>
+            <span><PixelIcon name="paint-bucket" className="inline-block align-middle" /> Decorated</span>
           )}
         </div>
 

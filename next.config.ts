@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: false,
   },
 
+  // Configure webpack to handle SVG imports with SVGR
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    });
+    return config;
+  },
+
   // Configure external image domains
   images: {
     remotePatterns: [

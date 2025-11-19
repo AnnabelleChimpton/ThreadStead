@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { isNewUser } from '@/lib/welcome/user-status';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface ProfileWelcomeNoteProps {
   user?: any;
@@ -44,7 +45,7 @@ export default function ProfileWelcomeNote({
       </div>
 
       <div className="text-center">
-        <div className="text-5xl mb-4">👋</div>
+        <div className="text-5xl mb-4 flex justify-center"><PixelIcon name="human-handsup" size={48} /></div>
         <h3 className="text-xl font-bold text-gray-800 mb-3">
           Welcome to Threadstead, {user?.primaryHandle?.split('@')[0] || 'friend'}!
         </h3>
@@ -54,7 +55,7 @@ export default function ProfileWelcomeNote({
         </p>
 
         <div className="bg-white/80 border border-purple-200 rounded-lg p-4 mb-4 mx-auto max-w-md">
-          <h4 className="font-bold text-purple-800 mb-2">🎓 Learn the basics:</h4>
+          <h4 className="font-bold text-purple-800 mb-2"><PixelIcon name="trophy" className="inline-block align-middle mr-1" /> Learn the basics:</h4>
           <div className="text-sm text-purple-700 space-y-1">
             <div>• How communities work</div>
             <div>• Posting and commenting</div>
@@ -68,7 +69,7 @@ export default function ProfileWelcomeNote({
             onClick={handleJoinWelcomeRing}
             className="px-6 py-3 bg-gradient-to-r from-green-200 to-blue-200 hover:from-green-300 hover:to-blue-300 border-2 border-green-400 shadow-[3px_3px_0_#16a34a] hover:shadow-[4px_4px_0_#16a34a] font-bold text-green-800 transition-all hover:translate-y-[-2px] rounded-lg"
           >
-            🎯 Join Welcome Ring
+            <PixelIcon name="gps" className="inline-block align-middle mr-1" /> Join Welcome Ring
           </button>
           
           <div className="text-gray-500 text-sm">or</div>
@@ -82,7 +83,7 @@ export default function ProfileWelcomeNote({
         </div>
 
         <p className="text-xs text-gray-500 mt-3 italic">
-          This tutorial takes about 5 minutes and you&apos;ll get a graduate badge! 🎓
+          This tutorial takes about 5 minutes and you&apos;ll get a graduate badge! <PixelIcon name="trophy" className="inline-block align-middle" />
         </p>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { WidgetProps, WidgetConfig } from '../types/widget';
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon';
 
 const weatherConfig: WidgetConfig = {
   id: 'weather',
@@ -16,7 +17,7 @@ interface WeatherData {
   location: string;
   temperature: number;
   condition: string;
-  emoji: string;
+  icon: PixelIconName;
   high: number;
   low: number;
   humidity: number;
@@ -27,7 +28,7 @@ interface WeatherData {
     high: number;
     low: number;
     condition: string;
-    emoji: string;
+    icon: PixelIconName;
   }[];
 }
 
@@ -48,15 +49,15 @@ const mockWeatherData: WeatherData = {
   location: 'Threadstead',
   temperature: 72,
   condition: 'Partly Cloudy',
-  emoji: '⛅',
+  icon: 'cloud',
   high: 78,
   low: 65,
   humidity: 45,
   windSpeed: 8,
   forecast: [
-    { day: 'Tomorrow', high: 75, low: 62, condition: 'Sunny', emoji: '☀️' },
-    { day: 'Thursday', high: 73, low: 60, condition: 'Rainy', emoji: '🌧️' },
-    { day: 'Friday', high: 76, low: 64, condition: 'Cloudy', emoji: '☁️' }
+    { day: 'Tomorrow', high: 75, low: 62, condition: 'Sunny', icon: 'sun' },
+    { day: 'Thursday', high: 73, low: 60, condition: 'Rainy', icon: 'drop' },
+    { day: 'Friday', high: 76, low: 64, condition: 'Cloudy', icon: 'cloud' }
   ]
 };
 
@@ -116,7 +117,7 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <span className="text-3xl">{weatherData.emoji}</span>
+            <PixelIcon name={weatherData.icon} size={32} />
             <div>
               <div className="text-2xl font-bold text-gray-900">
                 {convertTemp(weatherData.temperature)}
@@ -137,11 +138,11 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
       {/* Details */}
       <div className="flex justify-between text-xs text-gray-600 py-2 border-t border-gray-100">
         <div className="flex items-center space-x-1">
-          <span>💧</span>
+          <PixelIcon name="drop" />
           <span>{weatherData.humidity}%</span>
         </div>
         <div className="flex items-center space-x-1">
-          <span>💨</span>
+          <PixelIcon name="sun" />
           <span>{convertSpeed(weatherData.windSpeed)}</span>
         </div>
       </div>
@@ -151,7 +152,7 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
         {weatherData.forecast.map((day, index) => (
           <div key={index} className="flex items-center justify-between text-xs">
             <div className="flex items-center space-x-2 flex-1">
-              <span>{day.emoji}</span>
+              <PixelIcon name={day.icon} size={16} />
               <span className="text-gray-600">{day.day}</span>
             </div>
             <div className="flex items-center space-x-3 text-gray-500">
@@ -175,32 +176,32 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
 }
 
 // Weather code to condition mapping for Open-Meteo
-const getWeatherCondition = (weatherCode: number, isDay: boolean) => {
-  const conditions: Record<number, { condition: string; emoji: string; day?: string; night?: string }> = {
-    0: { condition: 'Clear', emoji: isDay ? '☀️' : '🌙' },
-    1: { condition: 'Mostly Clear', emoji: isDay ? '🌤️' : '🌙' },
-    2: { condition: 'Partly Cloudy', emoji: isDay ? '⛅' : '☁️' },
-    3: { condition: 'Overcast', emoji: '☁️' },
-    45: { condition: 'Foggy', emoji: '🌫️' },
-    48: { condition: 'Foggy', emoji: '🌫️' },
-    51: { condition: 'Light Drizzle', emoji: '🌦️' },
-    53: { condition: 'Drizzle', emoji: '🌦️' },
-    55: { condition: 'Heavy Drizzle', emoji: '🌧️' },
-    61: { condition: 'Light Rain', emoji: '🌦️' },
-    63: { condition: 'Rain', emoji: '🌧️' },
-    65: { condition: 'Heavy Rain', emoji: '🌧️' },
-    71: { condition: 'Light Snow', emoji: '🌨️' },
-    73: { condition: 'Snow', emoji: '❄️' },
-    75: { condition: 'Heavy Snow', emoji: '❄️' },
-    80: { condition: 'Rain Showers', emoji: '🌦️' },
-    81: { condition: 'Rain Showers', emoji: '🌧️' },
-    82: { condition: 'Heavy Rain Showers', emoji: '🌧️' },
-    95: { condition: 'Thunderstorm', emoji: '⛈️' },
-    96: { condition: 'Thunderstorm', emoji: '⛈️' },
-    99: { condition: 'Severe Thunderstorm', emoji: '⛈️' }
+const getWeatherCondition = (weatherCode: number, isDay: boolean): { condition: string; icon: PixelIconName } => {
+  const conditions: Record<number, { condition: string; icon: PixelIconName }> = {
+    0: { condition: 'Clear', icon: isDay ? 'sun' : 'cloud-moon' },
+    1: { condition: 'Mostly Clear', icon: isDay ? 'cloud' : 'cloud-moon' },
+    2: { condition: 'Partly Cloudy', icon: isDay ? 'cloud' : 'cloud' },
+    3: { condition: 'Overcast', icon: 'cloud' },
+    45: { condition: 'Foggy', icon: 'cloud' },
+    48: { condition: 'Foggy', icon: 'cloud' },
+    51: { condition: 'Light Drizzle', icon: 'cloud' },
+    53: { condition: 'Drizzle', icon: 'cloud' },
+    55: { condition: 'Heavy Drizzle', icon: 'drop' },
+    61: { condition: 'Light Rain', icon: 'cloud' },
+    63: { condition: 'Rain', icon: 'drop' },
+    65: { condition: 'Heavy Rain', icon: 'drop' },
+    71: { condition: 'Light Snow', icon: 'cloud' },
+    73: { condition: 'Snow', icon: 'cloud' },
+    75: { condition: 'Heavy Snow', icon: 'cloud' },
+    80: { condition: 'Rain Showers', icon: 'cloud' },
+    81: { condition: 'Rain Showers', icon: 'drop' },
+    82: { condition: 'Heavy Rain Showers', icon: 'drop' },
+    95: { condition: 'Thunderstorm', icon: 'zap' },
+    96: { condition: 'Thunderstorm', icon: 'zap' },
+    99: { condition: 'Severe Thunderstorm', icon: 'zap' }
   };
 
-  return conditions[weatherCode] || { condition: 'Unknown', emoji: '❓' };
+  return conditions[weatherCode] || { condition: 'Unknown', icon: 'sun' };
 };
 
 export const weatherWidget = {
@@ -272,7 +273,7 @@ export const weatherWidget = {
           high: Math.round(daily.temperature_2m_max[i] * 9/5 + 32), // Convert C to F
           low: Math.round(daily.temperature_2m_min[i] * 9/5 + 32), // Convert C to F
           condition: condition.condition,
-          emoji: condition.emoji
+          icon: condition.icon
         });
       }
 
@@ -280,7 +281,7 @@ export const weatherWidget = {
         location: locationName,
         temperature: Math.round(current.temperature_2m * 9/5 + 32), // Convert C to F
         condition: currentCondition.condition,
-        emoji: currentCondition.emoji,
+        icon: currentCondition.icon,
         high: Math.round(daily.temperature_2m_max[0] * 9/5 + 32), // Today's high
         low: Math.round(daily.temperature_2m_min[0] * 9/5 + 32), // Today's low
         humidity: Math.round(current.relative_humidity_2m),
@@ -293,10 +294,10 @@ export const weatherWidget = {
       console.error('Error fetching weather data:', error);
 
       // Fallback to mock data if API fails
-      const conditions = [
-        { condition: 'Partly Cloudy', emoji: '⛅' },
-        { condition: 'Sunny', emoji: '☀️' },
-        { condition: 'Cloudy', emoji: '☁️' }
+      const conditions: { condition: string; icon: PixelIconName }[] = [
+        { condition: 'Partly Cloudy', icon: 'cloud' },
+        { condition: 'Sunny', icon: 'sun' },
+        { condition: 'Cloudy', icon: 'cloud' }
       ];
 
       const randomCondition = conditions[Math.floor(Math.random() * conditions.length)];
@@ -306,7 +307,7 @@ export const weatherWidget = {
         location: user?.location || 'Threadstead',
         temperature: baseTemp,
         condition: randomCondition.condition,
-        emoji: randomCondition.emoji,
+        icon: randomCondition.icon,
         high: baseTemp + 8,
         low: baseTemp - 12,
         humidity: 45,

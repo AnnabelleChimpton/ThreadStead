@@ -4,6 +4,7 @@ import type { ResidentData } from '@/components/features/templates/ResidentDataP
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { componentRegistry } from '@/lib/templates/core/template-registry';
 import type { ProfileMode } from '@/components/core/profile/ProfileModeRenderer';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 // Island wrapper props interface
 export interface ProfileIslandWrapperProps {
@@ -165,7 +166,7 @@ function IslandError({ error, componentType, islandId, profileMode }: IslandErro
       data-state="error"
     >
       <div className="error-content">
-        <span className="error-icon">⚠️</span>
+        <span className="error-icon"><PixelIcon name="alert" /></span>
         <div className="error-text">
           <div className="error-title">Component Error</div>
           <div className="error-details">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useResidentData } from './ResidentDataProvider';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface ImageCarouselProps extends UniversalCSSProps {
   autoplay?: boolean;
@@ -287,7 +288,9 @@ export default function ImageCarousel(props: ImageCarouselProps) {
 
     return (
       <div className={emptyFilteredClasses} style={emptyStyle}>
-        <div className="text-4xl mb-2">🖼️</div>
+        <div className="mb-2 flex justify-center">
+          <PixelIcon name="image" size={32} />
+        </div>
         <div className="font-medium">No images to display</div>
         <div className="text-sm">Upload some images to create a carousel</div>
       </div>

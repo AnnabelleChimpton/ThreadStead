@@ -4,6 +4,7 @@ import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useForEachContext } from './loops/ForEach';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 /**
  * DynamicImage Component - Image with src bound to a template variable
@@ -124,7 +125,9 @@ export default function DynamicImage(props: DynamicImageProps) {
           }}
         >
           <div className="text-center text-gray-500 dark:text-gray-400">
-            <div className="text-4xl mb-2">🖼️</div>
+            <div className="mb-2 flex justify-center">
+              <PixelIcon name="image" size={32} />
+            </div>
             <div className="text-xs font-mono">
               Bound to: ${varName}
             </div>

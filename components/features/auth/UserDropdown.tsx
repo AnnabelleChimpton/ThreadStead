@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useMe } from "@/hooks/useMe";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface UserDropdownProps {
   isMobile?: boolean;
@@ -82,7 +83,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
           className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
         >
-          <span>🏠</span>
+          <PixelIcon name="home" />
           My Pixel Home
         </Link>
 
@@ -91,7 +92,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
           className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
         >
-          <span>👤</span>
+          <PixelIcon name="user" />
           My Profile
         </Link>
 
@@ -120,7 +121,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
           className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
         >
-          <span>⚙️</span>
+          <PixelIcon name="sliders" />
           Settings
         </Link>
 
@@ -130,7 +131,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
             className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
             onClick={onItemClick}
           >
-            <span>⚙️</span>
+            <PixelIcon name="sliders" />
             Admin Panel
           </Link>
         )}
@@ -188,7 +189,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
               className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
               onClick={() => setIsOpen(false)}
             >
-              <span>🏠</span>
+              <PixelIcon name="home" />
               My Pixel Home
             </Link>
 
@@ -197,7 +198,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
               className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
               onClick={() => setIsOpen(false)}
             >
-              <span>👤</span>
+              <PixelIcon name="user" />
               My Profile
             </Link>
 
@@ -227,17 +228,17 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
               className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
               onClick={() => setIsOpen(false)}
             >
-              <span>⚙️</span>
+              <PixelIcon name="sliders" />
               Settings
             </Link>
-            
+
             {isAdmin && (
               <Link
                 href="/settings/admin"
                 className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
                 onClick={() => setIsOpen(false)}
               >
-                <span>⚙️</span>
+                <PixelIcon name="sliders" />
                 Admin Panel
               </Link>
             )}

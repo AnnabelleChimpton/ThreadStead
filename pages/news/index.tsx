@@ -4,6 +4,7 @@ import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import Link from "next/link";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface NewsItem {
   id: string;
@@ -128,7 +129,7 @@ export default function NewsPage({ siteConfig, initialNews, hasMore: initialHasM
         {/* Header */}
         <RetroCard>
           <div className="p-6">
-            <h1 className="text-2xl font-bold mb-2">📢 Site News & Announcements</h1>
+            <h1 className="text-2xl font-bold mb-2 flex items-center gap-2"><PixelIcon name="speaker" size={24} /> Site News & Announcements</h1>
             <p className="text-gray-600">
               Stay updated with the latest site news, feature announcements, and important updates.
             </p>

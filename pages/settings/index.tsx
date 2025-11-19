@@ -10,6 +10,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToastContext } from '@/lib/templates/state/ToastProvider';
 import ConfirmModal from '@/components/ui/feedback/ConfirmModal';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 // Import existing components
 import ProfilePhotoUpload from "@/components/core/profile/ProfilePhotoUpload";
@@ -536,7 +537,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
   const settingsTabs: TabSpec[] = [
     {
       id: "profile",
-      label: "👤 Profile",
+      label: <><PixelIcon name="user" /> Profile</>,
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
@@ -607,7 +608,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold text-gray-900">👥 Followers Only</div>
+                    <div className="font-bold text-gray-900"><PixelIcon name="users" /> Followers Only</div>
                     <div className="text-sm text-gray-600">
                       Only people who follow you can see your profile. Limited federated sharing.
                     </div>
@@ -689,7 +690,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     },
     {
       id: "appearance",
-      label: "🎨 Appearance",
+      label: <><PixelIcon name="paint-bucket" /> Appearance</>,
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
@@ -706,7 +707,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 SIMPLEST
               </div>
               <div className="mb-3">
-                <span className="text-4xl">✨</span>
+                <PixelIcon name="bookmark" size={32} />
               </div>
               <h3 className="text-lg font-bold mb-2 text-gray-900">CSS Styling</h3>
               <p className="text-sm text-gray-700 mb-4">
@@ -776,15 +777,15 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
           {/* Reset Section */}
           <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
-            <h4 className="font-semibold text-gray-900 mb-2">🔄 Reset to Default</h4>
+            <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2"><PixelIcon name="reload" /> Reset to Default</h4>
             <p className="text-sm text-gray-700 mb-3">
               Want to start fresh? Remove all your customizations and return your profile to the site&apos;s default appearance.
             </p>
             <button
               onClick={() => setShowResetModal(true)}
-              className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded border border-gray-400 transition-colors text-sm min-h-[48px]"
+              className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded border border-gray-400 transition-colors text-sm min-h-[48px] flex items-center gap-2"
             >
-              🔄 Reset to Default Template
+              <PixelIcon name="reload" /> Reset to Default Template
             </button>
           </div>
 
@@ -851,7 +852,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     },
     {
       id: "pixel-home",
-      label: "🏠 Pixel Home",
+      label: <><PixelIcon name="home" /> Pixel Home</>,
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
@@ -898,7 +899,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     },
     {
       id: "music",
-      label: "🎵 Music",
+      label: <><PixelIcon name="music" /> Music</>,
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
@@ -945,7 +946,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     },
     {
       id: "account",
-      label: "🔐 Account & Security",
+      label: <><PixelIcon name="shield" /> Account & Security</>,
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
@@ -958,7 +959,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           {/* Seed Phrase Management */}
           <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
-              <span>🌱</span>
+              <PixelIcon name="drop" />
               Recovery Seed Phrase
             </h3>
             <p className="text-gray-600 mb-4">
@@ -967,7 +968,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             
             {!currentSeedPhrase ? (
               <div className="bg-amber-50 border border-amber-200 p-4 rounded mb-4">
-                <p className="text-amber-800 font-medium mb-2">⚠ No seed phrase recovery set</p>
+                <p className="text-amber-800 font-medium mb-2"><PixelIcon name="alert" /> No seed phrase recovery set</p>
                 <p className="text-amber-700 text-sm mb-3">
                   Generate a seed phrase to enable account recovery. This is highly recommended for account security.
                 </p>
@@ -1001,7 +1002,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             {/* Show seed phrase if just generated */}
             {seedPhrase && (
               <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4">
-                <p className="text-blue-800 font-medium mb-2">💾 Your Recovery Seed Phrase</p>
+                <p className="text-blue-800 font-medium mb-2"><PixelIcon name="save" /> Your Recovery Seed Phrase</p>
                 <p className="text-blue-700 text-sm mb-3">
                   <strong>Save these 12 words in order!</strong> You&apos;ll need them to recover your account.
                 </p>
@@ -1020,13 +1021,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     onClick={() => copyToClipboard(seedPhrase)}
                     className="px-3 py-3 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all min-h-[48px]"
                   >
-                    📋 Copy
+                    <PixelIcon name="clipboard" /> Copy
                   </button>
                   <button
                     onClick={() => downloadSeedPhrase(seedPhrase)}
                     className="px-3 py-3 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all min-h-[48px]"
                   >
-                    💾 Download
+                    <PixelIcon name="save" /> Download
                   </button>
                   <button
                     onClick={() => setSeedPhrase("")}
@@ -1044,7 +1045,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 onClick={() => setShowRecovery(!showRecovery)}
                 className="px-4 py-3 text-sm bg-white hover:bg-gray-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
               >
-                🔄 Recover Account from Seed Phrase
+                <PixelIcon name="reload" /> Recover Account from Seed Phrase
               </button>
 
               {showRecovery && (
@@ -1091,7 +1092,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             
             {!hasPasswordAuth && !isPasswordAuth() ? (
               <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4">
-                <p className="text-blue-800 font-medium mb-2">💡 Enable password login</p>
+                <p className="text-blue-800 font-medium mb-2"><PixelIcon name="lightbulb" /> Enable password login</p>
                 <p className="text-blue-700 text-sm mb-3">
                   Add a password to your account for easier login. Your seed phrase will still work and remains the most secure option.
                 </p>
@@ -1287,7 +1288,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           {/* Email Management */}
           <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
-              <span>📧</span>
+              <PixelIcon name="mail" />
               Email Login
             </h3>
             <p className="text-gray-600 mb-4">
@@ -1304,7 +1305,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     </>
                   ) : (
                     <>
-                      <span className="text-amber-600 text-sm font-medium">⏳ {userEmail}</span>
+                      <span className="text-amber-600 text-sm font-medium"><PixelIcon name="clock" /> {userEmail}</span>
                       <span className="text-sm text-gray-500">(pending verification)</span>
                     </>
                   )}
@@ -1385,7 +1386,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     },
     {
       id: "badges",
-      label: "🏆 Badges",
+      label: <><PixelIcon name="trophy" /> Badges</>,
       content: (
         <div className="space-y-6">
           <div className="mb-6">
@@ -1529,7 +1530,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
   if (isAdmin) {
     settingsTabs.push({
       id: "admin",
-      label: "⚙️ Admin",
+      label: <><PixelIcon name="sliders" /> Admin</>,
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">

@@ -1,10 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
+import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
 
 interface ErrorDisplayProps {
   title?: string;
   message: string;
-  emoji?: string;
+  icon?: PixelIconName;
   actionLabel?: string;
   actionHref?: string;
   onRetry?: () => void;
@@ -15,7 +16,7 @@ interface ErrorDisplayProps {
 export default function ErrorDisplay({
   title = 'Something went wrong',
   message,
-  emoji = '⚠️',
+  icon = 'alert',
   actionLabel,
   actionHref,
   onRetry,
@@ -31,8 +32,8 @@ export default function ErrorDisplay({
   return (
     <div className={`border rounded-lg shadow-[2px_2px_0_#000] p-4 ${variantClasses[variant]} ${className}`}>
       <div className="flex items-start gap-3">
-        <span className="text-lg flex-shrink-0" role="img" aria-hidden="true">
-          {emoji}
+        <span className="flex-shrink-0" role="img" aria-hidden="true">
+          <PixelIcon name={icon} size={20} />
         </span>
         <div className="flex-1">
           <h3 className="font-medium text-sm mb-1">{title}</h3>
@@ -51,9 +52,9 @@ export default function ErrorDisplay({
               {onRetry && (
                 <button
                   onClick={onRetry}
-                  className="inline-block px-3 py-1 bg-white border border-current rounded text-xs font-medium hover:bg-gray-50 transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-current rounded text-xs font-medium hover:bg-gray-50 transition-colors"
                 >
-                  🔄 Try Again
+                  <PixelIcon name="reload" /> Try Again
                 </button>
               )}
             </div>
@@ -70,7 +71,7 @@ export function NetworkError({ onRetry }: { onRetry?: () => void }) {
     <ErrorDisplay
       title="Connection Problem"
       message="We're having trouble connecting to our servers. Please check your internet connection and try again."
-      emoji="📶"
+      icon="zap"
       onRetry={onRetry}
       variant="warning"
     />
@@ -88,8 +89,8 @@ export function NotFoundError({
     <ErrorDisplay
       title={`${resourceName} not found`}
       message={`Sorry, we couldn't find the ${resourceName} you're looking for. It may have been moved or deleted.`}
-      emoji="🔍"
-      actionLabel="🏠 Go Home"
+      icon="search"
+      actionLabel="Go Home"
       actionHref={homeHref}
       variant="info"
     />
@@ -107,8 +108,8 @@ export function PermissionError({
     <ErrorDisplay
       title="Access Denied"
       message={message}
-      emoji="🔒"
-      actionLabel="🔑 Sign In"
+      icon="shield"
+      actionLabel="Sign In"
       actionHref={loginHref}
       variant="warning"
     />

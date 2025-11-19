@@ -4,6 +4,7 @@ import Image from "next/image";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
 
 export type NotificationData = {
   id: string;
@@ -231,22 +232,22 @@ export default function NotificationList({
     }
   };
 
-  const getNotificationIcon = (type: string): string => {
+  const getNotificationIcon = (type: string): PixelIconName => {
     switch (type) {
       case "comment":
       case "reply":
-        return "💬";
+        return "chat";
       case "photo_comment":
       case "photo_reply":
-        return "📸";
+        return "camera";
       case "follow":
-        return "👥";
+        return "users";
       case "friend":
-        return "🤝";
+        return "users";
       case "guestbook":
-        return "📝";
+        return "file";
       default:
-        return "🔔";
+        return "notification";
     }
   };
 
@@ -332,8 +333,8 @@ export default function NotificationList({
                       unoptimized={notification.actor.avatarUrl?.endsWith('.gif')}
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-thread-sage/20 flex items-center justify-center text-lg">
-                      {getNotificationIcon(notification.type)}
+                    <div className="w-10 h-10 rounded-full bg-thread-sage/20 flex items-center justify-center">
+                      <PixelIcon name={getNotificationIcon(notification.type)} />
                     </div>
                   )}
                   

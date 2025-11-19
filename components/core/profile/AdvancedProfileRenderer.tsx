@@ -11,6 +11,7 @@ import TemplateErrorBoundary from '@/components/features/templates/TemplateError
 import { useIslandManager } from '@/components/islands/ProfileIslandWrapper';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { preloadTemplateComponents } from '@/lib/templates/core/dynamic-registry';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 // Import and re-export types
 export type {
@@ -271,7 +272,7 @@ function AdvancedProfileFallback({ reason }: AdvancedProfileFallbackProps) {
   return (
     <div className="advanced-profile-fallback">
       <div className="fallback-content">
-        <div className="fallback-icon">⚠️</div>
+        <div className="fallback-icon"><PixelIcon name="alert" /></div>
         <div className="fallback-message">
           <h3>Advanced Template Unavailable</h3>
           <p>Falling back to enhanced mode.</p>

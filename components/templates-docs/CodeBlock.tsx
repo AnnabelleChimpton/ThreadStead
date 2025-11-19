@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface CodeBlockProps {
   code: string;
@@ -43,7 +44,7 @@ export default function CodeBlock({
               onClick={copyToClipboard}
               className="px-3 py-1 bg-cyan-200 border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all text-xs font-bold"
             >
-              {copied ? '✓ Copied!' : '📋 Copy'}
+              {copied ? <><PixelIcon name="check" /> Copied!</> : <><PixelIcon name="clipboard" /> Copy</>}
             </button>
           )}
         </div>

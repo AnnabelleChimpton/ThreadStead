@@ -12,6 +12,7 @@ import { getDefaultProfileTemplate } from '@/lib/templates/default-profile-templ
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToastContext } from '@/lib/templates/state/ToastProvider';
 import ConfirmModal from '@/components/ui/feedback/ConfirmModal';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface CSSEditorPageProps {
   username: string;
@@ -389,7 +390,7 @@ export default function CSSEditorPage({
                   disabled={loadingData}
                   className="text-sm px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded font-medium transition-colors flex items-center gap-1"
                 >
-                  <span>🔍</span>
+                  <PixelIcon name="search" />
                   {loadingData ? 'Load...' : 'Preview'}
                 </button>
                 <button
@@ -486,17 +487,17 @@ export default function CSSEditorPage({
                   <button
                     onClick={() => setShowResetModal(true)}
                     disabled={saving}
-                    className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded font-medium transition-colors disabled:opacity-50 text-sm border border-gray-300"
+                    className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded font-medium transition-colors disabled:opacity-50 text-sm border border-gray-300 flex items-center gap-1"
                     title="Remove all customizations and return to site default"
                   >
-                    🔄 Reset to Default
+                    <PixelIcon name="reload" /> Reset to Default
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded font-medium transition-colors disabled:opacity-50 text-sm"
+                    className="px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded font-medium transition-colors disabled:opacity-50 text-sm flex items-center gap-1"
                   >
-                    {saving ? 'Saving...' : '💾 Save CSS'}
+                    {saving ? 'Saving...' : <><PixelIcon name="save" /> Save CSS</>}
                   </button>
                 </div>
               </div>

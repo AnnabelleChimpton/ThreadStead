@@ -8,6 +8,7 @@ import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface CuratedSite {
   id: string;
@@ -253,9 +254,9 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
             )}
             <button
               onClick={() => setIsAddingNew(true)}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2"
             >
-              ➕ Add New Site
+              <PixelIcon name="plus" /> Add New Site
             </button>
           </div>
         </div>
@@ -346,9 +347,9 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2"
                 >
-                  {editingSite ? '💾 Update' : '➕ Add'} Site
+                  {editingSite ? <><PixelIcon name="save" /> Update</> : <><PixelIcon name="plus" /> Add</>} Site
                 </button>
                 <button
                   type="button"
@@ -434,14 +435,14 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
                       className="px-3 py-1 bg-blue-100 hover:bg-blue-200 rounded"
                       title="Edit"
                     >
-                      ✏️
+                      <PixelIcon name="edit" />
                     </button>
                     <button
                       onClick={() => handleDelete(site.id)}
                       className="px-3 py-1 bg-red-100 hover:bg-red-200 rounded"
                       title="Delete"
                     >
-                      🗑️
+                      <PixelIcon name="trash" />
                     </button>
                   </div>
                 </div>

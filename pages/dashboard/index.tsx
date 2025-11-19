@@ -3,6 +3,7 @@ import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import { getSessionUser } from "@/lib/auth/server";
 import Link from "next/link";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface DashboardProps {
   siteConfig: SiteConfig;
@@ -60,7 +61,7 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="border border-gray-300 p-3 bg-blue-50 rounded">
-                <h3 className="font-bold mb-1">🏠 Your Content Lives with You</h3>
+                <h3 className="font-bold mb-1"><PixelIcon name="home" className="inline-block align-middle mr-1" /> Your Content Lives with You</h3>
                 <p className="text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
               </div>
               <div className="border border-gray-300 p-3 bg-green-50 rounded">
@@ -68,7 +69,7 @@ function LandingPage({ siteConfig }: { siteConfig: SiteConfig }) {
                 <p className="text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
               </div>
               <div className="border border-gray-300 p-3 bg-purple-50 rounded">
-                <h3 className="font-bold mb-1">✨ Community-Focused</h3>
+                <h3 className="font-bold mb-1"><PixelIcon name="bookmark" className="inline-block align-middle mr-1" /> Community-Focused</h3>
                 <p className="text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
               </div>
             </div>

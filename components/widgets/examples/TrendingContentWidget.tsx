@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { WidgetProps, WidgetConfig } from '../types/widget';
 import UserMention from '@/components/ui/navigation/UserMention';
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon';
 
 const trendingContentConfig: WidgetConfig = {
   id: 'trending-content',
@@ -109,16 +110,16 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
-  const getTrendingIcon = () => {
+  const getTrendingIcon = (): React.ReactNode => {
     switch (data.source) {
       case 'local_trending':
-        return '🔥'; // Fire emoji for local trending with real metrics
+        return <PixelIcon name="zap" />; // 🔥
       case 'ringhub_trending':
-        return '🌐'; // Globe emoji for Ring Hub trending
+        return <PixelIcon name="map" />; // 🌐
       case 'trending':
-        return '🔥'; // Fire emoji for legacy trending
+        return <PixelIcon name="zap" />; // 🔥
       default:
-        return '📈'; // Chart emoji for recent/fallback content
+        return <PixelIcon name="chart" />; // 📈
     }
   };
 
@@ -185,7 +186,7 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
                 {post.isSpoiler && post.contentWarning && (
                   <div className="mb-2">
                     <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800 border border-yellow-200">
-                      ⚠️ {post.contentWarning}
+                      <PixelIcon name="alert" className="inline-block align-middle" /> {post.contentWarning}
                     </span>
                   </div>
                 )}
@@ -218,7 +219,7 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
                 {/* Post Metadata */}
                 <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
                   {post.commentCount > 0 && (
-                    <span>💬 {post.commentCount}</span>
+                    <span><PixelIcon name="chat" className="inline-block align-middle" /> {post.commentCount}</span>
                   )}
                   {post.intent && (
                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-700">
@@ -226,7 +227,7 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
                     </span>
                   )}
                   {post.threadRings && post.threadRings.length > 0 && (
-                    <span>🔗 {post.threadRings.length} ring{post.threadRings.length !== 1 ? 's' : ''}</span>
+                    <span><PixelIcon name="link" className="inline-block align-middle" /> {post.threadRings.length} ring{post.threadRings.length !== 1 ? 's' : ''}</span>
                   )}
                 </div>
               </div>

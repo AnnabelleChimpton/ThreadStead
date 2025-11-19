@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface MidiUploadProps {
   onUploadSuccess: (media: any) => void;
@@ -365,7 +366,7 @@ export default function MidiUpload({ onUploadSuccess, onCancel, disabled = false
           >
             {uploading ? (
               <span className="flex items-center gap-2">
-                <span className="animate-spin">⏳</span>
+                <span className="animate-spin"><PixelIcon name="clock" /></span>
                 Uploading...
               </span>
             ) : (

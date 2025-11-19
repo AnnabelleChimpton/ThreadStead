@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import MediaUpload from "@/components/ui/media/MediaUpload";
 import PhotoComments from "@/components/core/content/PhotoComments";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface PhotoItem {
   id: string;
@@ -198,7 +199,9 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
           <div className="text-center py-12">
             {isOwner ? (
               <>
-                <div className="text-6xl mb-4">📸</div>
+                <div className="mb-4 flex justify-center">
+                  <PixelIcon name="camera" size={48} />
+                </div>
                 <h3 className="text-lg font-medium text-thread-pine mb-2">Start sharing your moments</h3>
                 <p className="text-thread-sage mb-4">
                   Every image has a story. What&apos;s yours?
@@ -212,7 +215,9 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
               </>
             ) : (
               <>
-                <div className="text-6xl mb-4">🖼️</div>
+                <div className="mb-4 flex justify-center">
+                  <PixelIcon name="image" size={48} />
+                </div>
                 <h3 className="text-lg font-medium text-thread-pine mb-2">No featured photos</h3>
                 <p className="text-thread-sage">
                   {username} hasn&apos;t featured any photos yet.
@@ -263,10 +268,10 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
               {/* Comments toggle button */}
               <button
                 onClick={() => setShowComments(!showComments)}
-                className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-2 rounded hover:bg-black/90 transition-colors text-sm"
+                className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-2 rounded hover:bg-black/90 transition-colors text-sm flex items-center gap-1"
                 title={showComments ? "Hide comments" : "Show comments"}
               >
-                💬 {showComments ? "Hide" : "Comments"}
+                <PixelIcon name="chat" size={16} /> {showComments ? "Hide" : "Comments"}
               </button>
             </div>
 
