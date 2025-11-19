@@ -9,6 +9,7 @@ import { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 // Enhanced Voting Buttons Component
 function VotingButtons({
@@ -23,19 +24,19 @@ function VotingButtons({
   const [showDetails, setShowDetails] = useState(false);
 
   const quickVotes = [
-    { action: 'approve', label: '✓ Approve', color: 'bg-green-500 hover:bg-green-600' },
-    { action: 'reject', label: '✗ Reject', color: 'bg-red-500 hover:bg-red-600' },
-    { action: 'improve', label: '⚡ Needs Work', color: 'bg-blue-500 hover:bg-blue-600' }
+    { action: 'approve', label: 'Approve', icon: 'check' as const, color: 'bg-green-500 hover:bg-green-600' },
+    { action: 'reject', label: 'Reject', icon: 'close' as const, color: 'bg-red-500 hover:bg-red-600' },
+    { action: 'improve', label: 'Needs Work', icon: 'zap' as const, color: 'bg-blue-500 hover:bg-blue-600' }
   ];
 
   const detailedVotes = [
-    { action: 'quality', label: '🏆 High Quality', color: 'bg-purple-500 hover:bg-purple-600' },
-    { action: 'interesting', label: '🤔 Interesting', color: 'bg-yellow-500 hover:bg-yellow-600' },
-    { action: 'helpful', label: '🤝 Helpful', color: 'bg-teal-500 hover:bg-teal-600' },
-    { action: 'creative', label: '🎨 Creative', color: 'bg-pink-500 hover:bg-pink-600' },
-    { action: 'broken', label: '🔗 Broken Link', color: 'bg-red-600 hover:bg-red-700' },
-    { action: 'spam', label: '🚫 Spam', color: 'bg-red-700 hover:bg-red-800' },
-    { action: 'outdated', label: '📅 Outdated', color: 'bg-gray-500 hover:bg-gray-600' }
+    { action: 'quality', label: 'High Quality', icon: 'trophy' as const, color: 'bg-purple-500 hover:bg-purple-600' },
+    { action: 'interesting', label: 'Interesting', icon: 'lightbulb' as const, color: 'bg-yellow-500 hover:bg-yellow-600' },
+    { action: 'helpful', label: 'Helpful', icon: 'users' as const, color: 'bg-teal-500 hover:bg-teal-600' },
+    { action: 'creative', label: 'Creative', icon: 'paint-bucket' as const, color: 'bg-pink-500 hover:bg-pink-600' },
+    { action: 'broken', label: 'Broken Link', icon: 'unlink' as const, color: 'bg-red-600 hover:bg-red-700' },
+    { action: 'spam', label: 'Spam', icon: 'close' as const, color: 'bg-red-700 hover:bg-red-800' },
+    { action: 'outdated', label: 'Outdated', icon: 'calendar' as const, color: 'bg-gray-500 hover:bg-gray-600' }
   ];
 
   return (
@@ -47,9 +48,9 @@ function VotingButtons({
             key={vote.action}
             onClick={() => onVote(siteId, vote.action)}
             disabled={submitting}
-            className={`px-3 py-2 text-white rounded text-sm ${vote.color} disabled:opacity-50`}
+            className={`px-3 py-2 text-white rounded text-sm ${vote.color} disabled:opacity-50 flex items-center gap-1`}
           >
-            {vote.label}
+            <PixelIcon name={vote.icon} size={14} /> {vote.label}
           </button>
         ))}
 
@@ -74,9 +75,9 @@ function VotingButtons({
                   setShowDetails(false);
                 }}
                 disabled={submitting}
-                className={`px-3 py-2 text-white rounded text-sm ${vote.color} disabled:opacity-50 text-left`}
+                className={`px-3 py-2 text-white rounded text-sm ${vote.color} disabled:opacity-50 text-left flex items-center gap-2`}
               >
-                {vote.label}
+                <PixelIcon name={vote.icon} size={14} /> {vote.label}
               </button>
             ))}
           </div>
@@ -196,19 +197,19 @@ export default function CommunityValidation({ siteConfig, user }: Props) {
   };
 
   const getSiteTypeIcon = (type: string | null) => {
-    const icons: Record<string, string> = {
-      'personal_blog': '📝',
-      'portfolio': '🎨',
-      'project': '🛠️',
-      'community': '🤝',
-      'resource': '📚',
-      'tool': '⚡',
-      'art': '🎭',
-      'documentation': '📖',
-      'zine': '📰',
-      'other': '🌐'
+    const icons: Record<string, 'edit' | 'paint-bucket' | 'sliders' | 'users' | 'script' | 'zap' | 'image' | 'file' | 'article' | 'map'> = {
+      'personal_blog': 'edit',
+      'portfolio': 'paint-bucket',
+      'project': 'sliders',
+      'community': 'users',
+      'resource': 'script',
+      'tool': 'zap',
+      'art': 'image',
+      'documentation': 'file',
+      'zine': 'article',
+      'other': 'map'
     };
-    return icons[type || 'other'] || '🌐';
+    return icons[type || 'other'] || 'map';
   };
 
   if (!user) {
@@ -226,10 +227,10 @@ export default function CommunityValidation({ siteConfig, user }: Props) {
     <Layout siteConfig={siteConfig}>
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">👥 Human Submissions Validation</h1>
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2"><PixelIcon name="users" size={32} /> Human Submissions Validation</h1>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <p className="text-blue-900 font-medium mb-1">
-              🎯 Phase 2: Community-Curated Queue
+            <p className="text-blue-900 font-medium mb-1 flex items-center gap-1">
+              <PixelIcon name="gps" size={16} /> Phase 2: Community-Curated Queue
             </p>
             <p className="text-blue-700 text-sm">
               This validation queue only shows sites submitted by community members.
@@ -266,13 +267,13 @@ export default function CommunityValidation({ siteConfig, user }: Props) {
             onChange={(e) => { setSortMethod(e.target.value); setPage(0); }}
             className="px-3 py-2 border border-gray-300 rounded-lg"
           >
-            <option value="balanced">⚖️ Balanced (Recommended)</option>
-            <option value="least_votes">🔍 Need Votes Most</option>
-            <option value="newest">🆕 Newest First</option>
-            <option value="oldest">⏰ Oldest First</option>
-            <option value="highest_score">⭐ Highest Quality</option>
-            <option value="lowest_score">🤔 Lowest Quality</option>
-            <option value="most_votes">📊 Most Voted</option>
+            <option value="balanced">Balanced (Recommended)</option>
+            <option value="least_votes">Need Votes Most</option>
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="highest_score">Highest Quality</option>
+            <option value="lowest_score">Lowest Quality</option>
+            <option value="most_votes">Most Voted</option>
           </select>
 
           <label className="flex items-center gap-2">
@@ -331,11 +332,11 @@ export default function CommunityValidation({ siteConfig, user }: Props) {
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-2xl">{getSiteTypeIcon(site.siteType)}</span>
+                      <PixelIcon name={getSiteTypeIcon(site.siteType)} size={24} />
                       <h3 className="text-xl font-bold">{site.title}</h3>
                       {site.communityValidated && (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded font-medium">
-                          ✅ Auto-Validated
+                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded font-medium flex items-center gap-1">
+                          <PixelIcon name="check" size={12} /> Auto-Validated
                         </span>
                       )}
                       {site.seedingScore && (
@@ -390,52 +391,52 @@ export default function CommunityValidation({ siteConfig, user }: Props) {
                 <div className="border-t pt-4">
                   {/* Vote Summary */}
                   <div className="flex flex-wrap gap-2 text-sm mb-4">
-                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
-                      ✓ {site.votesSummary.approve}
+                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded flex items-center gap-1">
+                      <PixelIcon name="check" size={12} /> {site.votesSummary.approve}
                     </span>
-                    <span className="bg-red-100 text-red-700 px-2 py-1 rounded">
-                      ✗ {site.votesSummary.reject}
+                    <span className="bg-red-100 text-red-700 px-2 py-1 rounded flex items-center gap-1">
+                      <PixelIcon name="close" size={12} /> {site.votesSummary.reject}
                     </span>
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                      ⚡ {site.votesSummary.improve}
+                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded flex items-center gap-1">
+                      <PixelIcon name="zap" size={12} /> {site.votesSummary.improve}
                     </span>
 
                     {/* Quality indicators */}
                     {site.votesSummary.quality > 0 && (
-                      <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                        🏆 {site.votesSummary.quality}
+                      <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded flex items-center gap-1">
+                        <PixelIcon name="trophy" size={12} /> {site.votesSummary.quality}
                       </span>
                     )}
                     {site.votesSummary.interesting > 0 && (
-                      <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
-                        🤔 {site.votesSummary.interesting}
+                      <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded flex items-center gap-1">
+                        <PixelIcon name="lightbulb" size={12} /> {site.votesSummary.interesting}
                       </span>
                     )}
                     {site.votesSummary.helpful > 0 && (
-                      <span className="bg-teal-100 text-teal-700 px-2 py-1 rounded">
-                        🤝 {site.votesSummary.helpful}
+                      <span className="bg-teal-100 text-teal-700 px-2 py-1 rounded flex items-center gap-1">
+                        <PixelIcon name="users" size={12} /> {site.votesSummary.helpful}
                       </span>
                     )}
                     {site.votesSummary.creative > 0 && (
-                      <span className="bg-pink-100 text-pink-700 px-2 py-1 rounded">
-                        🎨 {site.votesSummary.creative}
+                      <span className="bg-pink-100 text-pink-700 px-2 py-1 rounded flex items-center gap-1">
+                        <PixelIcon name="paint-bucket" size={12} /> {site.votesSummary.creative}
                       </span>
                     )}
 
                     {/* Problem indicators */}
                     {site.votesSummary.broken > 0 && (
-                      <span className="bg-red-200 text-red-800 px-2 py-1 rounded">
-                        🔗 {site.votesSummary.broken}
+                      <span className="bg-red-200 text-red-800 px-2 py-1 rounded flex items-center gap-1">
+                        <PixelIcon name="unlink" size={12} /> {site.votesSummary.broken}
                       </span>
                     )}
                     {site.votesSummary.spam > 0 && (
-                      <span className="bg-red-200 text-red-800 px-2 py-1 rounded">
-                        🚫 {site.votesSummary.spam}
+                      <span className="bg-red-200 text-red-800 px-2 py-1 rounded flex items-center gap-1">
+                        <PixelIcon name="close" size={12} /> {site.votesSummary.spam}
                       </span>
                     )}
                     {site.votesSummary.outdated > 0 && (
-                      <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                        📅 {site.votesSummary.outdated}
+                      <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded flex items-center gap-1">
+                        <PixelIcon name="calendar" size={12} /> {site.votesSummary.outdated}
                       </span>
                     )}
                   </div>
@@ -524,7 +525,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       siteConfig,
       user: user ? {
         ...user,
-        createdAt: user.createdAt?.toISOString() || null
+        createdAt: user.createdAt?.toISOString() || null,
+        betaKey: user.betaKey ? {
+          ...user.betaKey,
+          createdAt: user.betaKey.createdAt?.toISOString() || null,
+          usedAt: user.betaKey.usedAt?.toISOString() || null
+        } : null
       } : null
     }
   };

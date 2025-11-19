@@ -4,6 +4,7 @@ import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './Ho
 import DecorationSVG from './DecorationSVG'
 import HouseDetailsPopup from './HouseDetailsPopup'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface HomeDecoration {
   id: string
@@ -153,14 +154,18 @@ const StreetLayer: React.FC<{ scrollOffset: number; totalWidth: number }> = ({ s
           {Array.from({ length: Math.ceil(totalWidth / 80) }).map((_, i) => (
             <div
               key={`flower-${i}`}
-              className="absolute text-xs"
+              className="absolute"
               style={{
                 left: `${i * 80 + (i % 5) * 20}px`,
                 top: `${20 + (i % 6) * 12}px`,
                 transform: `rotate(${(i % 4) * 90}deg)`
               }}
             >
-              {i % 4 === 0 ? '🌼' : i % 4 === 1 ? '🌻' : i % 4 === 2 ? '🌺' : '🌷'}
+              <PixelIcon
+                name="drop"
+                size={8}
+                color={i % 4 === 0 ? '#fbbf24' : i % 4 === 1 ? '#f97316' : i % 4 === 2 ? '#ec4899' : '#f472b6'}
+              />
             </div>
           ))}
 

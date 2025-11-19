@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface Props {
   siteConfig: SiteConfig;
@@ -81,7 +82,7 @@ export default function SubmitSite({ siteConfig, user }: Props) {
     <Layout siteConfig={siteConfig}>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">📝 Submit a Site</h1>
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2"><PixelIcon name="edit" size={32} /> Submit a Site</h1>
           <p className="text-gray-600">
             Help grow the community index by submitting interesting sites you've discovered
           </p>
@@ -209,7 +210,7 @@ export default function SubmitSite({ siteConfig, user }: Props) {
           </div>
 
           <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
-            <h3 className="font-medium text-blue-800 mb-2">📋 Submission Guidelines</h3>
+            <h3 className="font-medium text-blue-800 mb-2 flex items-center gap-2"><PixelIcon name="file" size={20} /> Submission Guidelines</h3>
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• Focus on personal sites, creative projects, and indie web content</li>
               <li>• Avoid commercial sites, social media platforms, and major corporate sites</li>
@@ -225,14 +226,14 @@ export default function SubmitSite({ siteConfig, user }: Props) {
               disabled={submitting}
               className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium"
             >
-              {submitting ? 'Submitting...' : '📝 Submit Site'}
+              {submitting ? 'Submitting...' : <span className="flex items-center gap-2"><PixelIcon name="edit" size={16} /> Submit Site</span>}
             </button>
             <button
               type="button"
               onClick={() => router.push('/community-index/validate')}
               className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
-              🔍 View Validation Queue
+              <span className="flex items-center gap-2"><PixelIcon name="search" size={16} /> View Validation Queue</span>
             </button>
           </div>
         </form>
@@ -250,7 +251,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       siteConfig,
       user: user ? {
         ...user,
-        createdAt: user.createdAt?.toISOString() || null
+        createdAt: user.createdAt?.toISOString() || null,
+        betaKey: user.betaKey ? {
+          ...user.betaKey,
+          createdAt: user.betaKey.createdAt?.toISOString() || null,
+          usedAt: user.betaKey.usedAt?.toISOString() || null
+        } : null
       } : null
     }
   };

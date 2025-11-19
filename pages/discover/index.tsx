@@ -82,7 +82,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                   href="/neighborhood/explore/all"
                   className="bg-white border-2 border-thread-sage rounded-lg p-5 hover:bg-thread-cream transition-colors shadow-sm hover:shadow-md text-center"
                 >
-                  <div className="text-3xl mb-2">🗺️</div>
+                  <div className="mb-2 flex justify-center"><PixelIcon name="map" size={32} /></div>
                   <div className="font-bold text-thread-pine mb-1">Map View</div>
                   <div className="text-sm text-thread-sage">Bird&apos;s eye</div>
                 </Link>
@@ -91,7 +91,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                   href="/neighborhood/explore/random"
                   className="bg-gradient-to-br from-pink-100 to-purple-100 border-2 border-pink-300 rounded-lg p-5 hover:from-pink-200 hover:to-purple-200 transition-colors shadow-sm hover:shadow-md text-center"
                 >
-                  <div className="text-3xl mb-2">🎲</div>
+                  <div className="mb-2 flex justify-center"><PixelIcon name="dice" size={32} /></div>
                   <div className="font-bold text-thread-pine mb-1">Random</div>
                   <div className="text-sm text-purple-700">Adventure mode!</div>
                 </Link>
@@ -139,7 +139,9 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                 href="/discover/feed"
                 className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6 hover:shadow-[4px_4px_0_#A18463] transition-shadow"
               >
-                <div className="text-4xl mb-4">📰</div>
+                <div className="mb-4 flex justify-center">
+                  <PixelIcon name="article" size={32} />
+                </div>
                 <h3 className="text-xl font-bold text-thread-pine mb-2">
                   Community Feed
                 </h3>
@@ -174,7 +176,9 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
 
           {/* Serendipity Section */}
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg p-8 text-center">
-            <div className="text-5xl mb-4">🎲✨</div>
+            <div className="mb-4 flex justify-center">
+              <PixelIcon name="dice" size={48} />
+            </div>
             <h3 className="text-2xl font-bold text-thread-pine mb-3">
               Feeling Adventurous?
             </h3>
@@ -185,7 +189,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
               href="/neighborhood/explore/random"
               className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 !text-white rounded-lg font-bold hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
             >
-              🎲 Random Home Adventure
+              <PixelIcon name="dice" size={20} /> Random Home Adventure
             </Link>
           </div>
         </div>

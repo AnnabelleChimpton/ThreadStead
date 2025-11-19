@@ -14,6 +14,7 @@ import { useAutoIndexer, IndexingNotification } from '@/components/features/sear
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { contentMetadataGenerator } from '@/lib/utils/metadata/content-metadata';
 import UserMention from '@/components/ui/navigation/UserMention';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface DiscoverProps {
   siteConfig: SiteConfig;
@@ -355,7 +356,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
         ...result,
         source: 'community',
         unifiedScore: calculateCommunityScore(result),
-        sourceIcon: '🌟',
+        sourceIconName: 'bookmark' as const,
         sourceLabel: 'Community',
         clickHandler: () => trackAndIndex(result.url, result.title, result.description, 'community_index')
       });
@@ -367,7 +368,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
         ...result,
         source: 'site',
         unifiedScore: calculateSiteScore(result),
-        sourceIcon: '🏠',
+        sourceIconName: 'home' as const,
         sourceLabel: 'Site',
         clickHandler: () => window.open(result.url, '_blank')
       });
@@ -380,7 +381,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
           ...result,
           source: 'external',
           unifiedScore: calculateExternalScore(result, index),
-          sourceIcon: '🌐',
+          sourceIconName: 'map' as const,
           sourceLabel: 'Web',
           clickHandler: () => trackAndIndex(result.url, result.title, result.snippet, 'external_search')
         });
@@ -442,10 +443,10 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
   const getResultIcon = (type: string) => {
     switch (type) {
-      case 'threadring': return '🔗';
-      case 'user': return '👤';
-      case 'post': return '📝';
-      default: return '🔍';
+      case 'threadring': return <PixelIcon name="link" size={16} />;
+      case 'user': return <PixelIcon name="user" size={16} />;
+      case 'post': return <PixelIcon name="edit" size={16} />;
+      default: return <PixelIcon name="search" size={16} />;
     }
   };
 
@@ -492,7 +493,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
             Wander through our cozy corner of the internet - from community gems to hidden treasures of the world wide web
           </p>
           <Link href="/discover/faq" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
-            <span>💡</span>
+            <PixelIcon name="lightbulb" size={16} />
             <span>Discover how our community is mapping the indie web together</span>
             <span>→</span>
           </Link>
@@ -539,8 +540,8 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
               return (
                 <>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                      ✨ Your Search Results
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <PixelIcon name="zap" size={20} /> Your Search Results
                     </h3>
                     <div className="text-xs text-gray-500">
                       Page {currentPage} of {unifiedData.totalPages} • {unifiedData.totalResults} gems found
@@ -562,7 +563,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                   {result.title}
                                 </h4>
                                 <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded inline-flex items-center gap-1 self-start sm:self-auto flex-shrink-0">
-                                  {result.sourceIcon} {result.source === 'community' ? 'Neighborhood' : result.source === 'site' ? 'Our Site' : result.source === 'external' ? 'Wild Web' : result.sourceLabel}
+                                  <PixelIcon name={result.sourceIconName} size={12} /> {result.source === 'community' ? 'Neighborhood' : result.source === 'site' ? 'Our Site' : result.source === 'external' ? 'Wild Web' : result.sourceLabel}
                                 </span>
                               </div>
 
@@ -578,7 +579,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                   <>
                                     <span>Score: {result.communityScore}</span>
                                     <span>{result.siteType?.replace('_', ' ')}</span>
-                                    {result.communityValidated && <span className="text-green-600">✓ Community approved</span>}
+                                    {result.communityValidated && <span className="text-green-600 flex items-center gap-1"><PixelIcon name="check" size={12} /> Community approved</span>}
                                   </>
                                 )}
                                 {result.source === 'site' && (
@@ -589,7 +590,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                 {result.source === 'external' && (
                                   <>
                                     <span>via {result.engine}</span>
-                                    {result.isIndieWeb && <span className="text-purple-600">🌱 Indie spirit</span>}
+                                    {result.isIndieWeb && <span className="text-purple-600 flex items-center gap-1"><PixelIcon name="drop" size={12} /> Indie spirit</span>}
                                   </>
                                 )}
                               </div>
@@ -614,7 +615,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                   className="px-2 py-1 text-[10px] sm:text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 transition-colors"
                                   title="Save to your bookmarks"
                                 >
-                                  {saving ? '...' : '💾'}
+                                  {saving ? '...' : <PixelIcon name="save" size={12} />}
                                 </button>
                               )}
                               <div className="text-xs text-gray-400 hidden sm:block">
@@ -680,13 +681,13 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                     <div className="text-xs text-gray-600 flex flex-wrap items-center gap-2 sm:gap-4">
                       <span>Found in:</span>
                       {communityResults.length > 0 && (
-                        <span>🌟 {communityResults.length} neighborhood</span>
+                        <span className="flex items-center gap-1"><PixelIcon name="bookmark" size={12} /> {communityResults.length} neighborhood</span>
                       )}
                       {localResults.length > 0 && (
-                        <span>🏠 {localResults.length} our site</span>
+                        <span className="flex items-center gap-1"><PixelIcon name="home" size={12} /> {localResults.length} our site</span>
                       )}
                       {externalResults?.results?.length > 0 && (
-                        <span>🌐 {externalResults.results.length} wild web</span>
+                        <span className="flex items-center gap-1"><PixelIcon name="map" size={12} /> {externalResults.results.length} wild web</span>
                       )}
                       <button
                         type="button"
@@ -696,7 +697,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                         className="text-xs text-blue-600 hover:text-blue-800 hover:underline sm:ml-auto flex items-center gap-1 touch-manipulation"
                         title="Curious how we find and rank all this stuff?"
                       >
-                        <span>🤔</span>
+                        <PixelIcon name="lightbulb" size={12} />
                         <span>How we find stuff</span>
                       </button>
                     </div>
@@ -752,8 +753,8 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
           <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
             <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">From the Wild Web</h2>
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-700">
-                🌱 Found something interesting? Clicking will help us grow our community index together
+              <p className="text-xs text-blue-700 flex items-center gap-1">
+                <PixelIcon name="drop" size={12} /> Found something interesting? Clicking will help us grow our community index together
               </p>
             </div>
             <div onClick={(e) => {

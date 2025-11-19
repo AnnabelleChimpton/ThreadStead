@@ -7,6 +7,7 @@ import { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import Link from 'next/link';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface FAQProps {
   siteConfig: SiteConfig;
@@ -21,8 +22,8 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
             ← Back to Discover
           </Link>
 
-          <h1 className="text-3xl font-bold text-[#2E4B3F] mb-4">
-            🔍 Building Our Inclusive Search Engine: FAQ
+          <h1 className="text-3xl font-bold text-[#2E4B3F] mb-4 flex items-center gap-2">
+            <PixelIcon name="search" size={32} /> Building Our Inclusive Search Engine: FAQ
           </h1>
 
           <p className="text-lg text-gray-700">
@@ -34,8 +35,8 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
         <div className="space-y-8">
           {/* Why Build Our Own */}
           <section className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6">
-            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4">
-              🌟 Why Are We Building Our Own Search Index?
+            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4 flex items-center gap-2">
+              <PixelIcon name="bookmark" size={24} /> Why Are We Building Our Own Search Index?
             </h2>
             <div className="prose prose-gray max-w-none">
               <p className="mb-4">
@@ -71,13 +72,13 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
           {/* How We Build the Index */}
           <section className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6">
-            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4">
-              🛠️ How We Build Our Index
+            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4 flex items-center gap-2">
+              <PixelIcon name="sliders" size={24} /> How We Build Our Index
             </h2>
             <div className="space-y-6">
               <div>
-                <h3 className="font-semibold text-lg mb-2 text-purple-700">
-                  1. Community Submissions 📮
+                <h3 className="font-semibold text-lg mb-2 text-purple-700 flex items-center gap-2">
+                  1. Community Submissions <PixelIcon name="mail" size={20} />
                 </h3>
                 <p className="text-gray-700 mb-2">
                   Anyone can submit sites they love. Each submission goes through community validation
@@ -90,8 +91,8 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
               </div>
 
               <div>
-                <h3 className="font-semibold text-lg mb-2 text-blue-700">
-                  2. Auto-Discovery Tracking 🔗
+                <h3 className="font-semibold text-lg mb-2 text-blue-700 flex items-center gap-2">
+                  2. Auto-Discovery Tracking <PixelIcon name="link" size={20} />
                 </h3>
                 <p className="text-gray-700 mb-2">
                   When you click on external search results, we automatically submit them for community review.
@@ -103,8 +104,8 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
               </div>
 
               <div>
-                <h3 className="font-semibold text-lg mb-2 text-green-700">
-                  3. Automated Web Crawler 🤖
+                <h3 className="font-semibold text-lg mb-2 text-green-700 flex items-center gap-2">
+                  3. Automated Web Crawler <PixelIcon name="debug" size={20} />
                 </h3>
                 <p className="text-gray-700 mb-2">
                   Our ethical web crawler automatically discovers and indexes indie sites while respecting
@@ -120,7 +121,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 </ul>
                 <div className="bg-green-50 border border-green-200 rounded p-3 text-sm">
                   <p className="mb-2">
-                    <strong>🔍 Currently Active:</strong> Our crawler runs every 15-30 minutes, processing ~40 sites per run.
+                    <strong className="flex items-center gap-1 inline-flex"><PixelIcon name="search" size={14} /> Currently Active:</strong> Our crawler runs every 15-30 minutes, processing ~40 sites per run.
                     It has discovered 1,500+ potential indie sites and growing!
                   </p>
                   <p className="text-sm mb-2">
@@ -136,8 +137,8 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
               </div>
 
               <div>
-                <h3 className="font-semibold text-lg mb-2 text-indigo-700">
-                  4. Corporate Profile Discovery 🔗
+                <h3 className="font-semibold text-lg mb-2 text-indigo-700 flex items-center gap-2">
+                  4. Corporate Profile Discovery <PixelIcon name="link" size={20} />
                 </h3>
                 <p className="text-gray-700 mb-2">
                   We use corporate social profiles as <strong>discovery sources</strong> to find indie websites,
@@ -152,7 +153,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 </ul>
                 <div className="bg-indigo-50 border border-indigo-200 rounded p-3 text-sm">
                   <p className="mb-2">
-                    <strong>🌟 Platform Bonuses:</strong> We celebrate community-driven platforms!
+                    <strong className="flex items-center gap-1 inline-flex"><PixelIcon name="bookmark" size={14} /> Platform Bonuses:</strong> We celebrate community-driven platforms!
                   </p>
                   <ul className="text-xs space-y-1 ml-4">
                     <li>• <strong>Neocities sites:</strong> +15% score bonus (the heart of indie web!)</li>
@@ -169,8 +170,8 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
               </div>
 
               <div>
-                <h3 className="font-semibold text-lg mb-2 text-orange-700">
-                  5. Community Validation ✅
+                <h3 className="font-semibold text-lg mb-2 text-orange-700 flex items-center gap-2">
+                  5. Community Validation <PixelIcon name="check" size={20} />
                 </h3>
                 <p className="text-gray-700 mb-2">
                   Every site goes through community review where members can:
@@ -190,8 +191,8 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
           {/* How We Rank Results */}
           <section className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6">
-            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4">
-              📊 How We Rank Search Results
+            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4 flex items-center gap-2">
+              <PixelIcon name="chart" size={24} /> How We Rank Search Results
             </h2>
             <div className="prose prose-gray max-w-none">
               <p className="mb-4">
@@ -203,7 +204,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 <h3 className="font-mono text-sm font-bold mb-3">Unified Scoring Algorithm:</h3>
                 <div className="space-y-2 text-sm font-mono">
                   <div className="flex justify-between">
-                    <span>🌟 Indie Index Sites:</span>
+                    <span className="flex items-center gap-1"><PixelIcon name="bookmark" size={14} /> Indie Index Sites:</span>
                     <span className="font-bold">Base Score: 50</span>
                   </div>
                   <div className="ml-4 text-gray-600">
@@ -213,7 +214,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                   </div>
 
                   <div className="flex justify-between mt-3">
-                    <span>🏠 Local ThreadStead Content:</span>
+                    <span className="flex items-center gap-1"><PixelIcon name="home" size={14} /> Local ThreadStead Content:</span>
                     <span className="font-bold">Base Score: 40</span>
                   </div>
                   <div className="ml-4 text-gray-600">
@@ -223,7 +224,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                   </div>
 
                   <div className="flex justify-between mt-3">
-                    <span>🌐 External Web Results:</span>
+                    <span className="flex items-center gap-1"><PixelIcon name="map" size={14} /> External Web Results:</span>
                     <span className="font-bold">Base Score: 30</span>
                   </div>
                   <div className="ml-4 text-gray-600">
@@ -253,8 +254,8 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
           {/* Corporate Profile Handling */}
           <section className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg shadow-[2px_2px_0_#6366F1] p-6">
-            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4">
-              🔗 How We Handle Corporate Profiles (Inclusively!)
+            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4 flex items-center gap-2">
+              <PixelIcon name="link" size={24} /> How We Handle Corporate Profiles (Inclusively!)
             </h2>
             <div className="prose prose-gray max-w-none">
               <p className="mb-4">
@@ -265,27 +266,27 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
               <div className="grid md:grid-cols-2 gap-6 mb-6">
                 <div className="bg-white border border-indigo-200 rounded-lg p-4">
                   <h3 className="font-semibold mb-3 text-indigo-700 flex items-center gap-2">
-                    🎯 What We Do
+                    <PixelIcon name="gps" size={20} /> What We Do
                   </h3>
                   <ul className="space-y-2 text-sm text-gray-700">
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">✓</span>
+                      <span className="text-green-500 mt-1"><PixelIcon name="check" size={14} /></span>
                       <span>Scan social media bios for personal website links</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">✓</span>
+                      <span className="text-green-500 mt-1"><PixelIcon name="check" size={14} /></span>
                       <span>Extract portfolio links from GitHub, YouTube, etc.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">✓</span>
+                      <span className="text-green-500 mt-1"><PixelIcon name="check" size={14} /></span>
                       <span>Follow &quot;link in bio&quot; references to indie sites</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">✓</span>
+                      <span className="text-green-500 mt-1"><PixelIcon name="check" size={14} /></span>
                       <span>Give bonus points to sites on indie platforms</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">✓</span>
+                      <span className="text-green-500 mt-1"><PixelIcon name="check" size={14} /></span>
                       <span>Track discovery paths for transparency</span>
                     </li>
                   </ul>
@@ -293,27 +294,27 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
                 <div className="bg-white border border-red-200 rounded-lg p-4">
                   <h3 className="font-semibold mb-3 text-red-700 flex items-center gap-2">
-                    🚫 What We Don&apos;t Do
+                    <PixelIcon name="close" size={20} /> What We Don&apos;t Do
                   </h3>
                   <ul className="space-y-2 text-sm text-gray-700">
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-1">✗</span>
+                      <span className="text-red-500 mt-1"><PixelIcon name="close" size={14} /></span>
                       <span>Include corporate profiles in search results</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-1">✗</span>
+                      <span className="text-red-500 mt-1"><PixelIcon name="close" size={14} /></span>
                       <span>Penalize creators for using social media</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-1">✗</span>
+                      <span className="text-red-500 mt-1"><PixelIcon name="close" size={14} /></span>
                       <span>Index social media posts or content</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-1">✗</span>
+                      <span className="text-red-500 mt-1"><PixelIcon name="close" size={14} /></span>
                       <span>Favor or discriminate based on follower count</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-red-500 mt-1">✗</span>
+                      <span className="text-red-500 mt-1"><PixelIcon name="close" size={14} /></span>
                       <span>Store or track personal social media data</span>
                     </li>
                   </ul>
@@ -338,15 +339,15 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                   <p>
                     <strong>5.</strong> Their personal site appears in search results, not their YouTube channel
                   </p>
-                  <p className="text-purple-700 font-medium">
-                    <strong>Result:</strong> Clean search results that lead to genuine indie content! 🎉
+                  <p className="text-purple-700 font-medium flex items-center gap-1">
+                    <strong>Result:</strong> Clean search results that lead to genuine indie content! <PixelIcon name="gift" size={16} />
                   </p>
                 </div>
               </div>
 
               <div className="bg-green-50 border border-green-200 rounded p-4">
-                <p className="text-sm font-medium text-green-800 mb-2">
-                  🌟 Why This Approach Works:
+                <p className="text-sm font-medium text-green-800 mb-2 flex items-center gap-1">
+                  <PixelIcon name="bookmark" size={14} /> Why This Approach Works:
                 </p>
                 <ul className="text-sm text-green-700 space-y-1">
                   <li>• Creators benefit from having their indie sites discovered</li>
@@ -361,8 +362,8 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
           {/* External Search Integration */}
           <section className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6">
-            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4">
-              🌍 How We Work With External Search APIs
+            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4 flex items-center gap-2">
+              <PixelIcon name="map" size={24} /> How We Work With External Search APIs
             </h2>
             <div className="prose prose-gray max-w-none">
               <p className="mb-4">
@@ -371,7 +372,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
               <div className="grid md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-white border border-gray-200 rounded p-4">
-                  <h3 className="font-semibold mb-2">🦆 Brave Search</h3>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><PixelIcon name="shield" size={20} /> Brave Search</h3>
                   <p className="text-sm text-gray-700">
                     Privacy-focused results without tracking. We use their free tier to supplement
                     our indie index with broader web coverage.
@@ -379,7 +380,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded p-4">
-                  <h3 className="font-semibold mb-2">🌱 SearchMySite</h3>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2"><PixelIcon name="drop" size={20} /> SearchMySite</h3>
                   <p className="text-sm text-gray-700">
                     Dedicated indie web search engine. Perfect alignment with our values—they
                     index only personal and independent sites.
@@ -399,12 +400,12 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
           {/* Get Involved */}
           <section className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg shadow-[2px_2px_0_#8B5CF6] p-6">
-            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4">
-              🚀 How You Can Help Build This
+            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4 flex items-center gap-2">
+              <PixelIcon name="zap" size={24} /> How You Can Help Build This
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white rounded p-4">
-                <h3 className="font-semibold mb-2">🔍 Search & Discover</h3>
+                <h3 className="font-semibold mb-2 flex items-center gap-2"><PixelIcon name="search" size={20} /> Search & Discover</h3>
                 <p className="text-sm text-gray-700 mb-2">
                   Every search helps! Click interesting results to auto-index them for review.
                 </p>
@@ -414,7 +415,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
               </div>
 
               <div className="bg-white rounded p-4">
-                <h3 className="font-semibold mb-2">📮 Submit Sites</h3>
+                <h3 className="font-semibold mb-2 flex items-center gap-2"><PixelIcon name="mail" size={20} /> Submit Sites</h3>
                 <p className="text-sm text-gray-700 mb-2">
                   Know an amazing indie site? Submit it to our indie index!
                 </p>
@@ -424,7 +425,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
               </div>
 
               <div className="bg-white rounded p-4">
-                <h3 className="font-semibold mb-2">✅ Validate & Review</h3>
+                <h3 className="font-semibold mb-2 flex items-center gap-2"><PixelIcon name="check" size={20} /> Validate & Review</h3>
                 <p className="text-sm text-gray-700 mb-2">
                   Help review submitted sites and maintain quality standards.
                 </p>
@@ -434,7 +435,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
               </div>
 
               <div className="bg-white rounded p-4">
-                <h3 className="font-semibold mb-2">📊 Track Progress</h3>
+                <h3 className="font-semibold mb-2 flex items-center gap-2"><PixelIcon name="chart" size={20} /> Track Progress</h3>
                 <p className="text-sm text-gray-700 mb-2">
                   See how our indie index is growing over time.
                 </p>
@@ -449,16 +450,16 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 Together, we&apos;re not just building a search engine—we&apos;re preserving the
                 human, creative, independent spirit of the web for future generations.
               </p>
-              <p className="text-center text-purple-700 font-bold mt-2">
-                Every site you submit, validate, or discover makes the indie web stronger! 💪
+              <p className="text-center text-purple-700 font-bold mt-2 flex items-center justify-center gap-1">
+                Every site you submit, validate, or discover makes the indie web stronger! <PixelIcon name="human-handsup" size={20} />
               </p>
             </div>
           </section>
 
           {/* Philosophy */}
           <section className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6">
-            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4">
-              💭 Our Philosophy
+            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4 flex items-center gap-2">
+              <PixelIcon name="chat" size={24} /> Our Philosophy
             </h2>
             <div className="space-y-4 text-gray-700">
               <blockquote className="border-l-4 border-purple-500 pl-4 italic">
@@ -472,7 +473,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="flex items-start gap-2">
-                  <span className="text-2xl">🤝</span>
+                  <PixelIcon name="users" size={24} />
                   <div>
                     <strong>Community-Driven</strong><br/>
                     <span className="text-sm">Real people, not algorithms, decide what&apos;s valuable</span>
@@ -480,7 +481,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <span className="text-2xl">🔍</span>
+                  <PixelIcon name="search" size={24} />
                   <div>
                     <strong>Transparent</strong><br/>
                     <span className="text-sm">You can see exactly how and why results are ranked</span>
@@ -488,7 +489,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <span className="text-2xl">🌱</span>
+                  <PixelIcon name="drop" size={24} />
                   <div>
                     <strong>Indie-Focused</strong><br/>
                     <span className="text-sm">Personal sites and creative projects come first</span>
@@ -496,7 +497,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <span className="text-2xl">🔒</span>
+                  <PixelIcon name="lock" size={24} />
                   <div>
                     <strong>Privacy-Respecting</strong><br/>
                     <span className="text-sm">No tracking, no profiles, no surveillance capitalism</span>
@@ -504,7 +505,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <span className="text-2xl">🌍</span>
+                  <PixelIcon name="map" size={24} />
                   <div>
                     <strong>Decentralized</strong><br/>
                     <span className="text-sm">Multiple sources, no single point of control</span>
@@ -512,7 +513,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <span className="text-2xl">✨</span>
+                  <PixelIcon name="zap" size={24} />
                   <div>
                     <strong>Serendipitous</strong><br/>
                     <span className="text-sm">Discover the unexpected and delightful</span>
@@ -520,7 +521,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <span className="text-2xl">🔗</span>
+                  <PixelIcon name="link" size={24} />
                   <div>
                     <strong>Inclusive Discovery</strong><br/>
                     <span className="text-sm">Use all available pathways to find indie content</span>
@@ -528,7 +529,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <span className="text-2xl">🏆</span>
+                  <PixelIcon name="trophy" size={24} />
                   <div>
                     <strong>Platform Celebrating</strong><br/>
                     <span className="text-sm">Extra recognition for indie-friendly hosts</span>
@@ -538,7 +539,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
               <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                 <p className="text-sm text-indigo-800">
-                  <strong>🤝 Creator-Friendly Approach:</strong> We understand that many indie creators
+                  <strong className="flex items-center gap-1 inline-flex"><PixelIcon name="users" size={14} /> Creator-Friendly Approach:</strong> We understand that many indie creators
                   maintain a presence on corporate platforms to reach audiences. Rather than ignoring
                   this reality, we use it as an opportunity—extracting links to their personal sites
                   while keeping search results focused purely on independent content.
@@ -549,8 +550,8 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
           {/* Technical Details */}
           <section className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6">
-            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4">
-              🔧 Technical Implementation
+            <h2 className="text-xl font-bold text-[#2E4B3F] mb-4 flex items-center gap-2">
+              <PixelIcon name="sliders" size={24} /> Technical Implementation
             </h2>
             <div className="prose prose-gray max-w-none">
               <p className="mb-4">
