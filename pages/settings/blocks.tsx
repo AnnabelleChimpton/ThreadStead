@@ -3,6 +3,7 @@ import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import { useMe } from "@/hooks/useMe";
 import Link from "next/link";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface BlockedUser {
   id: string;
@@ -130,7 +131,7 @@ export default function BlocksPage() {
             <div className="text-center py-8">Loading your blocked list...</div>
           ) : blocks.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <p className="mb-2">🎉 You haven&apos;t blocked anyone yet!</p>
+              <p className="mb-2"><PixelIcon name="trophy" className="inline-block align-middle" /> You haven&apos;t blocked anyone yet!</p>
               <p className="text-sm">When you block users or ThreadRings, they&apos;ll appear here and you can manage them.</p>
             </div>
           ) : (
@@ -147,7 +148,7 @@ export default function BlocksPage() {
                               className="w-6 h-6 rounded-full bg-cover bg-center"
                             />
                           )}
-                          👤 {block.blockedUser.profile?.displayName || block.blockedUser.primaryHandle?.split('@')[0]}
+                          <PixelIcon name="user" className="inline-block align-middle" /> {block.blockedUser.profile?.displayName || block.blockedUser.primaryHandle?.split('@')[0]}
                           <span className="text-sm text-gray-500">(@{block.blockedUser.primaryHandle?.split('@')[0]})</span>
                         </div>
                         <div className="text-sm text-gray-600">User</div>
@@ -156,7 +157,7 @@ export default function BlocksPage() {
                       'blockedThreadRing' in block && block.blockedThreadRing && (
                         <>
                           <div className="font-semibold flex items-center gap-2">
-                            🔗 {block.blockedThreadRing.name}
+                            <PixelIcon name="link" className="inline-block align-middle" /> {block.blockedThreadRing.name}
                             <span className="text-sm text-gray-500">(/{block.blockedThreadRing.slug})</span>
                           </div>
                           <div className="text-sm text-gray-600">ThreadRing</div>
@@ -188,16 +189,16 @@ export default function BlocksPage() {
         <RetroCard title="How Blocking Works">
           <div className="space-y-3 text-sm text-gray-700">
             <div>
-              <strong>🚫 When you block a user:</strong>
+              <strong><PixelIcon name="close" className="inline-block align-middle" /> When you block a user:</strong>
               <ul className="list-disc list-inside ml-4 mt-1">
                 <li>Their posts won&apos;t appear in your feeds</li>
                 <li>Their comments won&apos;t be visible to you</li>
                 <li>They can still see your public content</li>
               </ul>
             </div>
-            
+
             <div>
-              <strong>🔗 When you block a ThreadRing:</strong>
+              <strong><PixelIcon name="link" className="inline-block align-middle" /> When you block a ThreadRing:</strong>
               <ul className="list-disc list-inside ml-4 mt-1">
                 <li>Posts from that ThreadRing won&apos;t appear in your feeds</li>
                 <li>You won&apos;t see notifications from that ThreadRing</li>
@@ -206,7 +207,7 @@ export default function BlocksPage() {
             </div>
 
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
-              <strong>💡 Tip:</strong> You can block users and ThreadRings by clicking the &quot;🚩 Report&quot; button 
+              <strong><PixelIcon name="lightbulb" className="inline-block align-middle" /> Tip:</strong> You can block users and ThreadRings by clicking the <PixelIcon name="flag" className="inline-block align-middle" /> Report button
               on their content, or use the block buttons on profiles and ThreadRing pages.
             </div>
           </div>

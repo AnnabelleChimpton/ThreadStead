@@ -78,7 +78,6 @@ export type PixelIconName =
   | 'bookmark'
   | 'flag'
   | 'gift'
-  | 'key'
   | 'lock'
   | 'lock-open'
   | 'shield'

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 // Define enum types to match Prisma schema
 enum ConsentType {
@@ -145,15 +146,15 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
   const getConsentIcon = (type: ConsentType) => {
     switch (type) {
       case ConsentType.ESSENTIAL:
-        return '🔒'
+        return <PixelIcon name="lock" size={20} />
       case ConsentType.ANALYTICS:
-        return '📊'
+        return <PixelIcon name="chart" size={20} />
       case ConsentType.MARKETING:
-        return '🎯'
+        return <PixelIcon name="gps" size={20} />
       case ConsentType.PREFERENCES:
-        return '⚙️'
+        return <PixelIcon name="sliders" size={20} />
       default:
-        return '🍪'
+        return <PixelIcon name="archive" size={20} />
     }
   }
 
@@ -190,7 +191,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
           <div key={consent.type} className="border border-gray-200 p-4 rounded">
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="text-xl">{getConsentIcon(consent.type)}</span>
+                <span>{getConsentIcon(consent.type)}</span>
                 <h4 className="font-semibold capitalize flex items-center gap-2">
                   {consent.type.toLowerCase().replace('_', ' ')} Cookies
                   {consent.type === ConsentType.ESSENTIAL && (

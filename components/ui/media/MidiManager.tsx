@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface MidiFile {
   id: string;
@@ -274,16 +275,16 @@ export default function MidiManager({ username }: MidiManagerProps) {
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🎵</span>
+            <PixelIcon name="music" size={32} />
             <div>
               <h3 className="font-semibold">Profile Music</h3>
               {selectedMidi ? (
                 <p className="text-sm text-green-600">
-                  ✅ Background music is active ({midiFiles.find(f => f.id === selectedMidi)?.title || 'Unnamed Track'})
+                  <PixelIcon name="check" size={16} className="inline-block align-middle" /> Background music is active ({midiFiles.find(f => f.id === selectedMidi)?.title || 'Unnamed Track'})
                 </p>
               ) : midiFiles.length > 0 ? (
                 <p className="text-sm text-amber-600">
-                  ⚠️ You have {midiFiles.length} track{midiFiles.length === 1 ? '' : 's'} but none selected for your profile
+                  <PixelIcon name="alert" size={16} className="inline-block align-middle" /> You have {midiFiles.length} track{midiFiles.length === 1 ? '' : 's'} but none selected for your profile
                 </p>
               ) : (
                 <p className="text-sm text-gray-500">
@@ -314,12 +315,12 @@ export default function MidiManager({ username }: MidiManagerProps) {
             >
               {uploading ? (
                 <span className="flex items-center gap-1">
-                  <span className="animate-spin text-xs">⏳</span>
+                  <PixelIcon name="clock" size={16} className="animate-spin" />
                   Uploading...
                 </span>
               ) : (
                 <span className="flex items-center gap-1">
-                  <span>📁</span>
+                  <PixelIcon name="folder" size={16} />
                   Add Files
                 </span>
               )}
@@ -340,7 +341,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
                 onClick={saveGlobalSettings}
                 className="px-2 py-1 text-xs border border-gray-300 bg-white hover:bg-gray-50 rounded font-medium transition-colors"
               >
-                💾 Save
+                <PixelIcon name="save" size={12} className="inline-block align-middle" /> Save
               </button>
             </div>
             <div className="flex items-center gap-6 mt-2">
@@ -373,7 +374,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
           <div className="flex items-center justify-between">
             <h4 className="font-semibold">Your MIDI Files</h4>
             <span className="text-sm text-gray-500">
-              {selectedMidi ? '✓ Profile music selected' : 'Select a file to set as profile music'}
+              {selectedMidi ? <><PixelIcon name="check" size={14} className="inline-block align-middle" /> Profile music selected</> : 'Select a file to set as profile music'}
             </span>
           </div>
           {midiFiles.map((file) => (
@@ -387,8 +388,8 @@ export default function MidiManager({ username }: MidiManagerProps) {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 flex-1">
-                  <div className={`text-3xl mt-1 ${selectedMidi === file.id ? 'animate-pulse' : ''}`}>
-                    {selectedMidi === file.id ? '🎵' : '🎹'}
+                  <div className={`mt-1 ${selectedMidi === file.id ? 'animate-pulse' : ''}`}>
+                    <PixelIcon name="music" size={32} />
                   </div>
                   <div className="flex-1">
                     <h5 className="font-semibold text-gray-900">
@@ -404,14 +405,14 @@ export default function MidiManager({ username }: MidiManagerProps) {
                     )}
                     <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
                       <span className="flex items-center gap-1">
-                        📁 {formatFileSize(file.fileSize)}
+                        <PixelIcon name="folder" size={12} /> {formatFileSize(file.fileSize)}
                       </span>
                       <span className="flex items-center gap-1">
-                        📅 {formatDate(file.createdAt)}
+                        <PixelIcon name="calendar" size={12} /> {formatDate(file.createdAt)}
                       </span>
                       {file.featured && (
                         <span className="flex items-center gap-1 text-amber-600">
-                          ⭐ Featured
+                          <PixelIcon name="bookmark" size={12} /> Featured
                         </span>
                       )}
                     </div>
@@ -430,7 +431,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
                       disabled
                       className="px-3 py-1.5 text-sm border border-green-300 bg-green-100 rounded font-medium text-green-700 cursor-not-allowed"
                     >
-                      ✓ Active
+                      <PixelIcon name="check" size={14} className="inline-block align-middle" /> Active
                     </button>
                   )}
                   <button
@@ -438,14 +439,14 @@ export default function MidiManager({ username }: MidiManagerProps) {
                     className="px-3 py-1.5 text-sm border border-gray-300 bg-white hover:bg-gray-50 rounded transition-colors"
                     title="Download MIDI file"
                   >
-                    ⬇ Download
+                    <PixelIcon name="download" size={14} className="inline-block align-middle" /> Download
                   </button>
                   <button
                     onClick={() => handleDelete(file.id)}
                     className="px-3 py-1.5 text-sm border border-red-200 bg-white hover:bg-red-50 rounded text-red-600 hover:text-red-700 transition-colors"
                     title="Delete this file"
                   >
-                    🗑 Delete
+                    <PixelIcon name="trash" size={14} className="inline-block align-middle" /> Delete
                   </button>
                 </div>
               </div>

@@ -592,7 +592,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold text-gray-900">🌐 Public</div>
+                    <div className="font-bold text-gray-900"><PixelIcon name="map" className="inline-block align-middle" /> Public</div>
                     <div className="text-sm text-gray-600">
                       Anyone can see your profile. Your name and avatar will be shared with federated instances.
                     </div>
@@ -624,7 +624,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold text-gray-900">🤝 Friends Only</div>
+                    <div className="font-bold text-gray-900"><PixelIcon name="users" className="inline-block align-middle" /> Friends Only</div>
                     <div className="text-sm text-gray-600">
                       Only mutual friends can see your profile. Limited federated sharing.
                     </div>
@@ -640,7 +640,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold text-gray-900">🔒 Private</div>
+                    <div className="font-bold text-gray-900"><PixelIcon name="lock" className="inline-block align-middle" /> Private</div>
                     <div className="text-sm text-gray-600">
                       Only you can see your profile. Minimal federated sharing (profile link only).
                     </div>
@@ -725,7 +725,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             {/* Visual Builder */}
             <div className="bg-white border-2 border-purple-300 rounded-lg p-6 text-center shadow-md">
               <div className="mb-3">
-                <span className="text-4xl">🏗️</span>
+                <PixelIcon name="building" size={48} />
               </div>
               <h3 className="text-lg font-bold mb-2 text-gray-900">Visual Builder</h3>
               <p className="text-sm text-gray-700 mb-4">
@@ -743,7 +743,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             {/* Template Language */}
             <div className="bg-white border-2 border-blue-300 rounded-lg p-6 text-center shadow-md">
               <div className="mb-3">
-                <span className="text-4xl">💻</span>
+                <PixelIcon name="code" size={48} />
               </div>
               <h3 className="text-lg font-bold mb-2 text-gray-900">Template Code</h3>
               <p className="text-sm text-gray-700 mb-4">
@@ -912,7 +912,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           {/* Enhanced MIDI Manager */}
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl">🎼</span>
+              <PixelIcon name="music" size={32} />
               <div>
                 <h3 className="text-lg font-semibold text-purple-800">MIDI Music Manager</h3>
                 <p className="text-sm text-purple-600">Upload and manage your profile&apos;s background music</p>
@@ -925,7 +925,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           {/* Music Tips */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-start justify-between mb-2">
-              <h4 className="font-semibold text-blue-800">💡 Music Tips</h4>
+              <h4 className="font-semibold text-blue-800"><PixelIcon name="lightbulb" className="inline-block align-middle" /> Music Tips</h4>
               <Link
                 href="/help/music-guide"
                 className="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium"
@@ -982,9 +982,9 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               </div>
             ) : (
               <div className="bg-green-50 border border-green-200 p-4 rounded mb-4">
-                <p className="text-green-800 font-medium mb-2">✓ Seed phrase recovery is enabled</p>
+                <p className="text-green-800 font-medium mb-2"><PixelIcon name="check" className="inline-block align-middle" /> Seed phrase recovery is enabled</p>
                 <div className="bg-yellow-50 border border-yellow-200 p-3 rounded mb-3">
-                  <p className="text-yellow-800 font-medium mb-2">🔄 Need a new recovery phrase?</p>
+                  <p className="text-yellow-800 font-medium mb-2"><PixelIcon name="reload" className="inline-block align-middle" /> Need a new recovery phrase?</p>
                   <p className="text-yellow-700 text-sm mb-3">
                     Generate a completely new 12-word recovery phrase. This will replace your current one and log you back in with new credentials.
                   </p>
@@ -1033,7 +1033,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     onClick={() => setSeedPhrase("")}
                     className="px-3 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all min-h-[48px]"
                   >
-                    ✓ I&apos;ve Saved It
+                    <PixelIcon name="check" className="inline-block align-middle" /> I&apos;ve Saved It
                   </button>
                 </div>
               </div>
@@ -1083,7 +1083,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           {/* Password Authentication */}
           <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
-              <span>🔐</span>
+              <PixelIcon name="lock" />
               Password Authentication
             </h3>
             <p className="text-gray-600 mb-4">
@@ -1179,7 +1179,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               </div>
             ) : (
               <div className="bg-green-50 border border-green-200 p-4 rounded mb-4">
-                <p className="text-green-800 font-medium mb-2">✓ Password authentication is enabled</p>
+                <p className="text-green-800 font-medium mb-2"><PixelIcon name="check" className="inline-block align-middle" /> Password authentication is enabled</p>
                 <p className="text-green-700 text-sm mb-4">
                   You can now sign in using either your password or your seed phrase.
                 </p>
@@ -1300,7 +1300,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 <div className="flex items-center gap-2">
                   {emailVerifiedAt ? (
                     <>
-                      <span className="text-green-600 text-sm font-medium">✓ {userEmail}</span>
+                      <span className="text-green-600 text-sm font-medium"><PixelIcon name="check" className="inline-block align-middle" /> {userEmail}</span>
                       <span className="text-sm text-gray-500">(verified)</span>
                     </>
                   ) : (
@@ -1311,7 +1311,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   )}
                 </div>
               ) : (
-                <p className="text-gray-800 font-medium mb-2">📧 Email login not set</p>
+                <p className="text-gray-800 font-medium mb-2"><PixelIcon name="mail" className="inline-block align-middle" /> Email login not set</p>
               )}
 
               {userEmail ? (
@@ -1407,7 +1407,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     },
     {
       id: "privacy",
-      label: "🚫 Privacy & Consent",
+      label: <><PixelIcon name="shield" /> Privacy & Consent</>,
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
@@ -1423,7 +1423,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           {/* Data Export */}
           <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <span>📦</span>
+              <PixelIcon name="archive" />
               Export Your Data
             </h3>
             <p className="text-gray-600 mb-4">
@@ -1431,21 +1431,21 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             </p>
 
             <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4">
-              <h4 className="font-semibold text-blue-800 mb-2">📋 What&apos;s Included:</h4>
+              <h4 className="font-semibold text-blue-800 mb-2"><PixelIcon name="clipboard" className="inline-block align-middle" /> What&apos;s Included:</h4>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>✓ All posts and content</li>
-                <li>✓ ThreadRing memberships and badges</li>
-                <li>✓ Comments and interactions</li>
-                <li>✓ Media library (photos, MIDI files)</li>
-                <li>✓ Profile and customization settings</li>
-                <li>✓ Social connections (followers, following)</li>
-                <li>✓ Account data and consent records</li>
+                <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> All posts and content</li>
+                <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> ThreadRing memberships and badges</li>
+                <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Comments and interactions</li>
+                <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Media library (photos, MIDI files)</li>
+                <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Profile and customization settings</li>
+                <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Social connections (followers, following)</li>
+                <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Account data and consent records</li>
               </ul>
             </div>
 
             <div className="bg-amber-50 border border-amber-200 p-3 rounded mb-4">
               <p className="text-sm text-amber-800">
-                <strong>⏱️ Rate Limit:</strong> You can export your data once per hour to prevent abuse.
+                <strong><PixelIcon name="clock" className="inline-block align-middle" /> Rate Limit:</strong> You can export your data once per hour to prevent abuse.
               </p>
             </div>
 
@@ -1482,7 +1482,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               }}
               className="px-4 py-3 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
             >
-              📥 Export All My Data
+              <PixelIcon name="download" className="inline-block align-middle" /> Export All My Data
             </button>
 
             <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded">
@@ -1510,7 +1510,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     },
     ...(isBetaEnabled ? [{
       id: "beta" as const,
-      label: "🎫 Beta Invites",
+      label: <><PixelIcon name="gift" /> Beta Invites</>,
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">

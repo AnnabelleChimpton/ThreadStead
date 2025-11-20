@@ -4,6 +4,7 @@ import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import { useMe } from "@/hooks/useMe";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { getSiteTemplate, SITE_TEMPLATE_INFO } from "@/lib/templates/site-css-templates";
 import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO, type ProfileTemplateType } from "@/lib/templates/default-profile-templates";
 import ReportsSection from "@/components/features/admin/ReportsSection";
@@ -17,14 +18,14 @@ import BetaInviteAnalyticsSection from "@/components/features/admin/BetaInviteAn
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 // Collapsible Section Component
-function CollapsibleSection({ 
-  title, 
-  children, 
+function CollapsibleSection({
+  title,
+  children,
   defaultOpen = false,
-  icon = "📋"
-}: { 
-  title: string; 
-  children: React.ReactNode; 
+  icon = "clipboard"
+}: {
+  title: string;
+  children: React.ReactNode;
   defaultOpen?: boolean;
   icon?: string;
 }) {
@@ -37,7 +38,7 @@ function CollapsibleSection({
         className="w-full flex items-center justify-between p-3 border border-black bg-gray-100 hover:bg-gray-50 shadow-[2px_2px_0_#000] mb-4"
       >
         <span className="font-bold text-left flex items-center gap-2">
-          {icon} {title}
+          <PixelIcon name={icon as any} /> {title}
         </span>
         <span className="text-lg font-mono">
           {isOpen ? "−" : "+"}
@@ -146,7 +147,7 @@ function PageForm({
 </div>"
           />
           <div className="text-xs text-gray-600 mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
-            <p className="font-medium mb-2">🎨 Full Creative Control:</p>
+            <p className="font-medium mb-2"><PixelIcon name="paint-bucket" className="inline-block align-middle" /> Full Creative Control:</p>
             <ul className="space-y-1">
               <li>• Use any HTML, CSS, and inline styles</li>
               <li>• Create custom layouts, colors, and backgrounds</li>
@@ -217,7 +218,7 @@ function PageForm({
                 checked={formData.isHomepage}
                 onChange={(e) => setFormData({...formData, isHomepage: e.target.checked})}
               />
-              <span className="text-sm font-bold text-orange-700">🏠 Use as Homepage</span>
+              <span className="text-sm font-bold text-orange-700"><PixelIcon name="home" className="inline-block align-middle" /> Use as Homepage</span>
             </label>
             <p className="text-xs text-gray-500">Override the default homepage for logged-in users</p>
           </div>
@@ -229,7 +230,7 @@ function PageForm({
                 checked={formData.isLandingPage}
                 onChange={(e) => setFormData({...formData, isLandingPage: e.target.checked})}
               />
-              <span className="text-sm font-bold text-green-700">🌟 Use as Landing Page</span>
+              <span className="text-sm font-bold text-green-700"><PixelIcon name="bookmark" className="inline-block align-middle" /> Use as Landing Page</span>
             </label>
             <p className="text-xs text-gray-500">Override the default landing page for visitors</p>
           </div>
@@ -512,15 +513,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       if (res.ok) {
         const data = await res.json();
         setSiteConfig(data.config);
-        setConfigMessage("✅ Site configuration saved successfully!");
+        setConfigMessage("Site configuration saved successfully!");
         setTimeout(() => setConfigMessage(null), 3000);
       } else {
         const error = await res.json();
-        setConfigMessage(`❌ ${error.error || "Failed to save configuration"}`);
+        setConfigMessage(`Error: ${error.error || "Failed to save configuration"}`);
       }
     } catch (error) {
       console.error("Failed to save site config:", error);
-      setConfigMessage("❌ Failed to save site configuration");
+      setConfigMessage("Error: Failed to save site configuration");
     } finally {
       setSavingConfig(false);
     }
@@ -653,19 +654,19 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setCSSMessage("✅ Site CSS saved successfully! Refreshing...");
+        setCSSMessage("Site CSS saved successfully! Refreshing...");
         // Auto-refresh the page to show the new styles immediately
         setTimeout(() => {
           window.location.reload();
         }, 1000);
       } else {
         const error = await res.json();
-        setCSSMessage(`❌ ${error.error || "Failed to save CSS"}`);
+        setCSSMessage(`Error: ${error.error || "Failed to save CSS"}`);
         setSavingCSS(false);
       }
     } catch (error) {
       console.error("Failed to save site CSS:", error);
-      setCSSMessage("❌ Failed to save site CSS");
+      setCSSMessage("Error: Failed to save site CSS");
       setSavingCSS(false);
     }
     // Note: Don't set setSavingCSS(false) on success since we're refreshing
@@ -692,18 +693,18 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setCSSMessage("✅ Template applied successfully! Refreshing...");
+        setCSSMessage("Template applied successfully! Refreshing...");
         setTimeout(() => {
           window.location.reload();
         }, 1000);
       } else {
         const error = await res.json();
-        setCSSMessage(`❌ ${error.error || "Failed to apply template"}`);
+        setCSSMessage(`Error: ${error.error || "Failed to apply template"}`);
         setSavingCSS(false);
       }
     } catch (error) {
       console.error("Failed to apply template:", error);
-      setCSSMessage("❌ Failed to apply template");
+      setCSSMessage("Error: Failed to apply template");
       setSavingCSS(false);
     }
   }
@@ -728,18 +729,18 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         });
 
         if (res.ok) {
-          setCSSMessage("✅ Default template restored! Refreshing...");
+          setCSSMessage("Default template restored! Refreshing...");
           setTimeout(() => {
             window.location.reload();
           }, 1000);
         } else {
           const error = await res.json();
-          setCSSMessage(`❌ ${error.error || "Failed to restore default"}`);
+          setCSSMessage(`Error: ${error.error || "Failed to restore default"}`);
           setSavingCSS(false);
         }
       } catch (error) {
         console.error("Failed to restore default:", error);
-        setCSSMessage("❌ Failed to restore default");
+        setCSSMessage("Error: Failed to restore default");
         setSavingCSS(false);
       }
     }
@@ -775,15 +776,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setHomeMessage("✅ Homepage setting saved successfully!");
+        setHomeMessage("Homepage setting saved successfully!");
         setTimeout(() => setHomeMessage(null), 3000);
       } else {
         const error = await res.json();
-        setHomeMessage(`❌ ${error.error || "Failed to save setting"}`);
+        setHomeMessage(`Error: ${error.error || "Failed to save setting"}`);
       }
     } catch (error) {
       console.error("Failed to save home setting:", error);
-      setHomeMessage("❌ Failed to save homepage setting");
+      setHomeMessage("Error: Failed to save homepage setting");
     } finally {
       setSavingHomeSetting(false);
     }
@@ -818,15 +819,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         }),
       });
       if (res.ok) {
-        setLandingMessage("✅ Landing page setting saved successfully!");
+        setLandingMessage("Landing page setting saved successfully!");
         setTimeout(() => setLandingMessage(null), 3000);
       } else {
         const error = await res.json();
-        setLandingMessage(`❌ ${error.error || "Failed to save setting"}`);
+        setLandingMessage(`Error: ${error.error || "Failed to save setting"}`);
       }
     } catch (error) {
       console.error("Failed to save landing setting:", error);
-      setLandingMessage("❌ Failed to save landing setting");
+      setLandingMessage("Error: Failed to save landing setting");
     } finally {
       setSavingLandingSetting(false);
     }
@@ -862,15 +863,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setDefaultProfileMessage("✅ Default profile CSS saved successfully!");
+        setDefaultProfileMessage("Default profile CSS saved successfully!");
         setTimeout(() => setDefaultProfileMessage(null), 3000);
       } else {
         const error = await res.json();
-        setDefaultProfileMessage(`❌ ${error.error || "Failed to save CSS"}`);
+        setDefaultProfileMessage(`Error: ${error.error || "Failed to save CSS"}`);
       }
     } catch (error) {
       console.error("Failed to save default profile CSS:", error);
-      setDefaultProfileMessage("❌ Failed to save default profile CSS");
+      setDefaultProfileMessage("Error: Failed to save default profile CSS");
     } finally {
       setSavingDefaultProfileCSS(false);
     }
@@ -897,15 +898,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setDefaultProfileMessage("✅ Template applied successfully!");
+        setDefaultProfileMessage("Template applied successfully!");
         setTimeout(() => setDefaultProfileMessage(null), 3000);
       } else {
         const error = await res.json();
-        setDefaultProfileMessage(`❌ ${error.error || "Failed to apply template"}`);
+        setDefaultProfileMessage(`Error: ${error.error || "Failed to apply template"}`);
       }
     } catch (error) {
       console.error("Failed to apply template:", error);
-      setDefaultProfileMessage("❌ Failed to apply template");
+      setDefaultProfileMessage("Error: Failed to apply template");
     } finally {
       setSavingDefaultProfileCSS(false);
     }
@@ -970,15 +971,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setPolicyMessage("✅ Policy documents saved successfully!");
+        setPolicyMessage("Policy documents saved successfully!");
         setTimeout(() => setPolicyMessage(null), 3000);
       } else {
         const error = await res.json();
-        setPolicyMessage(`❌ ${error.error || "Failed to save policies"}`);
+        setPolicyMessage(`Error: ${error.error || "Failed to save policies"}`);
       }
     } catch (error) {
       console.error("Failed to save policies:", error);
-      setPolicyMessage("❌ Failed to save policy documents");
+      setPolicyMessage("Error: Failed to save policy documents");
     } finally {
       setSavingPolicies(false);
     }
@@ -1010,7 +1011,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
   async function createEmoji() {
     if (!newEmojiName.trim() || !newEmojiUrl.trim()) {
-      setEmojiMessage("❌ Name and image URL are required");
+      setEmojiMessage("Error: Name and image URL are required");
       return;
     }
 
@@ -1030,15 +1031,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         await loadEmojis();
         setNewEmojiName("");
         setNewEmojiUrl("");
-        setEmojiMessage("✅ Emoji created successfully!");
+        setEmojiMessage("Emoji created successfully!");
         setTimeout(() => setEmojiMessage(null), 3000);
       } else {
         const error = await res.json();
-        setEmojiMessage(`❌ ${error.error || "Failed to create emoji"}`);
+        setEmojiMessage(`Error: ${error.error || "Failed to create emoji"}`);
       }
     } catch (error) {
       console.error("Failed to create emoji:", error);
-      setEmojiMessage("❌ Failed to create emoji");
+      setEmojiMessage("Error: Failed to create emoji");
     } finally {
       setSavingEmoji(false);
     }
@@ -1046,7 +1047,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
   async function uploadEmojiFile() {
     if (!selectedFile || !newEmojiName.trim()) {
-      setEmojiMessage("❌ Name and image file are required");
+      setEmojiMessage("Error: Name and image file are required");
       return;
     }
 
@@ -1066,15 +1067,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         await loadEmojis();
         setNewEmojiName("");
         setSelectedFile(null);
-        setEmojiMessage("✅ Emoji uploaded successfully!");
+        setEmojiMessage("Emoji uploaded successfully!");
         setTimeout(() => setEmojiMessage(null), 3000);
       } else {
         const error = await res.json();
-        setEmojiMessage(`❌ ${error.error || "Failed to upload emoji"}`);
+        setEmojiMessage(`Error: ${error.error || "Failed to upload emoji"}`);
       }
     } catch (error) {
       console.error("Failed to upload emoji:", error);
-      setEmojiMessage("❌ Failed to upload emoji");
+      setEmojiMessage("Error: Failed to upload emoji");
     } finally {
       setUploadingEmoji(false);
     }
@@ -1092,15 +1093,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
       if (res.ok) {
         await loadEmojis();
-        setEmojiMessage("✅ Emoji deleted successfully!");
+        setEmojiMessage("Emoji deleted successfully!");
         setTimeout(() => setEmojiMessage(null), 3000);
       } else {
         const error = await res.json();
-        setEmojiMessage(`❌ ${error.error || "Failed to delete emoji"}`);
+        setEmojiMessage(`Error: ${error.error || "Failed to delete emoji"}`);
       }
     } catch (error) {
       console.error("Failed to delete emoji:", error);
-      setEmojiMessage("❌ Failed to delete emoji");
+      setEmojiMessage("Error: Failed to delete emoji");
     }
   }
 
@@ -1146,12 +1147,12 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         </RetroCard>
 
         {/* CONTENT MANAGEMENT */}
-        <CollapsibleSection title="Content Management" defaultOpen={false} icon="📝">
+        <CollapsibleSection title="Content Management" defaultOpen={false} icon="edit">
 
           {/* Pixel Home Decorations */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50 mb-4">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              🎨 Pixel Home Decorations
+              <PixelIcon name="paint-bucket" /> Pixel Home Decorations
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Manage decorations for user pixel homes. Create new decorations, set release types, generate claim codes, and track usage analytics.
@@ -1160,23 +1161,23 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
               href="/admin/decorations"
               className="inline-block border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] text-sm font-medium"
             >
-              🏠 Manage Decorations
+              <PixelIcon name="home" className="inline-block align-middle" /> Manage Decorations
             </Link>
           </div>
 
           {/* Custom Pages */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              📄 Custom Pages
+              <PixelIcon name="file" /> Custom Pages
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Create fully customizable pages with complete design freedom. Pages appear with navbar and footer but no containers - you control everything else! Published pages can be accessed at /page/[slug].
             </p>
             
             <div className="border border-blue-300 bg-blue-50 p-3 rounded mb-4">
-              <h4 className="font-bold text-blue-800 mb-2">🏠 Homepage Control</h4>
+              <h4 className="font-bold text-blue-800 mb-2"><PixelIcon name="home" className="inline-block align-middle" /> Homepage Control</h4>
               <p className="text-sm text-blue-700 mb-3">
-                Create a custom page and check &quot;🏠 Use as Homepage&quot; to override the default homepage, or use the setting below to redirect visitors directly to /feed.
+                Create a custom page and check &quot;Use as Homepage&quot; to override the default homepage, or use the setting below to redirect visitors directly to /feed.
               </p>
               
               {loadingHomeSetting ? (
@@ -1219,9 +1220,9 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
             {/* Landing Page Control */}
             <div className="border border-green-300 bg-green-50 p-3 rounded mb-4">
-              <h4 className="font-bold text-green-800 mb-2">🌟 Visitor Landing Page</h4>
+              <h4 className="font-bold text-green-800 mb-2"><PixelIcon name="bookmark" className="inline-block align-middle" /> Visitor Landing Page</h4>
               <p className="text-sm text-green-700 mb-3">
-                Create a custom page and check &quot;🌟 Use as Landing Page&quot; to override the default visitor landing page, or use the setting below to redirect visitors to another page.
+                Create a custom page and check &quot;Use as Landing Page&quot; to override the default visitor landing page, or use the setting below to redirect visitors to another page.
               </p>
 
               {loadingLandingSetting ? (
@@ -1323,7 +1324,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                             )}
                             {page.isHomepage && (
                               <span className="text-xs px-2 py-1 rounded bg-orange-200 text-orange-800 font-bold">
-                                🏠 Homepage
+                                <PixelIcon name="home" size={12} className="inline-block align-middle" /> Homepage
                               </span>
                             )}
                           </div>
@@ -1356,7 +1357,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
           {/* Site Configuration */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              ⚙️ Site Configuration
+              <PixelIcon name="sliders" /> Site Configuration
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Customize your site&apos;s branding and messaging. Changes will appear site-wide.
@@ -1523,7 +1524,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
           {/* Policy Documents */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              📋 Terms & Privacy Policy
+              <PixelIcon name="script" /> Terms & Privacy Policy
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Manage your site&apos;s Terms and Conditions and Privacy Policy. Users will see the simple versions during signup with links to the full versions. Both versions are required for legal compliance.
@@ -1537,7 +1538,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                   {/* Terms of Service - Simple */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      📝 Terms of Service (Simple Version)
+                      <PixelIcon name="edit" className="inline-block align-middle" /> Terms of Service (Simple Version)
                     </label>
                     <p className="text-xs text-gray-500 mb-2">
                       Brief, user-friendly version shown during signup. Keep it concise and accessible.
@@ -1554,7 +1555,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                   {/* Privacy Policy - Simple */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      🔒 Privacy Policy (Simple Version)
+                      <PixelIcon name="lock" className="inline-block align-middle" /> Privacy Policy (Simple Version)
                     </label>
                     <p className="text-xs text-gray-500 mb-2">
                       Brief, user-friendly version shown during signup. Explain data handling simply.
@@ -1573,7 +1574,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                   {/* Terms of Service - Full */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      📑 Terms of Service (Full Legal Version)
+                      <PixelIcon name="script" className="inline-block align-middle" /> Terms of Service (Full Legal Version)
                     </label>
                     <p className="text-xs text-gray-500 mb-2">
                       Complete legal document. Users can access this via a link from the simple version. Supports Markdown formatting.
@@ -1593,7 +1594,7 @@ By creating an account on this platform..."
                   {/* Privacy Policy - Full */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      🔐 Privacy Policy (Full Legal Version)
+                      <PixelIcon name="lock" className="inline-block align-middle" /> Privacy Policy (Full Legal Version)
                     </label>
                     <p className="text-xs text-gray-500 mb-2">
                       Complete privacy policy. Users can access this via a link from the simple version. Supports Markdown formatting.
@@ -1626,10 +1627,10 @@ We collect information you provide when creating an account..."
 
                 <div className="text-xs text-gray-500 bg-blue-50 border border-blue-200 rounded p-3">
                   <div className="flex items-start gap-2">
-                    <span>ℹ️</span>
+                    <PixelIcon name="info-box" />
                     <div>
-                      <strong>How it works:</strong> During signup, users will see the simple versions with checkboxes to agree. 
-                      Each simple version will include a link to &quot;Read the full version&quot; that opens the complete legal document. 
+                      <strong>How it works:</strong> During signup, users will see the simple versions with checkboxes to agree.
+                      Each simple version will include a link to &quot;Read the full version&quot; that opens the complete legal document.
                       Both checkboxes must be checked before users can create an account.
                     </div>
                   </div>
@@ -1643,7 +1644,7 @@ We collect information you provide when creating an account..."
           {/* Emoji Management */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              😀 Custom Emojis
+              <PixelIcon name="image" /> Custom Emojis
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Upload and manage custom emojis that users can use in posts and comments with the :emojiName: format.
@@ -1829,10 +1830,10 @@ We collect information you provide when creating an account..."
         </CollapsibleSection>
 
         {/* APPEARANCE & STYLING */}
-        <CollapsibleSection title="Appearance & Styling" defaultOpen={false} icon="🎨">
+        <CollapsibleSection title="Appearance & Styling" defaultOpen={false} icon="paint-bucket">
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              🎨 Site-wide CSS
+              <PixelIcon name="paint-bucket" /> Site-wide CSS
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Add custom CSS that will be applied across the entire site. Use this to customize the look and feel beyond the built-in themes.
@@ -1841,21 +1842,21 @@ We collect information you provide when creating an account..."
             {/* Header with controls */}
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium">
-                🎨 Site CSS Editor
+                <PixelIcon name="paint-bucket" className="inline-block align-middle" /> Site CSS Editor
               </label>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowCSSTemplates(!showCSSTemplates)}
                   className="px-3 py-1 text-xs border border-black bg-blue-200 hover:bg-blue-100 rounded shadow-[1px_1px_0_#000] transition-all"
                 >
-                  📚 Templates
+                  <PixelIcon name="script" className="inline-block align-middle" /> Templates
                 </button>
                 <button
                   onClick={handleRestoreSiteDefault}
                   disabled={savingCSS}
                   className="px-3 py-1 text-xs border border-black bg-yellow-200 hover:bg-yellow-100 rounded shadow-[1px_1px_0_#000] transition-all disabled:opacity-50"
                 >
-                  🔄 Restore Default
+                  <PixelIcon name="reload" className="inline-block align-middle" /> Restore Default
                 </button>
               </div>
             </div>
@@ -1919,7 +1920,7 @@ We collect information you provide when creating an account..."
                 
                 <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded p-3">
                   <div className="flex items-start gap-2">
-                    <span>💡</span>
+                    <PixelIcon name="lightbulb" />
                     <div>
                       <strong>Preview your changes:</strong> Save your CSS and refresh any page to see changes applied site-wide.
                       Changes take effect immediately after saving.
@@ -1933,7 +1934,7 @@ We collect information you provide when creating an account..."
           {/* Default Profile CSS */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              👤 Default Profile CSS (Admin Only)
+              <PixelIcon name="user" /> Default Profile CSS (Admin Only)
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Set a default CSS theme for user profiles when they haven&apos;t customized their own. This provides visual cohesion while respecting user choice.
@@ -1953,7 +1954,7 @@ We collect information you provide when creating an account..."
                       onClick={() => setShowDefaultProfileTemplates(!showDefaultProfileTemplates)}
                       className="px-3 py-1 text-xs border border-black bg-blue-200 hover:bg-blue-100 rounded shadow-[1px_1px_0_#000] transition-all"
                     >
-                      📚 Templates
+                      <PixelIcon name="script" className="inline-block align-middle" /> Templates
                     </button>
                   </div>
                 </div>
@@ -2015,10 +2016,10 @@ We collect information you provide when creating an account..."
                 
                 <div className="text-xs text-gray-500 bg-blue-50 border border-blue-200 rounded p-3">
                   <div className="flex items-start gap-2">
-                    <span>ℹ️</span>
+                    <PixelIcon name="info-box" />
                     <div>
-                      <strong>How it works:</strong> Users without custom CSS will see this default styling. 
-                      Once a user adds their own CSS, this default is completely overridden. 
+                      <strong>How it works:</strong> Users without custom CSS will see this default styling.
+                      Once a user adds their own CSS, this default is completely overridden.
                       This feature is admin-only and not accessible to regular users.
                     </div>
                   </div>
@@ -2037,13 +2038,13 @@ We collect information you provide when creating an account..."
         </CollapsibleSection>
 
         {/* SITE CONTENT MANAGEMENT */}
-        <CollapsibleSection title="Site Content Management" defaultOpen={false} icon="📰">
+        <CollapsibleSection title="Site Content Management" defaultOpen={false} icon="article">
           <SiteNewsSection />
 
           {/* Community Index Management */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50 mt-4">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              🏘️ Community Index Seeding
+              <PixelIcon name="buildings" /> Community Index Seeding
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Manage community index data and seeding processes. Configure neighborhood data, user assignments, and community structure.
@@ -2052,14 +2053,14 @@ We collect information you provide when creating an account..."
               href="/admin/community-index"
               className="inline-block border border-black px-4 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] text-sm font-medium"
             >
-              🌱 Manage Community Index
+              <PixelIcon name="drop" className="inline-block align-middle" /> Manage Community Index
             </Link>
           </div>
 
           {/* Curated Sites Management */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50 mt-4">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              🌐 Curated Sites Management
+              <PixelIcon name="map" /> Curated Sites Management
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Manage curated external sites and links. Add, edit, or remove featured websites and resources for the community.
@@ -2068,20 +2069,20 @@ We collect information you provide when creating an account..."
               href="/admin/curated-sites"
               className="inline-block border border-black px-4 py-2 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] text-sm font-medium"
             >
-              🔗 Manage Curated Sites
+              <PixelIcon name="link" className="inline-block align-middle" /> Manage Curated Sites
             </Link>
           </div>
         </CollapsibleSection>
 
         {/* CONTENT MODERATION */}
-        <CollapsibleSection title="Content Moderation" defaultOpen={false} icon="🛡️">
+        <CollapsibleSection title="Content Moderation" defaultOpen={false} icon="shield">
           <ReportsSection />
           <PostsSection />
 
           {/* Auto-Validation Settings */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50 mt-4">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              🤖 Auto-Validation Settings
+              <PixelIcon name="debug" /> Auto-Validation Settings
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Configure automated content validation rules and moderation settings. Set up filters, thresholds, and automatic actions for content review.
@@ -2090,14 +2091,14 @@ We collect information you provide when creating an account..."
               href="/admin/auto-validation"
               className="inline-block border border-black px-4 py-2 bg-orange-200 hover:bg-orange-100 shadow-[2px_2px_0_#000] text-sm font-medium"
             >
-              ⚙️ Manage Auto-Validation
+              <PixelIcon name="sliders" className="inline-block align-middle" /> Manage Auto-Validation
             </Link>
           </div>
 
           {/* Webcrawler Management */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              🕷️ Webcrawler Management
+              <PixelIcon name="search" /> Webcrawler Management
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               Monitor and manage the automated webcrawler. View crawl queue, add sites to crawl, check logs, and manually trigger crawler runs.
@@ -2106,13 +2107,13 @@ We collect information you provide when creating an account..."
               href="/admin/crawler"
               className="inline-block border border-black px-4 py-2 bg-cyan-200 hover:bg-cyan-100 shadow-[2px_2px_0_#000] text-sm font-medium"
             >
-              🕷️ Manage Webcrawler
+              <PixelIcon name="search" className="inline-block align-middle" /> Manage Webcrawler
             </Link>
           </div>
         </CollapsibleSection>
 
         {/* USER & ACCESS MANAGEMENT */}
-        <CollapsibleSection title="User & Access Management" defaultOpen={false} icon="👥">
+        <CollapsibleSection title="User & Access Management" defaultOpen={false} icon="users">
 
           {/* Beta Invite Analytics */}
           {isBetaEnabled && <BetaInviteAnalyticsSection />}
@@ -2126,7 +2127,7 @@ We collect information you provide when creating an account..."
           {/* Beta Key Management */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              🔑 Beta Key Management
+              <PixelIcon name="lock" /> Beta Key Management
             </h3>
             <div className="space-y-3">
               <button
@@ -2154,7 +2155,7 @@ We collect information you provide when creating an account..."
           {/* User Management */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              👤 User Management
+              <PixelIcon name="user" /> User Management
             </h3>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
@@ -2215,7 +2216,7 @@ We collect information you provide when creating an account..."
                               className="border border-black px-2 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
                               title="Generate new seed phrase for user recovery"
                             >
-                              {generatingSeed === user.id ? "Generating..." : "🔑 Seed"}
+                              {generatingSeed === user.id ? "Generating..." : <><PixelIcon name="lock" className="inline-block align-middle" /> Seed</>}
                             </button>
                             {user.role !== "admin" && (
                               <button
@@ -2243,7 +2244,7 @@ We collect information you provide when creating an account..."
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white border-2 border-black rounded-lg max-w-4xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
               <div className="text-center">
-                <h2 className="font-bold text-xl mb-2">🔑 Generated Seed Phrase</h2>
+                <h2 className="font-bold text-xl mb-2"><PixelIcon name="lock" className="inline-block align-middle" /> Generated Seed Phrase</h2>
                 <p className="text-gray-600">
                   Recovery seed phrase for user: <strong>{generatedSeedUser.displayName || generatedSeedUser.primaryHandle || 'Unknown User'}</strong>
                 </p>
@@ -2251,7 +2252,7 @@ We collect information you provide when creating an account..."
 
               <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
                 <h3 className="font-bold text-red-800 mb-2 flex items-center gap-2">
-                  <span>⚠️</span>
+                  <PixelIcon name="alert" />
                   ADMIN SECURITY WARNING
                 </h3>
                 <p className="text-sm text-red-700 mb-2">
@@ -2269,7 +2270,7 @@ We collect information you provide when creating an account..."
 
               <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
                 <h3 className="font-bold mb-3 flex items-center gap-2">
-                  <span>🔐</span>
+                  <PixelIcon name="lock" />
                   12-Word Recovery Phrase
                 </h3>
                 <div className="bg-white border border-gray-300 rounded p-4 mb-3">
@@ -2288,14 +2289,14 @@ We collect information you provide when creating an account..."
                     onClick={() => copyToClipboard(generatedSeedPhrase)}
                     className="flex-1 px-4 py-2 text-sm bg-blue-200 border border-black hover:bg-blue-100 rounded shadow-[2px_2px_0_#000] transition-all flex items-center justify-center gap-2"
                   >
-                    <span>📋</span>
+                    <PixelIcon name="clipboard" />
                     Copy Seed Phrase
                   </button>
                   <button
                     onClick={() => downloadSeedPhrase(generatedSeedPhrase, generatedSeedUser.displayName || generatedSeedUser.primaryHandle || 'Unknown')}
                     className="flex-1 px-4 py-2 text-sm bg-green-200 border border-black hover:bg-green-100 rounded shadow-[2px_2px_0_#000] transition-all flex items-center justify-center gap-2"
                   >
-                    <span>💾</span>
+                    <PixelIcon name="download" />
                     Download Backup
                   </button>
                 </div>

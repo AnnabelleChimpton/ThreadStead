@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import ThreadRing88x31Badge from '../threadring/ThreadRing88x31Badge'
 import { UserBadgePreferences } from '@/pages/api/users/me/badge-preferences'
 import { csrfFetch } from '@/lib/api/client/csrf-fetch'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface AvailableBadge {
   threadRingId: string
@@ -168,7 +169,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
     <div className={`bg-white border border-black rounded-none shadow-[3px_3px_0_#000] ${className}`}>
       {/* Header */}
       <div className="border-b border-black p-6 bg-yellow-50">
-        <h3 className="text-xl font-bold text-black mb-2">🏆 Your ThreadRing Badges</h3>
+        <h3 className="text-xl font-bold text-black mb-2"><PixelIcon name="trophy" className="inline-block align-middle" /> Your ThreadRing Badges</h3>
         <p className="text-gray-700 mb-3">
           You have <strong>{availableBadges.length}</strong> badge{availableBadges.length !== 1 ? 's' : ''} from ThreadRings you&apos;ve joined.
         </p>
@@ -181,7 +182,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
         {/* Global Settings */}
         <div className="bg-blue-50 border border-blue-200 p-4 rounded space-y-4">
           <h4 className="text-lg font-bold text-blue-900 flex items-center gap-2">
-            <span>⚙️</span>
+            <PixelIcon name="sliders" />
             Display Settings
           </h4>
           
@@ -240,7 +241,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <span>🏆</span>
+              <PixelIcon name="trophy" />
               All Your Badges ({availableBadges.length})
             </h4>
             <div className="text-sm text-gray-600">
@@ -252,7 +253,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
           
           {availableBadges.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 border border-gray-200 rounded">
-              <div className="text-6xl mb-4">🏆</div>
+              <div className="mb-4"><PixelIcon name="trophy" size={64} /></div>
               <p className="text-lg font-medium text-gray-700 mb-2">No badges yet!</p>
               <p className="text-gray-500">Join Rings to collect badges and show them off here.</p>
             </div>
@@ -288,7 +289,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                       <div className="flex items-center gap-3">
                         {isSelected && (
                           <div className="text-green-700 text-sm font-medium flex items-center gap-1">
-                            <span>✓</span>
+                            <PixelIcon name="check" size={14} />
                             Selected
                           </div>
                         )}
@@ -337,7 +338,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                                 onChange={(e) => updateBadgeDisplaySettings(badge.badgeId, 'showOnProfile', e.target.checked)}
                                 className="w-4 h-4 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                               />
-                              <span className="text-sm font-medium">👤 Profile</span>
+                              <span className="text-sm font-medium"><PixelIcon name="user" size={14} className="inline-block align-middle" /> Profile</span>
                             </label>
                             
                             <label className="flex items-center space-x-3 p-2 border border-gray-200 rounded hover:bg-gray-50">
@@ -347,7 +348,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                                 onChange={(e) => updateBadgeDisplaySettings(badge.badgeId, 'showOnPosts', e.target.checked)}
                                 className="w-4 h-4 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                               />
-                              <span className="text-sm font-medium">📝 Posts</span>
+                              <span className="text-sm font-medium"><PixelIcon name="edit" size={14} className="inline-block align-middle" /> Posts</span>
                             </label>
                             
                             <label className="flex items-center space-x-3 p-2 border border-gray-200 rounded hover:bg-gray-50">
@@ -357,7 +358,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                                 onChange={(e) => updateBadgeDisplaySettings(badge.badgeId, 'showOnComments', e.target.checked)}
                                 className="w-4 h-4 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                               />
-                              <span className="text-sm font-medium">💬 Comments</span>
+                              <span className="text-sm font-medium"><PixelIcon name="chat" size={14} className="inline-block align-middle" /> Comments</span>
                             </label>
                           </div>
                         </div>
@@ -377,7 +378,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
             disabled={saving}
             className="px-8 py-3 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[3px_3px_0_#000] font-bold text-lg transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[3px_3px_0_#000]"
           >
-            {saving ? '💾 Saving...' : '💾 Save Badge Preferences'}
+            {saving ? <><PixelIcon name="save" className="inline-block align-middle" /> Saving...</> : <><PixelIcon name="save" className="inline-block align-middle" /> Save Badge Preferences</>}
           </button>
         </div>
 
