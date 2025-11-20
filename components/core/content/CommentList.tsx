@@ -58,6 +58,26 @@ export default function CommentList({
   const [removing, setRemoving] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; useAdminEndpoint: boolean } | null>(null);
+  const [collapsedThreads, setCollapsedThreads] = useState<Set<string>>(new Set());
+
+  // Helper to toggle collapsed state
+  const toggleCollapse = (commentId: string) => {
+    setCollapsedThreads(prev => {
+      const next = new Set(prev);
+      if (next.has(commentId)) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
+      return next;
+    });
+  };
+
+  // Helper to count all replies (including nested)
+  const countAllReplies = (comment: CommentWire): number => {
+    if (!comment.replies || comment.replies.length === 0) return 0;
+    return comment.replies.reduce((sum, reply) => sum + 1 + countAllReplies(reply), 0);
+  };
 
   // Auto-scroll to highlighted comment
   useEffect(() => {
@@ -233,30 +253,48 @@ export default function CommentList({
   if (loading && commentTree.length === 0) return <div className="text-sm opacity-70 px-1">Loading comments…</div>;
   if (commentTree.length === 0) return <div className="text-sm opacity-70 px-1">Be the first to comment.</div>;
 
-  const renderComment = (comment: CommentWire, depth = 0): React.ReactNode => {
+  const renderComment = (comment: CommentWire, depth = 0, parentAuthor?: string): React.ReactNode => {
     const isDeleted = comment.status === 'hidden';
     const isOwner = !!viewerId && comment.author?.id === viewerId;
     const canDelete = canModerate || isOwner;
     const canAdminDelete = isAdmin && !isOwner;
-    const maxDepth = 3; // Limit nesting depth
+    const maxDepth = 8; // Limit nesting depth
     const isReplying = replyingTo === comment.id;
     const isHighlighted = highlightCommentId === comment.id;
 
+    // Cap visual indentation at depth 3 to prevent excessive horizontal scroll
+    const visualDepth = Math.min(depth, 3);
+    // Cycle through colors: 1=sage, 2=pine, 3=blue, 4=coral, then repeat
+    const colorIndex = ((depth - 1) % 4) + 1;
+
     // Dynamic classes for mobile/desktop
-    const threadClass = depth > 0 
-      ? `comment-thread comment-thread-depth-${Math.min(depth, 5)} ml-6 md:ml-6 border-l-2 border-thread-sage/20 pl-4 md:pl-4`
+    // Mobile: minimal indent handled by CSS, Desktop: normal indentation
+    const threadClass = depth > 0
+      ? `comment-thread comment-thread-depth-${visualDepth} comment-thread-color-${colorIndex} md:ml-3 border-l-2 md:pl-3`
       : '';
+
+    // Get current author for passing to children
+    const currentAuthor = comment.author?.handle?.split('@')[0] ?? 'anon';
 
     return (
       <div key={comment.id} className={threadClass}>
-        <div 
+        <div
           id={`comment-${comment.id}`}
           className={`comment-container rounded-xl border p-3 md:p-3 transition-all duration-300 ${
-            isHighlighted 
-              ? 'comment-highlighted border-yellow-400 md:border-yellow-400 bg-yellow-50 md:bg-yellow-50 shadow-lg ring-2 ring-yellow-200' 
+            isHighlighted
+              ? 'comment-highlighted border-yellow-400 md:border-yellow-400 bg-yellow-50 md:bg-yellow-50 shadow-lg ring-2 ring-yellow-200'
               : 'border-white/10'
           }`}
         >
+          {/* Mobile "replying to" indicator for deep threads */}
+          {depth >= 2 && parentAuthor && (
+            <div className="md:hidden text-xs text-thread-sage mb-2 flex items-center gap-1">
+              <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>replying to <span className="font-medium">@{parentAuthor}</span></span>
+            </div>
+          )}
           {/* Mobile-optimized header */}
           <div className="comment-header flex md:flex-row items-center md:items-center gap-2 mb-1 md:mb-1">
             <div className="comment-header-top md:hidden w-full">
@@ -445,9 +483,32 @@ export default function CommentList({
         </div>
         
         {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-3 space-y-3">
-            {comment.replies.map(reply => renderComment(reply, depth + 1))}
-          </div>
+          <>
+            {/* Collapse toggle - minimal, protected from custom CSS */}
+            <button
+              onClick={() => toggleCollapse(comment.id)}
+              style={{
+                all: 'unset',
+                cursor: 'pointer',
+                fontSize: '11px',
+                color: '#A18463',
+                opacity: 0.6,
+                padding: '2px 4px',
+                fontFamily: 'monospace',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+            >
+              {collapsedThreads.has(comment.id) ? `+${countAllReplies(comment)}` : '−'}
+            </button>
+
+            {/* Replies - only render if not collapsed */}
+            {!collapsedThreads.has(comment.id) && (
+              <div className="mt-3 space-y-3">
+                {comment.replies.map(reply => renderComment(reply, depth + 1, currentAuthor))}
+              </div>
+            )}
+          </>
         )}
       </div>
     );

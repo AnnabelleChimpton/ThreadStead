@@ -328,10 +328,10 @@ const countLabel = hasServerCount
     <article
       ref={viewportRef}
       id={`post-${post.id.slice(-6)}`}
-      className={`post-item blog-post-card border border-black p-0 sm:p-3 bg-white shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
+      className={`post-item blog-post-card border border-black p-0 sm:p-3 bg-white sm:shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
       data-post-id={post.id.slice(-6)}
     >
-      <div className="blog-post-header flex items-center justify-between gap-3 mb-2 px-3 sm:px-0">
+      <div className="blog-post-header flex items-center justify-between gap-3 mb-2 sm:px-0">
         <div className="flex items-center gap-2">
           <div className="blog-post-date text-xs text-gray-600 opacity-70">
             {formatTimeAgo(new Date(post.createdAt))}
@@ -368,7 +368,7 @@ const countLabel = hasServerCount
         </div>
       </div>
 
-      <div className="blog-post-content px-3 sm:px-0">
+      <div className="blog-post-content sm:px-0">
         {/* Check for fork notification */}
         {(() => {
           const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
@@ -528,7 +528,7 @@ const countLabel = hasServerCount
         })()}
       </div>
 
-      {err && <div className="text-red-700 text-sm mt-2 px-3 sm:px-0">{err}</div>}
+      {err && <div className="text-red-700 text-sm mt-2 sm:px-0">{err}</div>}
 
       {/* --- Comments --- */}
       {/* Disable comments for fork notifications */}
@@ -537,7 +537,7 @@ const countLabel = hasServerCount
                                   (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
         return !isForkNotification;
       })() && (
-        <section className="mt-4 border-t border-black pt-3 px-3 sm:px-0">
+        <section className="mt-4 border-t border-black pt-3 sm:px-0">
         <button
             type="button"
             onClick={async () => {

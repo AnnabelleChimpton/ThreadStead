@@ -215,7 +215,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
   }
 
   return (
-    <article className="bg-thread-paper border border-thread-sage/30 p-6 mb-4 rounded-cozy shadow-cozySm hover:shadow-cozy transition-shadow">
+    <article className="bg-thread-paper border-y sm:border border-thread-sage/30 p-4 sm:p-6 mb-4 sm:rounded-cozy shadow-cozySm hover:shadow-cozy transition-shadow">
       {/* Author Info */}
       <header className="flex items-center gap-3 mb-4">
         {post.authorAvatarUrl ? (

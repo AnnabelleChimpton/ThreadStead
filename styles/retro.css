@@ -967,13 +967,50 @@ textarea:focus {
   }
 }
 
+/* Color-coded comment thread borders */
+.comment-thread-color-1 {
+  border-left-color: #A18463; /* sage */
+}
+
+.comment-thread-color-2 {
+  border-left-color: #2E4B3F; /* pine */
+}
+
+.comment-thread-color-3 {
+  border-left-color: #8EC5E8; /* sky blue */
+}
+
+.comment-thread-color-4 {
+  border-left-color: #E27D60; /* coral */
+}
+
 /* Mobile-optimized comment styles */
 @media (max-width: 767px) {
-  /* Comment layout improvements */
+  /* Edge-to-edge posts on mobile */
+  .blog-post-card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .thread-module {
+    padding: 0;
+    border-radius: 0;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* Comment layout improvements - flat layout for mobile */
   .comment-thread {
-    margin-left: 1rem; /* Reduced from ml-6 (1.5rem) */
-    padding-left: 0.75rem;
+    margin-left: 0;
+    padding-left: 0;
     border-left-width: 1px; /* Thinner border on mobile */
+  }
+
+  /* Only depth-1 gets the indent */
+  .comment-thread-depth-1 {
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
   }
   
   .comment-container {
@@ -1155,12 +1192,13 @@ textarea:focus {
     box-shadow: 0 0 0 2px rgba(142, 197, 232, 0.3) !important;
   }
   
-  /* Reduce nesting depth on mobile */
-  .comment-thread-depth-3,
-  .comment-thread-depth-4,
-  .comment-thread-depth-5 {
-    margin-left: 0.5rem;
+  /* Depth 2+ have NO margin - prevents cumulative indentation */
+  /* Subtle 1px lines for all depths on mobile - colors provide distinction */
+  .comment-thread-depth-2,
+  .comment-thread-depth-3 {
+    margin-left: 0;
     padding-left: 0.5rem;
+    border-left-width: 1px;
   }
 }
 
