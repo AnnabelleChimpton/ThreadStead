@@ -48,12 +48,14 @@ export async function loadEmojiMap(): Promise<Map<string, string>> {
 }
 
 export interface ParsedContent {
-  type: 'text' | 'bold' | 'italic' | 'link' | 'quote' | 'list-item' | 'emoji';
+  type: 'text' | 'bold' | 'italic' | 'strikethrough' | 'link' | 'quote' | 'list-item' | 'numbered-list' | 'emoji' | 'image' | 'code' | 'code-block';
   content: string;
   url?: string;
+  alt?: string;
   emojiName?: string;
   emojiUrl?: string;
   children?: ParsedContent[];
+  listNumber?: number;
 }
 
 // Escape HTML to prevent XSS
@@ -142,6 +144,50 @@ function parseInline(text: string): (string | ParsedContent)[] {
       }
     }
 
+    // Strikethrough: ~~text~~
+    else if (char === '~' && nextChar === '~') {
+      const strikeMatch = rest.slice(2).match(/^(.*?)~~/);
+      if (strikeMatch && strikeMatch[1]) {
+        if (current) {
+          parts.push(current);
+          current = '';
+        }
+
+        parts.push({
+          type: 'strikethrough',
+          content: strikeMatch[1],
+        });
+        i += strikeMatch[1].length + 4; // Skip past ~~text~~
+        continue;
+      }
+    }
+
+    // Images: ![alt](url)
+    else if (char === '!' && nextChar === '[') {
+      const imageMatch = rest.match(/^!\[([^\]]*)\]\(([^\)]+)\)/);
+      if (imageMatch) {
+        if (current) {
+          parts.push(current);
+          current = '';
+        }
+
+        const [fullMatch, altText, imageUrl] = imageMatch;
+        if (isValidImageUrl(imageUrl)) {
+          parts.push({
+            type: 'image',
+            content: fullMatch,
+            alt: altText || 'Image',
+            url: imageUrl,
+          });
+        } else {
+          // Invalid URL, treat as regular text
+          parts.push(fullMatch);
+        }
+        i += fullMatch.length;
+        continue;
+      }
+    }
+
     // Links: [text](url)
     else if (char === '[') {
       const linkMatch = rest.match(/^\[([^\]]+)\]\(([^\)]+)\)/);
@@ -162,6 +208,25 @@ function parseInline(text: string): (string | ParsedContent)[] {
           // Invalid URL, treat as regular text
           parts.push(fullMatch);
         }
+        i += fullMatch.length;
+        continue;
+      }
+    }
+
+    // Inline code: `code`
+    else if (char === '`') {
+      const codeMatch = rest.match(/^`([^`]+)`/);
+      if (codeMatch) {
+        if (current) {
+          parts.push(current);
+          current = '';
+        }
+
+        const [fullMatch, codeContent] = codeMatch;
+        parts.push({
+          type: 'code',
+          content: codeContent,
+        });
         i += fullMatch.length;
         continue;
       }
@@ -296,6 +361,17 @@ function parseLine(line: string): ParsedContent | string {
     };
   }
 
+  // Numbered lists: 1. text, 2. text, etc.
+  const numberedMatch = trimmed.match(/^(\d+)\. (.*)$/);
+  if (numberedMatch) {
+    return {
+      type: 'numbered-list',
+      content: numberedMatch[2],
+      listNumber: parseInt(numberedMatch[1], 10),
+      children: parseInline(numberedMatch[2]) as ParsedContent[],
+    };
+  }
+
   // Regular text with inline markup
   const inlineParts = parseInline(line);
   if (inlineParts.length === 1 && typeof inlineParts[0] === 'string') {
@@ -312,14 +388,56 @@ function parseLine(line: string): ParsedContent | string {
 // Parse the full comment text
 export function parseCommentMarkup(text: string): (ParsedContent | string)[] {
   const lines = text.split('\n');
-  return lines.map(parseLine);
+  const result: (ParsedContent | string)[] = [];
+  let inCodeBlock = false;
+  let codeBlockContent: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Check for code block delimiter
+    if (trimmed.startsWith('```')) {
+      if (!inCodeBlock) {
+        // Start of code block
+        inCodeBlock = true;
+        codeBlockContent = [];
+      } else {
+        // End of code block
+        inCodeBlock = false;
+        result.push({
+          type: 'code-block',
+          content: codeBlockContent.join('\n'),
+        });
+        codeBlockContent = [];
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      // Inside code block, collect raw content
+      codeBlockContent.push(line);
+    } else {
+      // Normal line processing
+      result.push(parseLine(line));
+    }
+  }
+
+  // Handle unclosed code block
+  if (inCodeBlock && codeBlockContent.length > 0) {
+    result.push({
+      type: 'code-block',
+      content: codeBlockContent.join('\n'),
+    });
+  }
+
+  return result;
 }
 
 // Parse the full comment text with emoji support (async)
 export async function parseCommentMarkupWithEmojis(text: string): Promise<(ParsedContent | string)[]> {
   await loadEmojiMap();
-  const lines = text.split('\n');
-  return lines.map(parseLine);
+  return parseCommentMarkup(text);
 }
 
 // Render parsed content to React elements
@@ -337,6 +455,9 @@ export function renderParsedContent(content: (ParsedContent | string)[], keyPref
 
       case 'italic':
         return <em key={itemKey} className="italic">{item.content}</em>;
+
+      case 'strikethrough':
+        return <del key={itemKey} className="line-through text-gray-500">{item.content}</del>;
 
       case 'link':
         return (
@@ -364,6 +485,34 @@ export function renderParsedContent(content: (ParsedContent | string)[], keyPref
             <span className="text-gray-600 mt-0.5">•</span>
             <span>{item.children ? renderParsedContent(item.children, index + 200) : item.content}</span>
           </div>
+        );
+
+      case 'numbered-list':
+        return (
+          <div key={itemKey} className="flex items-start gap-2 my-1">
+            <span className="text-gray-600 mt-0.5 min-w-[1.5em] text-right">{item.listNumber}.</span>
+            <span>{item.children ? renderParsedContent(item.children, index + 250) : item.content}</span>
+          </div>
+        );
+
+      case 'code':
+        return (
+          <code
+            key={itemKey}
+            className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-red-600"
+          >
+            {item.content}
+          </code>
+        );
+
+      case 'code-block':
+        return (
+          <pre
+            key={itemKey}
+            className="bg-gray-100 border border-gray-300 rounded p-3 my-2 overflow-x-auto"
+          >
+            <code className="text-sm font-mono whitespace-pre">{item.content}</code>
+          </pre>
         );
 
       case 'text':
@@ -400,6 +549,27 @@ export function renderParsedContent(content: (ParsedContent | string)[], keyPref
           />
         );
 
+      case 'image':
+        return (
+          <img
+            key={itemKey}
+            src={item.url}
+            alt={item.alt || 'Image'}
+            className="max-w-full h-auto rounded my-2 block"
+            style={{
+              maxHeight: '400px',
+              objectFit: 'contain'
+            }}
+            onError={(e) => {
+              // If image fails to load, show alt text
+              const span = document.createElement('span');
+              span.textContent = `[Image: ${item.alt || 'Failed to load'}]`;
+              span.className = 'text-gray-500 italic';
+              e.currentTarget.parentNode?.replaceChild(span, e.currentTarget);
+            }}
+          />
+        );
+
       default:
         return <span key={itemKey}>{item.content}</span>;
     }
@@ -411,7 +581,12 @@ export function renderCommentMarkup(text: string): React.ReactNode {
   const parsed = parseCommentMarkup(text);
   return (
     <div className="comment-markup">
-      {renderParsedContent(parsed)}
+      {parsed.map((item, index) => (
+        <React.Fragment key={index}>
+          {renderParsedContent([item], index * 1000)}
+          {index < parsed.length - 1 && <br />}
+        </React.Fragment>
+      ))}
     </div>
   );
 }
@@ -469,7 +644,12 @@ export function CommentMarkupWithEmojis({ text }: { text: string }): React.React
 
   return (
     <div className="comment-markup">
-      {renderParsedContent(parsedContent)}
+      {parsedContent.map((item, index) => (
+        <React.Fragment key={index}>
+          {renderParsedContent([item], index * 1000)}
+          {index < parsedContent.length - 1 && <br />}
+        </React.Fragment>
+      ))}
     </div>
   );
 }
