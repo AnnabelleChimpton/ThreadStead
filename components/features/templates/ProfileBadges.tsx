@@ -72,7 +72,6 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
         templateId={badge.templateId}
         backgroundColor={badge.backgroundColor}
         textColor={badge.textColor}
-        className="w-full"
       />
     </div>
   ));

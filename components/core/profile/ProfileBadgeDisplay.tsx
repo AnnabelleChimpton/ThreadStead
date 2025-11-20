@@ -106,7 +106,6 @@ export default function ProfileBadgeDisplay({
         templateId={badge.templateId}
         backgroundColor={badge.backgroundColor}
         textColor={badge.textColor}
-        className="w-full"
       />
     </Link>
   ))

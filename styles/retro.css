@@ -271,7 +271,7 @@ a:hover {
   text-decoration-thickness: 2px;
 }
 
-.thread-content img {
+.thread-content img:not(.threadring-badge-image):not(.inline-badge-image) {
   max-width: 100%;
   height: auto;
   margin: 1rem 0;

@@ -821,11 +821,14 @@
   
   /* Inline badge display - mobile size maintains 88:31 aspect ratio, scaled to match text */
   .inline-badge-image {
-    height: 14px;
-    width: 40px;
-    max-height: 14px;
-    max-width: 40px;
+    height: 20px;
+    width: 56px;
+    max-height: 20px;
+    max-width: 56px;
     object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
   }
 
   /* Mobile badge display improvements */
@@ -836,15 +839,21 @@
   }
   
   .mobile-badge-compact-image {
-    width: 32px;
-    height: 12px;
+    width: 44px;
+    height: 16px;
     object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
   }
-  
+
   .mobile-badge-showcase {
     width: 60px;
     height: 22px;
     object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
   }
   
   @media (max-width: 640px) {
@@ -855,8 +864,8 @@
     }
     
     .mobile-badge-compact-image {
-      width: 40px;
-      height: 15px;
+      width: 50px;
+      height: 18px;
     }
     
     .mobile-badge-showcase {
@@ -1012,13 +1021,13 @@
   }
 }
 
-/* Desktop badge sizing - slightly larger than before */
+/* Desktop badge sizing - larger for better visibility */
 @media (min-width: 768px) {
   .inline-badge-image {
-    height: 13px;
-    width: 37px;
-    max-height: 13px;
-    max-width: 37px;
+    height: 22px;
+    width: 62px;
+    max-height: 22px;
+    max-width: 62px;
     object-fit: contain;
   }
 }
@@ -1151,9 +1160,18 @@
 .threadring-badge-image {
   width: 88px;
   height: 31px;
+  min-width: 88px;
+  min-height: 31px;
   max-width: 88px;
   max-height: 31px;
   object-fit: contain;
+  display: inline-block;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 /* Upload Progress Bar */

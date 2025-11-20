@@ -218,7 +218,7 @@ export default function BadgeSelector({
               <div
                 key={template.id}
                 onClick={() => handleTemplateSelect(template.id)}
-                className={`p-2 border rounded cursor-pointer text-center transition-colors ${
+                className={`p-1 border rounded cursor-pointer text-center transition-colors ${
                   selectedTemplate === template.id
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-300 hover:border-gray-400'

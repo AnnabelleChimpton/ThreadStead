@@ -38,13 +38,15 @@ export default function ThreadRing88x31Badge({
         {...props}
         className={`inline-block cursor-pointer transition-transform hover:scale-105 ${className}`}
         onClick={onClick}
+        style={{ width: '88px', height: '31px' }}
       >
         <img
           src={imageUrl}
           alt={`${title} ThreadRing Badge`}
           width={88}
           height={31}
-          className="threadring-badge-image border border-gray-400"
+          className="threadring-badge-image"
+          style={{ imageRendering: 'pixelated' }}
         />
       </BadgeElement>
     );
@@ -87,6 +89,8 @@ export default function ThreadRing88x31Badge({
   const badgeStyle: React.CSSProperties = {
     width: '88px',
     height: '31px',
+    minWidth: '88px',
+    minHeight: '31px',
     maxWidth: '88px',
     maxHeight: '31px',
     background: template.gradient 
@@ -97,7 +101,7 @@ export default function ThreadRing88x31Badge({
         }, ${template.gradient.from}, ${template.gradient.to})`
       : template.backgroundColor,
     color: template.textColor,
-    border: `1px solid ${template.borderColor || template.backgroundColor}`,
+    border: 'none',
     fontFamily: template.textStyle?.fontFamily || 'Arial, sans-serif',
     fontSize: subtitle ? '8px' : (template.textStyle?.fontSize || '10px'),
     fontWeight: template.textStyle?.fontWeight || 'bold',

@@ -932,11 +932,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           <div className="tr-header-card border border-black bg-white shadow-[3px_3px_0_#000]">
             <div className="p-3 sm:p-6 border-b-2 border-gray-200">
               <div className="flex items-start justify-between gap-4 mb-4">
-                <h1 className="tr-title text-3xl sm:text-4xl font-bold text-thread-pine" title={ring.name}>
+                <h1 className="tr-title text-3xl sm:text-4xl font-bold text-thread-pine min-w-0" title={ring.name}>
                   {ring.name}
                 </h1>
                 {ring.badge && ring.badge.isActive && (
-                  <div className="tr-badge-wrapper flex-shrink-0 bg-white p-1 border border-gray-300 shadow-sm">
+                  <div className="flex-shrink-0">
                     <ThreadRing88x31Badge
                       templateId={ring.badge.templateId}
                       title={ring.badge.title}
@@ -1177,28 +1177,26 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           {ring.badge && ring.badge.isActive && (
             <div className="border border-black bg-gradient-to-br from-blue-50 to-purple-50 shadow-[2px_2px_0_#000] p-4">
               <div className="flex items-center justify-center mb-3">
-                <div className="bg-white p-2 border border-gray-300 shadow-sm">
-                  {ring.badge.imageUrl ? (
-                    <div
-                      onClick={() => setShowBadgeOptions(!showBadgeOptions)}
-                      className="cursor-pointer transform transition-transform hover:scale-110"
-                      title="Click for embed code"
-                    >
-                      <ThreadRing88x31Badge
-                        templateId={ring.badge.templateId}
-                        title={ring.badge.title}
-                        subtitle={ring.badge.subtitle}
-                        backgroundColor={ring.badge.backgroundColor}
-                        textColor={ring.badge.textColor}
-                        imageUrl={ring.badge.imageUrl}
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center w-[88px] h-[31px] bg-gray-100 border border-gray-400 text-gray-600 text-xs">
-                      No badge
-                    </div>
-                  )}
-                </div>
+                {ring.badge.imageUrl ? (
+                  <div
+                    onClick={() => setShowBadgeOptions(!showBadgeOptions)}
+                    className="cursor-pointer transform transition-transform hover:scale-110"
+                    title="Click for embed code"
+                  >
+                    <ThreadRing88x31Badge
+                      templateId={ring.badge.templateId}
+                      title={ring.badge.title}
+                      subtitle={ring.badge.subtitle}
+                      backgroundColor={ring.badge.backgroundColor}
+                      textColor={ring.badge.textColor}
+                      imageUrl={ring.badge.imageUrl}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center w-[88px] h-[31px] bg-gray-100 border border-gray-400 text-gray-600 text-xs">
+                    No badge
+                  </div>
+                )}
               </div>
 
               <div className="text-center mb-2">
@@ -1526,17 +1524,14 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                           Badge Preview
                         </div>
                         <div className="tr-badge-preview-image-container flex justify-center">
-                          {ring.badge.imageUrl ? (
-                            <img
-                              src={ring.badge.imageUrl}
-                              alt={ring.badge.title || `${ring.name} Badge`}
-                              className="tr-badge-preview-image w-24 h-24 object-contain"
-                            />
-                          ) : (
-                            <div className="tr-badge-placeholder w-24 h-24 border-2 border-gray-300 bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
-                              No Badge Image
-                            </div>
-                          )}
+                          <ThreadRing88x31Badge
+                            templateId={ring.badge.templateId}
+                            title={ring.badge.title}
+                            subtitle={ring.badge.subtitle}
+                            backgroundColor={ring.badge.backgroundColor}
+                            textColor={ring.badge.textColor}
+                            imageUrl={ring.badge.imageUrl}
+                          />
                         </div>
                       </div>
                     )}

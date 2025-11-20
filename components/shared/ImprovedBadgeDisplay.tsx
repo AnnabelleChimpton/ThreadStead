@@ -138,7 +138,7 @@ export default function ImprovedBadgeDisplay({
               <img
                 src={badge.imageUrl}
                 alt={badge.title}
-                className="inline-badge-image object-contain border border-gray-300 hover:scale-110 transition-transform rounded-sm"
+                className="inline-badge-image object-contain hover:scale-110 transition-transform"
                 style={{ imageRendering: 'pixelated' }}
               />
             ) : (
@@ -218,7 +218,7 @@ export default function ImprovedBadgeDisplay({
               <img
                 src={badge.imageUrl}
                 alt={badge.title}
-                className="mobile-badge-showcase border border-gray-400 hover:shadow-md"
+                className="mobile-badge-showcase hover:shadow-md"
                 style={{ imageRendering: 'pixelated' }}
               />
             ) : (
@@ -260,7 +260,7 @@ export default function ImprovedBadgeDisplay({
             <img
               src={badge.imageUrl}
               alt={badge.title}
-              className="mobile-badge-compact-image border border-gray-300 hover:shadow-sm"
+              className="mobile-badge-compact-image hover:shadow-sm"
               style={{ imageRendering: 'pixelated' }}
             />
           ) : (

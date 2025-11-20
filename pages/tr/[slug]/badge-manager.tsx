@@ -356,9 +356,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                   {/* Live Preview */}
                   <div>
                     <h4 className="font-bold text-lg mb-3">Badge Preview</h4>
-                    <div className="bg-gray-50 border border-gray-200 rounded p-4 inline-block">
-                      <ThreadRing88x31Badge {...getPreviewBadge()} />
-                    </div>
+                    <ThreadRing88x31Badge {...getPreviewBadge()} />
                   </div>
 
                   {/* Design Mode Selection */}
@@ -407,7 +405,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                           <div
                             key={template.id}
                             onClick={() => handleTemplateSelect(template.id)}
-                            className={`p-3 border border-black rounded-none cursor-pointer text-center shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${
+                            className={`p-1 border border-black rounded-none cursor-pointer text-center shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${
                               editedBadge.templateId === template.id
                                 ? 'bg-yellow-100'
                                 : 'bg-white hover:bg-gray-50'
@@ -418,7 +416,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                               title={editedBadge.title || ring.name}
                               subtitle={editedBadge.subtitle}
                             />
-                            <p className="text-xs mt-2 font-medium">{template.name}</p>
+                            <p className="text-xs mt-1 font-medium">{template.name}</p>
                           </div>
                         ))}
                       </div>
