@@ -6,6 +6,7 @@ import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import AnnouncementsPanel from '@/components/community/AnnouncementsPanel';
+import PollsPanel from '@/components/community/PollsPanel';
 
 interface CommunityProps {
   siteConfig: SiteConfig;
@@ -84,16 +85,7 @@ export default function Community({ siteConfig, user }: CommunityProps) {
             </SimpleCard>
 
             {/* Polls */}
-            <SimpleCard title="📊 Polls">
-              <div className="p-2 sm:p-3">
-                <p className="text-thread-sage text-sm sm:text-base mb-3">
-                  Have your say on community decisions and hot topics. Vote on polls or create your own to gather community feedback.
-                </p>
-                <div className="text-xs sm:text-sm text-thread-sage/70 italic">
-                  Coming soon: Create and vote on community polls
-                </div>
-              </div>
-            </SimpleCard>
+            <PollsPanel />
 
             {/* Chat Room */}
             <SimpleCard title="💬 Chat Room">

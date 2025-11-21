@@ -77,6 +77,8 @@ model User {
   userCollections           UserCollection[]              @relation("UserCollections")
   userBookmarks             UserBookmark[]                @relation("UserBookmarks")
   bookmarkValidations       BookmarkCommunitySubmission[] @relation("BookmarkValidations")
+  pollsCreated              Poll[]                        @relation("PollsCreated")
+  pollVotes                 PollVote[]                    @relation("PollVotes")
 }
 
 model Handle {
@@ -1488,4 +1490,57 @@ model RateLimit {
   @@unique([identifier, category])
   @@index([identifier, category, windowStart])
   @@index([expiresAt])
+}
+
+// ========================================
+// COMMUNITY POLLS SYSTEM
+// ========================================
+
+model Poll {
+  id          String       @id @default(cuid())
+  question    String
+  description String?
+  createdBy   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  endsAt      DateTime?
+  isActive    Boolean      @default(true)
+
+  creator User         @relation("PollsCreated", fields: [createdBy], references: [id], onDelete: Cascade)
+  options PollOption[]
+  votes   PollVote[]
+
+  @@index([createdBy])
+  @@index([isActive, createdAt])
+  @@index([createdAt])
+}
+
+model PollOption {
+  id        String     @id @default(cuid())
+  pollId    String
+  text      String
+  order     Int
+  createdAt DateTime   @default(now())
+
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@index([pollId, order])
+}
+
+model PollVote {
+  id       String   @id @default(cuid())
+  pollId   String
+  optionId String
+  userId   String
+  votedAt  DateTime @default(now())
+
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation("PollVotes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+  @@index([userId])
+  @@index([optionId])
 }
