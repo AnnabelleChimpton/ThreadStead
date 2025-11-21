@@ -55,12 +55,13 @@ export default function CommunityChatPanel({ fullscreen = false }: CommunityChat
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [showMobilePresence, setShowMobilePresence] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom (scrolls only the message container, not the entire page)
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    }
   };
 
   // Load initial data
@@ -371,7 +372,6 @@ export default function CommunityChatPanel({ fullscreen = false }: CommunityChat
                 </div>
               );
             })}
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Area */}
