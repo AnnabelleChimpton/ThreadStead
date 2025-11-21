@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { UserQuickViewData } from "@/types/user-quick-view";
 import ImprovedBadgeDisplay from "@/components/shared/ImprovedBadgeDisplay";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface UserQuickViewProps {
   username: string;
@@ -19,6 +20,7 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
   const [error, setError] = useState<string | null>(null);
   const [followBusy, setFollowBusy] = useState(false);
   const [currentRelationship, setCurrentRelationship] = useState<string | null>(null);
+  const { loggedIn } = useCurrentUser();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -251,7 +253,7 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
 
         {/* Action Buttons */}
         <div className="flex gap-2 mb-4">
-          {!isOwner && (
+          {!isOwner && loggedIn && (
             <>
               {showFollow && (
                 <button

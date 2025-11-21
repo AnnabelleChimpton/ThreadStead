@@ -7,6 +7,7 @@ import { getSessionUser } from '@/lib/auth/server';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import AnnouncementsPanel from '@/components/community/AnnouncementsPanel';
 import PollsPanel from '@/components/community/PollsPanel';
+import BulletinBoardPanel from '@/components/community/BulletinBoardPanel';
 
 interface CommunityProps {
   siteConfig: SiteConfig;
@@ -32,20 +33,20 @@ export default function Community({ siteConfig, user }: CommunityProps) {
     <>
       <Head>
         <title>Community Center - {siteConfig.site_name}</title>
-        <meta name="description" content="A central hub for community announcements, classifieds, polls, and chat on HomePageAgain." />
+        <meta name="description" content="A central hub for community announcements, bulletin board, polls, and chat on HomePageAgain." />
         <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL}/community`} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
         <meta property="og:title" content={`Community Center - ${siteConfig.site_name}`} />
-        <meta property="og:description" content="A central hub for community announcements, classifieds, polls, and chat on HomePageAgain." />
+        <meta property="og:description" content="A central hub for community announcements, bulletin board, polls, and chat on HomePageAgain." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL}/community`} />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`Community Center - ${siteConfig.site_name}`} />
-        <meta name="twitter:description" content="A central hub for community announcements, classifieds, polls, and chat on HomePageAgain." />
+        <meta name="twitter:description" content="A central hub for community announcements, bulletin board, polls, and chat on HomePageAgain." />
       </Head>
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
@@ -63,33 +64,30 @@ export default function Community({ siteConfig, user }: CommunityProps) {
               </h1>
             </div>
             <p className="text-thread-sage leading-relaxed text-sm sm:text-base">
-              Central hub for announcements, classifieds, polls, and chat
+              Central hub for announcements, bulletin board, polls, and chat
             </p>
           </div>
 
           {/* Four Sections in 2x2 Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-            {/* Announcements - Real Panel */}
+            {/* Announcements */}
             <AnnouncementsPanel />
 
-            {/* Classifieds */}
-            <SimpleCard title="🏪 Classifieds">
-              <div className="p-2 sm:p-3">
-                <p className="text-thread-sage text-sm sm:text-base mb-3">
-                  Buy, sell, trade, or give away items with other community members. A digital marketplace for neighbors.
-                </p>
-                <div className="text-xs sm:text-sm text-thread-sage/70 italic">
-                  Coming soon: Post and browse classified listings
-                </div>
-              </div>
+            {/* Bulletin Board */}
+            <SimpleCard>
+              <BulletinBoardPanel />
             </SimpleCard>
 
             {/* Polls */}
             <PollsPanel />
 
             {/* Chat Room */}
-            <SimpleCard title="💬 Chat Room">
-              <div className="p-2 sm:p-3">
+            <SimpleCard>
+              <div className="flex items-center gap-2 mb-2 sm:mb-3 px-1">
+                <PixelIcon name="chat" size={20} className="text-thread-pine" />
+                <h3 className="text-base sm:text-lg font-bold text-[#2E4B3F]">Chat Room</h3>
+              </div>
+              <div className="p-2 sm:p-3 px-1">
                 <p className="text-thread-sage text-sm sm:text-base mb-3">
                   Jump into real-time conversations with your neighbors. Hang out, chat, and connect with the community.
                 </p>
@@ -107,7 +105,7 @@ export default function Community({ siteConfig, user }: CommunityProps) {
                 <Link href="/signup" className="text-thread-sage hover:text-thread-sage/80 underline font-semibold">
                   Join the community
                 </Link>
-                {' '}to participate in announcements, classifieds, polls, and chat!
+                {' '}to participate in announcements, bulletin board, polls, and chat!
               </p>
             </div>
           )}

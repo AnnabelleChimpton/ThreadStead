@@ -79,6 +79,7 @@ model User {
   bookmarkValidations       BookmarkCommunitySubmission[] @relation("BookmarkValidations")
   pollsCreated              Poll[]                        @relation("PollsCreated")
   pollVotes                 PollVote[]                    @relation("PollVotes")
+  bulletins                 Bulletin[]                    @relation("UserBulletins")
 }
 
 model Handle {
@@ -1543,4 +1544,34 @@ model PollVote {
   @@index([pollId])
   @@index([userId])
   @@index([optionId])
+}
+
+// ========================================
+// BULLETIN BOARD SYSTEM
+// ========================================
+
+model Bulletin {
+  id        String           @id @default(cuid())
+  userId    String
+  category  BulletinCategory
+  text      String // max 200 chars enforced at API level
+  linkUrl   String? // optional URL to HPA page/post/etc
+  expiresAt DateTime
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user User @relation("UserBulletins", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive, expiresAt])
+  @@index([createdAt])
+}
+
+enum BulletinCategory {
+  LOOKING_FOR
+  SHARING
+  INVITATION
+  HELP_FEEDBACK
+  COMMUNITY_NOTICE
 }
