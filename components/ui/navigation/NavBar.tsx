@@ -336,6 +336,14 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 Home
               </Link>
 
+              {/* Community Center link */}
+              <Link
+                className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline"
+                href="/community"
+              >
+                Community
+              </Link>
+
               {/* Discover dropdown - Neighborhoods as hero */}
               <DropdownMenu
                 title="Discover"
@@ -448,6 +456,15 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               onClick={() => setMobileMenuOpen(false)}
             >
               Home
+            </Link>
+
+            {/* Community Center link */}
+            <Link
+              href="/community"
+              className="block px-4 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Community
             </Link>
 
             {/* Discover Section */}

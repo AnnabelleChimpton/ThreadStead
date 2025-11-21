@@ -653,6 +653,14 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
               </Link>
 
               <Link
+                href="/community"
+                className="flex items-center gap-2 px-4 py-2 bg-pink-200 hover:bg-pink-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+              >
+                <PixelIcon name="building" size={20} className="inline-block" />
+                <span>Community</span>
+              </Link>
+
+              <Link
                 href="/help/faq"
                 className="flex items-center gap-2 px-4 py-2 bg-orange-200 hover:bg-orange-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
               >
@@ -710,6 +718,15 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                     >
                       <PixelIcon name="home" size={20} className="inline-block" />
                       <span className="font-medium text-sm">Explore Homes</span>
+                    </Link>
+
+                    <Link
+                      href="/community"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-pink-50 border-b border-gray-300 transition-colors"
+                    >
+                      <PixelIcon name="building" size={20} className="inline-block" />
+                      <span className="font-medium text-sm">Community</span>
                     </Link>
 
                     <Link
