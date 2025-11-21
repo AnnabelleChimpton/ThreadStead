@@ -5,6 +5,7 @@ import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import AnnouncementsPanel from '@/components/community/AnnouncementsPanel';
 
 interface CommunityProps {
   siteConfig: SiteConfig;
@@ -65,19 +66,10 @@ export default function Community({ siteConfig, user }: CommunityProps) {
             </p>
           </div>
 
-          {/* Four Placeholder Sections in 2x2 Grid */}
+          {/* Four Sections in 2x2 Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
-            {/* Announcements */}
-            <SimpleCard title="📢 Announcements">
-              <div className="p-2 sm:p-3">
-                <p className="text-thread-sage text-sm sm:text-base mb-3">
-                  Stay up-to-date with the latest community news and important updates from moderators and site administrators.
-                </p>
-                <div className="text-xs sm:text-sm text-thread-sage/70 italic">
-                  Coming soon: View and post community announcements
-                </div>
-              </div>
-            </SimpleCard>
+            {/* Announcements - Real Panel */}
+            <AnnouncementsPanel />
 
             {/* Classifieds */}
             <SimpleCard title="🏪 Classifieds">
