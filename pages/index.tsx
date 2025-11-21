@@ -495,7 +495,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
       ...(includeUnvalidated && { includeUnvalidated: 'true' })
     });
 
-    router.push(`/discover?${params.toString()}`);
+    router.push(`/discover/search?${params.toString()}`);
   };
 
   // Load ALL available widgets for that classic early internet portal feel

@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface Communitysite {
   id: string;
@@ -55,15 +56,15 @@ export default function EnhancedCommunityBrowser({
   const [searchResults, setSearchResults] = useState<any>(null);
 
   const categories = [
-    { value: 'all', label: 'All Categories', emoji: '🌍' },
-    { value: 'PERSONAL_BLOG', label: 'Personal Blogs', emoji: '📖' },
-    { value: 'TECHNICAL_BLOG', label: 'Tech Blogs', emoji: '💻' },
-    { value: 'PORTFOLIO', label: 'Portfolios', emoji: '🎨' },
-    { value: 'DIGITAL_GARDEN', label: 'Digital Gardens', emoji: '🌱' },
-    { value: 'CREATIVE_SHOWCASE', label: 'Creative', emoji: '✨' },
-    { value: 'COMMUNITY_SITE', label: 'Communities', emoji: '👥' },
-    { value: 'TOOL_OR_SERVICE', label: 'Tools & Services', emoji: '🛠️' },
-    { value: 'OTHER', label: 'Other', emoji: '📦' }
+    { value: 'all', label: 'All Categories', icon: 'map' },
+    { value: 'PERSONAL_BLOG', label: 'Personal Blogs', icon: 'article' },
+    { value: 'TECHNICAL_BLOG', label: 'Tech Blogs', icon: 'code' },
+    { value: 'PORTFOLIO', label: 'Portfolios', icon: 'image' },
+    { value: 'DIGITAL_GARDEN', label: 'Digital Gardens', icon: 'drop' },
+    { value: 'CREATIVE_SHOWCASE', label: 'Creative', icon: 'image' },
+    { value: 'COMMUNITY_SITE', label: 'Communities', icon: 'users' },
+    { value: 'TOOL_OR_SERVICE', label: 'Tools & Services', icon: 'sliders' },
+    { value: 'OTHER', label: 'Other', icon: 'archive' }
   ];
 
   // Determine mode based on query
@@ -190,8 +191,9 @@ export default function EnhancedCommunityBrowser({
               </span>
             )}
             {site.discoveryMethod === 'manual_submit' && (
-              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full whitespace-nowrap">
-                👤 Human Pick
+              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full whitespace-nowrap flex items-center gap-1">
+                <PixelIcon name="user" size={12} />
+                Human Pick
               </span>
             )}
           </div>
@@ -242,7 +244,10 @@ export default function EnhancedCommunityBrowser({
   return (
     <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-3 sm:p-6 mb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
-        <h2 className="text-lg sm:text-xl font-bold text-[#2E4B3F]">🌟 Community Index</h2>
+        <h2 className="text-lg sm:text-xl font-bold text-[#2E4B3F] flex items-center gap-2">
+          <PixelIcon name="bookmark" size={20} />
+          Community Index
+        </h2>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           {/* View Mode Toggle */}
@@ -273,23 +278,29 @@ export default function EnhancedCommunityBrowser({
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setMode('search')}
-              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors ${
+              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors flex items-center gap-1 ${
                 mode === 'search'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <span className="hidden sm:inline">🔍 </span>Search
+              <span className="hidden sm:inline">
+                <PixelIcon name="search" size={16} />
+              </span>
+              Search
             </button>
             <button
               onClick={() => setMode('browse')}
-              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors ${
+              className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors flex items-center gap-1 ${
                 mode === 'browse'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <span className="hidden sm:inline">📂 </span>Browse
+              <span className="hidden sm:inline">
+                <PixelIcon name="folder" size={16} />
+              </span>
+              Browse
             </button>
           </div>
         </div>
@@ -313,7 +324,7 @@ export default function EnhancedCommunityBrowser({
               >
                 {categories.map(cat => (
                   <option key={cat.value} value={cat.value}>
-                    {cat.emoji} {cat.label}
+                    {cat.label}
                   </option>
                 ))}
               </select>
@@ -452,12 +463,17 @@ export default function EnhancedCommunityBrowser({
       {/* Help Text */}
       <div className="mt-6 p-3 bg-gray-50 rounded-lg">
         <div className="text-xs text-gray-600 flex flex-wrap items-center gap-4">
-          <span>💡 Discover great sites from our community</span>
-          <Link href="/community-index/submit" className="text-blue-600 hover:underline">
-            ➕ Submit a site
+          <span className="flex items-center gap-1">
+            <PixelIcon name="lightbulb" size={12} />
+            Discover great sites from our community
+          </span>
+          <Link href="/community-index/submit" className="text-blue-600 hover:underline flex items-center gap-1">
+            <PixelIcon name="plus" size={12} />
+            Submit a site
           </Link>
-          <Link href="/community-index/validate" className="text-blue-600 hover:underline">
-            ✅ Help validate submissions
+          <Link href="/community-index/validate" className="text-blue-600 hover:underline flex items-center gap-1">
+            <PixelIcon name="check" size={12} />
+            Help validate submissions
           </Link>
           {!user && (
             <span className="text-blue-600">

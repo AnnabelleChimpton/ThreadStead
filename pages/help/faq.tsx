@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface FAQProps {
   siteConfig: SiteConfig;
@@ -264,7 +265,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
                 Everything you need to know about Pixel Homes, ThreadRings, neighborhoods, and all our features.
               </p>
               <p className="text-base text-gray-700 mb-3">
-                👋 <strong>First time here?</strong> This FAQ has all the details, but if you want the full story about why we&apos;re building HomePageAgain, check out our <Link href="/landing" className="text-thread-sunset hover:text-thread-pine underline font-medium">landing page</Link> - it&apos;s a personal note about creating a better internet.
+                <PixelIcon name="human-handsup" size={16} className="inline-block align-middle" /> <strong>First time here?</strong> This FAQ has all the details, but if you want the full story about why we&apos;re building HomePageAgain, check out our <Link href="/landing" className="text-thread-sunset hover:text-thread-pine underline font-medium">landing page</Link> - it&apos;s a personal note about creating a better internet.
               </p>
               <p className="text-base text-thread-sage">
                 New to HomePageAgain? Start with &quot;Why HomePageAgain?&quot; and &quot;Getting Started&quot; below!

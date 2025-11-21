@@ -59,9 +59,10 @@ pages/discover.tsx               # Enhanced discover page with tabs
 ### Brave Search
 - **Type**: Independent search with API
 - **API Key**: Required (free tier available)
-- **Rate Limit**: 2,000 requests/day (free tier)
+- **Rate Limit**: 1 request/second, 2,000 requests/day (free tier)
 - **Focus**: Privacy-first general search
 - **Privacy**: Excellent (no tracking)
+- **Note**: Automatic retry with exponential backoff for rate limit errors
 
 ### Mojeek
 - **Type**: Independent UK-based search

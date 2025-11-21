@@ -6,6 +6,7 @@
 import React from 'react';
 import type { ExtSearchResponse, ExtSearchResultItem } from '@/lib/extsearch/types';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface ExtSearchResultsProps {
   response: ExtSearchResponse | null;
@@ -58,7 +59,9 @@ export function ExtSearchResults({
     return (
       <div className={`bg-red-50 border border-red-200 rounded-lg p-6 ${className}`}>
         <div className="flex items-start space-x-3">
-          <span className="text-red-500 text-xl">⚠️</span>
+          <span className="text-red-500">
+            <PixelIcon name="warning-box" size={20} />
+          </span>
           <div className="flex-1">
             <h3 className="text-red-900 font-medium mb-1">Search Error</h3>
             <p className="text-red-700 text-sm">{error.message}</p>
@@ -80,7 +83,9 @@ export function ExtSearchResults({
   if (!response || response.results.length === 0) {
     return (
       <div className={`text-center py-12 ${className}`}>
-        <span className="text-4xl mb-3 block">🔍</span>
+        <div className="mb-3">
+          <PixelIcon name="search" size={48} className="mx-auto text-gray-400" />
+        </div>
         <h3 className="text-gray-900 font-medium mb-1">No results found</h3>
         <p className="text-gray-600 text-sm">
           Try adjusting your search terms or filters
@@ -105,8 +110,9 @@ export function ExtSearchResults({
             </span>
           </div>
           {meta.partial && (
-            <p className="text-orange-600 text-xs mt-1">
-              ⚠️ Some search engines failed or timed out
+            <p className="text-orange-600 text-xs mt-1 flex items-center gap-1">
+              <PixelIcon name="warning-box" size={12} />
+              Some search engines failed or timed out
             </p>
           )}
         </div>
@@ -189,12 +195,12 @@ function ResultCard({
 
   const getContentTypeIcon = (type?: string): string => {
     switch (type) {
-      case 'blog': return '📝';
-      case 'forum': return '💬';
-      case 'personal': return '👤';
-      case 'wiki': return '📚';
-      case 'commercial': return '🛒';
-      default: return '🌐';
+      case 'blog': return 'article';
+      case 'forum': return 'chat';
+      case 'personal': return 'user';
+      case 'wiki': return 'script';
+      case 'commercial': return 'store';
+      default: return 'map';
     }
   };
 
@@ -260,7 +266,7 @@ function ResultCard({
           <div className="flex items-start space-x-2 sm:space-x-3">
             {/* Icon and badges */}
             <div className="flex-shrink-0 pt-1 hidden sm:block">
-              <span className="text-xl">{getContentTypeIcon(result.contentType)}</span>
+              <PixelIcon name={getContentTypeIcon(result.contentType) as any} size={20} />
             </div>
 
             {/* Content */}
@@ -289,14 +295,20 @@ function ResultCard({
 
                 {/* Privacy indicators */}
                 {result.isIndieWeb && (
-                  <span className="px-1.5 sm:px-2 py-0.5 rounded bg-green-100 text-green-700">
-                    <span className="hidden sm:inline">🌱 </span>Indie
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded bg-green-100 text-green-700 flex items-center gap-1">
+                    <span className="hidden sm:inline">
+                      <PixelIcon name="drop" size={12} />
+                    </span>
+                    Indie
                   </span>
                 )}
 
                 {result.privacyScore && result.privacyScore > 0.7 && (
-                  <span className="px-1.5 sm:px-2 py-0.5 rounded bg-blue-100 text-blue-700">
-                    <span className="hidden sm:inline">🔒 </span>Privacy
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded bg-blue-100 text-blue-700 flex items-center gap-1">
+                    <span className="hidden sm:inline">
+                      <PixelIcon name="lock" size={12} />
+                    </span>
+                    Privacy
                   </span>
                 )}
 
@@ -308,8 +320,9 @@ function ResultCard({
 
                 {/* Ring member indicator */}
                 {result.engineMetadata?.isRingMember && (
-                  <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-700">
-                    🔗 Ring Member
+                  <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-700 flex items-center gap-1">
+                    <PixelIcon name="link" size={12} />
+                    Ring Member
                   </span>
                 )}
 

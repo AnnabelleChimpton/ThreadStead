@@ -98,13 +98,25 @@ const DEFAULT_CONFIGS: Record<EngineId, EngineConfig> = {
 };
 
 /**
+ * Singleton registry instance to maintain engine state across requests
+ * This ensures rate limiters and other stateful features work correctly
+ */
+let registryInstance: SearchEngineRegistry | null = null;
+
+/**
  * Create and configure the search engine registry
+ * Returns singleton instance to maintain state across requests
  */
 export function createRegistry(): SearchEngineRegistry {
+  // Return existing instance if available
+  if (registryInstance) {
+    return registryInstance;
+  }
+
   const engines = new Map<EngineId, ExtSearchEngine>();
   const configs = new Map<EngineId, EngineConfig>();
 
-  // Initialize engines
+  // Initialize engines once
   const searchMySite = createSearchMySiteEngine();
   const searxng = createSearXNGEngine();
   const brave = createBraveSearchEngine();
@@ -170,6 +182,9 @@ export function createRegistry(): SearchEngineRegistry {
       enabled: true
     });
   }
+
+  // Store singleton instance
+  registryInstance = registry;
 
   return registry;
 }
@@ -286,12 +301,22 @@ export async function runExtSearch(
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
+      // Check if this is a rate limit error
+      const isRateLimitError = errorMessage.includes('429') ||
+                               errorMessage.includes('RATE_LIMITED') ||
+                               errorMessage.includes('Rate limit exceeded');
+
       // Record failure for circuit breaker
       recordEngineFailure(engine.id);
 
-      // Only log detailed errors in development
+      // Enhanced logging in development
       if (process.env.NODE_ENV === 'development') {
-        console.warn(`Engine ${engine.name} failed (${engineFailures.get(engine.id)?.count || 1}/3):`, errorMessage);
+        const failureCount = engineFailures.get(engine.id)?.count || 1;
+        const errorType = isRateLimitError ? 'Rate Limit' : 'Error';
+        console.warn(
+          `Engine ${engine.name} failed (${failureCount}/3) [${errorType}]:`,
+          isRateLimitError ? 'Rate limit exceeded after retries' : errorMessage
+        );
       }
 
       return {
@@ -301,7 +326,7 @@ export async function runExtSearch(
         latencyMs: Date.now() - engineStartTime,
         results: [],
         totalResults: 0,
-        error: errorMessage
+        error: isRateLimitError ? 'Rate limit exceeded' : errorMessage
       };
     }
   });

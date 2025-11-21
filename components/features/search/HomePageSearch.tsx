@@ -32,14 +32,14 @@ export default function HomePageSearch({ className }: HomePageSearchProps) {
         q: searchQuery,
         tab: 'smallweb'
       });
-      router.push(`/discover?${searchParams}`);
+      router.push(`/discover/search?${searchParams}`);
     } else {
       // Navigate to discover page with local search
       const searchParams = new URLSearchParams({
         q: searchQuery,
         tab: 'local'
       });
-      router.push(`/discover?${searchParams}`);
+      router.push(`/discover/search?${searchParams}`);
     }
   };
 

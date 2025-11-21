@@ -211,7 +211,7 @@ export default function DiscoverPageSearch({
                 className="text-gray-500 hover:text-gray-700 ml-1 touch-manipulation"
                 title="Learn more about how this works"
               >
-                <span className="text-xs">ⓘ</span>
+                <PixelIcon name="info-box" size={12} className="inline-block" />
               </button>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">

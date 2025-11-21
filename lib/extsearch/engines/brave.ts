@@ -74,12 +74,14 @@ export class BraveSearchEngine implements ExtSearchEngine {
   };
 
   public readonly rateLimit = {
-    requestsPerMinute: 60,
-    requestsPerDay: 2000 // Free tier limit
+    requestsPerMinute: 60, // Free tier: 1 request per second = 60 per minute
+    requestsPerDay: 2000 // Free tier daily limit
   };
 
   private apiKey: string | undefined;
   private baseUrl: string;
+  private lastRequestTime: number = 0;
+  private pendingRequest: Promise<void> = Promise.resolve();
 
   constructor(config?: {
     apiKey?: string;
@@ -93,7 +95,108 @@ export class BraveSearchEngine implements ExtSearchEngine {
     return !!this.apiKey;
   }
 
+  /**
+   * Enforce rate limit with proper queueing to prevent race conditions
+   * Free tier allows 1 request per second (60 per minute)
+   * Uses promise chaining to ensure requests are truly serialized
+   */
+  private async enforceRateLimit(): Promise<void> {
+    // Chain onto the previous request's promise
+    const previousRequest = this.pendingRequest;
+
+    // Create a new promise for this request
+    let resolveThis: () => void;
+    this.pendingRequest = new Promise<void>(resolve => {
+      resolveThis = resolve;
+    });
+
+    // Wait for previous request to complete its rate limit delay
+    await previousRequest;
+
+    // Now calculate wait time based on when the last request actually completed
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    const minInterval = 60000 / this.rateLimit.requestsPerMinute; // 60000ms per minute / 60 = 1000ms
+
+    if (timeSinceLastRequest < minInterval) {
+      const waitTime = minInterval - timeSinceLastRequest;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+
+    // Update timestamp and signal that this request's rate limit check is complete
+    this.lastRequestTime = Date.now();
+    resolveThis!();
+  }
+
+  /**
+   * Retry logic with exponential backoff for rate limit errors
+   * Tolerant approach: expects first attempt to fail due to serverless rate limiter limitations
+   * Retries up to 5 times with shorter delays: 500ms, 750ms, 1s, 1.5s, 2s
+   */
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 5
+  ): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Check if it's a rate limit error (429)
+        const is429 = lastError.message.includes('429') ||
+                      lastError.message.includes('RATE_LIMITED') ||
+                      lastError.message.includes('rate limit');
+
+        // If not a rate limit error, don't retry
+        if (!is429) {
+          throw lastError;
+        }
+
+        // If we've exhausted retries, throw with user-friendly message
+        if (attempt === maxRetries) {
+          throw new Error('Brave Search temporarily unavailable - rate limit exceeded. Try again in a moment.');
+        }
+
+        // Shorter backoff delays for faster recovery: 500ms, 750ms, 1s, 1.5s, 2s
+        const backoffDelay = attempt === 0 ? 500 : Math.min(Math.pow(1.5, attempt) * 500, 2000);
+
+        // Only log in development, and only after multiple attempts
+        if (process.env.NODE_ENV === 'development' && attempt > 1) {
+          console.log(`Brave Search rate limited, retry ${attempt + 1}/${maxRetries + 1} in ${Math.round(backoffDelay)}ms`);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+      }
+    }
+
+    throw lastError!;
+  }
+
   public async search(
+    query: ExtSearchQuery,
+    signal?: AbortSignal
+  ): Promise<EngineSearchResult> {
+    if (!this.apiKey) {
+      throw new Error('Brave Search API key not configured');
+    }
+
+    // Wrap the entire search logic in retry with backoff
+    return await this.retryWithBackoff(async () => {
+      // Enforce rate limit before making request
+      await this.enforceRateLimit();
+
+      return await this.performSearch(query, signal);
+    });
+  }
+
+  /**
+   * Perform the actual search request
+   * Separated from public search() method to enable retry logic
+   */
+  private async performSearch(
     query: ExtSearchQuery,
     signal?: AbortSignal
   ): Promise<EngineSearchResult> {
