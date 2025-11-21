@@ -8,6 +8,7 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import AnnouncementsPanel from '@/components/community/AnnouncementsPanel';
 import PollsPanel from '@/components/community/PollsPanel';
 import BulletinBoardPanel from '@/components/community/BulletinBoardPanel';
+import CommunityChatPanel from '@/components/community/CommunityChatPanel';
 
 interface CommunityProps {
   siteConfig: SiteConfig;
@@ -82,20 +83,7 @@ export default function Community({ siteConfig, user }: CommunityProps) {
             <PollsPanel />
 
             {/* Chat Room */}
-            <SimpleCard>
-              <div className="flex items-center gap-2 mb-2 sm:mb-3 px-1">
-                <PixelIcon name="chat" size={20} className="text-thread-pine" />
-                <h3 className="text-base sm:text-lg font-bold text-[#2E4B3F]">Chat Room</h3>
-              </div>
-              <div className="p-2 sm:p-3 px-1">
-                <p className="text-thread-sage text-sm sm:text-base mb-3">
-                  Jump into real-time conversations with your neighbors. Hang out, chat, and connect with the community.
-                </p>
-                <div className="text-xs sm:text-sm text-thread-sage/70 italic">
-                  Coming soon: Real-time community chat
-                </div>
-              </div>
-            </SimpleCard>
+            <CommunityChatPanel />
           </div>
 
           {/* Optional: Info section for logged-out users */}

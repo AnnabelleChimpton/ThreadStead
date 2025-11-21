@@ -46,7 +46,18 @@ async function main() {
     ],
   });
 
+  // Create default chat room
+  await db.chatRoom.upsert({
+    where: { id: "lounge" },
+    update: {},
+    create: {
+      id: "lounge",
+      name: "Lounge",
+    },
+  });
+
   console.log("Seeded:", alice.primaryHandle);
+  console.log("Created chat room: Lounge");
 }
 
 main().finally(() => db.$disconnect());

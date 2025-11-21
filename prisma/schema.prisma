@@ -80,6 +80,9 @@ model User {
   pollsCreated              Poll[]                        @relation("PollsCreated")
   pollVotes                 PollVote[]                    @relation("PollVotes")
   bulletins                 Bulletin[]                    @relation("UserBulletins")
+  chatMessages              ChatMessage[]                 @relation("UserChatMessages")
+  chatMutes                 ChatMute[]                    @relation("UserMutes")
+  chatMutedBy               ChatMute[]                    @relation("UserMutedBy")
 }
 
 model Handle {
@@ -1574,4 +1577,42 @@ enum BulletinCategory {
   INVITATION
   HELP_FEEDBACK
   COMMUNITY_NOTICE
+}
+
+// ========================================
+// CHAT SYSTEM
+// ========================================
+
+model ChatRoom {
+  id        String        @id // e.g. "lounge", "dev", "offtopic"
+  name      String
+  createdAt DateTime      @default(now())
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  roomId    String
+  userId    String
+  body      String // 280 chars max enforced at API level
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation("UserChatMessages", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@index([userId])
+}
+
+model ChatMute {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  userId      String
+  mutedUserId String
+
+  user      User @relation("UserMutes", fields: [userId], references: [id], onDelete: Cascade)
+  mutedUser User @relation("UserMutedBy", fields: [mutedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mutedUserId])
+  @@index([userId])
 }

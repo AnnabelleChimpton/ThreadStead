@@ -7,9 +7,9 @@
   },
   "scripts": {
     "setup": "tsx scripts/initial-setup.ts",
-    "dev": "next dev",
+    "dev": "node server.js",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_ENV=production node server.js",
     "lint": "next lint",
     "seed": "prisma db seed",
     "setup:admin": "tsx scripts/setup-admin.ts",
@@ -84,6 +84,8 @@
     "rehype-stringify": "^10.0.1",
     "resend": "^6.0.1",
     "sharp": "^0.34.3",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "unified": "^11.0.5",
     "zod": "^4.1.5"
   },
