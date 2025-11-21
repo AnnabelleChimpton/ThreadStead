@@ -15,6 +15,7 @@ import SiteNewsSection from "@/components/features/admin/SiteNewsSection";
 import BetaLandingPagesSection from "@/components/features/admin/BetaLandingPagesSection";
 import IpManagementSection from "@/components/features/admin/IpManagementSection";
 import BetaInviteAnalyticsSection from "@/components/features/admin/BetaInviteAnalyticsSection";
+import PollsSection from "@/components/features/admin/PollsSection";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 // Collapsible Section Component
@@ -1827,6 +1828,9 @@ We collect information you provide when creating an account..."
               </div>
             </div>
           </div>
+
+          {/* Community Polls */}
+          <PollsSection />
         </CollapsibleSection>
 
         {/* APPEARANCE & STYLING */}
