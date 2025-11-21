@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+
+// Dynamic import of MidiPlayer to avoid SSR issues
+const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
+  ssr: false,
+  loading: () => <div className="text-sm text-gray-500">Loading player...</div>
+});
 
 interface MidiFile {
   id: string;
@@ -27,7 +35,13 @@ export default function MidiManager({ username }: MidiManagerProps) {
   const [loopEnabled, setLoopEnabled] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewingMidi, setPreviewingMidi] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const loadMidiFiles = async () => {
     try {
@@ -87,7 +101,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
       }
       const { token } = await capRes.json();
 
-      const response = await fetch(`/api/media/${id}`, {
+      const response = await csrfFetch(`/api/media/${id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cap: token }),
@@ -435,6 +449,17 @@ export default function MidiManager({ username }: MidiManagerProps) {
                     </button>
                   )}
                   <button
+                    onClick={() => setPreviewingMidi(previewingMidi === file.id ? null : file.id)}
+                    className={`px-3 py-1.5 text-sm border rounded transition-colors ${
+                      previewingMidi === file.id
+                        ? 'border-blue-300 bg-blue-100 hover:bg-blue-200 text-blue-800'
+                        : 'border-gray-300 bg-white hover:bg-gray-50'
+                    }`}
+                    title={previewingMidi === file.id ? 'Close preview' : 'Preview MIDI'}
+                  >
+                    <PixelIcon name={previewingMidi === file.id ? 'close' : 'play'} size={14} className="inline-block align-middle" /> {previewingMidi === file.id ? 'Close' : 'Preview'}
+                  </button>
+                  <button
                     onClick={() => window.open(file.fullUrl, '_blank')}
                     className="px-3 py-1.5 text-sm border border-gray-300 bg-white hover:bg-gray-50 rounded transition-colors"
                     title="Download MIDI file"
@@ -460,6 +485,33 @@ export default function MidiManager({ username }: MidiManagerProps) {
         <div className="p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">
           {error}
         </div>
+      )}
+
+      {/* Fixed MIDI Player in bottom right - using portal to render at body level */}
+      {isMounted && previewingMidi && createPortal(
+        <div className="fixed bottom-4 right-4 z-50 shadow-2xl rounded-lg bg-white border-2 border-purple-300">
+          <div className="flex items-center justify-between px-3 py-2 bg-purple-50 border-b border-purple-200 rounded-t-lg">
+            <span className="text-sm font-medium text-gray-700">
+              {midiFiles.find(f => f.id === previewingMidi)?.title || 'Preview'}
+            </span>
+            <button
+              onClick={() => setPreviewingMidi(null)}
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+              title="Close preview"
+            >
+              <PixelIcon name="close" size={16} />
+            </button>
+          </div>
+          <div className="p-2">
+            <MidiPlayer
+              midiUrl={`/api/media/serve/${previewingMidi}`}
+              autoplay={false}
+              loop={false}
+              defaultMode="compact"
+            />
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

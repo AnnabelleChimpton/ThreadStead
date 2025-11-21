@@ -1600,21 +1600,7 @@ export default function MidiPlayer({
     chorusLfoRef.current.connect(chorusGainRef.current);
     chorusGainRef.current.connect(chorusDelayRef.current.delayTime);
     chorusLfoRef.current.start();
-    
-    // Create stereo widener for spacious sound
-    const splitter = audioContext.createChannelSplitter(2);
-    const merger = audioContext.createChannelMerger(2);
-    
-    stereoWidenerRef.current = {
-      left: audioContext.createGain(),
-      right: audioContext.createGain(),
-      delay: audioContext.createDelay(0.01)
-    };
-    
-    stereoWidenerRef.current.delay.delayTime.value = 0.005; // 5ms delay for width
-    stereoWidenerRef.current.left.gain.value = 1.0;
-    stereoWidenerRef.current.right.gain.value = 1.0;
-    
+
     // Enhanced reverb
     reverbRef.current = audioContext.createConvolver();
     const reverbBuffer = createReverbImpulse(audioContext, 3, 0.4); // Longer, more lush reverb
@@ -1646,7 +1632,7 @@ export default function MidiPlayer({
     masterGainRef.current.gain.value = volume / 100;
     
     // Professional effects chain routing:
-    // Input -> EQ (Low->Mid->High) -> Chorus -> Stereo Widener -> Reverb -> Compressor -> Limiter -> Master -> Output
+    // Input -> EQ (Low->Mid->High) -> Chorus -> Reverb -> Compressor -> Limiter -> Master -> Output
     
     // Create input gain node for the chain
     const inputGain = audioContext.createGain();
@@ -1672,20 +1658,10 @@ export default function MidiPlayer({
     chorusSplitter.connect(chorusDelayRef.current); // Wet signal
     chorusDelayRef.current.connect(chorusMixer);
     chorusMixer.gain.value = 0.7; // Mix level
-    
-    // Stereo processing
-    chorusMixer.connect(splitter);
-    splitter.connect(stereoWidenerRef.current.left, 0);
-    splitter.connect(stereoWidenerRef.current.right, 1);
-    splitter.connect(stereoWidenerRef.current.delay, 1);
-    
-    stereoWidenerRef.current.left.connect(merger, 0, 0);
-    stereoWidenerRef.current.right.connect(merger, 0, 1);
-    stereoWidenerRef.current.delay.connect(merger, 0, 0);
-    
-    // Parallel reverb processing
-    merger.connect(dryGain);
-    merger.connect(wetGain);
+
+    // Parallel reverb processing (removed stereo widener - mono instruments play equally from both speakers)
+    chorusMixer.connect(dryGain);
+    chorusMixer.connect(wetGain);
     wetGain.connect(reverbRef.current);
     
     const reverbMixer = audioContext.createGain();
