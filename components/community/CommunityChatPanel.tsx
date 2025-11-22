@@ -5,6 +5,7 @@ import { io, Socket } from 'socket.io-client';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
 import { cleanAndNormalizeHtml } from '@/lib/utils/sanitization/html';
+import { retroSFX } from '@/lib/audio/retro-sfx';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import RetroButton from '@/components/ui/feedback/RetroButton';
 import UserQuickView from '@/components/ui/feedback/UserQuickView';
@@ -36,6 +37,38 @@ interface MuteInfo {
 }
 
 const ROOM_ID = 'lounge';
+
+// Utility function to replace text smileys with pixel art (or unicode for now)
+function processMessageContent(text: string): string {
+  let processed = linkifyText(text);
+
+  // Simple emoticon replacement
+  const emoticons: Record<string, string> = {
+    ':)': '&#128578;', // 🙂
+    ':-)': '&#128578;',
+    ':(': '&#128577;', // ☹️
+    ':-(': '&#128577;',
+    '<3': '&#10084;&#65039;', // ❤️
+    ':D': '&#128515;', // 😃
+    ':-D': '&#128515;',
+    ';)': '&#128521;', // 😉
+    ';-)': '&#128521;',
+    ':P': '&#128539;', // 😛
+    ':-P': '&#128539;',
+    'lol': '&#129315;', // 🤣
+  };
+
+  // Replace emoticons (careful not to break HTML tags from linkify)
+  Object.entries(emoticons).forEach(([key, value]) => {
+    // Escape special regex chars
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Match only if not inside a tag (simple heuristic)
+    const regex = new RegExp(`(?<!="[^"]*)${escapedKey}(?![^<]*>)`, 'g');
+    processed = processed.replace(regex, `<span class="font-emoji text-lg align-middle">${value}</span>`);
+  });
+
+  return processed;
+}
 
 // Utility function to detect URLs and convert them to clickable links
 function linkifyText(text: string): string {
@@ -71,8 +104,21 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [showMobilePresence, setShowMobilePresence] = useState(false);
   const [presenceCollapsed, setPresenceCollapsed] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [sfxEnabled, setSfxEnabled] = useState(true);
 
   const messageListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSfxEnabled(retroSFX.isEnabled());
+  }, []);
+
+  const toggleSfx = () => {
+    const newState = !sfxEnabled;
+    setSfxEnabled(newState);
+    retroSFX.setEnabled(newState);
+  };
 
   // Auto-scroll to bottom (scrolls only the message container, not the entire page)
   const scrollToBottom = () => {
@@ -95,9 +141,6 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
           const data = await messagesRes.json();
           setMessages(data.messages || []);
         }
-
-        // Presence will be loaded via Socket.io upon connection
-        // (removed API fetch to avoid race condition)
 
         // Load mutes
         const mutesRes = await fetch('/api/chat/mutes', {
@@ -130,15 +173,49 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     newSocket.on('connect', () => {
       setConnected(true);
       newSocket.emit('chat:join', { roomId: ROOM_ID });
+      retroSFX.playJoin();
     });
 
     newSocket.on('disconnect', () => {
       setConnected(false);
+      retroSFX.playLeave();
     });
 
     newSocket.on('chat:message', (message: ChatMessage) => {
       setMessages((prev) => [...prev, message]);
+
+      // Play SFX
+      if (message.userId === user.id) {
+        retroSFX.playMessageOut();
+      } else {
+        retroSFX.playMessageIn();
+      }
+
       setTimeout(scrollToBottom, 100);
+    });
+
+    newSocket.on('chat:typing', (data: { userId: string, handle: string }) => {
+      if (data.userId !== user.id) {
+        setTypingUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.add(data.handle || 'Someone');
+          return newSet;
+        });
+
+        // Auto-clear after 3 seconds (failsafe)
+        setTimeout(() => {
+          setTypingUsers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(data.handle || 'Someone');
+            return newSet;
+          });
+        }, 3000);
+      }
+    });
+
+    newSocket.on('chat:stop_typing', (data: { userId: string }) => {
+      // We'd need the handle to remove it from the Set<string> of handles.
+      // Let's just rely on the auto-clear for now to keep it simple and robust.
     });
 
     newSocket.on('presence:update', (data: { users: PresenceUser[] }) => {
@@ -273,6 +350,13 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
             <h3 className="text-sm font-bold text-thread-pine">Lounge</h3>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={toggleSfx}
+              className={`text-thread-sage hover:text-thread-pine transition-colors p-1 ${!sfxEnabled ? 'opacity-50' : ''}`}
+              title={sfxEnabled ? "Mute sound effects" : "Enable sound effects"}
+            >
+              <PixelIcon name="speaker" size={16} />
+            </button>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${connected ? 'bg-thread-meadow' : 'bg-thread-stone'}`} />
               <span className="text-xs text-thread-sage hidden sm:inline">
@@ -315,8 +399,8 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
         <div className="flex-1 flex flex-col overflow-hidden">
           <div
             ref={messageListRef}
-            className="flex-1 overflow-y-auto p-2 space-y-1"
-            style={{ scrollbarWidth: 'thin' }}
+            className="flex-1 overflow-y-auto p-2 space-y-1 retro-scrollbar"
+            style={{ scrollbarWidth: 'auto' }}
           >
             {filteredMessages.map((msg, idx) => {
               const isOwnMessage = msg.userId === user.id;
@@ -395,7 +479,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                       dangerouslySetInnerHTML={{
                         __html: isMuted
                           ? 'Message hidden (user muted)'
-                          : cleanAndNormalizeHtml(linkifyText(msg.body))
+                          : cleanAndNormalizeHtml(processMessageContent(msg.body))
                       }}
                     />
                   </div>
@@ -411,7 +495,17 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
             <div className="flex gap-2">
               <textarea
                 value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
+                onChange={(e) => {
+                  setMessageInput(e.target.value);
+                  if (socket) {
+                    socket.emit('chat:typing', { roomId: ROOM_ID });
+
+                    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                    typingTimeoutRef.current = setTimeout(() => {
+                      socket.emit('chat:stop_typing', { roomId: ROOM_ID });
+                    }, 1000);
+                  }
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
                 className="flex-1 px-3 py-2 text-sm sm:text-base border border-thread-sage rounded bg-white text-thread-charcoal resize-none min-h-[44px]"
@@ -430,80 +524,94 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                 <span className="sm:hidden">→</span>
               </RetroButton>
             </div>
-            <div className="text-xs text-thread-sage mt-1">
-              {messageInput.length}/280
+            <div className="flex justify-between items-center mt-1">
+              <div className="text-xs text-thread-sage h-4">
+                {typingUsers.size > 0 && (
+                  <span className="animate-pulse">
+                    {Array.from(typingUsers).join(', ')} {typingUsers.size === 1 ? 'is' : 'are'} typing...
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-thread-sage">
+                {messageInput.length}/280
+              </div>
             </div>
           </div>
         </div>
 
         {/* Presence Sidebar - Desktop */}
-        <div className={`hidden md:flex flex-col border-l border-thread-sage bg-thread-cream/30 overflow-y-auto transition-all duration-300 ${presenceCollapsed ? 'w-8' : 'w-32'}`}>
+        <div className={`hidden md:flex flex-col border-l border-thread-sage bg-thread-cream transition-all duration-300 ${presenceCollapsed ? 'w-10' : 'w-48'}`}>
           {presenceCollapsed ? (
             // Collapsed view - only show expand button
-            <div className="flex items-center justify-center p-1">
+            <div className="flex flex-col items-center py-2 gap-2">
               <button
                 onClick={() => setPresenceCollapsed(false)}
-                className="text-thread-sage hover:text-thread-pine transition-colors p-1"
+                className="text-thread-sage hover:text-thread-pine transition-colors p-1.5 rounded hover:bg-thread-sage/10"
                 title="Expand sidebar"
               >
-                <PixelIcon name="chevron-left" size={12} />
+                <PixelIcon name="chevron-left" size={16} />
               </button>
+              <div className="text-[10px] font-bold text-thread-sage writing-vertical-rl rotate-180 tracking-widest uppercase opacity-70">
+                Lounge
+              </div>
             </div>
           ) : (
             // Expanded view
-            <div className="p-2">
+            <div className="flex flex-col h-full">
               {/* Header with collapse toggle */}
-              <div className="flex items-center justify-between mb-1">
-                <h4 className="text-[10px] font-bold text-thread-pine">
-                  In the Lounge ({filteredPresence.length})
+              <div className="flex items-center justify-between p-3 border-b border-thread-sage/20 bg-thread-sage/5">
+                <h4 className="text-xs font-bold text-thread-pine uppercase tracking-wider">
+                  Online ({filteredPresence.length})
                 </h4>
                 <button
                   onClick={() => setPresenceCollapsed(true)}
-                  className="text-thread-sage hover:text-thread-pine transition-colors p-1"
+                  className="text-thread-sage hover:text-thread-pine transition-colors p-1 rounded hover:bg-thread-sage/10"
                   title="Collapse sidebar"
                 >
-                  <PixelIcon name="chevron-right" size={12} />
+                  <PixelIcon name="chevron-right" size={14} />
                 </button>
               </div>
 
               {/* User list */}
-              <div className="space-y-1">
+              <div className="flex-1 overflow-y-auto p-2 space-y-1 retro-scrollbar" style={{ scrollbarWidth: 'thin' }}>
                 {filteredPresence.map((p) => {
                   const isMuted = mutedUsers.has(p.userId);
                   const isCurrentUser = p.userId === user.id;
                   const displayName = p.displayName || p.handle || 'User';
 
                   return (
-                    <div key={p.userId} className="flex items-center gap-1 relative group">
+                    <div key={p.userId} className={`flex items-center gap-2 p-1.5 rounded transition-colors group ${isCurrentUser ? 'bg-thread-white/40' : 'hover:bg-thread-white/60'}`}>
                       {p.avatarUrl ? (
                         <img
                           src={p.avatarUrl}
                           alt={displayName}
-                          className={`w-5 h-5 rounded-full border border-thread-sage ${isMuted ? 'opacity-40' : ''}`}
+                          className={`w-6 h-6 rounded-full border border-thread-sage/50 ${isMuted ? 'opacity-40' : ''}`}
                         />
                       ) : (
-                        <div className={`w-5 h-5 rounded-full bg-thread-stone border border-thread-sage flex items-center justify-center ${isMuted ? 'opacity-40' : ''}`}>
-                          <span className="text-[9px] text-thread-paper">
+                        <div className={`w-6 h-6 rounded-full bg-thread-stone/20 border border-thread-sage/50 flex items-center justify-center ${isMuted ? 'opacity-40' : ''}`}>
+                          <span className="text-[10px] text-thread-sage font-bold">
                             {displayName[0].toUpperCase()}
                           </span>
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <span
                           onClick={() => !isCurrentUser && p.handle && setSelectedUsername(p.handle.split('@')[0])}
-                          className={`text-[10px] truncate block ${!isCurrentUser ? 'cursor-pointer hover:underline' : ''} ${isMuted ? 'text-thread-sage' : 'text-thread-pine'}`}
+                          className={`text-xs truncate font-medium ${!isCurrentUser ? 'cursor-pointer hover:text-thread-pine-dark' : ''} ${isMuted ? 'text-thread-sage' : 'text-thread-pine'}`}
                         >
                           {displayName}
                         </span>
                         {isMuted && (
                           <button
                             onClick={() => handleUnmuteUser(p.userId)}
-                            className="text-[9px] text-thread-sunset hover:underline"
+                            className="text-[9px] text-thread-sunset hover:underline text-left"
                           >
                             Unmute
                           </button>
                         )}
                       </div>
+                      {/* Status Dot (fake for now, could be real) */}
+                      <div className="w-1.5 h-1.5 rounded-full bg-thread-meadow shadow-sm" title="Online" />
                     </div>
                   );
                 })}

@@ -1393,3 +1393,38 @@
 .account-logout-button:active {
   transform: scale(0.98);
 }
+/* Retro Scrollbar - Palette Matched */
+.retro-scrollbar::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background-color: #F5E9D4; /* thread-cream */
+}
+
+.retro-scrollbar::-webkit-scrollbar-track {
+  background: #F5E9D4; /* thread-cream */
+  border-left: 1px solid #FCFAF7; /* thread-paper */
+}
+
+.retro-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #F5E9D4; /* thread-cream */
+  border-top: 1px solid #FCFAF7; /* thread-paper */
+  border-left: 1px solid #FCFAF7; /* thread-paper */
+  border-right: 1px solid #A18463; /* thread-sage */
+  border-bottom: 1px solid #A18463; /* thread-sage */
+  box-shadow: inset 1px 1px 0 #FCFAF7, inset -1px -1px 0 #A18463;
+}
+
+.retro-scrollbar::-webkit-scrollbar-button {
+  width: 16px;
+  height: 16px;
+  background-color: #F5E9D4; /* thread-cream */
+  border-top: 1px solid #FCFAF7; /* thread-paper */
+  border-left: 1px solid #FCFAF7; /* thread-paper */
+  border-right: 1px solid #A18463; /* thread-sage */
+  border-bottom: 1px solid #A18463; /* thread-sage */
+  box-shadow: inset 1px 1px 0 #FCFAF7, inset -1px -1px 0 #A18463;
+  display: block;
+}
+
+/* Pixelated arrow icons for scrollbar buttons would be ideal, but solid blocks work for now */
+

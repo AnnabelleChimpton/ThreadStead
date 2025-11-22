@@ -270,6 +270,27 @@ app.prepare().then(() => {
       }
     });
 
+    // Handle typing indicators
+    socket.on('chat:typing', (data) => {
+      const { roomId } = data;
+      if (roomId && socket.currentRoom === roomId) {
+        socket.to(roomId).emit('chat:typing', {
+          userId: user.id,
+          handle: user.primaryHandle,
+          displayName: user.profile?.displayName
+        });
+      }
+    });
+
+    socket.on('chat:stop_typing', (data) => {
+      const { roomId } = data;
+      if (roomId && socket.currentRoom === roomId) {
+        socket.to(roomId).emit('chat:stop_typing', {
+          userId: user.id
+        });
+      }
+    });
+
     // Handle disconnect
     socket.on('disconnect', () => {
       if (socket.currentRoom) {
