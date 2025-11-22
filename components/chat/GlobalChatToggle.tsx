@@ -2,9 +2,16 @@
 
 import { useChat } from '@/contexts/ChatContext';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { usePathname } from 'next/navigation';
 
 export default function GlobalChatToggle() {
   const { toggleChat, isChatOpen } = useChat();
+  const pathname = usePathname();
+
+  // Don't show toggle button on the /chat page
+  if (pathname === '/chat') {
+    return null;
+  }
 
   return (
     <button

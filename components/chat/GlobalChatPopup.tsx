@@ -1,11 +1,12 @@
 'use client';
 
 import { useChat } from '@/contexts/ChatContext';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import CommunityChatPanel from '@/components/community/CommunityChatPanel';
 import Link from 'next/link';
 import { retroSFX } from '@/lib/audio/retro-sfx';
+import { usePathname } from 'next/navigation';
 
 interface PresenceUser {
   userId: string;
@@ -17,6 +18,7 @@ interface PresenceUser {
 
 export default function GlobalChatPopup() {
   const { isChatOpen, closeChat } = useChat();
+  const pathname = usePathname();
   const [sfxEnabled, setSfxEnabled] = useState(true);
   const [presenceData, setPresenceData] = useState<{
     users: PresenceUser[];
@@ -28,9 +30,9 @@ export default function GlobalChatPopup() {
     setSfxEnabled(retroSFX.isEnabled());
   }, []);
 
-  const handlePresenceChange = (users: PresenceUser[], showPresence: boolean, togglePresence: () => void) => {
+  const handlePresenceChange = useCallback((users: PresenceUser[], showPresence: boolean, togglePresence: () => void) => {
     setPresenceData({ users, showPresence, togglePresence });
-  };
+  }, []);
 
   const toggleSfx = () => {
     const newState = !sfxEnabled;
@@ -52,17 +54,18 @@ export default function GlobalChatPopup() {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isChatOpen, closeChat]);
 
-  if (!isChatOpen) return null;
+  // Don't show popup on the /chat page or when closed
+  if (pathname === '/chat' || !isChatOpen) return null;
 
   return (
     <>
       {/* Mobile: Full screen overlay - positioned below nav bar */}
       <div
-        className="md:hidden fixed left-0 right-0 bottom-0 z-[9998] bg-thread-paper flex flex-col animate-slide-up"
+        className="md:hidden fixed left-0 right-0 bottom-0 z-[9998] pointer-events-none flex flex-col animate-slide-up"
         style={{ top: 'var(--nav-height, 4rem)' }}
       >
         {/* Header - compact on mobile */}
-        <div className="bg-thread-cream border-b border-thread-sage px-3 py-2 flex items-center justify-between shrink-0">
+        <div className="bg-thread-cream border-b border-thread-sage px-3 py-2 flex items-center justify-between shrink-0 pointer-events-auto">
           <h2 className="text-base font-bold text-thread-pine">Lounge Chat</h2>
           <div className="flex items-center gap-1.5">
             {/* Presence button */}
@@ -100,7 +103,7 @@ export default function GlobalChatPopup() {
         </div>
 
         {/* Chat content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden pointer-events-auto bg-thread-paper">
           <CommunityChatPanel popupMode onClose={closeChat} onPresenceChange={handlePresenceChange} />
         </div>
       </div>
@@ -140,7 +143,7 @@ export default function GlobalChatPopup() {
 
         {/* Chat content */}
         <div className="flex-1 overflow-hidden">
-          <CommunityChatPanel popupMode onClose={closeChat} />
+          <CommunityChatPanel popupMode onClose={closeChat} onPresenceChange={handlePresenceChange} />
         </div>
       </div>
 

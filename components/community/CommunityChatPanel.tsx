@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
@@ -105,13 +105,19 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [showMobilePresence, setShowMobilePresence] = useState(false);
 
+  // Create stable toggle function
+  const toggleMobilePresence = useCallback(() => {
+    setShowMobilePresence(prev => !prev);
+  }, []);
+
   // Expose presence info to parent
   useEffect(() => {
     if (onPresenceChange) {
-      onPresenceChange(presence, showMobilePresence, () => setShowMobilePresence(!showMobilePresence));
+      onPresenceChange(presence, showMobilePresence, toggleMobilePresence);
     }
-  }, [presence, showMobilePresence, onPresenceChange]);
-  const [presenceCollapsed, setPresenceCollapsed] = useState(true);
+  }, [presence, showMobilePresence, toggleMobilePresence, onPresenceChange]);
+  // Default to expanded on fullscreen (/chat page), collapsed in popup
+  const [presenceCollapsed, setPresenceCollapsed] = useState(!fullscreen);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [sfxEnabled, setSfxEnabled] = useState(true);
@@ -242,8 +248,8 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
   // Scroll to bottom on initial load and new real-time messages
   useEffect(() => {
     if (messages.length > 0) {
-      // Use a slight delay to ensure DOM is ready
-      setTimeout(scrollToBottom, 50);
+      // Longer delay to ensure popup animation completes (300ms + buffer)
+      setTimeout(scrollToBottom, 350);
     }
   }, [messages]);
 
