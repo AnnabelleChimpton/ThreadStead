@@ -27,6 +27,11 @@ import CookieConsentBanner from "@/components/ui/feedback/CookieConsentBanner";
 // Import Toast Provider
 import { ToastProvider } from "@/lib/templates/state/ToastProvider";
 
+// Import Chat Provider and global chat components
+import { ChatProvider } from "@/contexts/ChatContext";
+import GlobalChatToggle from "@/components/chat/GlobalChatToggle";
+import GlobalChatPopup from "@/components/chat/GlobalChatPopup";
+
 // Initialize ThreadRing reconciliation scheduler (server-side only)
 import "@/lib/domain/threadrings/reconciliation-bootstrap";
 
@@ -161,11 +166,12 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   return (
     <GlobalAudioProvider>
       <ToastProvider>
-        <CSSModeProvider
-          cssMode={actualCSSMode}
-          templateMode={templateMode}
-          isVisualBuilder={isVisualBuilder}
-        >
+        <ChatProvider>
+          <CSSModeProvider
+            cssMode={actualCSSMode}
+            templateMode={templateMode}
+            isVisualBuilder={isVisualBuilder}
+          >
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="color-scheme" content="light" />
@@ -370,8 +376,17 @@ ${pageProps.customCSS}`
             console.log('Global consent updated:', consents);
           }}
         />
+
+        {/* Global Chat - Only show for authenticated users */}
+        {user && (
+          <>
+            <GlobalChatToggle />
+            <GlobalChatPopup />
+          </>
+        )}
       </div>
       </CSSModeProvider>
+        </ChatProvider>
       </ToastProvider>
     </GlobalAudioProvider>
   );

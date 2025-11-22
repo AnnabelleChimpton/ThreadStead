@@ -8,7 +8,6 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import AnnouncementsPanel from '@/components/community/AnnouncementsPanel';
 import PollsPanel from '@/components/community/PollsPanel';
 import BulletinBoardPanel from '@/components/community/BulletinBoardPanel';
-import CommunityChatPanel from '@/components/community/CommunityChatPanel';
 
 interface CommunityProps {
   siteConfig: SiteConfig;
@@ -65,11 +64,11 @@ export default function Community({ siteConfig, user }: CommunityProps) {
               </h1>
             </div>
             <p className="text-thread-sage leading-relaxed text-sm sm:text-base">
-              Central hub for announcements, bulletin board, polls, and chat
+              Central hub for announcements, bulletin board, and polls
             </p>
           </div>
 
-          {/* Four Sections in 2x2 Grid */}
+          {/* Three Sections in Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
             {/* Announcements */}
             <AnnouncementsPanel />
@@ -81,9 +80,6 @@ export default function Community({ siteConfig, user }: CommunityProps) {
 
             {/* Polls */}
             <PollsPanel />
-
-            {/* Chat Room */}
-            <CommunityChatPanel />
           </div>
 
           {/* Optional: Info section for logged-out users */}
@@ -93,7 +89,7 @@ export default function Community({ siteConfig, user }: CommunityProps) {
                 <Link href="/signup" className="text-thread-sage hover:text-thread-sage/80 underline font-semibold">
                   Join the community
                 </Link>
-                {' '}to participate in announcements, bulletin board, polls, and chat!
+                {' '}to participate in announcements, bulletin board, and polls!
               </p>
             </div>
           )}

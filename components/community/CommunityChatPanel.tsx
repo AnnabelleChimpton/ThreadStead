@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
+import { cleanAndNormalizeHtml } from '@/lib/utils/sanitization/html';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import RetroButton from '@/components/ui/feedback/RetroButton';
 import UserQuickView from '@/components/ui/feedback/UserQuickView';
@@ -36,11 +37,26 @@ interface MuteInfo {
 
 const ROOM_ID = 'lounge';
 
-interface CommunityChatPanelProps {
-  fullscreen?: boolean;
+// Utility function to detect URLs and convert them to clickable links
+function linkifyText(text: string): string {
+  // URL detection regex - matches http(s):// URLs and www. URLs
+  const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
+
+  return text.replace(urlRegex, (url) => {
+    // Ensure the URL has a protocol
+    const href = url.startsWith('http') ? url : `https://${url}`;
+
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-thread-pine underline hover:text-thread-sage transition-colors">${url}</a>`;
+  });
 }
 
-export default function CommunityChatPanel({ fullscreen = false }: CommunityChatPanelProps) {
+interface CommunityChatPanelProps {
+  fullscreen?: boolean;
+  popupMode?: boolean;
+  onClose?: () => void;
+}
+
+export default function CommunityChatPanel({ fullscreen = false, popupMode = false, onClose }: CommunityChatPanelProps) {
   const { user, loading: userLoading } = useCurrentUser();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -54,6 +70,7 @@ export default function CommunityChatPanel({ fullscreen = false }: CommunityChat
   const [showUserMenu, setShowUserMenu] = useState<string | null>(null);
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [showMobilePresence, setShowMobilePresence] = useState(false);
+  const [presenceCollapsed, setPresenceCollapsed] = useState(false);
 
   const messageListRef = useRef<HTMLDivElement>(null);
 
@@ -235,46 +252,55 @@ export default function CommunityChatPanel({ fullscreen = false }: CommunityChat
     );
   }
 
-  const chatHeight = fullscreen
-    ? 'h-[calc(100vh-8rem)] sm:h-[calc(100vh-9rem)] md:h-[calc(100vh-10rem)]'
-    : 'h-[400px] sm:h-[500px] md:h-[600px]';
+  const chatHeight = popupMode
+    ? 'h-full'
+    : fullscreen
+      ? 'h-[calc(100vh-8rem)] sm:h-[calc(100vh-9rem)] md:h-[calc(100vh-10rem)]'
+      : 'h-[400px] sm:h-[500px] md:h-[600px]';
+
+  // In popup mode, the wrapper handles border/shadow/rounding
+  const containerClasses = popupMode
+    ? `flex flex-col ${chatHeight} bg-thread-paper`
+    : `flex flex-col ${chatHeight} bg-thread-paper border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463]`;
 
   return (
-    <div className={`flex flex-col ${chatHeight} bg-thread-paper border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463]`}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-thread-sage bg-thread-cream">
-        <div className="flex items-center gap-2">
-          <PixelIcon name="chat" size={20} className="text-thread-pine" />
-          <h3 className="text-sm font-bold text-thread-pine">Lounge</h3>
-        </div>
-        <div className="flex items-center gap-3">
+    <div className={containerClasses}>
+      {/* Header - hidden in popup mode (popup wrapper has its own header) */}
+      {!popupMode && (
+        <div className="flex items-center justify-between px-3 py-2 border-b border-thread-sage bg-thread-cream">
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${connected ? 'bg-thread-meadow' : 'bg-thread-stone'}`} />
-            <span className="text-xs text-thread-sage hidden sm:inline">
-              {connected ? 'Connected' : 'Disconnected'}
-            </span>
+            <PixelIcon name="chat" size={20} className="text-thread-pine" />
+            <h3 className="text-sm font-bold text-thread-pine">Lounge</h3>
           </div>
-          <button
-            onClick={() => setShowMobilePresence(!showMobilePresence)}
-            className="md:hidden text-thread-sage hover:text-thread-pine transition-colors p-1"
-            title="Show participants"
-          >
-            <PixelIcon name="users" size={16} />
-            <span className="sr-only">Toggle participants</span>
-          </button>
-          {!fullscreen && (
-            <a
-              href="/chat"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-thread-sage hover:text-thread-pine transition-colors p-1"
-              title="Open in new window"
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${connected ? 'bg-thread-meadow' : 'bg-thread-stone'}`} />
+              <span className="text-xs text-thread-sage hidden sm:inline">
+                {connected ? 'Connected' : 'Disconnected'}
+              </span>
+            </div>
+            <button
+              onClick={() => setShowMobilePresence(!showMobilePresence)}
+              className="md:hidden text-thread-sage hover:text-thread-pine transition-colors p-1"
+              title="Show participants"
             >
-              <PixelIcon name="external-link" size={16} />
-            </a>
-          )}
+              <PixelIcon name="users" size={16} />
+              <span className="sr-only">Toggle participants</span>
+            </button>
+            {!fullscreen && (
+              <a
+                href="/chat"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-thread-sage hover:text-thread-pine transition-colors p-1"
+                title="Open in new window"
+              >
+                <PixelIcon name="external-link" size={16} />
+              </a>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* System Notice */}
       {systemNotice && (
@@ -289,7 +315,7 @@ export default function CommunityChatPanel({ fullscreen = false }: CommunityChat
         <div className="flex-1 flex flex-col overflow-hidden">
           <div
             ref={messageListRef}
-            className="flex-1 overflow-y-auto p-3 space-y-2"
+            className="flex-1 overflow-y-auto p-2 space-y-1"
             style={{ scrollbarWidth: 'thin' }}
           >
             {filteredMessages.map((msg, idx) => {
@@ -298,9 +324,8 @@ export default function CommunityChatPanel({ fullscreen = false }: CommunityChat
               return (
                 <div
                   key={msg.id}
-                  className={`flex gap-2 p-2 rounded ${
-                    isOwnMessage ? 'bg-thread-cream/50' : isMuted ? 'bg-thread-stone/10' : 'hover:bg-thread-paper'
-                  }`}
+                  className={`flex gap-2 p-2 rounded ${isOwnMessage ? 'bg-thread-cream/50' : isMuted ? 'bg-thread-stone/10' : 'hover:bg-thread-paper'
+                    }`}
                 >
                   {/* Avatar */}
                   <div className="flex-shrink-0">
@@ -308,11 +333,11 @@ export default function CommunityChatPanel({ fullscreen = false }: CommunityChat
                       <img
                         src={msg.avatarUrl}
                         alt={getDisplayName(msg)}
-                        className={`w-8 h-8 rounded-full border border-thread-sage ${isMuted ? 'opacity-40' : ''}`}
+                        className={`w-6 h-6 rounded-full border border-thread-sage ${isMuted ? 'opacity-40' : ''}`}
                       />
                     ) : (
-                      <div className={`w-8 h-8 rounded-full bg-thread-stone border border-thread-sage flex items-center justify-center ${isMuted ? 'opacity-40' : ''}`}>
-                        <span className="text-xs text-thread-paper">
+                      <div className={`w-6 h-6 rounded-full bg-thread-stone border border-thread-sage flex items-center justify-center ${isMuted ? 'opacity-40' : ''}`}>
+                        <span className="text-[10px] text-thread-paper">
                           {getDisplayName(msg)[0]?.toUpperCase()}
                         </span>
                       </div>
@@ -321,17 +346,17 @@ export default function CommunityChatPanel({ fullscreen = false }: CommunityChat
 
                   {/* Message Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-baseline gap-1.5">
                       <span
                         onClick={() => msg.handle && setSelectedUsername(msg.handle.split('@')[0])}
-                        className={`font-semibold text-sm cursor-pointer hover:underline ${isMuted ? 'text-thread-sage' : 'text-thread-pine'}`}
+                        className={`font-semibold text-xs cursor-pointer hover:underline ${isMuted ? 'text-thread-sage' : 'text-thread-pine'}`}
                       >
                         {getDisplayName(msg)}
                       </span>
                       {isMuted && (
-                        <span className="text-xs text-thread-sage italic">(muted)</span>
+                        <span className="text-[10px] text-thread-sage italic">(muted)</span>
                       )}
-                      <span className="text-xs text-thread-sage/70">
+                      <span className="text-[10px] text-thread-sage/70">
                         {formatTime(msg.createdAt)}
                       </span>
                       {/* Menu Button */}
@@ -365,9 +390,14 @@ export default function CommunityChatPanel({ fullscreen = false }: CommunityChat
                         </div>
                       )}
                     </div>
-                    <div className={`text-sm whitespace-pre-wrap break-words ${isMuted ? 'text-thread-sage/70 italic' : 'text-thread-charcoal'}`}>
-                      {isMuted ? 'Message hidden (user muted)' : msg.body}
-                    </div>
+                    <div
+                      className={`text-xs whitespace-pre-wrap break-words ${isMuted ? 'text-thread-sage/70 italic' : 'text-thread-charcoal'}`}
+                      dangerouslySetInnerHTML={{
+                        __html: isMuted
+                          ? 'Message hidden (user muted)'
+                          : cleanAndNormalizeHtml(linkifyText(msg.body))
+                      }}
+                    />
                   </div>
                 </div>
               );
@@ -407,51 +437,79 @@ export default function CommunityChatPanel({ fullscreen = false }: CommunityChat
         </div>
 
         {/* Presence Sidebar - Desktop */}
-        <div className="hidden md:block w-48 border-l border-thread-sage bg-thread-cream/30 overflow-y-auto">
-          <div className="p-3">
-            <h4 className="text-xs font-bold text-thread-pine mb-2">
-              In the Lounge ({filteredPresence.length})
-            </h4>
-            <div className="space-y-2">
-              {filteredPresence.map((p) => {
-                const isMuted = mutedUsers.has(p.userId);
-                const isCurrentUser = p.userId === user.id;
-                return (
-                  <div key={p.userId} className="flex items-center gap-2 relative group">
-                    {p.avatarUrl ? (
-                      <img
-                        src={p.avatarUrl}
-                        alt={p.displayName || p.handle || 'User'}
-                        className={`w-6 h-6 rounded-full border border-thread-sage ${isMuted ? 'opacity-40' : ''}`}
-                      />
-                    ) : (
-                      <div className={`w-6 h-6 rounded-full bg-thread-stone border border-thread-sage flex items-center justify-center ${isMuted ? 'opacity-40' : ''}`}>
-                        <span className="text-xs text-thread-paper">
-                          {(p.displayName || p.handle || 'A')[0].toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <span
-                        onClick={() => !isCurrentUser && p.handle && setSelectedUsername(p.handle.split('@')[0])}
-                        className={`text-xs truncate block ${!isCurrentUser ? 'cursor-pointer hover:underline' : ''} ${isMuted ? 'text-thread-sage' : 'text-thread-pine'}`}
-                      >
-                        {p.displayName || p.handle}
-                      </span>
-                      {isMuted && (
-                        <button
-                          onClick={() => handleUnmuteUser(p.userId)}
-                          className="text-xs text-thread-sunset hover:underline"
-                        >
-                          Unmute
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+        <div className={`hidden md:flex flex-col border-l border-thread-sage bg-thread-cream/30 overflow-y-auto transition-all duration-300 ${presenceCollapsed ? 'w-8' : 'w-32'}`}>
+          {presenceCollapsed ? (
+            // Collapsed view - only show expand button
+            <div className="flex items-center justify-center p-1">
+              <button
+                onClick={() => setPresenceCollapsed(false)}
+                className="text-thread-sage hover:text-thread-pine transition-colors p-1"
+                title="Expand sidebar"
+              >
+                <PixelIcon name="chevron-left" size={12} />
+              </button>
             </div>
-          </div>
+          ) : (
+            // Expanded view
+            <div className="p-2">
+              {/* Header with collapse toggle */}
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="text-[10px] font-bold text-thread-pine">
+                  In the Lounge ({filteredPresence.length})
+                </h4>
+                <button
+                  onClick={() => setPresenceCollapsed(true)}
+                  className="text-thread-sage hover:text-thread-pine transition-colors p-1"
+                  title="Collapse sidebar"
+                >
+                  <PixelIcon name="chevron-right" size={12} />
+                </button>
+              </div>
+
+              {/* User list */}
+              <div className="space-y-1">
+                {filteredPresence.map((p) => {
+                  const isMuted = mutedUsers.has(p.userId);
+                  const isCurrentUser = p.userId === user.id;
+                  const displayName = p.displayName || p.handle || 'User';
+
+                  return (
+                    <div key={p.userId} className="flex items-center gap-1 relative group">
+                      {p.avatarUrl ? (
+                        <img
+                          src={p.avatarUrl}
+                          alt={displayName}
+                          className={`w-5 h-5 rounded-full border border-thread-sage ${isMuted ? 'opacity-40' : ''}`}
+                        />
+                      ) : (
+                        <div className={`w-5 h-5 rounded-full bg-thread-stone border border-thread-sage flex items-center justify-center ${isMuted ? 'opacity-40' : ''}`}>
+                          <span className="text-[9px] text-thread-paper">
+                            {displayName[0].toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <span
+                          onClick={() => !isCurrentUser && p.handle && setSelectedUsername(p.handle.split('@')[0])}
+                          className={`text-[10px] truncate block ${!isCurrentUser ? 'cursor-pointer hover:underline' : ''} ${isMuted ? 'text-thread-sage' : 'text-thread-pine'}`}
+                        >
+                          {displayName}
+                        </span>
+                        {isMuted && (
+                          <button
+                            onClick={() => handleUnmuteUser(p.userId)}
+                            className="text-[9px] text-thread-sunset hover:underline"
+                          >
+                            Unmute
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
