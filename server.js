@@ -435,7 +435,10 @@ app.prepare().then(() => {
 
       // Find target user in presence
       const presence = getRoomPresence(roomId);
-      const targetUser = presence.find(u => u.handle && u.handle.toLowerCase() === targetHandle.toLowerCase());
+      const targetUser = presence.find(u => u.handle && (
+        u.handle.toLowerCase() === targetHandle.toLowerCase() ||
+        u.handle.toLowerCase().startsWith(targetHandle.toLowerCase() + '@')
+      ));
 
       if (!targetUser) {
         socket.emit('system:notice', {
@@ -466,13 +469,19 @@ app.prepare().then(() => {
     });
 
     // Handle disconnect
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       if (socket.currentRoom) {
-        removeFromPresence(socket.currentRoom, user.id);
+        // Check if user has other sockets in the room
+        const sockets = await io.in(socket.currentRoom).fetchSockets();
+        const userStillConnected = sockets.some(s => s.userData && s.userData.id === user.id);
 
-        // Broadcast presence update
-        const presence = getRoomPresence(socket.currentRoom);
-        io.to(socket.currentRoom).emit('presence:update', { users: presence });
+        if (!userStillConnected) {
+          removeFromPresence(socket.currentRoom, user.id);
+
+          // Broadcast presence update
+          const presence = getRoomPresence(socket.currentRoom);
+          io.to(socket.currentRoom).emit('presence:update', { users: presence });
+        }
       }
 
       console.log('User disconnected:', user.primaryHandle || user.id);

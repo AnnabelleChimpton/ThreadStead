@@ -678,7 +678,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                                     <button
                                       onClick={() => {
                                         if (msg.handle) {
-                                          setMessageInput(`/w @${msg.handle} `);
+                                          setMessageInput(`/w @${msg.handle.split('@')[0]} `);
                                           // Focus input
                                           const textarea = document.querySelector('textarea');
                                           if (textarea) textarea.focus();
@@ -715,7 +715,9 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                       ) : msg.isWhisper ? (
                         <div className={`text-xs whitespace-pre-wrap break-words italic text-thread-pine-dark`}>
                           <span className="font-semibold">
-                            {user && msg.userId === user.id ? `Whisper to @${msg.whisperTo}` : `Whisper from ${getDisplayName(msg)}`}
+                            {user && msg.userId === user.id
+                              ? `Whisper to @${msg.whisperTo?.split('@')[0]}`
+                              : `Whisper from ${getDisplayName(msg).split('@')[0]}`}
                           </span>
                           {': '}
                           <span
@@ -893,7 +895,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                           <button
                             onClick={() => {
                               if (p.handle) {
-                                setMessageInput(`/w @${p.handle} `);
+                                setMessageInput(`/w @${p.handle.split('@')[0]} `);
                                 // Focus input
                                 const textarea = document.querySelector('textarea');
                                 if (textarea) textarea.focus();
@@ -1007,7 +1009,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                               <button
                                 onClick={() => {
                                   if (p.handle) {
-                                    setMessageInput(`/w @${p.handle} `);
+                                    setMessageInput(`/w @${p.handle.split('@')[0]} `);
                                     setShowMobilePresence(false);
                                     // Focus input
                                     const textarea = document.querySelector('textarea');
