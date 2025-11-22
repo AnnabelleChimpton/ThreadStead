@@ -61,10 +61,11 @@ export default function GlobalChatPopup() {
             </Link>
             <button
               onClick={closeChat}
-              className="text-thread-sage hover:text-thread-pine transition-colors p-2"
+              className="flex items-center gap-1 bg-thread-sage/10 hover:bg-thread-sage/20 text-thread-pine font-medium px-3 py-1.5 rounded-full transition-colors ml-2"
               title="Close chat"
             >
-              <PixelIcon name="close" size={20} />
+              <span className="text-sm">Close</span>
+              <PixelIcon name="close" size={16} />
             </button>
           </div>
         </div>

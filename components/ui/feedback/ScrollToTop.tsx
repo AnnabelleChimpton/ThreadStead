@@ -41,7 +41,7 @@ export default function ScrollToTop() {
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-2 left-2 z-50 bg-thread-sage hover:bg-thread-pine text-thread-paper p-3 rounded-full shadow-cozy hover:shadow-thread transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2 md:bottom-8 md:right-8 md:left-auto"
+      className="fixed bottom-2 left-2 z-50 bg-thread-sage hover:bg-thread-pine text-thread-paper p-3 rounded-full shadow-cozy hover:shadow-thread transition-all duration-300 transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2 md:bottom-8 md:left-8 md:right-auto"
       aria-label="Scroll to top"
       title="Back to top"
     >

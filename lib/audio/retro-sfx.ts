@@ -21,7 +21,7 @@ class RetroSFX {
             this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
             this.masterGain = this.audioContext.createGain();
             this.masterGain.connect(this.audioContext.destination);
-            this.masterGain.gain.value = 0.3; // Default volume
+            this.masterGain.gain.value = 0.15; // Reduced volume for softer experience
         }
 
         if (this.audioContext.state === 'suspended') {
@@ -55,9 +55,9 @@ class RetroSFX {
         osc.type = type;
         osc.frequency.setValueAtTime(freq, this.audioContext.currentTime + startTime);
 
-        // Envelope to avoid clicking
+        // Envelope to avoid clicking - softer attack/release
         gain.gain.setValueAtTime(0, this.audioContext.currentTime + startTime);
-        gain.gain.linearRampToValueAtTime(1, this.audioContext.currentTime + startTime + 0.01);
+        gain.gain.linearRampToValueAtTime(0.8, this.audioContext.currentTime + startTime + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + startTime + duration);
 
         osc.connect(gain);
@@ -68,33 +68,33 @@ class RetroSFX {
     }
 
     public playMessageIn() {
-        // High-pitched "Ding!" (Coin-like)
-        this.playTone(1200, 'square', 0.1);
-        this.playTone(1800, 'square', 0.2, 0.05);
+        // Soft "Ding!" (Sine waves instead of square)
+        this.playTone(880, 'sine', 0.15); // A5
+        this.playTone(1760, 'sine', 0.25, 0.05); // A6
     }
 
     public playMessageOut() {
-        // Low "Blip"
-        this.playTone(440, 'triangle', 0.1);
+        // Soft "Pop"
+        this.playTone(440, 'sine', 0.1);
     }
 
     public playJoin() {
-        // Rising Arpeggio
-        this.playTone(523.25, 'sine', 0.1, 0);    // C5
-        this.playTone(659.25, 'sine', 0.1, 0.05); // E5
-        this.playTone(783.99, 'sine', 0.2, 0.1);  // G5
+        // Rising Arpeggio (Sine)
+        this.playTone(523.25, 'sine', 0.15, 0);    // C5
+        this.playTone(659.25, 'sine', 0.15, 0.05); // E5
+        this.playTone(783.99, 'sine', 0.25, 0.1);  // G5
     }
 
     public playLeave() {
-        // Falling Arpeggio
-        this.playTone(783.99, 'sine', 0.1, 0);    // G5
-        this.playTone(659.25, 'sine', 0.1, 0.05); // E5
-        this.playTone(523.25, 'sine', 0.2, 0.1);  // C5
+        // Falling Arpeggio (Sine)
+        this.playTone(783.99, 'sine', 0.15, 0);    // G5
+        this.playTone(659.25, 'sine', 0.15, 0.05); // E5
+        this.playTone(523.25, 'sine', 0.25, 0.1);  // C5
     }
 
     public playError() {
-        // Buzz
-        this.playTone(150, 'sawtooth', 0.2);
+        // Soft Buzz (Triangle instead of Sawtooth)
+        this.playTone(150, 'triangle', 0.2);
     }
 }
 
