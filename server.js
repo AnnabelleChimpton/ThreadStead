@@ -9,7 +9,8 @@ const {
   getRoomPresence,
   addToPresence,
   removeFromPresence,
-  updateLastActive
+  updateLastActive,
+  updateStatus
 } = require('./lib/chat/presence');
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -162,19 +163,13 @@ app.prepare().then(() => {
     const user = await validateSession(cookie);
 
     if (!user) {
-      console.log('Unauthorized socket connection');
-      socket.emit('system:notice', {
-        message: 'Authentication required',
-        type: 'error'
-      });
-      socket.disconnect();
-      return;
+      console.log('Guest connected:', socket.id);
+      socket.userData = { id: 'guest-' + socket.id, isGuest: true };
+    } else {
+      console.log('Authenticated user connected:', user.primaryHandle || user.id);
+      socket.userData = user;
     }
 
-    console.log('Authenticated user connected:', user.primaryHandle || user.id);
-
-    // Store user data on socket
-    socket.userData = user;
     socket.currentRoom = null;
 
     // Handle chat:join
@@ -197,10 +192,15 @@ app.prepare().then(() => {
 
       // Join new room
       socket.join(roomId);
+      if (!socket.userData.isGuest) {
+        socket.join(socket.userData.id); // Join personal room for whispers
+      }
       socket.currentRoom = roomId;
 
-      // Add to presence
-      addToPresence(roomId, user);
+      // Add to presence (only for authenticated users)
+      if (!socket.userData.isGuest) {
+        addToPresence(roomId, socket.userData);
+      }
 
       // Fetch room data including topic
       try {
@@ -235,6 +235,15 @@ app.prepare().then(() => {
       if (!roomId || !socket.currentRoom || socket.currentRoom !== roomId) {
         socket.emit('system:notice', {
           message: 'You must join a room first',
+          type: 'error'
+        });
+        return;
+      }
+
+      // Block guests from sending messages
+      if (socket.userData.isGuest) {
+        socket.emit('system:notice', {
+          message: 'You must be logged in to send messages',
           type: 'error'
         });
         return;
@@ -344,7 +353,9 @@ app.prepare().then(() => {
 
     // Handle chat:set_topic (admin only)
     socket.on('chat:set_topic', async (data) => {
+      if (socket.userData.isGuest) return;
       const { roomId, topic } = data;
+      const user = socket.userData;
 
       // Check if user is admin
       if (user.role !== 'admin') {
@@ -391,6 +402,67 @@ app.prepare().then(() => {
           type: 'error'
         });
       }
+    });
+
+    // Handle chat:status
+    socket.on('chat:status', (data) => {
+      if (socket.userData.isGuest) return;
+      const { roomId, status, message } = data;
+      const user = socket.userData;
+
+      if (!roomId || roomId !== socket.currentRoom) return;
+
+      // Validate status
+      const validStatuses = ['online', 'away', 'busy'];
+      const newStatus = validStatuses.includes(status) ? status : 'online';
+      const statusMessage = message ? message.trim().substring(0, 50) : null;
+
+      updateStatus(roomId, user.id, newStatus, statusMessage);
+
+      // Broadcast presence update
+      const presence = getRoomPresence(roomId);
+      io.to(roomId).emit('presence:update', { users: presence });
+    });
+
+    // Handle chat:whisper
+    socket.on('chat:whisper', (data) => {
+      if (socket.userData.isGuest) return;
+      const { roomId, targetHandle, message } = data;
+      const user = socket.userData;
+
+      if (!roomId || roomId !== socket.currentRoom) return;
+      if (!message || !message.trim()) return;
+
+      // Find target user in presence
+      const presence = getRoomPresence(roomId);
+      const targetUser = presence.find(u => u.handle && u.handle.toLowerCase() === targetHandle.toLowerCase());
+
+      if (!targetUser) {
+        socket.emit('system:notice', {
+          message: `User @${targetHandle} not found in this room`,
+          type: 'error'
+        });
+        return;
+      }
+
+      const whisperData = {
+        id: 'whisper-' + Date.now(),
+        roomId,
+        userId: user.id,
+        handle: user.primaryHandle,
+        displayName: user.profile?.displayName,
+        avatarUrl: user.profile?.avatarThumbnailUrl || user.profile?.avatarUrl,
+        body: message.trim(),
+        createdAt: new Date().toISOString(),
+        isWhisper: true,
+        whisperTo: targetUser.handle,
+      };
+
+      // Send to target
+      io.to(targetUser.userId).emit('chat:message', whisperData);
+
+      // Send to sender (so they see it too)
+      socket.emit('chat:message', whisperData);
     });
 
     // Handle disconnect

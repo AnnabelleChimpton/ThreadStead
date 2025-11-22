@@ -19,6 +19,8 @@ interface ChatMessage {
   avatarUrl?: string | null;
   body: string;
   isAction?: boolean;
+  isWhisper?: boolean;
+  whisperTo?: string;
   createdAt: string | Date;
 }
 
@@ -28,6 +30,8 @@ interface PresenceUser {
   displayName?: string | null;
   avatarUrl?: string | null;
   lastActiveAt: string;
+  status?: 'online' | 'away' | 'busy';
+  statusMessage?: string | null;
 }
 
 interface MuteInfo {
@@ -198,7 +202,8 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
 
   // Load initial data
   useEffect(() => {
-    if (!user) return;
+    // Wait for user loading to finish (so we know if we are guest or not)
+    if (userLoading) return;
 
     const loadInitialData = async () => {
       try {
@@ -212,14 +217,16 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
           hasLoadedInitialMessages.current = true;
         }
 
-        // Load mutes
-        const mutesRes = await fetch('/api/chat/mutes', {
-          credentials: 'include',
-        });
-        if (mutesRes.ok) {
-          const data = await mutesRes.json();
-          const muteSet = new Set<string>(data.mutes.map((m: MuteInfo) => m.userId));
-          setMutedUsers(muteSet);
+        // Load mutes (only if logged in)
+        if (user) {
+          const mutesRes = await fetch('/api/chat/mutes', {
+            credentials: 'include',
+          });
+          if (mutesRes.ok) {
+            const data = await mutesRes.json();
+            const muteSet = new Set<string>(data.mutes.map((m: MuteInfo) => m.userId));
+            setMutedUsers(muteSet);
+          }
         }
 
         setLoading(false);
@@ -230,11 +237,11 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     };
 
     loadInitialData();
-  }, [user]);
+  }, [user, userLoading]);
 
   // Connect to Socket.io
   useEffect(() => {
-    if (!user) return;
+    if (userLoading) return;
 
     const newSocket = io({
       withCredentials: true,
@@ -265,7 +272,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     });
 
     newSocket.on('chat:typing', (data: { userId: string, handle: string }) => {
-      if (data.userId !== user.id) {
+      if (!user || data.userId !== user.id) {
         setTypingUsers(prev => {
           const newSet = new Set(prev);
           newSet.add(data.handle || 'Someone');
@@ -308,7 +315,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
       newSocket.emit('chat:leave');
       newSocket.close();
     };
-  }, [user]);
+  }, [user, userLoading]);
 
   // Scroll to bottom on initial load and new real-time messages
   useEffect(() => {
@@ -320,6 +327,10 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
 
   const handleSendMessage = async () => {
     if (!socket || !messageInput.trim() || sending) return;
+    if (!user) {
+      setSystemNotice('Please log in to send messages');
+      return;
+    }
 
     let body = messageInput.trim();
     if (body.length > 280) {
@@ -338,6 +349,33 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     } else if (body.startsWith('/flip')) {
       const isHeads = Math.random() > 0.5;
       body = `/me flips a coin: ${isHeads ? 'Heads' : 'Tails'}`;
+    } else if (body.startsWith('/away')) {
+      const message = body.substring(5).trim();
+      socket.emit('chat:status', { roomId: ROOM_ID, status: 'away', message: message || 'Away' });
+      setMessageInput('');
+      return;
+    } else if (body.startsWith('/back') || body.startsWith('/online')) {
+      socket.emit('chat:status', { roomId: ROOM_ID, status: 'online', message: null });
+      setMessageInput('');
+      return;
+    } else if (body.startsWith('/busy')) {
+      const message = body.substring(5).trim();
+      socket.emit('chat:status', { roomId: ROOM_ID, status: 'busy', message: message || 'Busy' });
+      setMessageInput('');
+      return;
+    } else if (body.startsWith('/w ') || body.startsWith('/msg ')) {
+      const parts = body.split(' ');
+      if (parts.length < 3) {
+        setSystemNotice('Usage: /w @handle message');
+        return;
+      }
+      let targetHandle = parts[1];
+      if (targetHandle.startsWith('@')) targetHandle = targetHandle.substring(1);
+
+      const message = parts.slice(2).join(' ');
+      socket.emit('chat:whisper', { roomId: ROOM_ID, targetHandle, message });
+      setMessageInput('');
+      return;
     }
 
     setSending(true);
@@ -402,10 +440,10 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
-  if (userLoading || !user) {
+  if (userLoading) {
     return (
       <div className="p-4 text-center text-thread-sage">
-        Please log in to join the chat
+        Loading...
       </div>
     );
   }
@@ -562,7 +600,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
             }}
           >
             {filteredMessages.map((msg, idx) => {
-              const isOwnMessage = msg.userId === user.id;
+              const isOwnMessage = user && msg.userId === user.id;
               const isMuted = mutedUsers.has(msg.userId);
               const prevMsg = filteredMessages[idx - 1];
               const showDateSeparator = !prevMsg || !isSameDay(new Date(msg.createdAt), new Date(prevMsg.createdAt));
@@ -599,8 +637,8 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                     </div>
 
                     {/* Message Content */}
-                    <div className={`flex-1 min-w-0 ${msg.isAction ? 'flex flex-col justify-center min-h-[2rem] sm:min-h-[2.25rem]' : ''}`}>
-                      {!msg.isAction && (
+                    <div className={`flex-1 min-w-0 ${(msg.isAction || msg.isWhisper) ? 'flex flex-col justify-center min-h-[2rem] sm:min-h-[2.25rem]' : ''}`}>
+                      {!msg.isAction && !msg.isWhisper && (
                         <div className="flex items-baseline gap-1.5">
                           <span
                             onClick={() => msg.handle && setSelectedUsername(msg.handle.split('@')[0])}
@@ -636,6 +674,22 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                                   >
                                     Mention @{msg.handle || 'user'}
                                   </button>
+                                  {user && (
+                                    <button
+                                      onClick={() => {
+                                        if (msg.handle) {
+                                          setMessageInput(`/w @${msg.handle} `);
+                                          // Focus input
+                                          const textarea = document.querySelector('textarea');
+                                          if (textarea) textarea.focus();
+                                          setShowUserMenu(null);
+                                        }
+                                      }}
+                                      className="block w-full text-left px-4 py-3 text-sm hover:bg-thread-cream text-thread-pine whitespace-nowrap min-h-[44px]"
+                                    >
+                                      Message
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -657,6 +711,18 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                               />
                             </>
                           )}
+                        </div>
+                      ) : msg.isWhisper ? (
+                        <div className={`text-xs whitespace-pre-wrap break-words italic text-thread-pine-dark`}>
+                          <span className="font-semibold">
+                            {user && msg.userId === user.id ? `Whisper to @${msg.whisperTo}` : `Whisper from ${getDisplayName(msg)}`}
+                          </span>
+                          {': '}
+                          <span
+                            dangerouslySetInnerHTML={{
+                              __html: cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence))
+                            }}
+                          />
                         </div>
                       ) : (
                         <div
@@ -684,7 +750,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                 value={messageInput}
                 onChange={(e) => {
                   setMessageInput(e.target.value);
-                  if (socket) {
+                  if (socket && user) {
                     socket.emit('chat:typing', { roomId: ROOM_ID });
 
                     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -694,17 +760,17 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                   }
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
-                className="flex-1 px-3 py-2 text-xs border border-thread-sage rounded bg-white text-thread-charcoal resize-none min-h-[40px] sm:min-h-[36px]"
+                placeholder={user ? "Type a message..." : "Log in to message"}
+                className={`flex-1 px-3 py-2 text-xs border border-thread-sage rounded bg-white text-thread-charcoal resize-none min-h-[40px] sm:min-h-[36px] ${!user ? 'bg-thread-stone/10 cursor-not-allowed' : ''}`}
                 rows={1}
                 maxLength={280}
-                disabled={!connected || sending}
+                disabled={!connected || sending || !user}
                 style={{ WebkitOverflowScrolling: 'touch' }}
               />
               <RetroButton
                 onClick={handleSendMessage}
                 loading={sending}
-                disabled={!connected || !messageInput.trim() || sending}
+                disabled={!connected || !messageInput.trim() || sending || !user}
                 className="px-3 sm:px-4 self-end min-h-[40px] sm:min-h-[36px] min-w-[60px] sm:min-w-[80px]"
               >
                 <span className="hidden sm:inline">Send</span>
@@ -743,6 +809,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                 {filteredPresence.map((p) => {
                   const isMuted = mutedUsers.has(p.userId);
                   const displayName = p.displayName || p.handle || 'User';
+                  const statusColor = p.status === 'away' ? 'bg-thread-gold' : p.status === 'busy' ? 'bg-thread-sunset' : 'bg-thread-meadow';
 
                   return (
                     <div key={p.userId} className="relative group" title={displayName}>
@@ -760,7 +827,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                         </div>
                       )}
                       {/* Status Dot */}
-                      <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-thread-meadow shadow-sm border border-thread-cream" />
+                      <div className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ${statusColor} shadow-sm border border-thread-cream`} title={p.statusMessage || p.status || 'Online'} />
                     </div>
                   );
                 })}
@@ -787,8 +854,9 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
               <div className="flex-1 overflow-y-auto p-2 space-y-1 retro-scrollbar" style={{ scrollbarWidth: 'thin' }}>
                 {filteredPresence.map((p) => {
                   const isMuted = mutedUsers.has(p.userId);
-                  const isCurrentUser = p.userId === user.id;
+                  const isCurrentUser = user && p.userId === user.id;
                   const displayName = p.displayName || p.handle || 'User';
+                  const statusColor = p.status === 'away' ? 'bg-thread-gold' : p.status === 'busy' ? 'bg-thread-sunset' : 'bg-thread-meadow';
 
                   return (
                     <div key={p.userId} className={`flex items-center gap-2 p-1.5 rounded transition-colors group ${isCurrentUser ? 'bg-thread-white/40' : 'hover:bg-thread-white/60'}`}>
@@ -812,18 +880,37 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                         >
                           {displayName}
                         </span>
+                        {p.statusMessage && (
+                          <span className="text-[10px] text-thread-sage italic truncate">
+                            {p.statusMessage}
+                          </span>
+                        )}
                       </div>
 
                       {/* Actions */}
-                      {!isCurrentUser && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
+                      {!isCurrentUser && user && (
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              if (p.handle) {
+                                setMessageInput(`/w @${p.handle} `);
+                                // Focus input
+                                const textarea = document.querySelector('textarea');
+                                if (textarea) textarea.focus();
+                              }
+                            }}
+                            className="text-thread-sage hover:text-thread-pine p-1 rounded hover:bg-thread-sage/10"
+                            title="Message"
+                          >
+                            <PixelIcon name="mail" size={14} />
+                          </button>
                           {isMuted ? (
                             <button
                               onClick={() => handleUnmuteUser(p.userId)}
-                              className="text-xs text-thread-sage hover:text-thread-pine px-1.5 py-0.5 rounded hover:bg-thread-sage/10"
+                              className="text-thread-sage hover:text-thread-pine p-1 rounded hover:bg-thread-sage/10"
                               title="Unmute user"
                             >
-                              Unmute
+                              <PixelIcon name="speaker" size={14} />
                             </button>
                           ) : (
                             <button
@@ -838,9 +925,10 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                       )}
 
                       {/* Status Dot */}
-                      {isCurrentUser && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-thread-meadow shadow-sm" title="Online" />
-                      )}
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full ${statusColor} shadow-sm`}
+                        title={p.statusMessage || p.status || 'Online'}
+                      />
                     </div>
                   );
                 })}
@@ -880,7 +968,9 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
               >
                 {filteredPresence.map((p) => {
                   const isMuted = mutedUsers.has(p.userId);
-                  const isCurrentUser = p.userId === user.id;
+                  const isCurrentUser = user && p.userId === user.id;
+                  const statusColor = p.status === 'away' ? 'bg-thread-gold' : p.status === 'busy' ? 'bg-thread-sunset' : 'bg-thread-meadow';
+
                   return (
                     <div key={p.userId} className="flex items-center gap-3 p-2 rounded hover:bg-thread-cream/50">
                       {p.avatarUrl ? (
@@ -897,19 +987,47 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <span
-                          onClick={() => !isCurrentUser && p.handle && setSelectedUsername(p.handle.split('@')[0])}
-                          className={`text-sm block truncate ${!isCurrentUser ? 'cursor-pointer hover:underline' : ''} ${isMuted ? 'text-thread-sage' : 'text-thread-pine'}`}
-                        >
-                          {p.displayName || p.handle}
-                        </span>
-                        {isMuted && (
-                          <button
-                            onClick={() => handleUnmuteUser(p.userId)}
-                            className="text-xs text-thread-sunset hover:underline"
+                        <div className="flex items-center gap-2">
+                          <span
+                            onClick={() => !isCurrentUser && p.handle && setSelectedUsername(p.handle.split('@')[0])}
+                            className={`text-sm block truncate ${!isCurrentUser ? 'cursor-pointer hover:underline' : ''} ${isMuted ? 'text-thread-sage' : 'text-thread-pine'}`}
                           >
-                            Unmute
-                          </button>
+                            {p.displayName || p.handle}
+                          </span>
+                          <div className={`w-2 h-2 rounded-full ${statusColor}`} title={p.status || 'Online'} />
+                        </div>
+                        {p.statusMessage && (
+                          <div className="text-xs text-thread-sage italic truncate">
+                            {p.statusMessage}
+                          </div>
+                        )}
+                        {user && (
+                          <div className="flex gap-3 mt-1">
+                            {!isCurrentUser && (
+                              <button
+                                onClick={() => {
+                                  if (p.handle) {
+                                    setMessageInput(`/w @${p.handle} `);
+                                    setShowMobilePresence(false);
+                                    // Focus input
+                                    const textarea = document.querySelector('textarea');
+                                    if (textarea) textarea.focus();
+                                  }
+                                }}
+                                className="text-xs text-thread-pine hover:underline"
+                              >
+                                Message
+                              </button>
+                            )}
+                            {isMuted && (
+                              <button
+                                onClick={() => handleUnmuteUser(p.userId)}
+                                className="text-xs text-thread-sunset hover:underline"
+                              >
+                                Unmute
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
