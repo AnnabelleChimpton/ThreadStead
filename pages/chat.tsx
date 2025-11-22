@@ -37,26 +37,23 @@ export default function ChatPage({ siteConfig, user }: ChatPageProps) {
       </Head>
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
-        <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">
+        <div className="flex flex-col h-[calc(100vh-var(--nav-height,4rem))] w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-2 sm:py-3">
           {/* Page Header */}
-          <div className="thread-module p-4 sm:p-5 md:p-6 mb-4 sm:mb-5 md:mb-6">
-            <div className="flex items-center gap-3 mb-2">
+          <div className="thread-module p-3 sm:p-4 mb-2 sm:mb-3 flex-shrink-0">
+            <div className="flex items-center gap-2">
               <PixelIcon
                 name="chat"
-                size={32}
+                size={24}
                 className="text-thread-sage"
               />
-              <h1 className="thread-headline text-2xl sm:text-3xl md:text-4xl font-bold">
+              <h1 className="thread-headline text-xl sm:text-2xl font-bold">
                 Chat Lounge
               </h1>
             </div>
-            <p className="text-thread-sage leading-relaxed text-sm sm:text-base">
-              Real-time conversations with the community
-            </p>
           </div>
 
           {/* Fullscreen Chat */}
-          <div className="w-full">
+          <div className="w-full flex-1 min-h-0">
             <CommunityChatPanel fullscreen />
           </div>
         </div>

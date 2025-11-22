@@ -343,7 +343,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
   const chatHeight = popupMode
     ? 'h-full'
     : fullscreen
-      ? 'h-[calc(100vh-8rem)] sm:h-[calc(100vh-9rem)] md:h-[calc(100vh-10rem)]'
+      ? 'h-full'
       : 'h-[400px] sm:h-[500px] md:h-[600px]';
 
   // In popup mode, the wrapper handles border/shadow/rounding
@@ -374,16 +374,18 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                 {connected ? 'Connected' : 'Disconnected'}
               </span>
             </div>
-            <button
-              onClick={() => setShowMobilePresence(!showMobilePresence)}
-              className="md:hidden flex items-center gap-1.5 text-thread-sage hover:text-thread-pine transition-colors px-2 py-1 rounded-full bg-thread-sage/5 hover:bg-thread-sage/10 active:scale-95"
-              title="Show participants"
-            >
-              <PixelIcon name="users" size={18} />
-              <span className="text-xs font-medium text-thread-pine">{filteredPresence.length}</span>
-              <PixelIcon name={showMobilePresence ? "chevron-down" : "chevron-up"} size={12} />
-              <span className="sr-only">Toggle participants</span>
-            </button>
+            {!fullscreen && (
+              <button
+                onClick={() => setShowMobilePresence(!showMobilePresence)}
+                className="md:hidden flex items-center gap-1.5 text-thread-sage hover:text-thread-pine transition-colors px-2 py-1 rounded-full bg-thread-sage/5 hover:bg-thread-sage/10 active:scale-95"
+                title="Show participants"
+              >
+                <PixelIcon name="users" size={18} />
+                <span className="text-xs font-medium text-thread-pine">{filteredPresence.length}</span>
+                <PixelIcon name={showMobilePresence ? "chevron-down" : "chevron-up"} size={12} />
+                <span className="sr-only">Toggle participants</span>
+              </button>
+            )}
             {!fullscreen && (
               <a
                 href="/chat"
@@ -421,7 +423,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
               return (
                 <div
                   key={msg.id}
-                  className={`flex gap-2 p-2 rounded ${isOwnMessage ? 'bg-thread-cream/50' : isMuted ? 'bg-thread-stone/10' : 'hover:bg-thread-paper'
+                  className={`group flex gap-2 p-2.5 sm:p-3 rounded ${isOwnMessage ? 'bg-thread-cream/50' : isMuted ? 'bg-thread-stone/10' : 'hover:bg-thread-paper'
                     }`}
                 >
                   {/* Avatar */}
@@ -430,11 +432,11 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                       <img
                         src={msg.avatarUrl}
                         alt={getDisplayName(msg)}
-                        className={`w-6 h-6 rounded-full border border-thread-sage ${isMuted ? 'opacity-40' : ''}`}
+                        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-thread-sage ${isMuted ? 'opacity-40' : ''}`}
                       />
                     ) : (
-                      <div className={`w-6 h-6 rounded-full bg-thread-stone border border-thread-sage flex items-center justify-center ${isMuted ? 'opacity-40' : ''}`}>
-                        <span className="text-[10px] text-thread-paper">
+                      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-thread-stone border border-thread-sage flex items-center justify-center ${isMuted ? 'opacity-40' : ''}`}>
+                        <span className="text-xs text-thread-paper">
                           {getDisplayName(msg)[0]?.toUpperCase()}
                         </span>
                       </div>
@@ -446,14 +448,14 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                     <div className="flex items-baseline gap-1.5">
                       <span
                         onClick={() => msg.handle && setSelectedUsername(msg.handle.split('@')[0])}
-                        className={`font-semibold text-xs cursor-pointer hover:underline ${isMuted ? 'text-thread-sage' : 'text-thread-pine'}`}
+                        className={`font-semibold text-sm cursor-pointer hover:underline ${isMuted ? 'text-thread-sage' : 'text-thread-pine'}`}
                       >
                         {getDisplayName(msg)}
                       </span>
                       {isMuted && (
-                        <span className="text-[10px] text-thread-sage italic">(muted)</span>
+                        <span className="text-xs text-thread-sage italic">(muted)</span>
                       )}
-                      <span className="text-[10px] text-thread-sage/70">
+                      <span className="text-xs text-thread-sage/70">
                         {formatTime(msg.createdAt)}
                       </span>
                       {/* Menu Button */}
@@ -461,7 +463,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                         <div className="relative ml-auto">
                           <button
                             onClick={() => setShowUserMenu(showUserMenu === msg.id ? null : msg.id)}
-                            className="text-thread-sage hover:text-thread-pine text-sm px-2 py-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
+                            className="text-thread-sage/50 hover:text-thread-pine text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity leading-none"
                           >
                             •••
                           </button>
@@ -521,7 +523,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
-                className="flex-1 px-3 py-2 text-sm sm:text-base border border-thread-sage rounded bg-white text-thread-charcoal resize-none min-h-[44px]"
+                className="flex-1 px-3 py-2 text-xs border border-thread-sage rounded bg-white text-thread-charcoal resize-none min-h-[40px] sm:min-h-[36px]"
                 rows={1}
                 maxLength={280}
                 disabled={!connected || sending}
@@ -531,7 +533,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                 onClick={handleSendMessage}
                 loading={sending}
                 disabled={!connected || !messageInput.trim() || sending}
-                className="px-3 sm:px-4 self-end min-h-[44px] min-w-[60px] sm:min-w-[80px]"
+                className="px-3 sm:px-4 self-end min-h-[40px] sm:min-h-[36px] min-w-[60px] sm:min-w-[80px]"
               >
                 <span className="hidden sm:inline">Send</span>
                 <span className="sm:hidden">→</span>
