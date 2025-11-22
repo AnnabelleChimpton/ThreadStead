@@ -13,6 +13,25 @@ The authentication system uses `@noble/ed25519` which requires the `crypto.subtl
 
 ---
 
+## Quick Start (Already Configured?)
+
+If you've already set up mobile testing before and just need to toggle it on/off:
+
+### Enable Mobile Testing
+1. In `.env`: Set `MOBILE_TESTING="true"` and `NEXT_PUBLIC_BASE_URL="https://YOUR-IP:3000"`
+2. In `next.config.ts`: Update CSP directives to include your IP
+3. Run `npm run dev`
+4. Access from mobile: `https://YOUR-IP:3000`
+
+### Disable Mobile Testing
+1. In `.env`: Set `MOBILE_TESTING="false"` and `NEXT_PUBLIC_BASE_URL="http://localhost:3000"`
+2. In `next.config.ts`: Revert CSP directives to `'self'` only
+3. Run `npm run dev`
+
+**First time setup?** Continue reading below for complete instructions.
+
+---
+
 ## Recommended Setup: HTTPS with Self-Signed Certificate
 
 This is the **recommended approach** for mobile testing as it enables full authentication support.
@@ -76,40 +95,34 @@ This creates two files:
 
 Update the following files (replace `10.0.0.61` with your actual IP address):
 
-#### File: `package.json`
-
-**Location:** `package.json` (line ~10)
-
-**Change the dev script:**
-```json
-"dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 next dev -H 0.0.0.0 -p 3001 --experimental-https --experimental-https-key ./localhost+1-key.pem --experimental-https-cert ./localhost+1.pem"
-```
-
-**Note:** The `NODE_TLS_REJECT_UNAUTHORIZED=0` flag is required to allow Node.js to accept the self-signed certificate during server-side rendering. The `cross-env` package ensures this works on both Windows and Unix systems.
-
-**Install cross-env if not already installed:**
-```bash
-npm install --save-dev cross-env
-```
-
 #### File: `.env`
 
-**Location:** `.env` (line ~79)
-
-**Update the base URL:**
+**Enable mobile testing mode and update the base URL:**
 ```bash
-NEXT_PUBLIC_BASE_URL="https://10.0.0.61:3001"
+MOBILE_TESTING="true"
+NEXT_PUBLIC_BASE_URL="https://10.0.0.61:3000"
 ```
+
+**How it works:** The `MOBILE_TESTING` environment variable automatically configures server.js to:
+- Create an HTTPS server using `localhost+1.pem` and `localhost+1-key.pem`
+- Listen on `0.0.0.0` (all network interfaces) instead of just `localhost`
+- Configure Socket.io CORS to use the `NEXT_PUBLIC_BASE_URL` value
+
+**Security Note:** The dev script in `package.json` uses `NODE_TLS_REJECT_UNAUTHORIZED=0` via `cross-env`:
+```json
+"dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 node server.js"
+```
+This flag is **required** to allow Node.js to accept the self-signed certificate during server-side rendering (when the server makes fetch requests to itself). This is safe for development but should **never** be used in production.
 
 #### File: `next.config.ts`
 
-**Location:** `next.config.ts` (lines ~173, ~179)
+**Location:** `next.config.ts` (lines ~183, ~189)
 
 **Update CSP directives:**
 ```typescript
-"default-src 'self' https://10.0.0.61:3001",
+"default-src 'self' https://10.0.0.61:3000",
 // ...
-"connect-src 'self' https: https://10.0.0.61:3001",
+"connect-src 'self' https: https://10.0.0.61:3000",
 ```
 
 **Keep the `upgrade-insecure-requests` directive** (this is safe with HTTPS):
@@ -125,14 +138,28 @@ npm run dev
 
 You should see output indicating the server is running with HTTPS:
 ```
-- Local:        https://localhost:3001
-- Network:      https://10.0.0.61:3001
+> Ready on https://0.0.0.0:3000
+> Mobile testing mode enabled
+> Access from mobile: https://10.0.0.61:3000
+> Socket.io server running
 ```
 
-### Step 6: Test on Mobile Device
+### Step 6: Verify Your Configuration
+
+Before testing on mobile, verify your setup is correct:
+
+**✅ Configuration Checklist:**
+- [ ] Certificate files exist: `localhost+1.pem` and `localhost+1-key.pem` in project root
+- [ ] `.env` has `MOBILE_TESTING="true"`
+- [ ] `.env` has `NEXT_PUBLIC_BASE_URL="https://YOUR-IP:3000"`
+- [ ] `next.config.ts` CSP includes `https://YOUR-IP:3000`
+- [ ] `package.json` dev script includes `NODE_TLS_REJECT_UNAUTHORIZED=0`
+- [ ] Dev server is running and shows "Mobile testing mode enabled"
+
+### Step 7: Test on Mobile Device
 
 1. **Ensure your mobile device is on the same Wi-Fi network**
-2. **Open your browser and navigate to:** `https://10.0.0.61:3001`
+2. **Open your browser and navigate to:** `https://10.0.0.61:3000`
 3. **Accept the certificate warning:**
    - iOS Safari: Tap "Show Details" → "visit this website"
    - Android Chrome: Tap "Advanced" → "Proceed to 10.0.0.61 (unsafe)"
@@ -145,19 +172,38 @@ You should see output indicating the server is running with HTTPS:
 - Enable full trust for the mkcert root CA
 
 **Connection refused:**
-- Check Windows Firewall - allow Node.js on port 3001
+- Check Windows Firewall - allow Node.js on port 3000
 - Verify you're on the same network: `ping 10.0.0.61` from mobile
+- Make sure MOBILE_TESTING="true" is set in .env
 
-**Still getting crypto.subtle error:**
+**"UNABLE_TO_VERIFY_LEAF_SIGNATURE" or certificate verification errors:**
+- This error occurs during server-side rendering when Node.js can't verify the self-signed certificate
+- **Solution:** Ensure your `package.json` dev script includes `NODE_TLS_REJECT_UNAUTHORIZED=0`:
+  ```json
+  "dev": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 node server.js"
+  ```
+- This flag tells Node.js to accept self-signed certificates during development
+- **Important:** This is safe for development only and should never be used in production
+- Restart the dev server after making this change
+
+**Still getting crypto.subtle error on mobile browser:**
 - Verify you're accessing via `https://` (not `http://`)
 - Check that NEXT_PUBLIC_BASE_URL uses `https://`
+- Ensure MOBILE_TESTING="true" in .env
 - Clear browser cache and reload
+- Try accessing in an incognito/private window
 
-**"UNABLE_TO_VERIFY_LEAF_SIGNATURE" or fetch errors:**
-- This means Node.js doesn't trust the self-signed certificate
-- Ensure you have `NODE_TLS_REJECT_UNAUTHORIZED=0` in your dev script
-- Make sure `cross-env` is installed: `npm install --save-dev cross-env`
+**Server won't start or can't find certificate files:**
+- Verify the certificate files exist in project root: `localhost+1.pem` and `localhost+1-key.pem`
+- Make sure MOBILE_TESTING="true" in .env
+- Check that mkcert was run with your IP: `mkcert localhost 10.0.0.61`
 - Restart the dev server after making changes
+
+**Port already in use (EADDRINUSE):**
+- Another process is using port 3000
+- Kill the existing process or change the PORT environment variable
+- On Windows: `netstat -ano | findstr :3000` to find the process, then kill it
+- On Mac/Linux: `lsof -ti:3000 | xargs kill`
 
 ---
 
@@ -165,19 +211,14 @@ You should see output indicating the server is running with HTTPS:
 
 When you're done with mobile testing, revert these changes:
 
-### 1. Revert `package.json`
-
-```json
-"dev": "next dev",
-```
-
-### 2. Revert `.env`
+### 1. Disable Mobile Testing in `.env`
 
 ```bash
-NEXT_PUBLIC_BASE_URL="https://localhost:3000"
+MOBILE_TESTING="false"
+NEXT_PUBLIC_BASE_URL="http://localhost:3000"
 ```
 
-### 3. Revert `next.config.ts`
+### 2. Revert `next.config.ts`
 
 ```typescript
 "default-src 'self'",
@@ -187,13 +228,15 @@ NEXT_PUBLIC_BASE_URL="https://localhost:3000"
 
 Keep the `upgrade-insecure-requests` directive.
 
-### 4. Restart Dev Server
+### 3. Restart Dev Server
 
 ```bash
 npm run dev
 ```
 
 Your app will now run normally on `http://localhost:3000` with full security headers.
+
+The server will automatically use HTTP mode and listen only on `localhost` when `MOBILE_TESTING` is not set to `"true"`.
 
 ---
 
@@ -210,25 +253,23 @@ If you only need to test UI/layout without authentication, you can use HTTP mode
 
 1. **Find your IP address** (see Step 1 above)
 
-2. **Update `next.config.ts`:**
+2. **Update `.env`:**
+   ```bash
+   MOBILE_TESTING="false"
+   NEXT_PUBLIC_BASE_URL="http://10.0.0.61:3000"
+   ```
+
+3. **Update `next.config.ts`:**
    ```typescript
-   "default-src 'self' http://10.0.0.61:3001",
+   "default-src 'self' http://10.0.0.61:3000",
    // ...
-   "connect-src 'self' https: http://10.0.0.61:3001",
+   "connect-src 'self' https: http://10.0.0.61:3000",
    ```
    Remove the `upgrade-insecure-requests` directive.
 
-3. **Update `.env`:**
-   ```bash
-   NEXT_PUBLIC_BASE_URL="http://10.0.0.61:3001"
-   ```
+4. **Access via:** `http://10.0.0.61:3000`
 
-4. **Update `package.json`:**
-   ```json
-   "dev": "next dev -H 0.0.0.0 -p 3001"
-   ```
-
-5. **Access via:** `http://10.0.0.61:3001`
+**Note:** With HTTP mode, server.js will still listen on `localhost` by default. You may need to modify server.js line 17 to use `'0.0.0.0'` instead of checking the `MOBILE_TESTING` variable.
 
 ---
 
@@ -252,12 +293,12 @@ If you only need to test UI/layout without authentication, you can use HTTP mode
 
 ### Firewall Configuration
 
-Windows Firewall may block port 3001. If you can't connect from mobile:
+Windows Firewall may block port 3000. If you can't connect from mobile:
 
 1. Open Windows Defender Firewall
 2. Click "Allow an app or feature through Windows Defender Firewall"
 3. Find "Node.js" and ensure both Private and Public are checked
-4. Or manually add an inbound rule for port 3001
+4. Or manually add an inbound rule for port 3000
 
 ### Network Requirements
 
@@ -268,9 +309,11 @@ Windows Firewall may block port 3001. If you can't connect from mobile:
 ### IP Address Changes
 
 If your computer's IP address changes (router DHCP, reconnecting to Wi-Fi):
-- Re-run `ipconfig` to get the new IP
-- Update all references in the config files
+- Re-run `ipconfig` (Windows) or `ifconfig` (Mac/Linux) to get the new IP
+- Update `NEXT_PUBLIC_BASE_URL` in `.env` with the new IP
+- Update CSP directives in `next.config.ts` with the new IP
 - Regenerate certificates with the new IP: `mkcert localhost NEW-IP`
+- Restart the dev server
 
 ### Certificate Files
 

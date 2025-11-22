@@ -87,9 +87,10 @@ interface CommunityChatPanelProps {
   fullscreen?: boolean;
   popupMode?: boolean;
   onClose?: () => void;
+  onPresenceChange?: (presence: PresenceUser[], showPresence: boolean, togglePresence: () => void) => void;
 }
 
-export default function CommunityChatPanel({ fullscreen = false, popupMode = false, onClose }: CommunityChatPanelProps) {
+export default function CommunityChatPanel({ fullscreen = false, popupMode = false, onClose, onPresenceChange }: CommunityChatPanelProps) {
   const { user, loading: userLoading } = useCurrentUser();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -103,12 +104,20 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
   const [showUserMenu, setShowUserMenu] = useState<string | null>(null);
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const [showMobilePresence, setShowMobilePresence] = useState(false);
-  const [presenceCollapsed, setPresenceCollapsed] = useState(false);
+
+  // Expose presence info to parent
+  useEffect(() => {
+    if (onPresenceChange) {
+      onPresenceChange(presence, showMobilePresence, () => setShowMobilePresence(!showMobilePresence));
+    }
+  }, [presence, showMobilePresence, onPresenceChange]);
+  const [presenceCollapsed, setPresenceCollapsed] = useState(true);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [sfxEnabled, setSfxEnabled] = useState(true);
 
   const messageListRef = useRef<HTMLDivElement>(null);
+  const hasLoadedInitialMessages = useRef(false);
 
   useEffect(() => {
     setSfxEnabled(retroSFX.isEnabled());
@@ -140,6 +149,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
         if (messagesRes.ok) {
           const data = await messagesRes.json();
           setMessages(data.messages || []);
+          hasLoadedInitialMessages.current = true;
         }
 
         // Load mutes
@@ -173,23 +183,17 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     newSocket.on('connect', () => {
       setConnected(true);
       newSocket.emit('chat:join', { roomId: ROOM_ID });
-      retroSFX.playJoin();
     });
 
     newSocket.on('disconnect', () => {
       setConnected(false);
-      retroSFX.playLeave();
     });
 
     newSocket.on('chat:message', (message: ChatMessage) => {
       setMessages((prev) => [...prev, message]);
 
-      // Play SFX
-      if (message.userId === user.id) {
-        retroSFX.playMessageOut();
-      } else {
-        retroSFX.playMessageIn();
-      }
+      // Play SFX for all messages (sent or received)
+      retroSFX.playMessageOut();
 
       setTimeout(scrollToBottom, 100);
     });
@@ -235,10 +239,11 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     };
   }, [user]);
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom on initial load and new real-time messages
   useEffect(() => {
     if (messages.length > 0) {
-      scrollToBottom();
+      // Use a slight delay to ensure DOM is ready
+      setTimeout(scrollToBottom, 50);
     }
   }, [messages]);
 
@@ -365,10 +370,12 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
             </div>
             <button
               onClick={() => setShowMobilePresence(!showMobilePresence)}
-              className="md:hidden text-thread-sage hover:text-thread-pine transition-colors p-1"
+              className="md:hidden flex items-center gap-1.5 text-thread-sage hover:text-thread-pine transition-colors px-2 py-1 rounded-full bg-thread-sage/5 hover:bg-thread-sage/10 active:scale-95"
               title="Show participants"
             >
-              <PixelIcon name="users" size={16} />
+              <PixelIcon name="users" size={18} />
+              <span className="text-xs font-medium text-thread-pine">{filteredPresence.length}</span>
+              <PixelIcon name={showMobilePresence ? "chevron-down" : "chevron-up"} size={12} />
               <span className="sr-only">Toggle participants</span>
             </button>
             {!fullscreen && (

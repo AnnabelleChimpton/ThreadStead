@@ -1,4 +1,6 @@
-const { createServer } = require('http');
+const { createServer: createHttpServer } = require('http');
+const { createServer: createHttpsServer } = require('https');
+const { readFileSync } = require('fs');
 const { parse } = require('url');
 const next = require('next');
 const { Server } = require('socket.io');
@@ -11,7 +13,10 @@ const {
 } = require('./lib/chat/presence');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
+const mobileTestingMode = process.env.MOBILE_TESTING === 'true';
+// In production, always listen on 0.0.0.0 for external access
+// In dev, use 0.0.0.0 only when mobile testing is enabled
+const hostname = dev ? (mobileTestingMode ? '0.0.0.0' : 'localhost') : '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
 
 const app = next({ dev, hostname, port });
@@ -110,14 +115,33 @@ function sanitizeMessage(body) {
 }
 
 app.prepare().then(() => {
-  const server = createServer((req, res) => {
-    const parsedUrl = parse(req.url, true);
-    handle(req, res, parsedUrl);
-  });
+  // Create HTTP or HTTPS server based on mobile testing mode
+  // In production, always use HTTP (reverse proxy handles HTTPS)
+  let server;
+  if (dev && mobileTestingMode) {
+    const httpsOptions = {
+      key: readFileSync('./localhost+1-key.pem'),
+      cert: readFileSync('./localhost+1.pem'),
+    };
+    server = createHttpsServer(httpsOptions, (req, res) => {
+      const parsedUrl = parse(req.url, true);
+      handle(req, res, parsedUrl);
+    });
+  } else {
+    server = createHttpServer((req, res) => {
+      const parsedUrl = parse(req.url, true);
+      handle(req, res, parsedUrl);
+    });
+  }
+
+  // Configure CORS for mobile testing or localhost
+  const corsOrigin = mobileTestingMode
+    ? process.env.NEXT_PUBLIC_BASE_URL || 'https://0.0.0.0:3000'
+    : 'http://localhost:3000';
 
   const io = new Server(server, {
     cors: {
-      origin: dev ? 'http://localhost:3000' : false,
+      origin: dev ? corsOrigin : false,
       credentials: true,
     },
   });
@@ -305,9 +329,14 @@ app.prepare().then(() => {
     });
   });
 
-  server.listen(port, (err) => {
+  server.listen(port, hostname, (err) => {
     if (err) throw err;
-    console.log(`> Ready on http://${hostname}:${port}`);
+    const protocol = mobileTestingMode ? 'https' : 'http';
+    console.log(`> Ready on ${protocol}://${hostname}:${port}`);
+    if (mobileTestingMode) {
+      console.log(`> Mobile testing mode enabled`);
+      console.log(`> Access from mobile: ${process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://[YOUR-IP]:${port}`}`);
+    }
     console.log(`> Socket.io server running`);
   });
 });

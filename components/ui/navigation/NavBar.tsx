@@ -247,8 +247,25 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   // Prevent hydration mismatch by only rendering user-dependent content after hydration
   const [isClient, setIsClient] = useState(false);
 
+  // Ref to measure nav bar height
+  const navRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  // Set CSS variable for nav bar height (for mobile chat positioning)
+  useEffect(() => {
+    const updateNavHeight = () => {
+      if (navRef.current) {
+        const height = navRef.current.offsetHeight;
+        document.documentElement.style.setProperty('--nav-height', `${height}px`);
+      }
+    };
+
+    updateNavHeight();
+    window.addEventListener('resize', updateNavHeight);
+    return () => window.removeEventListener('resize', updateNavHeight);
   }, []);
   
   // Add swipe gesture support
@@ -311,7 +328,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
 
   return (
     <>
-      <header className={headerClasses}>
+      <header ref={navRef} className={headerClasses}>
         <nav className={`${navClasses} mobile-nav-enhanced`}>
           <div className="site-branding flex-shrink-0">
             <Link href="/" className="block hover:opacity-80 transition-opacity">

@@ -1,19 +1,36 @@
 'use client';
 
 import { useChat } from '@/contexts/ChatContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import CommunityChatPanel from '@/components/community/CommunityChatPanel';
 import Link from 'next/link';
 import { retroSFX } from '@/lib/audio/retro-sfx';
 
+interface PresenceUser {
+  userId: string;
+  handle: string | null;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  lastActiveAt: string;
+}
+
 export default function GlobalChatPopup() {
   const { isChatOpen, closeChat } = useChat();
   const [sfxEnabled, setSfxEnabled] = useState(true);
+  const [presenceData, setPresenceData] = useState<{
+    users: PresenceUser[];
+    showPresence: boolean;
+    togglePresence: () => void;
+  } | null>(null);
 
   useEffect(() => {
     setSfxEnabled(retroSFX.isEnabled());
   }, []);
+
+  const handlePresenceChange = (users: PresenceUser[], showPresence: boolean, togglePresence: () => void) => {
+    setPresenceData({ users, showPresence, togglePresence });
+  };
 
   const toggleSfx = () => {
     const newState = !sfxEnabled;
@@ -39,45 +56,57 @@ export default function GlobalChatPopup() {
 
   return (
     <>
-      {/* Mobile: Full screen overlay */}
-      <div className="md:hidden fixed inset-0 z-50 bg-thread-paper flex flex-col animate-slide-up">
-        {/* Header */}
-        <div className="bg-thread-cream border-b border-thread-sage p-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-thread-pine">Lounge Chat</h2>
-          <div className="flex items-center gap-2">
+      {/* Mobile: Full screen overlay - positioned below nav bar */}
+      <div
+        className="md:hidden fixed left-0 right-0 bottom-0 z-[9998] bg-thread-paper flex flex-col animate-slide-up"
+        style={{ top: 'var(--nav-height, 4rem)' }}
+      >
+        {/* Header - compact on mobile */}
+        <div className="bg-thread-cream border-b border-thread-sage px-3 py-2 flex items-center justify-between shrink-0">
+          <h2 className="text-base font-bold text-thread-pine">Lounge Chat</h2>
+          <div className="flex items-center gap-1.5">
+            {/* Presence button */}
+            {presenceData && (
+              <button
+                onClick={presenceData.togglePresence}
+                className="text-thread-sage hover:text-thread-pine transition-colors p-1.5 active:scale-95"
+                title={`Show participants (${presenceData.users.length} online)`}
+              >
+                <PixelIcon name="users" size={18} />
+              </button>
+            )}
             <button
               onClick={toggleSfx}
-              className={`text-thread-sage hover:text-thread-pine transition-colors p-2 ${!sfxEnabled ? 'opacity-50' : ''}`}
+              className={`text-thread-sage hover:text-thread-pine transition-colors p-1.5 ${!sfxEnabled ? 'opacity-50' : ''}`}
               title={sfxEnabled ? "Mute sound effects" : "Enable sound effects"}
             >
-              <PixelIcon name="speaker" size={20} />
+              <PixelIcon name="speaker" size={18} />
             </button>
             <Link
               href="/chat"
-              className="text-thread-sage hover:text-thread-pine transition-colors p-2"
+              className="text-thread-sage hover:text-thread-pine transition-colors p-1.5"
               title="Open in fullscreen"
             >
-              <PixelIcon name="external-link" size={20} />
+              <PixelIcon name="external-link" size={18} />
             </Link>
             <button
               onClick={closeChat}
-              className="flex items-center gap-1 bg-thread-sage/10 hover:bg-thread-sage/20 text-thread-pine font-medium px-3 py-1.5 rounded-full transition-colors ml-2"
+              className="flex items-center gap-1 bg-thread-sage/10 hover:bg-thread-sage/20 text-thread-pine font-medium px-2.5 py-1 rounded-full transition-colors text-sm"
               title="Close chat"
             >
-              <span className="text-sm">Close</span>
-              <PixelIcon name="close" size={16} />
+              <PixelIcon name="close" size={14} />
             </button>
           </div>
         </div>
 
         {/* Chat content */}
         <div className="flex-1 overflow-hidden">
-          <CommunityChatPanel popupMode onClose={closeChat} />
+          <CommunityChatPanel popupMode onClose={closeChat} onPresenceChange={handlePresenceChange} />
         </div>
       </div>
 
-      {/* Desktop: Right-side floating popup */}
-      <div className="hidden md:flex flex-col fixed top-24 right-5 bottom-5 z-40 w-[480px] bg-thread-paper border border-thread-sage rounded-lg shadow-xl animate-slide-in-right overflow-hidden">
+      {/* Desktop: Right-side floating popup - flush in bottom-right */}
+      <div className="hidden md:flex flex-col fixed top-24 right-0 bottom-0 z-40 w-[480px] bg-thread-paper border-l border-t border-thread-sage rounded-tl-lg shadow-xl animate-slide-in-right overflow-hidden">
         {/* Header */}
         <div className="bg-thread-cream border-b border-thread-sage p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -115,9 +144,10 @@ export default function GlobalChatPopup() {
         </div>
       </div>
 
-      {/* Mobile backdrop (optional, for consistency) */}
+      {/* Mobile backdrop - positioned below nav bar */}
       <div
-        className="md:hidden fixed inset-0 bg-black/50 z-40"
+        className="md:hidden fixed left-0 right-0 bottom-0 bg-black/50 z-[9997]"
+        style={{ top: 'var(--nav-height, 4rem)' }}
         onClick={closeChat}
         aria-hidden="true"
       />
