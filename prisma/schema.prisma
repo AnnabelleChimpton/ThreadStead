@@ -1584,10 +1584,13 @@ enum BulletinCategory {
 // ========================================
 
 model ChatRoom {
-  id        String        @id // e.g. "lounge", "dev", "offtopic"
-  name      String
-  createdAt DateTime      @default(now())
-  messages  ChatMessage[]
+  id         String        @id // e.g. "lounge", "dev", "offtopic"
+  name       String
+  createdAt  DateTime      @default(now())
+  topic      String?       // Room topic/MOTD
+  topicSetBy String?       // User ID who set the topic
+  topicSetAt DateTime?     // When topic was set
+  messages   ChatMessage[]
 }
 
 model ChatMessage {
@@ -1595,7 +1598,8 @@ model ChatMessage {
   createdAt DateTime @default(now())
   roomId    String
   userId    String
-  body      String // 280 chars max enforced at API level
+  body      String   // 280 chars max enforced at API level
+  isAction  Boolean  @default(false) // True for /me action messages
 
   room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
   user User     @relation("UserChatMessages", fields: [userId], references: [id], onDelete: Cascade)

@@ -37,7 +37,7 @@ export default function ChatPage({ siteConfig, user }: ChatPageProps) {
       </Head>
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
-        <div className="flex flex-col h-[calc(100vh-var(--nav-height,4rem))] w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-2 sm:py-3">
+        <div className="flex flex-col h-[calc(100vh-var(--nav-height,4rem))] w-full mx-auto px-0 sm:px-4 py-2 sm:py-3">
           {/* Page Header */}
           <div className="thread-module p-3 sm:p-4 mb-2 sm:mb-3 flex-shrink-0">
             <div className="flex items-center gap-2">

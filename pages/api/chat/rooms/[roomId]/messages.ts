@@ -64,6 +64,7 @@ export default async function handler(
       displayName: msg.user.profile?.displayName,
       avatarUrl: msg.user.profile?.avatarThumbnailUrl || msg.user.profile?.avatarUrl,
       body: msg.body,
+      isAction: msg.isAction,
       createdAt: msg.createdAt,
     }));
 

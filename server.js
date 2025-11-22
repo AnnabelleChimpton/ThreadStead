@@ -100,10 +100,17 @@ function checkRateLimit(userId) {
 
 // Sanitize message body
 function sanitizeMessage(body) {
-  if (typeof body !== 'string') return '';
+  if (typeof body !== 'string') return { text: '', isAction: false };
 
   // Trim and limit length
   body = body.trim();
+
+  // Check for /me action
+  const isAction = body.startsWith('/me ');
+  if (isAction) {
+    body = body.substring(4); // Remove "/me " prefix
+  }
+
   if (body.length > 280) {
     body = body.substring(0, 280);
   }
@@ -111,7 +118,7 @@ function sanitizeMessage(body) {
   // Basic XSS prevention - strip HTML tags
   body = body.replace(/<[^>]*>/g, '');
 
-  return body;
+  return { text: body, isAction };
 }
 
 app.prepare().then(() => {
@@ -195,6 +202,24 @@ app.prepare().then(() => {
       // Add to presence
       addToPresence(roomId, user);
 
+      // Fetch room data including topic
+      try {
+        const room = await prisma.chatRoom.findUnique({
+          where: { id: roomId }
+        });
+
+        if (room && room.topic) {
+          // Send topic to the joining user
+          socket.emit('chat:topic', {
+            topic: room.topic,
+            topicSetBy: room.topicSetBy,
+            topicSetAt: room.topicSetAt
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching room topic:', error);
+      }
+
       // Broadcast presence update to room
       const presence = getRoomPresence(roomId);
       console.log(`Broadcasting presence update to room ${roomId}:`, presence);
@@ -230,8 +255,8 @@ app.prepare().then(() => {
       }
 
       // Sanitize and validate message
-      const sanitizedBody = sanitizeMessage(body);
-      if (!sanitizedBody) {
+      const sanitized = sanitizeMessage(body);
+      if (!sanitized.text) {
         socket.emit('system:notice', {
           message: 'Message cannot be empty',
           type: 'error'
@@ -245,7 +270,8 @@ app.prepare().then(() => {
           data: {
             roomId,
             userId: user.id,
-            body: sanitizedBody,
+            body: sanitized.text,
+            isAction: sanitized.isAction,
           },
           include: {
             user: {
@@ -265,12 +291,13 @@ app.prepare().then(() => {
           displayName: message.user.profile?.displayName,
           avatarUrl: message.user.profile?.avatarThumbnailUrl || message.user.profile?.avatarUrl,
           body: message.body,
+          isAction: message.isAction,
           createdAt: message.createdAt,
         };
 
         io.to(roomId).emit('chat:message', messageData);
 
-        console.log(`Message from ${user.primaryHandle} in ${roomId}: ${sanitizedBody.substring(0, 50)}`);
+        console.log(`Message from ${user.primaryHandle} in ${roomId}: ${sanitized.isAction ? '/me ' : ''}${sanitized.text.substring(0, 50)}`);
       } catch (error) {
         console.error('Error saving message:', error);
         socket.emit('system:notice', {
@@ -311,6 +338,57 @@ app.prepare().then(() => {
       if (roomId && socket.currentRoom === roomId) {
         socket.to(roomId).emit('chat:stop_typing', {
           userId: user.id
+        });
+      }
+    });
+
+    // Handle chat:set_topic (admin only)
+    socket.on('chat:set_topic', async (data) => {
+      const { roomId, topic } = data;
+
+      // Check if user is admin
+      if (user.role !== 'admin') {
+        socket.emit('system:notice', {
+          message: 'Only admins can set the room topic',
+          type: 'error'
+        });
+        return;
+      }
+
+      if (!roomId || roomId !== socket.currentRoom) {
+        socket.emit('system:notice', {
+          message: 'You must be in the room to set its topic',
+          type: 'error'
+        });
+        return;
+      }
+
+      try {
+        // Update room topic (limit to 200 characters)
+        const trimmedTopic = topic ? topic.trim().substring(0, 200) : null;
+
+        await prisma.chatRoom.update({
+          where: { id: roomId },
+          data: {
+            topic: trimmedTopic,
+            topicSetBy: trimmedTopic ? user.id : null,
+            topicSetAt: trimmedTopic ? new Date() : null,
+          },
+        });
+
+        // Broadcast topic update to all users in room
+        io.to(roomId).emit('chat:topic', {
+          topic: trimmedTopic,
+          topicSetBy: user.id,
+          topicSetAt: new Date(),
+        });
+
+        console.log(`Topic set by ${user.primaryHandle} in ${roomId}: ${trimmedTopic || '(cleared)'}`);
+      } catch (error) {
+        console.error('Error setting topic:', error);
+        socket.emit('system:notice', {
+          message: 'Failed to set topic',
+          type: 'error'
         });
       }
     });
