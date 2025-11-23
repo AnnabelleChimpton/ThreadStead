@@ -11,6 +11,7 @@ import { pixelHomesNeighborhoodWidget } from '../examples/PixelHomesNeighborhood
 import { weatherWidget } from '../examples/WeatherWidget';
 import { siteNewsWidget } from '../examples/SiteNewsWidget';
 import { quickActionsWidget } from '../examples/QuickActionsWidget';
+import { communityActivityWidget } from '../examples/CommunityActivityWidget';
 
 // Register all widgets
 export function initializeWidgets() {
@@ -30,6 +31,7 @@ export function initializeWidgets() {
 
   // Community widgets
   widgetRegistry.register(pixelHomesNeighborhoodWidget);
+  widgetRegistry.register(communityActivityWidget);
 
   // Utility widgets
   widgetRegistry.register(weatherWidget);

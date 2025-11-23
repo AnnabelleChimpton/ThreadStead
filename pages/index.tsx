@@ -17,6 +17,7 @@ import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata"
 import VisitorPixelHome from "@/components/home/VisitorPixelHome";
 import { getOgImageUrl } from "@/lib/utils/og-image-url";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import CommunityTicker from "@/components/CommunityTicker";
 
 const db = new PrismaClient();
 
@@ -498,10 +499,8 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
     router.push(`/discover/search?${params.toString()}`);
   };
 
-  // Load ALL available widgets for that classic early internet portal feel
-  const { widgets: allWidgets } = useWidgets({
-    user
-  });
+  // Load widgets in specified order
+  const { widgets: allWidgets } = useDefaultWidgets(user);
 
   // Filter out FAQ widget for logged-in users
   const widgets = user
@@ -772,6 +771,9 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
           showCommunityHelper={false}
           className="mb-6 sm:mb-8"
         />
+
+        {/* Community Ticker - Typewriter Style */}
+        <CommunityTicker />
 
         {/* Main Grid Layout - Mobile-First Responsive */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">

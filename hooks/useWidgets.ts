@@ -57,11 +57,12 @@ export function useWidgets({
 export function useDefaultWidgets(user?: { role: string } | null) {
   const defaultWidgetIds = [
     // 'new-neighbors', // Temporarily disabled to test navigation
-    'threadring-activity',
-    'friend-activity',
-    'trending-content',
-    'pixel-homes-neighborhood',
     'welcome',
+    'friend-activity',
+    'pixel-homes-neighborhood',
+    'community-activity',
+    'trending-content',
+    'threadring-activity',
     'weather',
     'site-news'
   ];

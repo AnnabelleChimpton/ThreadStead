@@ -54,9 +54,13 @@ export class WidgetRegistry {
     user?: { role: string } | null
   ): Widget[] {
     const availableWidgets = this.getAvailableForUser(user);
-    return availableWidgets.filter(widget =>
-      enabledWidgetIds.includes(widget.config.id)
+    const availableMap = new Map(
+      availableWidgets.map(w => [w.config.id, w])
     );
+
+    return enabledWidgetIds
+      .map(id => availableMap.get(id))
+      .filter((widget): widget is Widget => widget !== undefined);
   }
 }
 
