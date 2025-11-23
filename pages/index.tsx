@@ -18,6 +18,8 @@ import VisitorPixelHome from "@/components/home/VisitorPixelHome";
 import { getOgImageUrl } from "@/lib/utils/og-image-url";
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import CommunityTicker from "@/components/CommunityTicker";
+import HomeHero from "@/components/home/HomeHero";
+import CommunityPulse from "@/components/widgets/CommunityPulse";
 
 const db = new PrismaClient();
 
@@ -41,6 +43,7 @@ interface HomeProps {
     updatedAt: string;
   };
   customLandingPageSlug?: string;
+  userCount?: number;
 }
 
 interface UserHomeConfig {
@@ -268,182 +271,182 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
       </Head>
 
       <Layout siteConfig={siteConfig}>
-      <div className="w-full max-w-full sm:max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <SimpleCard title={`Welcome to ${siteConfig.site_name}`}>
-          <div className="text-center py-4 sm:py-6">
-            <div className="text-4xl sm:text-5xl mb-4"><PixelIcon name="home" size={48} className="inline-block" /><PixelIcon name="bookmark" size={48} className="inline-block" /></div>
-            <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>
-            <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-4 px-2">
-              <strong>Create your pixel home, join ThreadRings (themed communities), and connect with creative people in a retro-inspired social platform on {siteConfig.site_name}.</strong>
-            </p>
-            <p className="text-sm sm:text-base text-gray-600 mb-6 px-2">Build your unique space, discover amazing communities, and share your creativity with the world.</p>
-
-            {/* Single primary CTA */}
-            <div className="mb-4">
-              <Link
-                href="/signup"
-                className="border border-black px-6 sm:px-8 py-3 sm:py-4 bg-yellow-200 hover:bg-yellow-100 shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] inline-block text-lg sm:text-xl font-bold transition-all transform hover:-translate-y-0.5"
-              >
-                <PixelIcon name="zap" size={20} className="inline-block align-middle" /> Start Your Journey
-              </Link>
-            </div>
-
-            {/* Secondary actions - More prominent */}
-            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-2 mb-4">
-              <Link
-                href="/feed"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-black shadow-[2px_2px_0_#000] font-medium text-sm transition-colors"
-              >
-                <PixelIcon name="eye" size={16} />
-                <span>Browse as Guest</span>
-              </Link>
-              <Link
-                href="/getting-started"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-black shadow-[2px_2px_0_#000] font-medium text-sm transition-colors"
-              >
-                <PixelIcon name="article" size={16} />
-                <span>Learn More</span>
-              </Link>
-            </div>
-
-            {/* Login link for existing users */}
-            <div className="text-sm">
-              <span className="text-gray-500">Already a member?</span>{' '}
-              <Link
-                href="/login"
-                className="text-thread-pine hover:text-thread-sunset underline font-medium"
-              >
-                Sign in here
-              </Link>
-            </div>
-          </div>
-        </SimpleCard>
-
-        <SimpleCard title={`How ${siteConfig.site_name} Works`}>
-          <div className="space-y-4">
-            <div className="text-center mb-4">
-              <p className="text-sm sm:text-base text-gray-700 px-1">
-                Modern communities inspired by the early web&apos;s <strong>WebRings</strong> — but better!
+        <div className="w-full max-w-full sm:max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+          <SimpleCard title={`Welcome to ${siteConfig.site_name}`}>
+            <div className="text-center py-4 sm:py-6">
+              <div className="text-4xl sm:text-5xl mb-4"><PixelIcon name="home" size={48} className="inline-block" /><PixelIcon name="bookmark" size={48} className="inline-block" /></div>
+              <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>
+              <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-4 px-2">
+                <strong>Create your pixel home, join ThreadRings (themed communities), and connect with creative people in a retro-inspired social platform on {siteConfig.site_name}.</strong>
               </p>
-            </div>
+              <p className="text-sm sm:text-base text-gray-600 mb-6 px-2">Build your unique space, discover amazing communities, and share your creativity with the world.</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              <div className="border border-gray-300 p-4 bg-blue-50 rounded text-center">
-                <div className="text-2xl mb-2"><PixelIcon name="home" size={32} /></div>
-                <h3 className="font-bold mb-2 text-sm sm:text-base">Create Your Space</h3>
-                <p className="text-xs sm:text-sm text-gray-600">Build a unique pixel home and customize your profile</p>
+              {/* Single primary CTA */}
+              <div className="mb-4">
+                <Link
+                  href="/signup"
+                  className="border border-black px-6 sm:px-8 py-3 sm:py-4 bg-yellow-200 hover:bg-yellow-100 shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] inline-block text-lg sm:text-xl font-bold transition-all transform hover:-translate-y-0.5"
+                >
+                  <PixelIcon name="zap" size={20} className="inline-block align-middle" /> Start Your Journey
+                </Link>
               </div>
-              <div className="border border-gray-300 p-4 bg-green-50 rounded text-center">
-                <div className="text-2xl mb-2"><PixelIcon name="link" size={32} /></div>
-                <h3 className="font-bold mb-2 text-sm sm:text-base">Join ThreadRings</h3>
-                <p className="text-xs sm:text-sm text-gray-600">Find communities around your interests and hobbies</p>
+
+              {/* Secondary actions - More prominent */}
+              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-2 mb-4">
+                <Link
+                  href="/feed"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-black shadow-[2px_2px_0_#000] font-medium text-sm transition-colors"
+                >
+                  <PixelIcon name="eye" size={16} />
+                  <span>Browse as Guest</span>
+                </Link>
+                <Link
+                  href="/getting-started"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-black shadow-[2px_2px_0_#000] font-medium text-sm transition-colors"
+                >
+                  <PixelIcon name="article" size={16} />
+                  <span>Learn More</span>
+                </Link>
               </div>
-              <div className="border border-gray-300 p-4 bg-purple-50 rounded text-center">
-                <div className="text-2xl mb-2"><PixelIcon name="bookmark" size={32} /></div>
-                <h3 className="font-bold mb-2 text-sm sm:text-base">Share & Connect</h3>
-                <p className="text-xs sm:text-sm text-gray-600">Post content that appears on your profile and in Ring feeds</p>
-              </div>
-            </div>
 
-            <div className="text-center pt-4">
-              <Link
-                href="/threadrings"
-                className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] inline-block font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-              >
-                <PixelIcon name="link" size={16} className="inline-block align-middle" /> Explore Communities
-              </Link>
-            </div>
-          </div>
-        </SimpleCard>
-
-        {/* NEW: Quick Explore Section - Make key features immediately accessible */}
-        <SimpleCard title="Explore Right Now">
-          <div className="space-y-4">
-            <p className="text-sm sm:text-base text-gray-600 text-center px-1 mb-4">
-              Jump right in! No account needed to explore.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Link
-                href="/home/demo"
-                className="flex items-center gap-3 p-4 bg-pink-50 hover:bg-pink-100 border-2 border-pink-300 rounded-lg transition-colors group shadow-sm hover:shadow-md"
-              >
-                <span className="text-2xl flex-shrink-0"><PixelIcon name="paint-bucket" size={32} /></span>
-                <div>
-                  <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Try Pixel Home Demo</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">See what you can build - interactive preview!</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/feed"
-                className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 border border-gray-300 rounded-lg transition-colors group"
-              >
-                <span className="text-2xl flex-shrink-0"><PixelIcon name="article" size={32} /></span>
-                <div>
-                  <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Community Feed</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">See what everyone is posting and sharing</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/neighborhood/explore/all"
-                className="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 border border-gray-300 rounded-lg transition-colors group"
-              >
-                <span className="text-2xl flex-shrink-0"><PixelIcon name="home" size={32} /></span>
-                <div>
-                  <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Browse Homes</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">Visit member pixel homes and profiles</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/threadrings"
-                className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 border border-gray-300 rounded-lg transition-colors group"
-              >
-                <span className="text-2xl flex-shrink-0"><PixelIcon name="link" size={32} /></span>
-                <div>
-                  <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">ThreadRings</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">Discover themed communities to join</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/directory"
-                className="flex items-center gap-3 p-4 bg-yellow-50 hover:bg-yellow-100 border border-gray-300 rounded-lg transition-colors group"
-              >
-                <span className="text-2xl flex-shrink-0"><PixelIcon name="archive" size={32} /></span>
-                <div>
-                  <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Member Directory</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">Find and connect with community members</p>
-                </div>
-              </Link>
-            </div>
-          </div>
-        </SimpleCard>
-
-        <SimpleCard title="Community Highlights">
-          <div className="text-center py-4">
-            <p className="text-sm sm:text-base text-gray-600 mb-4 px-1">Join our growing community of creative individuals</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
-              <div className="bg-green-50 p-3 border border-gray-200 rounded">
-                <div className="font-bold text-green-800 text-sm sm:text-base">Active Members</div>
-                <div className="text-gray-600">Building connections daily</div>
-              </div>
-              <div className="bg-purple-50 p-3 border border-gray-200 rounded">
-                <div className="font-bold text-purple-800 text-sm sm:text-base">ThreadRings</div>
-                <div className="text-gray-600">Communities to explore</div>
+              {/* Login link for existing users */}
+              <div className="text-sm">
+                <span className="text-gray-500">Already a member?</span>{' '}
+                <Link
+                  href="/login"
+                  className="text-thread-pine hover:text-thread-sunset underline font-medium"
+                >
+                  Sign in here
+                </Link>
               </div>
             </div>
-          </div>
-        </SimpleCard>
-      </div>
-    </Layout>
+          </SimpleCard>
+
+          <SimpleCard title={`How ${siteConfig.site_name} Works`}>
+            <div className="space-y-4">
+              <div className="text-center mb-4">
+                <p className="text-sm sm:text-base text-gray-700 px-1">
+                  Modern communities inspired by the early web&apos;s <strong>WebRings</strong> — but better!
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="border border-gray-300 p-4 bg-blue-50 rounded text-center">
+                  <div className="text-2xl mb-2"><PixelIcon name="home" size={32} /></div>
+                  <h3 className="font-bold mb-2 text-sm sm:text-base">Create Your Space</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">Build a unique pixel home and customize your profile</p>
+                </div>
+                <div className="border border-gray-300 p-4 bg-green-50 rounded text-center">
+                  <div className="text-2xl mb-2"><PixelIcon name="link" size={32} /></div>
+                  <h3 className="font-bold mb-2 text-sm sm:text-base">Join ThreadRings</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">Find communities around your interests and hobbies</p>
+                </div>
+                <div className="border border-gray-300 p-4 bg-purple-50 rounded text-center">
+                  <div className="text-2xl mb-2"><PixelIcon name="bookmark" size={32} /></div>
+                  <h3 className="font-bold mb-2 text-sm sm:text-base">Share & Connect</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">Post content that appears on your profile and in Ring feeds</p>
+                </div>
+              </div>
+
+              <div className="text-center pt-4">
+                <Link
+                  href="/threadrings"
+                  className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] inline-block font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+                >
+                  <PixelIcon name="link" size={16} className="inline-block align-middle" /> Explore Communities
+                </Link>
+              </div>
+            </div>
+          </SimpleCard>
+
+          {/* NEW: Quick Explore Section - Make key features immediately accessible */}
+          <SimpleCard title="Explore Right Now">
+            <div className="space-y-4">
+              <p className="text-sm sm:text-base text-gray-600 text-center px-1 mb-4">
+                Jump right in! No account needed to explore.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Link
+                  href="/home/demo"
+                  className="flex items-center gap-3 p-4 bg-pink-50 hover:bg-pink-100 border-2 border-pink-300 rounded-lg transition-colors group shadow-sm hover:shadow-md"
+                >
+                  <span className="text-2xl flex-shrink-0"><PixelIcon name="paint-bucket" size={32} /></span>
+                  <div>
+                    <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Try Pixel Home Demo</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">See what you can build - interactive preview!</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/feed"
+                  className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 border border-gray-300 rounded-lg transition-colors group"
+                >
+                  <span className="text-2xl flex-shrink-0"><PixelIcon name="article" size={32} /></span>
+                  <div>
+                    <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Community Feed</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">See what everyone is posting and sharing</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/neighborhood/explore/all"
+                  className="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 border border-gray-300 rounded-lg transition-colors group"
+                >
+                  <span className="text-2xl flex-shrink-0"><PixelIcon name="home" size={32} /></span>
+                  <div>
+                    <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Browse Homes</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Visit member pixel homes and profiles</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/threadrings"
+                  className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 border border-gray-300 rounded-lg transition-colors group"
+                >
+                  <span className="text-2xl flex-shrink-0"><PixelIcon name="link" size={32} /></span>
+                  <div>
+                    <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">ThreadRings</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Discover themed communities to join</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/directory"
+                  className="flex items-center gap-3 p-4 bg-yellow-50 hover:bg-yellow-100 border border-gray-300 rounded-lg transition-colors group"
+                >
+                  <span className="text-2xl flex-shrink-0"><PixelIcon name="archive" size={32} /></span>
+                  <div>
+                    <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Member Directory</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Find and connect with community members</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </SimpleCard>
+
+          <SimpleCard title="Community Highlights">
+            <div className="text-center py-4">
+              <p className="text-sm sm:text-base text-gray-600 mb-4 px-1">Join our growing community of creative individuals</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                <div className="bg-green-50 p-3 border border-gray-200 rounded">
+                  <div className="font-bold text-green-800 text-sm sm:text-base">Active Members</div>
+                  <div className="text-gray-600">Building connections daily</div>
+                </div>
+                <div className="bg-purple-50 p-3 border border-gray-200 rounded">
+                  <div className="font-bold text-purple-800 text-sm sm:text-base">ThreadRings</div>
+                  <div className="text-gray-600">Communities to explore</div>
+                </div>
+              </div>
+            </div>
+          </SimpleCard>
+        </div>
+      </Layout>
     </>
   );
 }
 
-function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImageUrl }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string; ogImageUrl: string }) {
+function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImageUrl, userCount }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string; ogImageUrl: string; userCount?: number }) {
   const router = useRouter();
 
   // Generate metadata for personalized homepage
@@ -560,116 +563,69 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
       </Head>
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
-      <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">
-        {/* Hero Statement */}
-        {!user && (
-          <div className="mb-6 sm:mb-8">
-            <div className="bg-gradient-to-br from-yellow-100 via-orange-50 to-pink-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#2E4B3F] mb-4 px-2">
-                The internet doesn&apos;t have to suck
-              </h1>
-              <div className="max-w-3xl mx-auto space-y-3 px-4">
-                <p className="text-base sm:text-lg text-gray-800 font-medium">
-                  Remember when the internet was <strong>fun</strong>? When you could build a weird little corner of the web that was totally <em>yours</em>?
-                </p>
-                <p className="text-base sm:text-lg text-gray-800 font-medium">
-                  <strong>That&apos;s what we&apos;re bringing back.</strong> Build your pixel home, join communities you actually care about, and connect with real people.
-                </p>
-                <p className="text-sm sm:text-base text-gray-700">
-                  No algorithms. No tracking. No corporate BS. <strong>Your page, your way.</strong>
-                </p>
-              </div>
+        <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">
+          {/* Hero Statement */}
+          {!user && (
+            <HomeHero siteConfig={siteConfig} userCount={userCount} />
+          )}
 
-              {/* Hero CTAs - All Quick Actions */}
-              <div className="mt-6">
-                <div className="flex flex-wrap justify-center gap-3">
-                  <Link
-                    href={customLandingPageSlug ? `/page/${customLandingPageSlug}` : "/landing"}
-                    className="inline-block px-6 py-3 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-bold text-base transition-all transform hover:-translate-y-0.5"
-                  >
-                    Learn More
-                  </Link>
-                  <Link
-                    href="/help/faq"
-                    className="inline-block px-6 py-3 bg-orange-200 hover:bg-orange-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-bold text-base transition-all transform hover:-translate-y-0.5"
-                  >
-                    FAQ
-                  </Link>
-                  <Link
-                    href="/feed"
-                    className="inline-block px-6 py-3 bg-green-200 hover:bg-green-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-bold text-base transition-all transform hover:-translate-y-0.5"
-                  >
-                    Browse Feed
-                  </Link>
-                  <Link
-                    href="/neighborhood/explore/all"
-                    className="inline-block px-6 py-3 bg-purple-200 hover:bg-purple-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-bold text-base transition-all transform hover:-translate-y-0.5"
-                  >
-                    Explore Homes
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Quick Action Buttons - For Logged-in Users Only */}
-        {user && (
-          <div className="text-center mb-6 sm:mb-8">
-            <div className="hidden md:flex flex-wrap justify-center gap-3 mb-4">
-              <Link
-                href="/feed"
-                className="flex items-center gap-2 px-4 py-2 bg-green-200 hover:bg-green-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-              >
-                <PixelIcon name="article" size={20} className="inline-block" />
-                <span>Browse Feed</span>
-              </Link>
-
-              {user?.primaryHandle && (
+          {/* Quick Action Buttons - For Logged-in Users Only */}
+          {user && (
+            <div className="text-center mb-6 sm:mb-8">
+              <div className="hidden md:flex flex-wrap justify-center gap-3 mb-4">
                 <Link
-                  href={`/resident/${user.primaryHandle.split('@')[0]}`}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-200 hover:bg-blue-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+                  href="/feed"
+                  className="flex items-center gap-2 px-4 py-2 bg-green-200 hover:bg-green-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
                 >
-                  <PixelIcon name="user" size={20} className="inline-block" />
-                  <span>My Profile</span>
+                  <PixelIcon name="article" size={20} className="inline-block" />
+                  <span>Browse Feed</span>
                 </Link>
-              )}
 
-              <Link
-                href="/post/new"
-                className="flex items-center gap-2 px-4 py-2 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-              >
-                <PixelIcon name="edit" size={20} className="inline-block" />
-                <span>Create Post</span>
-              </Link>
+                {user?.primaryHandle && (
+                  <Link
+                    href={`/resident/${user.primaryHandle.split('@')[0]}`}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-200 hover:bg-blue-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+                  >
+                    <PixelIcon name="user" size={20} className="inline-block" />
+                    <span>My Profile</span>
+                  </Link>
+                )}
 
-              <Link
-                href="/neighborhood/explore/all"
-                className="flex items-center gap-2 px-4 py-2 bg-purple-200 hover:bg-purple-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-              >
-                <PixelIcon name="home" size={20} className="inline-block" />
-                <span>Explore Homes</span>
-              </Link>
+                <Link
+                  href="/post/new"
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+                >
+                  <PixelIcon name="edit" size={20} className="inline-block" />
+                  <span>Create Post</span>
+                </Link>
 
-              <Link
-                href="/community"
-                className="flex items-center gap-2 px-4 py-2 bg-pink-200 hover:bg-pink-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-              >
-                <PixelIcon name="building" size={20} className="inline-block" />
-                <span>Community</span>
-              </Link>
+                <Link
+                  href="/neighborhood/explore/all"
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-200 hover:bg-purple-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+                >
+                  <PixelIcon name="home" size={20} className="inline-block" />
+                  <span>Explore Homes</span>
+                </Link>
 
-              <Link
-                href="/help/faq"
-                className="flex items-center gap-2 px-4 py-2 bg-orange-200 hover:bg-orange-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-              >
-                <PixelIcon name="info-box" size={20} className="inline-block" />
-                <span>FAQ</span>
-              </Link>
-            </div>
+                <Link
+                  href="/community"
+                  className="flex items-center gap-2 px-4 py-2 bg-pink-200 hover:bg-pink-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+                >
+                  <PixelIcon name="building" size={20} className="inline-block" />
+                  <span>Community</span>
+                </Link>
 
-          {/* Mobile Dropdown Menu */}
-          <div className="md:hidden relative mb-4" ref={dropdownRef}>
+                <Link
+                  href="/help/faq"
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-200 hover:bg-orange-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
+                >
+                  <PixelIcon name="info-box" size={20} className="inline-block" />
+                  <span>FAQ</span>
+                </Link>
+              </div>
+
+              {/* Mobile Dropdown Menu */}
+              <div className="md:hidden relative mb-4" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-200 hover:bg-blue-100 border-2 border-black shadow-[3px_3px_0_#000] font-medium text-sm transition-all mx-auto"
@@ -739,98 +695,99 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                   </div>
                 )}
               </div>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Enhanced Global Search Bar */}
-        {!user && (
-          <div className="text-center mb-3">
-            <p className="text-xs sm:text-sm text-gray-600">
-              <PixelIcon name="search" size={16} className="inline-block align-middle" /> Search the indie web, not the corporate web
-            </p>
-          </div>
-        )}
-        <DiscoverPageSearch
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          searchTab={searchTab}
-          setSearchTab={setSearchTab}
-          searchType={searchType}
-          setSearchType={setSearchType}
-          indieOnly={indieOnly}
-          setIndieOnly={setIndieOnly}
-          privacyOnly={privacyOnly}
-          setPrivacyOnly={setPrivacyOnly}
-          noTrackers={noTrackers}
-          setNoTrackers={setNoTrackers}
-          includeUnvalidated={includeUnvalidated}
-          setIncludeUnvalidated={setIncludeUnvalidated}
-          onSearch={handleSearch}
-          loading={searchLoading}
-          extSearchEnabled={true}
-          showCommunityHelper={false}
-          className="mb-6 sm:mb-8"
-        />
+          {/* Enhanced Global Search Bar */}
+          {!user && (
+            <div className="text-center mb-3">
+              <p className="text-xs sm:text-sm text-gray-600">
+                <PixelIcon name="search" size={16} className="inline-block align-middle" /> Search the indie web, not the corporate web
+              </p>
+            </div>
+          )}
+          <DiscoverPageSearch
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            searchTab={searchTab}
+            setSearchTab={setSearchTab}
+            searchType={searchType}
+            setSearchType={setSearchType}
+            indieOnly={indieOnly}
+            setIndieOnly={setIndieOnly}
+            privacyOnly={privacyOnly}
+            setPrivacyOnly={setPrivacyOnly}
+            noTrackers={noTrackers}
+            setNoTrackers={setNoTrackers}
+            includeUnvalidated={includeUnvalidated}
+            setIncludeUnvalidated={setIncludeUnvalidated}
+            onSearch={handleSearch}
+            loading={searchLoading}
+            extSearchEnabled={true}
+            showCommunityHelper={false}
+            className="mb-6 sm:mb-8"
+          />
 
-        {/* Community Ticker - Typewriter Style */}
-        <CommunityTicker />
+          {/* Community Ticker - Typewriter Style */}
+          <CommunityTicker />
 
-        {/* Main Grid Layout - Mobile-First Responsive */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+          {/* Main Grid Layout - Mobile-First Responsive */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
 
-          {/* Center - Pixel Home (First on mobile for prominence) */}
-          <div className="lg:col-span-6 lg:order-2">
-            <SimpleCard title={user ? "Your Pixel Home" : "Demo Pixel Home"}>
-              {user ? (
-                <>
-                  <UserPixelHome user={user} />
-                  <div className="text-center mt-3 text-xs text-gray-500">
-                    <span><PixelIcon name="lightbulb" size={16} className="inline-block align-middle" /> Click your home to visit your profile page</span>
-                  </div>
-                </>
-              ) : (
-                <VisitorPixelHome />
+            {/* Center - Pixel Home (First on mobile for prominence) */}
+            <div className="lg:col-span-6 lg:order-2">
+              <SimpleCard title={user ? "Your Pixel Home" : "Demo Pixel Home"}>
+                {user ? (
+                  <>
+                    <UserPixelHome user={user} />
+                    <div className="text-center mt-3 text-xs text-gray-500">
+                      <span><PixelIcon name="lightbulb" size={16} className="inline-block align-middle" /> Click your home to visit your profile page</span>
+                    </div>
+                  </>
+                ) : (
+                  <VisitorPixelHome />
+                )}
+              </SimpleCard>
+
+              {/* Additional center widgets for that portal feel */}
+              {centerWidgets.length > 0 && (
+                <WidgetContainer
+                  widgets={centerWidgets}
+                  user={user}
+                  layout="stack"
+                  maxColumns={1}
+                />
               )}
-            </SimpleCard>
+            </div>
 
-            {/* Additional center widgets for that portal feel */}
-            {centerWidgets.length > 0 && (
+            {/* Left Sidebar - Widgets (Second on mobile) */}
+            <div className="lg:col-span-3 lg:order-1 space-y-4">
               <WidgetContainer
-                widgets={centerWidgets}
+                widgets={leftWidgets}
                 user={user}
                 layout="stack"
                 maxColumns={1}
               />
-            )}
-          </div>
+            </div>
 
-          {/* Left Sidebar - Widgets (Second on mobile) */}
-          <div className="lg:col-span-3 lg:order-1 space-y-4">
-            <WidgetContainer
-              widgets={leftWidgets}
-              user={user}
-              layout="stack"
-              maxColumns={1}
-            />
-          </div>
-
-          {/* Right Sidebar - Widgets (Third on mobile) */}
-          <div className="lg:col-span-3 lg:order-3 space-y-4">
-            <WidgetContainer
-              widgets={rightWidgets}
-              user={user}
-              layout="stack"
-              maxColumns={1}
-            />
+            {/* Right Sidebar - Widgets (Third on mobile) */}
+            <div className="lg:col-span-3 lg:order-3 space-y-4">
+              <WidgetContainer
+                widgets={rightWidgets}
+                user={user}
+                layout="stack"
+                maxColumns={1}
+              />
+              {!user && <CommunityPulse />}
+            </div>
           </div>
         </div>
-      </div>
-    </Layout>
+      </Layout>
     </>
   );
 }
 
-function UnifiedHomepage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogImageUrl: string }) {
+function UnifiedHomepage({ siteConfig, ogImageUrl, userCount }: { siteConfig: SiteConfig; ogImageUrl: string; userCount?: number }) {
   // Generate metadata for unified homepage
   const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
 
@@ -872,69 +829,67 @@ function UnifiedHomepage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; o
         />
       </Head>
 
-      <Layout siteConfig={siteConfig}>
-      <div className="w-full max-w-full sm:max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <SimpleCard title={`Welcome to ${siteConfig.site_name}`}>
-          <div className="text-center py-4 sm:py-6">
-            <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>
-            <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-4 px-2">
-              <strong>ThreadRings are themed communities you can join — like modern WebRings or clubhouses — where posts live in your profile but also appear in shared Ring feeds.</strong>
-            </p>
-            <p className="text-sm sm:text-base text-gray-600 mb-6 px-2">{siteConfig.site_description}</p>
-            <div className="flex flex-col sm:flex-row justify-center gap-3 px-2">
-              <Link
-                href="/getting-started"
-                className="border border-black px-4 sm:px-6 py-2 sm:py-3 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] inline-block text-base sm:text-lg font-medium transition-colors"
-              >
-                Learn More
-              </Link>
-              <Link
-                href="/feed"
-                className="border border-black px-4 sm:px-6 py-2 sm:py-3 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] inline-block text-base sm:text-lg font-medium transition-colors"
-              >
-                Enter Community
-              </Link>
-            </div>
-          </div>
-        </SimpleCard>
+      <Layout siteConfig={siteConfig} fullWidth={true}>
+        <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+          <HomeHero siteConfig={siteConfig} userCount={userCount} />
 
-        <SimpleCard title="What are ThreadRings?">
-          <div className="space-y-4">
-            <p className="text-sm sm:text-base text-gray-700 px-1">
-              ThreadRings bring back the spirit of the early web&apos;s WebRings — interconnected communities organized around shared interests.
-              Each Ring is a themed community where members can share posts, have discussions, and build connections.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-              <div className="border border-gray-300 p-3 bg-blue-50 rounded">
-                <h3 className="font-bold mb-1 text-sm sm:text-base"><PixelIcon name="home" size={16} className="inline-block align-middle" /> Your Content Lives with You</h3>
-                <p className="text-xs sm:text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
-              </div>
-              <div className="border border-gray-300 p-3 bg-green-50 rounded">
-                <h3 className="font-bold mb-1 text-sm sm:text-base">🌳 Rich Family Trees</h3>
-                <p className="text-xs sm:text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
-              </div>
-              <div className="border border-gray-300 p-3 bg-purple-50 rounded sm:col-span-2 md:col-span-1">
-                <h3 className="font-bold mb-1 text-sm sm:text-base"><PixelIcon name="bookmark" size={16} className="inline-block align-middle" /> Community-Focused</h3>
-                <p className="text-xs sm:text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+            <div className="lg:col-span-8 lg:order-1">
+              <SimpleCard title="What are ThreadRings?">
+                <div className="space-y-4">
+                  <p className="text-sm sm:text-base text-gray-700 px-1">
+                    ThreadRings bring back the spirit of the early web&apos;s WebRings — interconnected communities organized around shared interests.
+                    Each Ring is a themed community where members can share posts, have discussions, and build connections.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="border border-gray-300 p-3 bg-blue-50 rounded">
+                      <h3 className="font-bold mb-1 text-sm sm:text-base"><PixelIcon name="home" size={16} className="inline-block align-middle" /> Your Content Lives with You</h3>
+                      <p className="text-xs sm:text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
+                    </div>
+                    <div className="border border-gray-300 p-3 bg-green-50 rounded">
+                      <h3 className="font-bold mb-1 text-sm sm:text-base">🌳 Rich Family Trees</h3>
+                      <p className="text-xs sm:text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
+                    </div>
+                    <div className="border border-gray-300 p-3 bg-purple-50 rounded sm:col-span-2 md:col-span-1">
+                      <h3 className="font-bold mb-1 text-sm sm:text-base"><PixelIcon name="bookmark" size={16} className="inline-block align-middle" /> Community-Focused</h3>
+                      <p className="text-xs sm:text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
+                    </div>
+                  </div>
+                  <div className="text-center pt-4">
+                    <Link
+                      href="/threadrings"
+                      className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block font-medium text-sm sm:text-base transition-colors"
+                    >
+                      Browse ThreadRings
+                    </Link>
+                  </div>
+                </div>
+              </SimpleCard>
             </div>
-            <div className="text-center pt-4">
-              <Link
-                href="/threadrings"
-                className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block font-medium text-sm sm:text-base transition-colors"
-              >
-                Browse ThreadRings
-              </Link>
+
+            <div className="lg:col-span-4 lg:order-2 space-y-4">
+              <CommunityPulse />
+
+              <SimpleCard title="Join the Neighborhood">
+                <div className="text-center py-2">
+                  <p className="mb-4 text-sm text-gray-600">Ready to claim your plot?</p>
+                  <Link
+                    href="/signup"
+                    className="block w-full py-3 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] font-bold text-center transition-transform hover:-translate-y-0.5"
+                  >
+                    Sign Up Now
+                  </Link>
+                </div>
+              </SimpleCard>
             </div>
           </div>
-        </SimpleCard>
-      </div>
-    </Layout>
+        </div>
+      </Layout>
     </>
   );
 }
 
-export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug, ogImageUrl }: HomeProps) {
+export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug, ogImageUrl, userCount }: HomeProps & { userCount?: number }) {
   // Route to appropriate component based on pageType
   switch (pageType) {
     case 'custom':
@@ -949,10 +904,10 @@ export default function Home({ siteConfig, pageType, user, customPage, customLan
     case 'landing':
       return <LandingPage siteConfig={siteConfig} ogImageUrl={ogImageUrl} />;
     case 'homepage':
-      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} />;
+      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} userCount={userCount} />;
     case 'unified':
     default:
-      return <UnifiedHomepage siteConfig={siteConfig} ogImageUrl={ogImageUrl} />;
+      return <UnifiedHomepage siteConfig={siteConfig} ogImageUrl={ogImageUrl} userCount={userCount} />;
   }
 }
 
@@ -960,6 +915,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
   const siteConfig = await getSiteConfig();
   const user = await getSessionUser(context.req as any);
   const ogImageUrl = getOgImageUrl(); // Get dynamic og:image URL with automatic cache-busting
+  const userCount = await db.user.count();
 
   try {
     if (user) {
@@ -1053,6 +1009,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
           ogImageUrl,
           ...(customLandingPage?.slug ? { customLandingPageSlug: customLandingPage.slug } : {}),
           // user is undefined, which will trigger visitor mode in PersonalizedHomepage
+          userCount,
         },
       };
     }
@@ -1064,6 +1021,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
         siteConfig,
         pageType: 'unified' as const,
         ogImageUrl,
+        userCount,
       },
     };
   }

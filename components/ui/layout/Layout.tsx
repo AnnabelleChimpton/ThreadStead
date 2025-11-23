@@ -17,7 +17,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
   const { config: hookConfig } = useSiteConfig();
   const { hasMismatch, fixMismatch } = useIdentitySync();
   const config = siteConfig || hookConfig;
-  
+
   // Advanced template mode: minimal container, no background conflicts
   if (advancedTemplate) {
     return (
@@ -25,8 +25,8 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
         className="site-layout min-h-screen flex flex-col"
       >
         {/* Skip to main content for screen readers */}
-        <a 
-          href="#main-content" 
+        <a
+          href="#main-content"
           className="skip-link"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -64,7 +64,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
             </div>
           </div>
         )}
-        
+
         {/* Navigation - positioned to not interfere with user content */}
         <NavBar siteConfig={config} fullWidth={true} advancedTemplate={true} />
 
@@ -75,7 +75,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
         <div className="site-creative-header"></div>
 
         {/* Minimal main container - no constraints */}
-        <main 
+        <main
           id="main-content"
           tabIndex={-1}
           className="site-main flex-1 w-full mobile-content-container"
@@ -217,8 +217,8 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       className="site-layout min-h-screen thread-surface flex flex-col"
     >
       {/* Skip to main content for screen readers */}
-      <a 
-        href="#main-content" 
+      <a
+        href="#main-content"
         className="skip-link"
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
@@ -256,7 +256,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
           </div>
         </div>
       )}
-      
+
       <NavBar siteConfig={config} fullWidth={fullWidth} />
 
       {/* Spacing after navbar */}
@@ -268,7 +268,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       <main
         id="main-content"
         tabIndex={-1}
-        className={`site-main flex-1 ${fullWidth ? 'w-full max-w-full sm:max-w-[640px] md:max-w-[768px] lg:max-w-[1024px] xl:max-w-[1200px] mx-auto sm:px-6 md:px-8' : 'responsive-content mobile-content-container'}`}
+        className={`site-main flex-1 ${fullWidth ? 'w-full max-w-full sm:max-w-[640px] md:max-w-[768px] lg:max-w-[1024px] xl:max-w-7xl 2xl:max-w-screen-2xl mx-auto sm:px-6 md:px-8' : 'responsive-content mobile-content-container'}`}
       >
         {children}
       </main>

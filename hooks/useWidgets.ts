@@ -56,9 +56,9 @@ export function useWidgets({
 
 export function useDefaultWidgets(user?: { role: string } | null) {
   const defaultWidgetIds = [
-    // 'new-neighbors', // Temporarily disabled to test navigation
     'welcome',
-    'friend-activity',
+    'new-neighbors',
+    // 'friend-activity', // Replaced by new-neighbors
     'pixel-homes-neighborhood',
     'community-activity',
     'trending-content',
