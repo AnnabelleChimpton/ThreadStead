@@ -562,7 +562,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
         />
       </Head>
 
-      <Layout siteConfig={siteConfig} fullWidth={true}>
+      <Layout siteConfig={siteConfig} fullWidth={true} homepageLayout={true}>
         <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">
           {/* Hero Statement */}
           {!user && (

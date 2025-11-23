@@ -11,9 +11,10 @@ interface LayoutProps {
   siteConfig?: SiteConfig;
   fullWidth?: boolean;
   advancedTemplate?: boolean;
+  homepageLayout?: boolean;
 }
 
-export default function Layout({ children, siteConfig, fullWidth = false, advancedTemplate = false }: LayoutProps) {
+export default function Layout({ children, siteConfig, fullWidth = false, advancedTemplate = false, homepageLayout = false }: LayoutProps) {
   const { config: hookConfig } = useSiteConfig();
   const { hasMismatch, fixMismatch } = useIdentitySync();
   const config = siteConfig || hookConfig;
@@ -211,6 +212,13 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
     );
   }
 
+  // Determine max-width classes based on props
+  const maxWidthClass = homepageLayout
+    ? 'w-full max-w-full sm:max-w-[640px] md:max-w-[768px] lg:max-w-[1024px] xl:max-w-7xl 2xl:max-w-screen-2xl mx-auto sm:px-6 md:px-8'
+    : fullWidth
+      ? 'w-full max-w-full sm:max-w-[640px] md:max-w-[768px] lg:max-w-[1024px] xl:max-w-[1200px] mx-auto sm:px-6 md:px-8'
+      : 'responsive-content mobile-content-container';
+
   // Standard layout mode
   return (
     <div
@@ -268,7 +276,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       <main
         id="main-content"
         tabIndex={-1}
-        className={`site-main flex-1 ${fullWidth ? 'w-full max-w-full sm:max-w-[640px] md:max-w-[768px] lg:max-w-[1024px] xl:max-w-7xl 2xl:max-w-screen-2xl mx-auto sm:px-6 md:px-8' : 'responsive-content mobile-content-container'}`}
+        className={`site-main flex-1 ${maxWidthClass}`}
       >
         {children}
       </main>
