@@ -5,6 +5,8 @@ import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import HouseSVG from './HouseSVG'
 import VisitorTrail from './VisitorTrail'
 import ThreadbookModal from './ThreadbookModal'
+import SharePixelHomeModal from './SharePixelHomeModal'
+import { PixelIcon } from '../ui/PixelIcon'
 // import DecorationMode from './DecorationMode' // Now handled by dedicated page
 import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 import Modal from '../ui/feedback/Modal'
@@ -19,7 +21,7 @@ interface UserHomeConfig {
   preferPixelHome: boolean
   atmosphere: {
     sky: string
-    weather: string  
+    weather: string
     timeOfDay: string
   }
   houseCustomizations: {
@@ -55,13 +57,14 @@ interface PixelHomePageProps {
   className?: string
 }
 
-export default function PixelHomePage({ 
-  username, 
-  homeConfig, 
+export default function PixelHomePage({
+  username,
+  homeConfig,
   isOwner = false,
   className = ''
 }: PixelHomePageProps) {
   const router = useRouter()
+  const [showShareModal, setShowShareModal] = useState(false)
   const [badges, setBadges] = useState<ProfileBadge[]>([])
   const [showThreadbook, setShowThreadbook] = useState(false)
   const [showGuestbook, setShowGuestbook] = useState(false)
@@ -97,24 +100,24 @@ export default function PixelHomePage({
   const loadUserData = async () => {
     try {
       setLoading(true)
-      
+
       // Load user badges, guestbook status, and decorations in parallel
       const [badgeResponse, guestbookStatusResponse, decorationsResponse] = await Promise.all([
         fetch(`/api/users/${encodeURIComponent(username)}/badges`),
         fetch(`/api/users/${encodeURIComponent(username)}/guestbook-status`),
         fetch(`/api/home/decorations/load?username=${encodeURIComponent(username)}`)
       ])
-      
+
       if (badgeResponse.ok) {
         const badgeData = await badgeResponse.json()
         setBadges(badgeData.badges || [])
       }
-      
+
       if (guestbookStatusResponse.ok) {
         const guestbookData = await guestbookStatusResponse.json()
         setHasUnreadGuestbook(guestbookData.hasUnreadGuestbook || false)
       }
-      
+
       if (decorationsResponse.ok) {
         const decorationData = await decorationsResponse.json()
         setDecorations(decorationData.decorations || [])
@@ -122,7 +125,7 @@ export default function PixelHomePage({
           setAtmosphere(decorationData.atmosphere)
         }
       }
-      
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load user data')
     } finally {
@@ -204,7 +207,7 @@ export default function PixelHomePage({
           <div className="text-6xl">🏠</div>
           <div className="text-xl font-headline text-thread-pine">Home Not Found</div>
           <div className="text-thread-sage">{error}</div>
-          <button 
+          <button
             onClick={() => router.push('/')}
             className="px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors"
           >
@@ -295,7 +298,7 @@ export default function PixelHomePage({
                 >
                   <span>Enter & Explore Full Profile</span>
                 </button>
-                
+
                 <button
                   onClick={handleMailboxClick}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
@@ -303,14 +306,14 @@ export default function PixelHomePage({
                   <span>Check Mailbox {hasUnreadGuestbook && '(New!)'}</span>
                   {hasUnreadGuestbook && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
                 </button>
-                
+
                 <button
                   onClick={handleThreadbookClick}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
                   <span>View ThreadRing Lineage</span>
                 </button>
-                
+
                 <button
                   onClick={() => router.push(`/resident/${username}?tab=rings`)}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
@@ -333,10 +336,16 @@ export default function PixelHomePage({
                   >
                     <span>Decorate Home</span>
                   </button>
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5"
+                  >
+                    <span>Share Home</span>
+                  </button>
                 </div>
               </div>
             )}
-            
+
             {/* Navigation */}
             <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-6 shadow-cozy">
               <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 text-center">
@@ -349,7 +358,7 @@ export default function PixelHomePage({
                 >
                   <span>Explore More Homes</span>
                 </button>
-                
+
                 <button
                   onClick={() => router.push('/')}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
@@ -374,78 +383,78 @@ export default function PixelHomePage({
                     atmosphere={atmosphere}
                     className="w-full max-w-xl drop-shadow-2xl transform hover:scale-105 transition-transform duration-500"
                   />
-                  
+
                   {/* Badge sparkles overlay - preserved for visual appeal */}
                   {badges && badges.length > 0 && (
                     <div className="absolute inset-0 pointer-events-none">
-                          {badges.slice(0, 3).map((badge, index) => (
-                            <div
-                              key={badge.id}
-                              className="absolute animate-pulse"
-                              style={{
-                                left: `${20 + (index * 25)}%`,
-                                top: `${30 + (index * 10)}%`,
-                                animationDelay: `${index * 0.5}s`,
-                                animationDuration: '2s'
-                              }}
-                            >
+                      {badges.slice(0, 3).map((badge, index) => (
+                        <div
+                          key={badge.id}
+                          className="absolute animate-pulse"
+                          style={{
+                            left: `${20 + (index * 25)}%`,
+                            top: `${30 + (index * 10)}%`,
+                            animationDelay: `${index * 0.5}s`,
+                            animationDuration: '2s'
+                          }}
+                        >
+                          <div
+                            className="w-4 h-4 shadow-lg border-2 border-white rounded-sm"
+                            title={`${badge.threadRing.name} badge`}
+                          >
+                            {badge.imageUrl ? (
+                              <img
+                                src={badge.imageUrl}
+                                alt={badge.title}
+                                className="w-full h-full object-contain"
+                                style={{ imageRendering: 'pixelated' }}
+                              />
+                            ) : (
                               <div
-                                className="w-4 h-4 shadow-lg border-2 border-white rounded-sm"
-                                title={`${badge.threadRing.name} badge`}
+                                className="w-full h-full rounded-sm flex items-center justify-center text-[8px] font-bold"
+                                style={{
+                                  backgroundColor: badge.backgroundColor,
+                                  color: badge.textColor
+                                }}
                               >
-                                {badge.imageUrl ? (
-                                  <img
-                                    src={badge.imageUrl}
-                                    alt={badge.title}
-                                    className="w-full h-full object-contain"
-                                    style={{ imageRendering: 'pixelated' }}
-                                  />
-                                ) : (
-                                  <div
-                                    className="w-full h-full rounded-sm flex items-center justify-center text-[8px] font-bold"
-                                    style={{
-                                      backgroundColor: badge.backgroundColor,
-                                      color: badge.textColor
-                                    }}
-                                  >
-                                    {badge.title.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
+                                {badge.title.charAt(0).toUpperCase()}
                               </div>
-                            </div>
-                          ))}
-                          
-                          {badges.length > 3 && (
-                            <div
-                              className="absolute text-sm font-bold text-thread-sage animate-bounce bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg border-2 border-thread-sage"
-                              style={{
-                                right: '15%',
-                                top: '40%',
-                                animationDuration: '3s'
-                              }}
-                            >
-                              +{badges.length - 3}
-                            </div>
-                          )}
+                            )}
+                          </div>
+                        </div>
+                      ))}
+
+                      {badges.length > 3 && (
+                        <div
+                          className="absolute text-sm font-bold text-thread-sage animate-bounce bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg border-2 border-thread-sage"
+                          style={{
+                            right: '15%',
+                            top: '40%',
+                            animationDuration: '3s'
+                          }}
+                        >
+                          +{badges.length - 3}
+                        </div>
+                      )}
                     </div>
                   )}
-                  
+
                   {/* Visitor trail - positioned on the right side */}
-                  <VisitorTrail 
+                  <VisitorTrail
                     username={username}
                     className="top-4 right-4"
                   />
                 </div>
               </div>
-              
+
               {/* House Description */}
               <div className="text-center mt-6 space-y-3">
                 <div className="text-xl font-headline font-semibold text-thread-pine">
                   {config.houseCustomizations?.houseTitle || "A Cozy Corner of ThreadStead"}
                 </div>
                 <div className="text-thread-sage max-w-lg mx-auto leading-relaxed">
-                  {config.houseCustomizations?.houseDescription || 
-                   `This is @${username}'s pixel home - a personalized space for connection and discovery. Use the interactive menu on the left to explore their profile, leave messages, and learn more about their ThreadRing community.`}
+                  {config.houseCustomizations?.houseDescription ||
+                    `This is @${username}'s pixel home - a personalized space for connection and discovery. Use the interactive menu on the left to explore their profile, leave messages, and learn more about their ThreadRing community.`}
                 </div>
               </div>
             </div>
@@ -461,8 +470,8 @@ export default function PixelHomePage({
       />
 
       {/* Guestbook Modal - Using existing Guestbook component */}
-      <Modal 
-        isOpen={showGuestbook} 
+      <Modal
+        isOpen={showGuestbook}
         onClose={() => setShowGuestbook(false)}
         title="📬 Pixel Home Mailbox"
       >
@@ -476,14 +485,23 @@ export default function PixelHomePage({
               Messages posted here appear on their main profile guestbook too!
             </div>
           </div>
-          
+
           <div className="max-h-96 overflow-y-auto">
             <Guestbook username={username} />
           </div>
         </div>
       </Modal>
-
-      {/* Decoration Mode now handled by dedicated page at /home/[username]/decorate */}
+      <SharePixelHomeModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        template={config.houseTemplate}
+        palette={config.palette}
+        username={username}
+        houseCustomizations={config.houseCustomizations}
+        decorations={decorations}
+        atmosphere={atmosphere}
+        badges={badges}
+      />
     </div>
   )
 }
