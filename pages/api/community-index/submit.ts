@@ -127,8 +127,11 @@ export default async function handler(
         }
       });
 
-      // TODO: Award "Scout Points" to user here
-      // await awardScoutPoints(user.id, 50);
+      // Award "Scout Points" to user - REMOVED per user request
+      // await db.user.update({
+      //   where: { id: user.id },
+      //   data: { scoutPoints: { increment: 50 } }
+      // });
 
       return res.json({
         success: true,

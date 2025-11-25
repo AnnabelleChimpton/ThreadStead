@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
@@ -39,6 +39,7 @@ interface SearchResult {
 
 export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: DiscoverProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   // Generate metadata for discover page
   const discoverMetadata = contentMetadataGenerator.generateDiscoverMetadata(searchQuery || undefined);
@@ -46,6 +47,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
   const [searchTab, setSearchTab] = useState<'all' | 'indie' | 'site' | 'web'>('all');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+
   const [communityResults, setCommunityResults] = useState<any[]>([]);
   const [localResults, setLocalResults] = useState<SearchResult[]>([]);
   const [externalResults, setExternalResults] = useState<any>(null);
@@ -63,6 +65,16 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
   // Community search state
   const [includeUnvalidated, setIncludeUnvalidated] = useState(false);
+
+  // Auto-scroll to results when they populate
+  useEffect(() => {
+    if (!loading && searchQuery && (communityResults.length > 0 || localResults.length > 0 || externalResults?.results?.length > 0 || results.length > 0)) {
+      // Small timeout to ensure DOM is ready
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [loading, communityResults, localResults, externalResults, results, searchQuery]);
 
   // Use auto-indexer hook
   const { trackAndIndex } = useAutoIndexer(searchQuery);
@@ -529,6 +541,8 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
               <QuickSubmitWidget />
             </div>
           </div>
+
+          <div ref={resultsRef} className="scroll-mt-4"></div>
 
           {/* All Tab - Unified Results with Pagination */}
           {searchTab === 'all' && searchQuery && (

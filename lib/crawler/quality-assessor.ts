@@ -26,7 +26,7 @@ export interface QualityScore {
 }
 
 export class QualityAssessor {
-  private readonly AUTO_SUBMIT_THRESHOLD = 45; // Lowered to be more inclusive
+  private readonly AUTO_SUBMIT_THRESHOLD = 40; // Lowered to be more inclusive for genuine indie sites
   private readonly MAX_SCORE = 100;
 
   /**
@@ -69,6 +69,12 @@ export class QualityAssessor {
 
     // Apply score modifier based on platform type
     let totalScore = Object.values(breakdown).reduce((sum, score) => sum + score, 0);
+
+    // Apply corporate penalty if detected
+    if (!this.hasIndividualScale(content)) {
+      totalScore -= 20; // Significant penalty for corporate-sounding content
+    }
+
     totalScore = Math.floor(totalScore * classification.scoreModifier);
 
     // Domain classification is used to EXCLUDE (corporate/spam), not INCLUDE
@@ -92,22 +98,25 @@ export class QualityAssessor {
   }
 
   /**
-   * Score IndieWeb markers (0-30 points) - Increased weight
+   * Score IndieWeb markers (0-40 points) - Increased weight
    */
   private scoreIndieWeb(content: ExtractedContent): number {
     if (!content.hasIndieWebMarkers) return 0;
 
-    let score = 20; // Increased Base IndieWeb score
+    let score = 25; // Increased Base IndieWeb score
 
     // Bonus points for specific markers
     if (content.author) score += 5; // Has author
     if (content.publishedDate) score += 5; // Has publish date
 
-    return Math.min(score, 30);
+    // Webmention support is a huge plus
+    if (content.links.some(l => l.includes('webmention'))) score += 5;
+
+    return Math.min(score, 40);
   }
 
   /**
-   * Score personal site indicators (0-30 points) - Increased weight
+   * Score personal site indicators (0-40 points) - Increased weight
    */
   private scorePersonalSite(content: ExtractedContent, url: string): number {
     let score = 0;
@@ -132,12 +141,12 @@ export class QualityAssessor {
 
     // Score based on multiple indicators, not just explicit keywords
     if (indicators.hasIndieWeb) score += 10;
-    if (indicators.hasAuthor) score += 8;
-    if (indicators.personalDomainPatterns) score += 5;
-    if (indicators.personalContentStructure) score += 5;
-    if (indicators.appropriateScale) score += 5;
+    if (indicators.hasAuthor) score += 10;
+    if (indicators.personalDomainPatterns) score += 10;
+    if (indicators.personalContentStructure) score += 10;
+    if (indicators.appropriateScale) score += 10;
 
-    return Math.min(score, 30);
+    return Math.min(score, 40);
   }
 
   /**
@@ -194,7 +203,7 @@ export class QualityAssessor {
     if (content.contentLength < 5000 && content.links.length < 20) return true;
 
     // Avoid corporate language patterns
-    const corporateTerms = /(enterprise|corporation|company|business|team|staff|employees|solutions|services)/i;
+    const corporateTerms = /(enterprise|corporation|company|business|team|staff|employees|solutions|services|pricing|plans|demo|book a call|schedule|consulting|agency|firm|ltd|inc|llc|partners|clients|careers|jobs)/i;
     const allText = content.title + ' ' + content.description + ' ' + content.snippet;
 
     return !corporateTerms.test(allText);
