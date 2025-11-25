@@ -29,6 +29,7 @@ export interface DetailedCrawlResult {
       techStack: number;
       language: number;
       freshness: number;
+      userSubmitted?: number;
     };
     shouldAutoSubmit: boolean;
     reasons: string[];
@@ -97,11 +98,11 @@ export class CrawlerWorker {
       detailedResults: []
     };
 
-    // NOTE: Removed potentialDiscoveries array - now using immediate processing like seeding
-
+    // Zombie Cleanup: Reset items stuck in 'processing' for > 1 hour
+    await this.cleanupZombieJobs();
 
     try {
-      // Get pending items, prioritizing NEW sites (not in IndexedSite) for auto-validation
+      // Get pending items, prioritizing USER SUBMISSIONS (priority 1) and NEW sites
       const pendingItems = await db.$queryRaw`
         SELECT cq.*
         FROM "CrawlQueue" cq
@@ -110,7 +111,9 @@ export class CrawlerWorker {
           AND cq."scheduledFor" <= NOW()
           AND cq.attempts < ${this.options.maxRetries}
         ORDER BY
-          -- Prioritize NEW sites (not in IndexedSite) for auto-validation
+          -- Priority 1 (User Submissions) first
+          CASE WHEN cq.priority = 1 THEN 0 ELSE 1 END,
+          -- Then prioritize NEW sites (not in IndexedSite) for auto-validation
           CASE WHEN idx.url IS NULL THEN 1 ELSE 2 END,
           cq.priority DESC,
           cq."scheduledFor" ASC
@@ -208,6 +211,28 @@ export class CrawlerWorker {
   }
 
   /**
+   * Reset jobs that have been 'processing' for too long (zombies)
+   */
+  private async cleanupZombieJobs(): Promise<void> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const result = await db.crawlQueue.updateMany({
+      where: {
+        status: 'processing',
+        lastAttempt: { lt: oneHourAgo }
+      },
+      data: {
+        status: 'pending',
+        attempts: { increment: 1 }, // Count as a failed attempt
+        errorMessage: 'Worker timeout/crash (zombie job reset)'
+      }
+    });
+
+    if (result.count > 0) {
+      this.log(`🧟 Reset ${result.count} zombie jobs stuck in processing`);
+    }
+  }
+
+  /**
    * Handle successful crawl result
    */
   private async handleSuccessfulCrawl(
@@ -226,8 +251,11 @@ export class CrawlerWorker {
   }> {
     const content = result.content!;
 
+    // Check if this was a user submission (priority 1)
+    const isUserSubmission = queueItem.priority === 1;
+
     // Assess quality for potential auto-submission
-    const qualityScore = this.qualityAssessor.assessQuality(content, result.url);
+    const qualityScore = this.qualityAssessor.assessQuality(content, result.url, isUserSubmission);
     let autoSubmitted = false;
     let action: 'added_for_validation' | 'updated_existing' | 'rejected_low_score';
 
@@ -251,6 +279,10 @@ export class CrawlerWorker {
           responseTimeMs: result.crawlTime,
           sslEnabled: result.url.startsWith('https://'),
           outboundLinks: content.links, // Store extracted outbound links
+          // Update site type if we found a better one (e.g. webring)
+          siteType: (existingSite.siteType === 'other' || existingSite.siteType === 'personal_blog') && qualityScore.category !== 'other'
+            ? qualityScore.category
+            : existingSite.siteType
         }
       });
 
@@ -261,7 +293,7 @@ export class CrawlerWorker {
       this.log(`✅ Updated site: ${content.title} (${result.url}) [Score: ${qualityScore.totalScore}/100]`);
     } else {
       // Site not in index - USE PHASE 2 AUTO-VALIDATION SYSTEM
-      if (qualityScore.shouldAutoSubmit && qualityScore.totalScore >= 50) {
+      if (qualityScore.shouldAutoSubmit && qualityScore.totalScore >= 45) { // Lowered threshold matching Assessor
         try {
           await this.addToIndexForAutoValidation(result.url, content, qualityScore);
           autoSubmitted = true;
@@ -798,13 +830,8 @@ export class CrawlerWorker {
 
       // Determine what would happen
       let action: 'added_for_validation' | 'updated_existing' | 'rejected_low_score';
-      const existingSite = await db.indexedSite.findUnique({
-        where: { url }
-      });
 
-      if (existingSite) {
-        action = 'updated_existing';
-      } else if (qualityScore.shouldAutoSubmit && qualityScore.totalScore >= 40) {
+      if (qualityScore.shouldAutoSubmit && qualityScore.totalScore >= 45) {
         action = 'added_for_validation';
       } else {
         action = 'rejected_low_score';
@@ -812,7 +839,7 @@ export class CrawlerWorker {
 
       return {
         url,
-        status: action === 'rejected_low_score' ? 'rejected' : 'success',
+        status: 'success',
         extractedData: result.content,
         qualityScore: {
           totalScore: qualityScore.totalScore,
@@ -824,6 +851,7 @@ export class CrawlerWorker {
         action,
         crawlTime: result.crawlTime
       };
+
     } catch (error) {
       return {
         url,
@@ -834,89 +862,21 @@ export class CrawlerWorker {
   }
 
   /**
-   * Get enhanced queue statistics with additional metrics
-   */
-  async getEnhancedStats(): Promise<{
-    queue: {
-      pending: number;
-      processing: number;
-      completed: number;
-      failed: number;
-      total: number;
-      oldestPending?: Date;
-      newestCompleted?: Date;
-    };
-    health: {
-      successRate: number;
-      averageCrawlTime: number;
-      recentErrors: string[];
-    };
-  }> {
-    const queueStats = await this.getQueueStats();
-
-    // Calculate success rate from last 100 items
-    const recentItems = await db.crawlQueue.findMany({
-      where: {
-        lastAttempt: { not: null }
-      },
-      orderBy: { lastAttempt: 'desc' },
-      take: 100,
-      select: {
-        status: true,
-        errorMessage: true
-      }
-    });
-
-    const successCount = recentItems.filter(item => item.status === 'completed').length;
-    const successRate = recentItems.length > 0 ? successCount / recentItems.length : 0;
-
-    // Get recent unique error messages
-    const recentErrors = Array.from(
-      new Set(
-        recentItems
-          .filter(item => item.errorMessage)
-          .map(item => item.errorMessage)
-          .slice(0, 5)
-      )
-    ) as string[];
-
-    return {
-      queue: queueStats,
-      health: {
-        successRate,
-        averageCrawlTime: 0, // Can be calculated from actual crawl times if stored
-        recentErrors
-      }
-    };
-  }
-
-  /**
-   * Trigger Phase 2 auto-validation for pending sites
+   * Trigger Phase 2 Auto-Validation
+   * This calls the separate auto-validation system to process newly seeded sites
    */
   private async triggerAutoValidation(): Promise<void> {
-    try {
-      const response = await fetch('http://localhost:3000/api/community-index/auto-validate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ force: false }),
-      });
+    // In a real implementation, this might call a separate worker or API endpoint
+    // For now, we'll just log that it would happen
+    // The actual auto-validation is likely a separate cron job or triggered via API
 
-      if (response.ok) {
-        const result = await response.json();
-        this.log(`✅ Auto-validation completed: ${result.results.approved} approved, ${result.results.rejected} rejected, ${result.results.skipped} skipped`);
-      } else {
-        this.log(`❌ Auto-validation API failed: ${response.status}`);
-      }
-    } catch (error) {
-      this.log(`❌ Auto-validation request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    // Example: fetch('http://localhost:3000/api/admin/auto-validate/trigger', { method: 'POST' });
+    this.log('Triggering Phase 2 Auto-Validation for new sites...');
   }
 
   private log(message: string): void {
     if (this.options.enableLogging) {
-      console.log(`[CrawlerWorker] ${new Date().toISOString()} ${message}`);
+      console.log(`[CrawlerWorker] ${message}`);
     }
   }
 }

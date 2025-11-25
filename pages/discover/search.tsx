@@ -15,6 +15,7 @@ import { useBookmarks } from '@/hooks/useBookmarks';
 import { contentMetadataGenerator } from '@/lib/utils/metadata/content-metadata';
 import UserMention from '@/components/ui/navigation/UserMention';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { QuickSubmitWidget } from '@/components/features/search/QuickSubmitWidget';
 
 interface DiscoverProps {
   siteConfig: SiteConfig;
@@ -410,6 +411,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
     score += (result.communityScore || 0) * 2; // Community score multiplier
     score += (result.matchScore || 0) * 0.5; // Text relevance
     if (result.communityValidated) score += 20; // Validated bonus
+    if (result.discoveredBy) score += 15; // Boost user-discovered sites!
     return score;
   };
 
@@ -484,408 +486,387 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
       </Head>
 
       <Layout siteConfig={siteConfig}>
-      <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        <div className="text-center mb-4 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#2E4B3F] mb-2">
-            Explore the Neighborhood
-          </h1>
-          <p className="text-sm sm:text-base text-gray-600 mb-2 px-2">
-            Wander through our cozy corner of the internet - from community gems to hidden treasures of the world wide web
-          </p>
-          <Link href="/discover/faq" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
-            <PixelIcon name="lightbulb" size={16} />
-            <span>Discover how our community is mapping the indie web together</span>
-            <span>→</span>
-          </Link>
-        </div>
+        <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="text-center mb-4 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#2E4B3F] mb-2">
+              Explore the Neighborhood
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 mb-2 px-2">
+              Wander through our cozy corner of the internet - from community gems to hidden treasures of the world wide web
+            </p>
+            <Link href="/discover/faq" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
+              <PixelIcon name="lightbulb" size={16} />
+              <span>Discover how our community is mapping the indie web together</span>
+              <span>→</span>
+            </Link>
+          </div>
 
-        {/* Enhanced Search Interface */}
-        <div className="mb-6">
-          <DiscoverPageSearch
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            searchTab={searchTab}
-            setSearchTab={setSearchTab}
-            searchType={searchType}
-            setSearchType={setSearchType}
-            indieOnly={indieOnly}
-            setIndieOnly={setIndieOnly}
-            privacyOnly={privacyOnly}
-            setPrivacyOnly={setPrivacyOnly}
-            noTrackers={noTrackers}
-            setNoTrackers={setNoTrackers}
-            includeUnvalidated={includeUnvalidated}
-            setIncludeUnvalidated={setIncludeUnvalidated}
-            onSearch={handleSearch}
-            loading={searchTab === 'site' ? loading : extSearch.loading}
-            extSearchEnabled={extSearchEnabled}
-            className="mb-4"
-          />
-        </div>
+          {/* Enhanced Search Interface */}
+          <div className="mb-6">
+            <DiscoverPageSearch
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              searchTab={searchTab}
+              setSearchTab={setSearchTab}
+              searchType={searchType}
+              setSearchType={setSearchType}
+              indieOnly={indieOnly}
+              setIndieOnly={setIndieOnly}
+              privacyOnly={privacyOnly}
+              setPrivacyOnly={setPrivacyOnly}
+              noTrackers={noTrackers}
+              setNoTrackers={setNoTrackers}
+              includeUnvalidated={includeUnvalidated}
+              setIncludeUnvalidated={setIncludeUnvalidated}
+              onSearch={handleSearch}
+              loading={searchTab === 'site' ? loading : extSearch.loading}
+              extSearchEnabled={extSearchEnabled}
+              className="mb-4"
+            />
 
-        {/* All Tab - Unified Results with Pagination */}
-        {searchTab === 'all' && searchQuery && (
-          <div className="space-y-4">
-            {(() => {
-              const unifiedData = createUnifiedResults();
+            {/* Quick Submit Widget - Always visible to encourage submissions */}
+            <div className="mt-4">
+              <QuickSubmitWidget />
+            </div>
+          </div>
 
-              if (unifiedData.totalResults === 0 && !loading) {
-                return (
-                  <div className="text-center py-8 text-gray-500">
-                    Hmm, nothing turned up. Maybe try different keywords or explore our community picks below?
-                  </div>
-                );
-              }
+          {/* All Tab - Unified Results with Pagination */}
+          {searchTab === 'all' && searchQuery && (
+            <div className="space-y-4">
+              {(() => {
+                const unifiedData = createUnifiedResults();
 
-              return (
-                <>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <PixelIcon name="zap" size={20} /> Your Search Results
-                    </h3>
-                    <div className="text-xs text-gray-500">
-                      Page {currentPage} of {unifiedData.totalPages} • {unifiedData.totalResults} gems found
+                if (unifiedData.totalResults === 0 && !loading) {
+                  return (
+                    <div className="text-center py-8 text-gray-500">
+                      Hmm, nothing turned up. Maybe try different keywords or explore our community picks below?
                     </div>
-                  </div>
+                  );
+                }
 
-                  <div className="space-y-3">
-                    {unifiedData.results.map((result, index) => {
-                      const globalIndex = (currentPage - 1) * resultsPerPage + index + 1;
-                      return (
-                        <div
-                          key={`${result.source}-${result.id || result.url || index}`}
-                          className="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 cursor-pointer" onClick={result.clickHandler}>
-                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                                <h4 className="font-medium text-gray-900 break-words">
-                                  {result.title}
-                                </h4>
-                                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded inline-flex items-center gap-1 self-start sm:self-auto flex-shrink-0">
-                                  <PixelIcon name={result.sourceIconName} size={12} /> {result.source === 'community' ? 'Neighborhood' : result.source === 'site' ? 'Our Site' : result.source === 'external' ? 'Wild Web' : result.sourceLabel}
-                                </span>
-                              </div>
+                return (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <PixelIcon name="zap" size={20} /> Your Search Results
+                      </h3>
+                      <div className="text-xs text-gray-500">
+                        Page {currentPage} of {unifiedData.totalPages} • {unifiedData.totalResults} gems found
+                      </div>
+                    </div>
 
-                              {(result.description || result.snippet) && (
-                                <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2 sm:line-clamp-3 break-words">
-                                  {result.description || result.snippet}
-                                </p>
-                              )}
-
-                              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-gray-500">
-                                <span>#{globalIndex}</span>
-                                {result.source === 'community' && (
-                                  <>
-                                    <span>Score: {result.communityScore}</span>
-                                    <span>{result.siteType?.replace('_', ' ')}</span>
-                                    {result.communityValidated && <span className="text-green-600 flex items-center gap-1"><PixelIcon name="check" size={12} /> Community approved</span>}
-                                  </>
-                                )}
-                                {result.source === 'site' && (
-                                  <span className="flex items-center gap-1">
-                                    {getResultIcon(result.type)} {result.type}
+                    <div className="space-y-3">
+                      {unifiedData.results.map((result, index) => {
+                        const globalIndex = (currentPage - 1) * resultsPerPage + index + 1;
+                        return (
+                          <div
+                            key={`${result.source}-${result.id || result.url || index}`}
+                            className="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 cursor-pointer" onClick={result.clickHandler}>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                                  <h4 className="font-medium text-gray-900 break-words">
+                                    {result.title}
+                                  </h4>
+                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded inline-flex items-center gap-1 self-start sm:self-auto flex-shrink-0">
+                                    <PixelIcon name={result.sourceIconName} size={12} /> {result.source === 'community' ? 'Neighborhood' : result.source === 'site' ? 'Our Site' : result.source === 'external' ? 'Wild Web' : result.sourceLabel}
                                   </span>
+                                </div>
+
+                                {(result.description || result.snippet) && (
+                                  <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2 sm:line-clamp-3 break-words">
+                                    {result.description || result.snippet}
+                                  </p>
                                 )}
-                                {result.source === 'external' && (
-                                  <>
-                                    <span>via {result.engine}</span>
-                                    {result.isIndieWeb && <span className="text-purple-600 flex items-center gap-1"><PixelIcon name="drop" size={12} /> Indie spirit</span>}
-                                  </>
-                                )}
+
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-gray-500">
+                                  <span>#{globalIndex}</span>
+                                  {result.source === 'community' && (
+                                    <>
+                                      <span>Score: {result.communityScore}</span>
+                                      <span>{result.siteType?.replace('_', ' ')}</span>
+                                      {result.communityValidated && <span className="text-green-600 flex items-center gap-1"><PixelIcon name="check" size={12} /> Community approved</span>}
+                                      {result.discoveredBy && (
+                                        <span className="text-blue-600 flex items-center gap-1 font-medium bg-blue-50 px-1.5 py-0.5 rounded">
+                                          <PixelIcon name="user" size={10} /> Discovered by @{result.discoveredBy.handle}
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                  {result.source === 'site' && (
+                                    <span className="flex items-center gap-1">
+                                      {getResultIcon(result.type)} {result.type}
+                                    </span>
+                                  )}
+                                  {result.source === 'external' && (
+                                    <>
+                                      <span>via {result.engine}</span>
+                                      {result.isIndieWeb && <span className="text-purple-600 flex items-center gap-1"><PixelIcon name="drop" size={12} /> Indie spirit</span>}
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                            </div>
 
-                            <div className="flex flex-col items-center gap-2 ml-2 sm:ml-4">
-                              {user && (
-                                <button
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    let saveResult;
+                              <div className="flex flex-col items-center gap-2 ml-2 sm:ml-4">
+                                {user && (
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      let saveResult;
 
-                                    if (result.source === 'community') {
-                                      saveResult = await saveFromCommunityIndex(result);
-                                    } else if (result.source === 'site') {
-                                      saveResult = await saveFromSiteContent(result);
-                                    } else if (result.source === 'external') {
-                                      saveResult = await saveFromExternalSearch(result, searchQuery);
-                                    }
-                                  }}
-                                  disabled={saving}
-                                  className="px-2 py-1 text-[10px] sm:text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 transition-colors"
-                                  title="Save to your bookmarks"
-                                >
-                                  {saving ? '...' : <PixelIcon name="save" size={12} />}
-                                </button>
-                              )}
-                              <div className="text-xs text-gray-400 hidden sm:block">
-                                {Math.round(result.unifiedScore)}
+                                      if (result.source === 'community') {
+                                        saveResult = await saveFromCommunityIndex(result);
+                                      } else if (result.source === 'site') {
+                                        saveResult = await saveFromSiteContent(result);
+                                      } else if (result.source === 'external') {
+                                        saveResult = await saveFromExternalSearch(result, searchQuery);
+                                      }
+                                    }}
+                                    disabled={saving}
+                                    className="px-2 py-1 text-[10px] sm:text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                                    title="Save to your bookmarks"
+                                  >
+                                    {saving ? '...' : <PixelIcon name="save" size={12} />}
+                                  </button>
+                                )}
+                                <div className="text-xs text-gray-400 hidden sm:block">
+                                  {Math.round(result.unifiedScore)}
+                                </div>
                               </div>
                             </div>
                           </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {unifiedData.totalPages > 1 && (
+                      <div className="mt-6 flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                          disabled={currentPage === 1}
+                          className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                          ← Back
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, unifiedData.totalPages) }, (_, i) => {
+                            let pageNum;
+                            if (unifiedData.totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= unifiedData.totalPages - 2) {
+                              pageNum = unifiedData.totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => setCurrentPage(pageNum)}
+                                className={`px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === pageNum ? 'bg-blue-500 text-white border-blue-500' : ''
+                                  }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
 
-                  {/* Pagination Controls */}
-                  {unifiedData.totalPages > 1 && (
-                    <div className="mt-6 flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                        disabled={currentPage === 1}
-                        className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                      >
-                        ← Back
-                      </button>
-
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: Math.min(5, unifiedData.totalPages) }, (_, i) => {
-                          let pageNum;
-                          if (unifiedData.totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (currentPage >= unifiedData.totalPages - 2) {
-                            pageNum = unifiedData.totalPages - 4 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
-                          }
-
-                          return (
-                            <button
-                              key={pageNum}
-                              onClick={() => setCurrentPage(pageNum)}
-                              className={`px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 ${
-                                currentPage === pageNum ? 'bg-blue-500 text-white border-blue-500' : ''
-                              }`}
-                            >
-                              {pageNum}
-                            </button>
-                          );
-                        })}
+                        <button
+                          onClick={() => setCurrentPage(Math.min(unifiedData.totalPages, currentPage + 1))}
+                          disabled={currentPage === unifiedData.totalPages}
+                          className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                          More →
+                        </button>
                       </div>
+                    )}
 
-                      <button
-                        onClick={() => setCurrentPage(Math.min(unifiedData.totalPages, currentPage + 1))}
-                        disabled={currentPage === unifiedData.totalPages}
-                        className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                      >
-                        More →
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Source breakdown */}
-                  <div className="mt-6 p-3 bg-gray-50 rounded-lg">
-                    <div className="text-xs text-gray-600 flex flex-wrap items-center gap-2 sm:gap-4">
-                      <span>Found in:</span>
-                      {communityResults.length > 0 && (
-                        <span className="flex items-center gap-1"><PixelIcon name="bookmark" size={12} /> {communityResults.length} neighborhood</span>
-                      )}
-                      {localResults.length > 0 && (
-                        <span className="flex items-center gap-1"><PixelIcon name="home" size={12} /> {localResults.length} our site</span>
-                      )}
-                      {externalResults?.results?.length > 0 && (
-                        <span className="flex items-center gap-1"><PixelIcon name="map" size={12} /> {externalResults.results.length} wild web</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          window.open('/discover/faq#how-search-works', '_blank');
-                        }}
-                        className="text-xs text-blue-600 hover:text-blue-800 hover:underline sm:ml-auto flex items-center gap-1 touch-manipulation"
-                        title="Curious how we find and rank all this stuff?"
-                      >
-                        <PixelIcon name="lightbulb" size={12} />
-                        <span>How we find stuff</span>
-                      </button>
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* Enhanced Indie Index */}
-        {searchTab === 'indie' && (
-          <EnhancedCommunityBrowser
-            query={searchQuery}
-            includeUnvalidated={includeUnvalidated}
-            user={user}
-          />
-        )}
-
-        {/* Site Search Results */}
-        {searchTab === 'site' && results.length > 0 && (
-          <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">From Our Site</h2>
-            <div className="space-y-3">
-              {results.map((result) => (
-                <Link
-                  key={`${result.type}-${result.id}`}
-                  href={result.url}
-                  className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-start space-x-3">
-                    <span className="text-xl">{getResultIcon(result.type)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-medium text-gray-900 truncate">{result.title}</h3>
-                        <span className="text-xs bg-gray-100 px-2 py-1 rounded capitalize">
-                          {result.type}
-                        </span>
+                    {/* Source breakdown */}
+                    <div className="mt-6 p-3 bg-gray-50 rounded-lg">
+                      <div className="text-xs text-gray-600 flex flex-wrap items-center gap-2 sm:gap-4">
+                        <span>Found in:</span>
+                        {communityResults.length > 0 && (
+                          <span className="flex items-center gap-1"><PixelIcon name="bookmark" size={12} /> {communityResults.length} neighborhood</span>
+                        )}
+                        {localResults.length > 0 && (
+                          <span className="flex items-center gap-1"><PixelIcon name="home" size={12} /> {localResults.length} our site</span>
+                        )}
+                        {externalResults?.results?.length > 0 && (
+                          <span className="flex items-center gap-1"><PixelIcon name="map" size={12} /> {externalResults.results.length} wild web</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.open('/discover/faq#how-search-works', '_blank');
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline sm:ml-auto flex items-center gap-1 touch-manipulation"
+                          title="Curious how we find and rank all this stuff?"
+                        >
+                          <PixelIcon name="lightbulb" size={12} />
+                          <span>How we find stuff</span>
+                        </button>
                       </div>
-                      {result.description && (
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{result.description}</p>
-                      )}
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </>
+                );
+              })()}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* External Search Results with Auto-indexing */}
-        {searchTab === 'web' && searchQuery && (
-          <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">From the Wild Web</h2>
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-700 flex items-center gap-1">
-                <PixelIcon name="drop" size={12} /> Found something interesting? Clicking will help us grow our community index together
-              </p>
-            </div>
-            <div onClick={(e) => {
-              // Intercept clicks on external results
-              const target = e.target as HTMLElement;
-              const link = target.closest('a');
-              if (link && link.href) {
-                e.preventDefault();
-                const title = link.textContent || 'Untitled';
-                const snippet = link.querySelector('.snippet')?.textContent;
-                handleExternalResultClick(link.href, title, snippet);
-              }
-            }}>
-              <ExtSearchResults
-                response={extSearch.data}
-                loading={extSearch.loading}
-                error={extSearch.error}
-                onRetry={extSearch.refetch}
-                showEngineInfo={true}
-                showScores={false}
-                searchQuery={searchQuery}
-                searchTab={searchTab}
-                user={user}
-              />
-            </div>
-          </div>
-        )}
+          {/* Enhanced Indie Index */}
+          {searchTab === 'indie' && (
+            <EnhancedCommunityBrowser
+              query={searchQuery}
+              includeUnvalidated={includeUnvalidated}
+              user={user}
+            />
+          )}
 
-        {/* Browse Categories - Only show when no active search */}
-        {!searchQuery && searchTab === 'all' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Community Index Highlights */}
-            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-[#2E4B3F]">Neighborhood Favorites</h2>
-                <Link
-                  href="/community-index/discover"
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Browse →
-                </Link>
-              </div>
-              <CommunityIndexIntegration limit={3} user={user} />
-            </div>
-
-            {/* Recent ThreadRings */}
-            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-[#2E4B3F]">Connection Webs</h2>
-                <Link
-                  href="/threadrings"
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  See more →
-                </Link>
-              </div>
+          {/* Site Search Results */}
+          {searchTab === 'site' && results.length > 0 && (
+            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
+              <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">From Our Site</h2>
               <div className="space-y-3">
-                {recentRings.slice(0, 3).map((ring) => (
+                {results.map((result) => (
                   <Link
-                    key={ring.id}
-                    href={`/rings/${ring.slug}`}
-                    className="block p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                    key={`${result.type}-${result.id}`}
+                    href={result.url}
+                    className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <h3 className="font-medium text-gray-900 truncate">{ring.name}</h3>
+                    <div className="flex items-start space-x-3">
+                      <span className="text-xl">{getResultIcon(result.type)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-medium text-gray-900 truncate">{result.title}</h3>
+                          <span className="text-xs bg-gray-100 px-2 py-1 rounded capitalize">
+                            {result.type}
+                          </span>
+                        </div>
+                        {result.description && (
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{result.description}</p>
+                        )}
+                      </div>
+                    </div>
                   </Link>
                 ))}
               </div>
             </div>
+          )}
 
-            {/* Active Users */}
-            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-[#2E4B3F]">Community Members</h2>
-                <Link
-                  href="/directory"
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Meet everyone →
-                </Link>
+          {/* External Search Results with Auto-indexing */}
+          {searchTab === 'web' && searchQuery && (
+            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
+              <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">From the Wild Web</h2>
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-700 flex items-center gap-1">
+                  <PixelIcon name="drop" size={12} /> Found something interesting? Clicking will help us grow our community index together
+                </p>
               </div>
-              <div className="space-y-3">
-                {activeUsers.slice(0, 3).map((user) => {
-                  const username = user.username || user.primaryHandle?.split('@')[0];
-                  const displayName = user.displayName || username;
-
-                  if (!username) return null;
-
-                  return (
-                    <div
-                      key={user.id}
-                      className="block p-3 bg-white border border-gray-200 rounded-lg"
-                    >
-                      <h3 className="font-medium text-gray-900 truncate">
-                        <UserMention
-                          username={username}
-                          displayName={displayName !== username ? displayName : undefined}
-                        />
-                      </h3>
-                      {user.bio && (
-                        <p className="text-xs text-gray-600 mt-1 truncate">{user.bio}</p>
-                      )}
-                    </div>
-                  );
-                })}
+              <div onClick={(e) => {
+                // Intercept clicks on external results
+                const target = e.target as HTMLElement;
+                const link = target.closest('a');
+                if (link && link.href) {
+                  e.preventDefault();
+                  const title = link.textContent || 'Untitled';
+                  const snippet = link.querySelector('.snippet')?.textContent;
+                  handleExternalResultClick(link.href, title, snippet);
+                }
+              }}>
+                <ExtSearchResults
+                  response={extSearch.data}
+                  loading={extSearch.loading}
+                  error={extSearch.error}
+                  onRetry={extSearch.refetch}
+                  showEngineInfo={true}
+                  showScores={false}
+                  searchQuery={searchQuery}
+                  searchTab={searchTab}
+                  user={user}
+                />
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Indexing Notification */}
-        <IndexingNotification />
-      </div>
-    </Layout>
+          {/* Browse Categories - Only show when no active search */}
+          {!searchQuery && searchTab === 'all' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {/* Community Index Highlights */}
+              <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#2E4B3F]">Neighborhood Favorites</h2>
+                  <Link
+                    href="/community-index/discover"
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Browse →
+                  </Link>
+                </div>
+                <CommunityIndexIntegration limit={3} user={user} />
+              </div>
+
+              {/* Recent ThreadRings */}
+              <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#2E4B3F]">Recent Rings</h2>
+                  <Link
+                    href="/threadrings"
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    View All →
+                  </Link>
+                </div>
+                <div className="space-y-3">
+                  {recentRings.map((ring) => (
+                    <Link
+                      key={ring.id}
+                      href={`/threadrings/${ring.id}`}
+                      className="flex items-center gap-3 p-2 hover:bg-white rounded-lg transition-colors"
+                    >
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                        <PixelIcon name="link" size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 truncate">{ring.name}</h3>
+                        <p className="text-xs text-gray-500 truncate">{ring.description}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* Active Users */}
+              <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-[#2E4B3F]">Active Neighbors</h2>
+                  <Link
+                    href="/directory"
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Directory →
+                  </Link>
+                </div>
+                <div className="space-y-3">
+                  {activeUsers.map((u) => (
+                    <div key={u.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-lg transition-colors">
+                      <UserMention
+                        username={u.primaryHandle || 'user'}
+                        showBadge={true}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </Layout>
     </>
   );
 }
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const siteConfig = await getSiteConfig();
-  const user = await getSessionUser(context.req as any);
-
-  return {
-    props: {
-      siteConfig,
-      user: user ? {
-        id: user.id,
-        did: user.did,
-        role: user.role,
-        primaryHandle: user.primaryHandle
-      } : null,
-      extSearchEnabled: process.env.NEXT_PUBLIC_ENABLE_EXTSEARCH === 'true'
-    }
-  };
-};

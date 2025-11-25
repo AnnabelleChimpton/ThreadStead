@@ -16,22 +16,23 @@ export interface QualityScore {
     techStack: number;
     language: number;
     freshness: number;
+    userSubmitted?: number; // Bonus for user submissions
   };
   shouldAutoSubmit: boolean;
   reasons: string[];
-  category: 'personal_blog' | 'portfolio' | 'community' | 'resource' | 'other';
+  category: 'personal_blog' | 'portfolio' | 'community' | 'resource' | 'webring' | 'guestbook' | 'other';
   indexingPurpose?: 'full_index' | 'link_extraction' | 'pending_review' | 'rejected';
   platformType?: 'independent' | 'indie_platform' | 'corporate_profile' | 'corporate_generic' | 'unknown';
 }
 
 export class QualityAssessor {
-  private readonly AUTO_SUBMIT_THRESHOLD = 50; // Raised to align with new quality filter threshold
+  private readonly AUTO_SUBMIT_THRESHOLD = 45; // Lowered to be more inclusive
   private readonly MAX_SCORE = 100;
 
   /**
    * Assess the quality of extracted content
    */
-  assessQuality(content: ExtractedContent, url: string): QualityScore {
+  assessQuality(content: ExtractedContent, url: string, isUserSubmission: boolean = false): QualityScore {
     // First check domain classification
     const classification = domainClassifier.classify(url);
 
@@ -62,7 +63,8 @@ export class QualityAssessor {
       contentQuality: this.scoreContentQuality(content),
       techStack: this.scoreTechStack(content),
       language: this.scoreLanguage(content),
-      freshness: this.scoreFreshness(content)
+      freshness: this.scoreFreshness(content),
+      userSubmitted: isUserSubmission ? 30 : 0 // Massive boost for user submissions
     };
 
     // Apply score modifier based on platform type
@@ -72,8 +74,8 @@ export class QualityAssessor {
     // Domain classification is used to EXCLUDE (corporate/spam), not INCLUDE
     // If content quality is good, index it regardless of domain uncertainty
     const shouldAutoSubmit = totalScore >= this.AUTO_SUBMIT_THRESHOLD &&
-                             classification.indexingPurpose !== 'link_extraction' &&
-                             classification.indexingPurpose !== 'rejected';
+      classification.indexingPurpose !== 'link_extraction' &&
+      classification.indexingPurpose !== 'rejected';
     const reasons = [...this.generateReasons(breakdown, shouldAutoSubmit), ...classification.reasons];
     const category = this.determineCategory(content, breakdown);
 
@@ -90,22 +92,22 @@ export class QualityAssessor {
   }
 
   /**
-   * Score IndieWeb markers (0-25 points)
+   * Score IndieWeb markers (0-30 points) - Increased weight
    */
   private scoreIndieWeb(content: ExtractedContent): number {
     if (!content.hasIndieWebMarkers) return 0;
 
-    let score = 15; // Base IndieWeb score
+    let score = 20; // Increased Base IndieWeb score
 
     // Bonus points for specific markers
     if (content.author) score += 5; // Has author
     if (content.publishedDate) score += 5; // Has publish date
 
-    return Math.min(score, 25);
+    return Math.min(score, 30);
   }
 
   /**
-   * Score personal site indicators (0-25 points)
+   * Score personal site indicators (0-30 points) - Increased weight
    */
   private scorePersonalSite(content: ExtractedContent, url: string): number {
     let score = 0;
@@ -129,13 +131,13 @@ export class QualityAssessor {
     };
 
     // Score based on multiple indicators, not just explicit keywords
-    if (indicators.hasIndieWeb) score += 8;
-    if (indicators.hasAuthor) score += 6;
-    if (indicators.personalDomainPatterns) score += 4;
-    if (indicators.personalContentStructure) score += 4;
-    if (indicators.appropriateScale) score += 3;
+    if (indicators.hasIndieWeb) score += 10;
+    if (indicators.hasAuthor) score += 8;
+    if (indicators.personalDomainPatterns) score += 5;
+    if (indicators.personalContentStructure) score += 5;
+    if (indicators.appropriateScale) score += 5;
 
-    return Math.min(score, 25);
+    return Math.min(score, 30);
   }
 
   /**
@@ -293,6 +295,18 @@ export class QualityAssessor {
    * Determine site category based on content
    */
   private determineCategory(content: ExtractedContent, breakdown: any): QualityScore['category'] {
+    const allText = (content.title + ' ' + content.description + ' ' + content.snippet).toLowerCase();
+
+    // Check for Webrings
+    if (allText.includes('webring') || allText.includes('web ring') || content.links.some(l => l.includes('ring'))) {
+      return 'webring';
+    }
+
+    // Check for Guestbooks
+    if (allText.includes('guestbook') || allText.includes('sign my guestbook')) {
+      return 'guestbook';
+    }
+
     if (breakdown.personalSite > 0) {
       if (content.keywords.some(k => ['portfolio', 'work', 'projects'].includes(k.toLowerCase()))) {
         return 'portfolio';
@@ -316,6 +330,10 @@ export class QualityAssessor {
    */
   private generateReasons(breakdown: any, shouldAutoSubmit: boolean): string[] {
     const reasons: string[] = [];
+
+    if (breakdown.userSubmitted > 0) {
+      reasons.push(`User submitted (+${breakdown.userSubmitted} points)`);
+    }
 
     if (breakdown.indieWeb > 0) {
       reasons.push(`IndieWeb markers detected (+${breakdown.indieWeb} points)`);

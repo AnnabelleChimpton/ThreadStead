@@ -128,7 +128,11 @@ export class CommunityAnalytics {
 
     // Get new sites in the period
     const newSites = await db.indexedSite.findMany({
-      where: { discoveredAt: { gte: since } },
+      where: {
+        discoveredAt: { gte: since },
+        indexingPurpose: { not: 'rejected' },
+        crawlStatus: { not: 'failed' }
+      },
       select: { discoveredAt: true }
     });
 
@@ -421,14 +425,35 @@ export class CommunityAnalytics {
 
   private async getOverviewMetrics(since: Date) {
     const [totalSites, validatedSites, pendingSites, discoveries, activeUsers, avgScore] = await Promise.all([
-      db.indexedSite.count(),
-      db.indexedSite.count({ where: { communityValidated: true } }),
-      db.indexedSite.count({ where: { communityValidated: false } }),
+      db.indexedSite.count({
+        where: {
+          indexingPurpose: { not: 'rejected' },
+          crawlStatus: { not: 'failed' }
+        }
+      }),
+      db.indexedSite.count({
+        where: {
+          communityValidated: true,
+          indexingPurpose: { not: 'rejected' },
+          crawlStatus: { not: 'failed' }
+        }
+      }),
+      db.indexedSite.count({
+        where: {
+          communityValidated: false,
+          indexingPurpose: { not: 'rejected' },
+          crawlStatus: { not: 'failed' }
+        }
+      }),
       db.discoveryPath.count({ where: { createdAt: { gte: since } } }),
       this.getActiveUsers(since),
       db.indexedSite.aggregate({
         _avg: { communityScore: true },
-        where: { communityValidated: true }
+        where: {
+          communityValidated: true,
+          indexingPurpose: { not: 'rejected' },
+          crawlStatus: { not: 'failed' }
+        }
       })
     ]);
 
@@ -462,7 +487,9 @@ export class CommunityAnalytics {
         }),
         db.indexedSite.count({
           where: {
-            discoveredAt: { gte: date, lt: nextDate }
+            discoveredAt: { gte: date, lt: nextDate },
+            indexingPurpose: { not: 'rejected' },
+            crawlStatus: { not: 'failed' }
           }
         })
       ]);

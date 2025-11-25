@@ -227,7 +227,7 @@ export default function CommunityValidation({ siteConfig, user }: Props) {
     <Layout siteConfig={siteConfig}>
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2"><PixelIcon name="users" size={32} /> Human Submissions Validation</h1>
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2"><PixelIcon name="users" size={32} /> Community Moderation</h1>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <p className="text-blue-900 font-medium mb-1 flex items-center gap-1">
               <PixelIcon name="gps" size={16} /> Phase 2: Community-Curated Queue
