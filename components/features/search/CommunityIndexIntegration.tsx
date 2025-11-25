@@ -84,6 +84,9 @@ export default function CommunityIndexIntegration({
     if (onSiteClick) {
       onSiteClick(url, 'community');
     }
+
+    // Navigate to the URL in a new tab
+    window.open(url, '_blank');
   };
 
   const handleSave = async (e: React.MouseEvent, site: CommunityIndexSite) => {

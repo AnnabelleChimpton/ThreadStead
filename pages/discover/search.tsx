@@ -840,7 +840,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                   {recentRings.map((ring) => (
                     <Link
                       key={ring.id}
-                      href={`/threadrings/${ring.id}`}
+                      href={`/tr/${ring.slug}`}
                       className="flex items-center gap-3 p-2 hover:bg-white rounded-lg transition-colors"
                     >
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
