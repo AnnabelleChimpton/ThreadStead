@@ -46,7 +46,7 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
   useEffect(() => {
     setIsClient(true);
   }, []);
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="space-y-3">
         {[...Array(3)].map((_, i) => (
@@ -131,8 +131,8 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
           <span className="text-lg">{getTrendingIcon()}</span>
           <span className="text-sm font-medium text-gray-600">
             {data.source === 'local_trending' ? 'Trending Now' :
-             data.source === 'ringhub_trending' ? 'Ring Hub Trending' :
-             data.source === 'trending' ? 'Trending Now' : 'Popular Recent'}
+              data.source === 'ringhub_trending' ? 'Ring Hub Trending' :
+                data.source === 'trending' ? 'Trending Now' : 'Popular Recent'}
           </span>
         </div>
       </div>

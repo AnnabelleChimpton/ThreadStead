@@ -55,7 +55,7 @@ function FriendActivityWidget({ data, isLoading, error, user }: WidgetProps & { 
     );
   }
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="space-y-3">
         {[...Array(3)].map((_, i) => (

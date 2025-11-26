@@ -36,7 +36,7 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
   useEffect(() => {
     setIsClient(true);
   }, []);
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="space-y-3">
         {[...Array(3)].map((_, i) => (

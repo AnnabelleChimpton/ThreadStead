@@ -68,7 +68,7 @@ function CommunityActivityWidget({ data, isLoading, error, onRefresh }: WidgetPr
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="space-y-3">
         <div className="animate-pulse">

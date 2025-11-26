@@ -93,7 +93,7 @@ function PixelHomesNeighborhoodWidget({
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="text-center py-8">
         <div className="w-32 h-32 mx-auto bg-gray-200 rounded-lg animate-pulse mb-4"></div>

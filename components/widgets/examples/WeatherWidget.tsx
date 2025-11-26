@@ -70,7 +70,7 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
 
   const convertTemp = (fahrenheit: number) => {
     if (!useMetric) return `${fahrenheit}°F`;
-    return `${Math.round((fahrenheit - 32) * 5/9)}°C`;
+    return `${Math.round((fahrenheit - 32) * 5 / 9)}°C`;
   };
 
   const convertSpeed = (mph: number) => {
@@ -78,7 +78,7 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
     return `${Math.round(mph * 1.60934)} km/h`;
   };
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="animate-pulse">
         <div className="flex items-center justify-between mb-3">
@@ -262,8 +262,8 @@ export const weatherWidget = {
 
         forecast.push({
           day: dayName,
-          high: Math.round(daily.temperature_2m_max[i] * 9/5 + 32), // Convert C to F
-          low: Math.round(daily.temperature_2m_min[i] * 9/5 + 32), // Convert C to F
+          high: Math.round(daily.temperature_2m_max[i] * 9 / 5 + 32), // Convert C to F
+          low: Math.round(daily.temperature_2m_min[i] * 9 / 5 + 32), // Convert C to F
           condition: condition.condition,
           icon: condition.icon
         });
@@ -271,11 +271,11 @@ export const weatherWidget = {
 
       return {
         location: locationName,
-        temperature: Math.round(current.temperature_2m * 9/5 + 32), // Convert C to F
+        temperature: Math.round(current.temperature_2m * 9 / 5 + 32), // Convert C to F
         condition: currentCondition.condition,
         icon: currentCondition.icon,
-        high: Math.round(daily.temperature_2m_max[0] * 9/5 + 32), // Today's high
-        low: Math.round(daily.temperature_2m_min[0] * 9/5 + 32), // Today's low
+        high: Math.round(daily.temperature_2m_max[0] * 9 / 5 + 32), // Today's high
+        low: Math.round(daily.temperature_2m_min[0] * 9 / 5 + 32), // Today's low
         humidity: Math.round(current.relative_humidity_2m),
         windSpeed: Math.round(current.wind_speed_10m * 0.621371), // Convert km/h to mph
         countryCode, // Include country code for unit detection
