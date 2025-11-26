@@ -43,6 +43,13 @@ export default withThreadRingSupport(async function handler(
       if (limit !== 20) ringHubOptions.limit = limit;
       if (offset > 0) ringHubOptions.offset = offset;
 
+      // If filtering by membership, pass memberDid to RingHub
+      if (membership && viewer && ringHubClient && 'getUserDID' in ringHubClient) {
+        // We must use the DID associated with the authenticated client, which may differ 
+        // from the local DB DID (e.g. did:web vs did:key)
+        ringHubOptions.memberDid = await ringHubClient.getUserDID();
+      }
+
       // Map sort parameters to Ring Hub format
       if (sort) {
         switch (sort) {
