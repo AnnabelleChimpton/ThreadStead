@@ -320,6 +320,72 @@ export class PromptService {
   }
 
   /**
+   * Delete a prompt (soft delete via Ring Hub curation)
+   */
+  async deletePrompt(
+    userId: string,
+    promptId: string,
+    reason?: string
+  ): Promise<void> {
+    // Get the prompt PostRef
+    const prompt = await this.getPrompt(promptId);
+
+    if (!prompt) {
+      throw new Error('Prompt not found');
+    }
+
+    // Verify it's actually a prompt
+    if (prompt.metadata?.type !== 'threadring_prompt') {
+      throw new Error('Not a valid prompt');
+    }
+
+    // Check if already deleted
+    if (prompt.status === 'REMOVED') {
+      throw new Error('Prompt already deleted');
+    }
+
+    // Ensure we have a Ring Hub ID for curation
+    if (!prompt.id) {
+      throw new Error('Prompt missing Ring Hub ID - cannot delete');
+    }
+
+    // Create authenticated client for the user
+    const authenticatedClient = new AuthenticatedRingHubClient(userId);
+
+    // Get user's DID for authorization checks
+    const userDID = await authenticatedClient.getUserDID();
+    const promptMetadata = prompt.metadata as PromptPostRefMetadata;
+
+    // Note: We check locally but Ring Hub will also validate permissions
+    // Ring Hub returns 403 if user lacks permission
+    // User can delete if they are the creator OR have curator/moderator role
+
+    try {
+      // Delete the prompt via Ring Hub curation
+      await authenticatedClient.curatePost(
+        prompt.id,
+        'remove',
+        {
+          reason: reason || 'Prompt deleted',
+          metadata: {
+            deletedAt: new Date().toISOString(),
+            deletedBy: userDID
+          }
+        }
+      );
+    } catch (error: any) {
+      // Re-throw with better error messages
+      if (error.status === 403) {
+        throw new Error('Permission denied - only prompt creator or ring moderators can delete prompts');
+      }
+      if (error.status === 404) {
+        throw new Error('Prompt not found in Ring Hub');
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Convert Ring Hub PostRef to ThreadRing PostRef format
    */
   private convertPostRefToThreadRingPostRef(postRef: PostRef): ThreadRingPostRef {

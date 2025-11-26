@@ -81,6 +81,11 @@ export class QualityAssessor {
       totalScore -= aiSlopScore;
     }
 
+    // Apply Parked Domain penalty
+    if (content.isParked) {
+      totalScore -= 100; // Massive penalty for parked domains
+    }
+
     totalScore = Math.floor(totalScore * classification.scoreModifier);
 
     // Domain classification is used to EXCLUDE (corporate/spam), not INCLUDE
@@ -93,6 +98,10 @@ export class QualityAssessor {
 
     if (aiSlopScore > 0) {
       reasons.push(`⚠️ AI Slop / Low Quality detected (-${aiSlopScore} points)`);
+    }
+
+    if (content.isParked) {
+      reasons.push(`⚠️ Parked Domain detected (-100 points)`);
     }
 
     const category = this.determineCategory(content, breakdown);
@@ -108,10 +117,6 @@ export class QualityAssessor {
       platformType: classification.platformType
     };
   }
-
-  /**
-   * Score IndieWeb markers (0-40 points) - Increased weight
-   */
   private scoreIndieWeb(content: ExtractedContent): number {
     if (!content.hasIndieWebMarkers) return 0;
 

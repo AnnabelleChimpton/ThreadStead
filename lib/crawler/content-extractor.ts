@@ -18,6 +18,7 @@ export interface ExtractedContent {
   hasIndieWebMarkers: boolean;
   techStack?: string[];
   isPersonalSite?: boolean;
+  isParked?: boolean;
 }
 
 export class ContentExtractor {
@@ -40,7 +41,8 @@ export class ContentExtractor {
       contentLength: this.getContentLength(document),
       hasIndieWebMarkers: this.detectIndieWebMarkers(document),
       techStack: this.detectTechStack(document, html),
-      isPersonalSite: this.detectPersonalSite(document, url)
+      isPersonalSite: this.detectPersonalSite(document, url),
+      isParked: this.detectParkedDomain(document, html)
     };
   }
 
@@ -117,8 +119,8 @@ export class ContentExtractor {
 
   private extractLanguage(document: Document): string | undefined {
     return document.documentElement.getAttribute('lang') ||
-           document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content') ||
-           undefined;
+      document.querySelector('meta[http-equiv="content-language"]')?.getAttribute('content') ||
+      undefined;
   }
 
   private extractPublishedDate(document: Document): string | undefined {
@@ -191,7 +193,7 @@ export class ContentExtractor {
     const linkElements = document.querySelectorAll('a[href]');
     const maxLinks = extractAll ? Infinity : this.MAX_LINKS;
 
-    for (const link of linkElements) {
+    for (const link of Array.from(linkElements)) {
       try {
         const href = link.getAttribute('href');
         if (!href) continue;
@@ -282,7 +284,7 @@ export class ContentExtractor {
     const text = `${title} ${description} ${snippet}`;
 
     return personalIndicators.some(indicator => text.includes(indicator)) ||
-           this.hasPersonalDomainPattern(url);
+      this.hasPersonalDomainPattern(url);
   }
 
   private hasPersonalDomainPattern(url: string): boolean {
@@ -300,5 +302,55 @@ export class ContentExtractor {
     } catch {
       return false;
     }
+  }
+
+  private detectParkedDomain(document: Document, html: string): boolean {
+    const htmlLower = html.toLowerCase();
+
+    // 1. Check for known parking scripts and assets
+    const parkingIndicators = [
+      'parking-lander',
+      'sedoparking',
+      'parklogic',
+      'bodis.com',
+      'voodoo.com',
+      'domains/caf.js', // Google AdSense for Domains
+      'dsnextgen.com',
+      'parkingcrew.net',
+      'teaminternet.com',
+      'px-cloud.net'
+    ];
+
+    if (parkingIndicators.some(indicator => htmlLower.includes(indicator))) {
+      return true;
+    }
+
+    // 2. Check for common parked text patterns
+    const title = this.extractTitle(document).toLowerCase();
+    const text = document.body?.textContent?.toLowerCase() || '';
+
+    const textIndicators = [
+      'domain is for sale',
+      'this domain is for sale',
+      'buy this domain',
+      'inquire about this domain',
+      'domain name is available',
+      'parked at',
+      'domain parked',
+      'related searches', // Common on parking pages
+      'related links'
+    ];
+
+    const combinedText = title + ' ' + text;
+    if (textIndicators.some(indicator => combinedText.includes(indicator))) {
+      return true;
+    }
+
+    // 3. Check for specific GoDaddy/Registrar patterns
+    if (htmlLower.includes('lander_system') || htmlLower.includes('window.parked')) {
+      return true;
+    }
+
+    return false;
   }
 }

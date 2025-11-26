@@ -79,9 +79,34 @@ export default withRateLimit('threadring_operations')(
     }
 
     if (req.method === 'DELETE') {
-      return res.status(501).json({ 
-        error: 'Prompt deletion not yet supported in Ring Hub system' 
-      })
+      if (!viewer) {
+        return res.status(401).json({ error: 'Authentication required' })
+      }
+
+      try {
+        await promptService.deletePrompt(viewer.id, promptId)
+        return res.status(200).json({
+          success: true,
+          message: 'Prompt deleted successfully'
+        })
+      } catch (error: any) {
+        console.error('Error deleting prompt:', error)
+
+        // Handle specific error cases
+        if (error.message === 'Prompt not found') {
+          return res.status(404).json({ error: 'Prompt not found' })
+        }
+
+        if (error.message === 'Prompt already deleted') {
+          return res.status(410).json({ error: 'Prompt already deleted' })
+        }
+
+        if (error.message.includes('Permission denied')) {
+          return res.status(403).json({ error: error.message })
+        }
+
+        return res.status(500).json({ error: 'Failed to delete prompt' })
+      }
     }
 
     return res.status(405).json({ error: 'Method not allowed' })
