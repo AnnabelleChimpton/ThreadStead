@@ -6,7 +6,7 @@ import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 
 export default withThreadRingSupport(async function handler(
-  req: NextApiRequest, 
+  req: NextApiRequest,
   res: NextApiResponse,
   system: 'ringhub' | 'local'
 ) {
@@ -42,7 +42,12 @@ export default withThreadRingSupport(async function handler(
       if (search?.trim()) ringHubOptions.search = search.trim();
       if (limit !== 20) ringHubOptions.limit = limit;
       if (offset > 0) ringHubOptions.offset = offset;
-      
+
+      // If filtering by membership, pass memberDid to RingHub
+      if (membership && viewer) {
+        ringHubOptions.memberDid = viewer.did;
+      }
+
       // Map sort parameters to Ring Hub format
       if (sort) {
         switch (sort) {
@@ -54,7 +59,7 @@ export default withThreadRingSupport(async function handler(
             ringHubOptions.sort = 'members';
             ringHubOptions.order = 'desc';
             break;
-          case 'posts':  
+          case 'posts':
             ringHubOptions.sort = 'posts';
             ringHubOptions.order = 'desc';
             break;
@@ -76,7 +81,7 @@ export default withThreadRingSupport(async function handler(
       const viewerMemberships: Map<string, any> = new Map();
       if (viewer) {
         const hasNewMembershipAPI = result.rings.some(ring => ring.currentUserMembership !== undefined);
-        
+
         if (!hasNewMembershipAPI) {
           try {
             const membershipsResult = await ringHubClient.getMyMemberships({ status: 'ACTIVE', limit: 100 });
@@ -142,7 +147,7 @@ export default withThreadRingSupport(async function handler(
           badgeImageUrl: descriptor.badgeImageUrl,
           badgeImageHighResUrl: descriptor.badgeImageHighResUrl
         };
-        
+
         return transformed;
       });
 
@@ -160,13 +165,13 @@ export default withThreadRingSupport(async function handler(
 
       // For "My ThreadRings" tab, we need to estimate total since we're filtering after fetch
       // This is a limitation we could improve with a dedicated RingHub endpoint
-      const filteredTotal = membership && viewer 
+      const filteredTotal = membership && viewer
         ? transformedRings.length // Best we can do without server-side filtering
         : result.total;
-      
+
       const hasMore = !membership && (offset + limit) < result.total;
-      
-      
+
+
       return res.json({
         threadRings: transformedRings,
         hasMore,
@@ -303,10 +308,10 @@ export default withThreadRingSupport(async function handler(
 
     // Transform the data for the response
     const transformedRings = threadRings.map(ring => {
-      const curatorHandle = ring.curator.handles.find(h => h.host === "local")?.handle || 
-                           ring.curator.handles[0]?.handle || 
-                           "unknown";
-      
+      const curatorHandle = ring.curator.handles.find(h => h.host === "local")?.handle ||
+        ring.curator.handles[0]?.handle ||
+        "unknown";
+
       return {
         id: ring.id,
         name: ring.name,
@@ -333,7 +338,7 @@ export default withThreadRingSupport(async function handler(
       };
     });
 
-    return res.json({ 
+    return res.json({
       threadRings: transformedRings,
       hasMore: threadRings.length === limit,
       total: search ? undefined : await db.threadRing.count({

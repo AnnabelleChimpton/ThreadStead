@@ -271,6 +271,7 @@ export class RingHubClient {
     visibility?: 'PUBLIC' | 'UNLISTED' | 'PRIVATE'
     limit?: number
     offset?: number
+    memberDid?: string
   }): Promise<{ rings: RingDescriptor[], total: number }> {
     const params = new URLSearchParams()
     if (options?.search) params.append('search', options.search)
@@ -279,6 +280,7 @@ export class RingHubClient {
     if (options?.visibility) params.append('visibility', options.visibility)
     if (options?.limit) params.append('limit', options.limit.toString())
     if (options?.offset) params.append('offset', options.offset.toString())
+    if (options?.memberDid) params.append('memberDid', options.memberDid)
 
     return this.get(`/trp/rings?${params.toString()}`)
   }
