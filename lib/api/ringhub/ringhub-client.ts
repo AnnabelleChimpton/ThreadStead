@@ -795,6 +795,12 @@ export class RingHubClient {
         return null
       }
 
+      // Check for silent authentication failure header
+      const authError = response.headers.get('X-RingHub-Auth-Error')
+      if (authError) {
+        console.warn(`⚠️ RingHub Authentication Failed Silently: ${authError}`)
+      }
+
       return response.json()
     } catch (error) {
       if (error instanceof RingHubClientError) {
