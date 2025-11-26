@@ -40,20 +40,20 @@ interface ThreadRingCardProps {
   onJoin?: (ringSlug: string) => Promise<void>;
 }
 
-export default function ThreadRingCard({ 
-  threadRing, 
-  showJoinButton = true, 
-  onJoin 
+export default function ThreadRingCard({
+  threadRing,
+  showJoinButton = true,
+  onJoin
 }: ThreadRingCardProps) {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
   const handleJoin = async () => {
     if (!onJoin || threadRing.viewerMembership) return;
-    
+
     setJoining(true);
     setJoinError(null);
-    
+
     try {
       await onJoin(threadRing.slug);
     } catch (error: any) {
@@ -63,9 +63,9 @@ export default function ThreadRingCard({
     }
   };
 
-  const canJoin = showJoinButton && 
-                  !threadRing.viewerMembership && 
-                  threadRing.joinType === "open";
+  const canJoin = showJoinButton &&
+    !threadRing.viewerMembership &&
+    threadRing.joinType === "open";
 
   // Determine badge source - prioritize local badge over RingHub badge
   const hasBadge = threadRing.badge || threadRing.badgeImageUrl;
@@ -76,7 +76,7 @@ export default function ThreadRingCard({
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <Link 
+          <Link
             href={`/tr/${threadRing.slug}`}
             className="text-lg font-bold text-black hover:text-blue-700 hover:underline block"
           >
@@ -112,7 +112,11 @@ export default function ThreadRingCard({
         <div className="flex-shrink-0">
           {threadRing.viewerMembership ? (
             <span className="text-xs bg-green-200 px-2 py-1 border border-black rounded">
-              {threadRing.viewerMembership.role === "curator" ? "Ring Host" : "Member"}
+              {threadRing.viewerMembership.role === "owner" || threadRing.viewerMembership.role === "curator"
+                ? "Ring Host"
+                : threadRing.viewerMembership.role === "moderator"
+                  ? "Moderator"
+                  : "Member"}
             </span>
           ) : canJoin ? (
             <button
@@ -151,11 +155,11 @@ export default function ThreadRingCard({
         <span>•</span>
         <span>{threadRing.postCount} post{threadRing.postCount !== 1 ? 's' : ''}</span>
         <span>•</span>
-        <span>{threadRing.joinType === 'open' ? 'Open joining' : 
-               threadRing.joinType === 'application' ? 'Apply to join' :
-               threadRing.joinType === 'invite' ? 'Invite only' :
-               threadRing.joinType === 'closed' ? 'Closed' :
-               threadRing.joinType}</span>
+        <span>{threadRing.joinType === 'open' ? 'Open joining' :
+          threadRing.joinType === 'application' ? 'Apply to join' :
+            threadRing.joinType === 'invite' ? 'Invite only' :
+              threadRing.joinType === 'closed' ? 'Closed' :
+                threadRing.joinType}</span>
         {threadRing.visibility === "unlisted" && (
           <>
             <span>•</span>
