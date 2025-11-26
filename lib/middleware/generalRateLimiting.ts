@@ -44,7 +44,7 @@ const RATE_LIMIT_CONFIGS: Record<RateLimitCategory, RateLimitConfig> = {
   template_editing: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 100 per hour (1000 in dev)
   profile_metadata: { limit: 30 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 30 per hour (300 in dev)
   profile_toggles: { limit: 50 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 50 per hour (500 in dev)
-  threadring_operations: { limit: 20 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 20 per hour (200 in dev)
+  threadring_operations: { limit: 200 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 20 per hour (200 in dev)
   guestbook: { limit: 50 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 50 per hour (500 in dev)
   polls: { limit: 30 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 30 per minute (300 in dev)
   admin: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 100 per minute (1000 in dev)
