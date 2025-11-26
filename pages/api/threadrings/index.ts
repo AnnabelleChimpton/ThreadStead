@@ -43,11 +43,6 @@ export default withThreadRingSupport(async function handler(
       if (limit !== 20) ringHubOptions.limit = limit;
       if (offset > 0) ringHubOptions.offset = offset;
 
-      // If filtering by membership, pass memberDid to RingHub
-      if (membership && viewer) {
-        ringHubOptions.memberDid = viewer.did;
-      }
-
       // Map sort parameters to Ring Hub format
       if (sort) {
         switch (sort) {
