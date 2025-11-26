@@ -1,13 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
+import { SITE_NAME } from "@/lib/config/site/constants";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
+import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
-
-// Note: Member role management is currently local-only
-// Ring Hub doesn't expose member management APIs yet
-// TODO: Integrate with Ring Hub member management when available
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "PUT" && req.method !== "DELETE") {
@@ -16,7 +14,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const { slug, userId } = req.query;
-  
+
   if (typeof slug !== "string" || typeof userId !== "string") {
     return res.status(400).json({ error: "Invalid parameters" });
   }
@@ -27,19 +25,83 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    // If Ring Hub is enabled, member management is not available
+    // Try RingHub first if enabled
     if (featureFlags.ringhub()) {
-      return res.status(501).json({ 
-        error: "Member role management not available with Ring Hub",
-        message: "Ring Hub member management is not yet supported"
-      });
+      const client = getRingHubClient();
+      if (client) {
+        try {
+          const ring = await client.getRing(slug);
+
+          if (ring) {
+            // This is a RingHub ring - use RingHub API
+
+            // Check if viewer owns this ring locally
+            const ownership = await db.ringHubOwnership.findUnique({
+              where: { ringSlug: slug }
+            });
+
+            if (!ownership || ownership.ownerUserId !== viewer.id) {
+              return res.status(403).json({ error: "Only ring owner can manage members" });
+            }
+
+            // Get the target user's DID
+            const targetUser = await db.user.findUnique({
+              where: { id: userId },
+              include: { handles: true }
+            });
+
+            if (!targetUser) {
+              return res.status(404).json({ error: "User not found" });
+            }
+
+            const targetDid = targetUser.did;
+
+            if (req.method === "PUT") {
+              // Update role
+              const { role } = req.body;
+
+              if (!role || !["member", "moderator"].includes(role)) {
+                return res.status(400).json({ error: "Invalid role. Must be 'member' or 'moderator'" });
+              }
+
+              await client.updateMemberRole(slug, targetDid, role as 'member' | 'moderator');
+
+              const memberHandle = targetUser.handles.find(h => h.host === SITE_NAME)?.handle ||
+                targetUser.handles[0]?.handle ||
+                "unknown";
+
+              return res.json({
+                success: true,
+                message: `${memberHandle} has been ${role === "moderator" ? "promoted to moderator" : "set as member"}`,
+                newRole: role
+              });
+
+            } else {
+              // Remove member (DELETE)
+              await client.removeMember(slug, targetDid);
+
+              const memberHandle = targetUser.handles.find(h => h.host === SITE_NAME)?.handle ||
+                targetUser.handles[0]?.handle ||
+                "unknown";
+
+              return res.json({
+                success: true,
+                message: `${memberHandle} has been removed from the ThreadRing`
+              });
+            }
+          }
+        } catch (ringHubError) {
+          console.error("RingHub error in member management:", ringHubError);
+          // Fall through to local database
+        }
+      }
     }
 
-    // Find the ThreadRing
+    // Fall back to local ThreadRing
     const threadRing = await db.threadRing.findUnique({
       where: { slug },
-      select: { 
-        id: true, 
+      select: {
+        id: true,
         name: true,
         curatorId: true
       }
@@ -104,7 +166,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === "PUT") {
       // Update role
       const { role } = req.body;
-      
+
       if (!role || !["member", "moderator", "curator"].includes(role)) {
         return res.status(400).json({ error: "Invalid role" });
       }
@@ -126,9 +188,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
       });
 
-      const memberHandle = targetMembership.user.handles.find(h => h.host === "local")?.handle || 
-                          targetMembership.user.handles[0]?.handle || 
-                          "unknown";
+      const memberHandle = targetMembership.user.handles.find(h => h.host === "local")?.handle ||
+        targetMembership.user.handles[0]?.handle ||
+        "unknown";
 
       return res.json({
         success: true,
@@ -159,9 +221,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         })
       ]);
 
-      const memberHandle = targetMembership.user.handles.find(h => h.host === "local")?.handle || 
-                          targetMembership.user.handles[0]?.handle || 
-                          "unknown";
+      const memberHandle = targetMembership.user.handles.find(h => h.host === "local")?.handle ||
+        targetMembership.user.handles[0]?.handle ||
+        "unknown";
 
       return res.json({
         success: true,

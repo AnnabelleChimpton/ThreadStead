@@ -136,7 +136,7 @@ export class RingHubClient {
     // Convert Base64URL private key to crypto.KeyObject
     try {
       const privateKeyBytes = this.base64UrlToBytes(options.privateKeyBase64Url)
-      
+
       // Create PKCS#8 DER format for Ed25519
       const pkcs8Header = Buffer.from([
         0x30, 0x2e, // SEQUENCE, 46 bytes
@@ -146,9 +146,9 @@ export class RingHubClient {
         0x04, 0x22, // OCTET STRING, 34 bytes
         0x04, 0x20  // OCTET STRING, 32 bytes (the key)
       ])
-      
+
       const pkcs8Key = Buffer.concat([pkcs8Header, privateKeyBytes])
-      
+
       this.privateKey = crypto.createPrivateKey({
         key: pkcs8Key,
         format: 'der',
@@ -164,9 +164,9 @@ export class RingHubClient {
    */
   static isAvailable(): boolean {
     return featureFlags.ringhub() &&
-           !!process.env.RING_HUB_URL &&
-           !!process.env.THREADSTEAD_DID &&
-           !!process.env.THREADSTEAD_PRIVATE_KEY_B64URL
+      !!process.env.RING_HUB_URL &&
+      !!process.env.THREADSTEAD_DID &&
+      !!process.env.THREADSTEAD_PRIVATE_KEY_B64URL
   }
 
   /**
@@ -202,10 +202,10 @@ export class RingHubClient {
       privateKeyBase64Url: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA_', // 32-byte base64url dummy key
       publicKeyMultibase: 'z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' // Valid multibase dummy
     })
-    
-    // Mark this client as public to skip authentication
-    ;(client as any).isPublicClient = true
-    
+
+      // Mark this client as public to skip authentication
+      ; (client as any).isPublicClient = true
+
     return client
   }
 
@@ -338,7 +338,7 @@ export class RingHubClient {
 
     const queryString = params.toString()
     const path = `/trp/my/memberships${queryString ? `?${queryString}` : ''}`
-    
+
     return this.get(path)
   }
 
@@ -390,6 +390,48 @@ export class RingHubClient {
     hasMore: boolean
   }> {
     return this.get(`/trp/rings/${slug}/members`)
+  }
+
+  /**
+   * Invite a member to join a ring
+   */
+  async inviteMember(slug: string, inviteeDid: string, expiresAt?: string): Promise<{
+    success: boolean
+    invitation: {
+      id: string
+      ringSlug: string
+      inviteeDid: string
+      inviterDid: string
+      status: string
+      createdAt: string
+      expiresAt: string
+    }
+  }> {
+    return this.post(`/trp/rings/${slug}/invite`, { inviteeDid, expiresAt })
+  }
+
+  /**
+   * Update a member's role
+   */
+  async updateMemberRole(slug: string, actorDid: string, role: 'member' | 'moderator'): Promise<{
+    success: boolean
+    member: {
+      actorDid: string
+      role: string
+      updatedAt: string
+    }
+  }> {
+    return this.put(`/trp/rings/${slug}/members/${actorDid}`, { role })
+  }
+
+  /**
+   * Remove a member from a ring
+   */
+  async removeMember(slug: string, actorDid: string): Promise<{
+    success: boolean
+    message: string
+  }> {
+    return this.delete(`/trp/rings/${slug}/members/${actorDid}`)
   }
 
   // Content Operations
@@ -463,11 +505,11 @@ export class RingHubClient {
       postId,
       action
     }
-    
+
     if (options?.reason) {
       requestBody.reason = options.reason
     }
-    
+
     if (options?.metadata) {
       requestBody.metadata = options.metadata
     }
@@ -558,7 +600,7 @@ export class RingHubClient {
     if (options?.status) params.append('status', options.status)
     if (options?.limit) params.append('limit', options.limit.toString())
     if (options?.offset) params.append('offset', options.offset.toString())
-    
+
     const query = params.toString() ? `?${params.toString()}` : ''
     return this.get(`/trp/actors/${encodeURIComponent(did)}/badges${query}`)
   }
@@ -699,12 +741,12 @@ export class RingHubClient {
     // Generate HTTP signature for write operations and specific authenticated GET endpoints
     const isPublicClient = (this as any).isPublicClient === true
     const requiresAuth = !isPublicClient && (
-      method !== 'GET' || 
+      method !== 'GET' ||
       path.includes('/trp/my/') ||
       path.startsWith('/trp/rings') || // Sign ring list requests to get membership info
       path.match(/^\/trp\/rings\/[^\/]+$/) // Sign individual ring requests
     )
-    
+
     if (requiresAuth) {
       try {
         const signature = await this.generateHttpSignature(method, path, headers)
@@ -736,7 +778,7 @@ export class RingHubClient {
 
         // For validation errors, include the full error details
         const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
-        const fullError = errorData.validation ? 
+        const fullError = errorData.validation ?
           `${errorMessage}. Validation errors: ${JSON.stringify(errorData.validation, null, 2)}` :
           errorMessage
 
@@ -785,21 +827,21 @@ export class RingHubClient {
       if (header === '(request-target)') {
         return `(request-target): ${method.toLowerCase()} ${path}`
       }
-      
+
       // Map header names to actual header keys
       const headerKeyMap: Record<string, string> = {
         'host': 'Host',
-        'date': 'Date', 
+        'date': 'Date',
         'digest': 'Digest'
       }
-      
+
       const headerKey = headerKeyMap[header.toLowerCase()]
       const headerValue = headers[headerKey]
-      
+
       if (!headerValue) {
         throw new Error(`Missing header: ${header}`)
       }
-      
+
       return `${header}: ${headerValue}`
     }).join('\n')
 
@@ -808,7 +850,7 @@ export class RingHubClient {
     const signatureB64 = signature.toString('base64')
 
     const signatureHeader = `keyId="${keyId}",algorithm="${algorithm}",headers="${signingHeaders.join(' ')}",signature="${signatureB64}"`
-    
+
     return signatureHeader
   }
 
