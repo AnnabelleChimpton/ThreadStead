@@ -16,7 +16,7 @@ import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 function generateTextPreview(bodyText?: string | null, bodyHtml?: string | null, bodyMarkdown?: string | null): string {
   // Get plain text content
   let content = '';
-  
+
   if (bodyText) {
     content = bodyText;
   } else if (bodyHtml) {
@@ -29,17 +29,17 @@ function generateTextPreview(bodyText?: string | null, bodyHtml?: string | null,
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to just text
       .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1'); // Convert images to alt text
   }
-  
+
   // Clean up whitespace and remove URLs for Ring Hub compatibility
   content = content.replace(/\s+/g, ' ').trim();
 
   // Remove URLs from metadata (they don't add value for discovery and cause validation issues)
   content = content.replace(/https?:\/\/[^\s]+/g, '[link]');
-  
+
   if (content.length <= 300) {
     return content;
   }
-  
+
   // Truncate at word boundary
   const truncated = content.substring(0, 300);
   const lastSpace = truncated.lastIndexOf(' ');
@@ -52,7 +52,7 @@ function generateTextPreview(bodyText?: string | null, bodyHtml?: string | null,
 function generateExcerpt(bodyText?: string | null, bodyHtml?: string | null, bodyMarkdown?: string | null): string {
   // Get plain text content (same logic as preview but longer)
   let content = '';
-  
+
   if (bodyText) {
     content = bodyText;
   } else if (bodyHtml) {
@@ -63,7 +63,7 @@ function generateExcerpt(bodyText?: string | null, bodyHtml?: string | null, bod
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');
   }
-  
+
   content = content.replace(/\s+/g, ' ').trim();
 
   // Remove URLs from metadata (they don't add value for discovery and cause validation issues)
@@ -72,7 +72,7 @@ function generateExcerpt(bodyText?: string | null, bodyHtml?: string | null, bod
   if (content.length <= 500) {
     return content;
   }
-  
+
   // Truncate at word boundary
   const truncated = content.substring(0, 500);
   const lastSpace = truncated.lastIndexOf(' ');
@@ -87,7 +87,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const viewer = await getSessionUser(req);
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
-  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds, intent, promptId, isSpoiler, contentWarning } = (req.body || {}) as {
+  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds, intent, promptId, isSpoiler, contentWarning, metadata } = (req.body || {}) as {
     title?: string;
     bodyText?: string;
     bodyHtml?: string;
@@ -98,6 +98,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     promptId?: string; // Optional prompt ID to associate with post
     isSpoiler?: boolean;
     contentWarning?: string;
+    metadata?: any;
   };
 
 
@@ -109,9 +110,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const finalTitle = title || "Untitled Post";
   const titleValidation = validatePostTitle(finalTitle);
   if (!titleValidation.ok) {
-    return res.status(400).json({ 
-      error: titleValidation.message, 
-      code: titleValidation.code 
+    return res.status(400).json({
+      error: titleValidation.message,
+      code: titleValidation.code
     });
   }
 
@@ -142,11 +143,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       bodyMarkdown: bodyMarkdown ?? null, // Store raw markdown
       visibility: vis,
       tags: [],
-      
+
       // Spoiler/Content Warning fields
       isSpoiler: isSpoiler ?? false,
       contentWarning: contentWarning ?? null,
-      
+      metadata: metadata ?? undefined,
+
       // Ring Hub metadata alignment
       textPreview: textPreview,
       excerpt: excerpt,
@@ -173,59 +175,59 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       if (featureFlags.ringhub()) {
         // Ring Hub integration for post association
         const authenticatedClient = createAuthenticatedRingHubClient(viewer.id);
-        
+
         // When Ring Hub is enabled, threadRingIds are actually slugs, not database IDs
         const ringSlugs = threadRingIds;
-        
+
         // Validate user membership by fetching from Ring Hub
         const userMemberships = await authenticatedClient.getMyMemberships({
           status: 'ACTIVE'
         });
-        
+
         // Dev mode workaround: If responding to a prompt and no memberships found, 
         // assume the user can post (since all users share the server DID in dev)
         let validSlugs: string[];
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-        const isLocalhost = baseUrl?.includes('localhost') || 
-                           baseUrl?.includes('127.0.0.1') ||
-                           !baseUrl ||
-                           baseUrl?.includes('localhost:3000') ||
-                           baseUrl?.includes('localhost:3001');
-        
+        const isLocalhost = baseUrl?.includes('localhost') ||
+          baseUrl?.includes('127.0.0.1') ||
+          !baseUrl ||
+          baseUrl?.includes('localhost:3000') ||
+          baseUrl?.includes('localhost:3001');
+
         // Normal validation: Filter to only rings the user is actually a member of
-        validSlugs = ringSlugs.filter(slug => 
-          userMemberships.memberships.some(membership => 
+        validSlugs = ringSlugs.filter(slug =>
+          userMemberships.memberships.some(membership =>
             membership.ringSlug === slug && membership.status === 'ACTIVE'
           )
         );
-        
+
         // Dev mode workaround: If responding to a prompt but not a member of the ring,
         // allow submission anyway (since all users share the server DID in dev)
         if (isLocalhost && promptId && validSlugs.length === 0 && ringSlugs.length > 0) {
           validSlugs = ringSlugs; // Allow all requested rings in dev mode for prompt responses
         }
-        
+
         // Submit post to each Ring Hub ring using the correct Ring Hub API format
         for (const slug of validSlugs) {
           try {
             // Find the ring membership data to get the name
             const membership = userMemberships.memberships.find(m => m.ringSlug === slug);
-            
+
             // Generate Ring Hub metadata following the new schema
             const textPreview = generateTextPreview(post.bodyText, post.bodyHtml, post.bodyMarkdown);
             const excerpt = generateExcerpt(post.bodyText, post.bodyHtml, post.bodyMarkdown);
-            
+
             // Check if this is a prompt response
             let isPromptResponse = false;
             let promptDetails = null;
-            
+
             if (promptId) {
               try {
                 const { createPromptService } = await import('@/lib/utils/data/prompt-service');
                 const promptService = createPromptService(slug);
                 promptDetails = await promptService.getPromptDetails(promptId);
                 isPromptResponse = !!promptDetails;
-                
+
                 // Dev mode workaround: If prompt not found but we have a promptId, treat as prompt response anyway
                 if (!isPromptResponse && isLocalhost) {
                   isPromptResponse = true;
@@ -238,7 +240,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                   } as any;
                 }
               } catch (promptError) {
-                
+
                 // Dev mode workaround: On error, still treat as prompt response
                 if (isLocalhost) {
                   isPromptResponse = true;
@@ -251,10 +253,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 }
               }
             }
-            
+
             // Prepare metadata based on whether this is a prompt response
             let metadata;
-            
+
             if (isPromptResponse && promptDetails) {
               // This is a prompt response - use prompt response metadata
               metadata = {
@@ -300,28 +302,28 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 contentWarning: post.contentWarning || null
               };
             }
-            
+
             // Create the post submission with the appropriate metadata
             const postSubmission = {
               uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/resident/${postWithAuthor?.author?.primaryHandle?.split('@')[0]}/post/${post.id}`,
               digest: `sha256:${post.id}`,
               metadata: metadata
             };
-            
+
             const result = await authenticatedClient.submitPost(slug, postSubmission);
-            
+
             // Store the ThreadRing database UUID from the response
             if (result.id) {
               const currentThreadRingPostIds = post.threadRingPostIds as Record<string, string> || {};
               currentThreadRingPostIds[slug] = result.id;
-              
+
               // Update the post with the ThreadRing post ID
               await db.post.update({
                 where: { id: post.id },
                 data: { threadRingPostIds: currentThreadRingPostIds }
-              });              
+              });
             }
-            
+
             // If this was a prompt response, update the response count
             if (isPromptResponse && promptDetails) {
               try {
@@ -337,13 +339,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 console.error(`⚠️ Failed to update response count for prompt ${promptId} in ring ${slug}:`, countError);
               }
             }
-            
+
           } catch (ringHubError) {
             console.error(`❌ Failed to submit post to Ring Hub ring ${slug}:`, ringHubError);
             // Continue with other rings
           }
         }
-        
+
         // Create local PostThreadRing associations for feed display
         // even when using Ring Hub (maintains compatibility with existing feed APIs)
         if (validSlugs.length > 0) {
@@ -353,25 +355,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               where: { slug: { in: validSlugs } },
               select: { id: true, slug: true, name: true }
             });
-            
+
             // Create map of existing rings by slug
             const existingRingsMap = new Map(
               existingLocalRings.map(ring => [ring.slug, ring])
             );
-            
+
             // Create missing local ThreadRing records for RingHub rings
             const missingRingSlugs = validSlugs.filter(slug => !existingRingsMap.has(slug));
-            
+
             for (const slug of missingRingSlugs) {
               try {
                 // Find the membership data to get the ring name
                 const membership = userMemberships.memberships.find(m => m.ringSlug === slug);
                 const ringName = membership?.ringName || slug;
-                
+
                 // Generate a unique URI for the RingHub ThreadRing
                 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
                 const ringUri = `${baseUrl}/tr/${slug}`;
-                
+
                 const newLocalRing = await db.threadRing.create({
                   data: {
                     uri: ringUri,
@@ -386,14 +388,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                   },
                   select: { id: true, slug: true, name: true }
                 });
-                
+
                 existingRingsMap.set(slug, newLocalRing);
               } catch (createError) {
                 console.error(`❌ Failed to create local ThreadRing ${slug}:`, createError);
                 // Continue with other rings
               }
             }
-            
+
             // Create PostThreadRing associations for all valid rings (existing + newly created)
             const allLocalRings = Array.from(existingRingsMap.values());
             if (allLocalRings.length > 0) {
@@ -422,7 +424,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         });
 
         const validRingIds = userMemberships.map(m => m.threadRingId);
-        
+
         if (validRingIds.length > 0) {
           // 2. Create PostThreadRing associations
           await db.postThreadRing.createMany({

@@ -25,7 +25,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     intent,
     isSpoiler,
     contentWarning,
-    threadRingIds
+    threadRingIds,
+    metadata
   } = (req.body || {}) as {
     id?: string;
     title?: string;
@@ -37,6 +38,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     isSpoiler?: boolean;
     contentWarning?: string;
     threadRingIds?: string[];
+    metadata?: any;
   };
 
   if (!id) {
@@ -66,6 +68,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     intent?: PostIntent | null;
     isSpoiler?: boolean;
     contentWarning?: string | null;
+    metadata?: any;
   } = {};
 
   // Handle content updates
@@ -86,7 +89,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   // Handle other field updates
-  if (visibility && ["public","followers","friends","private"].includes(visibility)) {
+  if (visibility && ["public", "followers", "friends", "private"].includes(visibility)) {
     data.visibility = visibility as Visibility;
   }
 
@@ -103,6 +106,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   if (typeof contentWarning === "string") {
     data.contentWarning = contentWarning.trim() || null;
+  }
+
+  if (metadata !== undefined) {
+    data.metadata = metadata;
   }
 
   // Update the post

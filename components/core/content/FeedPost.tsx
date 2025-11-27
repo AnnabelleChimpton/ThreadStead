@@ -1,6 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { formatDistanceToNow } from "date-fns";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useRouter } from "next/router";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { markdownToSafeHtmlWithEmojis, processHtmlWithEmojis, loadEmojiMap } from "@/lib/comment-markup";
@@ -43,6 +46,13 @@ export type FeedPostData = {
   }>;
   isSpoiler?: boolean;
   contentWarning?: string | null;
+  metadata?: {
+    mood?: string;
+    listeningTo?: string;
+    reading?: string;
+    drinking?: string;
+    location?: string;
+  } | null;
 };
 
 type FeedPostProps = {
@@ -63,7 +73,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
   // Determine the content to display
   const [content, setContent] = React.useState("");
   const [shouldTruncate, setShouldTruncate] = React.useState(false);
-  
+
   React.useEffect(() => {
     let cancelled = false;
 
@@ -119,8 +129,8 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
   }, [post.bodyHtml, post.bodyMarkdown, post.bodyText]);
 
   const authorName = post.authorDisplayName || post.authorUsername || "Anonymous";
-  const authorLink = post.authorUsername ? `/resident/${post.authorUsername}` : null;
-  
+  const authorLink = post.authorUsername ? `/ resident / ${post.authorUsername} ` : null;
+
   const postDate = new Date(post.createdAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -129,21 +139,21 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
     minute: '2-digit'
   });
 
-  const lastActivityDate = post.lastCommentAt 
+  const lastActivityDate = post.lastCommentAt
     ? new Date(post.lastCommentAt).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-      })
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    })
     : null;
 
   const displayCommentCount = actualCommentCount !== null ? actualCommentCount + optimistic.length : post.commentCount;
-  
+
   // Check if current user owns this post
   const isOwner = me?.loggedIn && me.user?.id === post.authorId;
   const isAdmin = me?.loggedIn && me.user?.role === "admin";
-  
+
   const handleCommentAdded = (c: CommentWire) => {
     setOptimistic((arr) => [c, ...arr]);
     setCommentsOpen(true);
@@ -157,7 +167,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
   function handleEdit() {
     // Navigate to edit page
     if (post.authorUsername) {
-      router.push(`/resident/${post.authorUsername}/post/${post.id}/edit`);
+      router.push(`/ resident / ${post.authorUsername} /post/${post.id}/edit`);
     }
   }
 
@@ -171,7 +181,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
 
   async function deletePost() {
     if (!confirm("Delete this post? This action cannot be undone.")) return;
-    
+
     try {
       const token = await mintPostCap();
       const res = await csrfFetch("/api/posts/delete", {
@@ -179,7 +189,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: post.id, cap: token }),
       });
-      
+
       if (res.ok) {
         // Refresh the page to remove the deleted post from feed
         window.location.reload();
@@ -215,40 +225,41 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
   }
 
   return (
-    <article className="bg-thread-paper border-y sm:border border-thread-sage/30 p-4 sm:p-6 mb-4 sm:rounded-cozy shadow-cozySm hover:shadow-cozy transition-shadow">
+    <article className="bg-thread-paper border-y sm:border border-thread-sage/30 p-5 sm:p-8 mb-6 sm:rounded-cozy shadow-cozySm hover:shadow-cozy transition-all duration-300">
       {/* Author Info */}
-      <header className="flex items-center gap-3 mb-4">
+      <header className="flex items-center gap-4 mb-5">
         {post.authorAvatarUrl ? (
           <Image
             src={post.authorAvatarUrl}
             alt={`${authorName}'s avatar`}
-            width={48}
-            height={48}
-            className="w-12 h-12 rounded-full border-2 border-thread-sage/30 shadow-sm"
+            width={56}
+            height={56}
+            className="w-14 h-14 rounded-full border-2 border-thread-sage/20 shadow-sm"
             unoptimized={post.authorAvatarUrl?.endsWith('.gif')}
           />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-thread-cream border-2 border-thread-sage/30 flex items-center justify-center">
-            <span className="text-thread-sage font-mono text-sm">
+          <div className="w-14 h-14 rounded-full bg-thread-cream border-2 border-thread-sage/20 flex items-center justify-center shadow-sm">
+            <span className="text-thread-sage font-mono text-lg">
               {authorName.charAt(0).toUpperCase()}
             </span>
           </div>
         )}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {post.authorUsername ? (
               <UserMention
                 username={post.authorUsername}
                 displayName={authorName}
-                className="font-medium text-thread-pine transition-colors"
+                className="font-bold text-lg text-thread-pine hover:text-thread-sunset transition-colors truncate"
               />
             ) : (
-              <span className="font-medium text-thread-pine">{authorName}</span>
+              <span className="font-bold text-lg text-thread-pine truncate">{authorName}</span>
             )}
-            <span className="thread-label">{postDate}</span>
+            <span className="text-thread-sage text-sm">•</span>
+            <span className="text-thread-sage text-sm font-medium">{postDate}</span>
           </div>
           {/* User badges */}
-          <div className="mt-1">
+          <div className="mt-0.5">
             <ImprovedBadgeDisplay
               userId={post.authorId}
               context="posts"
@@ -256,13 +267,14 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
             />
           </div>
           {showActivity && post.lastCommentAt && (
-            <div className="thread-label text-xs mt-1">
-              Latest activity: {lastActivityDate}
+            <div className="text-xs text-thread-sage mt-1 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+              Active {lastActivityDate}
               {post.lastCommenterUsername && ` by ${post.lastCommenterUsername}`}
             </div>
           )}
         </div>
-        
+
         {/* Actions Dropdown */}
         <PostActionsDropdown
           post={{
@@ -287,55 +299,63 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
 
       {/* Spoiler Warning */}
       {post.isSpoiler && !spoilerRevealed && (
-        <div className="mb-4 p-4 spoiler-warning rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xl">⚠️</span>
-            <h3 className="font-bold text-lg">Content Warning</h3>
+        <div className="mb-6 p-6 spoiler-warning rounded-xl border-2 border-dashed border-thread-sage/40 bg-thread-cream/30">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-2xl">⚠️</span>
+            <h3 className="font-bold text-xl text-thread-pine">Content Warning</h3>
           </div>
           {post.contentWarning && (
-            <p className="mb-3 text-sm">{post.contentWarning}</p>
+            <p className="mb-4 text-base text-thread-pine/80 font-medium">{post.contentWarning}</p>
           )}
           <button
             onClick={() => setSpoilerRevealed(true)}
-            className="px-4 py-2 bg-white text-black font-bold border-2 border-black hover:bg-yellow-200 shadow-[2px_2px_0_#000] transition-all"
+            className="px-6 py-2.5 bg-white text-black font-bold border-2 border-black hover:bg-yellow-200 shadow-[4px_4px_0_#000] hover:shadow-[2px_2px_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all rounded-lg"
           >
-            👁️ Click to Reveal Spoilers
+            👁️ Reveal Content
           </button>
         </div>
       )}
 
       {/* Post Title with Intent */}
       {post.title && (
-        <div className={`mb-4 ${post.isSpoiler && !spoilerRevealed ? 'spoiler-content' : ''}`}>
+        <div className={`mb-4 ${post.isSpoiler && !spoilerRevealed ? 'spoiler-content hidden' : ''}`}>
           {post.authorUsername ? (
-            <Link 
+            <Link
               href={`/resident/${post.authorUsername}/post/${post.id}`}
-              className="block hover:bg-gray-50 -m-2 p-2 rounded transition-colors"
+              className="block group"
             >
               {post.intent ? (
-                <div className="space-y-1">
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">{authorName}</span>
-                    <span> is {post.intent}</span>
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-thread-cream/50 border border-thread-sage/20 text-sm text-thread-pine/80">
+                    <span className="font-semibold">{authorName}</span>
+                    <span>is {post.intent}</span>
                   </div>
-                  <h2 className="text-xl font-semibold text-black leading-tight">{post.title}</h2>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
+                    {post.title}
+                  </h2>
                 </div>
               ) : (
-                <h2 className="text-xl font-semibold text-black">{post.title}</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
+                  {post.title}
+                </h2>
               )}
             </Link>
           ) : (
             <div>
               {post.intent ? (
-                <div className="space-y-1">
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">{authorName}</span>
-                    <span> is {post.intent}</span>
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-thread-cream/50 border border-thread-sage/20 text-sm text-thread-pine/80">
+                    <span className="font-semibold">{authorName}</span>
+                    <span>is {post.intent}</span>
                   </div>
-                  <h2 className="text-xl font-semibold text-black leading-tight">{post.title}</h2>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
+                    {post.title}
+                  </h2>
                 </div>
               ) : (
-                <h2 className="text-xl font-semibold text-black">{post.title}</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
+                  {post.title}
+                </h2>
               )}
             </div>
           )}
@@ -343,62 +363,110 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
       )}
 
       {/* Post Content */}
-      <div className={`thread-content mb-4 ${post.isSpoiler && !spoilerRevealed ? 'spoiler-content' : ''}`}>
+      <div className={`thread-content mb-6 text-lg leading-relaxed text-gray-800 ${post.isSpoiler && !spoilerRevealed ? 'spoiler-content hidden' : ''}`}>
         {content ? (
-          <>
+          <div className="relative">
             <div
+              className={`transition-all duration-500 ease-in-out overflow-hidden ${shouldTruncate && !isExpanded ? 'max-h-[400px] mask-linear-fade' : ''}`}
               dangerouslySetInnerHTML={{
-                __html: shouldTruncate && !isExpanded ? truncateHtml(content) : content
+                __html: content // We render full content but mask it with CSS if truncated
               }}
             />
             {shouldTruncate && (
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="mt-2 text-sm text-thread-sunset hover:text-thread-pine font-medium transition-colors underline"
-              >
-                {isExpanded ? 'Show less' : 'Read more'}
-              </button>
+              <div className={`mt-4 flex justify-center ${!isExpanded ? 'absolute bottom-0 left-0 right-0 pt-20 pb-0 bg-gradient-to-t from-thread-paper to-transparent' : ''}`}>
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="group flex items-center gap-2 px-6 py-2 bg-white border border-thread-sage/30 rounded-full shadow-sm hover:shadow-md hover:border-thread-sunset/50 transition-all"
+                >
+                  <span className="text-sm font-semibold text-thread-pine group-hover:text-thread-sunset">
+                    {isExpanded ? 'Show less' : 'Continue reading'}
+                  </span>
+                  <span className="text-xs transform group-hover:translate-y-0.5 transition-transform">
+                    {isExpanded ? '↑' : '↓'}
+                  </span>
+                </button>
+              </div>
             )}
-          </>
-        ) : (
-          <p className="text-thread-sage italic">No content available</p>
-        )}
+          </div>
+        ) : null}
       </div>
 
-      {/* Tags */}
-      {post.tags && post.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {post.tags.map((tag, idx) => (
-            <span
-              key={idx}
-              className="thread-label bg-thread-cream px-2 py-1 rounded text-xs"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* ThreadRing badges */}
-      {post.threadRings && post.threadRings.length > 0 && (
-        <div className="mb-4 pt-2 border-t border-thread-sage/20">
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-thread-sage font-medium">Posted to:</span>
-            {post.threadRings
-              .filter((association) => association && association.threadRing && association.threadRing.id)
-              .map((association) => (
-                <ThreadRingBadge
-                  key={association.threadRing.id}
-                  threadRing={association.threadRing}
-                  size="small"
-                />
-              ))}
+      {/* Journal Metadata */}
+      {post.metadata && (post.metadata.mood || post.metadata.listeningTo || post.metadata.reading || post.metadata.drinking || post.metadata.location) && (
+        <div className="mb-6 p-4 bg-thread-cream/30 border border-thread-sage/20 rounded-lg text-sm font-mono text-thread-pine/80">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+            {post.metadata?.mood && (
+              <div className="flex items-center gap-2">
+                <PixelIcon name="heart" size={16} className="text-thread-sage" />
+                <span>Mood: <strong>{post.metadata.mood}</strong></span>
+              </div>
+            )}
+            {post.metadata?.listeningTo && (
+              <div className="flex items-center gap-2">
+                <PixelIcon name="music" size={16} className="text-thread-sage" />
+                <span>Listening to: <strong>{post.metadata.listeningTo}</strong></span>
+              </div>
+            )}
+            {post.metadata?.reading && (
+              <div className="flex items-center gap-2">
+                <PixelIcon name="script" size={16} className="text-thread-sage" />
+                <span>Reading: <strong>{post.metadata.reading}</strong></span>
+              </div>
+            )}
+            {post.metadata?.drinking && (
+              <div className="flex items-center gap-2">
+                <PixelIcon name="drop" size={16} className="text-thread-sage" />
+                <span>Drinking: <strong>{post.metadata.drinking}</strong></span>
+              </div>
+            )}
+            {post.metadata?.location && (
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <PixelIcon name="map" size={16} className="text-thread-sage" />
+                <span>Location: <strong>{post.metadata.location}</strong></span>
+              </div>
+            )}
           </div>
         </div>
       )}
 
+      {/* Tags */}
+      {
+        post.tags && post.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {post.tags.map((tag, idx) => (
+              <span
+                key={idx}
+                className="px-3 py-1 bg-thread-cream/60 border border-thread-sage/10 rounded-lg text-sm text-thread-pine hover:bg-thread-cream hover:border-thread-sage/30 transition-colors cursor-pointer"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )
+      }
+
+      {/* ThreadRing badges */}
+      {
+        post.threadRings && post.threadRings.length > 0 && (
+          <div className="mb-5 pt-4 border-t border-thread-sage/10">
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs uppercase tracking-wider text-thread-sage font-semibold">Posted to</span>
+              {post.threadRings
+                .filter((association) => association && association.threadRing && association.threadRing.id)
+                .map((association) => (
+                  <ThreadRingBadge
+                    key={association.threadRing.id}
+                    threadRing={association.threadRing}
+                    size="small"
+                  />
+                ))}
+            </div>
+          </div>
+        )
+      }
+
       {/* Footer */}
-      <footer className="flex items-center justify-between text-sm border-t border-thread-sage/20 pt-3">
+      <footer className="flex items-center justify-between pt-4 border-t-2 border-thread-sage/10">
         <div className="flex items-center gap-4">
           <button
             onClick={() => {
@@ -407,40 +475,47 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
                 setCommentsVersion(v => v + 1);
               }
             }}
-            className="thread-label hover:text-thread-sunset transition-colors cursor-pointer"
+            className="group inline-flex flex-row items-center gap-2 px-3 py-1.5 -ml-3 rounded-lg hover:bg-thread-cream/50 transition-colors whitespace-nowrap"
+            style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap' }}
           >
-            {displayCommentCount} {displayCommentCount === 1 ? 'comment' : 'comments'}
+            <PixelIcon name="chat" size={20} className="text-thread-sage group-hover:scale-110 transition-transform shrink-0" style={{ flexShrink: 0, display: 'block' }} />
+            <span className="font-medium text-thread-pine group-hover:text-thread-sunset leading-none">
+              {displayCommentCount}
+            </span>
           </button>
         </div>
         <div className="flex items-center gap-3">
           {authorLink && (
             <Link
               href={`${authorLink}?tab=blog`}
-              className="thread-label hover:text-thread-sunset"
+              className="text-sm font-medium text-thread-sage hover:text-thread-pine transition-colors flex items-center gap-1 group"
             >
-              View on profile →
+              <span>View on profile</span>
+              <span className="transform group-hover:translate-x-1 transition-transform">→</span>
             </Link>
           )}
         </div>
       </footer>
 
       {/* Comments Section */}
-      {commentsOpen && (
-        <section className="mt-4 border-t border-thread-sage/20 pt-4">
-          <div className="space-y-4">
-            <NewCommentForm postId={post.id} onCommentAdded={handleCommentAdded} />
-            <CommentList
-              postId={post.id}
-              version={commentsVersion}
-              onLoaded={handleCommentsLoaded}
-              optimistic={optimistic}
-              canModerate={false}
-              isAdmin={false}
-              onCommentAdded={handleCommentAdded}
-            />
-          </div>
-        </section>
-      )}
-    </article>
+      {
+        commentsOpen && (
+          <section className="mt-6 pt-6 border-t border-thread-sage/20 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="space-y-6">
+              <NewCommentForm postId={post.id} onCommentAdded={handleCommentAdded} />
+              <CommentList
+                postId={post.id}
+                version={commentsVersion}
+                onLoaded={handleCommentsLoaded}
+                optimistic={optimistic}
+                canModerate={false}
+                isAdmin={false}
+                onCommentAdded={handleCommentAdded}
+              />
+            </div>
+          </section>
+        )
+      }
+    </article >
   );
 }

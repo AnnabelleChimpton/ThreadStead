@@ -212,6 +212,7 @@ model Post {
   textPreview       String?
   contentWarning    String? // Custom spoiler warning text
   isSpoiler         Boolean          @default(false) // Quick flag for filtering
+  metadata          Json?            // Journal metadata (mood, listening to, etc.)
   threadRingPostIds Json? // Store ThreadRing database UUIDs mapped by ring slug
   comments          Comment[]        @relation("PostComments")
   author            User             @relation(fields: [authorId], references: [id], onDelete: Cascade)

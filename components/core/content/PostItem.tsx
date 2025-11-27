@@ -17,6 +17,7 @@ import PostActionsDropdown from "./PostActionsDropdown";
 import { useWelcomeRingTracking } from "@/hooks/useWelcomeRingTracking";
 import { useViewportTracking, trackEngagement } from "@/hooks/usePostView";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 // Helper function to format time ago
 function formatTimeAgo(date: Date): string {
@@ -44,24 +45,24 @@ export type Post = {
   bodyHtml?: string | null;
   bodyMarkdown?: string | null; // Ensure bodyMarkdown is available for edit
   visibility: Visibility;
-  
+
   // Spoiler content warning fields
   isSpoiler?: boolean;
   contentWarning?: string | null;
-  
+
   // Ring Hub metadata alignment (all optional)
   textPreview?: string | null; // Max 300 chars - for social/feed previews
   excerpt?: string | null; // Max 500 chars - for detailed descriptions
   publishedAt?: string | null; // ISO string, can differ from createdAt
   platform?: string | null; // Source platform
-  
+
   // Ring Hub moderation fields
   ringHubPostId?: string | null; // Ring Hub post ID for moderation
   moderationStatus?: PostModerationStatus; // Current moderation status
   moderatedAt?: string | null; // ISO string when moderated
   moderatedBy?: string | null; // DID of moderator
   moderationNote?: string | null; // Moderation reason/note
-  
+
   author?: { id: string; primaryHandle?: string; profile?: { displayName?: string } };
   threadRings?: Array<{
     threadRing: {
@@ -84,6 +85,13 @@ export type Post = {
     isNotification?: boolean;
     notificationType?: string;
   };
+  metadata?: {
+    mood?: string;
+    listeningTo?: string;
+    reading?: string;
+    drinking?: string;
+    location?: string;
+  } | null;
 };
 
 
@@ -146,7 +154,7 @@ export default function PostItem({
   // Ring Hub moderation permissions
   const moderationPermissions = useModerationPermissions(userRole, isUserMember);
   const showRingHubModeration = threadRingContext && post.ringHubPostId && moderationPermissions.canModerate;
-  
+
   // Welcome ring tracking
   const { trackCommentCreated } = useWelcomeRingTracking(threadRingContext?.slug);
 
@@ -167,37 +175,37 @@ export default function PostItem({
 
 
   useEffect(() => {
-  let cancelled = false;
-  (async () => {
-    try {
-      const r = await fetch(`/api/comments/count?postId=${encodeURIComponent(post.id)}`);
-      if (!r.ok) return;
-      const data = await r.json();
-      if (!cancelled && typeof data?.count === "number") {
-        setCommentCount(data.count);
-      }
-    } catch {}
-  })();
-  return () => { cancelled = true; };
-}, [post.id]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/comments/count?postId=${encodeURIComponent(post.id)}`);
+        if (!r.ok) return;
+        const data = await r.json();
+        if (!cancelled && typeof data?.count === "number") {
+          setCommentCount(data.count);
+        }
+      } catch { }
+    })();
+    return () => { cancelled = true; };
+  }, [post.id]);
 
   // callbacks
-const handleCommentAdded = (c: CommentWireForm) => {
-  // show instantly
-  setOptimistic((arr) => [c, ...arr]);
-  setCommentsOpen(true);
-  
-  // Track comment creation for Welcome Ring progress
-  trackCommentCreated();
+  const handleCommentAdded = (c: CommentWireForm) => {
+    // show instantly
+    setOptimistic((arr) => [c, ...arr]);
+    setCommentsOpen(true);
 
-  // optional: kick a background sync next time (or immediately if you prefer)
-  // setCommentsVersion((v) => v + 1);
-};
+    // Track comment creation for Welcome Ring progress
+    trackCommentCreated();
 
-const hasServerCount = commentCount !== null;
-const countLabel = hasServerCount
-  ? String((commentCount ?? 0) + optimistic.length)
-  : (optimistic.length ? `${optimistic.length}+` : "…");
+    // optional: kick a background sync next time (or immediately if you prefer)
+    // setCommentsVersion((v) => v + 1);
+  };
+
+  const hasServerCount = commentCount !== null;
+  const countLabel = hasServerCount
+    ? String((commentCount ?? 0) + optimistic.length)
+    : (optimistic.length ? `${optimistic.length}+` : "…");
 
 
   // Function to apply syntax highlighting
@@ -310,7 +318,7 @@ const countLabel = hasServerCount
         headers: { "Content-Type": "application/json" },
       });
       if (!res.ok) throw new Error(`remove ${res.status}`);
-      
+
       await onChanged?.();
     } catch (e: any) {
       setErr(e?.message || "Failed to remove from ThreadRing");
@@ -347,7 +355,7 @@ const countLabel = hasServerCount
           {/* Check if this is a fork notification - if so, don't show actions dropdown */}
           {(() => {
             const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
-                                      (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
+              (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
 
             return !isForkNotification && (
               <PostActionsDropdown
@@ -372,7 +380,7 @@ const countLabel = hasServerCount
         {/* Check for fork notification */}
         {(() => {
           const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
-                                    (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
+            (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
 
           if (isForkNotification) {
             return (
@@ -438,91 +446,129 @@ const countLabel = hasServerCount
 
           return (
             <>
-                {/* Spoiler Warning - Works for both local and external posts */}
-                {isSpoilerPost() && !spoilerRevealed && (
-                  <div className="mb-4 p-4 spoiler-warning rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xl">⚠️</span>
-                      <h3 className="font-bold text-lg">Content Warning</h3>
-                    </div>
-                    {getSpoilerWarning() && (
-                      <p className="mb-3 text-sm">{getSpoilerWarning()}</p>
-                    )}
-                    <button
-                      onClick={() => setSpoilerRevealed(true)}
-                      className="px-4 py-2 bg-white text-black font-bold border-2 border-black hover:bg-yellow-200 shadow-[2px_2px_0_#000] transition-all"
-                    >
-                      👁️ Click to Reveal Spoilers
-                    </button>
+              {/* Spoiler Warning - Works for both local and external posts */}
+              {isSpoilerPost() && !spoilerRevealed && (
+                <div className="mb-4 p-4 spoiler-warning rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">⚠️</span>
+                    <h3 className="font-bold text-lg">Content Warning</h3>
                   </div>
-                )}
-
-                {/* Post Header */}
-                {post.title && (
-                  <div className={isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}>
-                    <PostHeader post={post} currentUser={currentUser} />
-                  </div>
-                )}
-
-                {/* Post Content */}
-                <div className={`thread-content text-gray-700 ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}`}>
-                  {(() => {
-                    // Determine content source and check if truncation is needed
-                    const rawContent = post.bodyMarkdown || post.bodyHtml || post.bodyText || "";
-                    const shouldTruncate = shouldEnableTruncation && needsTruncation(rawContent) && !isExpanded;
-
-                    // Render content based on type and truncation state
-                    if (post.bodyMarkdown) {
-                      const displayMarkdown = shouldTruncate ? truncateText(post.bodyMarkdown) : post.bodyMarkdown;
-                      return <MarkdownWithEmojis markdown={displayMarkdown} />;
-                    } else if (post.bodyHtml) {
-                      const displayHtml = shouldTruncate ? truncateHtml(post.bodyHtml) : post.bodyHtml;
-                      return <HtmlWithEmojis html={displayHtml} />;
-                    } else if (post.bodyText) {
-                      const displayText = shouldTruncate ? truncateText(post.bodyText) : post.bodyText;
-                      return <p><TextWithEmojis text={displayText} /></p>;
-                    } else {
-                      return <div className="italic opacity-70">(No content)</div>;
-                    }
-                  })()}
-                  {shouldEnableTruncation && needsTruncation(post.bodyMarkdown || post.bodyHtml || post.bodyText || "") && (
-                    <button
-                      onClick={() => setIsExpanded(!isExpanded)}
-                      className="mt-2 text-sm text-black hover:text-gray-700 font-medium transition-colors underline"
-                    >
-                      {isExpanded ? 'Show less' : 'Read more'}
-                    </button>
+                  {getSpoilerWarning() && (
+                    <p className="mb-3 text-sm">{getSpoilerWarning()}</p>
                   )}
+                  <button
+                    onClick={() => setSpoilerRevealed(true)}
+                    className="px-4 py-2 bg-white text-black font-bold border-2 border-black hover:bg-yellow-200 shadow-[2px_2px_0_#000] transition-all"
+                  >
+                    👁️ Click to Reveal Spoilers
+                  </button>
                 </div>
+              )}
 
-                {/* ThreadRing badges */}
-                {post.threadRings && post.threadRings.length > 0 && (
-                  <div className="mt-3 pt-2 border-t border-gray-200">
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <span className="text-xs text-gray-600 font-medium">Posted to:</span>
-                      {post.threadRings
-                        .filter((association) => association && association.threadRing && association.threadRing.id)
-                        .map((association) => (
-                          <ThreadRingBadge
-                            key={association.threadRing.id}
-                            threadRing={association.threadRing}
-                            size="small"
-                          />
-                        ))}
-                    </div>
+              {/* Post Header */}
+              {post.title && (
+                <div className={isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}>
+                  <PostHeader post={post} currentUser={currentUser} />
+                </div>
+              )}
+
+              {/* Post Content */}
+              <div className={`thread-content text-gray-700 ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}`}>
+                {(() => {
+                  // Determine content source and check if truncation is needed
+                  const rawContent = post.bodyMarkdown || post.bodyHtml || post.bodyText || "";
+                  const shouldTruncate = shouldEnableTruncation && needsTruncation(rawContent) && !isExpanded;
+
+                  // Render content based on type and truncation state
+                  if (post.bodyMarkdown) {
+                    const displayMarkdown = shouldTruncate ? truncateText(post.bodyMarkdown) : post.bodyMarkdown;
+                    return <MarkdownWithEmojis markdown={displayMarkdown} />;
+                  } else if (post.bodyHtml) {
+                    const displayHtml = shouldTruncate ? truncateHtml(post.bodyHtml) : post.bodyHtml;
+                    return <HtmlWithEmojis html={displayHtml} />;
+                  } else if (post.bodyText) {
+                    const displayText = shouldTruncate ? truncateText(post.bodyText) : post.bodyText;
+                    return <p><TextWithEmojis text={displayText} /></p>;
+                  } else {
+                    return <div className="italic opacity-70">(No content)</div>;
+                  }
+                })()}
+                {shouldEnableTruncation && needsTruncation(post.bodyMarkdown || post.bodyHtml || post.bodyText || "") && (
+                  <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="mt-2 text-sm text-black hover:text-gray-700 font-medium transition-colors underline"
+                  >
+                    {isExpanded ? 'Show less' : 'Read more'}
+                  </button>
+                )}
+              </div>
+
+              {/* Journal Metadata */}
+              {post.metadata && (post.metadata.mood || post.metadata.listeningTo || post.metadata.reading || post.metadata.drinking || post.metadata.location) && (
+                <div className="mb-6 p-4 bg-thread-cream/30 border border-thread-sage/20 rounded-lg text-sm font-mono text-thread-pine/80">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                    {post.metadata?.mood && (
+                      <div className="flex items-center gap-2">
+                        <PixelIcon name="heart" size={16} className="text-thread-sage" />
+                        <span>Mood: <strong>{post.metadata.mood}</strong></span>
+                      </div>
+                    )}
+                    {post.metadata?.listeningTo && (
+                      <div className="flex items-center gap-2">
+                        <PixelIcon name="music" size={16} className="text-thread-sage" />
+                        <span>Listening to: <strong>{post.metadata.listeningTo}</strong></span>
+                      </div>
+                    )}
+                    {post.metadata?.reading && (
+                      <div className="flex items-center gap-2">
+                        <PixelIcon name="article" size={16} className="text-thread-sage" />
+                        <span>Reading: <strong>{post.metadata.reading}</strong></span>
+                      </div>
+                    )}
+                    {post.metadata?.drinking && (
+                      <div className="flex items-center gap-2">
+                        <PixelIcon name="drop" size={16} className="text-thread-sage" />
+                        <span>Drinking: <strong>{post.metadata.drinking}</strong></span>
+                      </div>
+                    )}
+                    {post.metadata?.location && (
+                      <div className="flex items-center gap-2 sm:col-span-2">
+                        <PixelIcon name="map" size={16} className="text-thread-sage" />
+                        <span>Location: <strong>{post.metadata.location}</strong></span>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Ring Hub moderation actions */}
-                {showRingHubModeration && (
-                  <PostModerationActions
-                    postId={post.ringHubPostId!}
-                    currentStatus={post.moderationStatus}
-                    isPinned={post.isPinned}
-                    canModerate={moderationPermissions.canModerate}
-                    onModerationAction={handleRingHubModerationAction}
-                  />
-                )}
+              {/* ThreadRing badges */}
+              {post.threadRings && post.threadRings.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-gray-200">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-xs text-gray-600 font-medium">Posted to:</span>
+                    {post.threadRings
+                      .filter((association) => association && association.threadRing && association.threadRing.id)
+                      .map((association) => (
+                        <ThreadRingBadge
+                          key={association.threadRing.id}
+                          threadRing={association.threadRing}
+                          size="small"
+                        />
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Ring Hub moderation actions */}
+              {showRingHubModeration && (
+                <PostModerationActions
+                  postId={post.ringHubPostId!}
+                  currentStatus={post.moderationStatus}
+                  isPinned={post.isPinned}
+                  canModerate={moderationPermissions.canModerate}
+                  onModerationAction={handleRingHubModerationAction}
+                />
+              )}
             </>
           );
         })()}
@@ -534,13 +580,13 @@ const countLabel = hasServerCount
       {/* Disable comments for fork notifications */}
       {(() => {
         const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
-                                  (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
+          (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
         return !isForkNotification;
       })() && (
-        <section className="mt-4 border-t border-black pt-3 sm:px-0">
-        <button
-            type="button"
-            onClick={async () => {
+          <section className="mt-4 border-t border-black pt-3 sm:px-0">
+            <button
+              type="button"
+              onClick={async () => {
                 const wasOpen = commentsOpen;
                 setCommentsOpen((o) => !o);
                 if (!wasOpen) {
@@ -548,32 +594,32 @@ const countLabel = hasServerCount
                   await trackEngagement(post.id, 'comment_expand');
                   if (commentCount === null) setCommentsVersion((v) => v + 1);
                 }
-            }}
-            className="flex w-full items-center justify-between rounded px-2 py-1 border border-black bg-white shadow-[2px_2px_0_#000] hover:bg-yellow-100 text-sm"
-            aria-expanded={commentsOpen}
-            aria-controls={`comments-${post.id}`}
+              }}
+              className="flex w-full items-center justify-between rounded px-2 py-1 border border-black bg-white shadow-[2px_2px_0_#000] hover:bg-yellow-100 text-sm"
+              aria-expanded={commentsOpen}
+              aria-controls={`comments-${post.id}`}
             >
-            <span className="font-semibold">Comments: </span>
-            <span className="opacity-70">{countLabel}</span>
-        </button>
+              <span className="font-semibold">Comments: </span>
+              <span className="opacity-70">{countLabel}</span>
+            </button>
 
-        {commentsOpen && (
-            <div id={`comments-${post.id}`} className="mt-2 space-y-3">
-            <NewCommentForm postId={post.id} onCommentAdded={handleCommentAdded} />
-            <CommentList
-                postId={post.id}
-                version={commentsVersion}
-                onLoaded={(n) => setCommentCount(n)}
-                optimistic={optimistic}
-                canModerate={isOwner}
-                isAdmin={isAdmin}
-                onCommentAdded={handleCommentAdded}
-                highlightCommentId={highlightCommentId}
-            />
-            </div>
+            {commentsOpen && (
+              <div id={`comments-${post.id}`} className="mt-2 space-y-3">
+                <NewCommentForm postId={post.id} onCommentAdded={handleCommentAdded} />
+                <CommentList
+                  postId={post.id}
+                  version={commentsVersion}
+                  onLoaded={(n) => setCommentCount(n)}
+                  optimistic={optimistic}
+                  canModerate={isOwner}
+                  isAdmin={isAdmin}
+                  onCommentAdded={handleCommentAdded}
+                  highlightCommentId={highlightCommentId}
+                />
+              </div>
+            )}
+          </section>
         )}
-        </section>
-      )}
 
     </article>
   );

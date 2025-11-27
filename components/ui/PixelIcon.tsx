@@ -1,5 +1,6 @@
 // components/ui/PixelIcon.tsx
-import { forwardRef } from 'react';
+import dynamic from 'next/dynamic';
+import { ComponentType, SVGProps } from 'react';
 
 // Map of available Pixelarticons
 // Full list: https://pixelarticons.com/
@@ -113,7 +114,7 @@ export type PixelIconName =
   | 'sort'
   | 'human-handsup';
 
-export interface PixelIconProps extends React.SVGAttributes<SVGElement> {
+export interface PixelIconProps extends SVGProps<SVGSVGElement> {
   /** The name of the Pixelarticon */
   name: PixelIconName;
   /** Icon size in pixels (default: 24) */
@@ -126,35 +127,27 @@ export interface PixelIconProps extends React.SVGAttributes<SVGElement> {
  * Pixel Icon Component
  *
  * Renders a 24x24 pixel icon from Pixelarticons.
- *
- * @example
- * // Basic usage
- * <PixelIcon name="save" />
- *
- * @example
- * // With custom size and color
- * <PixelIcon name="heart" size={32} color="red" />
+ * Uses next/dynamic for code splitting.
  */
-export const PixelIcon = forwardRef<SVGSVGElement, PixelIconProps>(
-  ({ name, size = 24, color = 'currentColor', className, style, ...props }, ref) => {
-    // Dynamic import pattern for pixelarticons
-    // Each icon is imported as an SVG component
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const IconComponent = require(`pixelarticons/svg/${name}.svg`).default;
+export const PixelIcon = ({ name, size = 24, color = 'currentColor', className, style, ...props }: PixelIconProps) => {
+  const IconComponent = dynamic<SVGProps<SVGSVGElement>>(() =>
+    import(`pixelarticons/svg/${name}.svg`).then(mod => mod.default || mod)
+    , {
+      loading: () => <span style={{ width: size, height: size, display: 'inline-block' }} />,
+      ssr: true // Try to render on server if possible
+    });
 
-    return (
-      <IconComponent
-        ref={ref}
-        width={size}
-        height={size}
-        fill={color}
-        className={className}
-        style={style}
-        aria-hidden="true"
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <IconComponent
+      width={size}
+      height={size}
+      fill={color}
+      className={className}
+      style={style}
+      aria-hidden="true"
+      {...props}
+    />
+  );
+};
 
 PixelIcon.displayName = 'PixelIcon';

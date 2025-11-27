@@ -85,12 +85,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       commentCount: post.comments.length,
       threadRings: post.threadRings,
       isSpoiler: post.isSpoiler,
-      contentWarning: post.contentWarning
+      contentWarning: post.contentWarning,
+      metadata: post.metadata
     }));
 
-    return res.json({ 
+    return res.json({
       posts: transformedPosts,
-      hasMore: posts.length === limit 
+      hasMore: posts.length === limit
     });
 
   } catch (error) {
