@@ -40,8 +40,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function updateRingBadge(
-  req: NextApiRequest, 
-  res: NextApiResponse, 
+  req: NextApiRequest,
+  res: NextApiResponse,
   userId: string,
   slug: string
 ) {
@@ -71,14 +71,22 @@ async function updateRingBadge(
     return res.json(result)
   } catch (error) {
     console.error('Badge update error:', error)
-    
+
+    // Handle RingHub API errors
     // Handle RingHub API errors
     if (error instanceof Error) {
-      if (error.message.includes('403')) {
+      const status = (error as any).status;
+
+      if (status === 403 || error.message.includes('403')) {
         return res.status(403).json({ error: 'Not authorized to update this ring badge. Only ring owners can update badges.' })
       }
-      if (error.message.includes('404')) {
+      if (status === 404 || error.message.includes('404')) {
         return res.status(404).json({ error: 'ThreadRing not found' })
+      }
+
+      // Pass through other error messages if available
+      if (status && status >= 400 && status < 500) {
+        return res.status(status).json({ error: error.message })
       }
     }
 
