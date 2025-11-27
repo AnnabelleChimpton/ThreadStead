@@ -118,7 +118,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
         generatedBadgeUrl = editedBadge.customImageUrl;
       } else {
         // Generate badge from template/colors and upload to S3
-        const response = await fetch(`/api/threadrings/${ring.slug}/generate-and-upload-badge`, {
+        const response = await csrfFetch(`/api/threadrings/${ring.slug}/generate-and-upload-badge`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -366,8 +366,8 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                       <button
                         onClick={() => setPreviewMode('template')}
                         className={`px-4 py-2 border border-black font-medium shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${previewMode === 'template'
-                            ? 'bg-yellow-200'
-                            : 'bg-white hover:bg-gray-100'
+                          ? 'bg-yellow-200'
+                          : 'bg-white hover:bg-gray-100'
                           }`}
                       >
                         📄 Use Template
@@ -375,8 +375,8 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                       <button
                         onClick={() => setPreviewMode('custom')}
                         className={`px-4 py-2 border border-black font-medium shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${previewMode === 'custom'
-                            ? 'bg-yellow-200'
-                            : 'bg-white hover:bg-gray-100'
+                          ? 'bg-yellow-200'
+                          : 'bg-white hover:bg-gray-100'
                           }`}
                       >
                         🎨 Custom Colors
@@ -384,8 +384,8 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                       <button
                         onClick={() => setPreviewMode('upload')}
                         className={`px-4 py-2 border border-black font-medium shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${previewMode === 'upload'
-                            ? 'bg-yellow-200'
-                            : 'bg-white hover:bg-gray-100'
+                          ? 'bg-yellow-200'
+                          : 'bg-white hover:bg-gray-100'
                           }`}
                       >
                         🖼️ Upload Image
@@ -403,8 +403,8 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                             key={template.id}
                             onClick={() => handleTemplateSelect(template.id)}
                             className={`p-1 border border-black rounded-none cursor-pointer text-center shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${editedBadge.templateId === template.id
-                                ? 'bg-yellow-100'
-                                : 'bg-white hover:bg-gray-50'
+                              ? 'bg-yellow-100'
+                              : 'bg-white hover:bg-gray-50'
                               }`}
                           >
                             <ThreadRing88x31Badge

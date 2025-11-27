@@ -19,8 +19,8 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
   const validateImageFile = (file: File): boolean => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     return allowedTypes.includes(file.type) || file.name.toLowerCase().endsWith('.jpg') ||
-           file.name.toLowerCase().endsWith('.jpeg') || file.name.toLowerCase().endsWith('.png') ||
-           file.name.toLowerCase().endsWith('.gif') || file.name.toLowerCase().endsWith('.webp');
+      file.name.toLowerCase().endsWith('.jpeg') || file.name.toLowerCase().endsWith('.png') ||
+      file.name.toLowerCase().endsWith('.gif') || file.name.toLowerCase().endsWith('.webp');
   };
 
   const handleFileSelect = (file: File) => {
@@ -65,7 +65,7 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
 
     try {
       // Get upload capability
-      const capRes = await fetch('/api/cap/media', { method: 'POST' });
+      const capRes = await csrfFetch('/api/cap/media', { method: 'POST' });
       if (!capRes.ok) {
         throw new Error('Failed to get upload permission');
       }
@@ -112,11 +112,10 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
     <div className="space-y-4">
       {/* File Drop Zone */}
       <div
-        className={`border-2 border-dashed p-6 text-center transition-colors ${
-          dragOver
+        className={`border-2 border-dashed p-6 text-center transition-colors ${dragOver
             ? 'border-thread-pine bg-thread-cream'
             : 'border-thread-sage hover:border-thread-pine'
-        }`}
+          }`}
         onDrop={handleDrop}
         onDragOver={(e) => {
           e.preventDefault();
