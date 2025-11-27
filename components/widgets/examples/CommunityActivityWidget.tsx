@@ -35,11 +35,6 @@ function CommunityActivityWidget({ data, isLoading, error, onRefresh }: WidgetPr
   if (data?.bulletin) availableTypes.push('bulletin');
   if (data?.announcement) availableTypes.push('announcement');
 
-  // If no data yet, default to poll (will show loading or empty state)
-  if (availableTypes.length === 0) {
-    availableTypes.push('poll');
-  }
-
   // Auto-rotate every 60 seconds if we have multiple types
   useEffect(() => {
     if (availableTypes.length <= 1) return;
