@@ -497,6 +497,8 @@ model ThreadRing {
   postCount             Int                  @default(0)
   currentPrompt         String?
   curatorNote           String?
+  bannerUrl             String?
+  themeColor            String?              @default("thread-pine")
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   directChildrenCount   Int                  @default(0)

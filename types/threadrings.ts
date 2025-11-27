@@ -18,6 +18,8 @@ export interface ThreadRing {
   postCount: number;
   currentPrompt?: string;
   curatorNote?: string;
+  bannerUrl?: string;
+  themeColor?: string;
   themeCss?: string;
   createdAt: string;
   updatedAt: string;
@@ -197,9 +199,9 @@ export interface ThreadRingAuditLog {
   };
 }
 
-export type ThreadRingAuditAction = 
+export type ThreadRingAuditAction =
   | 'member_add'
-  | 'member_remove' 
+  | 'member_remove'
   | 'member_role_change'
   | 'post_remove'
   | 'post_pin'
@@ -261,11 +263,11 @@ export interface PromptResponsePostRefMetadata {
 }
 
 // Union type for PostRef metadata
-export type ThreadRingPostRefMetadata = 
-  | PromptPostRefMetadata 
+export type ThreadRingPostRefMetadata =
+  | PromptPostRefMetadata
   | PromptResponsePostRefMetadata
-  | { type: 'fork_notification'; [key: string]: any }
-  | { type: 'regular_post'; [key: string]: any };
+  | { type: 'fork_notification';[key: string]: any }
+  | { type: 'regular_post';[key: string]: any };
 
 // Enhanced PostRef interface for ThreadRing usage
 export interface ThreadRingPostRef {

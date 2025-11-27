@@ -13,6 +13,7 @@ import RandomMemberDiscovery from "../../components/shared/RandomMemberDiscovery
 import ThreadRingFeedScope from "../../components/core/threadring/ThreadRingFeedScope";
 import ThreadRingActivePrompt from "../../components/core/threadring/ThreadRingActivePrompt";
 import ThreadRing88x31Badge from "../../components/core/threadring/ThreadRing88x31Badge";
+import ThreadRingAboutWidget from "../../components/core/threadring/ThreadRingAboutWidget";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
@@ -51,7 +52,10 @@ interface ThreadRing {
   name: string;
   slug: string;
   description?: string;
+
   curatorNote?: string;
+  bannerUrl?: string;
+  themeColor?: string;
   joinType: string;
   visibility: string;
   memberCount: number;
@@ -401,7 +405,10 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     slug: ring.slug,
     name: ring.name,
     description: ring.description,
+
     curatorNote: ring.curatorNote,
+    bannerUrl: ring.bannerUrl,
+    themeColor: ring.themeColor,
     memberCount: ring.memberCount,
     postCount: ring.postCount,
     visibility: ring.visibility,
@@ -920,6 +927,23 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         )}
       </Head>
 
+      {ring.themeColor && (
+        <style jsx global>{`
+          :root {
+            --ring-theme-color: ${ring.themeColor};
+          }
+          .text-thread-pine {
+            color: var(--ring-theme-color) !important;
+          }
+          .bg-thread-pine {
+            background-color: var(--ring-theme-color) !important;
+          }
+          .border-thread-pine {
+            border-color: var(--ring-theme-color) !important;
+          }
+        `}</style>
+      )}
+
       <Layout siteConfig={siteConfig} fullWidth={true}>
         {/* Welcome Ring Guide - shows only on welcome ring */}
         {ring.slug === 'welcome' && (
@@ -930,6 +954,15 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           {/* Main content area - posts feed */}
           <div className="tr-main-content col-span-1 lg:col-span-2">
             <div className="tr-header-card bg-thread-paper rounded-cozy shadow-cozy border border-thread-sage/30 overflow-hidden">
+              {ring.bannerUrl && (
+                <div className="w-full h-32 sm:h-48 relative bg-gray-100 border-b border-thread-sage/20">
+                  <img
+                    src={ring.bannerUrl}
+                    alt={`${ring.name} banner`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
               <div className="p-3 sm:p-6 border-b border-thread-sage/20">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <h1 className="tr-title text-3xl sm:text-4xl font-bold text-thread-pine min-w-0" title={ring.name}>
@@ -949,11 +982,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   )}
                 </div>
 
-                {ring.description && (
-                  <p className="tr-description text-gray-700 text-lg leading-relaxed mb-4">
-                    {ring.description}
-                  </p>
-                )}
+
 
                 <div className="tr-meta-info flex flex-wrap items-center gap-3 text-sm text-gray-600">
                   {ring.curator && (
@@ -970,17 +999,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 </div>
               </div>
 
-              {ring.curatorNote && (
-                <div className="tr-curator-note bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-thread-sage/20 p-3 sm:p-4">
-                  <div className="tr-curator-note-content flex items-start gap-3">
-                    <div className="tr-curator-note-icon text-2xl"><PixelIcon name="bookmark" size={24} /></div>
-                    <div className="tr-curator-note-text flex-1">
-                      <p className="tr-curator-note-label text-sm font-bold text-yellow-900 mb-1">Ring Host&apos;s Note</p>
-                      <p className="tr-curator-note-message text-sm text-yellow-800 leading-relaxed">{ring.curatorNote}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               <div className="tr-footer px-3 sm:px-6 py-3 bg-gray-50">
                 <span className="tr-slug text-xs text-gray-500 font-mono">threadring/{ring.slug}</span>
@@ -1065,6 +1084,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
           {/* Sidebar - Hidden on mobile, visible on desktop */}
           <div className="tr-sidebar hidden lg:block lg:col-span-1 space-y-4">
+            {/* About Widget - Community Hub Feature */}
+            <ThreadRingAboutWidget
+              description={ring.description}
+              curatorNote={ring.curatorNote}
+            />
             {/* Primary Actions - Always Visible */}
             <div className="tr-sidebar-section tr-primary-actions bg-thread-paper rounded-cozy shadow-cozySm border border-thread-sage/30 p-3 sm:p-4">
               {isMember ? (

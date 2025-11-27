@@ -132,7 +132,9 @@ export function transformRingDescriptorToThreadRing(
     memberCount: descriptor.memberCount,
     postCount: descriptor.postCount,
     currentPrompt: undefined, // TODO: Extract from Ring Hub metadata
-    curatorNote: descriptor.curatorNotes,
+    curatorNote: (descriptor.curatorNotes || descriptor.curatorNote) || undefined,
+    bannerUrl: descriptor.bannerUrl || undefined,
+    themeColor: descriptor.themeColor || undefined,
     themeCss: undefined, // Not supported in Ring Hub initially
     createdAt: descriptor.createdAt,
     updatedAt: descriptor.updatedAt || descriptor.createdAt,

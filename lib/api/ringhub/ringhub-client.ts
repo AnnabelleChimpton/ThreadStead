@@ -24,6 +24,8 @@ export interface RingDescriptor {
   createdAt: string        // ISO timestamp
   updatedAt: string        // ISO timestamp
   curatorNote: string | null
+  bannerUrl: string | null
+  themeColor: string | null
   badgeImageUrl: string | null
   badgeImageHighResUrl: string | null
   metadata: Record<string, any> | null
