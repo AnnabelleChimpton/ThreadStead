@@ -11,6 +11,7 @@ import ThreadRingInviteForm from "../../../components/ui/forms/ThreadRingInviteF
 import ThreadRingPromptManager from "../../../components/core/threadring/ThreadRingPromptManager";
 import ThreadRingBlockManager from "../../../components/core/threadring/ThreadRingBlockManager";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { PixelIcon } from "../../../components/ui/PixelIcon";
 
 interface ThreadRingSettingsPageProps {
   siteConfig: SiteConfig;
@@ -24,6 +25,8 @@ interface ThreadRingSettingsPageProps {
     visibility: string;
     postPolicy?: string;
     curatorNote?: string | null;
+    bannerUrl?: string | null;
+    themeColor?: string | null;
     memberCount: number;
     postCount: number;
   } | null;
@@ -31,11 +34,11 @@ interface ThreadRingSettingsPageProps {
   error?: string;
 }
 
-export default function ThreadRingSettingsPage({ 
-  siteConfig, 
-  ring, 
+export default function ThreadRingSettingsPage({
+  siteConfig,
+  ring,
   canManage,
-  error 
+  error
 }: ThreadRingSettingsPageProps) {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -45,7 +48,9 @@ export default function ThreadRingSettingsPage({
     joinType: ring?.joinType || "open",
     visibility: ring?.visibility || "public",
     postPolicy: ring?.postPolicy || "members",
-    curatorNote: ring?.curatorNote || ""
+    curatorNote: ring?.curatorNote || "",
+    bannerUrl: ring?.bannerUrl || "",
+    themeColor: ring?.themeColor || "thread-pine"
   });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -128,14 +133,16 @@ export default function ThreadRingSettingsPage({
             <div className="flex gap-2">
               <button
                 onClick={() => router.push(`/tr/${ring.slug}/members`)}
-                className="border border-black px-4 py-2 bg-blue-100 hover:bg-blue-200 shadow-[2px_2px_0_#000]"
+                className="flex items-center gap-2 border border-black px-4 py-2 bg-blue-100 hover:bg-blue-200 shadow-[2px_2px_0_#000]"
               >
+                <PixelIcon name="users" className="w-4 h-4" />
                 Manage Members
               </button>
               <button
                 onClick={() => router.push(`/tr/${ring.slug}`)}
-                className="border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
+                className="flex items-center gap-2 border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
               >
+                <PixelIcon name="arrow-left" className="w-4 h-4" />
                 Back to ThreadRing
               </button>
             </div>
@@ -150,8 +157,11 @@ export default function ThreadRingSettingsPage({
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Settings */}
             <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
-              <h2 className="text-xl font-bold mb-4">Basic Settings</h2>
-              
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <PixelIcon name="sliders" className="w-6 h-6" />
+                Basic Settings
+              </h2>
+
               <div className="space-y-4">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium mb-2">
@@ -181,27 +191,6 @@ export default function ThreadRingSettingsPage({
                     Slug cannot be changed after creation
                   </div>
                 </div>
-
-                {/* Short Code field hidden for now - not commonly used
-                <div>
-                  <label htmlFor="shortCode" className="block text-sm font-medium mb-2">
-                    Short Code (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    id="shortCode"
-                    value={formData.shortCode}
-                    onChange={(e) => handleChange("shortCode", e.target.value.toUpperCase())}
-                    className="w-full border border-black p-3 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000]"
-                    maxLength={10}
-                    pattern="[A-Z0-9-]+"
-                    placeholder="e.g., TC, TECH"
-                  />
-                  <div className="text-xs text-gray-600 mt-1">
-                    2-10 alphanumeric characters and hyphens ({formData.shortCode.length}/10)
-                  </div>
-                </div>
-                */}
 
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium mb-2">
@@ -240,10 +229,69 @@ export default function ThreadRingSettingsPage({
               </div>
             </div>
 
+            {/* Visual Identity */}
+            <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <PixelIcon name="image" className="w-6 h-6" />
+                Visual Identity
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="bannerUrl" className="block text-sm font-medium mb-2">
+                    Banner Image URL
+                  </label>
+                  <input
+                    type="url"
+                    id="bannerUrl"
+                    value={formData.bannerUrl}
+                    onChange={(e) => handleChange("bannerUrl", e.target.value)}
+                    className="w-full border border-black p-3 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000]"
+                    placeholder="https://example.com/banner.jpg"
+                  />
+                  <div className="text-xs text-gray-600 mt-1">
+                    Recommended size: 1200x300px. Leave empty for default.
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="themeColor" className="block text-sm font-medium mb-2">
+                    Theme Color
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      { id: 'thread-pine', name: 'Pine', hex: '#2C5F2D' },
+                      { id: 'thread-sage', name: 'Sage', hex: '#97BC62' },
+                      { id: 'thread-clay', name: 'Clay', hex: '#D4A373' },
+                      { id: 'thread-stone', name: 'Stone', hex: '#A9A9A9' },
+                      { id: 'thread-ocean', name: 'Ocean', hex: '#4A90E2' },
+                      { id: 'thread-berry', name: 'Berry', hex: '#C2185B' },
+                    ].map((color) => (
+                      <button
+                        key={color.id}
+                        type="button"
+                        onClick={() => handleChange("themeColor", color.id)}
+                        className={`w-8 h-8 rounded-full border-2 ${formData.themeColor === color.id ? 'border-black ring-2 ring-offset-2 ring-black' : 'border-transparent'
+                          }`}
+                        style={{ backgroundColor: color.hex }}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-2 text-sm text-gray-600">
+                    Selected: <span className="font-medium">{formData.themeColor}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Access Settings */}
             <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
-              <h2 className="text-xl font-bold mb-4">Access Settings</h2>
-              
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <PixelIcon name="lock" className="w-6 h-6" />
+                Access Settings
+              </h2>
+
               <div className="space-y-4">
                 <div>
                   <label htmlFor="joinType" className="block text-sm font-medium mb-2">
@@ -299,8 +347,8 @@ export default function ThreadRingSettingsPage({
 
             {/* Badge Manager Link */}
             <div className="bg-white border border-black rounded-none shadow-[3px_3px_0_#000] p-6 text-center">
-              <div className="mb-4">
-                <span className="text-5xl">🏆</span>
+              <div className="mb-4 flex justify-center">
+                <PixelIcon name="trophy" className="w-12 h-12 text-yellow-500" />
               </div>
               <h3 className="text-lg font-bold mb-2">ThreadRing Badge Design</h3>
               <p className="text-sm text-gray-600 mb-4">
@@ -315,7 +363,11 @@ export default function ThreadRingSettingsPage({
             </div>
 
             {/* Prompts & Challenges Manager */}
-            <div className="border-t pt-6">
+            <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <PixelIcon name="script" className="w-6 h-6" />
+                Prompts & Challenges
+              </h2>
               <ThreadRingPromptManager
                 threadRingSlug={ring.slug}
                 canManage={canManage}
@@ -323,30 +375,45 @@ export default function ThreadRingSettingsPage({
             </div>
 
             {/* Block Management */}
-            <div className="border-t pt-6">
+            <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <PixelIcon name="shield" className="w-6 h-6" />
+                Blocked Users
+              </h2>
               <ThreadRingBlockManager
                 threadRingSlug={ring.slug}
               />
             </div>
 
             {/* Save Button */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 sticky bottom-4 bg-white/90 backdrop-blur border border-black p-4 shadow-[2px_2px_0_#000] z-10">
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="border border-black px-6 py-3 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
               >
-                {saving ? "Saving..." : "Save Settings"}
+                {saving ? (
+                  <>
+                    <PixelIcon name="reload" className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <PixelIcon name="check" className="w-4 h-4" />
+                    Save Settings
+                  </>
+                )}
               </button>
-              
+
               {saveError && (
-                <div className="text-red-600 text-sm">
+                <div className="text-red-600 text-sm font-medium">
                   {saveError}
                 </div>
               )}
-              
+
               {saveSuccess && (
-                <div className="text-green-600 text-sm">
+                <div className="text-green-600 text-sm font-medium flex items-center gap-2">
+                  <PixelIcon name="check" className="w-4 h-4" />
                   Settings saved successfully!
                 </div>
               )}
@@ -357,7 +424,10 @@ export default function ThreadRingSettingsPage({
           <div className="space-y-6">
             {/* Stats */}
             <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
-              <h3 className="font-bold mb-4">ThreadRing Stats</h3>
+              <h3 className="font-bold mb-4 flex items-center gap-2">
+                <PixelIcon name="chart" className="w-5 h-5" />
+                ThreadRing Stats
+              </h3>
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-gray-600">Members:</dt>
@@ -373,9 +443,12 @@ export default function ThreadRingSettingsPage({
             {/* Invite Members (for invite-only) */}
             {formData.joinType === "invite" && (
               <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
-                <h3 className="font-bold mb-4">Invite Members</h3>
-                <ThreadRingInviteForm 
-                  threadRingSlug={ring.slug} 
+                <h3 className="font-bold mb-4 flex items-center gap-2">
+                  <PixelIcon name="user-plus" className="w-5 h-5" />
+                  Invite Members
+                </h3>
+                <ThreadRingInviteForm
+                  threadRingSlug={ring.slug}
                   threadRingName={ring.name}
                 />
               </div>
@@ -383,12 +456,15 @@ export default function ThreadRingSettingsPage({
 
             {/* Danger Zone */}
             <div className="bg-red-50 border border-red-300 p-6">
-              <h3 className="font-bold text-red-800 mb-4">Danger Zone</h3>
+              <h3 className="font-bold text-red-800 mb-4 flex items-center gap-2">
+                <PixelIcon name="alert" className="w-5 h-5" />
+                Danger Zone
+              </h3>
               <p className="text-sm text-red-700 mb-4">
                 Careful! These actions cannot be undone.
               </p>
               <button
-                className="w-full border border-red-300 px-4 py-2 bg-white text-red-700 hover:bg-red-100"
+                className="w-full border border-red-300 px-4 py-2 bg-white text-red-700 hover:bg-red-100 flex items-center justify-center gap-2"
                 onClick={() => {
                   if (confirm("Are you sure you want to delete this ThreadRing? This action cannot be undone.")) {
                     // TODO: Implement delete
@@ -396,6 +472,7 @@ export default function ThreadRingSettingsPage({
                   }
                 }}
               >
+                <PixelIcon name="trash" className="w-4 h-4" />
                 Delete ThreadRing
               </button>
             </div>
@@ -411,7 +488,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const { slug } = context.query;
   const session = context.req.cookies.retro_session;
   // Session and cookie validation
-  
+
   if (typeof slug !== "string") {
     return {
       props: {
@@ -433,39 +510,39 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       if (client) {
         try {
           const ringHubRing = await client.getRing(slug);
-          
+
           if (ringHubRing) {
             // Found Ring Hub ring
-            
+
             // Check ownership via local database tracking (source of truth)
             let canManage = false;
-            
+
             if (viewer) {
               // Checking permissions
-              
+
               try {
                 // Check local ownership tracking first (this is our source of truth)
                 const ringHubOwnership = await db.ringHubOwnership.findUnique({
                   where: { ringSlug: slug }
                 });
                 // Local ownership record found
-                
+
                 if (ringHubOwnership && ringHubOwnership.ownerUserId === viewer.id) {
                   canManage = true;
                   // User is owner via local ownership tracking
                 } else {
                   // No local ownership found
                 }
-                
+
               } catch (ownershipError: any) {
                 console.warn('⚠️ [SETTINGS] Error checking local ownership:', ownershipError.message);
               }
-              
+
               // Permission check complete
             } else {
               // No viewer found
             }
-            
+
             return {
               props: {
                 siteConfig,
@@ -478,7 +555,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   joinType: (() => {
                     const policyMap = {
                       'OPEN': 'open',
-                      'INVITATION': 'invite', 
+                      'INVITATION': 'invite',
                       'APPLICATION': 'application',
                       'CLOSED': 'closed'
                     } as const;
@@ -495,6 +572,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                     return policyMap[ringHubRing.postPolicy as keyof typeof policyMap] || 'members';
                   })(),
                   curatorNote: ringHubRing.curatorNote || null,
+                  bannerUrl: ringHubRing.bannerUrl || null,
+                  themeColor: ringHubRing.themeColor || null,
                   memberCount: ringHubRing.memberCount || 0,
                   postCount: ringHubRing.postCount || 0
                 },
@@ -519,6 +598,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         joinType: true,
         visibility: true,
         curatorNote: true,
+        bannerUrl: true,
+        themeColor: true,
         curatorId: true,
         memberCount: true,
         postCount: true
