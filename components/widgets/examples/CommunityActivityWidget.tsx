@@ -26,7 +26,6 @@ interface CommunityActivityData {
 }
 
 function CommunityActivityWidget({ data, isLoading, error, onRefresh }: WidgetProps & { data?: CommunityActivityData }) {
-  const [currentType, setCurrentType] = useState<ContentType>('poll');
   const [rotationIndex, setRotationIndex] = useState(0);
 
   // Calculate available content types
@@ -35,23 +34,24 @@ function CommunityActivityWidget({ data, isLoading, error, onRefresh }: WidgetPr
   if (data?.bulletin) availableTypes.push('bulletin');
   if (data?.announcement) availableTypes.push('announcement');
 
-  // Auto-rotate every 60 seconds if we have multiple types
+  // If no data yet, default to poll (will show loading or empty state)
+  if (availableTypes.length === 0) {
+    availableTypes.push('poll');
+  }
+
+  // Auto-rotate every 10 seconds if we have multiple types
   useEffect(() => {
     if (availableTypes.length <= 1) return;
 
     const interval = setInterval(() => {
       setRotationIndex((prev) => (prev + 1) % availableTypes.length);
-    }, 60000); // 60 seconds
+    }, 10000); // 10 seconds
 
     return () => clearInterval(interval);
   }, [availableTypes.length]);
 
-  // Update current type based on rotation index
-  useEffect(() => {
-    // Ensure index is valid for current available types
-    const validIndex = rotationIndex % availableTypes.length;
-    setCurrentType(availableTypes[validIndex]);
-  }, [rotationIndex, availableTypes]);
+  // Derive current type directly from rotation index
+  const currentType = availableTypes[rotationIndex % availableTypes.length];
 
   const handleManualRefresh = () => {
     if (onRefresh) {
@@ -120,7 +120,7 @@ function CommunityActivityWidget({ data, isLoading, error, onRefresh }: WidgetPr
     );
   }
 
-  // Get current content based on rotation
+  // Get current content based on derived type
   let currentContent = null;
   if (currentType === 'poll' && data?.poll) {
     currentContent = <PollPreview key={data.poll.id} poll={data.poll} onVoted={handleManualRefresh} />;
@@ -128,6 +128,17 @@ function CommunityActivityWidget({ data, isLoading, error, onRefresh }: WidgetPr
     currentContent = <BulletinPreview key={data.bulletin.id} bulletin={data.bulletin} />;
   } else if (currentType === 'announcement' && data?.announcement) {
     currentContent = <AnnouncementPreview key={data.announcement.id} announcement={data.announcement} />;
+  }
+
+  // Fallback shouldn't be needed if availableTypes is correct, but keeping as safety net
+  if (!currentContent) {
+    if (data?.poll) {
+      currentContent = <PollPreview key={data.poll.id} poll={data.poll} onVoted={handleManualRefresh} />;
+    } else if (data?.bulletin) {
+      currentContent = <BulletinPreview key={data.bulletin.id} bulletin={data.bulletin} />;
+    } else if (data?.announcement) {
+      currentContent = <AnnouncementPreview key={data.announcement.id} announcement={data.announcement} />;
+    }
   }
 
   return (
@@ -175,7 +186,7 @@ export const communityActivityWidget = {
       const [pollsRes, bulletinsRes, announcementsRes] = await Promise.all([
         fetch('/api/polls', { credentials: 'include' }),
         fetch('/api/community/bulletins?limit=1', { credentials: 'include' }),
-        fetch('/api/site-news?limit=1', { credentials: 'include' })
+        fetch('/api/site-news?limit=5', { credentials: 'include' })
       ]);
 
       const data: CommunityActivityData = {
