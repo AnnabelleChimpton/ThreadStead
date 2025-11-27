@@ -37,12 +37,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       return res.status(400).json({ error: 'Badge title is required' })
     }
 
-    // Check if user owns this ThreadRing
+    // Check if user owns this ThreadRing or is admin
     const ringHubOwnership = await db.ringHubOwnership.findUnique({
       where: { ringSlug: slug }
     })
 
-    if (!ringHubOwnership || ringHubOwnership.ownerUserId !== user.id) {
+    const isAdmin = user.role === 'admin';
+    const isOwner = ringHubOwnership && ringHubOwnership.ownerUserId === user.id;
+
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ error: 'Not authorized to manage this ThreadRing badge' })
     }
 
@@ -76,7 +79,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   } catch (error) {
     console.error('Badge generation error:', error)
-    
+
     if (error instanceof Error) {
       if (error.message.includes('Missing required environment variable')) {
         return res.status(500).json({ error: 'S3 configuration not available' })
