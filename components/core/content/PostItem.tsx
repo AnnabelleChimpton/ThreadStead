@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { TextWithEmojis, HtmlWithEmojis, MarkdownWithEmojis, markdownToSafeHtmlWithEmojis, processHtmlWithEmojis } from "@/lib/comment-markup";
 import { truncateText, truncateHtml, needsTruncation } from "@/lib/utils/text-truncation";
@@ -7,7 +8,6 @@ import hljs from "highlight.js"; // Ensure highlight.js is imported
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../../ui/forms/NewCommentForm";
 import ThreadRingBadge from "../threadring/ThreadRingBadge";
-import PostHeader from "./PostHeader";
 import { UserWithRole } from "@/lib/utils/features/feature-flags";
 import PostModerationActions from "./PostModerationActions";
 import { useModerationPermissions } from "@/hooks/useModerationPermissions";
@@ -19,7 +19,12 @@ import { useViewportTracking, trackEngagement } from "@/hooks/usePostView";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 
-// Helper function to format time ago
+import Image from "next/image";
+import { formatDistanceToNow } from "date-fns";
+import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
+import UserMention from "@/components/ui/navigation/UserMention";
+
+// Helper function to format time ago (keeping for fallback or specific uses, but preferring formatDistanceToNow)
 function formatTimeAgo(date: Date): string {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
   if (seconds < 60) return 'just now';
@@ -45,6 +50,7 @@ export type Post = {
   bodyHtml?: string | null;
   bodyMarkdown?: string | null; // Ensure bodyMarkdown is available for edit
   visibility: Visibility;
+  tags?: string[];
 
   // Spoiler content warning fields
   isSpoiler?: boolean;
@@ -63,7 +69,14 @@ export type Post = {
   moderatedBy?: string | null; // DID of moderator
   moderationNote?: string | null; // Moderation reason/note
 
-  author?: { id: string; primaryHandle?: string; profile?: { displayName?: string } };
+  author?: {
+    id: string;
+    primaryHandle?: string;
+    profile?: {
+      displayName?: string;
+      avatarUrl?: string | null;
+    }
+  };
   threadRings?: Array<{
     threadRing: {
       id: string;
@@ -332,23 +345,73 @@ export default function PostItem({
     await onChanged?.();
   };
 
+  const authorName = post.author?.profile?.displayName || post.author?.primaryHandle || "Anonymous";
+  const authorUsername = post.author?.primaryHandle?.split('@')[0] || null;
+  const authorLink = authorUsername ? `/resident/${authorUsername}` : null;
+  const authorAvatarUrl = post.author?.profile?.avatarUrl;
+
+  const postDate = new Date(post.createdAt).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+
   return (
     <article
       ref={viewportRef}
       id={`post-${post.id.slice(-6)}`}
-      className={`post-item blog-post-card border border-black p-0 sm:p-3 bg-white sm:shadow-[2px_2px_0_#000] ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
+      className={`post-item bg-thread-paper border-y sm:border border-thread-sage/30 p-5 sm:p-8 mb-6 sm:rounded-cozy shadow-cozySm hover:shadow-cozy transition-all duration-300 ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
       data-post-id={post.id.slice(-6)}
     >
-      <div className="blog-post-header flex items-center justify-between gap-3 mb-2 sm:px-0">
-        <div className="flex items-center gap-2">
-          <div className="blog-post-date text-xs text-gray-600 opacity-70">
-            {formatTimeAgo(new Date(post.createdAt))}
-          </div>
-          {post.isPinned && (
-            <span className="text-xs bg-yellow-200 px-2 py-1 border border-black rounded">
-              📌 Pinned
+      {/* Author Info & Header */}
+      <header className="flex items-center gap-4 mb-5">
+        {authorAvatarUrl ? (
+          <Image
+            src={authorAvatarUrl}
+            alt={`${authorName}'s avatar`}
+            width={56}
+            height={56}
+            className="w-14 h-14 rounded-full border-2 border-thread-sage/20 shadow-sm"
+            unoptimized={authorAvatarUrl?.endsWith('.gif')}
+          />
+        ) : (
+          <div className="w-14 h-14 rounded-full bg-thread-cream border-2 border-thread-sage/20 flex items-center justify-center shadow-sm">
+            <span className="text-thread-sage font-mono text-lg">
+              {authorName.charAt(0).toUpperCase()}
             </span>
-          )}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            {authorUsername ? (
+              <UserMention
+                username={authorUsername}
+                displayName={authorName}
+                className="font-bold text-lg text-thread-pine hover:text-thread-sunset transition-colors truncate"
+              />
+            ) : (
+              <span className="font-bold text-lg text-thread-pine truncate">{authorName}</span>
+            )}
+            <span className="text-thread-sage text-sm">•</span>
+            <span className="text-thread-sage text-sm font-medium">{postDate}</span>
+            {post.isPinned && (
+              <span className="text-xs bg-yellow-200 px-2 py-1 border border-black rounded ml-2">
+                📌 Pinned
+              </span>
+            )}
+          </div>
+          {/* User badges */}
+          <div className="mt-0.5">
+            {post.author?.id && (
+              <ImprovedBadgeDisplay
+                userId={post.author.id}
+                context="posts"
+                layout="inline"
+              />
+            )}
+          </div>
         </div>
 
         <div className="blog-post-actions flex items-center gap-2">
@@ -359,7 +422,18 @@ export default function PostItem({
 
             return !isForkNotification && (
               <PostActionsDropdown
-                post={post}
+                post={{
+                  id: post.id,
+                  title: post.title,
+                  textPreview: post.bodyText?.substring(0, 100) || null,
+                  author: {
+                    id: post.author?.id || '',
+                    primaryHandle: post.author?.primaryHandle,
+                    profile: {
+                      displayName: post.author?.profile?.displayName
+                    }
+                  }
+                }}
                 isOwner={isOwner}
                 isAdmin={isAdmin}
                 busy={busy}
@@ -374,7 +448,7 @@ export default function PostItem({
             );
           })()}
         </div>
-      </div>
+      </header>
 
       <div className="blog-post-content sm:px-0">
         {/* Check for fork notification */}
@@ -446,61 +520,116 @@ export default function PostItem({
 
           return (
             <>
-              {/* Spoiler Warning - Works for both local and external posts */}
+              {/* Spoiler Warning */}
               {isSpoilerPost() && !spoilerRevealed && (
-                <div className="mb-4 p-4 spoiler-warning rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">⚠️</span>
-                    <h3 className="font-bold text-lg">Content Warning</h3>
+                <div className="mb-6 p-6 spoiler-warning rounded-xl border-2 border-dashed border-thread-sage/40 bg-thread-cream/30">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-2xl">⚠️</span>
+                    <h3 className="font-bold text-xl text-thread-pine">Content Warning</h3>
                   </div>
                   {getSpoilerWarning() && (
-                    <p className="mb-3 text-sm">{getSpoilerWarning()}</p>
+                    <p className="mb-4 text-base text-thread-pine/80 font-medium">{getSpoilerWarning()}</p>
                   )}
                   <button
                     onClick={() => setSpoilerRevealed(true)}
-                    className="px-4 py-2 bg-white text-black font-bold border-2 border-black hover:bg-yellow-200 shadow-[2px_2px_0_#000] transition-all"
+                    className="px-6 py-2.5 bg-white text-black font-bold border-2 border-black hover:bg-yellow-200 shadow-[4px_4px_0_#000] hover:shadow-[2px_2px_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all rounded-lg"
                   >
-                    👁️ Click to Reveal Spoilers
+                    👁️ Reveal Content
                   </button>
                 </div>
               )}
 
-              {/* Post Header */}
+              {/* Post Title with Intent */}
               {post.title && (
-                <div className={isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}>
-                  <PostHeader post={post} currentUser={currentUser} />
+                <div className={`mb-4 ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content hidden' : ''}`}>
+                  {authorUsername ? (
+                    <a
+                      href={`/resident/${authorUsername}/post/${post.id}`}
+                      className="block group"
+                    >
+                      {post.intent ? (
+                        <div className="space-y-2">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-thread-cream/50 border border-thread-sage/20 text-sm text-thread-pine/80">
+                            <span className="font-semibold">{authorName}</span>
+                            <span>is {post.intent}</span>
+                          </div>
+                          <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
+                            {post.title}
+                          </h2>
+                        </div>
+                      ) : (
+                        <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
+                          {post.title}
+                        </h2>
+                      )}
+                    </a>
+                  ) : (
+                    <div>
+                      {post.intent ? (
+                        <div className="space-y-2">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-thread-cream/50 border border-thread-sage/20 text-sm text-thread-pine/80">
+                            <span className="font-semibold">{authorName}</span>
+                            <span>is {post.intent}</span>
+                          </div>
+                          <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
+                            {post.title}
+                          </h2>
+                        </div>
+                      ) : (
+                        <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
+                          {post.title}
+                        </h2>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Post Content */}
-              <div className={`thread-content text-gray-700 ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content' : ''}`}>
+              <div className={`thread-content mb-6 text-lg leading-relaxed text-gray-800 ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content hidden' : ''}`}>
                 {(() => {
                   // Determine content source and check if truncation is needed
                   const rawContent = post.bodyMarkdown || post.bodyHtml || post.bodyText || "";
                   const shouldTruncate = shouldEnableTruncation && needsTruncation(rawContent) && !isExpanded;
 
                   // Render content based on type and truncation state
+                  let contentElement;
                   if (post.bodyMarkdown) {
                     const displayMarkdown = shouldTruncate ? truncateText(post.bodyMarkdown) : post.bodyMarkdown;
-                    return <MarkdownWithEmojis markdown={displayMarkdown} />;
+                    contentElement = <MarkdownWithEmojis markdown={displayMarkdown} />;
                   } else if (post.bodyHtml) {
                     const displayHtml = shouldTruncate ? truncateHtml(post.bodyHtml) : post.bodyHtml;
-                    return <HtmlWithEmojis html={displayHtml} />;
+                    contentElement = <HtmlWithEmojis html={displayHtml} />;
                   } else if (post.bodyText) {
                     const displayText = shouldTruncate ? truncateText(post.bodyText) : post.bodyText;
-                    return <p><TextWithEmojis text={displayText} /></p>;
+                    contentElement = <p><TextWithEmojis text={displayText} /></p>;
                   } else {
-                    return <div className="italic opacity-70">(No content)</div>;
+                    contentElement = <div className="italic opacity-70">(No content)</div>;
                   }
+
+                  return (
+                    <div className="relative">
+                      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${shouldTruncate ? 'max-h-[400px] mask-linear-fade' : ''}`}>
+                        {contentElement}
+                      </div>
+                      {shouldEnableTruncation && needsTruncation(rawContent) && (
+                        <div className={`mt-4 flex justify-center ${!isExpanded ? 'absolute bottom-0 left-0 right-0 pt-20 pb-0 bg-gradient-to-t from-thread-paper to-transparent' : ''}`}>
+                          <button
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className="group flex items-center gap-2 px-6 py-2 bg-white border border-thread-sage/30 rounded-full shadow-sm hover:shadow-md hover:border-thread-sunset/50 transition-all"
+                          >
+                            <span className="text-sm font-semibold text-thread-pine group-hover:text-thread-sunset">
+                              {isExpanded ? 'Show less' : 'Continue reading'}
+                            </span>
+                            <span className="text-xs transform group-hover:translate-y-0.5 transition-transform">
+                              {isExpanded ? '↑' : '↓'}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
                 })()}
-                {shouldEnableTruncation && needsTruncation(post.bodyMarkdown || post.bodyHtml || post.bodyText || "") && (
-                  <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="mt-2 text-sm text-black hover:text-gray-700 font-medium transition-colors underline"
-                  >
-                    {isExpanded ? 'Show less' : 'Read more'}
-                  </button>
-                )}
               </div>
 
               {/* Journal Metadata */}
@@ -521,7 +650,7 @@ export default function PostItem({
                     )}
                     {post.metadata?.reading && (
                       <div className="flex items-center gap-2">
-                        <PixelIcon name="article" size={16} className="text-thread-sage" />
+                        <PixelIcon name="script" size={16} className="text-thread-sage" />
                         <span>Reading: <strong>{post.metadata.reading}</strong></span>
                       </div>
                     )}
@@ -541,11 +670,25 @@ export default function PostItem({
                 </div>
               )}
 
+              {/* Tags */}
+              {post.tags && post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {post.tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-thread-cream/60 border border-thread-sage/10 rounded-lg text-sm text-thread-pine hover:bg-thread-cream hover:border-thread-sage/30 transition-colors cursor-pointer"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               {/* ThreadRing badges */}
               {post.threadRings && post.threadRings.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-gray-200">
+                <div className="mb-5 pt-4 border-t border-thread-sage/10">
                   <div className="flex flex-wrap gap-2 items-center">
-                    <span className="text-xs text-gray-600 font-medium">Posted to:</span>
+                    <span className="text-xs uppercase tracking-wider text-thread-sage font-semibold">Posted to</span>
                     {post.threadRings
                       .filter((association) => association && association.threadRing && association.threadRing.id)
                       .map((association) => (
@@ -576,51 +719,70 @@ export default function PostItem({
 
       {err && <div className="text-red-700 text-sm mt-2 sm:px-0">{err}</div>}
 
-      {/* --- Comments --- */}
+      {/* --- Footer & Comments --- */}
       {/* Disable comments for fork notifications */}
       {(() => {
         const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
           (post.ringHubData?.isNotification && post.ringHubData?.notificationType === 'fork_notification');
         return !isForkNotification;
       })() && (
-          <section className="mt-4 border-t border-black pt-3 sm:px-0">
-            <button
-              type="button"
-              onClick={async () => {
-                const wasOpen = commentsOpen;
-                setCommentsOpen((o) => !o);
-                if (!wasOpen) {
-                  // Track comment expansion as engagement
-                  await trackEngagement(post.id, 'comment_expand');
-                  if (commentCount === null) setCommentsVersion((v) => v + 1);
-                }
-              }}
-              className="flex w-full items-center justify-between rounded px-2 py-1 border border-black bg-white shadow-[2px_2px_0_#000] hover:bg-yellow-100 text-sm"
-              aria-expanded={commentsOpen}
-              aria-controls={`comments-${post.id}`}
-            >
-              <span className="font-semibold">Comments: </span>
-              <span className="opacity-70">{countLabel}</span>
-            </button>
+          <>
+            <footer className="flex items-center justify-between pt-4 border-t-2 border-thread-sage/10">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const wasOpen = commentsOpen;
+                    setCommentsOpen((o) => !o);
+                    if (!wasOpen) {
+                      // Track comment expansion as engagement
+                      await trackEngagement(post.id, 'comment_expand');
+                      if (commentCount === null) setCommentsVersion((v) => v + 1);
+                    }
+                  }}
+                  className="group inline-flex flex-row items-center gap-2 px-3 py-1.5 -ml-3 rounded-lg hover:bg-thread-cream/50 transition-colors whitespace-nowrap"
+                  style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'center', whiteSpace: 'nowrap' }}
+                  aria-expanded={commentsOpen}
+                  aria-controls={`comments-${post.id}`}
+                >
+                  <PixelIcon name="chat" size={20} className="text-thread-sage group-hover:scale-110 transition-transform shrink-0" style={{ flexShrink: 0, display: 'block' }} />
+                  <span className="font-medium text-thread-pine group-hover:text-thread-sunset leading-none">
+                    {countLabel}
+                  </span>
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                {authorLink && (
+                  <Link
+                    href={`${authorLink}?tab=blog`}
+                    className="text-sm font-medium text-thread-sage hover:text-thread-pine transition-colors flex items-center gap-1 group"
+                  >
+                    <span>View on profile</span>
+                    <span className="transform group-hover:translate-x-1 transition-transform">→</span>
+                  </Link>
+                )}
+              </div>
+            </footer>
 
             {commentsOpen && (
-              <div id={`comments-${post.id}`} className="mt-2 space-y-3">
-                <NewCommentForm postId={post.id} onCommentAdded={handleCommentAdded} />
-                <CommentList
-                  postId={post.id}
-                  version={commentsVersion}
-                  onLoaded={(n) => setCommentCount(n)}
-                  optimistic={optimistic}
-                  canModerate={isOwner}
-                  isAdmin={isAdmin}
-                  onCommentAdded={handleCommentAdded}
-                  highlightCommentId={highlightCommentId}
-                />
-              </div>
+              <section id={`comments-${post.id}`} className="mt-6 pt-6 border-t border-thread-sage/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="space-y-6">
+                  <NewCommentForm postId={post.id} onCommentAdded={handleCommentAdded} />
+                  <CommentList
+                    postId={post.id}
+                    version={commentsVersion}
+                    onLoaded={(n) => setCommentCount(n)}
+                    optimistic={optimistic}
+                    canModerate={isOwner}
+                    isAdmin={isAdmin}
+                    onCommentAdded={handleCommentAdded}
+                    highlightCommentId={highlightCommentId}
+                  />
+                </div>
+              </section>
             )}
-          </section>
+          </>
         )}
-
     </article>
   );
 }

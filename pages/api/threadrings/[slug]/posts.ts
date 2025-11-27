@@ -121,6 +121,7 @@ async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
           visibility: post.visibility,
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
+          tags: post.tags || [],
           // Spoiler content warning fields
           isSpoiler: post.isSpoiler,
           contentWarning: post.contentWarning,
