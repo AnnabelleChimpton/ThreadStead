@@ -5,20 +5,20 @@
  * and Ring Hub's RingDescriptor format during the migration period.
  */
 
-import type { 
-  ThreadRing, 
-  ThreadRingMember, 
+import type {
+  ThreadRing,
+  ThreadRingMember,
   ThreadRingWithDetails,
   PostThreadRing,
   ThreadRingJoinType,
   ThreadRingVisibility,
   ThreadRingRole
 } from '@/types/threadrings'
-import type { 
-  RingDescriptor, 
-  RingMember, 
-  PostRef, 
-  BadgeInfo 
+import type {
+  RingDescriptor,
+  RingMember,
+  PostRef,
+  BadgeInfo
 } from '@/lib/api/ringhub/ringhub-client'
 
 /**
@@ -80,7 +80,7 @@ export function mapPostPolicy(policy: string): string {
 export function mapVisibility(visibility: string): ThreadRingVisibility {
   switch (visibility.toLowerCase()) {
     case 'public': return 'public'
-    case 'unlisted': return 'unlisted' 
+    case 'unlisted': return 'unlisted'
     case 'private': return 'private'
     default: return 'public'
   }
@@ -107,7 +107,7 @@ export function transformRingDescriptorToThreadRing(
 ): ThreadRing {
   // Generate ThreadStead-compatible ID from Ring Hub URI or slug
   const id = generateThreadRingId(descriptor.uri || descriptor.slug)
-  
+
   // Create badge object - always create one, even if no image URL  
   const badge = {
     id: `${descriptor.slug}-badge`,
@@ -119,7 +119,7 @@ export function transformRingDescriptorToThreadRing(
     imageUrl: descriptor.badgeImageUrl || undefined, // Can be null from Ring Hub
     isActive: true
   }
-  
+
   return {
     id,
     uri: descriptor.uri || `ringhub:ring:${descriptor.slug}`,
@@ -150,7 +150,7 @@ export function transformThreadRingToRingDescriptor(
 ): Partial<RingDescriptor> {
   // Generate Ring Hub URI for this ring
   const uri = generateRingUri(ring.slug!, instanceDID)
-  
+
   return {
     name: ring.name!,
     slug: ring.slug!,
@@ -203,10 +203,10 @@ export async function transformRingMemberWithUserResolution(
   const { mapDIDToUserId } = await import('../did/server-did-client')
   let resolvedUserId: string | null = null
   let threadSteadUser = null
-  
+
   try {
     resolvedUserId = await mapDIDToUserId(member.actorDid)
-    
+
     if (resolvedUserId) {
       // Fetch full user data from ThreadStead database
       threadSteadUser = await db.user.findUnique({
@@ -241,7 +241,7 @@ export async function transformRingMemberWithUserResolution(
       displayName = `Ring Hub User (${lastPart})`
     }
   }
-  
+
   // Extract handle from profileUrl if available
   let handles: Array<{ handle: string; host: string }> = []
 
@@ -297,7 +297,9 @@ export function transformPostThreadRingToPostRef(
       addedAt: postThreadRing.addedAt,
       addedBy: postThreadRing.addedBy,
       pinnedAt: postThreadRing.pinnedAt,
-      pinnedBy: postThreadRing.pinnedBy
+      pinnedBy: postThreadRing.pinnedBy,
+      // Include any other metadata from the source if available
+      // Note: This function is typically used for syncing, so we might need to pass extra metadata if available
     }
   }
 }
@@ -310,7 +312,7 @@ export function transformPostRefToPostThreadRing(
   threadRingId: string
 ): PostThreadRing {
   const metadata = postRef.metadata || {}
-  
+
   return {
     id: generatePostThreadRingId(postRef.uri, threadRingId),
     postId: metadata.threadsteadPostId || extractPostIdFromUri(postRef.uri),
@@ -361,7 +363,7 @@ function generateRingUri(slug: string, instanceDID: string): string {
     const domain = instanceDID.replace('did:web:', '').replace(/%3A/g, ':')
     return `https://${domain}/threadrings/${slug}`
   }
-  
+
   // Fallback for other DID methods
   return `threadstead:ring:${slug}`
 }
@@ -374,7 +376,7 @@ function generateSpoolUri(instanceDID: string): string {
     const domain = instanceDID.replace('did:web:', '').replace(/%3A/g, ':')
     return `https://${domain}/threadrings/spool`
   }
-  
+
   return `threadstead:spool`
 }
 
@@ -417,7 +419,7 @@ export function transformMembersBatch(
   members: RingMember[],
   threadRingId: string
 ): ThreadRingMember[] {
-  return members.map(member => 
+  return members.map(member =>
     transformRingMemberToThreadRingMember(member, threadRingId)
   )
 }
@@ -429,7 +431,7 @@ export function transformPostRefsBatch(
   postRefs: PostRef[],
   threadRingId: string
 ): PostThreadRing[] {
-  return postRefs.map(ref => 
+  return postRefs.map(ref =>
     transformPostRefToPostThreadRing(ref, threadRingId)
   )
 }

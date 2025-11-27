@@ -20,7 +20,7 @@ function extractPostIdFromUri(uri: string): string | null {
 function isOurThreadSteadInstance(uri: string): boolean {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   const ourDomain = baseUrl.replace(/https?:\/\//, '');
-  
+
   try {
     const url = new URL(uri);
     return url.host === ourDomain || url.hostname === ourDomain;
@@ -34,7 +34,7 @@ function isOurThreadSteadInstance(uri: string): boolean {
  */
 async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
   const resolvedPosts = [];
-  
+
   for (const ringHubPost of ringHubPosts) {
     try {
       // Check if this post is from our ThreadStead instance
@@ -72,19 +72,19 @@ async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
             metadata: ringHubPost.metadata
           }
         };
-        
+
         resolvedPosts.push(externalPost);
         continue;
       }
-      
+
       // Extract post ID from the URI for our instance
       const postId = extractPostIdFromUri(ringHubPost.uri);
-      
+
       if (!postId) {
         console.warn('Could not extract post ID from URI:', ringHubPost.uri);
         continue;
       }
-      
+
       // Fetch the actual post from ThreadStead database
       const post = await db.post.findUnique({
         where: { id: postId },
@@ -128,10 +128,10 @@ async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
             id: post.author.id,
             displayName: post.author.profile?.displayName,
             avatarUrl: post.author.profile?.avatarUrl,
-            handle: post.author.handles.find(h => h.host === "local")?.handle || 
-                   post.author.handles[0]?.handle || 'unknown',
-            primaryHandle: post.author.handles.find(h => h.host === "local")?.handle || 
-                          post.author.handles[0]?.handle || 'unknown'
+            handle: post.author.handles.find(h => h.host === "local")?.handle ||
+              post.author.handles[0]?.handle || 'unknown',
+            primaryHandle: post.author.handles.find(h => h.host === "local")?.handle ||
+              post.author.handles[0]?.handle || 'unknown'
           },
           threadRings: post.threadRings?.map(tr => ({
             threadRing: {
@@ -149,9 +149,10 @@ async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
             status: ringHubPost.status,
             pinned: ringHubPost.pinned,
             metadata: ringHubPost.metadata
-          }
+          },
+          metadata: post.metadata // Include journal metadata from local post
         };
-        
+
         resolvedPosts.push(transformedPost);
       } else {
         console.warn('Post not found in ThreadStead database:', postId);
@@ -160,7 +161,7 @@ async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
       console.error('Error resolving Ring Hub post:', ringHubPost.uri, error);
     }
   }
-  
+
   return resolvedPosts;
 }
 
@@ -196,11 +197,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         hasMore: false
       });
     }
-    
+
     try {
       // Create Ring Hub client (authenticated if user available, otherwise unauthenticated)
       let posts;
-      
+
       // Map our scope values to Ring Hub scope values
       const mapScope = (scope: string) => {
         switch (scope) {
@@ -212,7 +213,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           default: return 'ring';
         }
       };
-      
+
       const feedOptions = {
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
@@ -226,19 +227,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else {
         // Unauthenticated request - get public data only
         const publicClient = getRingHubClient();
-        
+
         if (!publicClient) {
           throw new Error('Ring Hub client not available');
         }
-        
+
         posts = await publicClient.getRingFeed(slug, feedOptions);
       }
-      
+
       // Filter out prompts from the posts feed (they're displayed separately as active prompts)
-      const nonPromptPosts = posts?.posts?.filter(post => 
+      const nonPromptPosts = posts?.posts?.filter(post =>
         post.metadata?.type !== 'threadring_prompt'
       ) || [];
-      
+
       // Resolve Ring Hub post references to actual ThreadStead post objects
       const resolvedPosts = await resolveRingHubPosts(nonPromptPosts, viewer);
 
@@ -260,7 +261,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     } catch (ringHubError) {
       console.error('Ring Hub posts fetch failed:', ringHubError);
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: "Failed to fetch posts from Ring Hub",
         message: ringHubError instanceof Error ? ringHubError.message : 'Unknown error'
       });
@@ -268,7 +269,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Error fetching posts:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to fetch posts data'
     });

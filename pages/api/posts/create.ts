@@ -282,7 +282,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 authorHandle: postWithAuthor?.author?.primaryHandle,
                 // Spoiler content warning information
                 isSpoiler: post.isSpoiler || false,
-                contentWarning: post.contentWarning || null
+                contentWarning: post.contentWarning || null,
+                // Include journal metadata
+                ...((post as any).metadata as object || {})
               };
             } else {
               // Regular post metadata
@@ -299,7 +301,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 authorHandle: postWithAuthor?.author?.primaryHandle,
                 // Spoiler content warning information
                 isSpoiler: post.isSpoiler || false,
-                contentWarning: post.contentWarning || null
+                contentWarning: post.contentWarning || null,
+                // Include journal metadata
+                ...((post as any).metadata as object || {})
               };
             }
 
