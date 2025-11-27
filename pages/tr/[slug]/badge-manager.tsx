@@ -42,7 +42,7 @@ interface BadgeDesign {
 
 export default function BadgeManagerPage({ ring, user, canManage }: BadgeManagerPageProps) {
   const router = useRouter();
-  
+
   // Unified badge state
   const [currentBadge, setCurrentBadge] = useState<BadgeDesign | null>(null);
   const [editedBadge, setEditedBadge] = useState<Partial<BadgeDesign>>({});
@@ -84,7 +84,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
           return;
         }
       }
-      
+
       // If no existing badge, set up default
       const defaultBadge: BadgeDesign = {
         title: ring.name,
@@ -145,19 +145,19 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
 
       // Step 2: Update RingHub with the generated/provided image URL
       const ringHubUpdateData: any = {};
-      
+
       if (generatedBadgeUrl) {
         ringHubUpdateData.badgeImageUrl = generatedBadgeUrl;
       }
-      
+
       if (generatedHighResUrl) {
         ringHubUpdateData.badgeImageHighResUrl = generatedHighResUrl;
       }
-      
+
       if (editedBadge.description?.trim()) {
         ringHubUpdateData.description = editedBadge.description.trim();
       }
-      
+
       if (editedBadge.criteria?.trim()) {
         ringHubUpdateData.criteria = editedBadge.criteria.trim();
       }
@@ -175,7 +175,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
 
       if (ringHubResponse.ok) {
         const result = await ringHubResponse.json();
-        
+
         // Step 3: Save the badge configuration locally for future editing
         const localBadgeData = {
           title: editedBadge.title || ring.name,
@@ -313,7 +313,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
             <div className="border-b border-black p-6 bg-yellow-50">
               <h3 className="text-xl font-bold text-black mb-2">🎨 ThreadRing Badge Designer</h3>
               <p className="text-gray-700">
-                Design your ThreadRing badge using templates, custom colors, or upload your own image. 
+                Design your ThreadRing badge using templates, custom colors, or upload your own image.
                 The badge will be uploaded to our servers and sent to RingHub to update all member badges.
               </p>
             </div>
@@ -365,31 +365,28 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                     <div className="flex gap-2">
                       <button
                         onClick={() => setPreviewMode('template')}
-                        className={`px-4 py-2 border border-black font-medium shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${
-                          previewMode === 'template' 
-                            ? 'bg-yellow-200' 
+                        className={`px-4 py-2 border border-black font-medium shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${previewMode === 'template'
+                            ? 'bg-yellow-200'
                             : 'bg-white hover:bg-gray-100'
-                        }`}
+                          }`}
                       >
                         📄 Use Template
                       </button>
                       <button
                         onClick={() => setPreviewMode('custom')}
-                        className={`px-4 py-2 border border-black font-medium shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${
-                          previewMode === 'custom' 
-                            ? 'bg-yellow-200' 
+                        className={`px-4 py-2 border border-black font-medium shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${previewMode === 'custom'
+                            ? 'bg-yellow-200'
                             : 'bg-white hover:bg-gray-100'
-                        }`}
+                          }`}
                       >
                         🎨 Custom Colors
                       </button>
                       <button
                         onClick={() => setPreviewMode('upload')}
-                        className={`px-4 py-2 border border-black font-medium shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${
-                          previewMode === 'upload' 
-                            ? 'bg-yellow-200' 
+                        className={`px-4 py-2 border border-black font-medium shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${previewMode === 'upload'
+                            ? 'bg-yellow-200'
                             : 'bg-white hover:bg-gray-100'
-                        }`}
+                          }`}
                       >
                         🖼️ Upload Image
                       </button>
@@ -405,11 +402,10 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                           <div
                             key={template.id}
                             onClick={() => handleTemplateSelect(template.id)}
-                            className={`p-1 border border-black rounded-none cursor-pointer text-center shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${
-                              editedBadge.templateId === template.id
+                            className={`p-1 border border-black rounded-none cursor-pointer text-center shadow-[2px_2px_0_#000] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] ${editedBadge.templateId === template.id
                                 ? 'bg-yellow-100'
                                 : 'bg-white hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             <ThreadRing88x31Badge
                               templateId={template.id}
@@ -584,21 +580,21 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                   </div>
                 </div>
               )}
-              </div>
+            </div>
 
-              {/* Information */}
-              <div className="border-t border-gray-200 pt-6">
-                <div className="bg-blue-50 border border-blue-200 rounded p-4">
-                  <h5 className="font-bold text-blue-900 mb-2">🚀 How It Works</h5>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• <strong>Design</strong>: Choose a template, set custom colors, or upload your own image</li>
-                    <li>• <strong>Generate</strong>: We create an 88x31 badge image and upload it to our S3 storage</li>
-                    <li>• <strong>Update RingHub</strong>: The S3 URL is sent to RingHub to update all member badges</li>
-                    <li>• <strong>Synchronization</strong>: Local and RingHub always use the same badge image</li>
-                  </ul>
-                </div>
+            {/* Information */}
+            <div className="border-t border-gray-200 pt-6">
+              <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                <h5 className="font-bold text-blue-900 mb-2">🚀 How It Works</h5>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• <strong>Design</strong>: Choose a template, set custom colors, or upload your own image</li>
+                  <li>• <strong>Generate</strong>: We create an 88x31 badge image and upload it to our S3 storage</li>
+                  <li>• <strong>Update RingHub</strong>: The S3 URL is sent to RingHub to update all member badges</li>
+                  <li>• <strong>Synchronization</strong>: Local and RingHub always use the same badge image</li>
+                </ul>
               </div>
             </div>
+          </div>
         </RetroCard>
       </Layout>
     </>
@@ -638,30 +634,34 @@ export const getServerSideProps: GetServerSideProps<BadgeManagerPageProps> = asy
         try {
           // Fetching ring from RingHub
           const ring = await ringHubClient.getRing(slug);
-          
+
           if (ring) {
             // Found RingHub ring
-            
+
             // Check ownership via local database tracking (source of truth)
             let canManage = false;
-            
+
             try {
-              const ringHubOwnership = await db.ringHubOwnership.findUnique({
-                where: { ringSlug: slug }
-              });
-              // Local ownership record found
-              
-              if (ringHubOwnership && ringHubOwnership.ownerUserId === user.id) {
+              if (user.role === 'admin') {
                 canManage = true;
-                // User is owner via local ownership tracking
               } else {
-                // User is not owner of this ring
+                const ringHubOwnership = await db.ringHubOwnership.findUnique({
+                  where: { ringSlug: slug }
+                });
+                // Local ownership record found
+
+                if (ringHubOwnership && ringHubOwnership.ownerUserId === user.id) {
+                  canManage = true;
+                  // User is owner via local ownership tracking
+                } else {
+                  // User is not owner of this ring
+                }
               }
-              
+
             } catch (ownershipError) {
               console.warn('[Badge Manager SSR] Error checking local ownership:', ownershipError);
             }
-            
+
             return {
               props: {
                 ring: {

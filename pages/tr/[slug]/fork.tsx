@@ -20,11 +20,11 @@ interface ForkPageProps {
   isAuthenticated: boolean;
 }
 
-export default function ForkThreadRingPage({ 
-  siteConfig, 
-  originalRing, 
+export default function ForkThreadRingPage({
+  siteConfig,
+  originalRing,
   error,
-  isAuthenticated 
+  isAuthenticated
 }: ForkPageProps) {
   const router = useRouter();
 
@@ -58,7 +58,7 @@ export default function ForkThreadRingPage({
   return (
     <Layout siteConfig={siteConfig}>
       <div className="max-w-2xl mx-auto py-8">
-        <ForkThreadRingForm 
+        <ForkThreadRingForm
           originalRing={originalRing}
           onCancel={() => router.push(`/tr/${originalRing.slug}`)}
         />
@@ -70,7 +70,7 @@ export default function ForkThreadRingPage({
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteConfig = await getSiteConfig();
   const { slug } = context.params!;
-  
+
   if (typeof slug !== "string") {
     return {
       props: {
@@ -84,7 +84,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   // Check if user is authenticated
   const viewer = await getSessionUser(context.req as any);
-  
+
   if (!viewer) {
     return {
       props: {
@@ -146,7 +146,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     }
 
     // Check if the ring is visible to the viewer
-    if (ring.visibility === "private") {
+    if (ring.visibility === "private" && viewer.role !== 'admin') {
       // Check if viewer is a member
       const membership = await db.threadRingMember.findUnique({
         where: {

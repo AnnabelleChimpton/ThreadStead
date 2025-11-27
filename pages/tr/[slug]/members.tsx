@@ -40,12 +40,12 @@ interface ThreadRingMembersPageProps {
   error?: string;
 }
 
-export default function ThreadRingMembersPage({ 
-  siteConfig, 
-  ring, 
+export default function ThreadRingMembersPage({
+  siteConfig,
+  ring,
   members: initialMembers,
   canManage,
-  error 
+  error
 }: ThreadRingMembersPageProps) {
   const router = useRouter();
   const [members, setMembers] = useState<Member[]>(initialMembers);
@@ -65,7 +65,7 @@ export default function ThreadRingMembersPage({
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     setManaging(userId);
-    
+
     try {
       const response = await csrfFetch(`/api/threadrings/${ring.slug}/members/${userId}`, {
         method: "PUT",
@@ -82,8 +82,8 @@ export default function ThreadRingMembersPage({
       }
 
       // Update local state
-      setMembers(prev => prev.map(member => 
-        member.user.id === userId 
+      setMembers(prev => prev.map(member =>
+        member.user.id === userId
           ? { ...member, role: newRole }
           : member
       ));
@@ -101,14 +101,14 @@ export default function ThreadRingMembersPage({
     const member = members.find(m => m.user.id === userId);
     if (!member) return;
 
-    const memberHandle = member.user.handles.find(h => h.host === SITE_NAME)?.handle || 
-                        member.user.handles[0]?.handle || 
-                        "unknown";
+    const memberHandle = member.user.handles.find(h => h.host === SITE_NAME)?.handle ||
+      member.user.handles[0]?.handle ||
+      "unknown";
 
     if (!confirm(`Remove ${memberHandle} from ${ring.name}?`)) return;
 
     setManaging(userId);
-    
+
     try {
       const response = await csrfFetch(`/api/threadrings/${ring.slug}/members/${userId}`, {
         method: "DELETE",
@@ -136,16 +136,16 @@ export default function ThreadRingMembersPage({
   };
 
   const getMemberDisplayName = (member: Member) => {
-    const handle = member.user.handles.find(h => h.host === SITE_NAME)?.handle || 
-                  member.user.handles[0]?.handle || 
-                  "unknown";
+    const handle = member.user.handles.find(h => h.host === SITE_NAME)?.handle ||
+      member.user.handles[0]?.handle ||
+      "unknown";
     return member.user.profile?.displayName || `@${handle}`;
   };
 
   const getMemberHandle = (member: Member) => {
-    return member.user.handles.find(h => h.host === SITE_NAME)?.handle || 
-           member.user.handles[0]?.handle || 
-           "unknown";
+    return member.user.handles.find(h => h.host === SITE_NAME)?.handle ||
+      member.user.handles[0]?.handle ||
+      "unknown";
   };
 
   return (
@@ -172,18 +172,18 @@ export default function ThreadRingMembersPage({
           <div className="p-4 border-b border-gray-200">
             <h2 className="text-xl font-bold">All Members</h2>
           </div>
-          
+
           <div className="divide-y divide-gray-200">
             {members.map((member) => {
               const isCurrentUser = member.user.id === ring.curatorId; // We could pass current user ID
               const isCurator = member.role === "curator";
-              
+
               return (
                 <div key={member.id} className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {member.user.profile?.avatarUrl && (
-                      <img 
-                        src={member.user.profile.avatarUrl} 
+                      <img
+                        src={member.user.profile.avatarUrl}
                         alt={getMemberDisplayName(member)}
                         className="w-10 h-10 rounded-full border border-gray-300"
                       />
@@ -205,14 +205,13 @@ export default function ThreadRingMembersPage({
 
                   <div className="flex items-center gap-3">
                     {/* Role Badge */}
-                    <span className={`text-xs px-3 py-1 border border-black rounded ${
-                      member.role === "curator" ? "bg-yellow-200" :
-                      member.role === "moderator" ? "bg-blue-200" :
-                      "bg-gray-200"
-                    }`}>
+                    <span className={`text-xs px-3 py-1 border border-black rounded ${member.role === "curator" ? "bg-yellow-200" :
+                        member.role === "moderator" ? "bg-blue-200" :
+                          "bg-gray-200"
+                      }`}>
                       {member.role === "curator" ? "Curator" :
-                       member.role === "moderator" ? "Moderator" :
-                       "Member"}
+                        member.role === "moderator" ? "Moderator" :
+                          "Member"}
                     </span>
 
                     {/* Management Controls */}
@@ -273,7 +272,7 @@ export default function ThreadRingMembersPage({
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteConfig = await getSiteConfig();
   const { slug } = context.params!;
-  
+
   if (typeof slug !== "string") {
     return {
       props: {
@@ -298,19 +297,23 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           if (ringDescriptor) {
             // Get Ring Hub members
             const ringHubMembers = await client.getRingMembers(slug as string);
-            
+
             // Check if viewer owns this Ring Hub ring locally
             let canManage = false;
             if (viewer) {
-              const ownership = await db.ringHubOwnership.findUnique({
-                where: { ringSlug: slug as string },
-              });
-              canManage = ownership?.ownerUserId === viewer.id;
+              if (viewer.role === 'admin') {
+                canManage = true;
+              } else {
+                const ownership = await db.ringHubOwnership.findUnique({
+                  where: { ringSlug: slug as string },
+                });
+                canManage = ownership?.ownerUserId === viewer.id;
+              }
             }
 
             // Convert Ring Hub members to local format with user resolution
             const { transformRingMemberWithUserResolution } = await import('@/lib/api/ringhub/ringhub-transformers')
-            
+
             const members = await Promise.all(
               ringHubMembers.members.map(async (member) => {
                 const transformedMember = await transformRingMemberWithUserResolution(
@@ -318,7 +321,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   slug as string,
                   db
                 )
-                
+
                 // Convert to the expected format for this page
                 return {
                   id: transformedMember.id,
@@ -410,8 +413,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       };
     }
 
-    // Check if viewer can manage (curator only)
-    const canManage = viewer?.id === ring.curatorId;
+    // Check if viewer can manage (curator only or admin)
+    const canManage = viewer?.id === ring.curatorId || viewer?.role === 'admin';
 
     // Serialize the data
     const serializedMembers = ring.members.map(member => ({

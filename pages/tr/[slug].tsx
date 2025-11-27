@@ -711,6 +711,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         if (authData.loggedIn && authData.user && ring) {
           const userId = authData.user.id;
 
+          // Check if admin
+          if (authData.user.role === 'admin') {
+            setIsMember(true);
+            setCurrentUserRole("curator"); // Treat admin as curator for UI purposes
+            return;
+          }
+
           // Check Ring Hub ownership first (for rings that were forked/created via Ring Hub)
           try {
             const ownershipResponse = await fetch(`/api/threadrings/${ring.slug}/ownership`);

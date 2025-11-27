@@ -527,7 +527,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                 });
                 // Local ownership record found
 
-                if (ringHubOwnership && ringHubOwnership.ownerUserId === viewer.id) {
+                if (viewer.role === 'admin') {
+                  canManage = true;
+                } else if (ringHubOwnership && ringHubOwnership.ownerUserId === viewer.id) {
                   canManage = true;
                   // User is owner via local ownership tracking
                 } else {
@@ -617,7 +619,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       };
     }
 
-    const canManage = viewer?.id === ring.curatorId;
+    const canManage = viewer?.id === ring.curatorId || viewer?.role === 'admin';
 
     return {
       props: {
