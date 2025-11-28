@@ -8,6 +8,12 @@ export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: ['error'],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+// Cache the client in ALL environments to prevent connection pool exhaustion
+globalForPrisma.prisma = db
