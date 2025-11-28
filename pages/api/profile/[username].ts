@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { getSessionUser } from "@/lib/auth/server";
+import { getSessionUser, isAdmin } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/config/site/constants";
 
 
@@ -32,12 +32,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Get current viewer (if logged in)
   const viewer = await getSessionUser(req);
   const viewerId = viewer?.id;
+  const viewerIsAdmin = isAdmin(viewer);
 
+  // Admins can always view all profiles
   // Public profiles are accessible to everyone
-  if (visibility !== 'public') {
+  if (visibility !== 'public' && !viewerIsAdmin) {
     // If not logged in and profile is not public, deny access
     if (!viewerId) {
-      return res.status(404).json({ error: "not found" });
+      return res.status(403).json({
+        error: "private_profile",
+        visibility,
+        username,
+        displayName: u.profile?.displayName || username,
+        avatarUrl: u.profile?.avatarUrl || null
+      });
     }
 
     // Profile owner can always view their own profile
@@ -45,7 +53,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Check relationship for non-public profiles
       if (visibility === 'private') {
         // Private profiles are only visible to the owner
-        return res.status(404).json({ error: "not found" });
+        return res.status(403).json({
+          error: "private_profile",
+          visibility,
+          username,
+          displayName: u.profile?.displayName || username,
+          avatarUrl: u.profile?.avatarUrl || null
+        });
       }
 
       // Check follow relationships for 'followers' and 'friends' visibility
@@ -72,11 +86,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const isFriend = isFollower && ownerFollowsViewer?.status === 'accepted';
 
       if (visibility === 'followers' && !isFollower) {
-        return res.status(404).json({ error: "not found" });
+        return res.status(403).json({
+          error: "private_profile",
+          visibility,
+          username,
+          displayName: u.profile?.displayName || username,
+          avatarUrl: u.profile?.avatarUrl || null
+        });
       }
 
       if (visibility === 'friends' && !isFriend) {
-        return res.status(404).json({ error: "not found" });
+        return res.status(403).json({
+          error: "private_profile",
+          visibility,
+          username,
+          displayName: u.profile?.displayName || username,
+          avatarUrl: u.profile?.avatarUrl || null
+        });
       }
     }
   }

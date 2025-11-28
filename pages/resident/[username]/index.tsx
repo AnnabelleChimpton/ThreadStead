@@ -17,6 +17,7 @@ import FriendsWebsitesGrid from "@/components/core/profile/tabs/FriendsWebsitesG
 import ProfileBadgeDisplay from "@/components/core/profile/ProfileBadgeDisplay";
 import ProfileModeRenderer from "@/components/core/profile/ProfileModeRenderer";
 import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer";
+import PrivateProfile from "@/components/core/profile/PrivateProfile";
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
 import { mapProfileCSSModeToComponentMode } from "@/lib/utils/css/css-mode-mapper";
@@ -74,6 +75,9 @@ type ProfileProps = {
   // Metadata props
   displayName?: string;
   userJoinedAt?: string;
+  // Private profile props
+  isPrivateProfile?: boolean;
+  privateProfileVisibility?: 'private' | 'followers' | 'friends';
 };
 
 /* ---------------- page ---------------- */
@@ -100,6 +104,8 @@ export default function ProfilePage({
   profileMidi,
   displayName,
   userJoinedAt,
+  isPrivateProfile,
+  privateProfileVisibility,
 }: ProfileProps) {
   // Generate metadata for this profile
   const profileMetadata = contentMetadataGenerator.generateUserProfileMetadata({
@@ -129,6 +135,19 @@ export default function ProfilePage({
   const globalAudio = useGlobalAudio();
 
   const isOwner = currentUser?.id === ownerUserId;
+
+  // If this is a private profile, show the private profile page
+  // Note: This check must be after all hooks to comply with React's rules of hooks
+  if (isPrivateProfile && privateProfileVisibility) {
+    return (
+      <PrivateProfile
+        username={username}
+        displayName={displayName}
+        avatarUrl={photoUrl}
+        visibility={privateProfileVisibility}
+      />
+    );
+  }
 
   // Advanced templates always use the advanced renderer for consistent behavior
   // Only non-advanced templates use the standard layout
@@ -440,8 +459,29 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const host = req?.headers?.host || "localhost:3000";
   const base = `${proto}://${host}`;
 
-  const res = await fetch(`${base}/api/profile/${encodeURIComponent(usernameParam)}`);
+  const res = await fetch(`${base}/api/profile/${encodeURIComponent(usernameParam)}`, {
+    headers: {
+      cookie: req.headers.cookie || '',
+    },
+  });
   if (res.status === 404) return { notFound: true };
+
+  // Handle private profile - show a custom page instead of 404
+  if (res.status === 403) {
+    const privateData = await res.json();
+    if (privateData.error === 'private_profile') {
+      const props: ProfileProps = {
+        username: privateData.username || usernameParam,
+        ownerUserId: 'private',
+        isPrivateProfile: true,
+        privateProfileVisibility: privateData.visibility,
+        displayName: privateData.displayName,
+        photoUrl: privateData.avatarUrl || '/assets/default-avatar.gif',
+      };
+      return { props };
+    }
+  }
+
   if (!res.ok) {
     // Fallback: we still must supply ownerUserId, but we don't have it.
     // You can 404 here, but we'll set a dummy and keep page usable.
