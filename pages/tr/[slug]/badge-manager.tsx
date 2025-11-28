@@ -36,6 +36,7 @@ interface BadgeDesign {
   backgroundColor?: string;
   textColor?: string;
   customImageUrl?: string;
+  customImageHighResUrl?: string;
   description?: string;
   criteria?: string;
 }
@@ -76,6 +77,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
             backgroundColor: data.badge.backgroundColor,
             textColor: data.badge.textColor,
             customImageUrl: data.badge.imageUrl,
+            customImageHighResUrl: data.badge.imageHighResUrl,
             description: `Badge for ${ring.name} ThreadRing`,
             criteria: 'Active participation in the ThreadRing community'
           };
@@ -116,6 +118,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
           return;
         }
         generatedBadgeUrl = editedBadge.customImageUrl;
+        generatedHighResUrl = editedBadge.customImageHighResUrl;
       } else {
         // Generate badge from template/colors and upload to S3
         const response = await csrfFetch(`/api/threadrings/${ring.slug}/generate-and-upload-badge`, {
@@ -180,9 +183,9 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
         const localBadgeData = {
           title: editedBadge.title || ring.name,
           subtitle: editedBadge.subtitle,
-          templateId: editedBadge.templateId,
-          backgroundColor: editedBadge.backgroundColor,
-          textColor: editedBadge.textColor,
+          templateId: editedBadge.templateId || null,
+          backgroundColor: editedBadge.backgroundColor || null,
+          textColor: editedBadge.textColor || null,
           imageUrl: editedBadge.customImageUrl || generatedBadgeUrl,
           isActive: true
         };
@@ -195,9 +198,16 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
           body: JSON.stringify(localBadgeData),
         });
 
-        setCurrentBadge(editedBadge as BadgeDesign);
+        const finalBadge = {
+          ...editedBadge,
+          customImageUrl: editedBadge.customImageUrl || generatedBadgeUrl,
+          customImageHighResUrl: editedBadge.customImageHighResUrl || generatedHighResUrl
+        };
+
+        setCurrentBadge(finalBadge as BadgeDesign);
         setIsEditing(false);
-        setSuccess(`Badge updated successfully! ${result.badgesUpdated ? `(${result.badgesUpdated} member badges regenerated)` : ''}`);
+        const updatedCount = result.badgesUpdated?.updated || 0;
+        setSuccess(`Badge updated successfully! ${updatedCount > 0 ? `(${updatedCount} member badges regenerated)` : ''}`);
       } else {
         const errorData = await ringHubResponse.json();
         setError(errorData.error || 'Failed to update RingHub badge');
@@ -220,7 +230,8 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
         templateId: template.id,
         backgroundColor: undefined,
         textColor: undefined,
-        customImageUrl: undefined
+        customImageUrl: undefined,
+        customImageHighResUrl: undefined
       });
       setPreviewMode('template');
     }
@@ -464,6 +475,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                           setEditedBadge({
                             ...editedBadge,
                             customImageUrl: badgeUrls.badgeImageUrl,
+                            customImageHighResUrl: badgeUrls.badgeImageHighResUrl,
                             templateId: undefined
                           });
                           setSuccess('Badge image uploaded successfully!');
@@ -481,6 +493,7 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
                           onChange={(e) => setEditedBadge({
                             ...editedBadge,
                             customImageUrl: e.target.value,
+                            customImageHighResUrl: undefined, // Clear high-res if manually entering URL (unless we add a field for it)
                             templateId: undefined
                           })}
                           className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
