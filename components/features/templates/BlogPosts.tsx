@@ -54,8 +54,15 @@ export default function BlogPosts(props: BlogPostsProps) {
             post={{
               ...post,
               visibility: 'public',
-              authorId: '',
-              author: { id: '', primaryHandle: '', profile: { displayName: '' } },
+              authorId: owner.id,
+              author: {
+                id: owner.id,
+                primaryHandle: owner.handle,
+                profile: {
+                  displayName: owner.displayName,
+                  avatarUrl: owner.avatarUrl
+                }
+              },
               upvoteCount: 0,
               downvoteCount: 0,
               commentCount: 0,

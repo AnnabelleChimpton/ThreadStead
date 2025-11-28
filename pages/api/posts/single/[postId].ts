@@ -26,6 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             profile: {
               select: {
                 displayName: true,
+                avatarUrl: true,
               },
             },
           },

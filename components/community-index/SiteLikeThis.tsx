@@ -149,21 +149,19 @@ export function SiteLikeThis({
             <div className="flex text-xs border rounded">
               <button
                 onClick={() => setViewMode('similar')}
-                className={`px-2 py-1 ${
-                  viewMode === 'similar'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
+                className={`px-2 py-1 ${viewMode === 'similar'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+                  }`}
               >
                 Similar ({similarSites.length})
               </button>
               <button
                 onClick={() => setViewMode('related')}
-                className={`px-2 py-1 ${
-                  viewMode === 'related'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
+                className={`px-2 py-1 ${viewMode === 'related'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-50'
+                  }`}
               >
                 Related ({relatedSites.length})
               </button>
@@ -240,7 +238,7 @@ export function SiteLikeThis({
           <button
             onClick={() => {
               // Could implement "load more" or redirect to full results
-              window.open(`/community-index/discover?similar=${encodeURIComponent(siteUrl)}`, '_blank');
+              window.open(`/discover/search?tab=indie&similar=${encodeURIComponent(siteUrl)}`, '_blank');
             }}
             className="text-xs text-blue-600 hover:text-blue-700"
           >
