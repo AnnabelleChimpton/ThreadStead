@@ -33,29 +33,29 @@ export class AuthenticatedRingHubClient {
 
     // Get user's DID data
     const userDIDMapping = await getOrCreateUserDID(this.userId)
-    
+
     // Check if we can use user DID directly (production with resolvable domain)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-    
+
     if (isLocalhost) {
       console.log(`⚠️ Development mode: Using server DID proxy for Ring Hub authentication`)
       console.log(`User intent tracked locally for: ${userDIDMapping.did}`)
-      
+
       // In development, use server DID but track user intent locally
       if (!this.client) {
         throw new Error('Ring Hub client not available')
       }
       return this.client
     }
-    
+
     // In production, use user's DID directly (DID documents are now published)
     console.log(`✅ Production mode: User ${userDIDMapping.did} authenticating directly to Ring Hub`)
     console.log(`DID document available at: /.well-known/did/users/${userDIDMapping.userHash}/did.json`)
-    
+
     // Convert base64url public key to multibase format for Ring Hub
     const publicKeyMultibase = publicKeyToMultibase(userDIDMapping.publicKey)
-    
+
     this.userClient = new RingHubClient({
       baseUrl: process.env.RING_HUB_URL!,
       instanceDID: userDIDMapping.did,
@@ -88,19 +88,19 @@ export class AuthenticatedRingHubClient {
    */
   async joinRing(slug: string, message?: string): Promise<RingMember> {
     console.log(`Starting join operation for ring: ${slug}`)
-    
+
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
-    
+
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-    
+
     if (isLocalhost) {
       console.log(`User ${userDID} joining ring ${slug} via server DID proxy (dev mode)`)
     } else {
       console.log(`User ${userDID} joining ring ${slug} with direct authentication (production)`)
     }
-    
+
     try {
       const result = await userClient.joinRing(slug, message)
       console.log('✅ Ring Hub join successful:', result)
@@ -147,12 +147,12 @@ export class AuthenticatedRingHubClient {
   }) {
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
-    
+
     const submission = {
       ...postSubmission,
       actorDid: userDID  // Include the user's DID as the actor
     }
-    
+
     console.log(`Submitting post to ring ${ringSlug} as user ${userDID}`)
     return await userClient.submitPost(ringSlug, submission)
   }
@@ -170,19 +170,19 @@ export class AuthenticatedRingHubClient {
    */
   async updateRing(slug: string, updates: Partial<RingDescriptor>): Promise<RingDescriptor> {
     console.log(`Starting update operation for ring: ${slug}`)
-    
+
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
-    
+
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-    
+
     if (isLocalhost) {
       console.log(`User ${userDID} updating ring ${slug} via server DID proxy (dev mode)`)
     } else {
       console.log(`User ${userDID} updating ring ${slug} directly (prod mode)`)
     }
-    
+
     // Update via Ring Hub using user-authenticated client
     // Ring Hub will verify the user has manage_ring permission
     return await userClient.updateRing(slug, updates)
@@ -208,10 +208,10 @@ export class AuthenticatedRingHubClient {
   }> {
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
-    
+
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-    
+
     // Update badge via Ring Hub using user-authenticated client
     // Ring Hub will verify the user owns the ring (ownerDid matches actorDid)
     return await userClient.updateRingBadge(slug, updates)
@@ -223,23 +223,23 @@ export class AuthenticatedRingHubClient {
   async forkRing(parentSlug: string, forkData: Partial<RingDescriptor>): Promise<RingDescriptor> {
     const userClient = await this.getUserClient()
     const userDIDMapping = await getOrCreateUserDID(this.userId)
-    
+
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-    
+
     // Add user identification to fork metadata
     const enrichedForkData = {
       ...forkData,
-      curatorNotes: isLocalhost 
+      curatorNotes: isLocalhost
         ? `Created by user ${userDIDMapping.did} via ThreadStead (dev mode)`
         : `Created by user ${userDIDMapping.did} via ThreadStead`
     }
-    
+
     console.log(`User ${userDIDMapping.did} forking ring ${parentSlug}`)
     const forkedRing = await userClient.forkRing(parentSlug, enrichedForkData)
-    
+
     console.log('✅ Fork response from Ring Hub:', forkedRing);
-    
+
     // Track ownership locally for user access control
     // Note: Both Ring Hub and local tracking now show user as actual owner
     await db.ringHubOwnership.create({
@@ -250,7 +250,7 @@ export class AuthenticatedRingHubClient {
         serverDID: userDIDMapping.did, // User's DID is now the Ring Hub owner too
       }
     })
-    
+
     console.log(`Created Ring Hub fork ownership tracking for user ${this.userId}, ring ${forkedRing.slug}`)
     return forkedRing
   }
@@ -263,7 +263,7 @@ export class AuthenticatedRingHubClient {
   }
 
   // Pass-through methods that don't require user authentication
-  
+
   async getRing(slug: string): Promise<RingDescriptor | null> {
     return this.client?.getRing(slug) || null
   }
@@ -275,7 +275,7 @@ export class AuthenticatedRingHubClient {
 
   async getRingMembers(slug: string) {
     const userClient = await this.getUserClient()
-    
+
     return await userClient.getRingMembers(slug)
   }
 
@@ -311,8 +311,9 @@ export class AuthenticatedRingHubClient {
         return {
           memberships: [],
           total: 0,
-          page: 1,
-          limit: options?.limit || 20
+          offset: options?.offset || 0,
+          limit: options?.limit || 20,
+          hasMore: false
         };
       }
       throw error;
@@ -340,16 +341,16 @@ export class AuthenticatedRingHubClient {
   }) {
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
-    
+
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-    
+
     if (isLocalhost) {
       console.log(`User ${userDID} curating post ${postId} with action ${action} via server DID proxy (dev mode)`)
     } else {
       console.log(`User ${userDID} curating post ${postId} with action ${action} directly (prod mode)`)
     }
-    
+
     try {
       const result = await userClient.curatePost(postId, action, options)
       console.log('✅ Ring Hub curation successful:', result)
@@ -376,7 +377,7 @@ export function createAuthenticatedRingHubClient(userId: string): AuthenticatedR
  * Utility functions for user DID operations
  */
 export class UserDIDUtils {
-  
+
   /**
    * Check if a user has a DID
    */
@@ -405,14 +406,14 @@ export class UserDIDUtils {
    */
   static async ensureMultipleUserDIDs(userIds: string[]): Promise<Map<string, string>> {
     const didMap = new Map<string, string>()
-    
+
     await Promise.all(
       userIds.map(async (userId) => {
         const mapping = await getOrCreateUserDID(userId)
         didMap.set(userId, mapping.did)
       })
     )
-    
+
     return didMap
   }
 }
@@ -421,15 +422,15 @@ export class UserDIDUtils {
  * Migration utilities for existing ThreadRings
  */
 export class ThreadRingMigrationUtils {
-  
+
   /**
    * Migrate existing ThreadRing members to DID system
    */
   static async migrateMembersToDIDs(memberUserIds: string[]): Promise<Map<string, string>> {
     console.log(`Migrating ${memberUserIds.length} ThreadRing members to DID system...`)
-    
+
     const userDIDMap = new Map<string, string>()
-    
+
     for (const userId of memberUserIds) {
       try {
         const mapping = await getOrCreateUserDID(userId)
@@ -439,7 +440,7 @@ export class ThreadRingMigrationUtils {
         // Continue with other users
       }
     }
-    
+
     console.log(`Successfully migrated ${userDIDMap.size} users to DID system`)
     return userDIDMap
   }
@@ -449,7 +450,7 @@ export class ThreadRingMigrationUtils {
    */
   static async getMemberDIDMappings(memberUserIds: string[]): Promise<Array<{ userId: string; did: string }>> {
     const mappings: Array<{ userId: string; did: string }> = []
-    
+
     for (const userId of memberUserIds) {
       try {
         const did = await getUserDID(userId)
@@ -459,7 +460,7 @@ export class ThreadRingMigrationUtils {
         // Skip users without DIDs
       }
     }
-    
+
     return mappings
   }
 }
