@@ -580,6 +580,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <PixelIcon name="info-box" size={14} className="text-thread-sage flex-shrink-0" />
                 <span className="text-xs text-thread-pine truncate">
+                  <span className="font-bold mr-1 md:hidden">Lounge:</span>
                   {roomTopic || <span className="italic text-thread-sage">No topic set</span>}
                 </span>
               </div>
