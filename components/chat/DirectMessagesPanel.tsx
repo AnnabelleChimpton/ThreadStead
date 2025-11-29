@@ -198,7 +198,7 @@ function DirectMessageChat({ conversationId, onBack, conversations }: { conversa
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-1 retro-scrollbar" style={{ scrollbarWidth: 'auto' }}>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1 retro-scrollbar overscroll-y-contain" style={{ scrollbarWidth: 'auto' }}>
                 {loading && <div className="text-center text-xs text-thread-sage">Loading...</div>}
                 {messages.map((msg, i) => {
                     const isMe = msg.senderId === user?.id;

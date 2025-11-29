@@ -606,7 +606,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
         <div className="flex-1 flex flex-col overflow-hidden">
           <div
             ref={messageListRef}
-            className="flex-1 overflow-y-auto p-2 space-y-1 retro-scrollbar"
+            className="flex-1 overflow-y-auto p-2 space-y-1 retro-scrollbar overscroll-y-contain"
             style={{ scrollbarWidth: 'auto' }}
             onClick={(e) => {
               // Handle mention clicks

@@ -88,7 +88,7 @@ export default function GlobalChatPopup() {
     <>
       {/* Mobile: Full screen overlay - covers nav bar */}
       <div
-        className="md:hidden fixed inset-0 z-[9999] pointer-events-none flex flex-col animate-slide-up"
+        className="md:hidden fixed inset-0 z-[9999] pointer-events-none flex flex-col animate-slide-up overscroll-none"
       >
         {/* Header - compact on mobile */}
         <div className="bg-thread-cream border-b border-thread-sage px-2 py-2 flex items-center justify-between shrink-0 pointer-events-auto">
