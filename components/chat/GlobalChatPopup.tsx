@@ -86,10 +86,9 @@ export default function GlobalChatPopup() {
 
   return (
     <>
-      {/* Mobile: Full screen overlay - positioned below nav bar */}
+      {/* Mobile: Full screen overlay - covers nav bar */}
       <div
-        className="md:hidden fixed left-0 right-0 bottom-0 z-[9998] pointer-events-none flex flex-col animate-slide-up"
-        style={{ top: 'var(--nav-height, 4rem)' }}
+        className="md:hidden fixed inset-0 z-[9999] pointer-events-none flex flex-col animate-slide-up"
       >
         {/* Header - compact on mobile */}
         <div className="bg-thread-cream border-b border-thread-sage px-3 py-2 flex items-center justify-between shrink-0 pointer-events-auto">
@@ -229,13 +228,7 @@ export default function GlobalChatPopup() {
         </div>
       </div>
 
-      {/* Mobile backdrop - positioned below nav bar */}
-      <div
-        className="md:hidden fixed left-0 right-0 bottom-0 bg-black/50 z-[9997]"
-        style={{ top: 'var(--nav-height, 4rem)' }}
-        onClick={closeChat}
-        aria-hidden="true"
-      />
+
 
       <style jsx>{`
         @keyframes slide-up {

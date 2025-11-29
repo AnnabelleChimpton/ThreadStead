@@ -9,6 +9,8 @@ import { retroSFX } from '@/lib/audio/retro-sfx';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import RetroButton from '@/components/ui/feedback/RetroButton';
 import UserQuickView from '@/components/ui/feedback/UserQuickView';
+import EmojiPicker from '@/components/ui/feedback/EmojiPicker';
+import { useEmojis, Emoji } from '@/hooks/useEmojis';
 
 interface ChatMessage {
   id: string;
@@ -72,34 +74,19 @@ function processMentions(text: string, currentUserHandle: string | null, presenc
 }
 
 // Utility function to replace text smileys with pixel art (or unicode for now)
-function processMessageContent(text: string, currentUserHandle: string | null = null, presenceUsers: PresenceUser[] = []): string {
+// Utility function to replace text smileys with pixel art (or unicode for now)
+function processMessageContent(text: string, currentUserHandle: string | null = null, presenceUsers: PresenceUser[] = [], customEmojis: Emoji[] = []): string {
   let processed = linkifyText(text);
   processed = processMentions(processed, currentUserHandle, presenceUsers);
 
-  // Simple emoticon replacement
-  const emoticons: Record<string, string> = {
-    ':)': '&#128578;', // 🙂
-    ':-)': '&#128578;',
-    ':(': '&#128577;', // ☹️
-    ':-(': '&#128577;',
-    '<3': '&#10084;&#65039;', // ❤️
-    ':D': '&#128515;', // 😃
-    ':-D': '&#128515;',
-    ';)': '&#128521;', // 😉
-    ';-)': '&#128521;',
-    ':P': '&#128539;', // 😛
-    ':-P': '&#128539;',
-    'lol': '&#129315;', // 🤣
-  };
-
-  // Replace emoticons (careful not to break HTML tags from linkify)
-  Object.entries(emoticons).forEach(([key, value]) => {
-    // Escape special regex chars
-    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // Match only if not inside a tag (simple heuristic)
-    const regex = new RegExp(`(?<!="[^"]*)${escapedKey}(?![^<]*>)`, 'g');
-    processed = processed.replace(regex, `<span class="font-emoji text-lg align-middle">${value}</span>`);
-  });
+  // Custom emoji replacement
+  if (customEmojis.length > 0) {
+    customEmojis.forEach(emoji => {
+      const escapedName = emoji.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`:${escapedName}:`, 'g');
+      processed = processed.replace(regex, `<img src="${emoji.imageUrl}" alt=":${emoji.name}:" class="inline-block w-5 h-5 align-middle object-contain" title=":${emoji.name}:" />`);
+    });
+  }
 
   return processed;
 }
@@ -164,6 +151,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
   const [roomTopic, setRoomTopic] = useState<string | null>(null);
   const [isEditingTopic, setIsEditingTopic] = useState(false);
   const [topicInput, setTopicInput] = useState('');
+  const { emojis: customEmojis } = useEmojis();
 
   // Create stable toggle function
   const toggleMobilePresence = useCallback(() => {
@@ -683,15 +671,16 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                           </span>
                           {/* Menu Button */}
                           {!isOwnMessage && (
-                            <div className="relative ml-auto">
+                            <div className="relative ml-auto self-start sm:self-auto">
                               <button
                                 onClick={() => setShowUserMenu(showUserMenu === msg.id ? null : msg.id)}
-                                className="text-thread-sage/50 hover:text-thread-pine text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity leading-none"
+                                className="text-thread-sage/50 hover:text-thread-pine text-xs p-2 sm:px-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity leading-none"
+                                aria-label="Message options"
                               >
                                 •••
                               </button>
                               {showUserMenu === msg.id && (
-                                <div className="absolute right-0 top-full mt-1 bg-thread-paper border border-thread-sage rounded shadow-lg z-10">
+                                <div className="absolute right-0 top-full mt-1 bg-thread-paper border border-thread-sage rounded shadow-lg z-10 min-w-[160px]">
                                   <button
                                     onClick={() => {
                                       if (msg.handle) {
@@ -735,7 +724,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                         </div>
                       )}
                       {msg.isAction ? (
-                        <div className={`text-xs whitespace-pre-wrap break-words italic ${isMuted ? 'text-thread-sage/70' : 'text-thread-charcoal'}`}>
+                        <div className={`text-sm sm:text-xs whitespace-pre-wrap break-words italic ${isMuted ? 'text-thread-sage/70' : 'text-thread-charcoal'}`}>
                           {isMuted ? (
                             'Message hidden (user muted)'
                           ) : (
@@ -744,14 +733,14 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                               {' '}
                               <span
                                 dangerouslySetInnerHTML={{
-                                  __html: cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence))
+                                  __html: cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence, customEmojis))
                                 }}
                               />
                             </>
                           )}
                         </div>
                       ) : msg.isWhisper ? (
-                        <div className={`text-xs whitespace-pre-wrap break-words italic text-thread-pine-dark`}>
+                        <div className={`text-sm sm:text-xs whitespace-pre-wrap break-words italic text-thread-pine-dark`}>
                           <span className="font-semibold">
                             {user && msg.userId === user.id
                               ? `Whisper to @${msg.whisperTo?.split('@')[0]}`
@@ -760,17 +749,17 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                           {': '}
                           <span
                             dangerouslySetInnerHTML={{
-                              __html: cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence))
+                              __html: cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence, customEmojis))
                             }}
                           />
                         </div>
                       ) : (
                         <div
-                          className={`text-xs whitespace-pre-wrap break-words ${isMuted ? 'text-thread-sage/70 italic' : 'text-thread-charcoal'}`}
+                          className={`text-sm sm:text-xs whitespace-pre-wrap break-words ${isMuted ? 'text-thread-sage/70 italic' : 'text-thread-charcoal'}`}
                           dangerouslySetInnerHTML={{
                             __html: isMuted
                               ? 'Message hidden (user muted)'
-                              : cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence))
+                              : cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence, customEmojis))
                           }}
                         />
                       )}
@@ -781,11 +770,16 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
             })}
           </div>
 
-          {/* Input Area */}
           <div className="border-t border-thread-sage p-2 sm:p-3"
             style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
           >
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-end">
+              <div className="pb-1">
+                <EmojiPicker
+                  onEmojiSelect={(emojiName) => setMessageInput(prev => `${prev}:${emojiName}: `)}
+                  className="z-20"
+                />
+              </div>
               <textarea
                 value={messageInput}
                 onChange={(e) => {
@@ -801,7 +795,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder={user ? "Type a message..." : "Log in to message"}
-                className={`flex-1 px-3 py-2 text-xs border border-thread-sage rounded bg-white text-thread-charcoal resize-none min-h-[40px] sm:min-h-[36px] ${!user ? 'bg-thread-stone/10 cursor-not-allowed' : ''}`}
+                className={`flex-1 px-3 py-2 text-[16px] sm:text-xs border border-thread-sage rounded bg-white text-thread-charcoal resize-none min-h-[40px] sm:min-h-[36px] ${!user ? 'bg-thread-stone/10 cursor-not-allowed' : ''}`}
                 rows={1}
                 maxLength={280}
                 disabled={!connected || sending || !user}

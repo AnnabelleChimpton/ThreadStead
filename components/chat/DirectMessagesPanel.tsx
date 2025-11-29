@@ -5,6 +5,9 @@ import { useDirectMessages } from '@/hooks/useDirectMessages';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { formatDistanceToNow } from 'date-fns';
 import RetroButton from '@/components/ui/feedback/RetroButton';
+import EmojiPicker from '@/components/ui/feedback/EmojiPicker';
+import { useEmojis, Emoji } from '@/hooks/useEmojis';
+import { cleanAndNormalizeHtml } from '@/lib/utils/sanitization/html';
 
 interface DirectMessagesPanelProps {
     onClose?: () => void;
@@ -107,11 +110,41 @@ export default function DirectMessagesPanel({ onClose, initialConversationId }: 
     );
 }
 
+
+
+// Utility function to detect URLs and convert them to clickable links
+function linkifyText(text: string): string {
+    // URL detection regex - matches http(s):// URLs and www. URLs
+    const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
+
+    return text.replace(urlRegex, (url) => {
+        // Ensure URL has protocol
+        const href = url.startsWith('www.') ? `http://${url}` : url;
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-thread-pine hover:underline break-all">${url}</a>`;
+    });
+}
+
+function processMessageContent(text: string, customEmojis: Emoji[] = []): string {
+    let processed = linkifyText(text);
+
+    // Custom emoji replacement
+    if (customEmojis.length > 0) {
+        customEmojis.forEach(emoji => {
+            const escapedName = emoji.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`:${escapedName}:`, 'g');
+            processed = processed.replace(regex, `<img src="${emoji.imageUrl}" alt=":${emoji.name}:" class="inline-block w-5 h-5 align-middle object-contain" title=":${emoji.name}:" />`);
+        });
+    }
+
+    return processed;
+}
+
 function DirectMessageChat({ conversationId, onBack, conversations }: { conversationId: string, onBack: () => void, conversations: any[] }) {
     const { user } = useCurrentUser();
     const { messages, loading, sendMessage } = useDirectMessages(conversationId);
     const [inputText, setInputText] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { emojis: customEmojis } = useEmojis();
 
     const conversation = conversations.find(c => c.id === conversationId);
     const otherUser = conversation?.otherUser;
@@ -145,15 +178,15 @@ function DirectMessageChat({ conversationId, onBack, conversations }: { conversa
         <div className="flex flex-col h-full bg-thread-paper">
             {/* Header */}
             <div className="p-2 border-b border-thread-sage bg-thread-cream flex items-center gap-2">
-                <button onClick={onBack} className="text-thread-sage hover:text-thread-pine p-1">
+                <button onClick={onBack} className="text-thread-sage hover:text-thread-pine p-3 -ml-2" title="Back">
                     <PixelIcon name="arrow-left" size={16} />
                 </button>
-                <div className="w-6 h-6 rounded-full bg-thread-sage/20 overflow-hidden border border-thread-sage">
+                <div className="w-8 h-8 rounded-full bg-thread-sage/20 overflow-hidden border border-thread-sage flex-shrink-0">
                     {otherUser?.profile?.avatarThumbnailUrl || otherUser?.profile?.avatarUrl ? (
                         <img src={otherUser.profile.avatarThumbnailUrl || otherUser.profile.avatarUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-thread-sage">
-                            <PixelIcon name="user" size={12} />
+                            <PixelIcon name="user" size={16} />
                         </div>
                     )}
                 </div>
@@ -209,9 +242,9 @@ function DirectMessageChat({ conversationId, onBack, conversations }: { conversa
                                             {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
-                                    <div className="text-xs whitespace-pre-wrap break-words text-thread-charcoal mt-0.5">
-                                        {msg.body}
-                                    </div>
+                                    <div className="text-sm sm:text-xs whitespace-pre-wrap break-words text-thread-charcoal mt-0.5"
+                                        dangerouslySetInnerHTML={{ __html: cleanAndNormalizeHtml(processMessageContent(msg.body, customEmojis)) }}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -224,13 +257,19 @@ function DirectMessageChat({ conversationId, onBack, conversations }: { conversa
             <div className="border-t border-thread-sage p-2 sm:p-3"
                 style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
             >
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-end">
+                    <div className="pb-1">
+                        <EmojiPicker
+                            onEmojiSelect={(emojiName) => setInputText(prev => `${prev}:${emojiName}: `)}
+                            className="z-20"
+                        />
+                    </div>
                     <textarea
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="Type a message..."
-                        className="flex-1 px-3 py-2 text-xs border border-thread-sage rounded bg-white text-thread-charcoal resize-none min-h-[40px] sm:min-h-[36px]"
+                        className="flex-1 px-3 py-2 text-[16px] sm:text-xs border border-thread-sage rounded bg-white text-thread-charcoal resize-none min-h-[40px] sm:min-h-[36px]"
                         rows={1}
                         maxLength={280}
                         style={{ WebkitOverflowScrolling: 'touch' }}
