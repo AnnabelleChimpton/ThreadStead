@@ -91,64 +91,60 @@ export default function GlobalChatPopup() {
         className="md:hidden fixed inset-0 z-[9999] pointer-events-none flex flex-col animate-slide-up"
       >
         {/* Header - compact on mobile */}
-        <div className="bg-thread-cream border-b border-thread-sage px-3 py-2 flex items-center justify-between shrink-0 pointer-events-auto">
-          <div className="flex items-center gap-3">
-            <div className="flex bg-thread-sage/10 rounded-lg p-1 gap-1">
-              <button
-                onClick={() => setActiveTab('lounge')}
-                className={`p-1.5 rounded ${activeTab === 'lounge' ? 'bg-white text-thread-pine shadow-sm' : 'text-thread-sage hover:text-thread-pine hover:bg-white/50'}`}
-                title="Lounge"
-              >
-                <PixelIcon name="chat" size={18} />
-              </button>
-              <button
-                onClick={() => setActiveTab('messages')}
-                className={`p-1.5 rounded relative ${activeTab === 'messages' ? 'bg-white text-thread-pine shadow-sm' : 'text-thread-sage hover:text-thread-pine hover:bg-white/50'}`}
-                title="Messages"
-              >
-                <PixelIcon name="mail" size={18} />
-                {totalUnreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1 rounded-full min-w-[14px] h-[14px] flex items-center justify-center border border-thread-cream">
-                    {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
-                  </span>
-                )}
-              </button>
-            </div>
-            <h3 className="font-bold text-thread-pine text-sm">
-              {activeTab === 'lounge' ? 'Lounge' : 'Messages'}
-            </h3>
+        <div className="bg-thread-cream border-b border-thread-sage px-2 py-2 flex items-center justify-between shrink-0 pointer-events-auto">
+          <div className="flex bg-thread-sage/10 rounded-lg p-1 gap-1">
+            <button
+              onClick={() => setActiveTab('lounge')}
+              className={`p-2 rounded ${activeTab === 'lounge' ? 'bg-white text-thread-pine shadow-sm' : 'text-thread-sage hover:text-thread-pine hover:bg-white/50'}`}
+              title="Lounge"
+            >
+              <PixelIcon name="chat" size={20} />
+            </button>
+            <button
+              onClick={() => setActiveTab('messages')}
+              className={`p-2 rounded relative ${activeTab === 'messages' ? 'bg-white text-thread-pine shadow-sm' : 'text-thread-sage hover:text-thread-pine hover:bg-white/50'}`}
+              title="Messages"
+            >
+              <PixelIcon name="mail" size={20} />
+              {totalUnreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1 rounded-full min-w-[14px] h-[14px] flex items-center justify-center border border-thread-cream">
+                  {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                </span>
+              )}
+            </button>
           </div>
-          <div className="flex items-center gap-1.5">
+
+          <div className="flex items-center gap-1">
             {/* Presence button (only for lounge) */}
             {activeTab === 'lounge' && presenceData && (
               <button
                 onClick={presenceData.togglePresence}
-                className="text-thread-sage hover:text-thread-pine transition-colors p-1.5 active:scale-95"
+                className="text-thread-sage hover:text-thread-pine transition-colors p-2 active:scale-95"
                 title={`Show participants (${presenceData.users.length} online)`}
               >
-                <PixelIcon name="users" size={18} />
+                <PixelIcon name="users" size={20} />
               </button>
             )}
             <button
               onClick={toggleSfx}
-              className={`text-thread-sage hover:text-thread-pine transition-colors p-1.5 ${!sfxEnabled ? 'opacity-50' : ''}`}
+              className={`text-thread-sage hover:text-thread-pine transition-colors p-2 ${!sfxEnabled ? 'opacity-50' : ''}`}
               title={sfxEnabled ? "Mute sound effects" : "Enable sound effects"}
             >
-              <PixelIcon name="speaker" size={18} />
+              <PixelIcon name="speaker" size={20} />
             </button>
             <Link
               href="/chat"
-              className="text-thread-sage hover:text-thread-pine transition-colors p-1.5"
+              className="text-thread-sage hover:text-thread-pine transition-colors p-2"
               title="Open in fullscreen"
             >
-              <PixelIcon name="external-link" size={18} />
+              <PixelIcon name="external-link" size={20} />
             </Link>
             <button
               onClick={closeChat}
-              className="flex items-center gap-1 bg-thread-sage/10 hover:bg-thread-sage/20 text-thread-pine font-medium px-2.5 py-1 rounded-full transition-colors text-sm"
+              className="flex items-center justify-center bg-thread-sage/10 hover:bg-thread-sage/20 text-thread-pine font-medium w-9 h-9 rounded-full transition-colors ml-1"
               title="Close chat"
             >
-              <PixelIcon name="close" size={14} />
+              <PixelIcon name="close" size={16} />
             </button>
           </div>
         </div>
