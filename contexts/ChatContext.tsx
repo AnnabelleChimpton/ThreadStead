@@ -3,10 +3,12 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 interface ChatContextType {
   isChatOpen: boolean;
   chatMinimized: boolean;
+  activeConversationId: string | null;
   openChat: () => void;
   closeChat: () => void;
   toggleChat: () => void;
   minimizeChat: () => void;
+  openDM: (userId: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -17,6 +19,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Initialize from localStorage, default to closed
   // Initialize with false to prevent hydration mismatch
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -50,6 +53,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const closeChat = useCallback(() => {
     setIsChatOpen(false);
     setChatMinimized(false);
+    setActiveConversationId(null);
   }, []);
 
   const toggleChat = useCallback(() => {
@@ -62,13 +66,42 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setIsChatOpen(false);
   }, []);
 
+  const openDM = useCallback(async (userId: string) => {
+    // We'll let the GlobalChatPopup handle the actual creation/selection
+    // by passing the target user ID via a custom event or shared state
+    // For now, we'll just open the chat and set a "pending" state
+    // But actually, since we have ConversationsContext, we can use that!
+    // However, ChatContext shouldn't depend on ConversationsContext to avoid circular deps if possible
+    // Instead, we'll expose the activeConversationId and let GlobalChatPopup react to it
+
+    // First, we need to create the conversation
+    try {
+      const res = await fetch('/api/messages/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: userId })
+      });
+      const data = await res.json();
+
+      if (data.id) {
+        setActiveConversationId(data.id);
+        setIsChatOpen(true);
+        setChatMinimized(false);
+      }
+    } catch (error) {
+      console.error('Failed to open DM:', error);
+    }
+  }, []);
+
   const value: ChatContextType = {
     isChatOpen,
     chatMinimized,
+    activeConversationId,
     openChat,
     closeChat,
     toggleChat,
     minimizeChat,
+    openDM,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

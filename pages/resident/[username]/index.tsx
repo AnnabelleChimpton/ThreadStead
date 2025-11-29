@@ -273,8 +273,8 @@ export default function ProfilePage({
       label: "Badges",
       content: (
         <div className="profile-tab-content p-4">
-          <ProfileBadgeDisplay 
-            username={username} 
+          <ProfileBadgeDisplay
+            username={username}
             showTitle={false}
             layout="grid"
             className="max-w-2xl"
@@ -371,81 +371,82 @@ export default function ProfilePage({
       </Head>
 
       <ProfileLayout
-      customCSS={customCSS}
-      hideNavigation={hideNavigation}
-      includeSiteCSS={includeSiteCSS}
-      templateMode={templateMode}
-      cssMode={cssMode}
-      initialSiteCSS={initialSiteCSS}
-      preRenderedCSS={preRenderedCSS}
-    >
-      <RetroCard>
-        <ProfileHeader
-          username={username}
-          photoUrl={photoUrl}
-          bio={bio}
-          relStatus={relStatus}
-          onRelStatusChange={setRelStatus}
-        />
-      </RetroCard>
+        customCSS={customCSS}
+        hideNavigation={hideNavigation}
+        includeSiteCSS={includeSiteCSS}
+        templateMode={templateMode}
+        cssMode={cssMode}
+        initialSiteCSS={initialSiteCSS}
+        preRenderedCSS={preRenderedCSS}
+      >
+        <RetroCard>
+          <ProfileHeader
+            username={username}
+            ownerUserId={ownerUserId}
+            photoUrl={photoUrl}
+            bio={bio}
+            relStatus={relStatus}
+            onRelStatusChange={setRelStatus}
+          />
+        </RetroCard>
 
-      <div className="profile-tabs-wrapper">
-        <Tabs tabs={tabs} initialId={initialTabId} />
-      </div>
+        <div className="profile-tabs-wrapper">
+          <Tabs tabs={tabs} initialId={initialTabId} />
+        </div>
 
-      {/* MIDI Player - Now using the refactored component with new library */}
-      {profileMidi && (
-        <MidiPlayer
-          midiUrl={profileMidi.url}
-          title={profileMidi.title}
-          autoplay={profileMidi.autoplay}
-          loop={profileMidi.loop}
-          compact={false}
-        />
-      )}
+        {/* MIDI Player - Now using the refactored component with new library */}
+        {profileMidi && (
+          <MidiPlayer
+            midiUrl={profileMidi.url}
+            title={profileMidi.title}
+            autoplay={profileMidi.autoplay}
+            loop={profileMidi.loop}
+            compact={false}
+          />
+        )}
 
-      {/* Global Audio Player - Shows when global audio is playing on first visit only */}
-      {globalAudio.state.isPlaying && !profileMidi && isFirstVisit && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <div className="bg-white rounded-lg shadow-lg border-2 border-black p-3">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  if (isMuted) {
-                    // Unmute: restore previous volume
-                    globalAudio.setVolume(previousVolume);
-                    setIsMuted(false);
-                  } else {
-                    // Mute: save current volume and set to 0
-                    setPreviousVolume(globalAudio.state.volume);
-                    globalAudio.setVolume(0);
-                    setIsMuted(true);
-                  }
-                }}
-                className="w-10 h-10 flex items-center justify-center bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
-                aria-label={isMuted ? 'Unmute Music' : 'Mute Music'}
-              >
-                {isMuted ? '🔇' : '🔊'}
-              </button>
-              <div className="flex-1">
-                <div className="text-sm font-medium">Welcome Music</div>
-                <div className="text-xs text-gray-500">
-                  {isMuted ? 'Click to unmute' : 'Click to mute'}
+        {/* Global Audio Player - Shows when global audio is playing on first visit only */}
+        {globalAudio.state.isPlaying && !profileMidi && isFirstVisit && (
+          <div className="fixed bottom-4 right-4 z-50">
+            <div className="bg-white rounded-lg shadow-lg border-2 border-black p-3">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (isMuted) {
+                      // Unmute: restore previous volume
+                      globalAudio.setVolume(previousVolume);
+                      setIsMuted(false);
+                    } else {
+                      // Mute: save current volume and set to 0
+                      setPreviousVolume(globalAudio.state.volume);
+                      globalAudio.setVolume(0);
+                      setIsMuted(true);
+                    }
+                  }}
+                  className="w-10 h-10 flex items-center justify-center bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
+                  aria-label={isMuted ? 'Unmute Music' : 'Mute Music'}
+                >
+                  {isMuted ? '🔇' : '🔊'}
+                </button>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Welcome Music</div>
+                  <div className="text-xs text-gray-500">
+                    {isMuted ? 'Click to unmute' : 'Click to mute'}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Welcome Home overlay for new users */}
-      {showWelcomeHome && (
-        <WelcomeHomeOverlay
-          username={username}
-          onComplete={() => setShowWelcomeHome(false)}
-        />
-      )}
-    </ProfileLayout>
+        {/* Welcome Home overlay for new users */}
+        {showWelcomeHome && (
+          <WelcomeHomeOverlay
+            username={username}
+            onComplete={() => setShowWelcomeHome(false)}
+          />
+        )}
+      </ProfileLayout>
     </>
   );
 }
@@ -508,7 +509,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
   // Fetch site-wide CSS server-side to prevent hydration mismatches
   const siteWideCSS = await getSiteCSS();
-  
+
   // If no admin default CSS is set, leave empty to use clean ThreadStead styling
   // (removing automatic fallback to professional template)
 
@@ -566,7 +567,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
   // Convert featuredFriends to SelectedFriend[]
   const featuredFriends: SelectedFriend[] = [];
-  
+
   if (Array.isArray(data.profile?.featuredFriends)) {
     data.profile.featuredFriends.forEach((item: unknown) => {
       if (typeof item === 'object' && item !== null) {
@@ -592,34 +593,34 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
   // Load custom template data for advanced mode (legacy AST or Islands compilation)
   if (data.profile?.templateMode === 'advanced' &&
-      (data.profile?.customTemplateAst || data.profile?.compiledTemplate) &&
-      data.profile?.templateEnabled) {
+    (data.profile?.customTemplateAst || data.profile?.compiledTemplate) &&
+    data.profile?.templateEnabled) {
     try {
       // Parse the stored AST (if available - legacy compatibility)
       if (data.profile.customTemplateAst) {
         customTemplateAst = JSON.parse(data.profile.customTemplateAst);
       }
-      
+
       // Migration: Check if AST has img tags but template has Image or UserImage tags (indicates corrupted AST)
       const hasImageComponents = data.profile.customTemplate?.includes('<Image') || data.profile.customTemplate?.includes('<UserImage');
       const astString = customTemplateAst ? JSON.stringify(customTemplateAst) : '';
       const hasImgInAst = astString.includes('"tagName":"img"');
-      
+
       if (customTemplateAst && hasImageComponents && hasImgInAst) {
         // Convert old <Image> tags to <UserImage> for backward compatibility
         const updatedTemplate = data.profile.customTemplate?.replace(/<Image\b/g, '<UserImage').replace(/<\/Image>/g, '</UserImage>');
-        
+
         if (updatedTemplate) {
           // Recompile the template to fix the AST
           const { compileTemplate } = await import('@/lib/templates/compilation/template-parser');
           const compilationResult = compileTemplate(updatedTemplate);
-          
+
           if (compilationResult.success) {
             customTemplateAst = compilationResult.ast!;
           }
         }
       }
-      
+
       // Fetch posts and guestbook data for template rendering using direct DB calls
       const { getSessionUser } = await import('@/lib/auth/server');
       const { getPostsForUser, getGuestbookForUser, getPhotosForUser } = await import('@/lib/utils/data/fetchers');
@@ -653,7 +654,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         getGuestbookForUser(usernameParam),
         getPhotosForUser(usernameParam, 1, 20)
       ]);
-      
+
       // Handle posts data
       let posts: Array<{ id: string; bodyHtml: string; createdAt: string }> = [];
       if (postsData.status === 'fulfilled' && postsData.value) {
@@ -699,7 +700,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
           };
         }) || [];
       }
-      
+
       // Handle images data
       let images: Array<{ id: string; url: string; alt: string; caption: string; createdAt: string; }> = [];
       if (imagesData.status === 'fulfilled' && imagesData.value) {
@@ -722,7 +723,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
           createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : new Date().toISOString()
         })) || [];
       }
-      
+
       // Create resident data from existing profile data
       residentData = {
         owner: {
@@ -754,7 +755,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       residentData = undefined;
     }
   }
-  
+
   // Build typed props; omit undefined fields
   const props: ProfileProps = {
     username: data.username || usernameParam,
@@ -772,8 +773,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     props.hideNavigation = false; // Always show navigation for standard/enhanced modes
   }
   if (data.profile?.templateMode != null) props.templateMode = data.profile.templateMode;
-  
-  
+
+
   // Islands compilation data
   if (data.profile?.compiledTemplate != null) {
     props.compiledTemplate = data.profile.compiledTemplate;
@@ -796,7 +797,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     // Default to true unless explicitly disabled
     props.includeSiteCSS = true;
   }
-  
+
   if (templateMode === 'enhanced' && data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
     // Enhanced mode (Default Layout + Custom CSS) - use user's custom CSS
     props.customCSS = data.profile.customCSS;
@@ -813,7 +814,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     props.customCSS = adminDefaultCSS;
   }
   // If none of the above, customCSS remains undefined and no CSS is injected
-  
+
   if (websites.length > 0) props.websites = websites;
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
   if (data.profileMidi) props.profileMidi = data.profileMidi;

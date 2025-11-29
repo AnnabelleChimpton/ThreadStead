@@ -7,6 +7,7 @@ import type { UserQuickViewData } from "@/types/user-quick-view";
 import ImprovedBadgeDisplay from "@/components/shared/ImprovedBadgeDisplay";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useChat } from "@/contexts/ChatContext";
 
 interface UserQuickViewProps {
   username: string;
@@ -21,6 +22,7 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
   const [followBusy, setFollowBusy] = useState(false);
   const [currentRelationship, setCurrentRelationship] = useState<string | null>(null);
   const { loggedIn } = useCurrentUser();
+  const { openDM } = useChat();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -273,6 +275,15 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
                   {followBusy ? "Working…" : "Unfollow"}
                 </button>
               )}
+              <button
+                onClick={() => {
+                  openDM(data.userId);
+                  onClose();
+                }}
+                className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all flex-1"
+              >
+                Message
+              </button>
             </>
           )}
           {isOwner && (

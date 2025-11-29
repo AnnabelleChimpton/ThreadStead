@@ -4,9 +4,12 @@ import { useChat } from '@/contexts/ChatContext';
 import { useEffect, useState, useCallback } from 'react';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import CommunityChatPanel from '@/components/community/CommunityChatPanel';
+import DirectMessagesPanel from '@/components/chat/DirectMessagesPanel';
 import Link from 'next/link';
 import { retroSFX } from '@/lib/audio/retro-sfx';
 import { usePathname } from 'next/navigation';
+import { useConversations } from '@/hooks/useConversations';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 interface PresenceUser {
   userId: string;
@@ -17,14 +20,35 @@ interface PresenceUser {
 }
 
 export default function GlobalChatPopup() {
-  const { isChatOpen, closeChat } = useChat();
+  const { isChatOpen, closeChat, activeConversationId } = useChat();
   const pathname = usePathname();
+  const { conversations, createConversation } = useConversations();
   const [sfxEnabled, setSfxEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState<'lounge' | 'messages'>('lounge');
+  const [initialConversationId, setInitialConversationId] = useState<string | null>(null);
   const [presenceData, setPresenceData] = useState<{
     users: PresenceUser[];
     showPresence: boolean;
     togglePresence: () => void;
   } | null>(null);
+
+  // Sync with ChatContext activeConversationId
+  useEffect(() => {
+    if (activeConversationId) {
+      setInitialConversationId(activeConversationId);
+      setActiveTab('messages');
+    }
+  }, [activeConversationId]);
+
+  const handleOpenDM = async (userId: string) => {
+    try {
+      const conversation = await createConversation(userId);
+      setInitialConversationId(conversation.id);
+      setActiveTab('messages');
+    } catch (error) {
+      console.error('Failed to open DM:', error);
+    }
+  };
 
   useEffect(() => {
     setSfxEnabled(retroSFX.isEnabled());
@@ -57,6 +81,9 @@ export default function GlobalChatPopup() {
   // Don't show popup on the /chat page or when closed
   if (pathname === '/chat' || !isChatOpen) return null;
 
+  // Calculate unread count from conversations context
+  const totalUnreadCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+
   return (
     <>
       {/* Mobile: Full screen overlay - positioned below nav bar */}
@@ -66,10 +93,35 @@ export default function GlobalChatPopup() {
       >
         {/* Header - compact on mobile */}
         <div className="bg-thread-cream border-b border-thread-sage px-3 py-2 flex items-center justify-between shrink-0 pointer-events-auto">
-          <h2 className="text-base font-bold text-thread-pine">Lounge Chat</h2>
+          <div className="flex items-center gap-3">
+            <div className="flex bg-thread-sage/10 rounded-lg p-1 gap-1">
+              <button
+                onClick={() => setActiveTab('lounge')}
+                className={`p-1.5 rounded ${activeTab === 'lounge' ? 'bg-white text-thread-pine shadow-sm' : 'text-thread-sage hover:text-thread-pine hover:bg-white/50'}`}
+                title="Lounge"
+              >
+                <PixelIcon name="chat" size={18} />
+              </button>
+              <button
+                onClick={() => setActiveTab('messages')}
+                className={`p-1.5 rounded relative ${activeTab === 'messages' ? 'bg-white text-thread-pine shadow-sm' : 'text-thread-sage hover:text-thread-pine hover:bg-white/50'}`}
+                title="Messages"
+              >
+                <PixelIcon name="mail" size={18} />
+                {totalUnreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1 rounded-full min-w-[14px] h-[14px] flex items-center justify-center border border-thread-cream">
+                    {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+            <h3 className="font-bold text-thread-pine text-sm">
+              {activeTab === 'lounge' ? 'Lounge' : 'Messages'}
+            </h3>
+          </div>
           <div className="flex items-center gap-1.5">
-            {/* Presence button */}
-            {presenceData && (
+            {/* Presence button (only for lounge) */}
+            {activeTab === 'lounge' && presenceData && (
               <button
                 onClick={presenceData.togglePresence}
                 className="text-thread-sage hover:text-thread-pine transition-colors p-1.5 active:scale-95"
@@ -104,7 +156,11 @@ export default function GlobalChatPopup() {
 
         {/* Chat content */}
         <div className="flex-1 overflow-hidden pointer-events-auto bg-thread-paper">
-          <CommunityChatPanel popupMode onClose={closeChat} onPresenceChange={handlePresenceChange} />
+          {activeTab === 'lounge' ? (
+            <CommunityChatPanel popupMode onClose={closeChat} onPresenceChange={handlePresenceChange} onOpenDM={handleOpenDM} />
+          ) : (
+            <DirectMessagesPanel onClose={closeChat} initialConversationId={initialConversationId} />
+          )}
         </div>
       </div>
 
@@ -112,9 +168,31 @@ export default function GlobalChatPopup() {
       <div className="hidden md:flex flex-col fixed top-24 right-0 bottom-0 z-40 w-[480px] bg-thread-paper border-l border-t border-thread-sage rounded-tl-lg shadow-xl animate-slide-in-right overflow-hidden">
         {/* Header */}
         <div className="bg-thread-cream border-b border-thread-sage p-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <PixelIcon name="chat" size={20} className="text-thread-pine" />
-            <h3 className="text-sm font-bold text-thread-pine">Lounge Chat</h3>
+          <div className="flex items-center gap-3">
+            <div className="flex bg-thread-sage/10 rounded-lg p-1 gap-1">
+              <button
+                onClick={() => setActiveTab('lounge')}
+                className={`p-1.5 rounded ${activeTab === 'lounge' ? 'bg-white text-thread-pine shadow-sm' : 'text-thread-sage hover:text-thread-pine hover:bg-white/50'}`}
+                title="Lounge"
+              >
+                <PixelIcon name="chat" size={18} />
+              </button>
+              <button
+                onClick={() => setActiveTab('messages')}
+                className={`p-1.5 rounded relative ${activeTab === 'messages' ? 'bg-white text-thread-pine shadow-sm' : 'text-thread-sage hover:text-thread-pine hover:bg-white/50'}`}
+                title="Messages"
+              >
+                <PixelIcon name="mail" size={18} />
+                {totalUnreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1 rounded-full min-w-[14px] h-[14px] flex items-center justify-center border border-thread-cream">
+                    {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+            <h3 className="font-bold text-thread-pine text-sm">
+              {activeTab === 'lounge' ? 'Lounge' : 'Messages'}
+            </h3>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -142,8 +220,12 @@ export default function GlobalChatPopup() {
         </div>
 
         {/* Chat content */}
-        <div className="flex-1 overflow-hidden">
-          <CommunityChatPanel popupMode onClose={closeChat} onPresenceChange={handlePresenceChange} />
+        <div className="flex-1 overflow-hidden pointer-events-auto bg-thread-paper">
+          {activeTab === 'lounge' ? (
+            <CommunityChatPanel popupMode onClose={closeChat} onPresenceChange={handlePresenceChange} onOpenDM={handleOpenDM} />
+          ) : (
+            <DirectMessagesPanel onClose={closeChat} initialConversationId={initialConversationId} />
+          )}
         </div>
       </div>
 
@@ -157,29 +239,18 @@ export default function GlobalChatPopup() {
 
       <style jsx>{`
         @keyframes slide-up {
-          from {
-            transform: translateY(100%);
-          }
-          to {
-            transform: translateY(0);
-          }
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
         }
-
         @keyframes slide-in-right {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
         }
-
         .animate-slide-up {
-          animation: slide-up 300ms ease-out;
+          animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
-
         .animate-slide-in-right {
-          animation: slide-in-right 300ms ease-out;
+          animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
       `}</style>
     </>

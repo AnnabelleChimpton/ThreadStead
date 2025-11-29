@@ -143,14 +143,16 @@ interface CommunityChatPanelProps {
   popupMode?: boolean;
   onClose?: () => void;
   onPresenceChange?: (presence: PresenceUser[], showPresence: boolean, togglePresence: () => void) => void;
+  onOpenDM?: (userId: string) => void;
 }
 
-export default function CommunityChatPanel({ fullscreen = false, popupMode = false, onClose, onPresenceChange }: CommunityChatPanelProps) {
+export default function CommunityChatPanel({ fullscreen = false, popupMode = false, onClose, onPresenceChange, onOpenDM }: CommunityChatPanelProps) {
   const { user, loading: userLoading } = useCurrentUser();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [presence, setPresence] = useState<PresenceUser[]>([]);
   const [mutedUsers, setMutedUsers] = useState<Set<string>>(new Set());
+  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
   const [messageInput, setMessageInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -226,6 +228,13 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
             const data = await mutesRes.json();
             const muteSet = new Set<string>(data.mutes.map((m: MuteInfo) => m.userId));
             setMutedUsers(muteSet);
+          }
+
+          // Load blocks
+          const blocksRes = await fetch('/api/users/block');
+          if (blocksRes.ok) {
+            const data = await blocksRes.json();
+            setBlockedUsers(new Set(data.blockedUserIds));
           }
         }
 
@@ -427,8 +436,28 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     }
   };
 
+  const handleBlockUser = async (userId: string) => {
+    try {
+      const res = await fetch('/api/users/block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: userId, action: 'block' })
+      });
+
+      if (res.ok) {
+        setBlockedUsers(prev => new Set(prev).add(userId));
+        setShowUserMenu(null);
+        setSystemNotice('User blocked');
+        setTimeout(() => setSystemNotice(null), 3000);
+      }
+    } catch (error) {
+      console.error('Error blocking user:', error);
+    }
+  };
+
   // Don't filter muted users - show them with mute indicator instead
-  const filteredMessages = messages;
+  // But DO filter blocked users completely
+  const filteredMessages = messages.filter(msg => !blockedUsers.has(msg.userId));
   const filteredPresence = presence;
 
   const getDisplayName = (msg: ChatMessage) => {
@@ -675,20 +704,29 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                                     Mention @{msg.handle || 'user'}
                                   </button>
                                   {user && (
-                                    <button
-                                      onClick={() => {
-                                        if (msg.handle) {
-                                          setMessageInput(`/w @${msg.handle.split('@')[0]} `);
-                                          // Focus input
-                                          const textarea = document.querySelector('textarea');
-                                          if (textarea) textarea.focus();
+                                    <>
+                                      <button
+                                        onClick={() => {
+                                          if (onOpenDM) {
+                                            onOpenDM(msg.userId);
+                                          } else if (msg.handle) {
+                                            setMessageInput(`/w @${msg.handle.split('@')[0]} `);
+                                            const textarea = document.querySelector('textarea');
+                                            if (textarea) textarea.focus();
+                                          }
                                           setShowUserMenu(null);
-                                        }
-                                      }}
-                                      className="block w-full text-left px-4 py-3 text-sm hover:bg-thread-cream text-thread-pine whitespace-nowrap min-h-[44px]"
-                                    >
-                                      Message
-                                    </button>
+                                        }}
+                                        className="block w-full text-left px-4 py-3 text-sm hover:bg-thread-cream text-thread-pine whitespace-nowrap min-h-[44px]"
+                                      >
+                                        Message
+                                      </button>
+                                      <button
+                                        onClick={() => handleBlockUser(msg.userId)}
+                                        className="block w-full text-left px-4 py-3 text-sm hover:bg-thread-cream text-red-600 whitespace-nowrap min-h-[44px]"
+                                      >
+                                        Block User
+                                      </button>
+                                    </>
                                   )}
                                 </div>
                               )}

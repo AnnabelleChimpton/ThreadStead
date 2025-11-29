@@ -166,8 +166,14 @@ app.prepare().then(() => {
       console.log('Guest connected:', socket.id);
       socket.userData = { id: 'guest-' + socket.id, isGuest: true };
     } else {
-      console.log('Authenticated user connected:', user.primaryHandle || user.id);
+      console.log('Authenticated user connected:', user.primaryHandle || user.id, 'Socket:', socket.id);
       socket.userData = user;
+    }
+
+    // Join personal room for whispers (and DMs)
+    if (!socket.userData.isGuest) {
+      console.log(`[Socket] User ${user.id} joining personal room`);
+      socket.join(socket.userData.id); // Join personal room for whispers
     }
 
     socket.currentRoom = null;
@@ -192,9 +198,6 @@ app.prepare().then(() => {
 
       // Join new room
       socket.join(roomId);
-      if (!socket.userData.isGuest) {
-        socket.join(socket.userData.id); // Join personal room for whispers
-      }
       socket.currentRoom = roomId;
 
       // Add to presence (only for authenticated users)
@@ -466,6 +469,200 @@ app.prepare().then(() => {
 
       // Send to sender (so they see it too)
       socket.emit('chat:message', whisperData);
+    });
+
+    // Handle dm:send (Persistent Direct Messages)
+    socket.on('dm:send', async (data) => {
+      if (socket.userData.isGuest) {
+        socket.emit('system:notice', { message: 'Guests cannot send DMs', type: 'error' });
+        return;
+      }
+
+      const { targetUserId, body } = data;
+      const user = socket.userData;
+
+      if (!targetUserId || !body || !body.trim()) return;
+
+      // Rate limit check
+      const rateCheck = checkRateLimit(user.id);
+      if (!rateCheck.allowed) {
+        socket.emit('system:notice', { message: 'You are sending messages too fast', type: 'warning' });
+        return;
+      }
+
+      // Sanitize
+      const sanitized = sanitizeMessage(body);
+      if (!sanitized.text) return;
+
+      try {
+        // Check if sender is blocked by recipient
+        const block = await prisma.userBlock.findUnique({
+          where: {
+            blockerId_blockedUserId: {
+              blockerId: targetUserId,
+              blockedUserId: user.id
+            }
+          }
+        });
+
+        if (block) {
+          return socket.emit('system:notice', { message: 'You cannot send messages to this user.', type: 'error' });
+        }
+
+        // Find or create conversation
+        // 1. Find existing conversation
+        const existingConversations = await prisma.conversation.findMany({
+          where: {
+            AND: [
+              { participants: { some: { userId: user.id } } },
+              { participants: { some: { userId: targetUserId } } }
+            ]
+          },
+          include: {
+            participants: true
+          }
+        });
+
+        // Filter for exactly 2 participants (1-on-1 DM)
+        let conversation = existingConversations.find(c => c.participants.length === 2);
+
+        // 2. Create if not exists
+        if (!conversation) {
+          conversation = await prisma.conversation.create({
+            data: {
+              participants: {
+                create: [
+                  { userId: user.id },
+                  { userId: targetUserId }
+                ]
+              }
+            },
+            include: { participants: true }
+          });
+        }
+
+        // 3. Create message
+        const message = await prisma.directMessage.create({
+          data: {
+            conversationId: conversation.id,
+            senderId: user.id,
+            body: sanitized.text,
+            isRead: false
+          },
+          include: {
+            sender: {
+              include: { profile: true }
+            }
+          }
+        });
+
+        // 4. Update conversation timestamp
+        await prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { updatedAt: new Date() }
+        });
+
+        // 5. Emit to both users
+        const messageData = {
+          id: message.id,
+          conversationId: conversation.id,
+          senderId: message.senderId,
+          handle: message.sender.primaryHandle,
+          displayName: message.sender.profile?.displayName,
+          avatarUrl: message.sender.profile?.avatarThumbnailUrl || message.sender.profile?.avatarUrl,
+          body: message.body,
+          createdAt: message.createdAt,
+          isRead: false
+        };
+
+        console.log(`[DM] Sending message from ${user.id} to ${targetUserId}`);
+
+        // Emit to sender
+        socket.emit('dm:new_message', messageData);
+
+        // Emit to recipient
+        console.log(`[DM] Emitting to room ${targetUserId}`);
+        io.to(targetUserId).emit('dm:new_message', messageData);
+
+      } catch (error) {
+        console.error('Error sending DM:', error);
+        socket.emit('system:notice', { message: 'Failed to send DM', type: 'error' });
+      }
+    });
+
+    // Handle dm:read
+    socket.on('dm:read', async (data) => {
+      if (socket.userData.isGuest) return;
+      const { conversationId } = data;
+      const user = socket.userData;
+
+      try {
+        // Update lastReadAt for participant
+        await prisma.conversationParticipant.update({
+          where: {
+            conversationId_userId: {
+              conversationId,
+              userId: user.id
+            }
+          },
+          data: {
+            lastReadAt: new Date()
+          }
+        });
+
+        // Also mark messages as read (optional, but good for simple status)
+        // We only mark messages sent by the OTHER person as read
+        await prisma.directMessage.updateMany({
+          where: {
+            conversationId,
+            senderId: { not: user.id },
+            isRead: false
+          },
+          data: { isRead: true }
+        });
+
+        // Notify the other participant that we read it
+        const conversation = await prisma.conversation.findUnique({
+          where: { id: conversationId },
+          include: { participants: true }
+        });
+
+        if (conversation) {
+          const otherParticipant = conversation.participants.find(p => p.userId !== user.id);
+          if (otherParticipant) {
+            io.to(otherParticipant.userId).emit('dm:read_receipt', {
+              conversationId,
+              readByUserId: user.id,
+              readAt: new Date()
+            });
+          }
+        }
+
+      } catch (error) {
+        console.error('Error marking DM as read:', error);
+      }
+    });
+
+    // Handle dm:typing
+    socket.on('dm:typing', (data) => {
+      if (socket.userData.isGuest) return;
+      const { targetUserId } = data;
+      const user = socket.userData;
+
+      io.to(targetUserId).emit('dm:typing', {
+        userId: user.id,
+        handle: user.primaryHandle
+      });
+    });
+
+    socket.on('dm:stop_typing', (data) => {
+      if (socket.userData.isGuest) return;
+      const { targetUserId } = data;
+      const user = socket.userData;
+
+      io.to(targetUserId).emit('dm:stop_typing', {
+        userId: user.id
+      });
     });
 
     // Handle disconnect

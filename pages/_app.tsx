@@ -29,6 +29,7 @@ import { ToastProvider } from "@/lib/templates/state/ToastProvider";
 
 // Import Chat Provider and global chat components
 import { ChatProvider } from "@/contexts/ChatContext";
+import { ConversationsProvider } from "@/contexts/ConversationsContext";
 import GlobalChatToggle from "@/components/chat/GlobalChatToggle";
 import GlobalChatPopup from "@/components/chat/GlobalChatPopup";
 
@@ -114,10 +115,10 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     if (tab && typeof tab === 'string') {
       // Scroll to tab section or trigger tab activation
       setTimeout(() => {
-        const tabElement = document.getElementById(`tab-${tab}`) || 
-                          document.querySelector(`[data-tab="${tab}"]`) ||
-                          document.querySelector(`.tab-${tab}`);
-        
+        const tabElement = document.getElementById(`tab-${tab}`) ||
+          document.querySelector(`[data-tab="${tab}"]`) ||
+          document.querySelector(`.tab-${tab}`);
+
         if (tabElement) {
           tabElement.scrollIntoView({ behavior: 'smooth' });
           // Trigger click if it's a clickable tab
@@ -127,14 +128,14 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         }
       }, 100);
     }
-     
+
     // We intentionally only want to respond to tab and pathname changes, not all query changes
   }, [router.query.tab, router.pathname]);
-  
+
   // Check if we're on a user profile page or preview page that might have custom CSS
   const isProfilePage = router.pathname === '/resident/[username]' ||
-                       router.pathname === '/resident/[username]/index' ||
-                       router.pathname === '/preview-temp';
+    router.pathname === '/resident/[username]/index' ||
+    router.pathname === '/preview-temp';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
 
   // Extract Visual Builder classes for body application (backup for patterns)
@@ -161,145 +162,147 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   const actualCSSMode = cssMode;
   const needsCSSResets = isProfilePage && pageProps.templateMode === 'advanced' && actualCSSMode !== 'inherit';
   const includeSiteCSS = pageProps.includeSiteCSS !== false; // Default to true if not specified
-  
+
 
   return (
     <GlobalAudioProvider>
       <ToastProvider>
         <ChatProvider>
-          <CSSModeProvider
-            cssMode={actualCSSMode}
-            templateMode={templateMode}
-            isVisualBuilder={isVisualBuilder}
-          >
-      <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="color-scheme" content="light" />
-        
-        {/* Complete CSS reset for disable mode - neutralize ALL system styles */}
-        {isVisualBuilder && (
-          <style dangerouslySetInnerHTML={{
-            __html: `
-              /* CSS Disable Mode - Complete Reset */
-              /* Neutralize ALL Tailwind and system CSS to give users total control */
+          <ConversationsProvider>
+            <CSSModeProvider
+              cssMode={actualCSSMode}
+              templateMode={templateMode}
+              isVisualBuilder={isVisualBuilder}
+            >
+              <Head>
+                {/* ... existing head content ... */}
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <meta name="color-scheme" content="light" />
 
-              html {
-                ${isLegacyTemplate ? '/* Legacy template: background handled by profile container */' :
-                  'background-color: var(--global-bg-color, var(--vb-background-color, #FCFAF7)) !important;'}
-                color: var(--global-text-color, var(--vb-text-color, #2F2F2F)) !important;
-                font-family: var(--global-font-family, var(--vb-font-family, system-ui)) !important;
-                font-size: var(--global-font-size, var(--vb-font-size, 16px)) !important;
-              }
+                {/* Complete CSS reset for disable mode - neutralize ALL system styles */}
+                {isVisualBuilder && (
+                  <style dangerouslySetInnerHTML={{
+                    __html: `
+                      /* CSS Disable Mode - Complete Reset */
+                      /* Neutralize ALL Tailwind and system CSS to give users total control */
 
-              body {
-                ${isLegacyTemplate ? '/* Legacy template: background handled by profile container */' :
-                  'background-color: var(--global-bg-color, var(--vb-background-color, #FCFAF7)) !important;'}
-                color: var(--global-text-color, var(--vb-text-color, #2F2F2F)) !important;
-                font-family: var(--global-font-family, var(--vb-font-family, system-ui)) !important;
-                font-size: var(--global-font-size, var(--vb-font-size, 16px)) !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                min-height: 100vh !important;
-              }
+                      html {
+                        ${isLegacyTemplate ? '/* Legacy template: background handled by profile container */' :
+                        'background-color: var(--global-bg-color, var(--vb-background-color, #FCFAF7)) !important;'}
+                        color: var(--global-text-color, var(--vb-text-color, #2F2F2F)) !important;
+                        font-family: var(--global-font-family, var(--vb-font-family, system-ui)) !important;
+                        font-size: var(--global-font-size, var(--vb-font-size, 16px)) !important;
+                      }
 
-              /* Strip system styles from wrapper only, not children */
-              #__next > .css-disable-mode {
-                all: unset;
-                display: block;
-                width: 100%;
-                min-height: 100vh;
-                box-sizing: border-box;
-              }
+                      body {
+                        ${isLegacyTemplate ? '/* Legacy template: background handled by profile container */' :
+                        'background-color: var(--global-bg-color, var(--vb-background-color, #FCFAF7)) !important;'}
+                        color: var(--global-text-color, var(--vb-text-color, #2F2F2F)) !important;
+                        font-family: var(--global-font-family, var(--vb-font-family, system-ui)) !important;
+                        font-size: var(--global-font-size, var(--vb-font-size, 16px)) !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        min-height: 100vh !important;
+                      }
 
-              /* Ensure consistent box-sizing for children but allow user CSS to apply */
-              #__next > .css-disable-mode * {
-                box-sizing: border-box;
-              }
+                      /* Strip system styles from wrapper only, not children */
+                      #__next > .css-disable-mode {
+                        all: unset;
+                        display: block;
+                        width: 100%;
+                        min-height: 100vh;
+                        box-sizing: border-box;
+                      }
 
-              #__next {
-                min-height: 100vh !important;
-                background: inherit !important;
-              }
-            `
-          }} />
-        )}
+                      /* Ensure consistent box-sizing for children but allow user CSS to apply */
+                      #__next > .css-disable-mode * {
+                        box-sizing: border-box;
+                      }
 
-        {needsCSSResets && !isVisualBuilder && (
-          <style dangerouslySetInnerHTML={{
-            __html: `
-              /* Advanced template mode - complete CSS control */
-              /* Only reset classes that advanced templates commonly override */
-              
-              /* Reset thread module styling for complete control */
-              .thread-module.p-6 { padding: unset; }
-              .thread-module.mb-6 { margin-bottom: unset; }
-              .thread-module.p-0 { padding: unset; }
-              
-              /* Reset ThreadStead colors for complete control */  
-              .bg-thread-cream { background-color: unset; }
-              .bg-thread-paper { background-color: unset; }
-              .text-thread-pine { color: unset; }
-              .text-thread-sage { color: unset; }
-              .border-thread-sage { border-color: unset; }
-            `
-          }} />
-        )}
-        
-        {/* Load site-wide CSS based on page type and user preference */}
-        {(!isProfilePage || includeSiteCSS) && (
-          <style
-            id="site-wide-css"
-            key="site-css"
-            dangerouslySetInnerHTML={{ __html: css || '/* Site CSS loading... */' }}
-          />
-        )}
+                      #__next {
+                        min-height: 100vh !important;
+                        background: inherit !important;
+                      }
+                    `
+                  }} />
+                )}
 
-        {/* Advanced template CSS - inject with boosted specificity (only for legacy templates) */}
-        {isProfilePage && hasCustomCSS && pageProps.templateMode === 'advanced' && (() => {
-          const customCSS = pageProps.customCSS || '';
+                {needsCSSResets && !isVisualBuilder && (
+                  <style dangerouslySetInnerHTML={{
+                    __html: `
+                      /* Advanced template mode - complete CSS control */
+                      /* Only reset classes that advanced templates commonly override */
+                      
+                      /* Reset thread module styling for complete control */
+                      .thread-module.p-6 { padding: unset; }
+                      .thread-module.mb-6 { margin-bottom: unset; }
+                      .thread-module.p-0 { padding: unset; }
+                      
+                      /* Reset ThreadStead colors for complete control */  
+                      .bg-thread-cream { background-color: unset; }
+                      .bg-thread-paper { background-color: unset; }
+                      .text-thread-pine { color: unset; }
+                      .text-thread-sage { color: unset; }
+                      .border-thread-sage { border-color: unset; }
+                    `
+                  }} />
+                )}
 
-          // Visual Builder templates (non-legacy) don't need specificity boosting
-          // because they're in disable mode with no system CSS to compete with
-          if (isVisualBuilder && !isLegacyTemplate) {
-            return (
-              <style
-                id="advanced-template-css"
-                dangerouslySetInnerHTML={{ __html: customCSS }}
-              />
-            );
-          }
+                {/* Load site-wide CSS based on page type and user preference */}
+                {(!isProfilePage || includeSiteCSS) && (
+                  <style
+                    id="site-wide-css"
+                    key="site-css"
+                    dangerouslySetInnerHTML={{ __html: css || '/* Site CSS loading... */' }}
+                  />
+                )}
 
-          // Legacy templates need specificity boosting to beat Tailwind
-          // Add 'html body' prefix to all selectors (adds 2 to specificity)
-          const boostedCSS = customCSS.replace(/([^{}]+)\{/g, (match: string, selector: string) => {
-            // Skip @-rules like @media, @keyframes, @import
-            const trimmed = selector.trim();
-            if (trimmed.startsWith('@')) return match;
+                {/* Advanced template CSS - inject with boosted specificity (only for legacy templates) */}
+                {isProfilePage && hasCustomCSS && pageProps.templateMode === 'advanced' && (() => {
+                  const customCSS = pageProps.customCSS || '';
 
-            // Split comma-separated selectors and boost each one
-            const selectors = selector.split(',').map((s: string) => {
-              const sel = s.trim();
-              // Don't double-boost if already has html body prefix
-              if (sel.startsWith('html body')) return sel;
-              return `html body ${sel}`;
-            }).join(', ');
+                  // Visual Builder templates (non-legacy) don't need specificity boosting
+                  // because they're in disable mode with no system CSS to compete with
+                  if (isVisualBuilder && !isLegacyTemplate) {
+                    return (
+                      <style
+                        id="advanced-template-css"
+                        dangerouslySetInnerHTML={{ __html: customCSS }}
+                      />
+                    );
+                  }
 
-            return `${selectors} {`;
-          });
+                  // Legacy templates need specificity boosting to beat Tailwind
+                  // Add 'html body' prefix to all selectors (adds 2 to specificity)
+                  const boostedCSS = customCSS.replace(/([^{}]+)\{/g, (match: string, selector: string) => {
+                    // Skip @-rules like @media, @keyframes, @import
+                    const trimmed = selector.trim();
+                    if (trimmed.startsWith('@')) return match;
 
-          return (
-            <style
-              id="advanced-template-css"
-              dangerouslySetInnerHTML={{ __html: boostedCSS }}
-            />
-          );
-        })()}
+                    // Split comma-separated selectors and boost each one
+                    const selectors = selector.split(',').map((s: string) => {
+                      const sel = s.trim();
+                      // Don't double-boost if already has html body prefix
+                      if (sel.startsWith('html body')) return sel;
+                      return `html body ${sel}`;
+                    }).join(', ');
 
-        {isProfilePage && hasCustomCSS && pageProps.templateMode !== 'advanced' && (
-          <style
-            id="profile-page-styles"
-            dangerouslySetInnerHTML={{
-              __html: `/* Profile page - Clean canvas for user customization */
+                    return `${selectors} {`;
+                  });
+
+                  return (
+                    <style
+                      id="advanced-template-css"
+                      dangerouslySetInnerHTML={{ __html: boostedCSS }}
+                    />
+                  );
+                })()}
+
+                {isProfilePage && hasCustomCSS && pageProps.templateMode !== 'advanced' && (
+                  <style
+                    id="profile-page-styles"
+                    dangerouslySetInnerHTML={{
+                      __html: `/* Profile page - Clean canvas for user customization */
 .profile-container {
   margin-top: 0;
   padding-top: 0;
@@ -340,52 +343,52 @@ body, body * {
 
 /* Custom CSS - User or Admin Default */
 ${pageProps.customCSS}`
-            }} 
-          />
-        )}
-      </Head>
-      <div
-        className={`${
-          isVisualBuilder
-            ? 'css-disable-mode' // CSS disable mode: strip ALL system styles
-            : pageProps.templateMode === 'advanced'
-            ? 'min-h-screen font-body' // Advanced mode (non-Visual Builder): clean but structured
-            : 'min-h-screen font-body thread-surface text-thread-charcoal' // Normal styling for everything else
-        } ${isVisualBuilder && !isLegacyTemplate ? visualBuilderBodyClasses : ''}`}
-        style={isVisualBuilder ? {
-          // Visual Builder disable mode: wrapper inherits from Visual Builder variables
-          // For legacy templates, omit background to let their body styles work
-          ...(isLegacyTemplate ? {} : {
-            backgroundColor: 'var(--global-bg-color, var(--vb-background-color, #FCFAF7))'
-          }),
-          color: 'var(--global-text-color, var(--vb-text-color, #2F2F2F))',
-          fontFamily: 'var(--global-font-family, var(--vb-font-family, system-ui))',
-          fontSize: 'var(--global-font-size, var(--vb-font-size, 16px))',
-          minHeight: '100vh',
-          margin: 0,
-          padding: 0
-        } : undefined}
-      >
-        <Component {...pageProps} />
+                    }}
+                  />
+                )}
+              </Head>
+              <div
+                className={`${isVisualBuilder
+                  ? 'css-disable-mode' // CSS disable mode: strip ALL system styles
+                  : pageProps.templateMode === 'advanced'
+                    ? 'min-h-screen font-body' // Advanced mode (non-Visual Builder): clean but structured
+                    : 'min-h-screen font-body thread-surface text-thread-charcoal' // Normal styling for everything else
+                  } ${isVisualBuilder && !isLegacyTemplate ? visualBuilderBodyClasses : ''}`}
+                style={isVisualBuilder ? {
+                  // Visual Builder disable mode: wrapper inherits from Visual Builder variables
+                  // For legacy templates, omit background to let their body styles work
+                  ...(isLegacyTemplate ? {} : {
+                    backgroundColor: 'var(--global-bg-color, var(--vb-background-color, #FCFAF7))'
+                  }),
+                  color: 'var(--global-text-color, var(--vb-text-color, #2F2F2F))',
+                  fontFamily: 'var(--global-font-family, var(--vb-font-family, system-ui))',
+                  fontSize: 'var(--global-font-size, var(--vb-font-size, 16px))',
+                  minHeight: '100vh',
+                  margin: 0,
+                  padding: 0
+                } : undefined}
+              >
+                <Component {...pageProps} />
 
-        {/* Cookie Consent Banner */}
-        <CookieConsentBanner
-          userId={user?.id}
-          onConsentChange={(consents) => {
-            // Optional: Handle global consent changes
-            console.log('Global consent updated:', consents);
-          }}
-        />
+                {/* Cookie Consent Banner */}
+                <CookieConsentBanner
+                  userId={user?.id}
+                  onConsentChange={(consents) => {
+                    // Optional: Handle global consent changes
+                    console.log('Global consent updated:', consents);
+                  }}
+                />
 
-        {/* Global Chat - Only show for authenticated users */}
-        {user && (
-          <>
-            <GlobalChatToggle />
-            <GlobalChatPopup />
-          </>
-        )}
-      </div>
-      </CSSModeProvider>
+                {/* Global Chat - Only show for authenticated users */}
+                {user && (
+                  <>
+                    <GlobalChatToggle />
+                    <GlobalChatPopup />
+                  </>
+                )}
+              </div>
+            </CSSModeProvider>
+          </ConversationsProvider>
         </ChatProvider>
       </ToastProvider>
     </GlobalAudioProvider>

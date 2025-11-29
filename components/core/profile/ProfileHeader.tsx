@@ -6,9 +6,13 @@ import FriendBadge from "../social/FriendBadge";
 import MutualFriends from "../social/MutualFriends";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 import { trackNavigation } from "../../../lib/analytics/pixel-homes";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { PixelIcon } from "@/components/ui/PixelIcon";
+import { useChat } from "@/contexts/ChatContext";
 
 interface ProfileHeaderProps {
   username: string;
+  ownerUserId?: string;
   photoUrl?: string;
   bio?: string;
   relStatus: string;
@@ -17,12 +21,17 @@ interface ProfileHeaderProps {
 
 export default function ProfileHeader({
   username,
+  ownerUserId,
   photoUrl = "/assets/default-avatar.gif",
   bio,
   relStatus,
   onRelStatusChange
 }: ProfileHeaderProps) {
   const { config } = useSiteConfig();
+  const { user: currentUser } = useCurrentUser();
+  const { openDM } = useChat();
+
+  const showMessageButton = currentUser && ownerUserId && currentUser.id !== ownerUserId;
 
   return (
     <div className="ts-profile-header" data-component="profile-header">
@@ -49,6 +58,18 @@ export default function ProfileHeader({
           <div className="ts-profile-actions flex items-center gap-3 flex-wrap">
             {relStatus === "friends" && <FriendBadge />}
             <FollowButton username={username} onStatus={onRelStatusChange} />
+
+            {showMessageButton && (
+              <button
+                onClick={() => openDM(ownerUserId)}
+                className="ts-profile-button ts-message-button thread-button text-sm bg-thread-cream text-thread-pine border border-thread-sage hover:bg-thread-sage/10 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded"
+                title="Send Message"
+              >
+                <PixelIcon name="chat" size={16} />
+                Message
+              </button>
+            )}
+
             <MutualFriends username={username} />
             <Link
               href={`/home/${username}`}
