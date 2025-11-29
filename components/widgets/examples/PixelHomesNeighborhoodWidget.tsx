@@ -273,13 +273,6 @@ function PixelHomesNeighborhoodWidget({
 // Helper function to transform DecorationItem to HomeDecoration
 const transformDecorations = (decorations: DecorationItem[]): HomeDecoration[] => {
   return decorations.map(decoration => {
-    console.log('[PixelHomesWidget] transformDecorations INPUT:', {
-      id: decoration.id,
-      decorationId: decoration.decorationId,
-      type: decoration.type,
-      hasRenderSvg: !!decoration.renderSvg,
-      renderSvgLength: decoration.renderSvg?.length
-    });
 
     const result = {
       id: decoration.id,
@@ -293,7 +286,6 @@ const transformDecorations = (decorations: DecorationItem[]): HomeDecoration[] =
       renderSvg: decoration.renderSvg
     };
 
-    console.log('[PixelHomesWidget] transformDecorations OUTPUT:', result);
     return result;
   });
 };
