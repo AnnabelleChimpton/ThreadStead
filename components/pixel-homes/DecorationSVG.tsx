@@ -506,19 +506,6 @@ export default function DecorationSVG({
             <rect x="13" y="5" width="1" height="1" fill="#22C55E" />
           </svg>
         )
-
-      default:
-        return (
-          <svg width={16 * scale} height={16 * scale} viewBox="0 0 16 16" className={className} shapeRendering="crispEdges">
-            <rect x="2" y="2" width="12" height="12" fill="#F97316" />
-            <text x="8" y="12" textAnchor="middle" fontSize="8" fill="white">🎃</text>
-          </svg>
-        )
-    }
-  }
-
-  const renderHouseCustom = (id: string, variant: string) => {
-    switch (id) {
       case 'round_windows':
         return (
           <svg width={50 * scale} height={30 * scale} viewBox="0 0 50 30" className={className} shapeRendering="crispEdges">
@@ -879,7 +866,7 @@ export default function DecorationSVG({
         return (
           <svg width={32 * scale} height={32 * scale} viewBox="0 0 32 32" className={className} shapeRendering="crispEdges">
             <rect x="6" y="6" width="20" height="20" fill="#8B4513" rx="2" />
-            <text x="16" y="20" textAnchor="middle" fontSize="8" fill="white">🏗️</text>
+            <text x="16" y="20" textAnchor="middle" fontSize="8" fill="white"></text>
           </svg>
         )
     }
@@ -889,26 +876,16 @@ export default function DecorationSVG({
     case 'plant': return renderPlant(decorationId, variant)
     case 'path': return renderPath(decorationId, variant)
     case 'feature': return renderFeature(decorationId, variant)
-    case 'seasonal': return renderSeasonal(decorationId, variant)
-    case 'house_custom': return renderHouseCustom(decorationId, variant)
     case 'furniture': return renderFurniture(decorationId, variant)
+    case 'seasonal': return renderSeasonal(decorationId, variant)
+    case 'house_custom': return renderSeasonal(decorationId, variant)
     case 'lighting': return renderLighting(decorationId, variant)
     case 'water': return renderWater(decorationId, variant)
     case 'structure': return renderStructure(decorationId, variant)
     default:
-      if (renderSvg) {
-        return (
-          <div
-            className={className}
-            style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
-            dangerouslySetInnerHTML={{ __html: renderSvg }}
-          />
-        )
-      }
       return (
-        <svg width={16 * scale} height={16 * scale} viewBox="0 0 16 16" className={className}>
-          <rect x="2" y="2" width="12" height="12" fill="#9CA3AF" rx="2" />
-          <text x="8" y="11" textAnchor="middle" fontSize="8" fill="white">?</text>
+        <svg width={32 * scale} height={8 * scale} viewBox="0 0 32 8" className={className} shapeRendering="crispEdges">
+          <rect x="0" y="2" width="32" height="4" fill="#8B5CF6" />
         </svg>
       )
   }
@@ -916,50 +893,65 @@ export default function DecorationSVG({
 
 export const DECORATION_LIBRARY = {
   plants: [
-    { id: 'roses_red', name: 'Red Roses', type: 'plant', zone: 'front_yard' },
-    { id: 'daisies_white', name: 'White Daisies', type: 'plant', zone: 'front_yard' },
-    { id: 'small_tree', name: 'Small Tree', type: 'plant', zone: 'front_yard' },
-    { id: 'sunflowers', name: 'Sunflowers', type: 'plant', zone: 'front_yard' },
-    { id: 'lavender', name: 'Lavender', type: 'plant', zone: 'front_yard' },
-    { id: 'flower_pot', name: 'Flower Pot', type: 'plant', zone: 'front_yard' }
+    { id: 'roses_red', name: 'Red Roses', type: 'plant' },
+    { id: 'roses_pink', name: 'Pink Roses', type: 'plant' },
+    { id: 'roses_white', name: 'White Roses', type: 'plant' },
+    { id: 'roses_yellow', name: 'Yellow Roses', type: 'plant' },
+    { id: 'daisies_white', name: 'White Daisies', type: 'plant' },
+    { id: 'daisies_yellow', name: 'Yellow Daisies', type: 'plant' },
+    { id: 'daisies_purple', name: 'Purple Daisies', type: 'plant' },
+    { id: 'tree_oak', name: 'Oak Tree', type: 'plant' },
+    { id: 'tree_pine', name: 'Pine Tree', type: 'plant' },
+    { id: 'small_tree', name: 'Small Tree', type: 'plant' },
+    { id: 'sunflowers', name: 'Sunflowers', type: 'plant' },
+    { id: 'lavender', name: 'Lavender', type: 'plant' },
+    { id: 'flower_pot', name: 'Flower Pot', type: 'plant' },
   ],
   paths: [
-    { id: 'stone_path', name: 'Stone Path', type: 'path', zone: 'front_yard' },
-    { id: 'brick_path', name: 'Brick Path', type: 'path', zone: 'front_yard' },
-    { id: 'stepping_stones', name: 'Stepping Stones', type: 'path', zone: 'front_yard' },
-    { id: 'gravel_path', name: 'Gravel Path', type: 'path', zone: 'front_yard' }
+    { id: 'stone_path', name: 'Stone Path', type: 'path' },
+    { id: 'brick_path', name: 'Brick Path', type: 'path' },
+    { id: 'stepping_stones', name: 'Stepping Stones', type: 'path' },
+    { id: 'gravel_path', name: 'Gravel Path', type: 'path' },
   ],
   features: [
-    { id: 'bird_bath', name: 'Bird Bath', type: 'feature', zone: 'front_yard' },
-    { id: 'garden_gnome', name: 'Garden Gnome', type: 'feature', zone: 'front_yard' },
-    { id: 'decorative_fence', name: 'Decorative Fence', type: 'feature', zone: 'front_yard' },
-    { id: 'wind_chimes', name: 'Wind Chimes', type: 'feature', zone: 'front_yard' }
+    { id: 'bird_bath', name: 'Bird Bath', type: 'feature' },
+    { id: 'garden_gnome', name: 'Garden Gnome', type: 'feature' },
+    { id: 'decorative_fence', name: 'Decorative Fence', type: 'feature' },
+    { id: 'wind_chimes', name: 'Wind Chimes', type: 'feature' },
+  ],
+  seasonal: [
+    { id: 'pumpkin', name: 'Pumpkin', type: 'seasonal' },
+    { id: 'round_windows', name: 'Round Windows', type: 'seasonal' },
+    { id: 'arched_windows', name: 'Arched Windows', type: 'seasonal' },
+    { id: 'bay_windows', name: 'Bay Windows', type: 'seasonal' },
+    { id: 'arched_door', name: 'Arched Door', type: 'seasonal' },
+    { id: 'double_door', name: 'Double Door', type: 'seasonal' },
+    { id: 'cottage_door', name: 'Cottage Door', type: 'seasonal' },
+    { id: 'ornate_trim', name: 'Ornate Trim', type: 'seasonal' },
+    { id: 'scalloped_trim', name: 'Scalloped Trim', type: 'seasonal' },
+    { id: 'gabled_trim', name: 'Gabled Trim', type: 'seasonal' },
   ],
   furniture: [
-    { id: 'garden_bench', name: 'Garden Bench', type: 'furniture', zone: 'front_yard' },
-    { id: 'outdoor_table', name: 'Outdoor Table', type: 'furniture', zone: 'front_yard' },
-    { id: 'mailbox', name: 'Mailbox', type: 'furniture', zone: 'front_yard' },
-    { id: 'planter_box', name: 'Planter Box', type: 'furniture', zone: 'front_yard' },
-    { id: 'picnic_table', name: 'Picnic Table', type: 'furniture', zone: 'front_yard' }
+    { id: 'garden_bench', name: 'Garden Bench', type: 'furniture' },
+    { id: 'outdoor_table', name: 'Outdoor Table', type: 'furniture' },
+    { id: 'mailbox', name: 'Mailbox', type: 'furniture' },
+    { id: 'planter_box', name: 'Planter Box', type: 'furniture' },
+    { id: 'picnic_table', name: 'Picnic Table', type: 'furniture' },
   ],
   lighting: [
-    { id: 'garden_lantern', name: 'Garden Lantern', type: 'lighting', zone: 'front_yard' },
-    { id: 'string_lights', name: 'String Lights', type: 'lighting', zone: 'front_yard' },
-    { id: 'torch', name: 'Torch', type: 'lighting', zone: 'front_yard' },
-    { id: 'spotlight', name: 'Spotlight', type: 'lighting', zone: 'front_yard' }
+    { id: 'garden_lantern', name: 'Garden Lantern', type: 'lighting' },
+    { id: 'string_lights', name: 'String Lights', type: 'lighting' },
+    { id: 'torch', name: 'Torch', type: 'lighting' },
+    { id: 'spotlight', name: 'Spotlight', type: 'lighting' },
   ],
   water: [
-    { id: 'fountain', name: 'Fountain', type: 'water', zone: 'front_yard' },
-    { id: 'pond', name: 'Pond', type: 'water', zone: 'front_yard' },
-    { id: 'rain_barrel', name: 'Rain Barrel', type: 'water', zone: 'front_yard' }
+    { id: 'fountain', name: 'Fountain', type: 'water' },
+    { id: 'pond', name: 'Pond', type: 'water' },
+    { id: 'rain_barrel', name: 'Rain Barrel', type: 'water' },
   ],
-  structure: [
-    { id: 'gazebo', name: 'Gazebo', type: 'structure', zone: 'front_yard' },
-    { id: 'trellis', name: 'Trellis', type: 'structure', zone: 'front_yard' },
-    { id: 'garden_arch', name: 'Garden Arch', type: 'structure', zone: 'front_yard' }
+  structures: [
+    { id: 'gazebo', name: 'Gazebo', type: 'structure' },
+    { id: 'trellis', name: 'Trellis', type: 'structure' },
+    { id: 'garden_arch', name: 'Garden Arch', type: 'structure' },
   ],
-  atmosphere: [
-    { id: 'sunny_sky', name: 'Sunny Day', type: 'sky', zone: 'background' },
-    { id: 'sunset_sky', name: 'Sunset', type: 'sky', zone: 'background' }
-  ]
 }

@@ -62,11 +62,11 @@ interface NeighborhoodStreetViewProps {
 
 // Layer components for depth
 const SkyLayer: React.FC<{ timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night'; totalWidth: number }> = ({ timeOfDay, totalWidth }) => {
-  const gradients = {
-    morning: 'from-blue-200 via-blue-100 to-yellow-50',
-    afternoon: 'from-blue-400 via-blue-200 to-blue-100',
-    evening: 'from-purple-400 via-pink-300 to-orange-200',
-    night: 'from-indigo-900 via-blue-900 to-blue-800'
+  const skyColors = {
+    morning: 'bg-[#E0F7FA]', // Light cyan
+    afternoon: 'bg-[#87CEEB]', // Sky blue
+    evening: 'bg-[#FFCC80]', // Sunset orange/peach
+    night: 'bg-[#1a1a2e]'  // Dark blue
   }
 
   // Static mode when totalWidth is 0
@@ -74,7 +74,7 @@ const SkyLayer: React.FC<{ timeOfDay: 'morning' | 'afternoon' | 'evening' | 'nig
 
   return (
     <div
-      className={`absolute top-0 left-0 h-full bg-gradient-to-b ${gradients[timeOfDay]} pointer-events-none`}
+      className={`absolute top-0 left-0 h-full ${skyColors[timeOfDay]} pointer-events-none`}
       style={{ width: isStatic ? '100%' : `${totalWidth}px` }}
     >
       {/* Clouds - only show when scrollable */}
@@ -83,14 +83,14 @@ const SkyLayer: React.FC<{ timeOfDay: 'morning' | 'afternoon' | 'evening' | 'nig
           {Array.from({ length: Math.ceil(totalWidth / 400) }).map((_, i) => (
             <div key={`cloud-${i}`} className="absolute">
               <div
-                className="text-2xl opacity-60"
+                className="opacity-80"
                 style={{
                   left: `${i * 400 + (i % 3) * 100}px`,
                   top: `${20 + (i % 4) * 15}px`,
-                  transform: `rotate(${(i % 3) * 10 - 5}deg)`
+                  transform: `scale(${1 + (i % 3) * 0.5})`
                 }}
               >
-                ☁️
+                <PixelIcon name="cloud" size={32} color={timeOfDay === 'night' ? '#ffffff40' : '#ffffff'} />
               </div>
             </div>
           ))}
@@ -100,17 +100,27 @@ const SkyLayer: React.FC<{ timeOfDay: 'morning' | 'afternoon' | 'evening' | 'nig
       {/* Static clouds for static mode */}
       {isStatic && (
         <>
-          <div className="absolute top-8 left-20 text-2xl opacity-60">☁️</div>
-          <div className="absolute top-16 left-1/3 text-2xl opacity-50 rotate-12">☁️</div>
-          <div className="absolute top-6 right-1/3 text-2xl opacity-60 -rotate-6">☁️</div>
+          <div className="absolute top-8 left-20 opacity-80">
+            <PixelIcon name="cloud" size={32} color={timeOfDay === 'night' ? '#ffffff40' : '#ffffff'} />
+          </div>
+          <div className="absolute top-16 left-1/3 opacity-60">
+            <PixelIcon name="cloud" size={24} color={timeOfDay === 'night' ? '#ffffff40' : '#ffffff'} />
+          </div>
+          <div className="absolute top-6 right-1/3 opacity-80">
+            <PixelIcon name="cloud" size={32} color={timeOfDay === 'night' ? '#ffffff40' : '#ffffff'} />
+          </div>
         </>
       )}
 
       {/* Sun/Moon - static position in top right */}
       <div
-        className="absolute top-10 right-10 text-4xl"
+        className="absolute top-10 right-10"
       >
-        {timeOfDay === 'night' ? '🌙' : '☀️'}
+        {timeOfDay === 'night' ? (
+          <PixelIcon name="moon" size={48} color="#F4F6F0" />
+        ) : (
+          <PixelIcon name="sun" size={48} color="#FDB813" />
+        )}
       </div>
     </div>
   )
@@ -127,82 +137,58 @@ const StreetLayer: React.FC<{ scrollOffset: number; totalWidth: number }> = ({ s
     >
       {/* Grass/Ground behind houses - extends to full scrollable width */}
       <div
-        className="absolute bottom-20 left-0 h-[220px] bg-gradient-to-b from-green-200 via-green-300 to-green-400"
+        className="absolute bottom-20 left-0 h-[220px] bg-[#4ade80]" // Solid green
         style={{ width: `${totalWidth}px` }}
       >
-        {/* Grass texture details */}
-        <div className="absolute inset-0 opacity-30">
-          {/* Random grass patches */}
-          {Array.from({ length: Math.ceil(totalWidth / 50) }).map((_, i) => (
+        {/* Pixel Art Grass Texture */}
+        <div className="absolute inset-0 opacity-40">
+          {/* Random grass pixels */}
+          {Array.from({ length: Math.ceil(totalWidth / 40) }).map((_, i) => (
             <div key={`patch-${i}`} className="absolute">
               <div
-                className="grass-patch"
+                className="grass-pixel"
                 style={{
-                  left: `${i * 50 + (i % 3) * 15}px`,
-                  top: `${10 + (i % 4) * 15}px`,
-                  width: '8px',
-                  height: '8px',
-                  backgroundColor: i % 3 === 0 ? '#22c55e' : i % 3 === 1 ? '#16a34a' : '#15803d',
-                  borderRadius: '50%',
-                  opacity: 0.6
+                  left: `${i * 40 + (i % 3) * 10}px`,
+                  top: `${10 + (i % 4) * 20}px`,
+                  width: '4px',
+                  height: '4px',
+                  backgroundColor: i % 2 === 0 ? '#22c55e' : '#16a34a', // Darker green pixels
+                  boxShadow: '4px 0 #22c55e, -4px 4px #16a34a', // Pixel art cluster
                 }}
               />
             </div>
           ))}
 
-          {/* Small flowers scattered */}
-          {Array.from({ length: Math.ceil(totalWidth / 80) }).map((_, i) => (
+          {/* Small flowers scattered - pixel style */}
+          {Array.from({ length: Math.ceil(totalWidth / 100) }).map((_, i) => (
             <div
               key={`flower-${i}`}
               className="absolute"
               style={{
-                left: `${i * 80 + (i % 5) * 20}px`,
-                top: `${20 + (i % 6) * 12}px`,
-                transform: `rotate(${(i % 4) * 90}deg)`
+                left: `${i * 100 + (i % 5) * 20}px`,
+                top: `${30 + (i % 6) * 25}px`,
               }}
             >
-              <PixelIcon
-                name="drop"
-                size={8}
-                color={i % 4 === 0 ? '#fbbf24' : i % 4 === 1 ? '#f97316' : i % 4 === 2 ? '#ec4899' : '#f472b6'}
-              />
+              <div className="w-1 h-1 bg-yellow-400 shadow-[2px_0_#fbbf24,-2px_0_#fbbf24,0_2px_#fbbf24,0_-2px_#fbbf24]" />
             </div>
-          ))}
-
-          {/* Grass blades */}
-          {Array.from({ length: Math.ceil(totalWidth / 30) }).map((_, i) => (
-            <div
-              key={`blade-${i}`}
-              className="absolute"
-              style={{
-                left: `${i * 30 + (i % 7) * 8}px`,
-                top: `${5 + (i % 5) * 10}px`,
-                width: '2px',
-                height: `${8 + (i % 3) * 4}px`,
-                backgroundColor: '#22c55e',
-                borderRadius: '2px 2px 0 0',
-                opacity: 0.4,
-                transform: `rotate(${(i % 3) * 15 - 15}deg)`
-              }}
-            />
           ))}
         </div>
       </div>
 
       {/* Street/Sidewalk - smaller proportion */}
       <div
-        className="h-20 bg-gradient-to-b from-gray-400 to-gray-600 relative"
+        className="h-20 bg-[#9ca3af] relative" // Solid gray street
         style={{ width: `${totalWidth}px` }}
       >
         {/* Sidewalk */}
         <div
-          className="absolute top-0 left-0 h-12 bg-gradient-to-b from-gray-300 to-gray-400"
+          className="absolute top-0 left-0 h-12 bg-[#d1d5db]" // Lighter gray sidewalk
           style={{ width: `${totalWidth}px` }}
         >
-          {/* Sidewalk lines */}
+          {/* Sidewalk lines - solid pixel lines */}
           <div className="flex h-full">
-            {Array.from({ length: Math.ceil(totalWidth / 16) }).map((_, i) => (
-              <div key={i} className="w-16 border-r border-gray-500 opacity-20"></div>
+            {Array.from({ length: Math.ceil(totalWidth / 32) }).map((_, i) => (
+              <div key={i} className="w-32 border-r-2 border-[#9ca3af] opacity-50"></div>
             ))}
           </div>
         </div>
@@ -215,7 +201,7 @@ const StreetLayer: React.FC<{ scrollOffset: number; totalWidth: number }> = ({ s
           {Array.from({ length: Math.ceil(totalWidth / 88) }).map((_, i) => (
             <div
               key={i}
-              className="absolute w-16 h-2 bg-yellow-400 opacity-80"
+              className="absolute w-16 h-2 bg-[#facc15]" // Solid yellow
               style={{ left: `${i * 88}px` }}
             />
           ))}
@@ -394,35 +380,16 @@ export default function NeighborhoodStreetView({
   }
 
   return (
-    <div className="neighborhood-street-view relative h-[calc(100dvh-200px)] sm:h-[calc(100vh-200px)] max-h-[750px] overflow-hidden bg-gradient-to-b from-sky-100 via-sky-50 to-green-200 z-0">
-      {/* Static Sky Background with Sun - outside scrollable area */}
-      <div className="absolute inset-0 pointer-events-none">
-        <SkyLayer timeOfDay={timeOfDay} totalWidth={0} />
-      </div>
-
-      {/* Street Indicator Overlay */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
-        <div className={`bg-thread-paper bg-opacity-95 border border-thread-sage rounded-lg px-2 py-1 md:px-4 md:py-2 shadow-lg transition-all duration-300 ${isTransitioning ? 'scale-110 shadow-xl' : 'scale-100'}`}>
-          <div className="text-center">
-            <div className="text-xs md:text-sm font-headline font-medium text-thread-pine">
-              {getStreetName(currentStreet)}
-            </div>
-            {totalStreets > 1 && (
-              <div className="hidden md:block text-xs text-thread-sage mt-1">
-                Street {currentStreet + 1} of {totalStreets} • {currentStreetMembers.length} homes
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Scrollable Container */}
+    <div className="neighborhood-street-view relative h-[calc(100dvh-200px)] sm:h-[calc(100vh-200px)] max-h-[750px] overflow-hidden bg-[#E0F7FA] z-0">
       <div
-        ref={scrollContainerRef}
         className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-thread-sage scrollbar-track-thread-cream z-30"
         onScroll={handleScroll}
+        ref={scrollContainerRef}
       >
         <div className="relative h-full" style={{ width: `${totalWidth}px` }}>
+          {/* Sky Layer */}
+          <SkyLayer timeOfDay={timeOfDay} totalWidth={totalWidth} />
+
           {/* Street Layer - at the bottom */}
           <div className="absolute bottom-0 left-0 z-10" style={{ width: `${totalWidth}px` }}>
             <StreetLayer scrollOffset={scrollOffset} totalWidth={totalWidth} />

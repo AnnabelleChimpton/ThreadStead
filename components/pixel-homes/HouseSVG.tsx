@@ -87,7 +87,7 @@ const renderBrickTexture = (x: number, y: number, w: number, h: number, color: s
         <rect x={x} y={y} width={w} height={h} fill={brickColor} />
         {/* Simple horizontal lines for brick effect */}
         {Array.from({ length: Math.floor(h / 8) }).map((_, i) => (
-          <rect key={i} x={x} y={y + i * 8} width={w} height={1} fill={mortarColor} opacity="0.5" />
+          <rect key={i} x={x} y={y + i * 8} width={w} height={1} fill={mortarColor} />
         ))}
       </g>
     )
@@ -110,9 +110,9 @@ const renderBrickTexture = (x: number, y: number, w: number, h: number, color: s
         <g key={`${r}-${c}`}>
           <rect x={Math.max(x, bx)} y={by} width={Math.min(brickW - 1, x + w - bx)} height={brickH - 1} fill={brickColor} />
           {/* Subtle highlight on top edge */}
-          <rect x={Math.max(x, bx)} y={by} width={Math.min(brickW - 1, x + w - bx)} height={1} fill={lighten(brickColor, 10)} opacity="0.3" />
+          <rect x={Math.max(x, bx)} y={by} width={Math.min(brickW - 1, x + w - bx)} height={1} fill={lighten(brickColor, 10)} />
           {/* Shadow on bottom/right */}
-          <rect x={Math.max(x, bx) + Math.min(brickW - 1, x + w - bx) - 1} y={by} width={1} height={brickH - 1} fill={shadowColor} opacity="0.2" />
+          <rect x={Math.max(x, bx) + Math.min(brickW - 1, x + w - bx) - 1} y={by} width={1} height={brickH - 1} fill={shadowColor} />
         </g>
       );
     }
@@ -566,14 +566,17 @@ export default function HouseSVG({ template, palette, className = '', onClick, c
   }[template]
 
   return (
-    <div
-      className={`inline-block cursor-pointer ${className}`}
+    <svg
+      viewBox="0 0 200 180"
+      className={`house-svg ${className}`}
       onClick={onClick}
+      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      shapeRendering="crispEdges"
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
     >
       <TemplateComponent colors={colors} customizations={customizations || {}} simplified={variant === 'simplified'} />
-    </div>
+    </svg>
   )
 }
