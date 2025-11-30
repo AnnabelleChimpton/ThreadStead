@@ -26,6 +26,7 @@ interface DecorationPaletteProps {
   className?: string
   isMobile?: boolean
   onCategoryChange?: (category: string) => void // Callback when primary category changes
+  palette?: 'thread_sage' | 'charcoal_nights' | 'pixel_petals' | 'crt_glow' | 'classic_linen'
 }
 
 // Primary categories with better organization
@@ -57,6 +58,11 @@ const PRIMARY_CATEGORIES = {
     icon: '🎭',
     subcategories: {}
   },
+  colors: {
+    label: 'Colors',
+    icon: '🎨',
+    subcategories: {}
+  },
   atmosphere: {
     label: 'Sky',
     icon: '🌤️',
@@ -75,7 +81,8 @@ export default function DecorationPalette({
   onItemSelect,
   className = '',
   isMobile = false,
-  onCategoryChange
+  onCategoryChange,
+  palette = 'thread_sage'
 }: DecorationPaletteProps) {
   const [primaryCategory, setPrimaryCategory] = useState<string>('decorations')
   const [secondaryCategory, setSecondaryCategory] = useState<string>('plants')
@@ -205,13 +212,11 @@ export default function DecorationPalette({
             <button
               key={key}
               onClick={() => handlePrimaryChange(key)}
-              className={`flex items-center gap-2 rounded-lg text-sm font-medium transition-all touch-manipulation active:scale-95 ${
-                isMobile ? 'flex-col px-3 py-2 min-w-[72px] flex-shrink-0' : 'px-3 py-2 whitespace-nowrap'
-              } ${
-                primaryCategory === key
+              className={`flex items-center gap-2 rounded-lg text-sm font-medium transition-all touch-manipulation active:scale-95 ${isMobile ? 'flex-col px-3 py-2 min-w-[72px] flex-shrink-0' : 'px-3 py-2 whitespace-nowrap'
+                } ${primaryCategory === key
                   ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
                   : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100 hover:text-gray-900'
-              }`}
+                }`}
               style={isMobile ? { minHeight: '64px' } : {}}
             >
               <span className={isMobile ? 'text-xl' : ''}>{category.icon}</span>
@@ -229,13 +234,11 @@ export default function DecorationPalette({
               <button
                 key={key}
                 onClick={() => setSecondaryCategory(key)}
-                className={`flex flex-nowrap items-center gap-1 px-3 py-2 rounded text-xs font-medium whitespace-nowrap transition-all touch-manipulation active:scale-95 ${
-                  isMobile ? 'flex-shrink-0' : ''
-                } ${
-                  secondaryCategory === key
+                className={`flex flex-nowrap items-center gap-1 px-3 py-2 rounded text-xs font-medium whitespace-nowrap transition-all touch-manipulation active:scale-95 ${isMobile ? 'flex-shrink-0' : ''
+                  } ${secondaryCategory === key
                     ? 'bg-blue-50 text-blue-600 border border-blue-200'
                     : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100 hover:text-gray-900'
-                }`}
+                  }`}
                 style={isMobile ? { minHeight: '44px' } : {}}
               >
                 <span className="text-sm flex-shrink-0">{(subcategory as any).icon}</span>
@@ -271,9 +274,8 @@ export default function DecorationPalette({
             </div>
           </div>
         ) : (
-          <div className={`grid ${
-            isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4'
-          }`}>
+          <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4'
+            }`}>
             {currentItems.map((item) => (
               <button
                 key={item.id}
@@ -299,6 +301,7 @@ export default function DecorationPalette({
                     className="drop-shadow-sm"
                     color={item.color}
                     iconSvg={item.iconSvg}
+                    palette={palette}
                   />
                 </div>
 

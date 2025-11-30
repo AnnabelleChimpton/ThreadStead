@@ -155,13 +155,13 @@ const BETA_ITEMS = {
     { id: 'arched_door', name: 'Arched Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
     { id: 'double_door', name: 'Double Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
     { id: 'cottage_door', name: 'Cottage Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
-    
+
     // Windows Section
     { id: 'default_windows', name: 'Default Windows', type: 'house_custom', zone: 'house_facade', section: 'windows', isDefault: true },
     { id: 'round_windows', name: 'Round Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
     { id: 'arched_windows', name: 'Arched Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
     { id: 'bay_windows', name: 'Bay Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
-    
+
     // Roof Trim Section
     { id: 'default_trim', name: 'Default Trim', type: 'house_custom', zone: 'house_facade', section: 'roof', isDefault: true },
     { id: 'ornate_trim', name: 'Ornate Roof Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
@@ -196,7 +196,7 @@ export default function DecorationMode({
   // Mobile detection
   const isMobile = useIsMobile(768)
   const isTouch = useIsTouch()
-  
+
   const [placedDecorations, setPlacedDecorations] = useState<DecorationItem[]>([])
   const [availableDecorations, setAvailableDecorations] = useState<Record<string, DecorationItem[]>>({})
   const [decorationsLoading, setDecorationsLoading] = useState(true)
@@ -216,26 +216,26 @@ export default function DecorationMode({
   const [houseCustomizations, setHouseCustomizations] = useState<HouseCustomizations>(
     initialHouseCustomizations || {
       windowStyle: 'default',
-      doorStyle: 'default', 
+      doorStyle: 'default',
       roofTrim: 'default'
     }
   )
-  const [previewPosition, setPreviewPosition] = useState<{x: number, y: number} | null>(null)
+  const [previewPosition, setPreviewPosition] = useState<{ x: number, y: number } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [draggedItem, setDraggedItem] = useState<any>(null)
   const [selectedDecorations, setSelectedDecorations] = useState<Set<string>>(new Set())
   const [draggedDecoration, setDraggedDecoration] = useState<string | null>(null)
-  const [dragOffset, setDragOffset] = useState<{x: number, y: number}>({x: 0, y: 0})
+  const [dragOffset, setDragOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
   const [history, setHistory] = useState<{
     past: DecorationItem[][]
     present: DecorationItem[]
     future: DecorationItem[][]
   }>({ past: [], present: [], future: [] })
-  const [showThemeConfirm, setShowThemeConfirm] = useState<{show: boolean, template: HouseTemplate, palette: ColorPalette}>({show: false, template: 'cottage_v1', palette: 'thread_sage'})
+  const [showThemeConfirm, setShowThemeConfirm] = useState<{ show: boolean, template: HouseTemplate, palette: ColorPalette }>({ show: false, template: 'cottage_v1', palette: 'thread_sage' })
 
   // Grid system state
   const [gridConfig, setGridConfig] = useState<DecorationGridConfig>(DEFAULT_DECORATION_GRID)
-  const [mousePosition, setMousePosition] = useState<{x: number, y: number} | undefined>()
+  const [mousePosition, setMousePosition] = useState<{ x: number, y: number } | undefined>()
 
   // Canvas dimensions (used for touch placement bounds)
   const CANVAS_WIDTH = 500
@@ -254,7 +254,10 @@ export default function DecorationMode({
         const response = await fetch('/api/decorations/available')
         if (response.ok) {
           const data = await response.json()
-          setAvailableDecorations(data.decorations)
+          setAvailableDecorations({
+            ...data.decorations,
+            colors: BETA_ITEMS.colors
+          })
         } else {
           // Fallback to BETA_ITEMS if API fails
           console.warn('Failed to load decorations from API, using fallback')
@@ -308,7 +311,7 @@ export default function DecorationMode({
       setHistory({ past: [], present: initialDecorations, future: [] })
     }
   }, [initialDecorations])
-  
+
   // Update history when decorations change
   const updateHistory = (newDecorations: DecorationItem[]) => {
     setHistory(prev => ({
@@ -318,13 +321,13 @@ export default function DecorationMode({
     }))
     setPlacedDecorations(newDecorations)
   }
-  
+
   const undo = () => {
     if (history.past.length === 0) return
-    
+
     const previous = history.past[history.past.length - 1]
     const newPast = history.past.slice(0, history.past.length - 1)
-    
+
     setHistory({
       past: newPast,
       present: previous,
@@ -332,13 +335,13 @@ export default function DecorationMode({
     })
     setPlacedDecorations(previous)
   }
-  
+
   const redo = () => {
     if (history.future.length === 0) return
-    
+
     const next = history.future[0]
     const newFuture = history.future.slice(1)
-    
+
     setHistory({
       past: [...history.past, history.present],
       present: next,
@@ -349,9 +352,9 @@ export default function DecorationMode({
 
   const handleColorChange = (colorValue: string) => {
     if (!selectedItem || selectedItem.type !== 'house_color') return
-    
+
     const colorUpdate: Partial<HouseCustomizations> = {}
-    
+
     // Map color item IDs to customization properties
     switch (selectedItem.id) {
       case 'wall_color':
@@ -370,7 +373,7 @@ export default function DecorationMode({
         colorUpdate.detailColor = colorValue
         break
     }
-    
+
     // Update house customizations immediately
     setHouseCustomizations(prev => ({ ...prev, ...colorUpdate }))
   }
@@ -378,20 +381,20 @@ export default function DecorationMode({
   const handleItemSelect = (item: any) => {
     if (item.type === 'sky') {
       // Handle atmosphere changes directly
-      const newSky = item.id === 'sunny_sky' ? 'sunny' : 
-                    item.id === 'sunset_sky' ? 'sunset' : 'sunny'
+      const newSky = item.id === 'sunny_sky' ? 'sunny' :
+        item.id === 'sunset_sky' ? 'sunset' : 'sunny'
       setAtmosphere(prev => ({ ...prev, sky: newSky }))
     } else if (item.type === 'house_template') {
       // Handle house template changes directly - switch the entire house type!
       setCurrentTemplate(item.id as HouseTemplate)
-      
+
       // Reset house customizations when changing template to avoid conflicts
       setHouseCustomizations({
         windowStyle: 'default',
         doorStyle: 'default',
         roofTrim: 'default'
       })
-      
+
       // Select the item for visual feedback but don't enter placement mode
       setSelectedItem(item)
       setIsPlacing(false)
@@ -402,7 +405,7 @@ export default function DecorationMode({
     } else if (item.type === 'house_custom') {
       // Handle house customizations directly - no placement needed!
       const customizationUpdate: Partial<HouseCustomizations> = {}
-      
+
       // Map decoration IDs to customization properties
       if (item.id.includes('windows') || item.id === 'default_windows') {
         if (item.id === 'round_windows') customizationUpdate.windowStyle = 'round'
@@ -420,10 +423,10 @@ export default function DecorationMode({
         else if (item.id === 'gabled_trim') customizationUpdate.roofTrim = 'gabled'
         else if (item.id === 'default_trim') customizationUpdate.roofTrim = 'default'
       }
-      
+
       // Update house customizations immediately
       setHouseCustomizations(prev => ({ ...prev, ...customizationUpdate }))
-      
+
       // Select the item for visual feedback but don't enter placement mode
       setSelectedItem(item)
       setIsPlacing(false)
@@ -489,7 +492,7 @@ export default function DecorationMode({
       setIsDragging(false)
     }
   }
-  
+
   // Touch placement handler for mobile
   const handleTouchPlace = (x: number, y: number) => {
     if (!selectedItem || selectedItem.type === 'sky' || selectedItem.type === 'house_custom' || selectedItem.type === 'house_template' || selectedItem.type === 'house_color') return
@@ -524,7 +527,7 @@ export default function DecorationMode({
       updateHistory(newDecorations)
       return
     }
-    
+
     // Toggle selection
     if (event.ctrlKey || event.metaKey) {
       setSelectedDecorations(prev => {
@@ -540,18 +543,18 @@ export default function DecorationMode({
       setSelectedDecorations(new Set([decorationId]))
     }
   }
-  
+
   const handleDecorationMouseDown = (decorationId: string, event: React.MouseEvent) => {
     if (isDeleting) return
-    
+
     event.preventDefault()
     event.stopPropagation()
-    
+
     // If decoration isn't selected, select it
     if (!selectedDecorations.has(decorationId)) {
       setSelectedDecorations(new Set([decorationId]))
     }
-    
+
     // Start dragging
     const decoration = placedDecorations.find(d => d.id === decorationId)
     if (decoration && decoration.position) {
@@ -566,7 +569,7 @@ export default function DecorationMode({
       setDraggedDecoration(decorationId)
     }
   }
-  
+
   const handleDecorationMouseMove = React.useCallback((event: MouseEvent) => {
     if (!draggedDecoration) return
 
@@ -592,16 +595,16 @@ export default function DecorationMode({
       return decoration
     }))
   }, [draggedDecoration, dragOffset, selectedDecorations])
-  
+
   const handleDecorationMouseUp = React.useCallback(() => {
     if (draggedDecoration) {
       // Save current state to history using the ref to get latest decorations
       updateHistory([...placedDecorationsRef.current])
     }
     setDraggedDecoration(null)
-    setDragOffset({x: 0, y: 0})
+    setDragOffset({ x: 0, y: 0 })
   }, [draggedDecoration])
-  
+
   // Add global mouse event listeners for decoration dragging
   useEffect(() => {
     if (draggedDecoration) {
@@ -614,7 +617,7 @@ export default function DecorationMode({
       }
     }
   }, [draggedDecoration, handleDecorationMouseMove, handleDecorationMouseUp])
-  
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -622,7 +625,7 @@ export default function DecorationMode({
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
         return
       }
-      
+
       switch (event.key) {
         case 'Escape':
           event.preventDefault()
@@ -631,13 +634,13 @@ export default function DecorationMode({
           setSelectedItem(null)
           setIsDeleting(false)
           break
-          
+
         case 'Delete':
         case 'Backspace':
           event.preventDefault()
           handleDeleteSelected()
           break
-          
+
         case 'a':
         case 'A':
           if (event.ctrlKey || event.metaKey) {
@@ -645,7 +648,7 @@ export default function DecorationMode({
             handleSelectAll()
           }
           break
-          
+
         case 'z':
         case 'Z':
           if (event.ctrlKey || event.metaKey) {
@@ -657,7 +660,7 @@ export default function DecorationMode({
             }
           }
           break
-          
+
         case 'y':
         case 'Y':
           if (event.ctrlKey || event.metaKey) {
@@ -665,13 +668,13 @@ export default function DecorationMode({
             redo()
           }
           break
-          
+
         case 'd':
         case 'D':
           event.preventDefault()
           handleDeleteToggle()
           break
-          
+
         case 'r':
         case 'R':
           if (event.ctrlKey || event.metaKey) {
@@ -679,7 +682,7 @@ export default function DecorationMode({
             handleReset()
           }
           break
-          
+
         case 's':
         case 'S':
           if (event.ctrlKey || event.metaKey) {
@@ -687,7 +690,7 @@ export default function DecorationMode({
             handleSave()
           }
           break
-          
+
         // Category shortcuts (1-9+)
         case '1': setSelectedCategory('plants'); break
         case '2': setSelectedCategory('paths'); break
@@ -716,7 +719,7 @@ export default function DecorationMode({
           break
       }
     }
-    
+
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [selectedDecorations, history, placedDecorations])
@@ -728,7 +731,7 @@ export default function DecorationMode({
     setPreviewPosition(null)
     setSelectedDecorations(new Set()) // Clear selections when entering delete mode
   }
-  
+
   const handleDeleteSelected = () => {
     if (selectedDecorations.size === 0) return
 
@@ -736,11 +739,11 @@ export default function DecorationMode({
     updateHistory(newDecorations)
     setSelectedDecorations(new Set())
   }
-  
+
   const handleSelectAll = () => {
     setSelectedDecorations(new Set(placedDecorations.map(d => d.id)))
   }
-  
+
   const handleDeselectAll = () => {
     setSelectedDecorations(new Set())
   }
@@ -789,23 +792,23 @@ export default function DecorationMode({
     setMousePosition(undefined)
     clearPreview()
   }
-  
+
   const handleDragStart = (item: any) => {
     if (item.type === 'sky' || item.type === 'house_custom' || item.type === 'house_template' || item.type === 'house_color') return
     setDraggedItem(item)
     setIsDragging(true)
   }
-  
+
   const handleDragEnd = () => {
     setDraggedItem(null)
     setIsDragging(false)
     setPreviewPosition(null)
   }
-  
+
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault()
   }
-  
+
   const handleDrop = (event: React.DragEvent) => {
     event.preventDefault()
     if (!draggedItem) return
@@ -855,7 +858,7 @@ export default function DecorationMode({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           decorations: decorationData,
           atmosphere: atmosphere,
           houseCustomizations: houseCustomizations,
@@ -888,13 +891,13 @@ export default function DecorationMode({
 
   const handleThemeSelection = (template: HouseTemplate, palette: ColorPalette) => {
     // Check if user has custom colors that would be lost when applying theme
-    const hasImportantCustomColors = houseCustomizations.wallColor || houseCustomizations.roofColor || 
-                                    houseCustomizations.trimColor || houseCustomizations.windowColor || 
-                                    houseCustomizations.detailColor
+    const hasImportantCustomColors = houseCustomizations.wallColor || houseCustomizations.roofColor ||
+      houseCustomizations.trimColor || houseCustomizations.windowColor ||
+      houseCustomizations.detailColor
 
     if (hasImportantCustomColors) {
       // User has custom colors - show confirmation modal
-      setShowThemeConfirm({show: true, template, palette})
+      setShowThemeConfirm({ show: true, template, palette })
     } else {
       // No custom colors - apply theme immediately
       applyThemeDirectly(template, palette)
@@ -904,7 +907,7 @@ export default function DecorationMode({
   const applyThemeDirectly = (template: HouseTemplate, palette: ColorPalette) => {
     setCurrentTemplate(template)
     setCurrentPalette(palette)
-    
+
     // Convert theme palette to explicit custom colors so they get saved to database
     const paletteColors = PALETTE_COLORS[palette]
     setHouseCustomizations({
@@ -922,10 +925,10 @@ export default function DecorationMode({
   const handleThemeConfirmApply = () => {
     // User wants to apply theme - convert theme palette to explicit custom colors
     const paletteColors = PALETTE_COLORS[showThemeConfirm.palette]
-    
+
     setCurrentTemplate(showThemeConfirm.template)
     setCurrentPalette(showThemeConfirm.palette)
-    
+
     // Set theme colors as explicit custom colors so they get saved to database
     setHouseCustomizations({
       windowStyle: 'default',
@@ -937,8 +940,8 @@ export default function DecorationMode({
       windowColor: paletteColors.accent,  // theme window color
       detailColor: paletteColors.detail   // theme detail color
     })
-    
-    setShowThemeConfirm({show: false, template: 'cottage_v1', palette: 'thread_sage'})
+
+    setShowThemeConfirm({ show: false, template: 'cottage_v1', palette: 'thread_sage' })
   }
 
   const handleThemeConfirmKeep = () => {
@@ -948,46 +951,47 @@ export default function DecorationMode({
     setHouseCustomizations(prev => ({
       ...prev,
       windowStyle: 'default',
-      doorStyle: 'default', 
+      doorStyle: 'default',
       roofTrim: 'default'
       // Keep wallColor, roofColor, trimColor, windowColor, detailColor intact
       // HouseSVG will blend custom colors with new theme palette
     }))
-    setShowThemeConfirm({show: false, template: 'cottage_v1', palette: 'thread_sage'})
+    setShowThemeConfirm({ show: false, template: 'cottage_v1', palette: 'thread_sage' })
   }
 
   // Generate all available items for mobile palette
   const allAvailableItems = useMemo(() => {
     const items: any[] = []
-    
+
     // Add regular decoration items
     Object.entries(availableDecorations).forEach(([category, categoryItems]) => {
       categoryItems.forEach(item => {
         items.push({ ...item, category })
       })
     })
-    
+
     // Add themes
     items.push(
       { id: 'cottage_v1_thread_sage', name: 'Thread Sage Cottage', type: 'theme', category: 'themes' },
       { id: 'cottage_v1_charcoal_nights', name: 'Charcoal Nights Cottage', type: 'theme', category: 'themes' },
       { id: 'cottage_v1_pixel_petals', name: 'Pixel Petals Cottage', type: 'theme', category: 'themes' }
     )
-    
+
     // Add templates 
     items.push(
-      { id: 'cottage_v1', name: 'Cozy Cottage', type: 'template', category: 'templates' },
-      { id: 'modern_v1', name: 'Modern Home', type: 'template', category: 'templates' },
-      { id: 'townhouse_v1', name: 'City Townhouse', type: 'template', category: 'templates' }
+      { id: 'cottage_v1', name: 'Cozy Cottage', type: 'house_template', category: 'house' },
+      { id: 'loft_v1', name: 'Modern Loft', type: 'house_template', category: 'house' },
+      { id: 'townhouse_v1', name: 'City Townhouse', type: 'house_template', category: 'house' },
+      { id: 'cabin_v1', name: 'Log Cabin', type: 'house_template', category: 'house' }
     )
-    
+
     // Add colors
     items.push(
       { id: 'wall_color', name: 'Wall Color', type: 'color', category: 'colors' },
       { id: 'roof_color', name: 'Roof Color', type: 'color', category: 'colors' },
       { id: 'trim_color', name: 'Trim Color', type: 'color', category: 'colors' }
     )
-    
+
     return items
   }, [availableDecorations])
 
@@ -1006,13 +1010,11 @@ export default function DecorationMode({
   return (
     <div className="bg-gradient-to-b from-thread-paper to-thread-cream flex flex-col min-h-full">
       {/* Top Toolbar - Mobile Responsive */}
-      <div className={`flex items-center justify-between bg-white border-b border-gray-200 shadow-sm ${
-        isMobile ? 'px-4 py-3' : 'px-6 py-4'
-      }`}>
+      <div className={`flex items-center justify-between bg-white border-b border-gray-200 shadow-sm ${isMobile ? 'px-4 py-3' : 'px-6 py-4'
+        }`}>
         <div className="flex items-center gap-2">
-          <h2 className={`font-headline font-bold text-thread-pine flex items-center gap-2 ${
-            isMobile ? 'text-lg' : 'text-xl'
-          }`}>
+          <h2 className={`font-headline font-bold text-thread-pine flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'
+            }`}>
             <PixelIcon name="paint-bucket" size={isMobile ? 20 : 24} /> {isMobile ? 'Decorate' : 'Decorate Your Home'}
           </h2>
           {!isMobile && (
@@ -1021,7 +1023,7 @@ export default function DecorationMode({
             </span>
           )}
         </div>
-        
+
         <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
           {/* Selection controls - desktop only (mobile uses floating action bar) */}
           {!isMobile && selectedDecorations.size > 0 && (
@@ -1045,7 +1047,7 @@ export default function DecorationMode({
               </button>
             </>
           )}
-          
+
           {!isMobile && (
             <>
               <button
@@ -1077,11 +1079,10 @@ export default function DecorationMode({
 
               <button
                 onClick={handleDeleteToggle}
-                className={`h-9 w-9 rounded-lg font-medium transition-colors flex items-center justify-center flex-shrink-0 ${
-                  isDeleting
-                    ? 'bg-red-500 text-white hover:bg-red-600'
-                    : 'border border-red-500 text-red-500 hover:bg-red-50'
-                }`}
+                className={`h-9 w-9 rounded-lg font-medium transition-colors flex items-center justify-center flex-shrink-0 ${isDeleting
+                  ? 'bg-red-500 text-white hover:bg-red-600'
+                  : 'border border-red-500 text-red-500 hover:bg-red-50'
+                  }`}
                 title={isDeleting ? 'Exit Delete Mode (Esc)' : 'Delete Mode (D)'}
               >
                 🗑️
@@ -1099,22 +1100,20 @@ export default function DecorationMode({
               <div className="flex items-center gap-2 border-l border-gray-300 pl-2">
                 <button
                   onClick={toggleGrid}
-                  className={`h-9 w-9 rounded-lg font-medium transition-colors flex items-center justify-center flex-shrink-0 ${
-                    gridConfig.showGrid
-                      ? 'bg-blue-500 text-white hover:bg-blue-600'
-                      : 'border border-blue-500 text-blue-500 hover:bg-blue-50'
-                  }`}
+                  className={`h-9 w-9 rounded-lg font-medium transition-colors flex items-center justify-center flex-shrink-0 ${gridConfig.showGrid
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'border border-blue-500 text-blue-500 hover:bg-blue-50'
+                    }`}
                   title="Toggle Grid Overlay (G)"
                 >
                   ⊞
                 </button>
                 <button
                   onClick={toggleSnapping}
-                  className={`h-9 w-9 rounded-lg font-medium transition-colors flex items-center justify-center flex-shrink-0 ${
-                    isSnapping
-                      ? 'bg-green-500 text-white hover:bg-green-600'
-                      : 'border border-green-500 text-green-500 hover:bg-green-50'
-                  }`}
+                  className={`h-9 w-9 rounded-lg font-medium transition-colors flex items-center justify-center flex-shrink-0 ${isSnapping
+                    ? 'bg-green-500 text-white hover:bg-green-600'
+                    : 'border border-green-500 text-green-500 hover:bg-green-50'
+                    }`}
                   title="Toggle Magnetic Snapping (S)"
                 >
                   🧲
@@ -1122,12 +1121,11 @@ export default function DecorationMode({
               </div>
             </>
           )}
-          
+
           <button
             onClick={onCancel}
-            className={`border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium flex-shrink-0 ${
-              isMobile ? 'w-9 h-9 flex items-center justify-center text-sm' : 'h-9 w-9 flex items-center justify-center'
-            }`}
+            className={`border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium flex-shrink-0 ${isMobile ? 'w-9 h-9 flex items-center justify-center text-sm' : 'h-9 w-9 flex items-center justify-center'
+              }`}
             title="Return to Home Page"
           >
             <PixelIcon name="home" />
@@ -1140,9 +1138,8 @@ export default function DecorationMode({
                 window.location.href = `/claim/${code}`
               }
             }}
-            className={`bg-purple-500 text-white hover:bg-purple-600 rounded-lg font-medium transition-colors flex-shrink-0 ${
-              isMobile ? 'w-9 h-9 flex items-center justify-center text-sm' : 'h-9 w-9 flex items-center justify-center'
-            }`}
+            className={`bg-purple-500 text-white hover:bg-purple-600 rounded-lg font-medium transition-colors flex-shrink-0 ${isMobile ? 'w-9 h-9 flex items-center justify-center text-sm' : 'h-9 w-9 flex items-center justify-center'
+              }`}
             title="Claim Exclusive Items"
           >
             🎁
@@ -1150,9 +1147,8 @@ export default function DecorationMode({
 
           <button
             onClick={handleSave}
-            className={`bg-thread-sage text-thread-paper hover:bg-thread-pine rounded-lg font-medium btn-save btn-hover-lift transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 whitespace-nowrap ${
-              isMobile ? 'px-3 h-9 text-sm' : 'h-9 px-4'
-            }`}
+            className={`bg-thread-sage text-thread-paper hover:bg-thread-pine rounded-lg font-medium btn-save btn-hover-lift transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 whitespace-nowrap ${isMobile ? 'px-3 h-9 text-sm' : 'h-9 px-4'
+              }`}
             title="Save Changes (Ctrl+S)"
           >
             <PixelIcon name="save" /> Save
@@ -1161,17 +1157,15 @@ export default function DecorationMode({
       </div>
 
       {/* Main Canvas Area - Mobile Responsive */}
-      <div className={`flex-1 flex items-center justify-center relative ${
-        isMobile ? 'p-2' : 'p-8'
-      }`}>
+      <div className={`flex-1 flex items-center justify-center relative ${isMobile ? 'p-2' : 'p-8'
+        }`}>
         <div
-          className={`decoration-canvas relative house-canvas gpu-accelerated ${
-            draggedDecoration ? 'cursor-grabbing' :
+          className={`decoration-canvas relative house-canvas gpu-accelerated ${draggedDecoration ? 'cursor-grabbing' :
             isDragging ? 'cursor-grabbing' :
-            isPlacing ? (isMobile ? 'cursor-pointer' : 'cursor-crosshair') :
-            isDeleting ? 'cursor-pointer' :
-            'cursor-default'
-          }`}
+              isPlacing ? (isMobile ? 'cursor-pointer' : 'cursor-crosshair') :
+                isDeleting ? 'cursor-pointer' :
+                  'cursor-default'
+            }`}
           style={isMobile ? { width: '100%', maxWidth: CANVAS_WIDTH } : undefined}
           onClick={!isMobile ? handleCanvasClick : undefined}
           onMouseMove={!isMobile ? handleCanvasMouseMove : undefined}
@@ -1238,7 +1232,7 @@ export default function DecorationMode({
               isDeleteMode={isDeleting}
             />
           )}
-          
+
           {/* Simple selection indicators */}
           {placedDecorations.map(decoration => {
             if (!selectedDecorations.has(decoration.id) || !decoration.position) return null
@@ -1259,7 +1253,7 @@ export default function DecorationMode({
               </div>
             )
           })}
-          
+
           {/* Simple preview decoration */}
           {(snapPreview || previewPosition) && (selectedItem || draggedItem) && (
             <div
@@ -1287,14 +1281,12 @@ export default function DecorationMode({
             </div>
           )}
         </div>
-        
+
         {/* Enhanced status overlay */}
-        <div className={`absolute bg-white bg-opacity-95 rounded-xl shadow-lg border border-gray-200 backdrop-blur-sm ${
-          isMobile ? 'top-2 left-2 px-3 py-2' : 'top-4 left-4 px-4 py-2'
-        }`}>
-          <div className={`text-gray-700 font-medium flex items-center gap-2 ${
-            isMobile ? 'text-xs' : 'text-sm'
+        <div className={`absolute bg-white bg-opacity-95 rounded-xl shadow-lg border border-gray-200 backdrop-blur-sm ${isMobile ? 'top-2 left-2 px-3 py-2' : 'top-4 left-4 px-4 py-2'
           }`}>
+          <div className={`text-gray-700 font-medium flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'
+            }`}>
             <div className={`w-2 h-2 rounded-full ${placedDecorations.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
             {placedDecorations.length} decoration{placedDecorations.length !== 1 ? 's' : ''} placed
           </div>
@@ -1307,9 +1299,8 @@ export default function DecorationMode({
               setSelectedItem(null)
               setIsPlacing(false)
             }}
-            className={`absolute bg-red-500 text-white rounded-lg shadow-lg border-2 border-white hover:bg-red-600 active:scale-95 transition-all font-medium flex items-center gap-2 ${
-              isMobile ? 'bottom-2 left-1/2 -translate-x-1/2 px-4 py-2 text-sm' : 'top-4 right-4 px-4 py-2'
-            }`}
+            className={`absolute bg-red-500 text-white rounded-lg shadow-lg border-2 border-white hover:bg-red-600 active:scale-95 transition-all font-medium flex items-center gap-2 ${isMobile ? 'bottom-2 left-1/2 -translate-x-1/2 px-4 py-2 text-sm' : 'top-4 right-4 px-4 py-2'
+              }`}
             style={{ zIndex: 30 }}
           >
             <span className="text-lg">✕</span>
@@ -1320,9 +1311,8 @@ export default function DecorationMode({
         {/* Delete Mode Indicator Banner - Always visible when in delete mode */}
         {isDeleting && (
           <div
-            className={`absolute bg-red-500 text-white rounded-lg shadow-lg border-2 border-white backdrop-blur-sm flex items-center gap-2 font-medium ${
-              isMobile ? 'top-2 left-2 px-3 py-2 text-sm' : 'bottom-4 left-1/2 -translate-x-1/2 px-4 py-2'
-            }`}
+            className={`absolute bg-red-500 text-white rounded-lg shadow-lg border-2 border-white backdrop-blur-sm flex items-center gap-2 font-medium ${isMobile ? 'top-2 left-2 px-3 py-2 text-sm' : 'bottom-4 left-1/2 -translate-x-1/2 px-4 py-2'
+              }`}
             style={{ zIndex: 35 }}
           >
             <span className="text-lg">🗑️</span>
@@ -1340,9 +1330,8 @@ export default function DecorationMode({
         {/* Currently Placing Status Banner */}
         {isPlacing && selectedItem && (
           <div
-            className={`absolute bg-blue-500 text-white rounded-lg shadow-lg border-2 border-white backdrop-blur-sm flex items-center gap-2 ${
-              isMobile ? 'top-2 left-2 px-3 py-2' : 'bottom-4 left-1/2 -translate-x-1/2 px-4 py-2'
-            }`}
+            className={`absolute bg-blue-500 text-white rounded-lg shadow-lg border-2 border-white backdrop-blur-sm flex items-center gap-2 ${isMobile ? 'top-2 left-2 px-3 py-2' : 'bottom-4 left-1/2 -translate-x-1/2 px-4 py-2'
+              }`}
             style={{ zIndex: 30 }}
           >
             {!isMobile && (
@@ -1378,9 +1367,8 @@ export default function DecorationMode({
         {/* Color Picker Panel - Appears when house_color item is selected */}
         {selectedItem?.type === 'house_color' && (
           <div
-            className={`absolute bg-white rounded-lg shadow-xl border-2 border-blue-300 backdrop-blur-sm ${
-              isMobile ? 'bottom-[calc(20rem+0.5rem)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)]' : 'bottom-4 left-1/2 -translate-x-1/2 min-w-[400px]'
-            }`}
+            className={`absolute bg-white rounded-lg shadow-xl border-2 border-blue-300 backdrop-blur-sm ${isMobile ? 'bottom-[calc(20rem+0.5rem)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)]' : 'bottom-4 left-1/2 -translate-x-1/2 min-w-[400px]'
+              }`}
             style={{ zIndex: 40 }}
           >
             <div className={`flex flex-col ${isMobile ? 'p-3' : 'p-4'} gap-3`}>
@@ -1409,11 +1397,11 @@ export default function DecorationMode({
                   type="color"
                   value={
                     selectedItem.id === 'wall_color' ? (houseCustomizations.wallColor || selectedItem.color) :
-                    selectedItem.id === 'roof_color' ? (houseCustomizations.roofColor || selectedItem.color) :
-                    selectedItem.id === 'trim_color' ? (houseCustomizations.trimColor || selectedItem.color) :
-                    selectedItem.id === 'window_color' ? (houseCustomizations.windowColor || selectedItem.color) :
-                    selectedItem.id === 'detail_color' ? (houseCustomizations.detailColor || selectedItem.color) :
-                    selectedItem.color || '#A18463'
+                      selectedItem.id === 'roof_color' ? (houseCustomizations.roofColor || selectedItem.color) :
+                        selectedItem.id === 'trim_color' ? (houseCustomizations.trimColor || selectedItem.color) :
+                          selectedItem.id === 'window_color' ? (houseCustomizations.windowColor || selectedItem.color) :
+                            selectedItem.id === 'detail_color' ? (houseCustomizations.detailColor || selectedItem.color) :
+                              selectedItem.color || '#A18463'
                   }
                   onChange={(e) => handleColorChange(e.target.value)}
                   className="w-16 h-10 border-2 border-gray-300 rounded cursor-pointer touch-manipulation"
@@ -1423,11 +1411,11 @@ export default function DecorationMode({
                   type="text"
                   value={
                     selectedItem.id === 'wall_color' ? (houseCustomizations.wallColor || selectedItem.color) :
-                    selectedItem.id === 'roof_color' ? (houseCustomizations.roofColor || selectedItem.color) :
-                    selectedItem.id === 'trim_color' ? (houseCustomizations.trimColor || selectedItem.color) :
-                    selectedItem.id === 'window_color' ? (houseCustomizations.windowColor || selectedItem.color) :
-                    selectedItem.id === 'detail_color' ? (houseCustomizations.detailColor || selectedItem.color) :
-                    selectedItem.color || '#A18463'
+                      selectedItem.id === 'roof_color' ? (houseCustomizations.roofColor || selectedItem.color) :
+                        selectedItem.id === 'trim_color' ? (houseCustomizations.trimColor || selectedItem.color) :
+                          selectedItem.id === 'window_color' ? (houseCustomizations.windowColor || selectedItem.color) :
+                            selectedItem.id === 'detail_color' ? (houseCustomizations.detailColor || selectedItem.color) :
+                              selectedItem.color || '#A18463'
                   }
                   onChange={(e) => {
                     const value = e.target.value
@@ -1500,9 +1488,8 @@ export default function DecorationMode({
       )}
 
       {/* Bottom Decoration Palette - Unified Component */}
-      <div className={`bg-white border-t border-gray-200 shadow-lg ${
-        isMobile ? 'h-96 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]' : 'h-96'
-      }`}>
+      <div className={`bg-white border-t border-gray-200 shadow-lg ${isMobile ? 'h-96 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]' : 'h-96'
+        }`}>
         {selectedCategory === 'themes' ? (
           <div className="h-full flex flex-col">
             {/* Category Navigation - Same as DecorationPalette */}
@@ -1512,19 +1499,18 @@ export default function DecorationMode({
                   { key: 'decorations', label: 'Decor', icon: 'paint-bucket' as const },
                   { key: 'house', label: 'House', icon: 'home' as const },
                   { key: 'themes', label: 'Themes', icon: 'sliders' as const },
+                  { key: 'colors', label: 'Colors', icon: 'drop' as const },
                   { key: 'atmosphere', label: 'Sky', icon: 'cloud' as const },
                   { key: 'text', label: 'Text', icon: 'file' as const }
-                ].map(({key, label, icon}) => (
+                ].map(({ key, label, icon }) => (
                   <button
                     key={key}
                     onClick={() => setSelectedCategory(key)}
-                    className={`flex items-center gap-2 rounded-lg text-sm font-medium transition-all touch-manipulation active:scale-95 ${
-                      isMobile ? 'flex-col px-3 py-2 min-w-[72px] flex-shrink-0' : 'px-3 py-2 whitespace-nowrap'
-                    } ${
-                      selectedCategory === key
+                    className={`flex items-center gap-2 rounded-lg text-sm font-medium transition-all touch-manipulation active:scale-95 ${isMobile ? 'flex-col px-3 py-2 min-w-[72px] flex-shrink-0' : 'px-3 py-2 whitespace-nowrap'
+                      } ${selectedCategory === key
                         ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
                         : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
-                    }`}
+                      }`}
                     style={isMobile ? { minHeight: '64px' } : {}}
                   >
                     <PixelIcon name={icon} size={isMobile ? 20 : 16} />
@@ -1554,19 +1540,18 @@ export default function DecorationMode({
                   { key: 'decorations', label: 'Decor', icon: 'paint-bucket' as const },
                   { key: 'house', label: 'House', icon: 'home' as const },
                   { key: 'themes', label: 'Themes', icon: 'sliders' as const },
+                  { key: 'colors', label: 'Colors', icon: 'drop' as const },
                   { key: 'atmosphere', label: 'Sky', icon: 'cloud' as const },
                   { key: 'text', label: 'Text', icon: 'file' as const }
-                ].map(({key, label, icon}) => (
+                ].map(({ key, label, icon }) => (
                   <button
                     key={key}
                     onClick={() => setSelectedCategory(key)}
-                    className={`flex items-center gap-2 rounded-lg text-sm font-medium transition-all touch-manipulation active:scale-95 ${
-                      isMobile ? 'flex-col px-3 py-2 min-w-[72px] flex-shrink-0' : 'px-3 py-2 whitespace-nowrap'
-                    } ${
-                      selectedCategory === key
+                    className={`flex items-center gap-2 rounded-lg text-sm font-medium transition-all touch-manipulation active:scale-95 ${isMobile ? 'flex-col px-3 py-2 min-w-[72px] flex-shrink-0' : 'px-3 py-2 whitespace-nowrap'
+                      } ${selectedCategory === key
                         ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
                         : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
-                    }`}
+                      }`}
                     style={isMobile ? { minHeight: '64px' } : {}}
                   >
                     <PixelIcon name={icon} size={isMobile ? 20 : 16} />
@@ -1581,63 +1566,63 @@ export default function DecorationMode({
                   📝 House Text Settings
                 </h3>
 
-              {/* House Text Settings */}
-              <div className="space-y-4">
-                {/* House Title */}
-                <div>
-                  <label className="block text-sm font-medium text-thread-pine mb-2">
-                    🏷️ House Title
-                    <span className="text-xs text-thread-sage ml-2">(Appears above your house description - max 50 characters)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={houseCustomizations.houseTitle || ''}
-                    onChange={(e) => {
-                      const value = e.target.value.slice(0, 50) // Limit to 50 chars
-                      setHouseCustomizations(prev => ({
-                        ...prev,
-                        houseTitle: value
-                      }))
-                    }}
-                    placeholder="A Cozy Corner of ThreadStead (e.g., 'My Creative Space', 'Welcome to My World')"
-                    maxLength={50}
-                    className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
-                    style={{ minHeight: '48px' }}
-                  />
-                  <div className="text-xs text-gray-700 text-right mt-1">
-                    {(houseCustomizations.houseTitle || '').length}/50 characters
+                {/* House Text Settings */}
+                <div className="space-y-4">
+                  {/* House Title */}
+                  <div>
+                    <label className="block text-sm font-medium text-thread-pine mb-2">
+                      🏷️ House Title
+                      <span className="text-xs text-thread-sage ml-2">(Appears above your house description - max 50 characters)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={houseCustomizations.houseTitle || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.slice(0, 50) // Limit to 50 chars
+                        setHouseCustomizations(prev => ({
+                          ...prev,
+                          houseTitle: value
+                        }))
+                      }}
+                      placeholder="A Cozy Corner of ThreadStead (e.g., 'My Creative Space', 'Welcome to My World')"
+                      maxLength={50}
+                      className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
+                      style={{ minHeight: '48px' }}
+                    />
+                    <div className="text-xs text-gray-700 text-right mt-1">
+                      {(houseCustomizations.houseTitle || '').length}/50 characters
+                    </div>
                   </div>
-                </div>
 
-                {/* House Sign Text */}
-                <div>
-                  <label className="block text-sm font-medium text-thread-pine mb-2">
-                    🪧 House Sign
-                    <span className="text-xs text-thread-sage ml-2">(Short text for your front door sign - max 20 characters)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={houseCustomizations.houseBoardText || ''}
-                    onChange={(e) => {
-                      const value = e.target.value.slice(0, 20) // Limit to 20 chars for sign
-                      setHouseCustomizations(prev => ({
-                        ...prev,
-                        houseBoardText: value
-                      }))
-                    }}
-                    placeholder="@{username} (e.g., 'Welcome!' or '@yourname')"
-                    maxLength={20}
-                    className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
-                    style={{ minHeight: '48px' }}
-                  />
-                  <div className="text-xs text-gray-700 text-right mt-1">
-                    {(houseCustomizations.houseBoardText || '').length}/20 characters
+                  {/* House Sign Text */}
+                  <div>
+                    <label className="block text-sm font-medium text-thread-pine mb-2">
+                      🪧 House Sign
+                      <span className="text-xs text-thread-sage ml-2">(Short text for your front door sign - max 20 characters)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={houseCustomizations.houseBoardText || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.slice(0, 20) // Limit to 20 chars for sign
+                        setHouseCustomizations(prev => ({
+                          ...prev,
+                          houseBoardText: value
+                        }))
+                      }}
+                      placeholder="@{username} (e.g., 'Welcome!' or '@yourname')"
+                      maxLength={20}
+                      className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
+                      style={{ minHeight: '48px' }}
+                    />
+                    <div className="text-xs text-gray-700 text-right mt-1">
+                      {(houseCustomizations.houseBoardText || '').length}/20 characters
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
         ) : (
           <DecorationPalette
             items={availableDecorations}
@@ -1646,6 +1631,7 @@ export default function DecorationMode({
             isMobile={isMobile}
             className="h-full"
             onCategoryChange={setSelectedCategory}
+            palette={currentPalette}
           />
         )}
 

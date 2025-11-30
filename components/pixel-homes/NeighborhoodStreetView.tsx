@@ -229,12 +229,12 @@ const StreetLayer: React.FC<{ scrollOffset: number; totalWidth: number }> = ({ s
 // Calculate which decorations are visible in street view
 const getVisibleDecorations = (decorations: HomeDecoration[] | undefined): HomeDecoration[] => {
   if (!decorations) return []
-  
+
   // Since we're now showing a proportionally scaled version of the full canvas,
   // we can show all decorations that are within the canvas bounds
   // Original canvas: 500x350
-  
-  return decorations.filter(decoration => 
+
+  return decorations.filter(decoration =>
     decoration.x >= 0 &&
     decoration.x <= 500 &&
     decoration.y >= 0 &&
@@ -392,7 +392,7 @@ export default function NeighborhoodStreetView({
       setTimeout(() => setIsTransitioning(false), 500)
     }
   }
-  
+
   return (
     <div className="neighborhood-street-view relative h-[calc(100dvh-200px)] sm:h-[calc(100vh-200px)] max-h-[750px] overflow-hidden bg-gradient-to-b from-sky-100 via-sky-50 to-green-200 z-0">
       {/* Static Sky Background with Sun - outside scrollable area */}
@@ -415,7 +415,7 @@ export default function NeighborhoodStreetView({
           </div>
         </div>
       </div>
-      
+
       {/* Scrollable Container */}
       <div
         ref={scrollContainerRef}
@@ -427,7 +427,7 @@ export default function NeighborhoodStreetView({
           <div className="absolute bottom-0 left-0 z-10" style={{ width: `${totalWidth}px` }}>
             <StreetLayer scrollOffset={scrollOffset} totalWidth={totalWidth} />
           </div>
-          
+
           {/* Houses Layer - positioned closer to street for better viewport usage */}
           <div className="absolute left-0 right-0 z-20" style={{ bottom: '300px' }}>
             <div
@@ -478,7 +478,7 @@ export default function NeighborhoodStreetView({
                             const scale = 0.57
                             const scaledX = decoration.x * scale
                             const scaledY = decoration.y * scale
-                            
+
                             return (
                               <div
                                 key={decoration.id}
@@ -501,9 +501,9 @@ export default function NeighborhoodStreetView({
                               </div>
                             )
                           })}
-                          
+
                           {/* House - positioned like in the original canvas */}
-                          <div 
+                          <div
                             className="absolute"
                             style={{
                               left: `${150 * 0.57}px`, // 85.5px - scaled from original x=150
@@ -518,6 +518,7 @@ export default function NeighborhoodStreetView({
                               palette={member.homeConfig.palette as any}
                               customizations={member.homeConfig.houseCustomizations as HouseCustomizations}
                               className="w-full h-full"
+                              variant="simplified"
                             />
                           </div>
                         </div>
@@ -541,7 +542,7 @@ export default function NeighborhoodStreetView({
                             </div>
                           </>
                         )}
-                        
+
                         {/* Decoration indicator - only show if there are decorations not visible in street view */}
                         {(member.homeConfig.decorationCount || 0) > visibleDecorations.length && (
                           <div className="absolute top-2 right-2 z-20">
@@ -557,7 +558,7 @@ export default function NeighborhoodStreetView({
           </div>
         </div>
       </div>
-      
+
       {/* Street Navigation Controls */}
       {totalStreets > 1 && (
         <>
@@ -648,7 +649,7 @@ export default function NeighborhoodStreetView({
           </div>
         </>
       )}
-      
+
       {/* Instructions - Auto-hide after 3s, dismissible on tap */}
       {showInstructions && (
         <div
@@ -668,7 +669,7 @@ export default function NeighborhoodStreetView({
           </div>
         </div>
       )}
-      
+
       {/* House Details Popup */}
       {selectedMember && (
         <HouseDetailsPopup
