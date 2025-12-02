@@ -8,6 +8,7 @@ interface ThemePickerProps {
   showExplanation?: boolean
   showPreview?: boolean
   immediateSelection?: boolean
+  isSidebar?: boolean
   className?: string
 }
 
@@ -18,7 +19,7 @@ const TEMPLATES: Array<{ id: HouseTemplate; name: string; description: string }>
     description: 'Classic and warm, perfect for storytellers and community builders'
   },
   {
-    id: 'townhouse_v1', 
+    id: 'townhouse_v1',
     name: 'Urban Townhouse',
     description: 'Modern and connected, ideal for networkers and professionals'
   },
@@ -42,7 +43,7 @@ const PALETTES: Array<{ id: ColorPalette; name: string; description: string }> =
   },
   {
     id: 'charcoal_nights',
-    name: 'Charcoal Nights', 
+    name: 'Charcoal Nights',
     description: 'Dark and sophisticated with warm accent touches'
   },
   {
@@ -62,14 +63,15 @@ const PALETTES: Array<{ id: ColorPalette; name: string; description: string }> =
   }
 ]
 
-export default function ThemePicker({ 
-  onSelection, 
-  initialTemplate = 'cottage_v1', 
+export default function ThemePicker({
+  onSelection,
+  initialTemplate = 'cottage_v1',
   initialPalette = 'thread_sage',
   showExplanation = true,
   showPreview = true,
   immediateSelection = false,
-  className = ''
+  className = '',
+  isSidebar = false
 }: ThemePickerProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<HouseTemplate>(initialTemplate)
   const [selectedPalette, setSelectedPalette] = useState<ColorPalette>(initialPalette)
@@ -94,14 +96,14 @@ export default function ThemePicker({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {showExplanation && (
+      {showExplanation && !isSidebar && (
         <div className="bg-thread-paper border border-thread-sage rounded-lg p-4 space-y-3">
           <h3 className="text-lg font-headline font-semibold text-thread-pine">
             🏠 Welcome to Your Pixel Home!
           </h3>
           <div className="text-sm text-thread-charcoal space-y-2">
             <p>
-              <strong>Your Pixel Home</strong> is the front door to your ThreadStead presence - 
+              <strong>Your Pixel Home</strong> is the front door to your ThreadStead presence -
               a playful, interactive way for visitors to discover you.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -126,12 +128,13 @@ export default function ThemePicker({
         <h4 className="text-md font-headline font-medium text-gray-900">
           Choose Your House Style
         </h4>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`grid ${isSidebar ? 'grid-cols-2 gap-2' : 'grid-cols-2 lg:grid-cols-4 gap-4'}`}>
           {TEMPLATES.map((template) => (
             <div
               key={template.id}
               className={`
-                border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 flex flex-col touch-manipulation active:scale-95
+                border-2 rounded-lg cursor-pointer transition-all duration-200 flex flex-col touch-manipulation active:scale-95
+                ${isSidebar ? 'p-2' : 'p-4'}
                 ${selectedTemplate === template.id
                   ? 'border-thread-sage bg-thread-cream bg-opacity-30'
                   : 'border-gray-200 hover:border-thread-sage hover:bg-thread-cream hover:bg-opacity-20'
@@ -139,16 +142,18 @@ export default function ThemePicker({
               `}
               onClick={() => handleTemplateChange(template.id)}
             >
-              <div className="w-full h-36 sm:h-32 mb-3 flex items-center justify-center">
+              <div className={`w-full ${isSidebar ? 'h-20' : 'h-36 sm:h-32'} mb-2 flex items-center justify-center`}>
                 <HouseSVG
                   template={template.id}
                   palette={selectedPalette}
-                  className="w-full h-full max-w-28 max-h-28 sm:max-w-24 sm:max-h-24"
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div className="text-center flex-shrink-0">
-                <div className="font-medium text-sm text-gray-900 mb-1">{template.name}</div>
-                <div className="text-xs text-gray-600 leading-tight">{template.description}</div>
+                <div className={`font-medium ${isSidebar ? 'text-xs' : 'text-sm'} text-gray-900 mb-1`}>{template.name}</div>
+                {!isSidebar && (
+                  <div className="text-xs text-gray-600 leading-tight">{template.description}</div>
+                )}
               </div>
             </div>
           ))}
@@ -160,29 +165,32 @@ export default function ThemePicker({
         <h4 className="text-md font-headline font-medium text-gray-900">
           Choose Your Color Palette
         </h4>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className={`grid ${isSidebar ? 'grid-cols-1 gap-2' : 'grid-cols-1 lg:grid-cols-2 gap-3'}`}>
           {PALETTES.map((palette) => (
             <div
               key={palette.id}
               className={`
-                border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 flex items-center space-x-4
-                ${selectedPalette === palette.id 
-                  ? 'border-thread-sage bg-thread-cream bg-opacity-30' 
+                border-2 rounded-lg cursor-pointer transition-all duration-200 flex items-center
+                ${isSidebar ? 'p-2 space-x-2' : 'p-4 space-x-4'}
+                ${selectedPalette === palette.id
+                  ? 'border-thread-sage bg-thread-cream bg-opacity-30'
                   : 'border-gray-200 hover:border-thread-sage hover:bg-thread-cream hover:bg-opacity-20'
                 }
               `}
               onClick={() => handlePaletteChange(palette.id)}
             >
-              <div className="w-16 h-16 flex-shrink-0 flex items-center justify-center mr-4">
-                <HouseSVG 
-                  template={selectedTemplate} 
+              <div className={`${isSidebar ? 'w-10 h-10 mr-2' : 'w-16 h-16 mr-4'} flex-shrink-0 flex items-center justify-center`}>
+                <HouseSVG
+                  template={selectedTemplate}
                   palette={palette.id}
-                  className="w-full h-full max-w-14 max-h-14"
+                  className="w-full h-full object-contain"
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm text-thread-pine mb-1">{palette.name}</div>
-                <div className="text-xs text-thread-sage leading-relaxed">{palette.description}</div>
+                <div className={`font-medium ${isSidebar ? 'text-xs' : 'text-sm'} text-thread-pine mb-0.5`}>{palette.name}</div>
+                {!isSidebar && (
+                  <div className="text-xs text-thread-sage leading-relaxed">{palette.description}</div>
+                )}
               </div>
             </div>
           ))}
@@ -190,15 +198,15 @@ export default function ThemePicker({
       </div>
 
       {/* Preview */}
-      {showPreview && (
+      {showPreview && !isSidebar && (
         <div className="bg-thread-paper border border-thread-sage rounded-lg p-4">
           <h4 className="text-md font-headline font-medium text-thread-pine mb-3">
             Your Home Preview
           </h4>
           <div className="flex justify-center">
             <div className="w-48">
-              <HouseSVG 
-                template={selectedTemplate} 
+              <HouseSVG
+                template={selectedTemplate}
                 palette={selectedPalette}
                 className="w-full h-auto drop-shadow-lg"
               />
@@ -211,7 +219,7 @@ export default function ThemePicker({
       )}
 
       {/* Action Button */}
-      {showPreview && (
+      {showPreview && !isSidebar && (
         <div className="flex justify-center">
           <button
             onClick={handleSelection}

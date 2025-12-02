@@ -42,6 +42,7 @@ export default function DemoPixelHome() {
   const demoDecorations = [
     {
       id: 'roses_red_1',
+      name: 'roses_red',
       type: 'plant' as const,
       zone: 'front_yard' as const,
       position: { x: 80, y: 280, layer: 8 },
@@ -50,6 +51,7 @@ export default function DemoPixelHome() {
     },
     {
       id: 'garden_gnome_1',
+      name: 'garden_gnome',
       type: 'feature' as const,
       zone: 'front_yard' as const,
       position: { x: 380, y: 290, layer: 8 },
@@ -131,22 +133,20 @@ export default function DemoPixelHome() {
                   <div className="flex gap-3">
                     <button
                       onClick={() => setIsNight(false)}
-                      className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 ${
-                        !isNight
+                      className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 ${!isNight
                           ? 'bg-thread-sage text-thread-paper shadow-cozy transform -translate-y-0.5'
                           : 'bg-thread-cream text-thread-sage border border-thread-sage hover:bg-thread-sage hover:text-thread-paper'
-                      }`}
+                        }`}
                     >
                       <span className="text-xl">☀️</span>
                       Day
                     </button>
                     <button
                       onClick={() => setIsNight(true)}
-                      className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 ${
-                        isNight
+                      className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 ${isNight
                           ? 'bg-thread-pine text-thread-paper shadow-cozy transform -translate-y-0.5'
                           : 'bg-thread-cream text-thread-sage border border-thread-sage hover:bg-thread-pine hover:text-thread-paper'
-                      }`}
+                        }`}
                     >
                       <span className="text-xl">🌙</span>
                       Night

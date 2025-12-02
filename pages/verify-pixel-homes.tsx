@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import DecorationSVG, { DECORATION_LIBRARY } from '../components/pixel-homes/DecorationSVG'
+import DecorationSVG from '../components/pixel-homes/DecorationSVG'
+import { BETA_ITEMS as DECORATION_LIBRARY } from '../lib/pixel-homes/decoration-data'
 import HouseSVG, { HouseTemplate, ColorPalette } from '../components/pixel-homes/HouseSVG'
 import DecorationIcon from '../components/pixel-homes/DecorationIcon'
 

@@ -1,35 +1,23 @@
 import React, { useState, useMemo } from 'react'
 import DecorationIcon from './DecorationIcon'
-
-interface DecorationItem {
-  id: string
-  name: string
-  type: string
-  zone?: string
-  section?: string
-  isDefault?: boolean
-  color?: string
-  iconSvg?: string
-  renderSvg?: string
-  isLimitedTime?: boolean
-  isUserClaimed?: boolean
-  isNew?: boolean
-  expiresAt?: string
-  releaseType?: string
-  [key: string]: any
-}
+import ThemePicker from './ThemePicker'
+import { HouseCustomizations, HouseTemplate, ColorPalette } from './HouseSVG'
+import { DecorationItem } from '../../lib/pixel-homes/decoration-data'
 
 interface DecorationPaletteProps {
   items: Record<string, DecorationItem[]>
   selectedItem: DecorationItem | null
-  onItemSelect: (item: DecorationItem) => void
+  onItemSelect: (item: DecorationItem | null) => void
   className?: string
   isMobile?: boolean
-  onCategoryChange?: (category: string) => void // Callback when primary category changes
-  palette?: 'thread_sage' | 'charcoal_nights' | 'pixel_petals' | 'crt_glow' | 'classic_linen'
+  palette?: ColorPalette
+  houseCustomizations: HouseCustomizations
+  onHouseCustomizationChange: (updates: Partial<HouseCustomizations>) => void
+  onThemeChange: (template: HouseTemplate, palette: ColorPalette) => void
+  currentTemplate: HouseTemplate
+  currentPalette: ColorPalette
 }
 
-// Primary categories with better organization
 const PRIMARY_CATEGORIES = {
   decorations: {
     label: 'Decor',
@@ -81,8 +69,12 @@ export default function DecorationPalette({
   onItemSelect,
   className = '',
   isMobile = false,
-  onCategoryChange,
-  palette = 'thread_sage'
+  palette = 'thread_sage',
+  houseCustomizations,
+  onHouseCustomizationChange,
+  onThemeChange,
+  currentTemplate,
+  currentPalette
 }: DecorationPaletteProps) {
   const [primaryCategory, setPrimaryCategory] = useState<string>('decorations')
   const [secondaryCategory, setSecondaryCategory] = useState<string>('plants')
@@ -166,11 +158,6 @@ export default function DecorationPalette({
     setPrimaryCategory(category)
     setSearchQuery('')
 
-    // Notify parent component about category change
-    if (onCategoryChange) {
-      onCategoryChange(category)
-    }
-
     // Set default secondary category
     const subcategories = PRIMARY_CATEGORIES[category as keyof typeof PRIMARY_CATEGORIES]?.subcategories
     if (subcategories && Object.keys(subcategories).length > 0) {
@@ -178,70 +165,313 @@ export default function DecorationPalette({
     }
   }
 
+  // Render content based on category
+  const renderContent = () => {
+    if (primaryCategory === 'themes') {
+      return (
+        <div className="h-full p-4 overflow-y-auto">
+          <ThemePicker
+            onSelection={onThemeChange}
+            initialTemplate={currentTemplate}
+            initialPalette={currentPalette}
+            showExplanation={false}
+            showPreview={false}
+            immediateSelection={true}
+            isSidebar={true}
+            className="space-y-4"
+          />
+        </div>
+      )
+    }
+
+    if (primaryCategory === 'text') {
+      return (
+        <div className="h-full p-4 overflow-y-auto">
+          <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
+            <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 flex items-center gap-2">
+              📝 House Text Settings
+            </h3>
+
+            <div className="space-y-4">
+              {/* House Title */}
+              <div>
+                <label className="block text-sm font-medium text-thread-pine mb-2">
+                  🏷️ House Title
+                  <span className="text-xs text-thread-sage ml-2">(Max 50 chars)</span>
+                </label>
+                <input
+                  type="text"
+                  value={houseCustomizations.houseTitle || ''}
+                  onChange={(e) => onHouseCustomizationChange({ houseTitle: e.target.value.slice(0, 50) })}
+                  placeholder="e.g., 'My Creative Space'"
+                  maxLength={50}
+                  className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
+                  style={{ minHeight: '48px' }}
+                />
+                <div className="text-xs text-gray-700 text-right mt-1">
+                  {(houseCustomizations.houseTitle || '').length}/50
+                </div>
+              </div>
+
+              {/* House Sign Text */}
+              <div>
+                <label className="block text-sm font-medium text-thread-pine mb-2">
+                  🪧 House Sign
+                  <span className="text-xs text-thread-sage ml-2">(Max 20 chars)</span>
+                </label>
+                <input
+                  type="text"
+                  value={houseCustomizations.houseBoardText || ''}
+                  onChange={(e) => onHouseCustomizationChange({ houseBoardText: e.target.value.slice(0, 20) })}
+                  placeholder="e.g., 'Welcome!'"
+                  maxLength={20}
+                  className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
+                  style={{ minHeight: '48px' }}
+                />
+                <div className="text-xs text-gray-700 text-right mt-1">
+                  {(houseCustomizations.houseBoardText || '').length}/20
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Color Picker View
+    if (selectedItem?.type === 'house_color') {
+      const getColorKey = (id: string): keyof HouseCustomizations | null => {
+        switch (id) {
+          case 'wall_color': return 'wallColor'
+          case 'roof_color': return 'roofColor'
+          case 'trim_color': return 'trimColor'
+          case 'window_color': return 'windowColor'
+          case 'detail_color': return 'detailColor'
+          default: return null
+        }
+      }
+
+      const colorKey = getColorKey(selectedItem.id)
+      const currentColor = colorKey ? (houseCustomizations[colorKey] as string) : '#ffffff'
+
+      return (
+        <div className="h-full p-4 overflow-y-auto">
+          <div className="bg-thread-paper border border-thread-sage rounded-lg p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-headline font-semibold text-thread-pine flex items-center gap-2">
+                🎨 {selectedItem.name}
+              </h3>
+              <button
+                onClick={() => onItemSelect(null)} // Clear selection to go back
+                className="text-sm text-thread-sage hover:text-thread-pine underline"
+              >
+                Back to Colors
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-thread-pine mb-2">
+                  Custom Color
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-thread-sage shadow-sm">
+                    <input
+                      type="color"
+                      value={currentColor || '#ffffff'}
+                      onChange={(e) => {
+                        if (colorKey) {
+                          onHouseCustomizationChange({ [colorKey]: e.target.value })
+                        }
+                      }}
+                      className="absolute -top-2 -left-2 w-24 h-24 p-0 border-0 cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={currentColor || ''}
+                      onChange={(e) => {
+                        if (colorKey) {
+                          onHouseCustomizationChange({ [colorKey]: e.target.value })
+                        }
+                      }}
+                      placeholder="#RRGGBB"
+                      className="w-full px-3 py-2 border border-thread-sage rounded focus:outline-none focus:ring-1 focus:ring-thread-pine font-mono text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Reset Button */}
+              <button
+                onClick={() => {
+                  if (colorKey) {
+                    onHouseCustomizationChange({ [colorKey]: undefined })
+                  }
+                }}
+                className="w-full px-4 py-2 text-sm text-thread-sage border border-thread-sage rounded hover:bg-thread-cream hover:bg-opacity-50 transition-colors"
+              >
+                Reset to Palette Default
+              </button>
+
+              <div className="text-xs text-gray-500 pt-2 border-t border-gray-200">
+                <p>Tip: This overrides the theme palette for this specific part.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Default Grid View
+    return (
+      <div
+        className="flex-1 overflow-y-auto px-4 pb-4 relative"
+        style={isMobile ? {
+          WebkitOverflowScrolling: 'touch',
+          scrollSnapType: 'y proximity'
+        } : undefined}
+      >
+        {currentItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-32 text-gray-500">
+            <div className="text-2xl mb-2">🔍</div>
+            <div className="text-sm text-center text-gray-600">
+              {searchQuery ? 'No items found' : 'No items in this category'}
+            </div>
+          </div>
+        ) : (
+          <div className={`!grid ${isMobile ? '!grid-cols-3 !gap-2' : '!grid-cols-4 lg:!grid-cols-5 xl:!grid-cols-6 !gap-4'}`}>
+            {currentItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => onItemSelect(item)}
+                title={item.name}
+                className={`
+                  !relative !aspect-square !rounded-xl !border-2 !w-full !overflow-hidden
+                  !transition-all !duration-200 hover:!scale-105 hover:!shadow-lg
+                  !flex !items-center !justify-center
+                  ${isMobile ? '!p-1' : '!p-2'}
+                  ${selectedItem?.id === item.id
+                    ? '!border-blue-500 !bg-blue-50 !shadow-md !transform !scale-105'
+                    : '!border-gray-200 !bg-white hover:!border-gray-300'
+                  }
+                  ${isMobile ? 'active:!scale-95' : ''}
+                `}
+                style={{ aspectRatio: '1 / 1' }}
+              >
+                {/* Item Icon */}
+                <div className="!flex-1 !flex !items-center !justify-center !w-full !h-full !overflow-hidden">
+                  <DecorationIcon
+                    type={item.type as any}
+                    id={item.id}
+                    size={isMobile ? 42 : 38}
+                    className="!drop-shadow-sm"
+                    color={
+                      // Use current custom color if available, otherwise item default
+                      (item.type === 'house_color' && houseCustomizations)
+                        ? (
+                          item.id === 'wall_color' ? houseCustomizations.wallColor :
+                            item.id === 'roof_color' ? houseCustomizations.roofColor :
+                              item.id === 'trim_color' ? houseCustomizations.trimColor :
+                                item.id === 'window_color' ? houseCustomizations.windowColor :
+                                  item.id === 'detail_color' ? houseCustomizations.detailColor :
+                                    item.color
+                        ) || item.color
+                        : item.color
+                    }
+                    iconSvg={item.iconSvg}
+                    palette={palette}
+                  />
+                </div>
+
+                {/* Selection Indicator */}
+                {selectedItem?.id === item.id && (
+                  <div className="!absolute !-top-1 !-right-1 !w-5 !h-5 !bg-blue-500 !rounded-full !flex !items-center !justify-center !shadow-sm !z-10">
+                    <span className="!text-white !text-xs">✓</span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Scroll Indicator Gradient - Mobile Only */}
+        {isMobile && currentItems.length > 6 && (
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className={`decoration-palette flex flex-col h-full bg-white ${className}`}>
-      {/* Search Bar */}
-      <div className="px-4 pt-4 pb-2">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search decorations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 bg-white touch-manipulation"
-            style={{ minHeight: '48px' }}
-          />
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-            🔍
+      {/* Search Bar - Only show for grid views */}
+      {primaryCategory !== 'themes' && primaryCategory !== 'text' && !selectedItem?.type?.includes('house_color') && (
+        <div className="px-4 pt-4 pb-2">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search decorations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 bg-white touch-manipulation"
+              style={{ minHeight: '48px' }}
+            />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              🔍
+            </div>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            )}
           </div>
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-          )}
         </div>
-      </div>
+      )}
 
       {/* Primary Category Navigation */}
-      <div className="px-4 pb-2">
-        <div className={`flex ${isMobile ? 'overflow-x-auto -mx-4 px-4 pb-1' : 'flex-wrap'} gap-2`}>
+      <div className="px-4 pb-2 pt-2">
+        <div className={`flex overflow-x-auto hide-scrollbar ${isMobile ? 'px-2' : 'px-4'} py-2 gap-2`}>
           {Object.entries(PRIMARY_CATEGORIES).map(([key, category]) => (
             <button
               key={key}
               onClick={() => handlePrimaryChange(key)}
-              className={`flex items-center gap-2 rounded-lg text-sm font-medium transition-all touch-manipulation active:scale-95 ${isMobile ? 'flex-col px-3 py-2 min-w-[72px] flex-shrink-0' : 'px-3 py-2 whitespace-nowrap'
-                } ${primaryCategory === key
-                  ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
-                  : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              style={isMobile ? { minHeight: '64px' } : {}}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all touch-manipulation
+                ${primaryCategory === key
+                  ? 'bg-blue-100 text-blue-700 shadow-sm ring-1 ring-blue-200'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }
+              `}
             >
-              <span className={isMobile ? 'text-xl' : ''}>{category.icon}</span>
-              <span className={isMobile ? 'text-xs font-medium whitespace-nowrap' : ''}>{category.label}</span>
+              <span className="text-lg">{category.icon}</span>
+              <span>{category.label}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Secondary Category Navigation */}
-      {hasSecondaryCategories && !searchQuery && (
-        <div className="px-4 pb-3">
-          <div className={`flex ${isMobile ? 'overflow-x-auto -mx-4 px-4 pb-1' : 'flex-wrap'} gap-1`}>
+      {hasSecondaryCategories && !searchQuery && primaryCategory !== 'themes' && primaryCategory !== 'text' && !selectedItem?.type?.includes('house_color') && (
+        <div className="flex-none border-b border-gray-100 bg-gray-50/50">
+          <div className={`flex overflow-x-auto hide-scrollbar ${isMobile ? 'px-2' : 'px-4'} py-2 gap-2`}>
             {Object.entries(secondaryCategories).map(([key, subcategory]) => (
               <button
                 key={key}
                 onClick={() => setSecondaryCategory(key)}
-                className={`flex flex-nowrap items-center gap-1 px-3 py-2 rounded text-xs font-medium whitespace-nowrap transition-all touch-manipulation active:scale-95 ${isMobile ? 'flex-shrink-0' : ''
-                  } ${secondaryCategory === key
-                    ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                    : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100 hover:text-gray-900'
-                  }`}
-                style={isMobile ? { minHeight: '44px' } : {}}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all touch-manipulation
+                  ${secondaryCategory === key
+                    ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100'
+                    : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                  }
+                `}
               >
-                <span className="text-sm flex-shrink-0">{(subcategory as any).icon}</span>
+                <span className="text-base">{(subcategory as any).icon}</span>
                 <span>{(subcategory as any).label}</span>
               </button>
             ))}
@@ -258,119 +488,8 @@ export default function DecorationPalette({
         </div>
       )}
 
-      {/* Items Grid */}
-      <div
-        className="flex-1 overflow-y-auto px-4 pb-4 relative"
-        style={isMobile ? {
-          WebkitOverflowScrolling: 'touch',
-          scrollSnapType: 'y proximity'
-        } : undefined}
-      >
-        {currentItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-            <div className="text-2xl mb-2">🔍</div>
-            <div className="text-sm text-center text-gray-600">
-              {searchQuery ? 'No items found' : 'No items in this category'}
-            </div>
-          </div>
-        ) : (
-          <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4'
-            }`}>
-            {currentItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => onItemSelect(item)}
-                className={`
-                  relative aspect-square rounded-xl border-2
-                  transition-all duration-200 hover:scale-105 hover:shadow-lg
-                  flex flex-col items-center justify-center
-                  ${isMobile ? 'p-2' : 'p-3'}
-                  ${selectedItem?.id === item.id
-                    ? 'border-blue-500 bg-blue-50 shadow-md transform scale-105'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                  }
-                  ${isMobile ? 'active:scale-95' : ''}
-                `}
-              >
-                {/* Item Icon */}
-                <div className="flex-1 flex items-center justify-center">
-                  <DecorationIcon
-                    type={item.type as "path" | "feature" | "plant" | "furniture" | "lighting" | "water" | "structure" | "sky" | "seasonal" | "house_custom" | "house_template" | "house_color"}
-                    id={item.id}
-                    size={isMobile ? 36 : 32}
-                    className="drop-shadow-sm"
-                    color={item.color}
-                    iconSvg={item.iconSvg}
-                    palette={palette}
-                  />
-                </div>
-
-                {/* Item Name */}
-                <div
-                  className={`mt-1 text-center text-xs font-medium text-gray-700 leading-tight px-0.5 ${isMobile ? 'line-clamp-1' : 'line-clamp-2'} overflow-hidden`}
-                  title={item.name}
-                >
-                  {item.name}
-                </div>
-
-                {/* Selected - Click to deselect hint (desktop only) */}
-                {selectedItem?.id === item.id && !isMobile && (
-                  <div className="mt-1 text-center text-[10px] font-semibold text-blue-600 leading-tight px-1">
-                    Click to deselect
-                  </div>
-                )}
-
-                {/* Selection Indicator */}
-                {selectedItem?.id === item.id && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">✓</span>
-                  </div>
-                )}
-
-                {/* Default Indicator */}
-                {item.isDefault && (
-                  <div className="absolute -top-1 -left-1 bg-blue-600 text-white text-xs px-1 py-0.5 rounded text-[8px] font-medium">
-                    DEFAULT
-                  </div>
-                )}
-
-                {/* Limited Time Indicator */}
-                {item.isLimitedTime && (
-                  <div className="absolute -top-1 -left-1 bg-orange-500 text-white text-xs px-1 py-0.5 rounded text-[8px] font-medium animate-pulse">
-                    LIMITED
-                  </div>
-                )}
-
-                {/* Exclusive/Claimed Indicator */}
-                {item.isUserClaimed && (
-                  <div className="absolute -bottom-1 -right-1 bg-purple-500 text-white text-xs px-1 py-0.5 rounded text-[8px] font-medium">
-                    CLAIMED
-                  </div>
-                )}
-
-                {/* Default Item Indicator */}
-                {item.isDefault && (
-                  <div className="absolute -top-1 -left-1 bg-yellow-400 text-yellow-900 text-xs px-1 py-0.5 rounded text-[8px] font-bold border border-yellow-600">
-                    ⭐
-                  </div>
-                )}
-
-                {/* New Item Indicator */}
-                {item.isNew && (
-                  <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded text-[8px] font-medium">
-                    NEW!
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Scroll Indicator Gradient - Mobile Only */}
-        {isMobile && currentItems.length > 6 && (
-          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
-        )}
-      </div>
+      {/* Main Content Area */}
+      {renderContent()}
     </div>
   )
 }

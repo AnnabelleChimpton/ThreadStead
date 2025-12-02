@@ -1,0 +1,150 @@
+import { HouseTemplate, ColorPalette } from '../../components/pixel-homes/HouseSVG'
+
+export interface DecorationItem {
+    id: string
+    name: string
+    type: 'plant' | 'path' | 'feature' | 'seasonal' | 'furniture' | 'lighting' | 'water' | 'structure' | 'house_custom' | 'house_color' | 'sky' | 'house_template'
+    zone?: 'front_yard' | 'house_facade' | 'background'
+    position?: { x: number; y: number; layer?: number }
+    variant?: string
+    size?: 'small' | 'medium' | 'large'
+    color?: string  // For house color items
+    gridPosition?: { gridX: number; gridY: number; width: number; height: number }
+    section?: string
+    isDefault?: boolean
+    [key: string]: any
+}
+
+export interface AtmosphereSettings {
+    sky: 'sunny' | 'cloudy' | 'sunset' | 'night'
+    weather: 'clear' | 'light_rain' | 'light_snow'
+    timeOfDay: 'morning' | 'midday' | 'evening' | 'night'
+}
+
+export const PALETTE_COLORS = {
+    thread_sage: {
+        primary: '#A18463',    // sage
+        secondary: '#2E4B3F',  // pine  
+        accent: '#8EC5E8',     // sky
+        base: '#F5E9D4',       // cream
+        detail: '#4FAF6D'      // meadow
+    },
+    charcoal_nights: {
+        primary: '#2F2F2F',    // charcoal
+        secondary: '#B8B8B8',  // stone
+        accent: '#E27D60',     // sunset
+        base: '#FCFAF7',       // paper
+        detail: '#A18463'      // sage
+    },
+    pixel_petals: {
+        primary: '#E27D60',    // sunset
+        secondary: '#4FAF6D',  // meadow
+        accent: '#8EC5E8',     // sky
+        base: '#F5E9D4',       // cream
+        detail: '#2E4B3F'      // pine
+    },
+    crt_glow: {
+        primary: '#8EC5E8',    // sky
+        secondary: '#2F2F2F',  // charcoal
+        accent: '#4FAF6D',     // meadow
+        base: '#FCFAF7',       // paper
+        detail: '#E27D60'      // sunset
+    },
+    classic_linen: {
+        primary: '#A18463',    // sage
+        secondary: '#2E4B3F',  // pine
+        accent: '#E27D60',     // sunset
+        base: '#FCFAF7',       // paper
+        detail: '#8EC5E8'      // sky
+    }
+}
+
+export const BETA_ITEMS = {
+    plants: [
+        { id: 'roses_red', name: 'Red Roses', type: 'plant', zone: 'front_yard' },
+        { id: 'roses_pink', name: 'Pink Roses', type: 'plant', zone: 'front_yard' },
+        { id: 'roses_white', name: 'White Roses', type: 'plant', zone: 'front_yard' },
+        { id: 'daisies_white', name: 'White Daisies', type: 'plant', zone: 'front_yard' },
+        { id: 'daisies_yellow', name: 'Yellow Daisies', type: 'plant', zone: 'front_yard' },
+        { id: 'small_tree', name: 'Small Tree', type: 'plant', zone: 'front_yard' },
+        { id: 'tree_oak', name: 'Oak Tree', type: 'plant', zone: 'front_yard' },
+        { id: 'tree_pine', name: 'Pine Tree', type: 'plant', zone: 'front_yard' },
+        { id: 'sunflowers', name: 'Sunflowers', type: 'plant', zone: 'front_yard' },
+        { id: 'lavender', name: 'Lavender', type: 'plant', zone: 'front_yard' },
+        { id: 'flower_pot', name: 'Flower Pot', type: 'plant', zone: 'front_yard' },
+        { id: 'planter_box', name: 'Planter Box', type: 'furniture', zone: 'front_yard' }
+    ],
+    paths: [
+        { id: 'stone_path', name: 'Stone Path', type: 'path', zone: 'front_yard' },
+        { id: 'brick_path', name: 'Brick Path', type: 'path', zone: 'front_yard' },
+        { id: 'stepping_stones', name: 'Stepping Stones', type: 'path', zone: 'front_yard' },
+        { id: 'gravel_path', name: 'Gravel Path', type: 'path', zone: 'front_yard' }
+    ],
+    features: [
+        { id: 'bird_bath', name: 'Bird Bath', type: 'feature', zone: 'front_yard' },
+        { id: 'garden_gnome', name: 'Garden Gnome', type: 'feature', zone: 'front_yard' },
+        { id: 'decorative_fence', name: 'Decorative Fence', type: 'feature', zone: 'front_yard' },
+        { id: 'wind_chimes', name: 'Wind Chimes', type: 'feature', zone: 'front_yard' }
+    ],
+    furniture: [
+        { id: 'garden_bench', name: 'Garden Bench', type: 'furniture', zone: 'front_yard' },
+        { id: 'outdoor_table', name: 'Outdoor Table', type: 'furniture', zone: 'front_yard' },
+        { id: 'mailbox', name: 'Mailbox', type: 'furniture', zone: 'front_yard' },
+        { id: 'planter_box', name: 'Planter Box', type: 'furniture', zone: 'front_yard' },
+        { id: 'picnic_table', name: 'Picnic Table', type: 'furniture', zone: 'front_yard' }
+    ],
+    lighting: [
+        { id: 'garden_lantern', name: 'Garden Lantern', type: 'lighting', zone: 'front_yard' },
+        { id: 'string_lights', name: 'String Lights', type: 'lighting', zone: 'front_yard' },
+        { id: 'torch', name: 'Garden Torch', type: 'lighting', zone: 'front_yard' },
+        { id: 'spotlight', name: 'Spotlight', type: 'lighting', zone: 'front_yard' }
+    ],
+    water: [
+        { id: 'fountain', name: 'Garden Fountain', type: 'water', zone: 'front_yard' },
+        { id: 'pond', name: 'Small Pond', type: 'water', zone: 'front_yard' },
+        { id: 'rain_barrel', name: 'Rain Barrel', type: 'water', zone: 'front_yard' }
+    ],
+    structures: [
+        { id: 'gazebo', name: 'Garden Gazebo', type: 'structure', zone: 'front_yard' },
+        { id: 'trellis', name: 'Garden Trellis', type: 'structure', zone: 'front_yard' },
+        { id: 'garden_arch', name: 'Garden Arch', type: 'structure', zone: 'front_yard' }
+    ],
+    atmosphere: [
+        { id: 'sunny_sky', name: 'Sunny Day', type: 'sky', zone: 'background' },
+        { id: 'cloudy_sky', name: 'Cloudy Day', type: 'sky', zone: 'background' },
+        { id: 'sunset_sky', name: 'Sunset', type: 'sky', zone: 'background' },
+        { id: 'night_sky', name: 'Starry Night', type: 'sky', zone: 'background' }
+    ],
+    house: [
+        // Doors Section
+        { id: 'default_door', name: 'Default Door', type: 'house_custom', zone: 'house_facade', section: 'doors', isDefault: true },
+        { id: 'arched_door', name: 'Arched Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
+        { id: 'double_door', name: 'Double Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
+        { id: 'cottage_door', name: 'Cottage Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
+
+        // Windows Section
+        { id: 'default_windows', name: 'Default Windows', type: 'house_custom', zone: 'house_facade', section: 'windows', isDefault: true },
+        { id: 'round_windows', name: 'Round Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
+        { id: 'arched_windows', name: 'Arched Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
+        { id: 'bay_windows', name: 'Bay Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
+
+        // Roof Trim Section
+        { id: 'default_trim', name: 'Default Trim', type: 'house_custom', zone: 'house_facade', section: 'roof', isDefault: true },
+        { id: 'ornate_trim', name: 'Ornate Roof Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
+        { id: 'scalloped_trim', name: 'Scalloped Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
+        { id: 'gabled_trim', name: 'Gabled Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' }
+    ],
+    templates: [
+        { id: 'cottage_v1', name: 'Cottage', type: 'house_template', zone: 'house_facade' },
+        { id: 'townhouse_v1', name: 'Townhouse', type: 'house_template', zone: 'house_facade' },
+        { id: 'loft_v1', name: 'Modern Loft', type: 'house_template', zone: 'house_facade' },
+        { id: 'cabin_v1', name: 'Log Cabin', type: 'house_template', zone: 'house_facade' }
+    ],
+    colors: [
+        { id: 'wall_color', name: 'Wall Color', type: 'house_color', zone: 'house_facade', color: '#F5E9D4' },
+        { id: 'roof_color', name: 'Roof Color', type: 'house_color', zone: 'house_facade', color: '#A18463' },
+        { id: 'trim_color', name: 'Trim Color', type: 'house_color', zone: 'house_facade', color: '#2E4B3F' },
+        { id: 'window_color', name: 'Window Color', type: 'house_color', zone: 'house_facade', color: '#8EC5E8' },
+        { id: 'detail_color', name: 'Detail Color', type: 'house_color', zone: 'house_facade', color: '#4FAF6D' }
+    ]
+} as const

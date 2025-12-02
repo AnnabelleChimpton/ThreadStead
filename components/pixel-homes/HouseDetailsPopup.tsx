@@ -333,6 +333,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
                 decorations={(() => {
                   return decorations.map(dec => ({
                     id: dec.decorationId + '_' + Date.now(),
+                    name: dec.decorationId,
                     decorationId: dec.decorationId,
                     type: dec.decorationType,
                     zone: 'front_yard' as const,

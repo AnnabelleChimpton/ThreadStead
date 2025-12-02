@@ -26,6 +26,7 @@ interface DecorationItem {
   variant?: string;
   size?: 'small' | 'medium' | 'large';
   renderSvg?: string | null;
+  name: string;
 }
 
 interface HomeDecoration {
@@ -378,7 +379,10 @@ export const pixelHomesNeighborhoodWidget = {
       if (decorationsResponse.ok) {
         try {
           const decorationsData = await decorationsResponse.json();
-          decorations = decorationsData.decorations || [];
+          decorations = (decorationsData.decorations || []).map((d: any) => ({
+            ...d,
+            name: d.decorationId
+          }));
         } catch (error) {
           console.warn('Failed to parse decorations data:', error);
         }

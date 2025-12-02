@@ -1,8 +1,9 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react'
+import { DecorationItem } from '@/lib/pixel-homes/decoration-data'
 
 interface TouchDecorationPlacerProps {
   onTouchPlace: (x: number, y: number) => void
-  selectedDecoration: any | null
+  selectedDecoration: DecorationItem | null
   canvasWidth: number
   canvasHeight: number
   className?: string
@@ -10,15 +11,15 @@ interface TouchDecorationPlacerProps {
   onTouchSelect?: (decorationIds: string[]) => void
   onTouchDelete?: (decorationId: string) => void
   onTouchMove?: (decorationId: string, x: number, y: number) => void
-  decorations?: Array<{id: string, position: {x: number, y: number}}>
+  decorations?: DecorationItem[]
   isDeleteMode?: boolean
 }
 
 interface TouchState {
   isActive: boolean
   startTime: number
-  startPosition: {x: number, y: number}
-  currentPosition: {x: number, y: number}
+  startPosition: { x: number, y: number }
+  currentPosition: { x: number, y: number }
   touchCount: number
   gestureType: 'none' | 'tap' | 'longpress' | 'drag' | 'pinch' | 'swipe'
 }
@@ -39,17 +40,17 @@ export default function TouchDecorationPlacer({
   const [touchState, setTouchState] = useState<TouchState>({
     isActive: false,
     startTime: 0,
-    startPosition: {x: 0, y: 0},
-    currentPosition: {x: 0, y: 0},
+    startPosition: { x: 0, y: 0 },
+    currentPosition: { x: 0, y: 0 },
     touchCount: 0,
     gestureType: 'none'
   })
-  const [dragSelection, setDragSelection] = useState<{x: number, y: number, width: number, height: number} | null>(null)
+  const [dragSelection, setDragSelection] = useState<{ x: number, y: number, width: number, height: number } | null>(null)
   const gestureTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Helper function to convert touch to canvas coordinates
   const touchToCanvas = useCallback((touch: Touch) => {
-    if (!overlayRef.current) return {x: 0, y: 0}
+    if (!overlayRef.current) return { x: 0, y: 0 }
 
     const rect = overlayRef.current.getBoundingClientRect()
     const relativeX = (touch.clientX - rect.left) / rect.width
@@ -64,6 +65,7 @@ export default function TouchDecorationPlacer({
   // Find decoration at position
   const findDecorationAt = useCallback((x: number, y: number) => {
     return decorations.find(decoration => {
+      if (!decoration.position) return false
       const dx = Math.abs(decoration.position.x - x)
       const dy = Math.abs(decoration.position.y - y)
       return dx <= 12 && dy <= 12 // 24px touch target (12px radius)
@@ -205,10 +207,11 @@ export default function TouchDecorationPlacer({
     } else if (touchState.gestureType === 'drag' && dragSelection && onTouchSelect) {
       // Multi-select with drag rectangle
       const selectedDecorations = decorations.filter(decoration => {
+        if (!decoration.position) return false
         const dx = decoration.position.x
         const dy = decoration.position.y
         return dx >= dragSelection.x && dx <= dragSelection.x + dragSelection.width &&
-               dy >= dragSelection.y && dy <= dragSelection.y + dragSelection.height
+          dy >= dragSelection.y && dy <= dragSelection.y + dragSelection.height
       })
 
       if (selectedDecorations.length > 0) {
@@ -232,8 +235,8 @@ export default function TouchDecorationPlacer({
     setTouchState({
       isActive: false,
       startTime: 0,
-      startPosition: {x: 0, y: 0},
-      currentPosition: {x: 0, y: 0},
+      startPosition: { x: 0, y: 0 },
+      currentPosition: { x: 0, y: 0 },
       touchCount: 0,
       gestureType: 'none'
     })
@@ -339,23 +342,6 @@ export default function TouchDecorationPlacer({
         </div>
       )}
 
-      {/* Touch targets for decorations */}
-      {!showTouchOverlay && decorations.map(decoration => (
-        <div
-          key={decoration.id}
-          className="absolute pointer-events-none"
-          style={{
-            left: decoration.position.x - 12,
-            top: decoration.position.y - 12,
-            width: 24,
-            height: 24,
-            background: 'rgba(59, 130, 246, 0.1)',
-            borderRadius: '50%',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            opacity: 0.7
-          }}
-        />
-      ))}
     </div>
   )
 }

@@ -77,6 +77,7 @@ interface DecorationItem {
   position: { x: number; y: number; layer?: number };
   variant?: string;
   size?: 'small' | 'medium' | 'large';
+  name: string;
 }
 
 interface AtmosphereSettings {
@@ -148,7 +149,10 @@ function UserPixelHome({ user }: { user: any }) {
         if (decorationsResponse.ok) {
           try {
             const decorationsData = await decorationsResponse.json();
-            setDecorations(decorationsData.decorations || []);
+            setDecorations((decorationsData.decorations || []).map((d: any) => ({
+              ...d,
+              name: d.decorationId
+            })));
           } catch (error) {
             console.warn('Failed to parse decorations data:', error);
           }

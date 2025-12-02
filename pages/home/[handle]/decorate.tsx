@@ -30,6 +30,7 @@ export default function DecoratePage({
   isOwnHome
 }: DecorationPageProps) {
   const router = useRouter()
+  const [isSaving, setIsSaving] = useState(false)
 
   // Redirect if not own home
   useEffect(() => {
@@ -42,9 +43,56 @@ export default function DecoratePage({
     return <div>Redirecting...</div>
   }
 
-  const handleSave = (data: any) => {
-    // Navigate back to home page after save
-    router.push(`/home/${handle}`)
+  const handleSave = async (data: any) => {
+    try {
+      setIsSaving(true)
+
+      // Transform decorations to match API expected format
+      const formattedDecorations = data.decorations.map((d: any) => {
+        // Extract base ID from complex ID (e.g. tree_pine_123 -> tree_pine)
+        // If d.decorationId exists (from DB), use it. Otherwise strip suffix from d.id
+        const baseId = d.decorationId || d.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')
+
+        return {
+          decorationType: d.type,
+          decorationId: baseId,
+          zone: d.zone || 'front_yard',
+          positionX: Math.round(d.position.x),
+          positionY: Math.round(d.position.y),
+          layer: d.position.layer || 1,
+          variant: d.variant || 'default',
+          size: d.size || 'medium'
+        }
+      })
+
+      const payload = {
+        decorations: formattedDecorations,
+        houseCustomizations: data.houseCustomizations,
+        atmosphere: data.atmosphere,
+        template: data.template,
+        palette: data.palette
+      }
+
+      const response = await fetch('/api/home/decorations/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save decorations')
+      }
+
+      // Navigate back to home page after successful save
+      router.push(`/home/${handle}`)
+    } catch (error) {
+      console.error('Error saving decorations:', error)
+      alert('Failed to save decorations. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleCancel = () => {
@@ -89,7 +137,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     // Find user by handle
     const userHandle = await prisma.handle.findFirst({
       where: { handle: cleanHandle.toLowerCase() },
-      include: { 
+      include: {
         user: true
       }
     })
@@ -101,7 +149,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     }
 
     const user = userHandle.user
-    
+
     // Check if this is the user's own home
     const isOwnHome = viewer?.id === user.id
 
@@ -131,8 +179,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     }
 
     // Transform decorations to match component interface
-    const transformedDecorations = homeConfig.decorations?.map(decoration => ({
-      id: `${decoration.decorationId}_${Date.now()}`,
+    const transformedDecorations = homeConfig.decorations?.map((decoration, i) => ({
+      id: `${decoration.decorationId}_${Date.now()}_${i}`,
       type: decoration.decorationType,
       zone: 'front_yard' as const,
       position: {

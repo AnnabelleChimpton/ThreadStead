@@ -1,7 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
 import AnimatedDecoration from './DecorationAnimations'
+import { DecorationItem } from '@/lib/pixel-homes/decoration-data'
 
 interface EnhancedHouseCanvasProps {
   template: HouseTemplate
@@ -18,17 +19,14 @@ interface EnhancedHouseCanvasProps {
   recentlyPlaced?: Set<string>
   selectedDecorations?: Set<string>
   onAnimationComplete?: (decorationId: string) => void
-}
-
-interface DecorationItem {
-  id: string
-  decorationId?: string
-  type: 'plant' | 'path' | 'feature' | 'seasonal'
-  zone: 'front_yard' | 'house_facade' | 'background'
-  position: { x: number; y: number; layer?: number }
-  variant?: string
-  size?: 'small' | 'medium' | 'large'
-  renderSvg?: string | null
+  // Interaction props
+  isPlacing?: boolean
+  previewPosition?: { x: number; y: number } | null
+  previewItem?: DecorationItem | null
+  onClick?: (x: number, y: number, event: React.MouseEvent) => void
+  onMouseMove?: (x: number, y: number, event: React.MouseEvent) => void
+  onMouseLeave?: () => void
+  onScaleChange?: (scale: number) => void
 }
 
 interface AtmosphereSettings {
@@ -43,18 +41,18 @@ const CANVAS_HEIGHT = 350
 
 // Zone definitions for decoration placement
 const DECORATION_ZONES = {
-  background: { 
-    x: 0, y: 0, 
+  background: {
+    x: 0, y: 0,
     width: CANVAS_WIDTH, height: 100, // A bit more sky area
     label: 'Background & Sky'
   },
-  front_yard: { 
-    x: 0, y: 100, 
+  front_yard: {
+    x: 0, y: 100,
     width: CANVAS_WIDTH, height: 250, // Decoration area to bottom
     label: 'Front Yard'
   },
-  house_facade: { 
-    x: 150, y: 160, 
+  house_facade: {
+    x: 150, y: 160,
     width: 200, height: 120, // House area
     label: 'House'
   }
@@ -81,7 +79,14 @@ export default function EnhancedHouseCanvas({
   animatedDecorations,
   recentlyPlaced,
   selectedDecorations,
-  onAnimationComplete
+  onAnimationComplete,
+  isPlacing,
+  previewPosition,
+  previewItem,
+  onClick,
+  onMouseMove,
+  onMouseLeave,
+  onScaleChange
 }: EnhancedHouseCanvasProps) {
   // Refs and state for responsive scaling
   const containerRef = useRef<HTMLDivElement>(null)
@@ -96,27 +101,45 @@ export default function EnhancedHouseCanvas({
         const width = entry.contentRect.width
         const calculatedScale = width / CANVAS_WIDTH
         setScale(calculatedScale)
+        onScaleChange?.(calculatedScale)
       }
     })
 
     resizeObserver.observe(containerRef.current)
 
     return () => resizeObserver.disconnect()
-  }, [])
+  }, [onScaleChange])
+
+  useEffect(() => {
+    console.log('EnhancedHouseCanvas decorations updated:', decorations.length)
+  }, [decorations])
+
+  const handleInteraction = (
+    event: React.MouseEvent,
+    handler?: (x: number, y: number, event: React.MouseEvent) => void
+  ) => {
+    console.log('EnhancedHouseCanvas: handleInteraction', event.type, 'handler exists:', !!handler)
+    if (!handler) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = (event.clientX - rect.left) / scale
+    const y = (event.clientY - rect.top) / scale
+    console.log('EnhancedHouseCanvas: normalized coords', x, y)
+    handler(x, y, event)
+  }
 
   const renderBackground = () => {
     const zone = DECORATION_ZONES.background
-    
+
     // Sky gradient based on atmosphere
     const skyGradients = {
       sunny: 'linear-gradient(to bottom, #87CEEB 0%, #98D8E8 100%)',
-      cloudy: 'linear-gradient(to bottom, #B0C4DE 0%, #D3D3D3 100%)',  
+      cloudy: 'linear-gradient(to bottom, #B0C4DE 0%, #D3D3D3 100%)',
       sunset: 'linear-gradient(to bottom, #FFB347 0%, #FF6B6B 50%, #4ECDC4 100%)',
       night: 'linear-gradient(to bottom, #191970 0%, #000080 100%)'
     }
-    
+
     return (
-      <div 
+      <div
         className="absolute"
         style={{
           left: zone.x,
@@ -144,9 +167,9 @@ export default function EnhancedHouseCanvas({
 
   const renderFrontYard = () => {
     const zone = DECORATION_ZONES.front_yard
-    
+
     return (
-      <div 
+      <div
         className="absolute"
         style={{
           left: zone.x,
@@ -167,8 +190,8 @@ export default function EnhancedHouseCanvas({
           // Determine if this decoration should be animated
           const hasAnimations = animatedDecorations || recentlyPlaced || selectedDecorations
           const animationType = recentlyPlaced?.has(item.id) ? 'place' :
-                              selectedDecorations?.has(item.id) ? 'select' :
-                              animatedDecorations?.get(item.id) || undefined
+            selectedDecorations?.has(item.id) ? 'select' :
+              animatedDecorations?.get(item.id) || undefined
 
           // Use AnimatedDecoration if animations are available and this decoration needs animation
           if (hasAnimations && animationType) {
@@ -177,19 +200,19 @@ export default function EnhancedHouseCanvas({
                 key={item.id}
                 className="absolute"
                 style={{
-                  left: item.position.x,
-                  top: item.position.y,
-                  zIndex: item.position.layer || 10
+                  left: item.position?.x || 0,
+                  top: item.position?.y || 0,
+                  zIndex: item.position?.layer || 10
                 }}
                 onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
                 onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
               >
                 <AnimatedDecoration
                   decorationType={item.type}
-                  decorationId={item.id.split('_').slice(0, -1).join('_')} // Remove timestamp
+                  decorationId={item.decorationId || item.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')}
                   variant={item.variant}
                   size={item.size}
-                  position={{x: 0, y: 0}} // Position is handled by parent div
+                  position={{ x: 0, y: 0 }} // Position is handled by parent div
                   animationType={animationType}
                   onAnimationComplete={() => onAnimationComplete?.(item.id)}
                   className={`cursor-pointer ${onDecorationClick || onDecorationMouseDown ? 'hover:scale-110 transition-transform' : ''}`}
@@ -204,16 +227,16 @@ export default function EnhancedHouseCanvas({
               key={item.id}
               className={`absolute ${onDecorationClick || onDecorationMouseDown ? 'cursor-pointer hover:scale-110 transition-transform' : ''}`}
               style={{
-                left: item.position.x,
-                top: item.position.y,
-                zIndex: item.position.layer || 10
+                left: item.position?.x || 0,
+                top: item.position?.y || 0,
+                zIndex: item.position?.layer || 10
               }}
               onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
               onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
             >
               <DecorationSVG
                 decorationType={item.type}
-                decorationId={item.decorationId || item.id.split('_').slice(0, -1).join('_')}
+                decorationId={item.decorationId || item.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')}
                 variant={item.variant}
                 size={item.size}
                 className="drop-shadow-sm"
@@ -237,6 +260,9 @@ export default function EnhancedHouseCanvas({
           aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
           background: '#f0f8ff' // Light sky blue base
         }}
+        onClick={(e) => handleInteraction(e, onClick)}
+        onMouseMove={(e) => handleInteraction(e, onMouseMove)}
+        onMouseLeave={onMouseLeave}
       >
         {/* Scaled content wrapper - scales all content proportionally */}
         <div
@@ -276,6 +302,25 @@ export default function EnhancedHouseCanvas({
             />
           </div>
 
+          {/* Preview Item (Ghost) */}
+          {isPlacing && previewPosition && previewItem && (
+            <div
+              className="absolute pointer-events-none opacity-50"
+              style={{
+                left: previewPosition.x,
+                top: previewPosition.y,
+                zIndex: 20
+              }}
+            >
+              <DecorationSVG
+                decorationType={previewItem.type}
+                decorationId={previewItem.id}
+                variant={previewItem.variant}
+                size={previewItem.size}
+              />
+            </div>
+          )}
+
           {/* Decoration Mode Overlay */}
           {isDecorationMode && (
             <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
@@ -311,7 +356,7 @@ export default function EnhancedHouseCanvas({
           )}
         </div>
       </div>
-      
+
       {/* Canvas Info (for development) */}
       {isDecorationMode && (
         <div className="mt-2 text-xs text-gray-500">

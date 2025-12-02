@@ -289,6 +289,7 @@ const NeighborhoodCardView: React.FC<NeighborhoodCardViewProps> = ({
                       houseCustomizations={(member.homeConfig.houseCustomizations || {}) as any}
                       decorations={(member.homeConfig.decorations || []).map(dec => ({
                         id: dec.id,
+                        name: dec.decorationId,
                         decorationId: dec.decorationId,
                         type: dec.decorationType,
                         zone: 'front_yard' as const,

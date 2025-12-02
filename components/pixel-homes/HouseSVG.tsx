@@ -10,7 +10,7 @@ export interface HouseCustomizations {
 
   // New base pattern variations
   foundationStyle?: 'default' | 'stone' | 'brick' | 'raised'
-  wallPattern?: 'default' | 'shingles' | 'board_batten' | 'stone_veneer'
+  wallPattern?: 'default' | 'shingles' | 'board_batten' | 'stone_veneer' | 'brick'
   windowTreatments?: 'default' | 'shutters' | 'flower_boxes' | 'awnings'
   roofMaterial?: 'default' | 'shingles' | 'tile' | 'metal' | 'thatch'
   chimneyStyle?: 'default' | 'brick' | 'stone' | 'none'
@@ -209,6 +209,99 @@ const renderWoodSiding = (x: number, y: number, w: number, h: number, color: str
 
 // --- ARCHITECTURAL ELEMENTS ---
 
+const renderRoofTrim = (x: number, y: number, w: number, style: string, color: string, simplified = false) => {
+  if (simplified || !style || style === 'default') return null;
+
+  const trimColor = color;
+  const shadowColor = darken(color, 20);
+
+  if (style === 'ornate') {
+    return (
+      <g>
+        {/* Decorative spikes/finials */}
+        {Array.from({ length: Math.floor(w / 10) }).map((_, i) => (
+          <g key={i}>
+            <rect x={x + i * 10} y={y - 4} width={2} height={4} fill={trimColor} />
+            <circle cx={x + i * 10 + 1} cy={y - 4} r={1.5} fill={trimColor} />
+          </g>
+        ))}
+        <rect x={x} y={y} width={w} height={2} fill={trimColor} />
+      </g>
+    )
+  }
+
+  if (style === 'scalloped') {
+    return (
+      <g>
+        {/* Scallops */}
+        {Array.from({ length: Math.floor(w / 8) }).map((_, i) => (
+          <path key={i} d={`M${x + i * 8} ${y} Q${x + i * 8 + 4} ${y + 5} ${x + i * 8 + 8} ${y} Z`} fill={trimColor} />
+        ))}
+        <rect x={x} y={y} width={w} height={1} fill={trimColor} />
+      </g>
+    )
+  }
+
+  if (style === 'gabled') {
+    // Simple bargeboard
+    return (
+      <g>
+        <rect x={x} y={y} width={w} height={3} fill={trimColor} />
+        <rect x={x} y={y + 1} width={w} height={1} fill={shadowColor} opacity="0.3" />
+      </g>
+    )
+  }
+
+  return null;
+}
+
+const renderWindowTreatments = (x: number, y: number, w: number, h: number, style: string, colors: any, simplified = false) => {
+  if (simplified || !style || style === 'default') return null;
+
+  if (style === 'shutters') {
+    return (
+      <g>
+        <rect x={x - 6} y={y} width={6} height={h} fill={colors.secondary} />
+        <rect x={x + w} y={y} width={6} height={h} fill={colors.secondary} />
+        {/* Slats */}
+        {Array.from({ length: Math.floor(h / 4) }).map((_, i) => (
+          <g key={i}>
+            <rect x={x - 5} y={y + i * 4 + 1} width={4} height={1} fill={darken(colors.secondary, 20)} />
+            <rect x={x + w + 1} y={y + i * 4 + 1} width={4} height={1} fill={darken(colors.secondary, 20)} />
+          </g>
+        ))}
+      </g>
+    )
+  }
+
+  if (style === 'flower_boxes') {
+    return (
+      <g>
+        <rect x={x - 2} y={y + h} width={w + 4} height={5} fill="#8B4513" />
+        <rect x={x} y={y + h + 1} width={w} height={3} fill="#5C4033" />
+        {/* Flowers */}
+        <circle cx={x + 4} cy={y + h - 1} r={2} fill="#FF69B4" />
+        <circle cx={x + w / 2} cy={y + h - 2} r={2} fill="#FFFF00" />
+        <circle cx={x + w - 4} cy={y + h - 1} r={2} fill="#FF4500" />
+      </g>
+    )
+  }
+
+  if (style === 'awnings') {
+    return (
+      <g>
+        <path d={`M${x - 2} ${y} L${x + w + 2} ${y} L${x + w + 4} ${y + 8} L${x - 4} ${y + 8} Z`} fill={colors.secondary} />
+        {/* Stripes */}
+        <path d={`M${x} ${y} L${x + 4} ${y} L${x + 5} ${y + 8} L${x - 1} ${y + 8} Z`} fill={colors.base} opacity="0.5" />
+        <path d={`M${x + w / 2 - 2} ${y} L${x + w / 2 + 2} ${y} L${x + w / 2 + 3} ${y + 8} L${x + w / 2 - 3} ${y + 8} Z`} fill={colors.base} opacity="0.5" />
+        <path d={`M${x + w - 4} ${y} L${x + w} ${y} L${x + w + 1} ${y + 8} L${x + w - 5} ${y + 8} Z`} fill={colors.base} opacity="0.5" />
+      </g>
+    )
+  }
+
+  return null;
+}
+
 const renderWindow = (x: number, y: number, w: number, h: number, style: string, colors: any, simplified = false) => {
   const frame = colors.secondary;
   const glass = colors.accent;
@@ -291,12 +384,69 @@ const renderDoor = (x: number, y: number, w: number, h: number, style: string, c
     )
   }
 
-  return (
+  const baseFrame = (
     <g>
       {/* Frame Shadow */}
       <rect x={x} y={y} width={w + 2} height={h + 1} fill={shadow} opacity="0.5" />
       {/* Frame */}
       <rect x={x - 1} y={y - 1} width={w + 2} height={h + 1} fill={frameColor} />
+    </g>
+  );
+
+  if (style === 'arched' || style === 'cottage') {
+    return (
+      <g>
+        {/* Arched Frame */}
+        <path d={`M${x - 1} ${y + h} L${x - 1} ${y + w / 2} Q${x + w / 2} ${y - w / 2} ${x + w + 1} ${y + w / 2} L${x + w + 1} ${y + h} Z`} fill={frameColor} />
+        {/* Arched Door */}
+        <path d={`M${x} ${y + h} L${x} ${y + w / 2} Q${x + w / 2} ${y - w / 2 + 1} ${x + w} ${y + w / 2} L${x + w} ${y + h} Z`} fill={doorColor} />
+
+        {/* Cottage Details */}
+        {style === 'cottage' && (
+          <>
+            {/* Small window */}
+            <circle cx={x + w / 2} cy={y + h / 3} r={w / 4} fill={colors.accent} stroke={frameColor} strokeWidth="1" />
+            <line x1={x + w / 2} y1={y + h / 3 - w / 4} x2={x + w / 2} y2={y + h / 3 + w / 4} stroke={frameColor} strokeWidth="1" />
+            <line x1={x + w / 2 - w / 4} y1={y + h / 3} x2={x + w / 2 + w / 4} y2={y + h / 3} stroke={frameColor} strokeWidth="1" />
+            {/* Planks */}
+            <line x1={x + w / 2} y1={y + h / 2} x2={x + w / 2} y2={y + h} stroke={darken(doorColor, 20)} strokeWidth="1" />
+          </>
+        )}
+
+        {/* Arched Details */}
+        {style === 'arched' && (
+          <rect x={x + 4} y={y + h / 2} width={w - 8} height={h / 2 - 4} fill={darken(doorColor, 15)} rx="2" />
+        )}
+
+        {/* Knob */}
+        <circle cx={x + w - 4} cy={y + h / 2 + 5} r={1.5} fill="#FFD700" />
+      </g>
+    )
+  }
+
+  if (style === 'double') {
+    return (
+      <g>
+        {baseFrame}
+        {/* Doors */}
+        <rect x={x} y={y} width={w / 2 - 0.5} height={h} fill={doorColor} />
+        <rect x={x + w / 2 + 0.5} y={y} width={w / 2 - 0.5} height={h} fill={doorColor} />
+
+        {/* Panels */}
+        <rect x={x + 2} y={y + 4} width={w / 2 - 4.5} height={h - 8} fill={darken(doorColor, 15)} />
+        <rect x={x + w / 2 + 2.5} y={y + 4} width={w / 2 - 4.5} height={h - 8} fill={darken(doorColor, 15)} />
+
+        {/* Knobs */}
+        <circle cx={x + w / 2 - 3} cy={y + h / 2} r={1.5} fill="#FFD700" />
+        <circle cx={x + w / 2 + 3} cy={y + h / 2} r={1.5} fill="#FFD700" />
+      </g>
+    )
+  }
+
+  // Default
+  return (
+    <g>
+      {baseFrame}
       {/* Door */}
       <rect x={x} y={y} width={w} height={h} fill={doorColor} />
       {/* Panels */}
@@ -304,6 +454,42 @@ const renderDoor = (x: number, y: number, w: number, h: number, style: string, c
       <rect x={x + 3} y={y + h / 2 + 2} width={w - 6} height={h / 2 - 5} fill={darken(doorColor, 15)} />
       {/* Knob */}
       <rect x={x + w - 4} y={y + h / 2} width={2} height={2} fill="#FFD700" />
+    </g>
+  )
+}
+
+// --- SIGN ---
+
+const renderSign = (x: number, y: number, text: string, colors: any, simplified = false) => {
+  if (!text) return null;
+
+  // Dynamic width based on text length (approximate)
+  const width = Math.max(40, text.length * 5 + 10);
+  const height = 12;
+  const centerX = x;
+  const startX = centerX - width / 2;
+
+  if (simplified) {
+    return (
+      <g>
+        <rect x={startX} y={y} width={width} height={height} fill={colors.base} rx="2" />
+        <text x={centerX} y={y + 9} textAnchor="middle" fontSize="8" fill={colors.secondary} fontFamily="monospace">{text}</text>
+      </g>
+    )
+  }
+
+  return (
+    <g>
+      {/* Chains */}
+      <line x1={startX + 5} y1={y - 5} x2={startX + 5} y2={y} stroke="#333" strokeWidth="1" />
+      <line x1={startX + width - 5} y1={y - 5} x2={startX + width - 5} y2={y} stroke="#333" strokeWidth="1" />
+
+      {/* Board */}
+      <rect x={startX} y={y} width={width} height={height} fill={colors.base} stroke={colors.secondary} strokeWidth="1" rx="2" />
+      <rect x={startX + 2} y={y + 2} width={width - 4} height={height - 4} fill="none" stroke={colors.secondary} strokeWidth="0.5" opacity="0.5" rx="1" />
+
+      {/* Text */}
+      <text x={centerX} y={y + 8} textAnchor="middle" fontSize="7" fill={colors.secondary} fontFamily="monospace" fontWeight="bold" style={{ userSelect: 'none' }}>{text}</text>
     </g>
   )
 }
@@ -319,14 +505,18 @@ const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizatio
       {/* Shadow under house */}
       <rect x="40" y="165" width="120" height="5" fill="black" opacity="0.2" rx="2" />
 
-      {/* Foundation - Stone */}
+      {/* Foundation */}
       <rect x="40" y="150" width="120" height="20" fill="#777" />
-      {renderStoneTexture(40, 150, 120, 20, "#888", simplified)}
+      {customizations.foundationStyle === 'brick' && renderBrickTexture(40, 150, 120, 20, "#8B4513", simplified)}
+      {(customizations.foundationStyle === 'stone' || !customizations.foundationStyle) && renderStoneTexture(40, 150, 120, 20, "#888", simplified)}
 
-      {/* Walls - Stucco/Plaster with texture */}
+      {/* Walls */}
       <rect x="45" y="110" width="110" height="40" fill={wallColor} />
-      {/* Wall texture noise */}
-      {!simplified && Array.from({ length: 50 }).map((_, i) => {
+      {customizations.wallPattern === 'shingles' && renderWoodSiding(45, 110, 110, 40, wallColor, simplified)}
+      {customizations.wallPattern === 'stone_veneer' && renderStoneTexture(45, 110, 110, 40, wallColor, simplified)}
+
+      {/* Wall texture noise (default) */}
+      {(!customizations.wallPattern || customizations.wallPattern === 'default') && !simplified && Array.from({ length: 50 }).map((_, i) => {
         const r1 = Math.abs(seededRandom(i, 110));
         const r2 = Math.abs(seededRandom(i, 150));
         return <rect key={i} x={45 + r1 * 110} y={110 + r2 * 40} width={1} height={1} fill={darken(wallColor, 10)} opacity="0.3" />
@@ -340,39 +530,42 @@ const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizatio
       {/* Diagonal beams */}
       <path d="M50 114 L98 150 M150 114 L102 150" stroke={colors.secondary} strokeWidth="4" />
 
-      {/* Chimney - MOVED BEFORE ROOF */}
-      <rect x="130" y="60" width="15" height="40" fill="#8B4513" />
-      {renderBrickTexture(130, 60, 15, 40, "#8B4513", simplified)}
-      <rect x="128" y="58" width="19" height="4" fill="#555" />
+      {/* Chimney */}
+      {customizations.chimneyStyle !== 'none' && (
+        <>
+          <rect x="130" y="60" width="15" height="40" fill="#8B4513" />
+          {customizations.chimneyStyle === 'stone'
+            ? renderStoneTexture(130, 60, 15, 40, "#777", simplified)
+            : renderBrickTexture(130, 60, 15, 40, "#8B4513", simplified)
+          }
+          <rect x="128" y="58" width="19" height="4" fill="#555" />
+        </>
+      )}
 
-      {/* Roof - Thatch/Shingle - Curved/Organic feel */}
+      {/* Roof */}
       {/* Gable Fill (Behind roof trim) */}
       <path d="M30 110 Q100 50 170 110 Z" fill={wallColor} />
       {/* Roof Trim */}
       <path d="M25 110 Q100 40 175 110 L165 115 Q100 55 35 115 Z" fill={roofColor} />
       <path d="M25 110 Q100 40 175 110" stroke={darken(roofColor, 20)} strokeWidth="2" fill="none" />
 
+      {/* Roof Texture */}
+      {customizations.roofMaterial === 'tile' && !simplified && (
+        <path d="M35 110 Q100 50 165 110" stroke={darken(roofColor, 10)} strokeWidth="2" strokeDasharray="5,5" fill="none" opacity="0.5" />
+      )}
+
+      {/* Roof Trim Decoration */}
+      {renderRoofTrim(30, 110, 140, customizations.roofTrim || 'default', colors.secondary, simplified)}
+
       {/* Windows */}
       {renderWindow(55, 125, 15, 15, customizations.windowStyle || 'default', colors, simplified)}
+      {renderWindowTreatments(55, 125, 15, 15, customizations.windowTreatments || 'default', colors, simplified)}
+
       {renderWindow(130, 125, 15, 15, customizations.windowStyle || 'default', colors, simplified)}
+      {renderWindowTreatments(130, 125, 15, 15, customizations.windowTreatments || 'default', colors, simplified)}
 
-      {/* Door - Round top */}
-      {renderDoor(90, 135, 20, 35, 'cottage', colors, simplified)}
-
-      {/* Flower Boxes */}
-      {!simplified && (
-        <>
-          <rect x="53" y="142" width="19" height="4" fill="#8B4513" />
-          <rect x="55" y="140" width="2" height="2" fill="#FF69B4" />
-          <rect x="60" y="139" width="2" height="2" fill="#FFFF00" />
-          <rect x="65" y="140" width="2" height="2" fill="#FF4500" />
-
-          <rect x="128" y="142" width="19" height="4" fill="#8B4513" />
-          <rect x="130" y="140" width="2" height="2" fill="#FF69B4" />
-          <rect x="135" y="139" width="2" height="2" fill="#FFFF00" />
-          <rect x="140" y="140" width="2" height="2" fill="#FF4500" />
-        </>
-      )}
+      {/* Door */}
+      {renderDoor(90, 135, 20, 35, customizations.doorStyle || 'cottage', colors, simplified)}
 
       {/* Lantern */}
       {!simplified && (
@@ -381,6 +574,9 @@ const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizatio
           <rect x="116" y="136" width="2" height="4" fill="#FFD700" opacity="0.8" />
         </>
       )}
+
+      {/* House Sign */}
+      {renderSign(100, 100, customizations.houseBoardText || '', colors, simplified)}
     </svg>
   )
 }
@@ -393,12 +589,18 @@ const TownhouseTemplate: React.FC<{ colors: any, customizations: HouseCustomizat
       {/* Shadow */}
       <rect x="40" y="170" width="120" height="5" fill="black" opacity="0.2" />
 
-      {/* Main Structure - Brick */}
+      {/* Main Structure */}
       <rect x="40" y="80" width="120" height="90" fill={wallColor} />
-      {renderBrickTexture(40, 80, 120, 90, wallColor, simplified)}
+
+      {/* Wall Patterns */}
+      {(customizations.wallPattern === 'default' || !customizations.wallPattern) && renderBrickTexture(40, 80, 120, 90, wallColor, simplified)}
+      {customizations.wallPattern === 'stone_veneer' && renderStoneTexture(40, 80, 120, 90, wallColor, simplified)}
+      {customizations.wallPattern === 'board_batten' && renderWoodSiding(40, 80, 120, 90, wallColor, simplified)}
 
       {/* Cornice / Roof Trim */}
       <rect x="35" y="75" width="130" height="8" fill={colors.secondary} />
+      {renderRoofTrim(35, 75, 130, customizations.roofTrim || 'default', colors.secondary, simplified)}
+
       <rect x="38" y="83" width="124" height="2" fill={darken(colors.secondary, 20)} />
       {/* Dentils */}
       {!simplified && Array.from({ length: 20 }).map((_, i) => (
@@ -410,15 +612,19 @@ const TownhouseTemplate: React.FC<{ colors: any, customizations: HouseCustomizat
       <rect x="152" y="80" width="8" height="90" fill={colors.detail} opacity="0.5" />
 
       {/* Windows - Tall Victorian */}
-      {renderWindow(55, 95, 20, 30, 'default', colors, simplified)}
-      {renderWindow(125, 95, 20, 30, 'default', colors, simplified)}
+      {renderWindow(55, 95, 20, 30, customizations.windowStyle || 'default', colors, simplified)}
+      {renderWindowTreatments(55, 95, 20, 30, customizations.windowTreatments || 'default', colors, simplified)}
+
+      {renderWindow(125, 95, 20, 30, customizations.windowStyle || 'default', colors, simplified)}
+      {renderWindowTreatments(125, 95, 20, 30, customizations.windowTreatments || 'default', colors, simplified)}
+
       {/* Window Lintels */}
       <rect x="53" y="92" width="24" height="3" fill={colors.secondary} />
       <rect x="123" y="92" width="24" height="3" fill={colors.secondary} />
 
       {/* Door with Steps */}
       <rect x="85" y="135" width="30" height="35" fill="none" />
-      {renderDoor(90, 135, 20, 35, 'double', colors, simplified)}
+      {renderDoor(90, 135, 20, 35, customizations.doorStyle || 'double', colors, simplified)}
 
       {/* Steps */}
       <rect x="85" y="170" width="30" height="3" fill="#888" />
@@ -434,6 +640,9 @@ const TownhouseTemplate: React.FC<{ colors: any, customizations: HouseCustomizat
           <rect x="110" y="155" width="10" height="2" fill="#222" />
         </>
       )}
+
+      {/* House Sign */}
+      {renderSign(100, 60, customizations.houseBoardText || '', colors, simplified)}
     </svg>
   )
 }
@@ -446,20 +655,28 @@ const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations,
       {/* Shadow */}
       <rect x="40" y="170" width="120" height="5" fill="black" opacity="0.2" />
 
-      {/* Vents/Pipes - MOVED BEFORE MAIN BLOCK */}
+      {/* Vents/Pipes */}
       <rect x="150" y="40" width="6" height="30" fill="#555" />
       <rect x="148" y="38" width="10" height="4" fill="#666" />
       {!simplified && <path d="M153 38 Q160 30 165 25" stroke="#DDD" strokeWidth="2" opacity="0.3" />}
 
       {/* Main Block - Concrete/Industrial */}
       <rect x="40" y="70" width="120" height="100" fill={wallColor} />
-      {/* Concrete seams */}
-      <rect x="40" y="100" width="120" height="1" fill={darken(wallColor, 10)} />
-      <rect x="40" y="135" width="120" height="1" fill={darken(wallColor, 10)} />
-      <rect x="100" y="70" width="1" height="100" fill={darken(wallColor, 10)} />
+
+      {/* Wall Patterns */}
+      {customizations.wallPattern === 'brick' && renderBrickTexture(40, 70, 120, 100, wallColor, simplified)}
+      {(customizations.wallPattern === 'default' || !customizations.wallPattern) && (
+        <>
+          {/* Concrete seams */}
+          <rect x="40" y="100" width="120" height="1" fill={darken(wallColor, 10)} />
+          <rect x="40" y="135" width="120" height="1" fill={darken(wallColor, 10)} />
+          <rect x="100" y="70" width="1" height="100" fill={darken(wallColor, 10)} />
+        </>
+      )}
 
       {/* Roof - Flat with parapet */}
       <rect x="38" y="65" width="124" height="5" fill="#333" />
+      {renderRoofTrim(38, 65, 124, customizations.roofTrim || 'default', '#333', simplified)}
 
       {/* Large Industrial Windows */}
       <rect x="50" y="80" width="30" height="40" fill="#222" />
@@ -467,11 +684,13 @@ const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations,
       {/* Grid */}
       <rect x="64" y="80" width="2" height="40" fill="#222" />
       <rect x="50" y="100" width="30" height="2" fill="#222" />
+      {renderWindowTreatments(50, 80, 30, 40, customizations.windowTreatments || 'default', colors, simplified)}
 
       <rect x="120" y="80" width="30" height="40" fill="#222" />
       <rect x="122" y="82" width="26" height="36" fill={colors.accent} opacity="0.8" />
       <rect x="134" y="80" width="2" height="40" fill="#222" />
       <rect x="120" y="100" width="30" height="2" fill="#222" />
+      {renderWindowTreatments(120, 80, 30, 40, customizations.windowTreatments || 'default', colors, simplified)}
 
       {/* Door - Metal */}
       <rect x="90" y="140" width="20" height="30" fill="#444" />
@@ -490,6 +709,9 @@ const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations,
           <rect x="75" y="115" width="1" height="10" fill="#222" />
         </>
       )}
+
+      {/* House Sign - Industrial style placement */}
+      {renderSign(100, 50, customizations.houseBoardText || '', colors, simplified)}
     </svg>
   )
 }
@@ -502,18 +724,27 @@ const CabinTemplate: React.FC<{ colors: any, customizations: HouseCustomizations
       {/* Shadow */}
       <rect x="35" y="165" width="130" height="5" fill="black" opacity="0.2" />
 
-      {/* Foundation - Raised Stone */}
+      {/* Foundation */}
       <rect x="40" y="150" width="120" height="20" fill="#555" />
-      {renderStoneTexture(40, 150, 120, 20, "#666", simplified)}
+      {(customizations.foundationStyle === 'stone' || !customizations.foundationStyle) && renderStoneTexture(40, 150, 120, 20, "#666", simplified)}
+      {customizations.foundationStyle === 'brick' && renderBrickTexture(40, 150, 120, 20, "#8B4513", simplified)}
 
-      {/* Chimney - Stone - MOVED BEFORE ROOF */}
-      <rect x="135" y="50" width="12" height="50" fill="#777" />
-      {renderStoneTexture(135, 50, 12, 50, "#888", simplified)}
+      {/* Chimney */}
+      {customizations.chimneyStyle !== 'none' && (
+        <>
+          <rect x="135" y="50" width="12" height="50" fill="#777" />
+          {customizations.chimneyStyle === 'brick'
+            ? renderBrickTexture(135, 50, 12, 50, "#8B4513", simplified)
+            : renderStoneTexture(135, 50, 12, 50, "#888", simplified)
+          }
+        </>
+      )}
 
-      {/* Log Walls */}
+      {/* Walls */}
       <rect x="40" y="100" width="120" height="50" fill={wallColor} />
-      {/* Logs */}
-      {Array.from({ length: 6 }).map((_, i) => (
+
+      {/* Logs (Default) */}
+      {(customizations.wallPattern === 'default' || !customizations.wallPattern) && Array.from({ length: 6 }).map((_, i) => (
         <g key={i}>
           <rect x="38" y={100 + i * 8} width="124" height="7" fill={wallColor} rx="3" />
           <rect x="38" y={100 + i * 8 + 4} width="124" height="2" fill={darken(wallColor, 15)} opacity="0.5" />
@@ -527,9 +758,21 @@ const CabinTemplate: React.FC<{ colors: any, customizations: HouseCustomizations
         </g>
       ))}
 
-      {/* Roof - Green Metal or Shingle */}
+      {/* Alternative Wall Patterns */}
+      {customizations.wallPattern === 'shingles' && renderWoodSiding(40, 100, 120, 50, wallColor, simplified)}
+      {customizations.wallPattern === 'stone_veneer' && renderStoneTexture(40, 100, 120, 50, wallColor, simplified)}
+
+      {/* Roof */}
       <path d="M30 100 L100 40 L170 100 Z" fill={colors.primary} />
       <path d="M30 100 L100 40 L170 100" stroke={darken(colors.primary, 20)} strokeWidth="2" fill="none" />
+
+      {/* Roof Texture */}
+      {customizations.roofMaterial === 'metal' && !simplified && (
+        <path d="M30 100 L100 40 L170 100" stroke={lighten(colors.primary, 20)} strokeWidth="1" fill="none" opacity="0.3" />
+      )}
+
+      {/* Roof Trim */}
+      {renderRoofTrim(30, 100, 140, customizations.roofTrim || 'default', colors.primary, simplified)}
 
       {/* Porch */}
       <rect x="35" y="150" width="130" height="5" fill="#5C4033" />
@@ -538,11 +781,17 @@ const CabinTemplate: React.FC<{ colors: any, customizations: HouseCustomizations
       <rect x="98" y="120" width="4" height="30" fill="#5C4033" />
 
       {/* Door */}
-      {renderDoor(90, 120, 20, 30, 'default', colors, simplified)}
+      {renderDoor(90, 120, 20, 30, customizations.doorStyle || 'default', colors, simplified)}
 
       {/* Windows */}
-      {renderWindow(55, 125, 15, 15, 'default', colors, simplified)}
-      {renderWindow(130, 125, 15, 15, 'default', colors, simplified)}
+      {renderWindow(55, 125, 15, 15, customizations.windowStyle || 'default', colors, simplified)}
+      {renderWindowTreatments(55, 125, 15, 15, customizations.windowTreatments || 'default', colors, simplified)}
+
+      {renderWindow(130, 125, 15, 15, customizations.windowStyle || 'default', colors, simplified)}
+      {renderWindowTreatments(130, 125, 15, 15, customizations.windowTreatments || 'default', colors, simplified)}
+
+      {/* House Sign */}
+      {renderSign(100, 90, customizations.houseBoardText || '', colors, simplified)}
     </svg>
   )
 }
