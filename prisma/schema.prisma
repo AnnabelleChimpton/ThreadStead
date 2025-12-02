@@ -172,6 +172,7 @@ model UserHomeDecoration {
   layer          Int      @default(1) // Z-layer for rendering order
   variant        String? // color variant, size, etc.
   size           String?  @default("medium") // small, medium, large
+  data           Json?    // Flexible storage for custom data (e.g. sign text)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

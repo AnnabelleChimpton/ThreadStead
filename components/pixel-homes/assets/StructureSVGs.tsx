@@ -5,10 +5,45 @@ interface AssetProps {
     variant: string
     scale: number
     className?: string
+    text?: string
 }
 
-export const StructureSVGs = ({ id, variant, scale, className }: AssetProps) => {
-    switch (id) {
+export const StructureSVGs = ({ id, variant, scale, className, text }: AssetProps) => {
+    // Normalize ID to handle instance IDs (e.g. sign_post_123 -> sign_post)
+    let normalizedId = id
+    if (id.startsWith('sign_post')) normalizedId = 'sign_post'
+    else if (id.startsWith('gazebo')) normalizedId = 'gazebo'
+    else if (id.startsWith('trellis')) normalizedId = 'trellis'
+    else if (id.startsWith('garden_arch')) normalizedId = 'garden_arch'
+
+    switch (normalizedId) {
+        case 'sign_post':
+            return (
+                <svg width={32 * scale} height={32 * scale} viewBox="0 0 32 32" className={className} shapeRendering="crispEdges">
+                    {/* Post */}
+                    <rect x="14" y="12" width="4" height="20" fill="#8B4513" />
+
+                    {/* Sign Board */}
+                    <rect x="2" y="4" width="28" height="12" fill="#DEB887" stroke="#8B4513" strokeWidth="1" />
+                    <rect x="4" y="6" width="24" height="8" fill="none" stroke="#8B4513" strokeWidth="0.5" opacity="0.5" />
+
+                    {/* Text */}
+                    {text && (
+                        <text
+                            x="16"
+                            y="13"
+                            textAnchor="middle"
+                            fontSize="6"
+                            fill="#5C4033"
+                            fontFamily="monospace"
+                            fontWeight="bold"
+                            style={{ userSelect: 'none' }}
+                        >
+                            {text.slice(0, 8)}
+                        </text>
+                    )}
+                </svg>
+            )
         case 'gazebo':
             return (
                 <svg width={48 * scale} height={48 * scale} viewBox="0 0 48 48" className={className} shapeRendering="crispEdges">

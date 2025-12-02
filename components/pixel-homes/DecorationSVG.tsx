@@ -17,6 +17,7 @@ interface DecorationSVGProps {
   className?: string
   renderSvg?: string | null  // Custom SVG from database
   customScale?: number
+  text?: string
 }
 
 // Size multipliers for different decoration sizes
@@ -33,10 +34,11 @@ export default function DecorationSVG({
   size = 'medium',
   className = '',
   renderSvg,
-  customScale
+  customScale,
+  text
 }: DecorationSVGProps) {
   const scale = customScale || SIZE_SCALES[size]
-  const props = { id: decorationId, variant, scale, className }
+  const props = { id: decorationId, variant, scale, className, text }
 
   switch (decorationType) {
     case 'plant':

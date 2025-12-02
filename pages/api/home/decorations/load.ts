@@ -9,6 +9,7 @@ interface DecorationItem {
   position: { x: number; y: number; layer?: number };
   variant?: string;
   size?: string;
+  data?: any;
   renderSvg?: string | null;
 }
 
@@ -26,10 +27,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Find the user by username
     const user = await db.user.findFirst({
-      where: { 
+      where: {
         OR: [
           { primaryHandle: username },
-          { 
+          {
             handles: {
               some: {
                 handle: username
@@ -84,6 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       variant: decoration.variant || 'default',
       size: decoration.size || 'medium',
+      data: decoration.data,
       ...(decorationItemMap.has(decoration.decorationId) && { renderSvg: decorationItemMap.get(decoration.decorationId) })
     }));
 
@@ -98,11 +100,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       timeOfDay: 'midday' as const
     };
 
-    return res.status(200).json({
+    const responseData = {
       ok: true,
       decorations: decorationItems,
       atmosphere: atmosphere
-    });
+    };
+
+    return res.status(200).json(responseData);
 
   } catch (error) {
     console.error('Error loading decorations:', error);

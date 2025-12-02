@@ -11,6 +11,7 @@ interface DecorationData {
   layer?: number;
   variant?: string;
   size?: string;
+  data?: any;
 }
 
 interface AtmosphereSettings {
@@ -21,7 +22,7 @@ interface AtmosphereSettings {
 
 interface HouseCustomizations {
   windowStyle?: 'default' | 'round' | 'arched' | 'bay';
-  doorStyle?: 'default' | 'arched' | 'double' | 'cottage';  
+  doorStyle?: 'default' | 'arched' | 'double' | 'cottage';
   roofTrim?: 'default' | 'ornate' | 'scalloped' | 'gabled';
   wallColor?: string;
   roofColor?: string;
@@ -43,8 +44,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Not logged in" });
   }
 
-  const { decorations, atmosphere, houseCustomizations, template, palette } = req.body as { 
-    decorations: DecorationData[], 
+  const { decorations, atmosphere, houseCustomizations, template, palette } = req.body as {
+    decorations: DecorationData[],
     atmosphere?: AtmosphereSettings,
     houseCustomizations?: HouseCustomizations,
     template?: string,
@@ -125,7 +126,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         positionY: decoration.positionY,
         layer: decoration.layer || 1,
         variant: decoration.variant || 'default',
-        size: decoration.size || 'medium'
+        size: decoration.size || 'medium',
+        data: decoration.data
       }));
 
       await db.userHomeDecoration.createMany({
@@ -133,9 +135,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    return res.status(200).json({ 
-      ok: true, 
-      saved: decorations.length 
+    return res.status(200).json({
+      ok: true,
+      saved: decorations.length
     });
 
   } catch (error) {

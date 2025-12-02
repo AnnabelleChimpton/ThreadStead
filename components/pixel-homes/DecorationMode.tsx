@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import DecorationSVG from './DecorationSVG'
-import TouchDecorationPlacer from './TouchDecorationPlacer'
+
 import DecorationPalette from './DecorationPalette'
 import DecorationGridOverlay, { MagneticGridOverlay } from './DecorationGridOverlay'
 import AnimatedDecoration, { DeletionAnimation, ActionFeedback } from './DecorationAnimations'
@@ -44,6 +44,14 @@ export default function DecorationMode({
   const isMobile = useIsMobile(768)
   const isTouch = useIsTouch()
 
+  // Normalize initial decorations to ensure text is available for editing
+  const normalizedInitialDecorations = useMemo(() => {
+    return initialDecorations.map(d => ({
+      ...d,
+      text: d.text || d.data?.text
+    }))
+  }, [initialDecorations])
+
   // Core State (using custom hook)
   const {
     decorations: placedDecorations,
@@ -58,7 +66,7 @@ export default function DecorationMode({
     redo,
     canUndo,
     canRedo
-  } = useDecorationState(initialDecorations)
+  } = useDecorationState(normalizedInitialDecorations)
 
   // UI State
   const [availableDecorations, setAvailableDecorations] = useState<Record<string, DecorationItem[]>>({})
@@ -107,8 +115,26 @@ export default function DecorationMode({
         const response = await fetch('/api/decorations/available')
         if (response.ok) {
           const data = await response.json()
+          // Merge API data with local BETA_ITEMS to ensure new dev items appear
+          const mergedDecorations = { ...data.decorations }
+
+          // Helper to merge categories
+          Object.keys(BETA_ITEMS).forEach(category => {
+            if (category === 'house' || category === 'atmosphere') return // Skip these as they are handled differently
+
+            const betaList = (BETA_ITEMS as any)[category] || []
+            const apiList = mergedDecorations[category] || []
+
+            // Add beta items that aren't in API data (deduplicate by ID)
+            const uniqueBetaItems = betaList.filter((betaItem: DecorationItem) =>
+              !apiList.some((apiItem: DecorationItem) => apiItem.id === betaItem.id)
+            )
+
+            mergedDecorations[category] = [...apiList, ...uniqueBetaItems]
+          })
+
           setAvailableDecorations({
-            ...data.decorations,
+            ...mergedDecorations,
             colors: BETA_ITEMS.colors
           })
         } else {
@@ -212,6 +238,14 @@ export default function DecorationMode({
     }
   }
 
+  const handleDecorationUpdate = (id: string, updates: Partial<DecorationItem>) => {
+    updateDecoration(id, updates)
+    // Also update selected item if it's the one being updated
+    if (selectedItem?.id === id) {
+      setSelectedItem(prev => prev ? { ...prev, ...updates } : null)
+    }
+  }
+
   const handleCanvasClick = (x: number, y: number, event: React.MouseEvent) => {
     if ((!isPlacing || !selectedItem) && !draggedItem) {
       setSelectedItem(null)
@@ -246,6 +280,12 @@ export default function DecorationMode({
 
     addDecoration(newDecoration)
     clearPreview()
+
+    // Auto-select sign post for immediate editing
+    if (itemToPlace.id === 'sign_post') {
+      setSelectedItem(newDecoration)
+      setIsPlacing(false)
+    }
 
     if (draggedItem) {
       setDraggedItem(null)
@@ -288,21 +328,24 @@ export default function DecorationMode({
     }
   }
 
-  const handleTouchPlace = (x: number, y: number) => {
-    if (!selectedItem) return
 
-    // x and y are already normalized from TouchDecorationPlacer
-    handleCanvasClick(x, y, {} as React.MouseEvent)
-  }
 
   const handleSave = () => {
-    onSave({
-      decorations: placedDecorations,
+    // Map decorations to include data field if text exists
+    const decorationsToSave = placedDecorations.map(d => ({
+      ...d,
+      data: d.text ? { text: d.text } : d.data
+    }))
+
+    const payload = {
+      decorations: decorationsToSave,
       houseCustomizations,
       atmosphere,
       template: currentTemplate,
       palette: currentPalette
-    })
+    }
+
+    onSave(payload)
   }
 
   return (
@@ -383,11 +426,17 @@ export default function DecorationMode({
               onClick={handleCanvasClick}
               onMouseMove={handleMouseMove}
               onDecorationClick={(id, e) => {
+                if (isPlacing) return
                 e.stopPropagation()
                 if (isDeleting) {
                   removeDecorations(new Set([id]))
                 } else {
                   selectDecoration(id)
+                  // Also set as selected item for palette editing (e.g. sign text)
+                  const clickedDecoration = placedDecorations.find(d => d.id === id)
+                  if (clickedDecoration) {
+                    setSelectedItem(clickedDecoration)
+                  }
                 }
               }}
               onDecorationMouseDown={handleDecorationMouseDown}
@@ -395,20 +444,12 @@ export default function DecorationMode({
               onScaleChange={setCanvasScale}
             />
 
-            {/* Touch Controls Overlay - Only on mobile touch devices */}
-            {isTouch && isMobile && isPlacing && selectedItem && (
-              <TouchDecorationPlacer
-                selectedDecoration={selectedItem}
-                onTouchPlace={handleTouchPlace}
-                canvasWidth={CANVAS_WIDTH}
-                canvasHeight={CANVAS_HEIGHT}
-              />
-            )}
+
           </div>
         </div>
 
         {/* Sidebar / Palette */}
-        <div className="w-80 border-l bg-white flex flex-col shrink-0">
+        <div className="w-[500px] border-l bg-white flex flex-col shrink-0">
           <DecorationPalette
             items={availableDecorations}
             onItemSelect={handleItemSelect}
@@ -421,6 +462,7 @@ export default function DecorationMode({
             }}
             currentTemplate={currentTemplate}
             currentPalette={currentPalette}
+            onDecorationUpdate={handleDecorationUpdate}
           />
         </div>
       </div>

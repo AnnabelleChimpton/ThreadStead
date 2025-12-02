@@ -2,6 +2,7 @@ import { HouseTemplate, ColorPalette } from '../../components/pixel-homes/HouseS
 
 export interface DecorationItem {
     id: string
+    decorationId?: string
     name: string
     type: 'plant' | 'path' | 'feature' | 'seasonal' | 'furniture' | 'lighting' | 'water' | 'structure' | 'house_custom' | 'house_color' | 'sky' | 'house_template'
     zone?: 'front_yard' | 'house_facade' | 'background'
@@ -107,7 +108,8 @@ export const BETA_ITEMS = {
     structures: [
         { id: 'gazebo', name: 'Garden Gazebo', type: 'structure', zone: 'front_yard' },
         { id: 'trellis', name: 'Garden Trellis', type: 'structure', zone: 'front_yard' },
-        { id: 'garden_arch', name: 'Garden Arch', type: 'structure', zone: 'front_yard' }
+        { id: 'garden_arch', name: 'Garden Arch', type: 'structure', zone: 'front_yard' },
+        { id: 'sign_post', name: 'Sign Post', type: 'structure', zone: 'front_yard' }
     ],
     atmosphere: [
         { id: 'sunny_sky', name: 'Sunny Day', type: 'sky', zone: 'background' },

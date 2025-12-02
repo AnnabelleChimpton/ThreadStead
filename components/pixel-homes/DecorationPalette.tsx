@@ -16,6 +16,7 @@ interface DecorationPaletteProps {
   onThemeChange: (template: HouseTemplate, palette: ColorPalette) => void
   currentTemplate: HouseTemplate
   currentPalette: ColorPalette
+  onDecorationUpdate?: (id: string, updates: Partial<DecorationItem>) => void
 }
 
 const PRIMARY_CATEGORIES = {
@@ -74,7 +75,8 @@ export default function DecorationPalette({
   onHouseCustomizationChange,
   onThemeChange,
   currentTemplate,
-  currentPalette
+  currentPalette,
+  onDecorationUpdate
 }: DecorationPaletteProps) {
   const [primaryCategory, setPrimaryCategory] = useState<string>('decorations')
   const [secondaryCategory, setSecondaryCategory] = useState<string>('plants')
@@ -167,78 +169,48 @@ export default function DecorationPalette({
 
   // Render content based on category
   const renderContent = () => {
-    if (primaryCategory === 'themes') {
-      return (
-        <div className="h-full p-4 overflow-y-auto">
-          <ThemePicker
-            onSelection={onThemeChange}
-            initialTemplate={currentTemplate}
-            initialPalette={currentPalette}
-            showExplanation={false}
-            showPreview={false}
-            immediateSelection={true}
-            isSidebar={true}
-            className="space-y-4"
-          />
-        </div>
-      )
-    }
-
-    if (primaryCategory === 'text') {
+    // 1. Sign Post Text Input (Highest Priority)
+    if (selectedItem?.id.startsWith('sign_post') && onDecorationUpdate) {
       return (
         <div className="h-full p-4 overflow-y-auto">
           <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
             <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 flex items-center gap-2">
-              📝 House Text Settings
+              🪧 Sign Post Settings
             </h3>
 
-            <div className="space-y-4">
-              {/* House Title */}
-              <div>
-                <label className="block text-sm font-medium text-thread-pine mb-2">
-                  🏷️ House Title
-                  <span className="text-xs text-thread-sage ml-2">(Max 50 chars)</span>
-                </label>
-                <input
-                  type="text"
-                  value={houseCustomizations.houseTitle || ''}
-                  onChange={(e) => onHouseCustomizationChange({ houseTitle: e.target.value.slice(0, 50) })}
-                  placeholder="e.g., 'My Creative Space'"
-                  maxLength={50}
-                  className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
-                  style={{ minHeight: '48px' }}
-                />
-                <div className="text-xs text-gray-700 text-right mt-1">
-                  {(houseCustomizations.houseTitle || '').length}/50
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-thread-pine mb-2">
+                Sign Text
+                <span className="text-xs text-thread-sage ml-2">(Max 8 chars)</span>
+              </label>
+              <input
+                type="text"
+                value={selectedItem.text || ''}
+                onChange={(e) => onDecorationUpdate(selectedItem.id, { text: e.target.value.slice(0, 8) })}
+                placeholder="e.g., HELLO"
+                maxLength={8}
+                className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation font-mono"
+                style={{ minHeight: '48px' }}
+              />
+              <div className="text-xs text-gray-700 text-right mt-1">
+                {(selectedItem.text || '').length}/8
               </div>
+            </div>
 
-              {/* House Sign Text */}
-              <div>
-                <label className="block text-sm font-medium text-thread-pine mb-2">
-                  🪧 House Sign
-                  <span className="text-xs text-thread-sage ml-2">(Max 20 chars)</span>
-                </label>
-                <input
-                  type="text"
-                  value={houseCustomizations.houseBoardText || ''}
-                  onChange={(e) => onHouseCustomizationChange({ houseBoardText: e.target.value.slice(0, 20) })}
-                  placeholder="e.g., 'Welcome!'"
-                  maxLength={20}
-                  className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
-                  style={{ minHeight: '48px' }}
-                />
-                <div className="text-xs text-gray-700 text-right mt-1">
-                  {(houseCustomizations.houseBoardText || '').length}/20
-                </div>
-              </div>
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => onItemSelect(null)}
+                className="w-full px-4 py-2 text-sm text-thread-sage border border-thread-sage rounded hover:bg-thread-cream hover:bg-opacity-50 transition-colors"
+              >
+                Back to Selection
+              </button>
             </div>
           </div>
         </div>
       )
     }
 
-    // Color Picker View
+    // 2. Color Picker View
     if (selectedItem?.type === 'house_color') {
       const getColorKey = (id: string): keyof HouseCustomizations | null => {
         switch (id) {
@@ -324,6 +296,78 @@ export default function DecorationPalette({
       )
     }
 
+    // 3. Category Views
+    if (primaryCategory === 'themes') {
+      return (
+        <div className="h-full p-4 overflow-y-auto">
+          <ThemePicker
+            onSelection={onThemeChange}
+            initialTemplate={currentTemplate}
+            initialPalette={currentPalette}
+            showExplanation={false}
+            showPreview={false}
+            immediateSelection={true}
+            isSidebar={true}
+            className="space-y-4"
+          />
+        </div>
+      )
+    }
+
+    if (primaryCategory === 'text') {
+      return (
+        <div className="h-full p-4 overflow-y-auto">
+          <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
+            <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 flex items-center gap-2">
+              📝 House Text Settings
+            </h3>
+
+            <div className="space-y-4">
+              {/* House Title */}
+              <div>
+                <label className="block text-sm font-medium text-thread-pine mb-2">
+                  🏷️ House Title
+                  <span className="text-xs text-thread-sage ml-2">(Max 50 chars)</span>
+                </label>
+                <input
+                  type="text"
+                  value={houseCustomizations.houseTitle || ''}
+                  onChange={(e) => onHouseCustomizationChange({ houseTitle: e.target.value.slice(0, 50) })}
+                  placeholder="e.g., 'My Creative Space'"
+                  maxLength={50}
+                  className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
+                  style={{ minHeight: '48px' }}
+                />
+                <div className="text-xs text-gray-700 text-right mt-1">
+                  {(houseCustomizations.houseTitle || '').length}/50
+                </div>
+              </div>
+
+              {/* House Sign Text */}
+              <div>
+                <label className="block text-sm font-medium text-thread-pine mb-2">
+                  🪧 House Sign
+                  <span className="text-xs text-thread-sage ml-2">(Max 20 chars)</span>
+                </label>
+                <input
+                  type="text"
+                  value={houseCustomizations.houseBoardText || ''}
+                  onChange={(e) => onHouseCustomizationChange({ houseBoardText: e.target.value.slice(0, 20) })}
+                  placeholder="e.g., 'Welcome!'"
+                  maxLength={20}
+                  className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
+                  style={{ minHeight: '48px' }}
+                />
+                <div className="text-xs text-gray-700 text-right mt-1">
+                  {(houseCustomizations.houseBoardText || '').length}/20
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     // Default Grid View
     return (
       <div
@@ -341,7 +385,7 @@ export default function DecorationPalette({
             </div>
           </div>
         ) : (
-          <div className={`!grid ${isMobile ? '!grid-cols-3 !gap-2' : '!grid-cols-4 lg:!grid-cols-5 xl:!grid-cols-6 !gap-4'}`}>
+          <div className={`!grid ${isMobile ? '!grid-cols-3 !gap-2' : '!grid-cols-5 !gap-4'}`}>
             {currentItems.map((item) => (
               <button
                 key={item.id}
@@ -407,7 +451,7 @@ export default function DecorationPalette({
   return (
     <div className={`decoration-palette flex flex-col h-full bg-white ${className}`}>
       {/* Search Bar - Only show for grid views */}
-      {primaryCategory !== 'themes' && primaryCategory !== 'text' && !selectedItem?.type?.includes('house_color') && (
+      {primaryCategory !== 'themes' && primaryCategory !== 'text' && !selectedItem?.type?.includes('house_color') && !selectedItem?.id.startsWith('sign_post') && (
         <div className="px-4 pt-4 pb-2">
           <div className="relative">
             <input
@@ -456,7 +500,7 @@ export default function DecorationPalette({
       </div>
 
       {/* Secondary Category Navigation */}
-      {hasSecondaryCategories && !searchQuery && primaryCategory !== 'themes' && primaryCategory !== 'text' && !selectedItem?.type?.includes('house_color') && (
+      {hasSecondaryCategories && !searchQuery && primaryCategory !== 'themes' && primaryCategory !== 'text' && !selectedItem?.type?.includes('house_color') && !selectedItem?.id.startsWith('sign_post') && (
         <div className="flex-none border-b border-gray-100 bg-gray-50/50">
           <div className={`flex overflow-x-auto hide-scrollbar ${isMobile ? 'px-2' : 'px-4'} py-2 gap-2`}>
             {Object.entries(secondaryCategories).map(([key, subcategory]) => (

@@ -241,6 +241,7 @@ export default function EnhancedHouseCanvas({
                 size={item.size}
                 className="drop-shadow-sm"
                 renderSvg={item.renderSvg}
+                text={item.text || item.data?.text}
               />
             </div>
           )
