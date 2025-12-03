@@ -8,7 +8,7 @@ import AnimatedDecoration, { DeletionAnimation, ActionFeedback } from './Decorat
 import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
 import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping'
 import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
-import { DEFAULT_DECORATION_GRID, DecorationGridConfig } from '@/lib/pixel-homes/decoration-grid-utils'
+import { DEFAULT_DECORATION_GRID, DecorationGridConfig, getDecorationGridSize } from '@/lib/pixel-homes/decoration-grid-utils'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import { DecorationItem, BETA_ITEMS, PALETTE_COLORS } from '@/lib/pixel-homes/decoration-data'
 import { useDecorationState } from '@/hooks/useDecorationState'
@@ -100,7 +100,7 @@ export default function DecorationMode({
   const [dragOffset, setDragOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
 
   // Grid system state
-  const [gridConfig, setGridConfig] = useState<DecorationGridConfig>(DEFAULT_DECORATION_GRID)
+  const gridConfig = DEFAULT_DECORATION_GRID
   const [mousePosition, setMousePosition] = useState<{ x: number, y: number } | undefined>()
   const [canvasScale, setCanvasScale] = useState(1)
 
@@ -162,7 +162,7 @@ export default function DecorationMode({
   } = useDecorationSnapping({
     gridConfig,
     decorations: placedDecorations.filter(d => !['house_custom', 'house_color'].includes(d.type)) as any[],
-    enableSnapping: false,
+    enableSnapping: true,
     enableSpacingSuggestions: false
   })
 
@@ -254,42 +254,72 @@ export default function DecorationMode({
       return
     }
 
-    // Coordinates are now passed in normalized form from EnhancedHouseCanvas
-
     const itemToPlace = draggedItem || selectedItem
     if (!itemToPlace || ['sky', 'house_custom', 'house_template', 'house_color'].includes(itemToPlace.type)) return
 
+    // Calculate position with offset
+    // If placing new item, center it (offset is half size)
+    // If dragging, use the calculated dragOffset
+    let finalX = x
+    let finalY = y
+
+    if (isPlacing && selectedItem) {
+      // Center the item
+      const size = getDecorationGridSize(selectedItem.type, selectedItem.id, selectedItem.size || 'medium')
+      const pixelWidth = size.width * gridConfig.cellSize
+      const pixelHeight = size.height * gridConfig.cellSize
+      finalX = x - (pixelWidth / 2)
+      finalY = y - (pixelHeight / 2)
+    } else if (draggedItem) {
+      finalX = x - dragOffset.x
+      finalY = y - dragOffset.y
+    }
+
     const snapResult = snapDecoration(
-      x,
-      y,
+      finalX,
+      finalY,
       itemToPlace.type as any,
       itemToPlace.id,
       itemToPlace.size || 'medium'
     )
 
+    // Determine z-index layer based on type and Y position for depth sorting
+    // Base layers separate categories:
+    // Paths: 1000+ (Bottom)
+    // Water: 2000+ (Middle)
+    // Objects: 3000+ (Top)
+    let baseLayer = 3000
+    if (itemToPlace.type === 'path') baseLayer = 1000
+    else if (itemToPlace.type === 'water') baseLayer = 2000
+
+    // Calculate item height in pixels to sort by "feet" (bottom Y)
+    const size = getDecorationGridSize(itemToPlace.type, itemToPlace.id, itemToPlace.size || 'medium')
+    const pixelHeight = size.height * gridConfig.cellSize
+
+    // Add bottom Y position to base layer for Y-sorting (items lower on screen appear in front)
+    const layer = baseLayer + Math.round(snapResult.position.pixelY + pixelHeight)
+
     const newDecoration: DecorationItem = {
       ...itemToPlace,
-      id: `${itemToPlace.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: draggedItem ? itemToPlace.id : `${itemToPlace.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       position: {
         x: snapResult.position.pixelX,
-        y: snapResult.position.pixelY
+        y: snapResult.position.pixelY,
+        layer
       },
       variant: itemToPlace.variant || 'default',
       size: itemToPlace.size || 'medium'
     }
 
-    addDecoration(newDecoration)
-    clearPreview()
-
-    // Auto-select sign post for immediate editing
-    if (itemToPlace.id === 'sign_post') {
-      setSelectedItem(newDecoration)
-      setIsPlacing(false)
-    }
-
     if (draggedItem) {
+      handleDecorationUpdate(draggedItem.id, { position: newDecoration.position })
       setDraggedItem(null)
       setIsDragging(false)
+    } else {
+      addDecoration(newDecoration)
+      // Don't clear selection or placement mode to allow rapid placement
+      // But we do need to update the preview to the new mouse position immediately
+      // which happens in onMouseMove
     }
   }
 
@@ -305,26 +335,60 @@ export default function DecorationMode({
       selectDecoration(decorationId)
 
       // Calculate offset from mouse to decoration top-left
-      // We need to use the scaled coordinates
-      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-      // This logic needs to be consistent with EnhancedHouseCanvas scaling
-      // But since we receive normalized coordinates in onMouseMove, we should probably rely on that
-      // For now, let's just set a simple offset or improve this later
-      setDragOffset({ x: 0, y: 0 })
+      // We need to use the scaled coordinates from the canvas
+      // Since we don't have the exact canvas scale here easily without ref,
+      // we'll rely on the fact that handleMouseMove gives us normalized coordinates.
+      // But for the initial grab, we need to know where the mouse is relative to the item *in grid space*.
+
+      // We can't easily get normalized X/Y here without the canvas logic.
+      // However, we can calculate it if we assume the mouse is at the position passed to onMouseMove.
+      // A better approach: The canvas calls this handler. 
+      // We should probably update EnhancedHouseCanvas to pass normalized X/Y to onDecorationMouseDown too.
+
+      // For now, let's approximate or rely on the first mouse move to set it? 
+      // No, that causes a jump.
+
+      // Let's assume the click was valid and we can just use the current mouse position from state if available?
+      // Or better: update EnhancedHouseCanvas to pass x,y to onDecorationMouseDown.
+
+      // WORKAROUND: We'll calculate the offset in the first mouse move if we don't have it.
+      // OR: We can just snap to the center of the item when dragging starts? No, that jumps.
+
+      // Let's use the mousePosition state if it's fresh?
+      if (mousePosition && decoration.position) {
+        setDragOffset({
+          x: mousePosition.x - decoration.position.x,
+          y: mousePosition.y - decoration.position.y
+        })
+      } else {
+        setDragOffset({ x: 0, y: 0 })
+      }
     }
   }
 
   const handleMouseMove = (x: number, y: number, event: React.MouseEvent) => {
     setMousePosition({ x, y })
 
+    let targetX = x
+    let targetY = y
+
     if (isPlacing && selectedItem) {
-      updatePreview(x, y, selectedItem.type as any, selectedItem.id, selectedItem.size || 'medium')
+      // Center the item
+      const size = getDecorationGridSize(selectedItem.type, selectedItem.id, selectedItem.size || 'medium')
+      const pixelWidth = size.width * gridConfig.cellSize
+      const pixelHeight = size.height * gridConfig.cellSize
+      targetX = x - (pixelWidth / 2)
+      targetY = y - (pixelHeight / 2)
+
+      updatePreview(targetX, targetY, selectedItem.type as any, selectedItem.id, selectedItem.size || 'medium')
     }
 
     if (isDragging && draggedItem) {
-      // Move logic would go here
-      // For now, we just update the preview to show where it would drop
-      updatePreview(x, y, draggedItem.type as any, draggedItem.id, draggedItem.size || 'medium')
+      // Apply drag offset
+      targetX = x - dragOffset.x
+      targetY = y - dragOffset.y
+
+      updatePreview(targetX, targetY, draggedItem.type as any, draggedItem.id, draggedItem.size || 'medium')
     }
   }
 

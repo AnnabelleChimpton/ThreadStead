@@ -12,6 +12,16 @@ export interface DecorationGridConfig {
   canvasHeight: number;    // Canvas height in pixels
 }
 
+// Default grid configuration for decoration canvas
+export const DEFAULT_DECORATION_GRID: DecorationGridConfig = {
+  cellSize: 16,              // 16px grid cells (standard pixel art tile size)
+  snapDistance: 8,           // 8px magnetic snap zone
+  showGrid: true,            // Enabled by default
+  magneticSnapping: true,    // Enabled by default
+  canvasWidth: 500,          // Standard canvas width
+  canvasHeight: 350          // Standard canvas height
+}
+
 export interface GridPosition {
   gridX: number;    // Grid column (0-based)
   gridY: number;    // Grid row (0-based)
@@ -24,16 +34,6 @@ export interface SnapResult {
   snapped: boolean;
   snapType: 'grid' | 'decoration' | 'spacing' | 'none';
   snapTarget?: string; // ID of decoration snapped to
-}
-
-// Default grid configuration for decoration canvas
-export const DEFAULT_DECORATION_GRID: DecorationGridConfig = {
-  cellSize: 5,               // 5px grid cells for snappy, precise control
-  snapDistance: 3,           // 3px magnetic snap zone (reduced proportionally)
-  showGrid: true,            // Enabled by default
-  magneticSnapping: true,    // Enabled by default
-  canvasWidth: 500,          // Standard canvas width
-  canvasHeight: 350          // Standard canvas height
 }
 
 /**
@@ -170,6 +170,11 @@ export function getDecorationGridSize(
 
   const baseSize = baseSizes[decorationType] || { width: 1, height: 1 };
 
+  // Special cases for specific items
+  if (decorationId.startsWith('sign_post')) {
+    return { width: 1, height: 1 };
+  }
+
   // Scale multipliers for size variants
   const sizeMultipliers = {
     small: 0.8,
@@ -200,17 +205,17 @@ export function isValidGridPosition(
 
   // Check bounds
   if (gridX < 0 || gridY < 0 ||
-      gridX + decorationSize.width > maxGridX ||
-      gridY + decorationSize.height > maxGridY) {
+    gridX + decorationSize.width > maxGridX ||
+    gridY + decorationSize.height > maxGridY) {
     return false;
   }
 
   // Check collision with existing decorations
   for (const existing of existingDecorations) {
     if (gridX < existing.gridX + existing.width &&
-        gridX + decorationSize.width > existing.gridX &&
-        gridY < existing.gridY + existing.height &&
-        gridY + decorationSize.height > existing.gridY) {
+      gridX + decorationSize.width > existing.gridX &&
+      gridY < existing.gridY + existing.height &&
+      gridY + decorationSize.height > existing.gridY) {
       return false;
     }
   }

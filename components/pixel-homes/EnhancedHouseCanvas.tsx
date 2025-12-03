@@ -3,6 +3,7 @@ import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './Ho
 import DecorationSVG from './DecorationSVG'
 import AnimatedDecoration from './DecorationAnimations'
 import { DecorationItem } from '@/lib/pixel-homes/decoration-data'
+import { DEFAULT_DECORATION_GRID, getDecorationGridSize } from '@/lib/pixel-homes/decoration-grid-utils'
 
 interface EnhancedHouseCanvasProps {
   template: HouseTemplate
@@ -110,20 +111,14 @@ export default function EnhancedHouseCanvas({
     return () => resizeObserver.disconnect()
   }, [onScaleChange])
 
-  useEffect(() => {
-    console.log('EnhancedHouseCanvas decorations updated:', decorations.length)
-  }, [decorations])
-
   const handleInteraction = (
     event: React.MouseEvent,
     handler?: (x: number, y: number, event: React.MouseEvent) => void
   ) => {
-    console.log('EnhancedHouseCanvas: handleInteraction', event.type, 'handler exists:', !!handler)
     if (!handler) return
     const rect = event.currentTarget.getBoundingClientRect()
     const x = (event.clientX - rect.left) / scale
     const y = (event.clientY - rect.top) / scale
-    console.log('EnhancedHouseCanvas: normalized coords', x, y)
     handler(x, y, event)
   }
 
@@ -193,30 +188,48 @@ export default function EnhancedHouseCanvas({
             selectedDecorations?.has(item.id) ? 'select' :
               animatedDecorations?.get(item.id) || undefined
 
+          // Calculate grid size for alignment
+          const gridSize = getDecorationGridSize(item.type, item.id, item.size || 'medium')
+          const pixelWidth = gridSize.width * DEFAULT_DECORATION_GRID.cellSize
+          const pixelHeight = gridSize.height * DEFAULT_DECORATION_GRID.cellSize
+
+          // Wrapper style for bottom alignment
+          const wrapperStyle: React.CSSProperties = {
+            left: item.position?.x || 0,
+            top: item.position?.y || 0,
+            width: pixelWidth,
+            height: pixelHeight,
+            zIndex: item.position?.layer || 10,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            pointerEvents: 'none' // Allow clicks to pass through wrapper
+          }
+
           // Use AnimatedDecoration if animations are available and this decoration needs animation
           if (hasAnimations && animationType) {
             return (
               <div
                 key={item.id}
                 className="absolute"
-                style={{
-                  left: item.position?.x || 0,
-                  top: item.position?.y || 0,
-                  zIndex: item.position?.layer || 10
-                }}
-                onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
-                onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
+                style={wrapperStyle}
               >
-                <AnimatedDecoration
-                  decorationType={item.type}
-                  decorationId={item.decorationId || item.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')}
-                  variant={item.variant}
-                  size={item.size}
-                  position={{ x: 0, y: 0 }} // Position is handled by parent div
-                  animationType={animationType}
-                  onAnimationComplete={() => onAnimationComplete?.(item.id)}
-                  className={`cursor-pointer ${onDecorationClick || onDecorationMouseDown ? 'hover:scale-110 transition-transform' : ''}`}
-                />
+                <div
+                  className="pointer-events-auto"
+                  onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
+                  onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
+                >
+                  <AnimatedDecoration
+                    decorationType={item.type}
+                    decorationId={item.decorationId || item.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')}
+                    variant={item.variant}
+                    size={item.size}
+                    position={{ x: 0, y: 0 }} // Position handled by wrapper
+                    animationType={animationType}
+                    onAnimationComplete={() => onAnimationComplete?.(item.id)}
+                    className="cursor-pointer block"
+                  />
+                </div>
               </div>
             )
           }
@@ -225,24 +238,24 @@ export default function EnhancedHouseCanvas({
           return (
             <div
               key={item.id}
-              className={`absolute ${onDecorationClick || onDecorationMouseDown ? 'cursor-pointer hover:scale-110 transition-transform' : ''}`}
-              style={{
-                left: item.position?.x || 0,
-                top: item.position?.y || 0,
-                zIndex: item.position?.layer || 10
-              }}
-              onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
-              onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
+              className="absolute"
+              style={wrapperStyle}
             >
-              <DecorationSVG
-                decorationType={item.type}
-                decorationId={item.decorationId || item.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')}
-                variant={item.variant}
-                size={item.size}
-                className="drop-shadow-sm"
-                renderSvg={item.renderSvg}
-                text={item.text || item.data?.text}
-              />
+              <div
+                className={`pointer-events-auto ${onDecorationClick || onDecorationMouseDown ? 'cursor-pointer' : ''}`}
+                onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
+                onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
+              >
+                <DecorationSVG
+                  decorationType={item.type}
+                  decorationId={item.decorationId || item.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')}
+                  variant={item.variant}
+                  size={item.size}
+                  className="drop-shadow-sm block max-w-none"
+                  renderSvg={item.renderSvg}
+                  text={item.text || item.data?.text}
+                />
+              </div>
             </div>
           )
         })}
@@ -304,13 +317,34 @@ export default function EnhancedHouseCanvas({
           </div>
 
           {/* Preview Item (Ghost) */}
-          {isPlacing && previewPosition && previewItem && (
+          {previewPosition && previewItem && (
             <div
               className="absolute pointer-events-none opacity-50"
               style={{
                 left: previewPosition.x,
                 top: previewPosition.y,
-                zIndex: 20
+                width: (() => {
+                  const gridSize = getDecorationGridSize(previewItem.type, previewItem.id, previewItem.size || 'medium')
+                  return gridSize.width * DEFAULT_DECORATION_GRID.cellSize
+                })(),
+                height: (() => {
+                  const gridSize = getDecorationGridSize(previewItem.type, previewItem.id, previewItem.size || 'medium')
+                  return gridSize.height * DEFAULT_DECORATION_GRID.cellSize
+                })(),
+                zIndex: (() => {
+                  let baseLayer = 3000
+                  if (previewItem.type === 'path') baseLayer = 1000
+                  else if (previewItem.type === 'water') baseLayer = 2000
+
+                  // Calculate height for sorting
+                  const gridSize = getDecorationGridSize(previewItem.type, previewItem.id, previewItem.size || 'medium')
+                  const pixelHeight = gridSize.height * DEFAULT_DECORATION_GRID.cellSize
+
+                  return baseLayer + Math.round(previewPosition.y + pixelHeight)
+                })(),
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'center'
               }}
             >
               <DecorationSVG
@@ -318,6 +352,7 @@ export default function EnhancedHouseCanvas({
                 decorationId={previewItem.id}
                 variant={previewItem.variant}
                 size={previewItem.size}
+                className="block max-w-none"
               />
             </div>
           )}
