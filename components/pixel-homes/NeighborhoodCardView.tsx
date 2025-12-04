@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSwipeGesture, SwipeDirection } from '../../hooks/useSwipeGesture';
 import EnhancedHouseCanvas from './EnhancedHouseCanvas';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface HomeDecoration {
   id: string;
@@ -190,7 +191,7 @@ const NeighborhoodCardView: React.FC<NeighborhoodCardViewProps> = ({
           transition: 'transform 0.5s ease-out',
         }}
       >
-        {isNight ? '🌙' : '☀️'}
+        {isNight ? <PixelIcon name="moon" size={48} className="text-yellow-200" /> : <PixelIcon name="sun" size={48} className="text-yellow-400" />}
       </div>
     );
   };
@@ -273,9 +274,9 @@ const NeighborhoodCardView: React.FC<NeighborhoodCardViewProps> = ({
               <div className={`card-sky-background bg-gradient-to-b ${skyGradients[timeOfDay]}`}>
                 <CelestialBody />
                 {/* Static clouds for card view */}
-                <div className="absolute top-20 left-10 text-3xl opacity-60">☁️</div>
-                <div className="absolute top-32 right-20 text-2xl opacity-50">☁️</div>
-                <div className="absolute top-24 left-1/3 text-3xl opacity-55">☁️</div>
+                <div className="absolute top-20 left-10 opacity-60"><PixelIcon name="cloud" size={36} className="text-white" /></div>
+                <div className="absolute top-32 right-20 opacity-50"><PixelIcon name="cloud" size={28} className="text-white" /></div>
+                <div className="absolute top-24 left-1/3 opacity-55"><PixelIcon name="cloud" size={36} className="text-white" /></div>
               </div>
 
               {/* Ground Layer */}
@@ -335,13 +336,13 @@ const NeighborhoodCardView: React.FC<NeighborhoodCardViewProps> = ({
                     )}
                     {member.homeConfig.decorationCount !== undefined && member.homeConfig.decorationCount > 0 && (
                       <div className="card-stat-item">
-                        <span>🎨</span>
+                        <PixelIcon name="paint-bucket" size={14} className="inline-block" />
                         <span>{member.homeConfig.decorationCount} decorations</span>
                       </div>
                     )}
                     {member.connection?.mutualRings !== undefined && member.connection.mutualRings > 0 && (
                       <div className="card-stat-item">
-                        <span>🔗</span>
+                        <PixelIcon name="link" size={14} className="inline-block" />
                         <span>{member.connection.mutualRings} mutual rings</span>
                       </div>
                     )}

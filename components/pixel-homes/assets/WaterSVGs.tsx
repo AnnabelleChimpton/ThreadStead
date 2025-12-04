@@ -46,7 +46,11 @@ export const WaterSVGs = ({ id, variant, scale, className }: AssetProps) => {
             return (
                 <svg width={24 * scale} height={24 * scale} viewBox="0 0 24 24" className={className} shapeRendering="crispEdges">
                     <rect x="4" y="12" width="16" height="8" fill="#4682B4" rx="4" />
-                    <text x="12" y="16" textAnchor="middle" fontSize="10" fill="white">💧</text>
+                    {/* Simple water drop shape fallback */}
+                    <rect x="11" y="8" width="2" height="2" fill="#B0E0E6" />
+                    <rect x="10" y="10" width="4" height="2" fill="#B0E0E6" />
+                    <rect x="9" y="12" width="6" height="3" fill="#87CEEB" />
+                    <rect x="10" y="15" width="4" height="2" fill="#4682B4" />
                 </svg>
             )
     }

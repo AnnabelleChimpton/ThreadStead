@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 export interface FilterState {
   activeOnly: boolean;
@@ -202,9 +203,9 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
               <h4 className="text-sm font-semibold text-gray-900">Sort By</h4>
               <div className="space-y-2">
                 {[
-                  { value: 'recent' as const, label: '🕐 Recently Active', desc: 'Most recently active users first' },
-                  { value: 'alphabetical' as const, label: '🔤 Alphabetical', desc: 'Sorted by username A-Z' },
-                  { value: 'random' as const, label: '🎲 Random', desc: 'Shuffle order each time' },
+                  { value: 'recent' as const, label: 'Recently Active', icon: 'clock' as const, desc: 'Most recently active users first' },
+                  { value: 'alphabetical' as const, label: 'Alphabetical', icon: 'sort' as const, desc: 'Sorted by username A-Z' },
+                  { value: 'random' as const, label: 'Random', icon: 'dice' as const, desc: 'Shuffle order each time' },
                 ].map(option => (
                   <label
                     key={option.value}
@@ -223,7 +224,10 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
                       className="mt-1 w-4 h-4 text-thread-pine focus:ring-thread-pine"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900">{option.label}</div>
+                      <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                        <PixelIcon name={option.icon} size={16} />
+                        {option.label}
+                      </div>
                       <div className="text-xs text-gray-600">{option.desc}</div>
                     </div>
                   </label>

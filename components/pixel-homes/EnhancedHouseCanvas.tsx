@@ -23,6 +23,7 @@ interface EnhancedHouseCanvasProps {
   onAnimationComplete?: (decorationId: string) => void
   // Interaction props
   isPlacing?: boolean
+  isDeleting?: boolean
   previewPosition?: { x: number; y: number } | null
   previewItem?: DecorationItem | null
   onClick?: (x: number, y: number, event: React.MouseEvent) => void
@@ -79,6 +80,7 @@ export default function EnhancedHouseCanvas({
   selectedDecorations,
   onAnimationComplete,
   isPlacing,
+  isDeleting,
   previewPosition,
   previewItem,
   onClick,
@@ -242,7 +244,7 @@ export default function EnhancedHouseCanvas({
                 style={wrapperStyle}
               >
                 <div
-                  className="pointer-events-auto"
+                  className={`pointer-events-auto ${isDeleting ? 'cursor-pointer hover:outline hover:outline-2 hover:outline-red-400 hover:outline-offset-2 rounded' : ''}`}
                   onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
                   onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
                 >
@@ -269,7 +271,7 @@ export default function EnhancedHouseCanvas({
               style={wrapperStyle}
             >
               <div
-                className={`pointer-events-auto ${onDecorationClick || onDecorationMouseDown ? 'cursor-pointer' : ''}`}
+                className={`pointer-events-auto ${onDecorationClick || onDecorationMouseDown ? 'cursor-pointer' : ''} ${isDeleting ? 'hover:outline hover:outline-2 hover:outline-red-400 hover:outline-offset-2 rounded' : ''}`}
                 onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
                 onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
               >

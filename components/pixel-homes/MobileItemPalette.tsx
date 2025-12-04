@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import DecorationIcon from './DecorationIcon'
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon'
 
 interface DecorationItem {
   id: string
@@ -16,15 +17,15 @@ interface MobileItemPaletteProps {
   className?: string
 }
 
-const CATEGORY_ICONS = {
-  themes: '🎨',
-  templates: '🏠',
-  colors: '🌈',
-  plant: '🌿',
-  path: '🛤️',
-  feature: '⭐',
-  seasonal: '🎃',
-  text: '✏️'
+const CATEGORY_ICONS: Record<string, PixelIconName> = {
+  themes: 'paint-bucket',
+  templates: 'home',
+  colors: 'paint-bucket',
+  plant: 'drop',
+  path: 'map',
+  feature: 'zap',
+  seasonal: 'gift',
+  text: 'edit'
 }
 
 const CATEGORY_NAMES = {
@@ -81,8 +82,8 @@ export default function MobileItemPalette({
               `}
               onClick={() => setActiveCategory(category)}
             >
-              <span className="text-xl mb-1">
-                {CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS] || '📦'}
+              <span className="mb-1">
+                <PixelIcon name={CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS] || 'archive'} size={24} />
               </span>
               <span className="text-xs font-medium leading-tight">
                 {CATEGORY_NAMES[category as keyof typeof CATEGORY_NAMES] || category}
@@ -114,11 +115,11 @@ export default function MobileItemPalette({
               <div className="flex-1 flex items-center justify-center w-full">
                 {item.type === 'theme' ? (
                   <div className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center">
-                    <span className="text-xs">🎨</span>
+                    <PixelIcon name="paint-bucket" size={16} />
                   </div>
                 ) : item.type === 'template' ? (
                   <div className="w-8 h-8 flex items-center justify-center">
-                    <span className="text-lg">🏠</span>
+                    <PixelIcon name="home" size={24} />
                   </div>
                 ) : item.type === 'color' ? (
                   <div 
@@ -143,7 +144,7 @@ export default function MobileItemPalette({
               {/* Selection Indicator */}
               {selectedItem?.id === item.id && (
                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs">✓</span>
+                  <PixelIcon name="check" size={12} className="text-white" />
                 </div>
               )}
             </button>
@@ -153,7 +154,7 @@ export default function MobileItemPalette({
         {/* Empty State */}
         {activeItems.length === 0 && (
           <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-            <span className="text-2xl mb-2">📦</span>
+            <PixelIcon name="archive" size={32} className="mb-2 text-gray-400" />
             <span className="text-sm">No items in this category</span>
           </div>
         )}

@@ -115,7 +115,12 @@ export const HouseCustomSVGs = ({ id, variant, scale, className }: AssetProps) =
             return (
                 <svg width={16 * scale} height={16 * scale} viewBox="0 0 16 16" className={className} shapeRendering="crispEdges">
                     <rect x="2" y="2" width="12" height="12" fill="#A18463" rx="2" />
-                    <text x="8" y="11" textAnchor="middle" fontSize="6" fill="white">🏠</text>
+                    {/* Simple house shape fallback */}
+                    <rect x="5" y="8" width="6" height="5" fill="#DEB887" />
+                    <rect x="6" y="4" width="4" height="4" fill="#8B4513" />
+                    <rect x="4" y="5" width="2" height="3" fill="#8B4513" />
+                    <rect x="10" y="5" width="2" height="3" fill="#8B4513" />
+                    <rect x="7" y="10" width="2" height="3" fill="#654321" />
                 </svg>
             )
     }

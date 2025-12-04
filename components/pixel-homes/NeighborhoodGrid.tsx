@@ -3,6 +3,7 @@ import Link from 'next/link'
 import HouseSVG, { HouseTemplate, ColorPalette } from './HouseSVG'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
 import UserMention from '@/components/ui/navigation/UserMention'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface HomeMember {
   userId: string
@@ -92,7 +93,7 @@ export default function NeighborhoodGrid({ members, ringSlug }: NeighborhoodGrid
       {/* Grid */}
       {sortedMembers.length === 0 ? (
         <div className="text-center py-16">
-          <div className="text-6xl mb-4">🏘️</div>
+          <div className="mb-4"><PixelIcon name="buildings" size={64} className="mx-auto text-gray-400" /></div>
           <div className="text-xl font-headline text-thread-pine mb-2">No homes found</div>
           <div className="text-thread-sage">
             {filterByActive 
@@ -115,8 +116,8 @@ export default function NeighborhoodGrid({ members, ringSlug }: NeighborhoodGrid
 
               {/* Role Badge */}
               {member.role !== 'member' && (
-                <div className="absolute top-2 left-2 text-xs bg-thread-sage text-thread-paper px-2 py-1 rounded">
-                  {member.role === 'curator' ? '👑' : '⭐'} {member.role}
+                <div className="absolute top-2 left-2 text-xs bg-thread-sage text-thread-paper px-2 py-1 rounded flex items-center gap-1">
+                  {member.role === 'curator' ? <PixelIcon name="trophy" size={12} /> : <PixelIcon name="bookmark" size={12} />} {member.role}
                 </div>
               )}
 
@@ -174,17 +175,17 @@ export default function NeighborhoodGrid({ members, ringSlug }: NeighborhoodGrid
                   <Link
                     href={`/home/${member.username}`}
                     onClick={() => handleHomeClick(member.username)}
-                    className="text-xs px-2 py-1 bg-thread-sage text-thread-paper rounded hover:bg-thread-pine transition-colors"
+                    className="text-xs px-2 py-1 bg-thread-sage text-thread-paper rounded hover:bg-thread-pine transition-colors flex items-center"
                     title="Visit pixel home"
                   >
-                    🏠
+                    <PixelIcon name="home" size={14} />
                   </Link>
                   <Link
                     href={`/resident/${member.username}`}
-                    className="text-xs px-2 py-1 bg-thread-sage text-thread-paper rounded hover:bg-thread-pine transition-colors"
+                    className="text-xs px-2 py-1 bg-thread-sage text-thread-paper rounded hover:bg-thread-pine transition-colors flex items-center"
                     title="View profile"
                   >
-                    📝
+                    <PixelIcon name="script" size={14} />
                   </Link>
                 </div>
 

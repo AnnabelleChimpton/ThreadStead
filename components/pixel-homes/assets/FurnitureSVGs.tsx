@@ -108,7 +108,11 @@ export const FurnitureSVGs = ({ id, variant, scale, className }: AssetProps) => 
             return (
                 <svg width={24 * scale} height={24 * scale} viewBox="0 0 24 24" className={className} shapeRendering="crispEdges">
                     <rect x="4" y="4" width="16" height="16" fill="#8B4513" rx="2" />
-                    <text x="12" y="14" textAnchor="middle" fontSize="8" fill="white">🪑</text>
+                    {/* Simple chair shape fallback */}
+                    <rect x="8" y="8" width="8" height="2" fill="white" />
+                    <rect x="8" y="10" width="2" height="6" fill="white" />
+                    <rect x="14" y="10" width="2" height="6" fill="white" />
+                    <rect x="8" y="14" width="8" height="2" fill="white" />
                 </svg>
             )
     }

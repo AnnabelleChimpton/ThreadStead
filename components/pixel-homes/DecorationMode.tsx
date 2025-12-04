@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import DecorationPalette from './DecorationPalette'
-import { DecorationItem, BETA_ITEMS } from '../../lib/pixel-homes/decoration-data'
+import { DecorationItem, BETA_ITEMS, TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
 import { HouseCustomizations, HouseTemplate, ColorPalette, AtmosphereSettings } from './HouseSVG'
 import { useDecorationState } from '../../hooks/useDecorationState'
 import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping'
@@ -87,7 +87,8 @@ export default function DecorationMode({
 
   // Terrain State
   const [terrain, setTerrain] = useState<Record<string, string>>(initialTerrain)
-  const [paintBrush, setPaintBrush] = useState<string | null>(null)
+  // paintBrush: undefined = not in terrain mode, null = eraser mode, string = painting terrain
+  const [paintBrush, setPaintBrush] = useState<string | null | undefined>(undefined)
   const [isPainting, setIsPainting] = useState(false)
 
   // Dragging State
@@ -166,7 +167,9 @@ export default function DecorationMode({
   // Handlers
   const handleItemSelect = (item: DecorationItem | null) => {
     if (item) {
-      setPaintBrush(null)
+      // Exit terrain and delete modes when selecting a decoration item
+      setPaintBrush(undefined)
+      setIsDeleting(false)
     }
 
     if (!item) {
@@ -241,11 +244,11 @@ export default function DecorationMode({
 
   const handleTerrainSelect = (terrainId: string | null) => {
     setPaintBrush(terrainId)
-    if (terrainId) {
-      setSelectedItem(null)
-      setIsPlacing(false)
-      clearSelection()
-    }
+    // Clear other modes when entering terrain mode (painting or erasing)
+    setSelectedItem(null)
+    setIsPlacing(false)
+    setIsDeleting(false)
+    clearSelection()
   }
 
   const handleDecorationUpdate = (id: string, updates: Partial<DecorationItem>) => {
@@ -377,12 +380,24 @@ export default function DecorationMode({
   }
 
   const handleCanvasMouseDown = (x: number, y: number, event: React.MouseEvent) => {
-    if (paintBrush) {
+    // Check if we're in terrain mode (painting OR erasing)
+    // paintBrush is a string when painting, null when erasing, undefined when not in terrain mode
+    if (paintBrush !== undefined) {
       setIsPainting(true)
       const gridPos = pixelToGrid(x, y, DEFAULT_DECORATION_GRID)
       if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 })) {
         const key = `${gridPos.gridX},${gridPos.gridY}`
-        setTerrain(prev => ({ ...prev, [key]: paintBrush }))
+        if (paintBrush === null) {
+          // Eraser mode - remove the terrain tile
+          setTerrain(prev => {
+            const next = { ...prev }
+            delete next[key]
+            return next
+          })
+        } else {
+          // Paint mode - set the terrain tile
+          setTerrain(prev => ({ ...prev, [key]: paintBrush }))
+        }
       }
       return
     }
@@ -391,16 +406,26 @@ export default function DecorationMode({
   const handleMouseMove = (x: number, y: number, event: React.MouseEvent) => {
     setMousePosition({ x, y })
 
-    // Painting Logic
-    if (isPainting && paintBrush) {
+    // Painting/Erasing Logic - paintBrush is string (paint), null (erase), or undefined (not in terrain mode)
+    if (isPainting && paintBrush !== undefined) {
       const gridPos = pixelToGrid(x, y, DEFAULT_DECORATION_GRID)
       if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 })) {
         const key = `${gridPos.gridX},${gridPos.gridY}`
-        if (terrain[key] !== paintBrush) {
+        if (paintBrush === null) {
+          // Eraser mode - remove the terrain tile if it exists
+          if (terrain[key]) {
+            setTerrain(prev => {
+              const next = { ...prev }
+              delete next[key]
+              return next
+            })
+          }
+        } else if (terrain[key] !== paintBrush) {
+          // Paint mode - set the terrain tile
           setTerrain(prev => ({ ...prev, [key]: paintBrush }))
         }
       }
-      return // Skip other logic if painting
+      return // Skip other logic if painting/erasing
     }
 
     let targetX = x
@@ -523,6 +548,60 @@ export default function DecorationMode({
                 <PixelIcon name="trash" className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Mode Indicators */}
+            <div className="flex gap-2 pointer-events-auto">
+              {/* Delete Mode Indicator */}
+              {isDeleting && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border-2 border-red-300 rounded-lg shadow-sm">
+                  <PixelIcon name="trash" size={18} className="text-red-500" />
+                  <span className="text-sm font-medium text-red-700">Delete Mode</span>
+                  <button
+                    onClick={() => setIsDeleting(false)}
+                    className="ml-1 p-0.5 hover:bg-red-100 rounded"
+                    title="Exit delete mode"
+                  >
+                    <PixelIcon name="close" size={14} className="text-red-400" />
+                  </button>
+                </div>
+              )}
+
+              {/* Terrain Mode Indicator */}
+              {paintBrush !== undefined && (
+                <>
+                  {paintBrush === null ? (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border-2 border-orange-300 rounded-lg shadow-sm">
+                      <PixelIcon name="trash" size={18} className="text-orange-500" />
+                      <span className="text-sm font-medium text-orange-700">Terrain Eraser</span>
+                      <button
+                        onClick={() => setPaintBrush(undefined)}
+                        className="ml-1 p-0.5 hover:bg-orange-100 rounded"
+                        title="Exit terrain mode"
+                      >
+                        <PixelIcon name="close" size={14} className="text-orange-400" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+                      <div
+                        className="w-5 h-5 rounded border-2 border-blue-400 shadow-inner"
+                        style={{ backgroundColor: TERRAIN_TILES.find(t => t.id === paintBrush)?.color || '#ccc' }}
+                      />
+                      <span className="text-sm font-medium text-blue-700">
+                        {TERRAIN_TILES.find(t => t.id === paintBrush)?.name || 'Terrain'}
+                      </span>
+                      <button
+                        onClick={() => setPaintBrush(undefined)}
+                        className="ml-1 p-0.5 hover:bg-blue-100 rounded"
+                        title="Exit terrain mode"
+                      >
+                        <PixelIcon name="close" size={14} className="text-blue-400" />
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex-1 relative flex items-center justify-center p-4 overflow-auto">
@@ -535,6 +614,7 @@ export default function DecorationMode({
               terrain={terrain}
               isDecorationMode={true}
               isPlacing={isPlacing}
+              isDeleting={isDeleting}
               previewPosition={snapPreview ? { x: snapPreview.position.pixelX, y: snapPreview.position.pixelY } : null}
               previewItem={selectedItem || draggedItem}
               onClick={handleCanvasClick}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface NeighborhoodFABsProps {
   onFilterClick: () => void;
@@ -38,7 +39,7 @@ const NeighborhoodFABs: React.FC<NeighborhoodFABsProps> = ({
           hover:shadow-xl relative`}
         aria-label="Open filters and sorting menu"
       >
-        <span className="text-xl md:text-lg">⚙️</span>
+        <span className="text-xl md:text-lg"><PixelIcon name="sliders" size={20} /></span>
         <span className="hidden md:inline text-sm font-semibold button-text">
           Filters
         </span>
@@ -63,7 +64,7 @@ const NeighborhoodFABs: React.FC<NeighborhoodFABsProps> = ({
           hover:shadow-xl"
         aria-label="Jump to random house"
       >
-        <span className="text-xl md:text-lg">🎲</span>
+        <span className="text-xl md:text-lg"><PixelIcon name="dice" size={20} /></span>
         <span className="hidden md:inline text-sm font-semibold button-text">
           Random
         </span>
@@ -83,7 +84,7 @@ const NeighborhoodFABs: React.FC<NeighborhoodFABsProps> = ({
             hover:shadow-xl"
           aria-label="Change view mode"
         >
-          <span className="text-lg">👁️</span>
+          <span className="text-lg"><PixelIcon name="eye" size={20} /></span>
         </button>
       )}
 
@@ -101,7 +102,7 @@ const NeighborhoodFABs: React.FC<NeighborhoodFABsProps> = ({
             hover:shadow-xl"
           aria-label="View bookmarked houses"
         >
-          <span className="text-lg">⭐</span>
+          <span className="text-lg"><PixelIcon name="bookmark" size={20} /></span>
         </button>
       )}
     </>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Modal from '../ui/feedback/Modal'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface ThreadRingLineage {
   id: string
@@ -124,7 +125,7 @@ export default function ThreadbookModal({ isOpen, onClose, username }: Threadboo
   const asciiTree = generateASCIITree(lineage)
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="📖 ThreadRing Lineage">
+    <Modal isOpen={isOpen} onClose={onClose} title="ThreadRing Lineage">
       <div className="max-w-2xl">
         {loading && (
           <div className="flex items-center justify-center py-8">
@@ -154,8 +155,16 @@ export default function ThreadbookModal({ isOpen, onClose, username }: Threadboo
             {lineage.length > 0 && (
               <div className="text-xs text-thread-sage space-y-1">
                 <div><strong>Legend:</strong></div>
-                <div>👑 Curator • 🛡️ Moderator • 👤 Member</div>
-                <div>🌱 Root ring • 🌿 Child ring • 📅 Join date</div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="flex items-center gap-1"><PixelIcon name="trophy" size={12} /> Curator</span>
+                  <span className="flex items-center gap-1"><PixelIcon name="shield" size={12} /> Moderator</span>
+                  <span className="flex items-center gap-1"><PixelIcon name="user" size={12} /> Member</span>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="flex items-center gap-1"><PixelIcon name="drop" size={12} /> Root ring</span>
+                  <span className="flex items-center gap-1"><PixelIcon name="drop" size={12} /> Child ring</span>
+                  <span className="flex items-center gap-1"><PixelIcon name="clock" size={12} /> Join date</span>
+                </div>
               </div>
             )}
           </div>

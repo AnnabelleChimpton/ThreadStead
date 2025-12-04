@@ -3,6 +3,8 @@ import DecorationIcon from './DecorationIcon'
 import ThemePicker from './ThemePicker'
 import { HouseCustomizations, HouseTemplate, ColorPalette } from './HouseSVG'
 import { DecorationItem, TERRAIN_TILES, TerrainTile } from '../../lib/pixel-homes/decoration-data'
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon'
+import { DECORATION_CATEGORY_ICONS, getCategoryIcon } from '@/lib/pixel-homes/category-icons'
 
 interface DecorationPaletteProps {
   items: Record<string, DecorationItem[]>
@@ -21,52 +23,56 @@ interface DecorationPaletteProps {
   selectedTerrainId?: string | null
 }
 
-const PRIMARY_CATEGORIES = {
+const PRIMARY_CATEGORIES: Record<string, {
+  label: string
+  icon: PixelIconName
+  subcategories: Record<string, { label: string; icon: PixelIconName }>
+}> = {
   decorations: {
     label: 'Decor',
-    icon: '🎨',
+    icon: 'paint-bucket',
     subcategories: {
-      plants: { label: 'Plants', icon: '🌱' },
-      furniture: { label: 'Furniture', icon: '🪑' },
-      lighting: { label: 'Lighting', icon: '💡' },
-      water: { label: 'Water', icon: '💧' },
-      structures: { label: 'Structures', icon: '🏗️' },
-      paths: { label: 'Paths', icon: '🛤️' },
-      features: { label: 'Features', icon: '✨' },
+      plants: { label: 'Plants', icon: 'drop' },
+      furniture: { label: 'Furniture', icon: 'archive' },
+      lighting: { label: 'Lighting', icon: 'lightbulb' },
+      water: { label: 'Water', icon: 'drop' },
+      structures: { label: 'Structures', icon: 'building' },
+      paths: { label: 'Paths', icon: 'map' },
+      features: { label: 'Features', icon: 'zap' },
     }
   },
   terrain: {
     label: 'Terrain',
-    icon: '🌍',
+    icon: 'map',
     subcategories: {}
   },
   house: {
     label: 'House',
-    icon: '🏠',
+    icon: 'home',
     subcategories: {
-      doors: { label: 'Doors', icon: '🚪' },
-      windows: { label: 'Windows', icon: '🪟' },
-      roof: { label: 'Roof Trim', icon: '🏘️' },
+      doors: { label: 'Doors', icon: 'external-link' },
+      windows: { label: 'Windows', icon: 'image' },
+      roof: { label: 'Roof Trim', icon: 'buildings' },
     }
   },
   themes: {
     label: 'Themes',
-    icon: '🎭',
+    icon: 'paint-bucket',
     subcategories: {}
   },
   colors: {
     label: 'Colors',
-    icon: '🎨',
+    icon: 'paint-bucket',
     subcategories: {}
   },
   atmosphere: {
     label: 'Sky',
-    icon: '🌤️',
+    icon: 'cloud-sun',
     subcategories: {}
   },
   text: {
     label: 'Text',
-    icon: '📝',
+    icon: 'script',
     subcategories: {}
   }
 }
@@ -184,7 +190,7 @@ export default function DecorationPalette({
         <div className="h-full p-4 overflow-y-auto">
           <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
             <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 flex items-center gap-2">
-              🪧 Sign Post Settings
+              <PixelIcon name="flag" size={20} /> Sign Post Settings
             </h3>
 
             <div>
@@ -240,7 +246,7 @@ export default function DecorationPalette({
           <div className="bg-thread-paper border border-thread-sage rounded-lg p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-headline font-semibold text-thread-pine flex items-center gap-2">
-                🎨 {selectedItem.name}
+                <PixelIcon name="paint-bucket" size={20} /> {selectedItem.name}
               </h3>
               <button
                 onClick={() => onItemSelect(null)} // Clear selection to go back
@@ -321,8 +327,8 @@ export default function DecorationPalette({
                 }
               `}
             >
-              <div className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center text-lg mb-1">
-                ❌
+              <div className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center mb-1">
+                <PixelIcon name="trash" size={20} className="text-red-500" />
               </div>
               <span className="text-xs text-center font-medium text-gray-700">Eraser</span>
             </button>
@@ -378,14 +384,14 @@ export default function DecorationPalette({
         <div className="h-full p-4 overflow-y-auto">
           <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
             <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 flex items-center gap-2">
-              📝 House Text Settings
+              <PixelIcon name="script" size={20} /> House Text Settings
             </h3>
 
             <div className="space-y-4">
               {/* House Title */}
               <div>
-                <label className="block text-sm font-medium text-thread-pine mb-2">
-                  🏷️ House Title
+                <label className="block text-sm font-medium text-thread-pine mb-2 flex items-center gap-1">
+                  <PixelIcon name="flag" size={16} className="inline-block align-middle" /> House Title
                   <span className="text-xs text-thread-sage ml-2">(Max 50 chars)</span>
                 </label>
                 <input
@@ -404,8 +410,8 @@ export default function DecorationPalette({
 
               {/* House Sign Text */}
               <div>
-                <label className="block text-sm font-medium text-thread-pine mb-2">
-                  🪧 House Sign
+                <label className="block text-sm font-medium text-thread-pine mb-2 flex items-center gap-1">
+                  <PixelIcon name="flag" size={16} className="inline-block align-middle" /> House Sign
                   <span className="text-xs text-thread-sage ml-2">(Max 20 chars)</span>
                 </label>
                 <input
@@ -438,7 +444,7 @@ export default function DecorationPalette({
       >
         {currentItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-            <div className="text-2xl mb-2">🔍</div>
+            <PixelIcon name="search" size={32} className="mb-2 text-gray-400" />
             <div className="text-sm text-center text-gray-600">
               {searchQuery ? 'No items found' : 'No items in this category'}
             </div>
@@ -491,7 +497,7 @@ export default function DecorationPalette({
                 {/* Selection Indicator */}
                 {selectedItem?.id === item.id && (
                   <div className="!absolute !-top-1 !-right-1 !w-5 !h-5 !bg-blue-500 !rounded-full !flex !items-center !justify-center !shadow-sm !z-10">
-                    <span className="!text-white !text-xs">✓</span>
+                    <PixelIcon name="check" size={12} className="text-white" />
                   </div>
                 )}
               </button>
@@ -522,7 +528,7 @@ export default function DecorationPalette({
               style={{ minHeight: '48px' }}
             />
             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-              🔍
+              <PixelIcon name="search" size={16} />
             </div>
             {searchQuery && (
               <button
@@ -551,7 +557,7 @@ export default function DecorationPalette({
                 }
               `}
             >
-              <span className="text-lg">{category.icon}</span>
+              <PixelIcon name={category.icon} size={20} />
               <span>{category.label}</span>
             </button>
           ))}
@@ -574,8 +580,8 @@ export default function DecorationPalette({
                   }
                 `}
               >
-                <span className="text-base">{(subcategory as any).icon}</span>
-                <span>{(subcategory as any).label}</span>
+                <PixelIcon name={(subcategory as { label: string; icon: PixelIconName }).icon} size={16} />
+                <span>{(subcategory as { label: string; icon: PixelIconName }).label}</span>
               </button>
             ))}
           </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import HouseSVG, { HouseTemplate, ColorPalette } from './HouseSVG'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface ThemePickerProps {
   onSelection: (template: HouseTemplate, palette: ColorPalette) => void
@@ -98,8 +99,8 @@ export default function ThemePicker({
     <div className={`space-y-6 ${className}`}>
       {showExplanation && !isSidebar && (
         <div className="bg-thread-paper border border-thread-sage rounded-lg p-4 space-y-3">
-          <h3 className="text-lg font-headline font-semibold text-thread-pine">
-            🏠 Welcome to Your Pixel Home!
+          <h3 className="text-lg font-headline font-semibold text-thread-pine flex items-center gap-2">
+            <PixelIcon name="home" size={20} /> Welcome to Your Pixel Home!
           </h3>
           <div className="text-sm text-thread-charcoal space-y-2">
             <p>
@@ -108,11 +109,15 @@ export default function ThemePicker({
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div className="bg-thread-cream bg-opacity-50 p-3 rounded">
-                <div className="font-semibold text-thread-pine">🏠 Pixel Home (/home/@you)</div>
+                <div className="font-semibold text-thread-pine flex items-center gap-1">
+                  <PixelIcon name="home" size={14} className="inline-block" /> Pixel Home (/home/@you)
+                </div>
                 <div>Interactive house for discovery & social fun</div>
               </div>
               <div className="bg-thread-cream bg-opacity-50 p-3 rounded">
-                <div className="font-semibold text-thread-pine">📝 Profile Page (/@you)</div>
+                <div className="font-semibold text-thread-pine flex items-center gap-1">
+                  <PixelIcon name="script" size={14} className="inline-block" /> Profile Page (/@you)
+                </div>
                 <div>Your customizable content hub & blog</div>
               </div>
             </div>
@@ -232,7 +237,7 @@ export default function ThemePicker({
               shadow-cozy hover:shadow-cozySm
             "
           >
-            Set Up My Pixel Home 🏠
+            Set Up My Pixel Home <PixelIcon name="home" size={16} className="inline-block ml-1 align-middle" />
           </button>
         </div>
       )}

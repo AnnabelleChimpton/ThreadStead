@@ -55,7 +55,10 @@ export const LightingSVGs = ({ id, variant, scale, className }: AssetProps) => {
             return (
                 <svg width={16 * scale} height={16 * scale} viewBox="0 0 16 16" className={className} shapeRendering="crispEdges">
                     <circle cx="8" cy="8" r="6" fill="#FFD700" />
-                    <text x="8" y="12" textAnchor="middle" fontSize="8" fill="white">💡</text>
+                    {/* Simple lightbulb shape fallback */}
+                    <rect x="6" y="4" width="4" height="5" fill="#FFF8DC" />
+                    <rect x="7" y="9" width="2" height="2" fill="#A9A9A9" />
+                    <rect x="7" y="3" width="2" height="2" fill="#FFFACD" />
                 </svg>
             )
     }

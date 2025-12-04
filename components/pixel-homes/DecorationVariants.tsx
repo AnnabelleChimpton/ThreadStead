@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import DecorationSVG from './DecorationSVG'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface DecorationVariantsProps {
   decorationType: string
@@ -135,7 +136,7 @@ export default function DecorationVariants({
                 : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
             }`}
           >
-            📏 Size
+            <PixelIcon name="sliders" size={14} className="inline-block mr-1 align-middle" /> Size
           </button>
           {hasVariants && (
             <button
@@ -146,7 +147,7 @@ export default function DecorationVariants({
                   : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
-              🎨 Style
+              <PixelIcon name="paint-bucket" size={14} className="inline-block mr-1 align-middle" /> Style
             </button>
           )}
         </div>
@@ -189,7 +190,7 @@ export default function DecorationVariants({
                   {/* Selection indicator */}
                   {selectedSize === size && (
                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
+                      <PixelIcon name="check" size={10} className="text-white" />
                     </div>
                   )}
                 </button>
@@ -243,7 +244,7 @@ export default function DecorationVariants({
                   {/* Selection indicator */}
                   {selectedVariant === variant.id && (
                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
+                      <PixelIcon name="check" size={10} className="text-white" />
                     </div>
                   )}
                 </button>
@@ -255,7 +256,7 @@ export default function DecorationVariants({
         {/* No variants available */}
         {activeTab === 'variant' && !hasVariants && (
           <div className="text-center py-6 text-gray-500">
-            <span className="text-2xl mb-2 block">🎨</span>
+            <PixelIcon name="paint-bucket" size={32} className="mb-2 mx-auto text-gray-400" />
             <div className="text-sm">No style variations available for this decoration</div>
           </div>
         )}

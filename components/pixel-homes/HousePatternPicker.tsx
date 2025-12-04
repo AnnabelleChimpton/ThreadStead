@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon'
 
 interface HousePatternPickerProps {
   template: HouseTemplate
@@ -44,35 +45,40 @@ const PATTERN_OPTIONS = {
   ]
 }
 
-const PATTERN_CATEGORIES = [
+const PATTERN_CATEGORIES: Array<{
+  id: string
+  name: string
+  icon: PixelIconName
+  description: string
+}> = [
   {
     id: 'foundationStyle',
     name: 'Foundation',
-    icon: '🏗️',
+    icon: 'building',
     description: 'Choose your foundation style'
   },
   {
     id: 'wallPattern',
     name: 'Wall Pattern',
-    icon: '🧱',
+    icon: 'building',
     description: 'Select wall texture and pattern'
   },
   {
     id: 'windowTreatments',
     name: 'Windows',
-    icon: '🪟',
+    icon: 'image',
     description: 'Add window decorations'
   },
   {
     id: 'roofMaterial',
     name: 'Roof Material',
-    icon: '🏠',
+    icon: 'home',
     description: 'Choose roofing material'
   },
   {
     id: 'chimneyStyle',
     name: 'Chimney',
-    icon: '🏭',
+    icon: 'building',
     description: 'Select chimney style'
   }
 ]
@@ -93,7 +99,9 @@ export default function HousePatternPicker({
     <div className={`house-pattern-picker bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}>
       {/* Header */}
       <div className="border-b border-gray-200 p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">🏠 House Patterns</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+          <PixelIcon name="home" size={20} /> House Patterns
+        </h3>
         <p className="text-sm text-gray-600">Customize your house with detailed architectural patterns</p>
       </div>
 
@@ -134,7 +142,7 @@ export default function HousePatternPicker({
                   }`}
                 >
                   <div className="flex items-center">
-                    <span className="text-lg mr-3">{category.icon}</span>
+                    <span className="mr-3"><PixelIcon name={category.icon} size={20} /></span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{category.name}</div>
                       <div className="text-xs text-gray-500 truncate">
@@ -193,7 +201,7 @@ export default function HousePatternPicker({
                 {/* Selection indicator */}
                 {activeValue === option.id && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">✓</span>
+                    <PixelIcon name="check" size={12} className="text-white" />
                   </div>
                 )}
               </button>
@@ -256,7 +264,7 @@ export function CompactPatternPicker({
         className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center">
-          <span className="text-lg mr-3">🏗️</span>
+          <span className="mr-3"><PixelIcon name="building" size={20} /></span>
           <div className="text-left">
             <div className="text-sm font-medium text-gray-800">House Patterns</div>
             <div className="text-xs text-gray-600">
@@ -265,7 +273,7 @@ export function CompactPatternPicker({
           </div>
         </div>
         <span className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-          ▼
+          <PixelIcon name="chevron-down" size={16} />
         </span>
       </button>
 

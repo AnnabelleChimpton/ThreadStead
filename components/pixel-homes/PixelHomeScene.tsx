@@ -4,6 +4,7 @@ import { HouseTemplate, ColorPalette } from './HouseSVG'
 import { DoorHotspot, MailboxHotspot, ThreadbookHotspot, FlagHotspot } from './Hotspot'
 import VisitorTrail from './VisitorTrail'
 import { trackHouseLoad, trackHotspotClick } from '../../lib/analytics/pixel-homes'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface PixelHomeSceneProps {
   template: HouseTemplate
@@ -148,17 +149,17 @@ export default function PixelHomeScene({
       
       {/* Interactive hints */}
       <div className="mt-4 text-center">
-        <div className="text-sm text-thread-sage font-medium">
-          {hoveredElement === 'door' && '🚪 Enter to view full profile'}
-          {hoveredElement === 'mailbox' && '📬 Check guestbook messages'}
-          {hoveredElement === 'threadbook' && '📖 Explore ThreadRing lineage'}
-          {hoveredElement === 'flag' && '🏳️ View ring memberships'}
+        <div className="text-sm text-thread-sage font-medium flex items-center justify-center gap-1">
+          {hoveredElement === 'door' && <><PixelIcon name="external-link" size={14} className="inline-block" /> Enter to view full profile</>}
+          {hoveredElement === 'mailbox' && <><PixelIcon name="mail" size={14} className="inline-block" /> Check guestbook messages</>}
+          {hoveredElement === 'threadbook' && <><PixelIcon name="file" size={14} className="inline-block" /> Explore ThreadRing lineage</>}
+          {hoveredElement === 'flag' && <><PixelIcon name="flag" size={14} className="inline-block" /> View ring memberships</>}
           {!hoveredElement && 'Hover over the house to explore'}
         </div>
-        
+
         {badges && badges.length > 0 && (
-          <div className="mt-2 text-xs text-thread-pine">
-            ✨ {badges.length} ThreadRing badge{badges.length !== 1 ? 's' : ''}
+          <div className="mt-2 text-xs text-thread-pine flex items-center justify-center gap-1">
+            <PixelIcon name="zap" size={12} className="inline-block" /> {badges.length} ThreadRing badge{badges.length !== 1 ? 's' : ''}
           </div>
         )}
       </div>

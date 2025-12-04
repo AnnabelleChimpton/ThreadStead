@@ -5,6 +5,7 @@ import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './Ho
 import HouseDetailsPopup from './HouseDetailsPopup'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
 import UserMention from '@/components/ui/navigation/UserMention'
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon'
 
 interface HomeExploreData {
   userId: string
@@ -133,19 +134,19 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
     }
   }
 
-  const getConnectionBadge = (home: HomeExploreData) => {
+  const getConnectionBadge = (home: HomeExploreData): { text: string; color: string; icon: PixelIconName } | null => {
     if (!currentUserId) return null
-    
+
     if (home.connections.isFollowing && home.connections.isFollower) {
-      return { text: 'Friends', color: 'bg-green-100 text-green-800', icon: '👥' }
+      return { text: 'Friends', color: 'bg-green-100 text-green-800', icon: 'users' }
     } else if (home.connections.isFollowing) {
-      return { text: 'Following', color: 'bg-blue-100 text-blue-800', icon: '➡️' }
+      return { text: 'Following', color: 'bg-blue-100 text-blue-800', icon: 'arrow-right' }
     } else if (home.connections.isFollower) {
-      return { text: 'Follows You', color: 'bg-purple-100 text-purple-800', icon: '⬅️' }
+      return { text: 'Follows You', color: 'bg-purple-100 text-purple-800', icon: 'arrow-left' }
     } else if (home.connections.mutualRings > 0) {
-      return { text: `${home.connections.mutualRings} Mutual Rings`, color: 'bg-yellow-100 text-yellow-800', icon: '🔗' }
+      return { text: `${home.connections.mutualRings} Mutual Rings`, color: 'bg-yellow-100 text-yellow-800', icon: 'link' }
     }
-    
+
     return null
   }
 
@@ -266,7 +267,7 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
       {homes.length === 0 ? (
         <div className="bg-thread-paper border border-thread-sage rounded-lg p-12">
           <div className="text-center">
-            <div className="text-6xl mb-4">🏘️</div>
+            <div className="mb-4"><PixelIcon name="buildings" size={64} className="mx-auto text-gray-400" /></div>
             <div className="text-xl font-headline text-thread-pine mb-2">No homes found</div>
             <div className="text-thread-sage mb-6 max-w-md mx-auto">
               Try adjusting your filters or explore different categories to discover more homes.
@@ -296,7 +297,7 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
                   )}
                   {connectionBadge && (
                     <div className={`text-xs px-2 py-1 rounded ${connectionBadge.color}`} title={connectionBadge.text}>
-                      {connectionBadge.icon}
+                      <PixelIcon name={connectionBadge.icon} size={14} />
                     </div>
                   )}
                 </div>
@@ -317,7 +318,7 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
                     {/* Decoration indicator */}
                     {home.homeConfig.hasDecorations && (
                       <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-sm" title={`${home.homeConfig.decorationCount} decorations`}>
-                        🌻
+                        <PixelIcon name="drop" size={12} />
                       </div>
                     )}
                   </div>
@@ -358,17 +359,17 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
                   <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <Link
                       href={`/home/${home.username}`}
-                      className="text-xs px-3 py-1 bg-thread-sage text-thread-paper rounded-md font-medium hover:bg-thread-pine transition-colors shadow-sm"
+                      className="text-xs px-3 py-1 bg-thread-sage text-thread-paper rounded-md font-medium hover:bg-thread-pine transition-colors shadow-sm flex items-center gap-1"
                       title="Visit pixel home"
                     >
-                      🏠 Visit
+                      <PixelIcon name="home" size={12} /> Visit
                     </Link>
                     <Link
                       href={`/resident/${home.username}`}
-                      className="text-xs px-3 py-1 bg-thread-paper border border-thread-sage text-thread-sage rounded-md font-medium hover:bg-thread-sage hover:text-thread-paper transition-colors"
+                      className="text-xs px-3 py-1 bg-thread-paper border border-thread-sage text-thread-sage rounded-md font-medium hover:bg-thread-sage hover:text-thread-paper transition-colors flex items-center gap-1"
                       title="View profile"
                     >
-                      📝 Profile
+                      <PixelIcon name="script" size={12} /> Profile
                     </Link>
                   </div>
                 </div>
@@ -403,7 +404,7 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
                     {/* Decoration indicator */}
                     {home.homeConfig.hasDecorations && (
                       <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold shadow-sm" title={`${home.homeConfig.decorationCount} decorations`}>
-                        🌻
+                        <PixelIcon name="drop" size={10} />
                       </div>
                     )}
                   </div>
@@ -445,7 +446,7 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
                 {/* Connection Badge */}
                 {connectionBadge && (
                   <div className={`text-xs px-3 py-1 rounded ${connectionBadge.color} flex items-center gap-1`}>
-                    <span>{connectionBadge.icon}</span>
+                    <PixelIcon name={connectionBadge.icon} size={12} />
                     <span>{connectionBadge.text}</span>
                   </div>
                 )}
@@ -454,15 +455,15 @@ export default function ExploreHomesGrid({ homes, filters, currentUserId }: Expl
                 <div className="flex gap-2">
                   <Link
                     href={`/home/${home.username}`}
-                    className="px-4 py-2 bg-thread-sage text-thread-paper rounded-md text-sm font-medium hover:bg-thread-pine transition-colors shadow-sm"
+                    className="px-4 py-2 bg-thread-sage text-thread-paper rounded-md text-sm font-medium hover:bg-thread-pine transition-colors shadow-sm flex items-center gap-1"
                   >
-                    🏠 Visit
+                    <PixelIcon name="home" size={14} /> Visit
                   </Link>
                   <Link
                     href={`/resident/${home.username}`}
-                    className="px-4 py-2 bg-thread-paper border border-thread-sage text-thread-sage rounded-md text-sm font-medium hover:bg-thread-sage hover:text-thread-paper transition-colors"
+                    className="px-4 py-2 bg-thread-paper border border-thread-sage text-thread-sage rounded-md text-sm font-medium hover:bg-thread-sage hover:text-thread-paper transition-colors flex items-center gap-1"
                   >
-                    📝 Profile
+                    <PixelIcon name="script" size={14} /> Profile
                   </Link>
                 </div>
               </div>
