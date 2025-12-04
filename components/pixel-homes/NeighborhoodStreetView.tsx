@@ -5,6 +5,8 @@ import DecorationSVG from './DecorationSVG'
 import HouseDetailsPopup from './HouseDetailsPopup'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
 import { PixelIcon } from '@/components/ui/PixelIcon'
+import { TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
+import { DEFAULT_DECORATION_GRID } from '../../lib/pixel-homes/decoration-grid-utils'
 
 interface HomeDecoration {
   id: string
@@ -16,6 +18,7 @@ interface HomeDecoration {
   y: number
   layer: number
   renderSvg?: string | null
+  data?: any // Custom data for decorations (e.g. sign text)
 }
 
 interface NeighborhoodMember {
@@ -48,6 +51,7 @@ interface NeighborhoodMember {
     hasDecorations?: boolean
     decorationCount?: number
     decorations?: HomeDecoration[]
+    terrain?: Record<string, string>
   }
   stats: {
     isActive: boolean
@@ -439,6 +443,31 @@ export default function NeighborhoodStreetView({
                       <div className="house-wrapper interactive relative" style={{ width: '285px', height: '200px', zIndex: 2 }}>
                         {/* Mini canvas that matches the original 500x350 proportions - scaled to 285x200 */}
                         <div className="relative w-full h-full">
+                          {/* Terrain Layer - below decorations and house */}
+                          {member.homeConfig.terrain && Object.entries(member.homeConfig.terrain).map(([key, tileId]) => {
+                            const [gridX, gridY] = key.split(',').map(Number)
+                            const tile = TERRAIN_TILES.find(t => t.id === tileId)
+                            if (!tile) return null
+
+                            const scale = 0.57
+                            const cellSize = DEFAULT_DECORATION_GRID.cellSize
+
+                            return (
+                              <div
+                                key={`terrain-${key}`}
+                                className="absolute pointer-events-none"
+                                style={{
+                                  left: `${gridX * cellSize * scale}px`,
+                                  top: `${gridY * cellSize * scale}px`,
+                                  width: `${cellSize * scale}px`,
+                                  height: `${cellSize * scale}px`,
+                                  backgroundColor: tile.color,
+                                  zIndex: 0
+                                }}
+                              />
+                            )
+                          })}
+
                           {/* Decorations */}
                           {visibleDecorations.map((decoration) => {
                             // Scale from 500x350 canvas to 285x200 (0.57 scale)
@@ -464,6 +493,7 @@ export default function NeighborhoodStreetView({
                                   variant={decoration.variant}
                                   size={decoration.size || 'medium'}
                                   className="drop-shadow-sm"
+                                  text={decoration.data?.text}
                                 />
                               </div>
                             )

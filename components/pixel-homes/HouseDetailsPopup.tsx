@@ -18,6 +18,7 @@ interface HomeDecoration {
   y: number
   layer: number
   renderSvg?: string | null
+  data?: any // Custom data for decorations (e.g. sign text)
 }
 
 interface HouseDetailsPopupProps {
@@ -53,6 +54,7 @@ interface HouseDetailsPopupProps {
       hasDecorations?: boolean
       decorationCount?: number
       decorations?: HomeDecoration[]
+      terrain?: Record<string, string>
     }
     stats?: {
       isActive: boolean
@@ -70,6 +72,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
   const router = useRouter()
   const isMobile = useIsMobile(768)
   const [decorations, setDecorations] = useState<HomeDecoration[]>([])
+  const [terrain, setTerrain] = useState<Record<string, string>>({})
   const [atmosphere, setAtmosphere] = useState({
     sky: 'sunny' as const,
     weather: 'clear' as const,
@@ -93,6 +96,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
   useEffect(() => {
     if (member) {
       setDecorations([])
+      setTerrain({})
     }
   }, [member?.userId])
 
@@ -100,6 +104,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
     if (isOpen && member) {
       // Ensure clean state - double safety net
       setDecorations([])
+      setTerrain({})
 
       // Use server-side decorations first if available
       if (member.homeConfig.decorations && member.homeConfig.decorations.length > 0) {
@@ -113,6 +118,11 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
       if (member.homeConfig.atmosphere) {
         setAtmosphere(member.homeConfig.atmosphere as any)
       }
+
+      // Set terrain from member data if available
+      if (member.homeConfig.terrain) {
+        setTerrain(member.homeConfig.terrain)
+      }
     }
   }, [isOpen, member?.userId])
 
@@ -125,6 +135,9 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
         if (data.atmosphere) {
           setAtmosphere(data.atmosphere)
         }
+        if (data.terrain) {
+          setTerrain(data.terrain)
+        }
       }
     } catch (error) {
       console.error('Failed to load decorations:', error)
@@ -134,6 +147,9 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
       }
       if (member.homeConfig.atmosphere) {
         setAtmosphere(member.homeConfig.atmosphere as any)
+      }
+      if (member.homeConfig.terrain) {
+        setTerrain(member.homeConfig.terrain)
       }
     }
   }
@@ -192,7 +208,6 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isMobile || dragStartY === null || !isDragging) return
-
     const currentY = e.touches[0].clientY
     const deltaY = currentY - dragStartY
 
@@ -340,10 +355,12 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
                     position: { x: dec.x, y: dec.y, layer: dec.layer },
                     variant: dec.variant,
                     size: dec.size,
-                    renderSvg: dec.renderSvg ?? undefined
+                    renderSvg: dec.renderSvg ?? undefined,
+                    data: dec.data // Include custom data for sign text
                   }))
                 })()}
                 atmosphere={atmosphere}
+                terrain={terrain}
                 className="w-full h-auto"
               />
             </div>

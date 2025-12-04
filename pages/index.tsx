@@ -10,7 +10,8 @@ import { WidgetContainer } from "@/components/widgets";
 import { useDefaultWidgets, useWidgets } from "@/hooks/useWidgets";
 import { useState, useEffect, useRef } from "react";
 import EnhancedHouseCanvas from "../components/pixel-homes/EnhancedHouseCanvas";
-import { HouseTemplate, ColorPalette, HouseCustomizations } from "../components/pixel-homes/HouseSVG";
+import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from "../components/pixel-homes/HouseSVG";
+import { DecorationItem } from "@/lib/pixel-homes/decoration-data";
 import DiscoverPageSearch from "../components/features/search/DiscoverPageSearch";
 import { useRouter } from "next/router";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
@@ -58,6 +59,7 @@ interface UserHomeConfig {
     timeOfDay: string;
   };
   houseCustomizations?: any;
+  terrain?: Record<string, string>;
 }
 
 // Simple card component for homepage (avoids thread-module min-width issues)
@@ -70,21 +72,9 @@ function SimpleCard({ title, children }: { title?: string; children: React.React
   );
 }
 
-interface DecorationItem {
-  id: string;
-  type: 'plant' | 'path' | 'feature' | 'seasonal';
-  zone: 'front_yard' | 'house_facade' | 'background';
-  position: { x: number; y: number; layer?: number };
-  variant?: string;
-  size?: 'small' | 'medium' | 'large';
-  name: string;
-}
 
-interface AtmosphereSettings {
-  sky: 'sunny' | 'cloudy' | 'sunset' | 'night';
-  weather: 'clear' | 'light_rain' | 'light_snow';
-  timeOfDay: 'morning' | 'midday' | 'evening' | 'night';
-}
+
+
 
 // Helper function to safely convert API customizations to HouseCustomizations
 const sanitizeCustomizations = (customizations: any): HouseCustomizations | undefined => {
@@ -149,10 +139,21 @@ function UserPixelHome({ user }: { user: any }) {
         if (decorationsResponse.ok) {
           try {
             const decorationsData = await decorationsResponse.json();
+
+            // Update home config with terrain if available
+            if (decorationsData.terrain) {
+              setHomeConfig(prev => prev ? ({
+                ...prev,
+                terrain: decorationsData.terrain
+              }) : null);
+            }
+
             setDecorations((decorationsData.decorations || []).map((d: any) => ({
               ...d,
+              type: d.type as any,
+              zone: d.zone as any,
               name: d.decorationId
-            })));
+            })) as unknown as DecorationItem[]);
           } catch (error) {
             console.warn('Failed to parse decorations data:', error);
           }
@@ -204,9 +205,12 @@ function UserPixelHome({ user }: { user: any }) {
     sky: (homeConfig.atmosphere && ['sunny', 'cloudy', 'sunset', 'night'].includes(homeConfig.atmosphere.sky as any))
       ? (homeConfig.atmosphere.sky as AtmosphereSettings['sky'])
       : 'sunny',
-    weather: (homeConfig.atmosphere && ['clear', 'light_rain', 'light_snow'].includes(homeConfig.atmosphere.weather as any))
-      ? (homeConfig.atmosphere.weather as AtmosphereSettings['weather'])
-      : 'clear',
+    weather: (() => {
+      const w = homeConfig.atmosphere?.weather as any;
+      if (w === 'light_rain' || w === 'rain') return 'rain';
+      if (w === 'light_snow' || w === 'snow') return 'snow';
+      return 'clear';
+    })(),
     timeOfDay: (homeConfig.atmosphere && ['morning', 'midday', 'evening', 'night'].includes(homeConfig.atmosphere.timeOfDay as any))
       ? (homeConfig.atmosphere.timeOfDay as AtmosphereSettings['timeOfDay'])
       : 'midday'
@@ -225,6 +229,7 @@ function UserPixelHome({ user }: { user: any }) {
             houseCustomizations={sanitizeCustomizations(homeConfig.houseCustomizations)}
             atmosphere={atmosphere}
             decorations={decorations}
+            terrain={homeConfig.terrain}
           />
         </div>
       </div>

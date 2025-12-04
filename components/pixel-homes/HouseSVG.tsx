@@ -21,21 +21,22 @@ export interface HouseCustomizations {
   trimColor?: string
   windowColor?: string
   detailColor?: string
-  foundationColor?: string
 
-  // Text customizations
+  // Text
   houseTitle?: string
   houseDescription?: string
   houseBoardText?: string
-}
 
-interface HouseSVGProps {
-  template: HouseTemplate
-  palette: ColorPalette
   className?: string
   onClick?: () => void
   customizations?: HouseCustomizations
   variant?: 'detailed' | 'simplified'
+}
+
+export interface AtmosphereSettings {
+  sky: 'sunny' | 'cloudy' | 'sunset' | 'night'
+  weather: 'clear' | 'rain' | 'snow'
+  timeOfDay: 'morning' | 'midday' | 'evening' | 'night'
 }
 
 const PALETTE_COLORS = {
@@ -794,6 +795,15 @@ const CabinTemplate: React.FC<{ colors: any, customizations: HouseCustomizations
       {renderSign(100, 90, customizations.houseBoardText || '', colors, simplified)}
     </svg>
   )
+}
+
+interface HouseSVGProps {
+  template: HouseTemplate
+  palette: ColorPalette
+  className?: string
+  onClick?: () => void
+  customizations?: HouseCustomizations
+  variant?: 'detailed' | 'simplified'
 }
 
 export default function HouseSVG({ template, palette, className = '', onClick, customizations, variant = 'detailed' }: HouseSVGProps) {

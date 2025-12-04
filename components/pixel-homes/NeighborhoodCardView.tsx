@@ -12,6 +12,7 @@ interface HomeDecoration {
   y: number;
   layer: number;
   renderSvg?: string | null;
+  data?: any; // Custom data for decorations (e.g. sign text)
 }
 
 interface NeighborhoodMember {
@@ -44,6 +45,7 @@ interface NeighborhoodMember {
     hasDecorations?: boolean;
     decorationCount?: number;
     decorations?: HomeDecoration[];
+    terrain?: Record<string, string>;
   };
   stats: {
     isActive: boolean;
@@ -215,7 +217,7 @@ const NeighborhoodCardView: React.FC<NeighborhoodCardViewProps> = ({
   }
 
   return (
-    <div ref={ref as React.RefObject<HTMLDivElement>} className="card-view-container">
+    <div ref={ref as any} className="card-view-container">
       {/* Progress Indicator */}
       <div className="card-progress-indicator">
         {currentIndex + 1} / {members.length}
@@ -296,9 +298,11 @@ const NeighborhoodCardView: React.FC<NeighborhoodCardViewProps> = ({
                         position: { x: dec.x, y: dec.y, layer: dec.layer },
                         variant: dec.variant,
                         size: dec.size,
+                        data: dec.data,
                         renderSvg: dec.renderSvg ?? undefined
                       }))}
                       atmosphere={member.homeConfig.atmosphere as any}
+                      terrain={member.homeConfig.terrain}
                     />
                   </div>
                 </div>

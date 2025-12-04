@@ -103,7 +103,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const responseData = {
       ok: true,
       decorations: decorationItems,
-      atmosphere: atmosphere
+      atmosphere: atmosphere,
+      terrain: homeConfig?.terrain || {}
     };
 
     return res.status(200).json(responseData);

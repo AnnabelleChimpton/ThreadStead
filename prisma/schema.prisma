@@ -154,6 +154,7 @@ model UserHomeConfig {
   houseTitle          String? // Custom title text shown above house description (max 50 characters)
   houseDescription    String? // Custom description text shown below house (max 200 characters)
   houseBoardText      String? // Custom text shown on house board/sign (max 30 characters)
+  terrain             Json?   // Grid-based terrain map { "x,y": "terrainId" }
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

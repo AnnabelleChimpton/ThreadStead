@@ -27,6 +27,7 @@ interface DecorationItem {
   size?: 'small' | 'medium' | 'large';
   renderSvg?: string | null;
   name: string;
+  data?: any; // Custom data for decorations (e.g. sign text)
 }
 
 interface HomeDecoration {
@@ -39,6 +40,7 @@ interface HomeDecoration {
   y: number;
   layer: number;
   renderSvg?: string | null;
+  data?: any; // Custom data for decorations (e.g. sign text)
 }
 
 interface AtmosphereSettings {
@@ -62,6 +64,7 @@ interface PixelHome {
     decorationCount?: number;
     decorations?: DecorationItem[];
     homeDecorations?: HomeDecoration[];
+    terrain?: Record<string, string>;
   };
   stats: {
     recentVisits: number;
@@ -155,8 +158,9 @@ function PixelHomesNeighborhoodWidget({
                   template={home.homeConfig.houseTemplate}
                   palette={home.homeConfig.palette}
                   houseCustomizations={home.homeConfig.houseCustomizations}
-                  atmosphere={home.homeConfig.atmosphere || { sky: 'sunny', weather: 'clear', timeOfDay: 'midday' }}
+                  atmosphere={(home.homeConfig.atmosphere || { sky: 'sunny', weather: 'clear', timeOfDay: 'midday' }) as any}
                   decorations={home.homeConfig.decorations || []}
+                  terrain={home.homeConfig.terrain}
                 />
               </div>
             </div>
@@ -254,8 +258,10 @@ function PixelHomesNeighborhoodWidget({
                 x: dec.position.x,
                 y: dec.position.y,
                 layer: dec.position.layer || 10,
+                data: dec.data,
                 renderSvg: dec.renderSvg
-              }))
+              })),
+              terrain: home.homeConfig.terrain
             },
             stats: home.stats,
             connections: {
@@ -375,7 +381,10 @@ export const pixelHomesNeighborhoodWidget = {
       const homeData = await homeResponse.json();
 
       // Try to get decorations, but don't fail if it doesn't work
+      // Try to get decorations and terrain
       let decorations: DecorationItem[] = [];
+      let terrain: Record<string, string> = {};
+
       if (decorationsResponse.ok) {
         try {
           const decorationsData = await decorationsResponse.json();
@@ -383,6 +392,9 @@ export const pixelHomesNeighborhoodWidget = {
             ...d,
             name: d.decorationId
           }));
+          if (decorationsData.terrain) {
+            terrain = decorationsData.terrain;
+          }
         } catch (error) {
           console.warn('Failed to parse decorations data:', error);
         }
@@ -414,7 +426,8 @@ export const pixelHomesNeighborhoodWidget = {
             hasDecorations: decorations.length > 0,
             decorationCount: decorations.length,
             decorations,
-            homeDecorations: transformDecorations(decorations)
+            homeDecorations: transformDecorations(decorations),
+            terrain
           },
           stats: {
             recentVisits: randomUser.followerCount || 0,

@@ -35,6 +35,8 @@ interface UserHomeConfig {
     detailColor?: string
     houseTitle?: string
     houseDescription?: string
+    houseBoardText?: string
+    terrain?: Record<string, string>
   }
 }
 
@@ -73,6 +75,9 @@ export default function PixelHomePage({
   const [hasUnreadGuestbook, setHasUnreadGuestbook] = useState(false)
   // const [showDecorationMode, setShowDecorationMode] = useState(false) // Now handled by dedicated page
   const [decorations, setDecorations] = useState<any[]>([])
+  const [terrain, setTerrain] = useState<Record<string, string>>(
+    homeConfig?.houseCustomizations?.terrain || {}
+  )
   const [loadingDecorations, setLoadingDecorations] = useState(true)
   const [atmosphere, setAtmosphere] = useState({
     sky: 'sunny' as const,
@@ -123,6 +128,9 @@ export default function PixelHomePage({
         setDecorations(decorationData.decorations || [])
         if (decorationData.atmosphere) {
           setAtmosphere(decorationData.atmosphere)
+        }
+        if (decorationData.terrain) {
+          setTerrain(decorationData.terrain)
         }
       }
 
@@ -178,6 +186,9 @@ export default function PixelHomePage({
         setDecorations(data.decorations || [])
         if (data.atmosphere) {
           setAtmosphere(data.atmosphere)
+        }
+        if (data.terrain) {
+          setTerrain(data.terrain)
         }
       }
     } catch (error) {
@@ -381,6 +392,7 @@ export default function PixelHomePage({
                     decorations={decorations}
                     houseCustomizations={config.houseCustomizations as HouseCustomizations}
                     atmosphere={atmosphere}
+                    terrain={terrain}
                     className="w-full max-w-xl drop-shadow-2xl transform hover:scale-105 transition-transform duration-500"
                   />
 
@@ -500,6 +512,7 @@ export default function PixelHomePage({
         houseCustomizations={config.houseCustomizations}
         decorations={decorations}
         atmosphere={atmosphere}
+        terrain={terrain}
         badges={badges}
       />
     </div>

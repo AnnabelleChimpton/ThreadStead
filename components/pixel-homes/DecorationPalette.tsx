@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import DecorationIcon from './DecorationIcon'
 import ThemePicker from './ThemePicker'
 import { HouseCustomizations, HouseTemplate, ColorPalette } from './HouseSVG'
-import { DecorationItem } from '../../lib/pixel-homes/decoration-data'
+import { DecorationItem, TERRAIN_TILES, TerrainTile } from '../../lib/pixel-homes/decoration-data'
 
 interface DecorationPaletteProps {
   items: Record<string, DecorationItem[]>
@@ -17,6 +17,8 @@ interface DecorationPaletteProps {
   currentTemplate: HouseTemplate
   currentPalette: ColorPalette
   onDecorationUpdate?: (id: string, updates: Partial<DecorationItem>) => void
+  onTerrainSelect?: (terrainId: string | null) => void
+  selectedTerrainId?: string | null
 }
 
 const PRIMARY_CATEGORIES = {
@@ -32,6 +34,11 @@ const PRIMARY_CATEGORIES = {
       paths: { label: 'Paths', icon: '🛤️' },
       features: { label: 'Features', icon: '✨' },
     }
+  },
+  terrain: {
+    label: 'Terrain',
+    icon: '🌍',
+    subcategories: {}
   },
   house: {
     label: 'House',
@@ -76,7 +83,9 @@ export default function DecorationPalette({
   onThemeChange,
   currentTemplate,
   currentPalette,
-  onDecorationUpdate
+  onDecorationUpdate,
+  onTerrainSelect,
+  selectedTerrainId
 }: DecorationPaletteProps) {
   const [primaryCategory, setPrimaryCategory] = useState<string>('decorations')
   const [secondaryCategory, setSecondaryCategory] = useState<string>('plants')
@@ -296,7 +305,57 @@ export default function DecorationPalette({
       )
     }
 
-    // 3. Category Views
+    // 3. Terrain View
+    if (primaryCategory === 'terrain') {
+      return (
+        <div className="h-full p-4 overflow-y-auto">
+          <div className="grid grid-cols-4 gap-4">
+            {/* Eraser */}
+            <button
+              onClick={() => onTerrainSelect?.(null)}
+              className={`
+                aspect-square rounded-xl border-2 flex flex-col items-center justify-center p-2 transition-all
+                ${selectedTerrainId === null
+                  ? 'border-red-500 bg-red-50 shadow-md transform scale-105'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+                }
+              `}
+            >
+              <div className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center text-lg mb-1">
+                ❌
+              </div>
+              <span className="text-xs text-center font-medium text-gray-700">Eraser</span>
+            </button>
+
+            {/* Terrain Tiles */}
+            {TERRAIN_TILES.map((tile) => (
+              <button
+                key={tile.id}
+                onClick={() => onTerrainSelect?.(tile.id)}
+                className={`
+                  aspect-square rounded-xl border-2 flex flex-col items-center justify-center p-2 transition-all
+                  ${selectedTerrainId === tile.id
+                    ? 'border-blue-500 bg-blue-50 shadow-md transform scale-105'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                  }
+                `}
+              >
+                <div
+                  className="w-8 h-8 rounded border border-gray-300 mb-1 shadow-sm"
+                  style={{ backgroundColor: tile.color }}
+                />
+                <span className="text-xs text-center font-medium text-gray-700">{tile.name}</span>
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 text-xs text-gray-500 text-center">
+            Select a terrain type and click or drag on the canvas to paint.
+          </div>
+        </div>
+      )
+    }
+
+    // 4. Category Views
     if (primaryCategory === 'themes') {
       return (
         <div className="h-full p-4 overflow-y-auto">
@@ -451,7 +510,7 @@ export default function DecorationPalette({
   return (
     <div className={`decoration-palette flex flex-col h-full bg-white ${className}`}>
       {/* Search Bar - Only show for grid views */}
-      {primaryCategory !== 'themes' && primaryCategory !== 'text' && !selectedItem?.type?.includes('house_color') && !selectedItem?.id.startsWith('sign_post') && (
+      {primaryCategory !== 'themes' && primaryCategory !== 'text' && primaryCategory !== 'terrain' && !selectedItem?.type?.includes('house_color') && !selectedItem?.id.startsWith('sign_post') && (
         <div className="px-4 pt-4 pb-2">
           <div className="relative">
             <input
@@ -500,7 +559,7 @@ export default function DecorationPalette({
       </div>
 
       {/* Secondary Category Navigation */}
-      {hasSecondaryCategories && !searchQuery && primaryCategory !== 'themes' && primaryCategory !== 'text' && !selectedItem?.type?.includes('house_color') && !selectedItem?.id.startsWith('sign_post') && (
+      {hasSecondaryCategories && !searchQuery && primaryCategory !== 'themes' && primaryCategory !== 'text' && primaryCategory !== 'terrain' && !selectedItem?.type?.includes('house_color') && !selectedItem?.id.startsWith('sign_post') && (
         <div className="flex-none border-b border-gray-100 bg-gray-50/50">
           <div className={`flex overflow-x-auto hide-scrollbar ${isMobile ? 'px-2' : 'px-4'} py-2 gap-2`}>
             {Object.entries(secondaryCategories).map(([key, subcategory]) => (

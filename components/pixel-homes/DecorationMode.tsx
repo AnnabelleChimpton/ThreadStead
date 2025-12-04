@@ -1,33 +1,24 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
-import DecorationSVG from './DecorationSVG'
-
 import DecorationPalette from './DecorationPalette'
-import DecorationGridOverlay, { MagneticGridOverlay } from './DecorationGridOverlay'
-import AnimatedDecoration, { DeletionAnimation, ActionFeedback } from './DecorationAnimations'
-import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
+import { DecorationItem, BETA_ITEMS } from '../../lib/pixel-homes/decoration-data'
+import { HouseCustomizations, HouseTemplate, ColorPalette, AtmosphereSettings } from './HouseSVG'
+import { useDecorationState } from '../../hooks/useDecorationState'
 import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping'
-import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
-import { DEFAULT_DECORATION_GRID, DecorationGridConfig, getDecorationGridSize } from '@/lib/pixel-homes/decoration-grid-utils'
-import { PixelIcon } from '@/components/ui/PixelIcon'
-import { DecorationItem, BETA_ITEMS, PALETTE_COLORS } from '@/lib/pixel-homes/decoration-data'
-import { useDecorationState } from '@/hooks/useDecorationState'
-
-interface AtmosphereSettings {
-  sky: 'sunny' | 'cloudy' | 'sunset' | 'night'
-  weather: 'clear' | 'light_rain' | 'light_snow'
-  timeOfDay: 'morning' | 'midday' | 'evening' | 'night'
-}
+import { DEFAULT_DECORATION_GRID, getDecorationGridSize, pixelToGrid, isValidGridPosition } from '../../lib/pixel-homes/decoration-grid-utils'
+import { PixelIcon } from '../ui/PixelIcon'
+import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
 
 interface DecorationModeProps {
   template: HouseTemplate
   palette: ColorPalette
   username: string
-  onSave: (decorations: any) => void
+  onSave: (data: any) => void
   onCancel: () => void
   initialDecorations?: DecorationItem[]
   initialHouseCustomizations?: HouseCustomizations
   initialAtmosphere?: AtmosphereSettings
+  initialTerrain?: Record<string, string>
 }
 
 export default function DecorationMode({
@@ -38,7 +29,8 @@ export default function DecorationMode({
   onCancel,
   initialDecorations = [],
   initialHouseCustomizations,
-  initialAtmosphere
+  initialAtmosphere,
+  initialTerrain = {}
 }: DecorationModeProps) {
   // Mobile detection
   const isMobile = useIsMobile(768)
@@ -92,6 +84,11 @@ export default function DecorationMode({
       roofTrim: 'default'
     }
   )
+
+  // Terrain State
+  const [terrain, setTerrain] = useState<Record<string, string>>(initialTerrain)
+  const [paintBrush, setPaintBrush] = useState<string | null>(null)
+  const [isPainting, setIsPainting] = useState(false)
 
   // Dragging State
   const [isDragging, setIsDragging] = useState(false)
@@ -168,6 +165,10 @@ export default function DecorationMode({
 
   // Handlers
   const handleItemSelect = (item: DecorationItem | null) => {
+    if (item) {
+      setPaintBrush(null)
+    }
+
     if (!item) {
       setSelectedItem(null)
       setIsPlacing(false)
@@ -180,7 +181,7 @@ export default function DecorationMode({
         item.id === 'cloudy_sky' ? 'cloudy' :
           item.id === 'sunset_sky' ? 'sunset' :
             item.id === 'night_sky' ? 'night' : 'sunny'
-      setAtmosphere(prev => ({ ...prev, sky: newSky }))
+      setAtmosphere((prev: AtmosphereSettings) => ({ ...prev, sky: newSky as AtmosphereSettings['sky'] }))
       return
     }
 
@@ -234,6 +235,15 @@ export default function DecorationMode({
       setSelectedItem(item)
       setIsPlacing(true)
       setIsDeleting(false)
+      clearSelection()
+    }
+  }
+
+  const handleTerrainSelect = (terrainId: string | null) => {
+    setPaintBrush(terrainId)
+    if (terrainId) {
+      setSelectedItem(null)
+      setIsPlacing(false)
       clearSelection()
     }
   }
@@ -366,8 +376,32 @@ export default function DecorationMode({
     }
   }
 
+  const handleCanvasMouseDown = (x: number, y: number, event: React.MouseEvent) => {
+    if (paintBrush) {
+      setIsPainting(true)
+      const gridPos = pixelToGrid(x, y, DEFAULT_DECORATION_GRID)
+      if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 })) {
+        const key = `${gridPos.gridX},${gridPos.gridY}`
+        setTerrain(prev => ({ ...prev, [key]: paintBrush }))
+      }
+      return
+    }
+  }
+
   const handleMouseMove = (x: number, y: number, event: React.MouseEvent) => {
     setMousePosition({ x, y })
+
+    // Painting Logic
+    if (isPainting && paintBrush) {
+      const gridPos = pixelToGrid(x, y, DEFAULT_DECORATION_GRID)
+      if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 })) {
+        const key = `${gridPos.gridX},${gridPos.gridY}`
+        if (terrain[key] !== paintBrush) {
+          setTerrain(prev => ({ ...prev, [key]: paintBrush }))
+        }
+      }
+      return // Skip other logic if painting
+    }
 
     let targetX = x
     let targetY = y
@@ -406,11 +440,26 @@ export default function DecorationMode({
       houseCustomizations,
       atmosphere,
       template: currentTemplate,
-      palette: currentPalette
+      palette: currentPalette,
+      terrain
     }
 
     onSave(payload)
   }
+
+  // Global mouse up to stop painting/dragging
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setIsPainting(false)
+      if (isDragging) {
+        // ... existing drag end logic if needed, but drag end is usually handled by click/drop
+        // Actually, drag end is handled by handleCanvasClick for placement, but if we drag off canvas?
+        // For now just stop painting.
+      }
+    }
+    window.addEventListener('mouseup', handleGlobalMouseUp)
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp)
+  }, [isDragging])
 
   return (
     <div
@@ -483,11 +532,13 @@ export default function DecorationMode({
               decorations={placedDecorations}
               houseCustomizations={houseCustomizations}
               atmosphere={atmosphere}
+              terrain={terrain}
               isDecorationMode={true}
               isPlacing={isPlacing}
               previewPosition={snapPreview ? { x: snapPreview.position.pixelX, y: snapPreview.position.pixelY } : null}
               previewItem={selectedItem || draggedItem}
               onClick={handleCanvasClick}
+              onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleMouseMove}
               onDecorationClick={(id, e) => {
                 if (isPlacing) return
@@ -527,6 +578,8 @@ export default function DecorationMode({
             currentTemplate={currentTemplate}
             currentPalette={currentPalette}
             onDecorationUpdate={handleDecorationUpdate}
+            onTerrainSelect={handleTerrainSelect}
+            selectedTerrainId={paintBrush}
           />
         </div>
       </div>

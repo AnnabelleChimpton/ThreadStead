@@ -44,12 +44,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: "Not logged in" });
   }
 
-  const { decorations, atmosphere, houseCustomizations, template, palette } = req.body as {
+  const { decorations, atmosphere, houseCustomizations, template, palette, terrain } = req.body as {
     decorations: DecorationData[],
     atmosphere?: AtmosphereSettings,
     houseCustomizations?: HouseCustomizations,
     template?: string,
-    palette?: string
+    palette?: string,
+    terrain?: Record<string, string>
   };
 
   if (!Array.isArray(decorations)) {
@@ -83,6 +84,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       configUpdate.houseDescription = houseCustomizations.houseDescription;
       configUpdate.houseBoardText = houseCustomizations.houseBoardText;
     }
+    if (terrain) {
+      configUpdate.terrain = terrain;
+    }
 
     await db.userHomeConfig.upsert({
       where: { userId: me.id },
@@ -106,7 +110,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         detailColor: houseCustomizations?.detailColor,
         houseTitle: houseCustomizations?.houseTitle,
         houseDescription: houseCustomizations?.houseDescription,
-        houseBoardText: houseCustomizations?.houseBoardText
+        houseBoardText: houseCustomizations?.houseBoardText,
+        terrain: terrain || {}
       }
     });
 

@@ -5,6 +5,8 @@ import HouseDetailsPopup from './HouseDetailsPopup'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
 import UserMention from '@/components/ui/navigation/UserMention'
 import { PixelIcon } from '@/components/ui/PixelIcon'
+import { TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
+import { DEFAULT_DECORATION_GRID } from '../../lib/pixel-homes/decoration-grid-utils'
 
 interface NeighborhoodMember {
   userId: string
@@ -45,7 +47,9 @@ interface NeighborhoodMember {
       y: number
       layer: number
       renderSvg?: string | null
+      data?: any // Custom data for decorations (e.g. sign text)
     }[]
+    terrain?: Record<string, string>
   }
   stats?: {
     isActive: boolean
@@ -114,11 +118,42 @@ export default function NeighborhoodGridView({ members, ringSlug }: Neighborhood
             <div className="space-y-3">
               {/* House */}
               <div className="relative bg-gradient-to-b from-thread-paper to-thread-cream border border-thread-sage rounded-lg p-4 transition-all group-hover:shadow-lg group-hover:-translate-y-1">
+                {/* Terrain Layer - positioned absolutely below house */}
+                {member.homeConfig.terrain && Object.keys(member.homeConfig.terrain).length > 0 && (
+                  <div className="absolute inset-0 overflow-hidden rounded-lg" style={{ zIndex: 0 }}>
+                    {Object.entries(member.homeConfig.terrain).map(([key, tileId]) => {
+                      const [gridX, gridY] = key.split(',').map(Number)
+                      const tile = TERRAIN_TILES.find(t => t.id === tileId)
+                      if (!tile) return null
+
+                      // Convert grid coords to percentage (500x350 canvas)
+                      const cellSize = DEFAULT_DECORATION_GRID.cellSize
+                      const leftPct = (gridX * cellSize / 500) * 100
+                      const topPct = (gridY * cellSize / 350) * 100
+                      const widthPct = (cellSize / 500) * 100
+                      const heightPct = (cellSize / 350) * 100
+
+                      return (
+                        <div
+                          key={`terrain-${key}`}
+                          className="absolute pointer-events-none"
+                          style={{
+                            left: `${leftPct}%`,
+                            top: `${topPct}%`,
+                            width: `${widthPct}%`,
+                            height: `${heightPct}%`,
+                            backgroundColor: tile.color,
+                          }}
+                        />
+                      )
+                    })}
+                  </div>
+                )}
                 <HouseSVG
                   template={member.homeConfig.houseTemplate as any}
                   palette={member.homeConfig.palette as any}
                   customizations={member.homeConfig.houseCustomizations as HouseCustomizations}
-                  className="w-full h-auto"
+                  className="w-full h-auto relative z-10"
                 />
                 
                 {/* Activity indicator */}

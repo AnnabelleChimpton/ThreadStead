@@ -15,7 +15,7 @@ interface UserHomeConfig {
   preferPixelHome: boolean
   atmosphere: {
     sky: string
-    weather: string  
+    weather: string
     timeOfDay: string
   }
   houseCustomizations: {
@@ -30,6 +30,7 @@ interface UserHomeConfig {
     houseTitle?: string
     houseDescription?: string
     houseBoardText?: string
+    terrain?: Record<string, string>
   }
 }
 
@@ -41,15 +42,15 @@ interface PixelHomeProps {
   userBio?: string
 }
 
-export default function PixelHome({ 
-  username, 
-  homeConfig, 
+export default function PixelHome({
+  username,
+  homeConfig,
   isOwner,
   userDisplayName,
   userBio
 }: PixelHomeProps) {
   const pageTitle = `${userDisplayName || `@${username}`}'s Pixel Home`
-  const pageDescription = userBio 
+  const pageDescription = userBio
     ? `${userBio.slice(0, 150)}...`
     : `Visit @${username}'s interactive Pixel Home on ThreadStead - explore their ThreadRing connections and discover their content.`
 
@@ -62,11 +63,11 @@ export default function PixelHome({
         <meta property="og:description" content={pageDescription} />
         <meta property="og:type" content="profile" />
         <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL}/home/${username}`} />
-        
+
         {/* Pixel Home specific meta tags */}
         <meta name="pixel-home:template" content={homeConfig.houseTemplate} />
         <meta name="pixel-home:palette" content={homeConfig.palette} />
-        
+
         {/* Structured data for rich snippets */}
         <script
           type="application/ld+json"
@@ -100,7 +101,7 @@ export default function PixelHome({
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { handle } = context.query
-  
+
   if (typeof handle !== 'string') {
     return { notFound: true }
   }
@@ -112,7 +113,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     // Find user by handle
     const userHandle = await prisma.handle.findFirst({
       where: { handle: cleanHandle.toLowerCase() },
-      include: { 
+      include: {
         user: {
           include: {
             profile: true
@@ -136,7 +137,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     let homeConfig = await prisma.userHomeConfig.findUnique({
       where: { userId: user.id }
     })
-    
+
     if (!homeConfig) {
       homeConfig = await prisma.userHomeConfig.create({
         data: {
@@ -181,7 +182,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             detailColor: homeConfig.detailColor,
             houseTitle: homeConfig.houseTitle,
             houseDescription: homeConfig.houseDescription,
-            houseBoardText: homeConfig.houseBoardText
+            houseBoardText: homeConfig.houseBoardText,
+            terrain: (homeConfig.terrain as Record<string, string>) || {}
           }
         },
         isOwner,

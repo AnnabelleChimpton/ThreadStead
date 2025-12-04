@@ -18,6 +18,7 @@ interface SharePixelHomeModalProps {
         weather: string;
         timeOfDay: string;
     };
+    terrain?: Record<string, string>;
     badges?: Array<{
         id: string;
         title: string;
@@ -40,6 +41,7 @@ export default function SharePixelHomeModal({
     houseCustomizations,
     decorations = [],
     atmosphere = { sky: 'sunny', weather: 'clear', timeOfDay: 'midday' },
+    terrain,
     badges
 }: SharePixelHomeModalProps) {
     const { captureRef, downloadSnapshot, shareSnapshot, isCapturing, error } = usePixelHomeCapture({
@@ -91,6 +93,7 @@ export default function SharePixelHomeModal({
                                     houseCustomizations={houseCustomizations}
                                     decorations={decorations}
                                     atmosphere={atmosphere}
+                                    terrain={terrain}
                                     badges={badges}
                                     className="max-w-full h-auto"
                                 />

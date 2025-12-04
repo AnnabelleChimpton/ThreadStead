@@ -75,12 +75,13 @@ export const BETA_ITEMS = {
         { id: 'flower_pot', name: 'Flower Pot', type: 'plant', zone: 'front_yard' },
         { id: 'planter_box', name: 'Planter Box', type: 'furniture', zone: 'front_yard' }
     ],
-    paths: [
-        { id: 'stone_path', name: 'Stone Path', type: 'path', zone: 'front_yard' },
-        { id: 'brick_path', name: 'Brick Path', type: 'path', zone: 'front_yard' },
-        { id: 'stepping_stones', name: 'Stepping Stones', type: 'path', zone: 'front_yard' },
-        { id: 'gravel_path', name: 'Gravel Path', type: 'path', zone: 'front_yard' }
-    ],
+    // Paths are now handled by the terrain system
+    // paths: [
+    //     { id: 'stone_path', name: 'Stone Path', type: 'path', zone: 'front_yard' },
+    //     { id: 'brick_path', name: 'Brick Path', type: 'path', zone: 'front_yard' },
+    //     { id: 'stepping_stones', name: 'Stepping Stones', type: 'path', zone: 'front_yard' },
+    //     { id: 'gravel_path', name: 'Gravel Path', type: 'path', zone: 'front_yard' }
+    // ],
     features: [
         { id: 'bird_bath', name: 'Bird Bath', type: 'feature', zone: 'front_yard' },
         { id: 'garden_gnome', name: 'Garden Gnome', type: 'feature', zone: 'front_yard' },
@@ -150,3 +151,20 @@ export const BETA_ITEMS = {
         { id: 'detail_color', name: 'Detail Color', type: 'house_color', zone: 'house_facade', color: '#4FAF6D' }
     ]
 } as const
+
+export interface TerrainTile {
+    id: string
+    name: string
+    color: string // Fallback color
+    texture?: string // Optional texture pattern
+}
+
+export const TERRAIN_TILES: TerrainTile[] = [
+    { id: 'grass', name: 'Grass', color: '#90EE90' }, // Default
+    { id: 'dirt', name: 'Dirt', color: '#8B4513' },
+    { id: 'stone_path', name: 'Stone Path', color: '#808080' },
+    { id: 'brick_path', name: 'Brick Path', color: '#A52A2A' },
+    { id: 'water', name: 'Water', color: '#4682B4' },
+    { id: 'sand', name: 'Sand', color: '#F4A460' },
+    { id: 'gravel', name: 'Gravel', color: '#708090' }
+]

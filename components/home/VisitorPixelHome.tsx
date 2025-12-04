@@ -34,7 +34,8 @@ export default function VisitorPixelHome() {
       decorations: [
         { id: 'd1', type: 'plant', zone: 'front_yard', position: { x: 80, y: 280, layer: 8 }, variant: 'red', size: 'medium' },
         { id: 'd2', type: 'feature', zone: 'front_yard', position: { x: 380, y: 290, layer: 8 }, variant: 'classic', size: 'small' },
-      ]
+      ],
+      terrain: { '5,18': 'dirt_path', '6,18': 'dirt_path', '7,18': 'dirt_path' }
     },
     {
       template: 'modern_v1' as HouseTemplate,
@@ -49,7 +50,8 @@ export default function VisitorPixelHome() {
       } as HouseCustomizations,
       decorations: [
         { id: 'd3', type: 'plant', zone: 'front_yard', position: { x: 100, y: 280, layer: 8 }, variant: 'blue', size: 'large' },
-      ]
+      ],
+      terrain: {}
     },
     {
       template: 'castle_v1' as HouseTemplate,
@@ -64,9 +66,16 @@ export default function VisitorPixelHome() {
       } as HouseCustomizations,
       decorations: [
         { id: 'd4', type: 'feature', zone: 'front_yard', position: { x: 240, y: 290, layer: 8 }, variant: 'stone', size: 'medium' },
-      ]
+      ],
+      terrain: { '10,18': 'stone_path', '11,18': 'stone_path' }
     }
-  ];
+  ] as Array<{
+    template: HouseTemplate;
+    palette: ColorPalette;
+    customizations: HouseCustomizations;
+    decorations: any[];
+    terrain?: Record<string, string>;
+  }>;
 
   const currentStyle = demoStyles[currentStyleIndex];
 
@@ -103,6 +112,7 @@ export default function VisitorPixelHome() {
             decorations={currentStyle.decorations as any[]}
             houseCustomizations={currentStyle.customizations}
             atmosphere={atmosphere}
+            terrain={currentStyle.terrain}
           />
         </div>
       </div>

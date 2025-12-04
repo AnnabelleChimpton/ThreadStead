@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react'
-import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
+import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
 import AnimatedDecoration from './DecorationAnimations'
-import { DecorationItem } from '@/lib/pixel-homes/decoration-data'
+import { DecorationItem, TERRAIN_TILES, TerrainTile } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID, getDecorationGridSize } from '@/lib/pixel-homes/decoration-grid-utils'
 
 interface EnhancedHouseCanvasProps {
@@ -12,6 +12,7 @@ interface EnhancedHouseCanvasProps {
   decorations?: DecorationItem[]
   houseCustomizations?: HouseCustomizations
   atmosphere?: AtmosphereSettings
+  terrain?: Record<string, string> // Map of "x,y" grid coords to terrainId
   isDecorationMode?: boolean
   onDecorationClick?: (decorationId: string, event: React.MouseEvent) => void
   onDecorationMouseDown?: (decorationId: string, event: React.MouseEvent) => void
@@ -25,15 +26,10 @@ interface EnhancedHouseCanvasProps {
   previewPosition?: { x: number; y: number } | null
   previewItem?: DecorationItem | null
   onClick?: (x: number, y: number, event: React.MouseEvent) => void
+  onMouseDown?: (x: number, y: number, event: React.MouseEvent) => void
   onMouseMove?: (x: number, y: number, event: React.MouseEvent) => void
   onMouseLeave?: () => void
   onScaleChange?: (scale: number) => void
-}
-
-interface AtmosphereSettings {
-  sky: 'sunny' | 'cloudy' | 'sunset' | 'night'
-  weather: 'clear' | 'light_rain' | 'light_snow'
-  timeOfDay: 'morning' | 'midday' | 'evening' | 'night'
 }
 
 // Enhanced canvas dimensions - much larger than original 200x180
@@ -74,6 +70,7 @@ export default function EnhancedHouseCanvas({
   decorations = [],
   houseCustomizations = {},
   atmosphere = { sky: 'sunny', weather: 'clear', timeOfDay: 'midday' },
+  terrain = {},
   isDecorationMode = false,
   onDecorationClick,
   onDecorationMouseDown,
@@ -85,6 +82,7 @@ export default function EnhancedHouseCanvas({
   previewPosition,
   previewItem,
   onClick,
+  onMouseDown,
   onMouseMove,
   onMouseLeave,
   onScaleChange
@@ -175,6 +173,35 @@ export default function EnhancedHouseCanvas({
           zIndex: 2
         }}
       />
+    )
+  }
+
+  const renderTerrain = () => {
+    if (!terrain || Object.keys(terrain).length === 0) return null
+
+    return (
+      <div className="absolute inset-0" style={{ zIndex: 3 }}>
+        {Object.entries(terrain).map(([key, tileId]) => {
+          const [gridX, gridY] = key.split(',').map(Number)
+          const tile = TERRAIN_TILES.find(t => t.id === tileId)
+          if (!tile) return null
+
+          return (
+            <div
+              key={key}
+              className="absolute"
+              style={{
+                left: gridX * DEFAULT_DECORATION_GRID.cellSize,
+                top: gridY * DEFAULT_DECORATION_GRID.cellSize,
+                width: DEFAULT_DECORATION_GRID.cellSize,
+                height: DEFAULT_DECORATION_GRID.cellSize,
+                backgroundColor: tile.color,
+              }}
+              title={tile.name}
+            />
+          )
+        })}
+      </div>
     )
   }
 
@@ -275,6 +302,7 @@ export default function EnhancedHouseCanvas({
           background: '#f0f8ff' // Light sky blue base
         }}
         onClick={(e) => handleInteraction(e, onClick)}
+        onMouseDown={(e) => handleInteraction(e, onMouseDown)}
         onMouseMove={(e) => handleInteraction(e, onMouseMove)}
         onMouseLeave={onMouseLeave}
       >
@@ -293,6 +321,9 @@ export default function EnhancedHouseCanvas({
 
           {/* Front Yard Layer (Grass, decorations) */}
           {renderFrontYard()}
+
+          {/* Terrain Layer (Painted tiles) */}
+          {renderTerrain()}
 
           {/* Decorations Layer (Above grass, below house) */}
           {renderDecorations()}

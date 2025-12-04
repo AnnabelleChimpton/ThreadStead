@@ -6,7 +6,7 @@ import { getSessionUser } from '@/lib/auth/server'
 import { PrismaClient } from '@prisma/client'
 import Layout from '@/components/ui/layout/Layout'
 import DecorationMode from '@/components/pixel-homes/DecorationMode'
-import { HouseTemplate, ColorPalette, HouseCustomizations } from '@/components/pixel-homes/HouseSVG'
+import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from '@/components/pixel-homes/HouseSVG'
 
 const prisma = new PrismaClient()
 
@@ -16,7 +16,8 @@ interface DecorationPageProps {
   palette: ColorPalette
   initialDecorations?: any[]
   initialHouseCustomizations?: HouseCustomizations
-  initialAtmosphere?: any
+  initialAtmosphere?: AtmosphereSettings
+  initialTerrain?: Record<string, string>
   isOwnHome: boolean
 }
 
@@ -27,6 +28,7 @@ export default function DecoratePage({
   initialDecorations = [],
   initialHouseCustomizations,
   initialAtmosphere,
+  initialTerrain,
   isOwnHome
 }: DecorationPageProps) {
   const router = useRouter()
@@ -71,7 +73,8 @@ export default function DecoratePage({
         houseCustomizations: data.houseCustomizations,
         atmosphere: data.atmosphere,
         template: data.template,
-        palette: data.palette
+        palette: data.palette,
+        terrain: data.terrain
       }
 
       const response = await fetch('/api/home/decorations/save', {
@@ -120,6 +123,7 @@ export default function DecoratePage({
             initialDecorations={initialDecorations}
             initialHouseCustomizations={initialHouseCustomizations}
             initialAtmosphere={initialAtmosphere}
+            initialTerrain={initialTerrain}
           />
         </div>
       </Layout>
@@ -221,6 +225,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           weather: homeConfig.atmosphereWeather || 'clear',
           timeOfDay: homeConfig.atmosphereTimeOfDay || 'midday'
         },
+        initialTerrain: (homeConfig.terrain as Record<string, string>) || {},
         isOwnHome
       }
     }

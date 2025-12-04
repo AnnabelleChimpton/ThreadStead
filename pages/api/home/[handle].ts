@@ -72,7 +72,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             detailColor: homeConfig.detailColor,
             houseTitle: homeConfig.houseTitle,
             houseDescription: homeConfig.houseDescription,
-            houseBoardText: homeConfig.houseBoardText
+            houseBoardText: homeConfig.houseBoardText,
+            terrain: (homeConfig.terrain as Record<string, string>) || {}
           },
           updatedAt: homeConfig.updatedAt
         }
@@ -121,9 +122,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Home config API error:', error)
-    
+
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Validation error',
         details: error.issues
       })

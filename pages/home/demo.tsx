@@ -60,6 +60,14 @@ export default function DemoPixelHome() {
     }
   ]
 
+  // Demo terrain - sample path leading to the house
+  const demoTerrain: Record<string, string> = {
+    '3,9': 'path_stone',
+    '4,9': 'path_stone',
+    '5,9': 'path_stone',
+    '6,9': 'path_stone',
+  }
+
   // Atmosphere settings based on day/night toggle
   const atmosphere = {
     sky: isNight ? ('night' as const) : ('sunny' as const),
@@ -110,6 +118,7 @@ export default function DemoPixelHome() {
                   decorations={demoDecorations}
                   houseCustomizations={demoConfig.customizations}
                   atmosphere={atmosphere}
+                  terrain={demoTerrain}
                   className="mx-auto drop-shadow-2xl"
                 />
               </div>

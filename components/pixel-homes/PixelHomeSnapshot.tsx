@@ -14,6 +14,7 @@ interface PixelHomeSnapshotProps {
         weather: string;
         timeOfDay: string;
     };
+    terrain?: Record<string, string>;
     badges?: Array<{
         id: string;
         title: string;
@@ -39,6 +40,7 @@ export default function PixelHomeSnapshot({
     houseCustomizations,
     decorations = [],
     atmosphere = { sky: 'sunny', weather: 'clear', timeOfDay: 'midday' },
+    terrain = {},
     badges,
     className = ''
 }: PixelHomeSnapshotProps) {
@@ -50,6 +52,7 @@ export default function PixelHomeSnapshot({
                 houseCustomizations={houseCustomizations as HouseCustomizations}
                 decorations={decorations}
                 atmosphere={atmosphere as any}
+                terrain={terrain}
                 className="w-full h-auto"
             />
         </div>

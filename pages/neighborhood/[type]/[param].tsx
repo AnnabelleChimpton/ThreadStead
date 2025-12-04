@@ -28,7 +28,7 @@ const formatTemperature = (temp: number, countryCode?: string): string => {
     return `${temp}°F`
   } else {
     // Convert Fahrenheit to Celsius for metric countries
-    const celsius = Math.round((temp - 32) * 5/9)
+    const celsius = Math.round((temp - 32) * 5 / 9)
     return `${celsius}°C`
   }
 }
@@ -73,7 +73,9 @@ interface NeighborhoodMember {
       y: number
       layer: number
       renderSvg?: string | null
+      data?: any // Custom data for decorations (e.g. sign text)
     }[]
+    terrain?: Record<string, string>
   }
   stats: {
     recentVisits?: number
@@ -131,7 +133,7 @@ export default function UnifiedNeighborhood({
   const [selectedMember, setSelectedMember] = useState<NeighborhoodMember | null>(null)
   const [showHouseDetails, setShowHouseDetails] = useState(false)
   const [showViewModeSelector, setShowViewModeSelector] = useState(false)
-  
+
   // Load user's preferred view mode from localStorage and auto-select card on mobile
   useEffect(() => {
     if (isMobile) {
@@ -167,7 +169,7 @@ export default function UnifiedNeighborhood({
 
     loadWeather()
   }, [])
-  
+
   // Save view mode preference
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode)
@@ -198,19 +200,19 @@ export default function UnifiedNeighborhood({
     setSelectedMember(member)
     setShowHouseDetails(true)
   }
-  
+
   // Filter and sort members
   const processedMembers = members
     .filter(m => {
       // Basic activity filter
       if (filterActive && !m.stats.isActive) return false
-      
+
       // Advanced template filter
       if (templateFilter && m.homeConfig.houseTemplate !== templateFilter) return false
-      
+
       // Advanced palette filter  
       if (paletteFilter && m.homeConfig.palette !== paletteFilter) return false
-      
+
       return true
     })
     .sort((a, b) => {
@@ -223,10 +225,10 @@ export default function UnifiedNeighborhood({
       // Default: recent (by joinedAt or activity)
       return (b.joinedAt || '').localeCompare(a.joinedAt || '')
     })
-  
+
   const pageTitle = `${title} - ThreadStead Neighborhoods`
   const activeCount = members.filter(m => m.stats.isActive).length
-  
+
   return (
     <>
       <Head>
@@ -279,7 +281,7 @@ export default function UnifiedNeighborhood({
                   <p className="hidden md:block text-thread-sage max-w-2xl mb-2 text-sm">
                     {description}
                   </p>
-                  
+
                   {/* Stats */}
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
@@ -297,47 +299,43 @@ export default function UnifiedNeighborhood({
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Compact navigation for explore - horizontal scroll on mobile */}
                   {type === 'explore' && (
                     <div className="flex gap-1.5 md:gap-2 mt-2 md:mt-3 overflow-x-auto pb-1 -mx-3 px-3 md:mx-0 md:px-0 scrollbar-hide">
                       <Link
                         href="/neighborhood/explore/all"
-                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${
-                          param === 'all'
-                            ? 'bg-thread-sage text-thread-paper'
-                            : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
-                        }`}
+                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${param === 'all'
+                          ? 'bg-thread-sage text-thread-paper'
+                          : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
+                          }`}
                       >
                         <PixelIcon name="map" size={12} className="inline-block align-middle" /> All
                       </Link>
                       <Link
                         href="/neighborhood/explore/recent"
-                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${
-                          param === 'recent'
-                            ? 'bg-thread-sage text-thread-paper'
-                            : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
-                        }`}
+                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${param === 'recent'
+                          ? 'bg-thread-sage text-thread-paper'
+                          : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
+                          }`}
                       >
                         <span className="flex items-center gap-1"><PixelIcon name="zap" size={12} /> Recent</span>
                       </Link>
                       <Link
                         href="/neighborhood/explore/popular"
-                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${
-                          param === 'popular'
-                            ? 'bg-thread-sage text-thread-paper'
-                            : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
-                        }`}
+                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${param === 'popular'
+                          ? 'bg-thread-sage text-thread-paper'
+                          : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
+                          }`}
                       >
                         <PixelIcon name="trophy" size={12} className="inline-block align-middle" /> Popular
                       </Link>
                       <Link
                         href="/neighborhood/explore/random"
-                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${
-                          param === 'random'
-                            ? 'bg-thread-sage text-thread-paper'
-                            : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
-                        }`}
+                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${param === 'random'
+                          ? 'bg-thread-sage text-thread-paper'
+                          : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
+                          }`}
                       >
                         <PixelIcon name="dice" size={12} className="inline-block align-middle" /> Random
                       </Link>
@@ -363,18 +361,17 @@ export default function UnifiedNeighborhood({
                     </div>
                   )}
                 </div>
-              
+
                 {/* View Controls */}
                 <div className="flex flex-col gap-2 md:gap-3">
                   {/* View Mode Toggle - icon only on mobile */}
                   <div className="flex bg-thread-cream border border-thread-sage rounded-lg p-0.5 md:p-1">
                     <button
                       onClick={() => handleViewModeChange('street')}
-                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
-                        viewMode === 'street'
-                          ? 'bg-thread-sage text-thread-paper shadow-sm'
-                          : 'text-thread-sage hover:text-thread-pine'
-                      }`}
+                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${viewMode === 'street'
+                        ? 'bg-thread-sage text-thread-paper shadow-sm'
+                        : 'text-thread-sage hover:text-thread-pine'
+                        }`}
                       title={isMobile ? "Street View - Swipe horizontally to explore" : "Street View - Immersive neighborhood experience"}
                     >
                       <span className="md:hidden"><PixelIcon name="buildings" size={14} /></span>
@@ -384,11 +381,10 @@ export default function UnifiedNeighborhood({
                     {isMobile && (
                       <button
                         onClick={() => handleViewModeChange('card')}
-                        className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
-                          viewMode === 'card'
-                            ? 'bg-thread-sage text-thread-paper shadow-sm'
-                            : 'text-thread-sage hover:text-thread-pine'
-                        }`}
+                        className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'card'
+                          ? 'bg-thread-sage text-thread-paper shadow-sm'
+                          : 'text-thread-sage hover:text-thread-pine'
+                          }`}
                         title="Card View - Swipeable discovery"
                       >
                         🃏
@@ -396,11 +392,10 @@ export default function UnifiedNeighborhood({
                     )}
                     <button
                       onClick={() => handleViewModeChange('grid')}
-                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
-                        viewMode === 'grid'
-                          ? 'bg-thread-sage text-thread-paper shadow-sm'
-                          : 'text-thread-sage hover:text-thread-pine'
-                      }`}
+                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${viewMode === 'grid'
+                        ? 'bg-thread-sage text-thread-paper shadow-sm'
+                        : 'text-thread-sage hover:text-thread-pine'
+                        }`}
                       title="Grid View - Efficient browsing"
                     >
                       <span className="md:hidden">⊞</span>
@@ -408,11 +403,10 @@ export default function UnifiedNeighborhood({
                     </button>
                     <button
                       onClick={() => handleViewModeChange('map')}
-                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
-                        viewMode === 'map'
-                          ? 'bg-thread-sage text-thread-paper shadow-sm'
-                          : 'text-thread-sage hover:text-thread-pine'
-                      }`}
+                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${viewMode === 'map'
+                        ? 'bg-thread-sage text-thread-paper shadow-sm'
+                        : 'text-thread-sage hover:text-thread-pine'
+                        }`}
                       title="Map View - Bird's eye perspective"
                     >
                       <span className="md:hidden"><PixelIcon name="map" size={14} /></span>
@@ -424,11 +418,10 @@ export default function UnifiedNeighborhood({
                   <div className="flex gap-1.5 md:gap-2">
                     <button
                       onClick={() => setFilterActive(!filterActive)}
-                      className={`px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md border transition-all ${
-                        filterActive
-                          ? 'bg-green-100 border-green-300 text-green-700'
-                          : 'bg-thread-paper border-thread-sage text-thread-sage hover:bg-thread-cream'
-                      }`}
+                      className={`px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md border transition-all ${filterActive
+                        ? 'bg-green-100 border-green-300 text-green-700'
+                        : 'bg-thread-paper border-thread-sage text-thread-sage hover:bg-thread-cream'
+                        }`}
                     >
                       <span className="md:hidden">{filterActive ? '✓' : '○'}</span>
                       <span className="hidden md:inline">{filterActive ? '✓ Active Only' : '○ Active Only'}</span>
@@ -452,7 +445,7 @@ export default function UnifiedNeighborhood({
                   </div>
                 </div>
               </div>
-              
+
               {/* Advanced Filters - Collapsible */}
               {showAdvancedFilters && (
                 <div className="mt-3 bg-thread-cream border border-thread-sage rounded-lg p-4">
@@ -472,7 +465,7 @@ export default function UnifiedNeighborhood({
                         <option value="cabin_v1">🏕️ Cabins</option>
                       </select>
                     </div>
-                    
+
                     {/* Color Theme Filter */}
                     <div>
                       <label className="block text-xs font-medium text-thread-pine mb-2"><PixelIcon name="paint-bucket" size={12} className="inline-block align-middle" /> Color Theme</label>
@@ -489,7 +482,7 @@ export default function UnifiedNeighborhood({
                         <option value="classic_linen">📜 Classic Linen</option>
                       </select>
                     </div>
-                    
+
                     {/* Results Counter */}
                     <div className="flex items-end">
                       <div className="text-xs text-thread-sage">
@@ -498,7 +491,7 @@ export default function UnifiedNeighborhood({
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Clear Filters */}
                   {(templateFilter || paletteFilter || filterActive) && (
                     <div className="mt-3 pt-3 border-t border-thread-sage">
@@ -582,7 +575,7 @@ export default function UnifiedNeighborhood({
               />
             )}
           </div>
-          
+
           {/* Footer Actions */}
           <div className="container mx-auto px-4 py-8">
             {type === 'explore' ? (
@@ -728,11 +721,10 @@ export default function UnifiedNeighborhood({
                         handleViewModeChange('card')
                         setShowViewModeSelector(false)
                       }}
-                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${
-                        viewMode === 'card'
-                          ? 'bg-thread-sage text-thread-paper'
-                          : 'bg-thread-cream text-thread-pine border border-thread-sage'
-                      }`}
+                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${viewMode === 'card'
+                        ? 'bg-thread-sage text-thread-paper'
+                        : 'bg-thread-cream text-thread-pine border border-thread-sage'
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <PixelIcon name="image" size={20} />
@@ -747,11 +739,10 @@ export default function UnifiedNeighborhood({
                         handleViewModeChange('street')
                         setShowViewModeSelector(false)
                       }}
-                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${
-                        viewMode === 'street'
-                          ? 'bg-thread-sage text-thread-paper'
-                          : 'bg-thread-cream text-thread-pine border border-thread-sage'
-                      }`}
+                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${viewMode === 'street'
+                        ? 'bg-thread-sage text-thread-paper'
+                        : 'bg-thread-cream text-thread-pine border border-thread-sage'
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <PixelIcon name="buildings" size={20} />
@@ -766,11 +757,10 @@ export default function UnifiedNeighborhood({
                         handleViewModeChange('grid')
                         setShowViewModeSelector(false)
                       }}
-                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${
-                        viewMode === 'grid'
-                          ? 'bg-thread-sage text-thread-paper'
-                          : 'bg-thread-cream text-thread-pine border border-thread-sage'
-                      }`}
+                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${viewMode === 'grid'
+                        ? 'bg-thread-sage text-thread-paper'
+                        : 'bg-thread-cream text-thread-pine border border-thread-sage'
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <PixelIcon name="more-horizontal" size={20} />
@@ -785,11 +775,10 @@ export default function UnifiedNeighborhood({
                         handleViewModeChange('map')
                         setShowViewModeSelector(false)
                       }}
-                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${
-                        viewMode === 'map'
-                          ? 'bg-thread-sage text-thread-paper'
-                          : 'bg-thread-cream text-thread-pine border border-thread-sage'
-                      }`}
+                      className={`w-full min-h-[48px] px-4 py-3 rounded-lg font-medium transition-colors ${viewMode === 'map'
+                        ? 'bg-thread-sage text-thread-paper'
+                        : 'bg-thread-cream text-thread-pine border border-thread-sage'
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <PixelIcon name="map" size={20} />
@@ -812,21 +801,21 @@ export default function UnifiedNeighborhood({
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { type, param } = context.query
-  
+
   if (typeof type !== 'string' || typeof param !== 'string') {
     return { notFound: true }
   }
-  
+
   try {
     // Get current user for personalization
     const { getSessionUser } = await import('../../../lib/auth/server')
     const currentUser = await getSessionUser(context.req as any)
-    
+
     let title = ''
     let description = ''
     let members: NeighborhoodMember[] = []
     let metadata: any = {}
-    
+
     // Route to appropriate data fetching based on type
     switch (type) {
       case 'ring': {
@@ -884,11 +873,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         }
 
         if (!ring) return { notFound: true }
-        
+
         title = `🏘️ ${ring.name} Neighborhood`
         description = ring.description || `Explore the homes of ${ring.name} ring members`
         metadata = { ringName: ring.name, ringSlug: ring.slug }
-        
+
         // For Ring Hub members, use the proper transformer to resolve local user accounts
         let resolvedMembers: any[] = []
 
@@ -968,12 +957,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             const user = member.user || member
             const handle = user.handles.find((h: any) => h.host === 'threadstead.com') || user.handles[0]
             const config = homeConfigMap.get(user.id)
-            
+
             if (!handle || !config) return null
-            
+
             const weekAgo = new Date()
             weekAgo.setDate(weekAgo.getDate() - 7)
-            
+
             return {
               userId: user.id,
               username: handle.handle,
@@ -1012,8 +1001,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   x: d.positionX,
                   y: d.positionY,
                   layer: d.layer,
-                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) })
-                })) : []
+                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) }),
+                  ...(d.data && { data: d.data })
+                })) : [],
+                terrain: (config.terrain as Record<string, string>) || {}
               },
               stats: {
                 ringMemberships: 1,
@@ -1030,17 +1021,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             }
           })
           .filter(m => m !== null)
-        
+
         members = filteredMembers as NeighborhoodMember[]
         break
       }
-      
+
       case 'mutual': {
         // Fetch mutual friends neighborhood
         title = `🤝 Mutual Friends with ${param}`
         description = `Discover homes of people connected to ${param}`
         metadata = { targetUsername: param }
-        
+
         // Implementation would fetch mutual friends
         // For now, using explore as fallback
         const homeConfigs = await db.userHomeConfig.findMany({
@@ -1081,9 +1072,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           .map(config => {
             const user = config.user
             const handle = user.handles.find(h => h.host === 'threadstead.com') || user.handles[0]
-            
+
             if (!handle) return null
-            
+
             return {
               userId: user.id,
               username: handle.handle,
@@ -1122,8 +1113,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   x: d.positionX,
                   y: d.positionY,
                   layer: d.layer,
-                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) })
-                })) : []
+                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) }),
+                  ...(d.data && { data: d.data })
+                })) : [],
+                terrain: (config.terrain as Record<string, string>) || {}
               },
               stats: {
                 isActive: false
@@ -1133,12 +1126,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           .filter(m => m !== null)
         break
       }
-      
+
       case 'explore': {
         // Enhanced exploration with different sub-categories
         let orderBy: any = { updatedAt: 'desc' } // default
         let take = 60
-        
+
         switch (param) {
           case 'all':
             title = 'Explore All Neighborhoods'
@@ -1164,7 +1157,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             title = 'Explore All Neighborhoods'
             description = 'Discover pixel homes across all of ThreadStead'
         }
-        
+
         const homeConfigs = await db.userHomeConfig.findMany({
           include: {
             user: {
@@ -1211,9 +1204,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           .map(config => {
             const user = config.user
             const handle = user.handles.find(h => h.host === 'threadstead.com') || user.handles[0]
-            
+
             if (!handle) return null
-            
+
             return {
               userId: user.id,
               username: handle.handle,
@@ -1252,8 +1245,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   x: d.positionX,
                   y: d.positionY,
                   layer: d.layer,
-                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) })
-                })) : []
+                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) }),
+                  ...(d.data && { data: d.data })
+                })) : [],
+                terrain: (config.terrain as Record<string, string>) || {}
               },
               stats: {
                 isActive: user.sessions && user.sessions.length > 0
@@ -1261,20 +1256,20 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             }
           })
           .filter(m => m !== null)
-        
+
         // Apply randomization if needed
         if (param === 'random') {
           processedMembers = processedMembers.sort(() => Math.random() - 0.5)
         }
-        
+
         members = processedMembers
         break
       }
-      
+
       default:
         return { notFound: true }
     }
-    
+
     return {
       props: {
         type,
@@ -1287,7 +1282,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         currentUserId: currentUser?.id || null
       }
     }
-    
+
   } catch (error) {
     console.error('Neighborhood SSR error:', error)
     return { notFound: true }
