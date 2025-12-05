@@ -492,15 +492,15 @@ export default function DecorationMode({
       style={{ top: 'var(--nav-height, 64px)' }}
     >
       {/* Header */}
-      <div className="h-14 border-b flex items-center justify-between px-4 bg-white shrink-0">
-        <div className="font-bold text-lg">Decorate Home</div>
+      <div className="h-14 border-b border-thread-sage/30 flex items-center justify-between px-4 bg-thread-paper shrink-0">
+        <div className="font-headline font-bold text-lg text-thread-pine">Decorate Home</div>
         <div className="flex gap-2">
           <button
             onClick={() => {
               if (canUndo) undo()
             }}
             disabled={!canUndo}
-            className={`p-2 rounded hover:bg-gray-100 ${!canUndo ? 'opacity-30' : ''}`}
+            className={`p-2 rounded hover:bg-thread-cream ${!canUndo ? 'opacity-30' : ''}`}
           >
             <PixelIcon name="arrow-left" className="w-5 h-5" />
           </button>
@@ -509,20 +509,20 @@ export default function DecorationMode({
               if (canRedo) redo()
             }}
             disabled={!canRedo}
-            className={`p-2 rounded hover:bg-gray-100 ${!canRedo ? 'opacity-30' : ''}`}
+            className={`p-2 rounded hover:bg-thread-cream ${!canRedo ? 'opacity-30' : ''}`}
           >
             <PixelIcon name="arrow-right" className="w-5 h-5" />
           </button>
-          <div className="w-px h-6 bg-gray-300 mx-1" />
+          <div className="w-px h-6 bg-thread-sage/40 mx-1" />
           <button
             onClick={onCancel}
-            className="px-4 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded"
+            className="px-4 py-1.5 text-sm font-medium text-thread-sage hover:bg-thread-cream rounded"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-1.5 text-sm font-medium bg-black text-white hover:bg-gray-800 rounded"
+            className="px-4 py-1.5 text-sm font-medium bg-thread-pine text-white hover:bg-thread-pine/90 rounded shadow-cozy"
           >
             Save Changes
           </button>
@@ -532,13 +532,13 @@ export default function DecorationMode({
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Canvas Area */}
-        <div className="flex-1 bg-gray-100 overflow-hidden flex flex-col relative">
+        <div className="flex-1 bg-thread-cream/50 overflow-hidden flex flex-col relative">
           {/* Toolbar */}
           <div className="absolute top-4 left-4 right-4 flex justify-between z-10 pointer-events-none">
             <div className="flex gap-2 pointer-events-auto">
               {/* Tools like Grid Toggle could go here */}
               <button
-                className={`p-2 rounded bg-white shadow-sm border ${isDeleting ? 'bg-red-50 border-red-200 text-red-600' : 'hover:bg-gray-50'}`}
+                className={`p-2 rounded shadow-sm border ${isDeleting ? 'bg-thread-sunset/10 border-thread-sunset/50 text-thread-sunset' : 'bg-thread-paper border-thread-sage/50 hover:bg-thread-cream'}`}
                 onClick={() => {
                   setIsDeleting(!isDeleting)
                   setIsPlacing(false)
@@ -582,20 +582,20 @@ export default function DecorationMode({
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-thread-sky/20 border-2 border-thread-sky rounded-lg shadow-sm">
                       <div
-                        className="w-5 h-5 rounded border-2 border-blue-400 shadow-inner"
+                        className="w-5 h-5 rounded border-2 border-thread-sky shadow-inner"
                         style={{ backgroundColor: TERRAIN_TILES.find(t => t.id === paintBrush)?.color || '#ccc' }}
                       />
-                      <span className="text-sm font-medium text-blue-700">
+                      <span className="text-sm font-medium text-thread-pine">
                         {TERRAIN_TILES.find(t => t.id === paintBrush)?.name || 'Terrain'}
                       </span>
                       <button
                         onClick={() => setPaintBrush(undefined)}
-                        className="ml-1 p-0.5 hover:bg-blue-100 rounded"
+                        className="ml-1 p-0.5 hover:bg-thread-sky/30 rounded"
                         title="Exit terrain mode"
                       >
-                        <PixelIcon name="close" size={14} className="text-blue-400" />
+                        <PixelIcon name="close" size={14} className="text-thread-sky" />
                       </button>
                     </div>
                   )}
@@ -644,7 +644,7 @@ export default function DecorationMode({
         </div>
 
         {/* Sidebar / Palette */}
-        <div className="w-[500px] border-l bg-white flex flex-col shrink-0">
+        <div className="w-[500px] border-l border-thread-sage/30 bg-thread-paper flex flex-col shrink-0">
           <DecorationPalette
             items={availableDecorations}
             onItemSelect={handleItemSelect}

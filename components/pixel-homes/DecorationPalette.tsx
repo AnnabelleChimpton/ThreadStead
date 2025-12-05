@@ -323,14 +323,14 @@ export default function DecorationPalette({
                 aspect-square rounded-xl border-2 flex flex-col items-center justify-center p-2 transition-all
                 ${selectedTerrainId === null
                   ? 'border-red-500 bg-red-50 shadow-md transform scale-105'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  : 'border-thread-sage/30 bg-white hover:border-thread-sage/60'
                 }
               `}
             >
-              <div className="w-8 h-8 rounded border border-gray-300 bg-white flex items-center justify-center mb-1">
+              <div className="w-8 h-8 rounded border border-thread-sage/50 bg-white flex items-center justify-center mb-1">
                 <PixelIcon name="trash" size={20} className="text-red-500" />
               </div>
-              <span className="text-xs text-center font-medium text-gray-700">Eraser</span>
+              <span className="text-xs text-center font-medium text-thread-pine">Eraser</span>
             </button>
 
             {/* Terrain Tiles */}
@@ -341,20 +341,20 @@ export default function DecorationPalette({
                 className={`
                   aspect-square rounded-xl border-2 flex flex-col items-center justify-center p-2 transition-all
                   ${selectedTerrainId === tile.id
-                    ? 'border-blue-500 bg-blue-50 shadow-md transform scale-105'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    ? 'border-thread-sky bg-thread-sky/20 shadow-md transform scale-105'
+                    : 'border-thread-sage/30 bg-white hover:border-thread-sage/60'
                   }
                 `}
               >
                 <div
-                  className="w-8 h-8 rounded border border-gray-300 mb-1 shadow-sm"
+                  className="w-8 h-8 rounded border border-thread-sage/50 mb-1 shadow-sm"
                   style={{ backgroundColor: tile.color }}
                 />
-                <span className="text-xs text-center font-medium text-gray-700">{tile.name}</span>
+                <span className="text-xs text-center font-medium text-thread-pine">{tile.name}</span>
               </button>
             ))}
           </div>
-          <div className="mt-4 text-xs text-gray-500 text-center">
+          <div className="mt-4 text-xs text-thread-sage text-center">
             Select a terrain type and click or drag on the canvas to paint.
           </div>
         </div>
@@ -443,9 +443,9 @@ export default function DecorationPalette({
         } : undefined}
       >
         {currentItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-            <PixelIcon name="search" size={32} className="mb-2 text-gray-400" />
-            <div className="text-sm text-center text-gray-600">
+          <div className="flex flex-col items-center justify-center h-32 text-thread-sage">
+            <PixelIcon name="search" size={32} className="mb-2 text-thread-sage/60" />
+            <div className="text-sm text-center text-thread-sage">
               {searchQuery ? 'No items found' : 'No items in this category'}
             </div>
           </div>
@@ -462,8 +462,8 @@ export default function DecorationPalette({
                   !flex !items-center !justify-center
                   ${isMobile ? '!p-1' : '!p-2'}
                   ${selectedItem?.id === item.id
-                    ? '!border-blue-500 !bg-blue-50 !shadow-md !transform !scale-105'
-                    : '!border-gray-200 !bg-white hover:!border-gray-300'
+                    ? '!border-thread-sky !bg-thread-sky/20 !shadow-md !transform !scale-105'
+                    : '!border-thread-sage/30 !bg-white hover:!border-thread-sage/60'
                   }
                   ${isMobile ? 'active:!scale-95' : ''}
                 `}
@@ -496,7 +496,7 @@ export default function DecorationPalette({
 
                 {/* Selection Indicator */}
                 {selectedItem?.id === item.id && (
-                  <div className="!absolute !-top-1 !-right-1 !w-5 !h-5 !bg-blue-500 !rounded-full !flex !items-center !justify-center !shadow-sm !z-10">
+                  <div className="!absolute !-top-1 !-right-1 !w-5 !h-5 !bg-thread-sky !rounded-full !flex !items-center !justify-center !shadow-sm !z-10">
                     <PixelIcon name="check" size={12} className="text-white" />
                   </div>
                 )}
@@ -514,7 +514,7 @@ export default function DecorationPalette({
   }
 
   return (
-    <div className={`decoration-palette flex flex-col h-full bg-white ${className}`}>
+    <div className={`decoration-palette flex flex-col h-full bg-thread-paper ${className}`}>
       {/* Search Bar - Only show for grid views */}
       {primaryCategory !== 'themes' && primaryCategory !== 'text' && primaryCategory !== 'terrain' && !selectedItem?.type?.includes('house_color') && !selectedItem?.id.startsWith('sign_post') && (
         <div className="px-4 pt-4 pb-2">
@@ -524,16 +524,16 @@ export default function DecorationPalette({
               placeholder="Search decorations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 bg-white touch-manipulation"
+              className="w-full px-4 py-2 pl-10 border border-thread-sage/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sky focus:border-thread-sky text-sm text-gray-900 bg-white touch-manipulation"
               style={{ minHeight: '48px' }}
             />
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-thread-sage">
               <PixelIcon name="search" size={16} />
             </div>
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-thread-sage hover:text-thread-pine"
               >
                 ✕
               </button>
@@ -552,8 +552,8 @@ export default function DecorationPalette({
               className={`
                 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all touch-manipulation
                 ${primaryCategory === key
-                  ? 'bg-blue-100 text-blue-700 shadow-sm ring-1 ring-blue-200'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-thread-sky/30 text-thread-pine shadow-sm ring-1 ring-thread-sky/50'
+                  : 'bg-thread-cream/50 text-thread-sage hover:bg-thread-cream hover:text-thread-pine'
                 }
               `}
             >
@@ -566,7 +566,7 @@ export default function DecorationPalette({
 
       {/* Secondary Category Navigation */}
       {hasSecondaryCategories && !searchQuery && primaryCategory !== 'themes' && primaryCategory !== 'text' && primaryCategory !== 'terrain' && !selectedItem?.type?.includes('house_color') && !selectedItem?.id.startsWith('sign_post') && (
-        <div className="flex-none border-b border-gray-100 bg-gray-50/50">
+        <div className="flex-none border-b border-thread-sage/20 bg-thread-cream/30">
           <div className={`flex overflow-x-auto hide-scrollbar ${isMobile ? 'px-2' : 'px-4'} py-2 gap-2`}>
             {Object.entries(secondaryCategories).map(([key, subcategory]) => (
               <button
@@ -575,8 +575,8 @@ export default function DecorationPalette({
                 className={`
                   flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all touch-manipulation
                   ${secondaryCategory === key
-                    ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100'
-                    : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                    ? 'bg-white text-thread-pine shadow-sm ring-1 ring-thread-sky/30'
+                    : 'text-thread-sage hover:bg-white/70 hover:text-thread-pine'
                   }
                 `}
               >
@@ -591,7 +591,7 @@ export default function DecorationPalette({
       {/* Search Results Info */}
       {searchQuery && (
         <div className="px-4 pb-2">
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-thread-sage">
             {currentItems.length} result{currentItems.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;
           </div>
         </div>
