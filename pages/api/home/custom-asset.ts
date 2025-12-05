@@ -22,11 +22,11 @@ interface CustomAssetSlot {
   url: string | null;
 }
 
-// Helper to get slots array from database, migrating legacy single URL if needed
+// Helper to get slots array from database
 async function getCustomAssetSlots(userId: string): Promise<CustomAssetSlot[]> {
   const homeConfig = await db.userHomeConfig.findUnique({
     where: { userId },
-    select: { customAssets: true, customAssetUrl: true }
+    select: { customAssets: true }
   });
 
   // Initialize empty slots
@@ -35,7 +35,7 @@ async function getCustomAssetSlots(userId: string): Promise<CustomAssetSlot[]> {
     url: null
   }));
 
-  // If we have the new customAssets field, use it
+  // If we have customAssets field, use it
   if (homeConfig?.customAssets) {
     const assets = homeConfig.customAssets as unknown as CustomAssetSlot[];
     for (const asset of assets) {
@@ -43,18 +43,6 @@ async function getCustomAssetSlots(userId: string): Promise<CustomAssetSlot[]> {
         slots[asset.slot].url = asset.url;
       }
     }
-  }
-  // Migrate legacy single customAssetUrl to slot 0 if customAssets is empty
-  else if (homeConfig?.customAssetUrl && !slots.some(s => s.url)) {
-    slots[0].url = homeConfig.customAssetUrl;
-    // Migrate to new field
-    await db.userHomeConfig.update({
-      where: { userId },
-      data: {
-        customAssets: slots.filter(s => s.url) as unknown as any,
-        customAssetUrl: null // Clear legacy field
-      }
-    });
   }
 
   return slots;
