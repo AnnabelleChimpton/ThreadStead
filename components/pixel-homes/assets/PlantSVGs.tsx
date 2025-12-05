@@ -264,6 +264,55 @@ export const PlantSVGs = ({ id, variant, scale, className }: AssetProps) => {
                 </svg>
             )
 
+        case 'hedge':
+            return (
+                <svg width={48 * scale} height={24 * scale} viewBox="0 0 48 24" className={className} shapeRendering="crispEdges">
+                    {/* Base foliage mass */}
+                    <rect x="2" y="8" width="44" height="14" fill="#166534" />
+                    <rect x="4" y="6" width="40" height="16" fill="#15803D" />
+                    <rect x="6" y="4" width="36" height="18" fill="#16A34A" />
+                    {/* Top texture variation */}
+                    <rect x="8" y="4" width="6" height="4" fill="#22C55E" />
+                    <rect x="18" y="5" width="8" height="3" fill="#22C55E" />
+                    <rect x="30" y="4" width="6" height="4" fill="#22C55E" />
+                    {/* Leaf detail highlights */}
+                    <rect x="10" y="8" width="2" height="2" fill="#4ADE80" />
+                    <rect x="22" y="6" width="2" height="2" fill="#4ADE80" />
+                    <rect x="34" y="8" width="2" height="2" fill="#4ADE80" />
+                    {/* Darker shadow areas */}
+                    <rect x="6" y="16" width="36" height="4" fill="#14532D" opacity="0.5" />
+                    <rect x="14" y="10" width="4" height="6" fill="#166534" opacity="0.5" />
+                    <rect x="28" y="12" width="4" height="4" fill="#166534" opacity="0.5" />
+                    {/* Ground shadow */}
+                    <rect x="4" y="22" width="40" height="2" fill="#000" opacity="0.2" />
+                </svg>
+            )
+
+        case 'hedge_round':
+            return (
+                <svg width={32 * scale} height={32 * scale} viewBox="0 0 32 32" className={className} shapeRendering="crispEdges">
+                    {/* Main round shape using rects for pixel art feel */}
+                    <rect x="10" y="4" width="12" height="4" fill="#16A34A" />
+                    <rect x="6" y="8" width="20" height="4" fill="#16A34A" />
+                    <rect x="4" y="12" width="24" height="8" fill="#16A34A" />
+                    <rect x="6" y="20" width="20" height="4" fill="#16A34A" />
+                    <rect x="10" y="24" width="12" height="4" fill="#16A34A" />
+                    {/* Inner lighter area */}
+                    <rect x="12" y="6" width="8" height="2" fill="#22C55E" />
+                    <rect x="8" y="10" width="16" height="2" fill="#22C55E" />
+                    <rect x="6" y="14" width="20" height="4" fill="#22C55E" />
+                    <rect x="8" y="18" width="16" height="2" fill="#22C55E" />
+                    {/* Highlights */}
+                    <rect x="10" y="8" width="4" height="2" fill="#4ADE80" />
+                    <rect x="8" y="12" width="2" height="4" fill="#4ADE80" />
+                    {/* Shadows */}
+                    <rect x="18" y="18" width="6" height="4" fill="#15803D" />
+                    <rect x="20" y="22" width="4" height="2" fill="#166534" />
+                    {/* Ground shadow */}
+                    <rect x="8" y="28" width="16" height="2" fill="#000" opacity="0.2" />
+                </svg>
+            )
+
         default:
             return (
                 <svg width={16 * scale} height={16 * scale} viewBox="0 0 16 16" className={className} shapeRendering="crispEdges">

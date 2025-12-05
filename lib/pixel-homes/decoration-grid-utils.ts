@@ -165,7 +165,8 @@ export function getDecorationGridSize(
     'furniture': { width: 2, height: 1 },
     'lighting': { width: 1, height: 1 },
     'water': { width: 2, height: 2 },
-    'structure': { width: 3, height: 3 }
+    'structure': { width: 3, height: 3 },
+    'custom': { width: 4, height: 4 }  // 64px × 64px (max upload size / 16px cell size)
   };
 
   const baseSize = baseSizes[decorationType] || { width: 1, height: 1 };

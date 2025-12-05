@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef } from 'react'
 import DecorationIcon from './DecorationIcon'
 import ThemePicker from './ThemePicker'
 import { HouseCustomizations, HouseTemplate, ColorPalette } from './HouseSVG'
@@ -21,6 +21,10 @@ interface DecorationPaletteProps {
   onDecorationUpdate?: (id: string, updates: Partial<DecorationItem>) => void
   onTerrainSelect?: (terrainId: string | null) => void
   selectedTerrainId?: string | null
+  // Custom pixel art slot handlers
+  onCustomSlotUpload?: (slot: number, file: File) => void
+  onCustomSlotDelete?: (slot: number) => void
+  uploadingSlot?: number | null
 }
 
 const PRIMARY_CATEGORIES: Record<string, {
@@ -32,6 +36,7 @@ const PRIMARY_CATEGORIES: Record<string, {
     label: 'Decor',
     icon: 'paint-bucket',
     subcategories: {
+      custom: { label: 'My Art', icon: 'image' },
       plants: { label: 'Plants', icon: 'drop' },
       furniture: { label: 'Furniture', icon: 'archive' },
       lighting: { label: 'Lighting', icon: 'lightbulb' },
@@ -52,7 +57,12 @@ const PRIMARY_CATEGORIES: Record<string, {
     subcategories: {
       doors: { label: 'Doors', icon: 'external-link' },
       windows: { label: 'Windows', icon: 'image' },
+      window_treatments: { label: 'Window Decor', icon: 'image' },
       roof: { label: 'Roof Trim', icon: 'buildings' },
+      chimney: { label: 'Chimney', icon: 'zap' },
+      welcome_mat: { label: 'Welcome Mat', icon: 'home' },
+      house_number: { label: 'House Number', icon: 'script' },
+      exterior_lights: { label: 'Lights', icon: 'lightbulb' },
     }
   },
   themes: {
@@ -91,11 +101,35 @@ export default function DecorationPalette({
   currentPalette,
   onDecorationUpdate,
   onTerrainSelect,
-  selectedTerrainId
+  selectedTerrainId,
+  onCustomSlotUpload,
+  onCustomSlotDelete,
+  uploadingSlot
 }: DecorationPaletteProps) {
   const [primaryCategory, setPrimaryCategory] = useState<string>('decorations')
   const [secondaryCategory, setSecondaryCategory] = useState<string>('plants')
   const [searchQuery, setSearchQuery] = useState('')
+  const [pendingUploadSlot, setPendingUploadSlot] = useState<number | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Handle file input change for custom slot uploads
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file && pendingUploadSlot !== null && onCustomSlotUpload) {
+      onCustomSlotUpload(pendingUploadSlot, file)
+    }
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    setPendingUploadSlot(null)
+  }
+
+  // Trigger file picker for a specific slot
+  const triggerUpload = (slot: number) => {
+    setPendingUploadSlot(slot)
+    fileInputRef.current?.click()
+  }
 
   // Transform items to match new structure
   const transformedItems = useMemo(() => {
@@ -151,8 +185,23 @@ export default function DecorationPalette({
       if (secondaryCategory === 'windows') {
         return houseItems.filter(item => item.section === 'windows')
       }
+      if (secondaryCategory === 'window_treatments') {
+        return houseItems.filter(item => item.section === 'window_treatments')
+      }
       if (secondaryCategory === 'roof') {
         return houseItems.filter(item => item.section === 'roof')
+      }
+      if (secondaryCategory === 'chimney') {
+        return houseItems.filter(item => item.section === 'chimney')
+      }
+      if (secondaryCategory === 'welcome_mat') {
+        return houseItems.filter(item => item.section === 'welcome_mat')
+      }
+      if (secondaryCategory === 'house_number') {
+        return houseItems.filter(item => item.section === 'house_number')
+      }
+      if (secondaryCategory === 'exterior_lights') {
+        return houseItems.filter(item => item.section === 'exterior_lights')
       }
       return houseItems
     }
@@ -428,6 +477,123 @@ export default function DecorationPalette({
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Special rendering for Custom Art slots
+    if (secondaryCategory === 'custom' && primaryCategory === 'decorations') {
+      const customItems = filteredItems.custom || []
+      return (
+        <div className="flex-1 overflow-y-auto px-4 pb-4 relative">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/gif,image/webp"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          {/* Info text */}
+          <div className="mb-4 p-3 bg-thread-cream/50 rounded-lg border border-thread-sage/30">
+            <div className="text-sm text-thread-pine font-medium mb-1">My Custom Pixel Art</div>
+            <div className="text-xs text-thread-sage">
+              Upload your own pixel art (64×64 max, PNG/GIF/WebP, 100KB limit). Click a slot to upload or select placed art.
+            </div>
+          </div>
+
+          <div className={`!grid ${isMobile ? '!grid-cols-3 !gap-3' : '!grid-cols-5 !gap-4'}`}>
+            {customItems.map((item) => {
+              const isUploading = uploadingSlot === item.slot
+              const isEmpty = item.isEmpty
+              const isSelected = selectedItem?.id === item.id
+
+              return (
+                <div
+                  key={item.id}
+                  className={`
+                    relative aspect-square rounded-xl border-2 overflow-hidden
+                    transition-all duration-200
+                    ${isSelected
+                      ? 'border-thread-sky bg-thread-sky/20 shadow-md transform scale-105'
+                      : isEmpty
+                        ? 'border-dashed border-thread-sage/50 bg-thread-cream/30 hover:border-thread-sage hover:bg-thread-cream/50'
+                        : 'border-thread-sage/30 bg-white hover:border-thread-sage/60 hover:shadow-lg'
+                    }
+                  `}
+                >
+                  {isUploading ? (
+                    // Uploading state
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+                      <div className="text-center">
+                        <div className="animate-spin w-6 h-6 border-2 border-thread-sky border-t-transparent rounded-full mx-auto mb-2" />
+                        <span className="text-xs text-thread-sage">Uploading...</span>
+                      </div>
+                    </div>
+                  ) : isEmpty ? (
+                    // Empty slot - show upload button
+                    <button
+                      onClick={() => triggerUpload(item.slot!)}
+                      className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-thread-sage/20 flex items-center justify-center mb-1 group-hover:bg-thread-sky/30 transition-colors">
+                        <PixelIcon name="upload" size={20} className="text-thread-sage group-hover:text-thread-sky" />
+                      </div>
+                      <span className="text-xs text-thread-sage group-hover:text-thread-pine">Upload</span>
+                    </button>
+                  ) : (
+                    // Filled slot - show preview with actions
+                    <>
+                      <button
+                        onClick={() => onItemSelect(item)}
+                        className="absolute inset-0 flex items-center justify-center p-2 cursor-pointer"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.customAssetUrl}
+                          alt={item.name}
+                          className="max-w-full max-h-full object-contain"
+                          style={{ imageRendering: 'pixelated' }}
+                        />
+                      </button>
+
+                      {/* Replace button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          triggerUpload(item.slot!)
+                        }}
+                        className="absolute top-1 left-1 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 transition-opacity hover:bg-thread-cream"
+                        title="Replace image"
+                      >
+                        <PixelIcon name="upload" size={12} className="text-thread-sage" />
+                      </button>
+
+                      {/* Delete button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onCustomSlotDelete?.(item.slot!)
+                        }}
+                        className="absolute top-1 right-1 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 transition-opacity hover:bg-red-50"
+                        title="Remove image"
+                      >
+                        <PixelIcon name="close" size={12} className="text-red-500" />
+                      </button>
+
+                      {/* Selection indicator */}
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-thread-sky rounded-full flex items-center justify-center shadow-sm z-10">
+                          <PixelIcon name="check" size={12} className="text-white" />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )

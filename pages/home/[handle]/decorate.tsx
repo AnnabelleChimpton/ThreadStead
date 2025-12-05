@@ -185,21 +185,35 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     }
 
     // Transform decorations to match component interface
-    const transformedDecorations = homeConfig.decorations?.map((decoration, i) => ({
-      id: `${decoration.decorationId}_${Date.now()}_${i}`,
-      decorationId: decoration.decorationId,
-      name: 'Decoration', // Placeholder name as we don't fetch it yet
-      type: decoration.decorationType,
-      zone: 'front_yard' as const,
-      position: {
-        x: decoration.positionX || 0,
-        y: decoration.positionY || 0,
-        layer: decoration.layer || 1
-      },
-      variant: decoration.variant || 'default',
-      size: decoration.size || 'medium',
-      data: decoration.data
-    })) || []
+    const transformedDecorations = homeConfig.decorations?.map((decoration, i) => {
+      const baseDecoration = {
+        id: `${decoration.decorationId}_${Date.now()}_${i}`,
+        decorationId: decoration.decorationId,
+        name: 'Decoration', // Placeholder name as we don't fetch it yet
+        type: decoration.decorationType,
+        zone: 'front_yard' as const,
+        position: {
+          x: decoration.positionX || 0,
+          y: decoration.positionY || 0,
+          layer: decoration.layer || 1
+        },
+        variant: decoration.variant || 'default',
+        size: decoration.size || 'medium',
+        data: decoration.data
+      }
+
+      // For custom type decorations, extract customAssetUrl and slot from data
+      if (decoration.decorationType === 'custom' && decoration.data) {
+        const data = decoration.data as { customAssetUrl?: string; slot?: number }
+        return {
+          ...baseDecoration,
+          customAssetUrl: data.customAssetUrl || null,
+          slot: typeof data.slot === 'number' ? data.slot : null
+        }
+      }
+
+      return baseDecoration
+    }) || []
 
     return {
       props: {

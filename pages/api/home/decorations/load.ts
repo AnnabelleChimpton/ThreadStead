@@ -11,6 +11,8 @@ interface DecorationItem {
   size?: string;
   data?: any;
   renderSvg?: string | null;
+  customAssetUrl?: string;
+  slot?: number;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -73,21 +75,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const decorationItemMap = new Map(decorationItemsFromCatalog.map(item => [item.itemId, item.renderSvg]));
 
     // Transform to the format expected by the frontend
-    const decorationItems: DecorationItem[] = decorations.map(decoration => ({
-      id: `${decoration.decorationId}_${decoration.id}`,
-      decorationId: decoration.decorationId, // Base decoration ID for matching hardcoded SVGs
-      type: decoration.decorationType,
-      zone: decoration.zone,
-      position: {
-        x: decoration.positionX,
-        y: decoration.positionY,
-        layer: decoration.layer
-      },
-      variant: decoration.variant || 'default',
-      size: decoration.size || 'medium',
-      data: decoration.data,
-      ...(decorationItemMap.has(decoration.decorationId) && { renderSvg: decorationItemMap.get(decoration.decorationId) })
-    }));
+    const decorationItems: DecorationItem[] = decorations.map(decoration => {
+      const baseItem: DecorationItem = {
+        id: `${decoration.decorationId}_${decoration.id}`,
+        decorationId: decoration.decorationId, // Base decoration ID for matching hardcoded SVGs
+        type: decoration.decorationType,
+        zone: decoration.zone,
+        position: {
+          x: decoration.positionX,
+          y: decoration.positionY,
+          layer: decoration.layer
+        },
+        variant: decoration.variant || 'default',
+        size: decoration.size || 'medium',
+        data: decoration.data,
+        ...(decorationItemMap.has(decoration.decorationId) && { renderSvg: decorationItemMap.get(decoration.decorationId) })
+      };
+
+      // For custom type decorations, extract customAssetUrl and slot from data
+      if (decoration.decorationType === 'custom' && decoration.data) {
+        const data = decoration.data as { customAssetUrl?: string; slot?: number };
+        if (data.customAssetUrl) {
+          baseItem.customAssetUrl = data.customAssetUrl;
+        }
+        if (typeof data.slot === 'number') {
+          baseItem.slot = data.slot;
+        }
+      }
+
+      return baseItem;
+    });
 
     // Extract atmosphere settings from home config
     const atmosphere = homeConfig ? {

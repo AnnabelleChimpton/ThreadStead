@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import DecorationPalette from './DecorationPalette'
 import { DecorationItem, BETA_ITEMS, TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
@@ -8,6 +8,7 @@ import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping
 import { DEFAULT_DECORATION_GRID, getDecorationGridSize, pixelToGrid, isValidGridPosition } from '../../lib/pixel-homes/decoration-grid-utils'
 import { PixelIcon } from '../ui/PixelIcon'
 import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
+import { retroSFX } from '../../lib/audio/retro-sfx'
 
 interface DecorationModeProps {
   template: HouseTemplate
@@ -106,6 +107,54 @@ export default function DecorationMode({
   const CANVAS_WIDTH = 500
   const CANVAS_HEIGHT = 350
 
+  // SFX State - persisted to localStorage
+  const [sfxMuted, setSfxMuted] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('pixelHomeSfxMuted') === 'true'
+    }
+    return false
+  })
+
+  // Custom Asset State - 5 slots for user-uploaded pixel art
+  interface CustomAssetSlot {
+    slot: number
+    url: string | null
+  }
+  const [customAssetSlots, setCustomAssetSlots] = useState<CustomAssetSlot[]>([
+    { slot: 0, url: null },
+    { slot: 1, url: null },
+    { slot: 2, url: null },
+    { slot: 3, url: null },
+    { slot: 4, url: null }
+  ])
+  const [uploadingSlot, setUploadingSlot] = useState<number | null>(null)
+
+  // Sync SFX enabled state
+  useEffect(() => {
+    retroSFX.setEnabled(!sfxMuted)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pixelHomeSfxMuted', String(sfxMuted))
+    }
+  }, [sfxMuted])
+
+  // Load custom asset slots
+  useEffect(() => {
+    const loadCustomAssets = async () => {
+      try {
+        const response = await fetch('/api/home/custom-asset')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.slots) {
+            setCustomAssetSlots(data.slots)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading custom assets:', error)
+      }
+    }
+    loadCustomAssets()
+  }, [])
+
   // Load available decorations
   useEffect(() => {
     const loadDecorations = async () => {
@@ -133,7 +182,9 @@ export default function DecorationMode({
 
           setAvailableDecorations({
             ...mergedDecorations,
-            colors: BETA_ITEMS.colors
+            colors: BETA_ITEMS.colors,
+            house: BETA_ITEMS.house,
+            atmosphere: BETA_ITEMS.atmosphere
           })
         } else {
           console.warn('Failed to load decorations from API, using fallback')
@@ -163,6 +214,119 @@ export default function DecorationMode({
     enableSnapping: true,
     enableSpacingSuggestions: false
   })
+
+  // Custom asset upload handler - uploads to a specific slot
+  const handleCustomSlotUpload = async (slot: number, file: File) => {
+    // Validate file type
+    if (!['image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+      alert('Please upload a PNG, GIF, or WebP image')
+      return
+    }
+
+    // Validate file size (100KB max)
+    if (file.size > 100 * 1024) {
+      alert('Image too large. Maximum size is 100KB')
+      return
+    }
+
+    setUploadingSlot(slot)
+
+    try {
+      // Read file as data URL
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      // Validate dimensions using an Image element
+      const img = new Image()
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => {
+          if (img.width > 64 || img.height > 64) {
+            reject(new Error('Image too large. Maximum dimensions are 64x64 pixels'))
+          } else {
+            resolve()
+          }
+        }
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = dataUrl
+      })
+
+      // Upload to server with slot number
+      const response = await fetch('/api/home/custom-asset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot, imageDataUrl: dataUrl })
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Upload failed')
+      }
+
+      const data = await response.json()
+      if (data.slots) {
+        setCustomAssetSlots(data.slots)
+      }
+      retroSFX.playSave()
+
+    } catch (error) {
+      console.error('Error uploading custom asset:', error)
+      alert(error instanceof Error ? error.message : 'Failed to upload image')
+    } finally {
+      setUploadingSlot(null)
+    }
+  }
+
+  // Delete custom asset from a specific slot
+  const handleCustomSlotDelete = async (slot: number) => {
+    if (!confirm('Remove this custom pixel art?')) return
+
+    try {
+      const response = await fetch('/api/home/custom-asset', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.slots) {
+          setCustomAssetSlots(data.slots)
+        }
+        // Also remove any placed custom decorations from this slot
+        const customDecorationIds = placedDecorations
+          .filter(d => d.type === 'custom' && d.slot === slot)
+          .map(d => d.id)
+        if (customDecorationIds.length > 0) {
+          removeDecorations(new Set(customDecorationIds))
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting custom asset:', error)
+    }
+  }
+
+  // Merge custom asset slots into available decorations
+  const decorationsWithCustom = useMemo(() => {
+    // Create 5 custom decoration items (one per slot)
+    const customDecorations: DecorationItem[] = customAssetSlots.map(slot => ({
+      id: `custom_asset_${slot.slot}`,
+      name: slot.url ? `My Art ${slot.slot + 1}` : `Slot ${slot.slot + 1}`,
+      type: 'custom' as const,
+      zone: 'front_yard' as const,
+      customAssetUrl: slot.url || undefined,
+      slot: slot.slot,
+      isEmpty: !slot.url
+    }))
+
+    return {
+      ...availableDecorations,
+      custom: customDecorations
+    }
+  }, [availableDecorations, customAssetSlots])
 
   // Handlers
   const handleItemSelect = (item: DecorationItem | null) => {
@@ -208,25 +372,62 @@ export default function DecorationMode({
 
     if (item.type === 'house_custom') {
       const customizationUpdate: Partial<HouseCustomizations> = {}
+
+      // Windows
       if (item.id.includes('windows') || item.id === 'default_windows') {
         if (item.id === 'round_windows') customizationUpdate.windowStyle = 'round'
         else if (item.id === 'arched_windows') customizationUpdate.windowStyle = 'arched'
         else if (item.id === 'bay_windows') customizationUpdate.windowStyle = 'bay'
         else if (item.id === 'default_windows') customizationUpdate.windowStyle = 'default'
-      } else if (item.id.includes('door') || item.id === 'default_door') {
+      }
+      // Doors
+      else if (item.id.includes('door') || item.id === 'default_door') {
         if (item.id === 'arched_door') customizationUpdate.doorStyle = 'arched'
         else if (item.id === 'double_door') customizationUpdate.doorStyle = 'double'
         else if (item.id === 'cottage_door') customizationUpdate.doorStyle = 'cottage'
         else if (item.id === 'default_door') customizationUpdate.doorStyle = 'default'
-      } else if (item.id.includes('trim') || item.id === 'default_trim') {
+      }
+      // Roof Trim
+      else if (item.id.includes('trim') || item.id === 'default_trim') {
         if (item.id === 'ornate_trim') customizationUpdate.roofTrim = 'ornate'
         else if (item.id === 'scalloped_trim') customizationUpdate.roofTrim = 'scalloped'
         else if (item.id === 'gabled_trim') customizationUpdate.roofTrim = 'gabled'
         else if (item.id === 'default_trim') customizationUpdate.roofTrim = 'default'
       }
+      // Window Treatments
+      else if (item.id === 'shutters') customizationUpdate.windowTreatments = 'shutters'
+      else if (item.id === 'flower_boxes') customizationUpdate.windowTreatments = 'flower_boxes'
+      else if (item.id === 'awnings') customizationUpdate.windowTreatments = 'awnings'
+      else if (item.id === 'default_treatments') customizationUpdate.windowTreatments = 'default'
+      // Chimney
+      else if (item.id === 'brick_chimney') customizationUpdate.chimneyStyle = 'brick'
+      else if (item.id === 'stone_chimney') customizationUpdate.chimneyStyle = 'stone'
+      else if (item.id === 'no_chimney') customizationUpdate.chimneyStyle = 'none'
+      else if (item.id === 'default_chimney') customizationUpdate.chimneyStyle = 'default'
+      // Welcome Mat
+      else if (item.id === 'plain_mat') customizationUpdate.welcomeMat = 'plain'
+      else if (item.id === 'floral_mat') customizationUpdate.welcomeMat = 'floral'
+      else if (item.id === 'welcome_text_mat') customizationUpdate.welcomeMat = 'welcome_text'
+      else if (item.id === 'custom_text_mat') customizationUpdate.welcomeMat = 'custom_text'
+      else if (item.id === 'no_mat') customizationUpdate.welcomeMat = 'none'
+      // House Number
+      else if (item.id === 'classic_house_number') customizationUpdate.houseNumberStyle = 'classic'
+      else if (item.id === 'modern_house_number') customizationUpdate.houseNumberStyle = 'modern'
+      else if (item.id === 'rustic_house_number') customizationUpdate.houseNumberStyle = 'rustic'
+      else if (item.id === 'no_house_number') {
+        customizationUpdate.houseNumber = undefined
+        customizationUpdate.houseNumberStyle = undefined
+      }
+      // Exterior Lights
+      else if (item.id === 'lantern_lights') customizationUpdate.exteriorLights = 'lantern'
+      else if (item.id === 'modern_lights') customizationUpdate.exteriorLights = 'modern'
+      else if (item.id === 'string_exterior_lights') customizationUpdate.exteriorLights = 'string_lights'
+      else if (item.id === 'no_exterior_lights') customizationUpdate.exteriorLights = 'none'
+
       setHouseCustomizations(prev => ({ ...prev, ...customizationUpdate }))
       setSelectedItem(item)
       setIsPlacing(false)
+      retroSFX.playModeChange()
       return
     }
 
@@ -328,8 +529,10 @@ export default function DecorationMode({
       handleDecorationUpdate(draggedItem.id, { position: newDecoration.position })
       setDraggedItem(null)
       setIsDragging(false)
+      retroSFX.playPlaceItem()
     } else {
       addDecoration(newDecoration)
+      retroSFX.playPlaceItem()
       // Don't clear selection or placement mode to allow rapid placement
       // But we do need to update the preview to the new mouse position immediately
       // which happens in onMouseMove
@@ -394,9 +597,11 @@ export default function DecorationMode({
             delete next[key]
             return next
           })
+          retroSFX.playTerrainPaint()
         } else {
           // Paint mode - set the terrain tile
           setTerrain(prev => ({ ...prev, [key]: paintBrush }))
+          retroSFX.playTerrainPaint()
         }
       }
       return
@@ -454,11 +659,23 @@ export default function DecorationMode({
 
 
   const handleSave = () => {
-    // Map decorations to include data field if text exists
-    const decorationsToSave = placedDecorations.map(d => ({
-      ...d,
-      data: d.text ? { text: d.text } : d.data
-    }))
+    retroSFX.playSave()
+
+    // Map decorations to include data field with appropriate content
+    const decorationsToSave = placedDecorations.map(d => {
+      // For custom type decorations, include customAssetUrl and slot in data
+      if (d.type === 'custom') {
+        return {
+          ...d,
+          data: { customAssetUrl: d.customAssetUrl, slot: d.slot }
+        }
+      }
+      // For text-based decorations, include text in data
+      return {
+        ...d,
+        data: d.text ? { text: d.text } : d.data
+      }
+    })
 
     const payload = {
       decorations: decorationsToSave,
@@ -497,7 +714,10 @@ export default function DecorationMode({
         <div className="flex gap-2">
           <button
             onClick={() => {
-              if (canUndo) undo()
+              if (canUndo) {
+                undo()
+                retroSFX.playUndo()
+              }
             }}
             disabled={!canUndo}
             className={`p-2 rounded hover:bg-thread-cream ${!canUndo ? 'opacity-30' : ''}`}
@@ -506,12 +726,23 @@ export default function DecorationMode({
           </button>
           <button
             onClick={() => {
-              if (canRedo) redo()
+              if (canRedo) {
+                redo()
+                retroSFX.playRedo()
+              }
             }}
             disabled={!canRedo}
             className={`p-2 rounded hover:bg-thread-cream ${!canRedo ? 'opacity-30' : ''}`}
           >
             <PixelIcon name="arrow-right" className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setSfxMuted(!sfxMuted)}
+            className={`p-2 rounded hover:bg-thread-cream flex items-center gap-1 ${sfxMuted ? 'text-thread-sage/50' : 'text-thread-pine'}`}
+            title={sfxMuted ? 'Unmute sounds' : 'Mute sounds'}
+          >
+            <PixelIcon name="speaker" className="w-5 h-5" />
+            {sfxMuted && <span className="text-xs line-through">SFX</span>}
           </button>
           <div className="w-px h-6 bg-thread-sage/40 mx-1" />
           <button
@@ -543,6 +774,7 @@ export default function DecorationMode({
                   setIsDeleting(!isDeleting)
                   setIsPlacing(false)
                   setSelectedItem(null)
+                  retroSFX.playModeChange()
                 }}
               >
                 <PixelIcon name="trash" className="w-5 h-5" />
@@ -625,8 +857,10 @@ export default function DecorationMode({
                 e.stopPropagation()
                 if (isDeleting) {
                   removeDecorations(new Set([id]))
+                  retroSFX.playRemoveItem()
                 } else {
                   selectDecoration(id)
+                  retroSFX.playSelectItem()
                   // Also set as selected item for palette editing (e.g. sign text)
                   const clickedDecoration = placedDecorations.find(d => d.id === id)
                   if (clickedDecoration) {
@@ -646,7 +880,7 @@ export default function DecorationMode({
         {/* Sidebar / Palette */}
         <div className="w-[500px] border-l border-thread-sage/30 bg-thread-paper flex flex-col shrink-0">
           <DecorationPalette
-            items={availableDecorations}
+            items={decorationsWithCustom}
             onItemSelect={handleItemSelect}
             selectedItem={selectedItem}
             houseCustomizations={houseCustomizations}
@@ -660,6 +894,9 @@ export default function DecorationMode({
             onDecorationUpdate={handleDecorationUpdate}
             onTerrainSelect={handleTerrainSelect}
             selectedTerrainId={paintBrush}
+            onCustomSlotUpload={handleCustomSlotUpload}
+            onCustomSlotDelete={handleCustomSlotDelete}
+            uploadingSlot={uploadingSlot}
           />
         </div>
       </div>

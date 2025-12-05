@@ -96,6 +96,58 @@ class RetroSFX {
         // Soft Buzz (Triangle instead of Sawtooth)
         this.playTone(150, 'triangle', 0.2);
     }
+
+    // ==========================================
+    // Pixel Home Decoration SFX
+    // ==========================================
+
+    public playPlaceItem() {
+        // Soft "plop" - warm sine tones
+        this.playTone(330, 'sine', 0.08);      // E4
+        this.playTone(440, 'sine', 0.06, 0.02); // A4 with slight delay
+    }
+
+    public playRemoveItem() {
+        // Quick descending sweep
+        this.playTone(440, 'sine', 0.06);       // A4
+        this.playTone(330, 'sine', 0.08, 0.02); // E4
+    }
+
+    public playSelectItem() {
+        // Subtle click
+        this.playTone(880, 'sine', 0.03);
+    }
+
+    public playModeChange() {
+        // Palette/category switch - gentle two-note
+        this.playTone(523, 'sine', 0.08);       // C5
+        this.playTone(659, 'sine', 0.1, 0.04);  // E5
+    }
+
+    public playSave() {
+        // Rising confirmation arpeggio
+        this.playTone(440, 'sine', 0.1);        // A4
+        this.playTone(554, 'sine', 0.1, 0.05);  // C#5
+        this.playTone(659, 'sine', 0.15, 0.1);  // E5
+    }
+
+    public playTerrainPaint() {
+        // Very subtle brush stroke with slight randomization
+        const freq = 200 + Math.random() * 100;
+        this.playTone(freq, 'sine', 0.03);
+    }
+
+    public playUndo() {
+        // Quick descending notes
+        this.playTone(659, 'sine', 0.06);       // E5
+        this.playTone(523, 'sine', 0.08, 0.03); // C5
+    }
+
+    public playRedo() {
+        // Quick ascending notes
+        this.playTone(523, 'sine', 0.06);       // C5
+        this.playTone(659, 'sine', 0.08, 0.03); // E5
+    }
 }
 
 // Singleton instance

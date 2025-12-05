@@ -15,6 +15,18 @@ export interface HouseCustomizations {
   roofMaterial?: 'default' | 'shingles' | 'tile' | 'metal' | 'thatch'
   chimneyStyle?: 'default' | 'brick' | 'stone' | 'none'
 
+  // Welcome Mat
+  welcomeMat?: 'none' | 'plain' | 'floral' | 'welcome_text' | 'custom_text'
+  welcomeMatColor?: string
+  welcomeMatText?: string
+
+  // House Number
+  houseNumber?: string
+  houseNumberStyle?: 'classic' | 'modern' | 'rustic'
+
+  // Exterior Lights
+  exteriorLights?: 'none' | 'lantern' | 'string_lights' | 'modern'
+
   // Color overrides
   wallColor?: string
   roofColor?: string
@@ -459,6 +471,195 @@ const renderDoor = (x: number, y: number, w: number, h: number, style: string, c
   )
 }
 
+// --- WELCOME MAT ---
+
+const renderWelcomeMat = (x: number, y: number, style: string | undefined, text: string | undefined, matColor: string | undefined, simplified = false) => {
+  if (!style || style === 'none') return null;
+
+  const color = matColor || '#8B4513'; // Default brown
+  const darkColor = darken(color, 30);
+  const lightColor = lighten(color, 20);
+  const width = 30;
+  const height = 10;
+  const startX = x - width / 2;
+
+  const baseMat = (
+    <g>
+      {/* Mat shadow */}
+      <rect x={startX + 1} y={y + 1} width={width} height={height} fill="black" opacity="0.2" rx="1" />
+      {/* Mat base */}
+      <rect x={startX} y={y} width={width} height={height} fill={color} rx="1" />
+      {/* Mat edge highlight */}
+      <rect x={startX} y={y} width={width} height={2} fill={lightColor} opacity="0.3" rx="1" />
+      {/* Mat texture lines */}
+      {!simplified && Array.from({ length: 4 }).map((_, i) => (
+        <rect key={i} x={startX + 2} y={y + 2 + i * 2} width={width - 4} height={1} fill={darkColor} opacity="0.2" />
+      ))}
+    </g>
+  );
+
+  if (style === 'plain') {
+    return baseMat;
+  }
+
+  if (style === 'floral') {
+    return (
+      <g>
+        {baseMat}
+        {/* Floral border pattern */}
+        {!simplified && (
+          <>
+            <rect x={startX + 2} y={y + 2} width={width - 4} height={height - 4} fill="none" stroke={lightColor} strokeWidth="1" rx="1" />
+            {/* Corner flowers */}
+            <circle cx={startX + 5} cy={y + height / 2} r={2} fill="#FF69B4" opacity="0.8" />
+            <circle cx={startX + width - 5} cy={y + height / 2} r={2} fill="#FF69B4" opacity="0.8" />
+            {/* Leaf accents */}
+            <ellipse cx={startX + 8} cy={y + height / 2} rx={2} ry={1} fill="#4FAF6D" opacity="0.7" />
+            <ellipse cx={startX + width - 8} cy={y + height / 2} rx={2} ry={1} fill="#4FAF6D" opacity="0.7" />
+          </>
+        )}
+      </g>
+    );
+  }
+
+  if (style === 'welcome_text') {
+    return (
+      <g>
+        {baseMat}
+        <text
+          x={x}
+          y={y + height / 2 + 2}
+          textAnchor="middle"
+          fontSize="5"
+          fill={lightColor}
+          fontFamily="monospace"
+          fontWeight="bold"
+          style={{ userSelect: 'none' }}
+        >
+          WELCOME
+        </text>
+      </g>
+    );
+  }
+
+  if (style === 'custom_text' && text) {
+    const displayText = text.substring(0, 12).toUpperCase();
+    return (
+      <g>
+        {baseMat}
+        <text
+          x={x}
+          y={y + height / 2 + 2}
+          textAnchor="middle"
+          fontSize="4"
+          fill={lightColor}
+          fontFamily="monospace"
+          fontWeight="bold"
+          style={{ userSelect: 'none' }}
+        >
+          {displayText}
+        </text>
+      </g>
+    );
+  }
+
+  return baseMat;
+};
+
+// --- HOUSE NUMBER ---
+
+const renderHouseNumber = (x: number, y: number, number: string | undefined, style: string | undefined, colors: any, simplified = false) => {
+  if (!number) return null;
+
+  const displayNumber = number.substring(0, 4);
+  const width = Math.max(10, displayNumber.length * 6 + 4);
+
+  if (style === 'modern') {
+    return (
+      <g>
+        <rect x={x - width / 2} y={y} width={width} height={10} fill="#333" rx="1" />
+        <text x={x} y={y + 7} textAnchor="middle" fontSize="6" fill="#FFF" fontFamily="sans-serif" fontWeight="bold" style={{ userSelect: 'none' }}>
+          {displayNumber}
+        </text>
+      </g>
+    );
+  }
+
+  if (style === 'rustic') {
+    return (
+      <g>
+        <rect x={x - width / 2} y={y} width={width} height={10} fill="#5C4033" rx="1" />
+        <rect x={x - width / 2 + 1} y={y + 1} width={width - 2} height={8} fill="none" stroke="#8B4513" strokeWidth="1" rx="1" />
+        <text x={x} y={y + 7} textAnchor="middle" fontSize="6" fill="#F5E9D4" fontFamily="monospace" fontWeight="bold" style={{ userSelect: 'none' }}>
+          {displayNumber}
+        </text>
+      </g>
+    );
+  }
+
+  // Classic style (default)
+  return (
+    <g>
+      <rect x={x - width / 2} y={y} width={width} height={10} fill={colors.base} stroke={colors.secondary} strokeWidth="1" rx="1" />
+      <text x={x} y={y + 7} textAnchor="middle" fontSize="6" fill={colors.secondary} fontFamily="serif" fontWeight="bold" style={{ userSelect: 'none' }}>
+        {displayNumber}
+      </text>
+    </g>
+  );
+};
+
+// --- EXTERIOR LIGHTS ---
+
+const renderExteriorLights = (doorX: number, doorY: number, style: string | undefined, colors: any, simplified = false) => {
+  if (!style || style === 'none') return null;
+
+  if (style === 'lantern') {
+    return (
+      <g>
+        {/* Left lantern */}
+        <rect x={doorX - 10} y={doorY + 5} width={4} height={8} fill="#222" />
+        <rect x={doorX - 9} y={doorY + 6} width={2} height={6} fill="#FFD700" opacity="0.8" />
+        {/* Right lantern */}
+        <rect x={doorX + 26} y={doorY + 5} width={4} height={8} fill="#222" />
+        <rect x={doorX + 27} y={doorY + 6} width={2} height={6} fill="#FFD700" opacity="0.8" />
+      </g>
+    );
+  }
+
+  if (style === 'modern') {
+    return (
+      <g>
+        {/* Modern sconce left */}
+        <rect x={doorX - 8} y={doorY + 8} width={3} height={6} fill="#555" rx="1" />
+        <rect x={doorX - 7} y={doorY + 9} width={1} height={4} fill="#FFF" opacity="0.9" />
+        {/* Modern sconce right */}
+        <rect x={doorX + 25} y={doorY + 8} width={3} height={6} fill="#555" rx="1" />
+        <rect x={doorX + 26} y={doorY + 9} width={1} height={4} fill="#FFF" opacity="0.9" />
+      </g>
+    );
+  }
+
+  if (style === 'string_lights') {
+    // String lights across the top of the door area
+    return (
+      <g>
+        <path d={`M${doorX - 15} ${doorY - 5} Q${doorX + 10} ${doorY - 10} ${doorX + 35} ${doorY - 5}`} fill="none" stroke="#333" strokeWidth="1" />
+        {!simplified && Array.from({ length: 7 }).map((_, i) => {
+          const t = i / 6;
+          const bx = doorX - 15 + t * 50;
+          const by = doorY - 5 - Math.sin(t * Math.PI) * 5;
+          const bulbColors = ['#FFD700', '#FF6B6B', '#4FAF6D', '#8EC5E8', '#E27D60', '#FFD700', '#FF69B4'];
+          return (
+            <circle key={i} cx={bx} cy={by + 3} r={2} fill={bulbColors[i]} opacity="0.9" />
+          );
+        })}
+      </g>
+    );
+  }
+
+  return null;
+};
+
 // --- SIGN ---
 
 const renderSign = (x: number, y: number, text: string, colors: any, simplified = false) => {
@@ -568,13 +769,22 @@ const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizatio
       {/* Door */}
       {renderDoor(90, 135, 20, 35, customizations.doorStyle || 'cottage', colors, simplified)}
 
-      {/* Lantern */}
-      {!simplified && (
-        <>
-          <rect x="115" y="135" width="4" height="6" fill="#222" />
-          <rect x="116" y="136" width="2" height="4" fill="#FFD700" opacity="0.8" />
-        </>
-      )}
+      {/* Welcome Mat */}
+      {renderWelcomeMat(100, 170, customizations.welcomeMat, customizations.welcomeMatText, customizations.welcomeMatColor, simplified)}
+
+      {/* House Number */}
+      {renderHouseNumber(160, 115, customizations.houseNumber, customizations.houseNumberStyle, colors, simplified)}
+
+      {/* Exterior Lights */}
+      {customizations.exteriorLights && customizations.exteriorLights !== 'none'
+        ? renderExteriorLights(90, 135, customizations.exteriorLights, colors, simplified)
+        : !simplified && (
+          <>
+            <rect x="115" y="135" width="4" height="6" fill="#222" />
+            <rect x="116" y="136" width="2" height="4" fill="#FFD700" opacity="0.8" />
+          </>
+        )
+      }
 
       {/* House Sign */}
       {renderSign(100, 100, customizations.houseBoardText || '', colors, simplified)}
@@ -641,6 +851,15 @@ const TownhouseTemplate: React.FC<{ colors: any, customizations: HouseCustomizat
           <rect x="110" y="155" width="10" height="2" fill="#222" />
         </>
       )}
+
+      {/* Welcome Mat - on the steps */}
+      {renderWelcomeMat(100, 178, customizations.welcomeMat, customizations.welcomeMatText, customizations.welcomeMatColor, simplified)}
+
+      {/* House Number */}
+      {renderHouseNumber(100, 86, customizations.houseNumber, customizations.houseNumberStyle, colors, simplified)}
+
+      {/* Exterior Lights */}
+      {renderExteriorLights(90, 135, customizations.exteriorLights, colors, simplified)}
 
       {/* House Sign */}
       {renderSign(100, 60, customizations.houseBoardText || '', colors, simplified)}
@@ -710,6 +929,15 @@ const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations,
           <rect x="75" y="115" width="1" height="10" fill="#222" />
         </>
       )}
+
+      {/* Welcome Mat */}
+      {renderWelcomeMat(100, 170, customizations.welcomeMat, customizations.welcomeMatText, customizations.welcomeMatColor, simplified)}
+
+      {/* House Number */}
+      {renderHouseNumber(155, 75, customizations.houseNumber, customizations.houseNumberStyle, colors, simplified)}
+
+      {/* Exterior Lights */}
+      {renderExteriorLights(90, 140, customizations.exteriorLights, colors, simplified)}
 
       {/* House Sign - Industrial style placement */}
       {renderSign(100, 50, customizations.houseBoardText || '', colors, simplified)}
@@ -790,6 +1018,15 @@ const CabinTemplate: React.FC<{ colors: any, customizations: HouseCustomizations
 
       {renderWindow(130, 125, 15, 15, customizations.windowStyle || 'default', colors, simplified)}
       {renderWindowTreatments(130, 125, 15, 15, customizations.windowTreatments || 'default', colors, simplified)}
+
+      {/* Welcome Mat - on the porch */}
+      {renderWelcomeMat(100, 155, customizations.welcomeMat, customizations.welcomeMatText, customizations.welcomeMatColor, simplified)}
+
+      {/* House Number */}
+      {renderHouseNumber(160, 105, customizations.houseNumber, customizations.houseNumberStyle, colors, simplified)}
+
+      {/* Exterior Lights */}
+      {renderExteriorLights(90, 120, customizations.exteriorLights, colors, simplified)}
 
       {/* House Sign */}
       {renderSign(100, 90, customizations.houseBoardText || '', colors, simplified)}

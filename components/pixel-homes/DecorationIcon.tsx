@@ -3,13 +3,14 @@ import DecorationSVG from './DecorationSVG'
 import HouseSVG, { HouseTemplate, ColorPalette } from './HouseSVG'
 
 interface DecorationIconProps {
-  type: 'plant' | 'path' | 'feature' | 'seasonal' | 'sky' | 'house_custom' | 'house_template' | 'house_color' | 'furniture' | 'lighting' | 'water' | 'structure'
+  type: 'plant' | 'path' | 'feature' | 'seasonal' | 'sky' | 'house_custom' | 'house_template' | 'house_color' | 'furniture' | 'lighting' | 'water' | 'structure' | 'custom'
   id: string
   size?: number
   className?: string
   color?: string  // For house color items
   iconSvg?: string  // Custom icon SVG from database
   palette?: ColorPalette
+  customAssetUrl?: string  // URL to user's uploaded custom pixel art
 }
 
 export default function DecorationIcon({
@@ -19,7 +20,8 @@ export default function DecorationIcon({
   className = '',
   color,
   iconSvg,
-  palette = 'thread_sage'
+  palette = 'thread_sage',
+  customAssetUrl
 }: DecorationIconProps) {
   // If custom icon SVG is provided from database, use it
   // BUT ignore it for types that we have fully refactored to pixel art
@@ -116,6 +118,7 @@ export default function DecorationIcon({
           customScale={customScale}
           className={className}
           renderSvg={iconSvg}
+          customAssetUrl={customAssetUrl}
         />
       )
   }

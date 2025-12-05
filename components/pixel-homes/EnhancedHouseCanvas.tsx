@@ -283,6 +283,7 @@ export default function EnhancedHouseCanvas({
                   className="drop-shadow-sm block max-w-none"
                   renderSvg={item.renderSvg}
                   text={item.text || item.data?.text}
+                  customAssetUrl={item.customAssetUrl}
                 />
               </div>
             </div>
@@ -386,6 +387,7 @@ export default function EnhancedHouseCanvas({
                 variant={previewItem.variant}
                 size={previewItem.size}
                 className="block max-w-none"
+                customAssetUrl={previewItem.customAssetUrl}
               />
             </div>
           )}

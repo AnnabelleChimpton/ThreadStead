@@ -4,7 +4,7 @@ export interface DecorationItem {
     id: string
     decorationId?: string
     name: string
-    type: 'plant' | 'path' | 'feature' | 'seasonal' | 'furniture' | 'lighting' | 'water' | 'structure' | 'house_custom' | 'house_color' | 'sky' | 'house_template'
+    type: 'plant' | 'path' | 'feature' | 'seasonal' | 'furniture' | 'lighting' | 'water' | 'structure' | 'house_custom' | 'house_color' | 'sky' | 'house_template' | 'custom'
     zone?: 'front_yard' | 'house_facade' | 'background'
     position?: { x: number; y: number; layer?: number }
     variant?: string
@@ -13,6 +13,9 @@ export interface DecorationItem {
     gridPosition?: { gridX: number; gridY: number; width: number; height: number }
     section?: string
     isDefault?: boolean
+    customAssetUrl?: string  // URL to user's uploaded custom pixel art
+    slot?: number            // For custom assets: which slot (0-4)
+    isEmpty?: boolean        // For custom assets: whether slot is empty (show upload UI)
     [key: string]: any
 }
 
@@ -86,14 +89,35 @@ export const BETA_ITEMS = {
         { id: 'bird_bath', name: 'Bird Bath', type: 'feature', zone: 'front_yard' },
         { id: 'garden_gnome', name: 'Garden Gnome', type: 'feature', zone: 'front_yard' },
         { id: 'decorative_fence', name: 'Decorative Fence', type: 'feature', zone: 'front_yard' },
-        { id: 'wind_chimes', name: 'Wind Chimes', type: 'feature', zone: 'front_yard' }
+        { id: 'wind_chimes', name: 'Wind Chimes', type: 'feature', zone: 'front_yard' },
+        // New lawn ornaments
+        { id: 'flamingo', name: 'Pink Flamingo', type: 'feature', zone: 'front_yard' },
+        { id: 'garden_sphere', name: 'Gazing Ball', type: 'feature', zone: 'front_yard' },
+        { id: 'sundial', name: 'Sundial', type: 'feature', zone: 'front_yard' },
+        { id: 'garden_gnome_fishing', name: 'Fishing Gnome', type: 'feature', zone: 'front_yard' },
+        { id: 'garden_gnome_reading', name: 'Reading Gnome', type: 'feature', zone: 'front_yard' },
+        { id: 'watering_can', name: 'Watering Can', type: 'feature', zone: 'front_yard' },
+        { id: 'garden_tools', name: 'Garden Tools', type: 'feature', zone: 'front_yard' },
+        { id: 'wheelbarrow', name: 'Wheelbarrow', type: 'feature', zone: 'front_yard' }
     ],
     furniture: [
         { id: 'garden_bench', name: 'Garden Bench', type: 'furniture', zone: 'front_yard' },
         { id: 'outdoor_table', name: 'Outdoor Table', type: 'furniture', zone: 'front_yard' },
         { id: 'mailbox', name: 'Mailbox', type: 'furniture', zone: 'front_yard' },
         { id: 'planter_box', name: 'Planter Box', type: 'furniture', zone: 'front_yard' },
-        { id: 'picnic_table', name: 'Picnic Table', type: 'furniture', zone: 'front_yard' }
+        { id: 'picnic_table', name: 'Picnic Table', type: 'furniture', zone: 'front_yard' },
+        // New garden furniture
+        { id: 'raised_bed', name: 'Raised Garden Bed', type: 'furniture', zone: 'front_yard' },
+        { id: 'compost_bin', name: 'Compost Bin', type: 'furniture', zone: 'front_yard' },
+        { id: 'garden_cart', name: 'Garden Cart', type: 'furniture', zone: 'front_yard' }
+    ],
+    fencing: [
+        { id: 'picket_fence_white', name: 'White Picket Fence', type: 'structure', zone: 'front_yard' },
+        { id: 'picket_fence_natural', name: 'Natural Picket Fence', type: 'structure', zone: 'front_yard' },
+        { id: 'rustic_fence', name: 'Rustic Fence', type: 'structure', zone: 'front_yard' },
+        { id: 'stone_wall', name: 'Low Stone Wall', type: 'structure', zone: 'front_yard' },
+        { id: 'hedge', name: 'Garden Hedge', type: 'plant', zone: 'front_yard' },
+        { id: 'hedge_round', name: 'Round Hedge', type: 'plant', zone: 'front_yard' }
     ],
     lighting: [
         { id: 'garden_lantern', name: 'Garden Lantern', type: 'lighting', zone: 'front_yard' },
@@ -131,11 +155,42 @@ export const BETA_ITEMS = {
         { id: 'arched_windows', name: 'Arched Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
         { id: 'bay_windows', name: 'Bay Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
 
+        // Window Treatments Section
+        { id: 'default_treatments', name: 'No Treatment', type: 'house_custom', zone: 'house_facade', section: 'window_treatments', isDefault: true },
+        { id: 'shutters', name: 'Shutters', type: 'house_custom', zone: 'house_facade', section: 'window_treatments' },
+        { id: 'flower_boxes', name: 'Flower Boxes', type: 'house_custom', zone: 'house_facade', section: 'window_treatments' },
+        { id: 'awnings', name: 'Awnings', type: 'house_custom', zone: 'house_facade', section: 'window_treatments' },
+
         // Roof Trim Section
         { id: 'default_trim', name: 'Default Trim', type: 'house_custom', zone: 'house_facade', section: 'roof', isDefault: true },
         { id: 'ornate_trim', name: 'Ornate Roof Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
         { id: 'scalloped_trim', name: 'Scalloped Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
-        { id: 'gabled_trim', name: 'Gabled Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' }
+        { id: 'gabled_trim', name: 'Gabled Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
+
+        // Chimney Section
+        { id: 'default_chimney', name: 'Default Chimney', type: 'house_custom', zone: 'house_facade', section: 'chimney', isDefault: true },
+        { id: 'brick_chimney', name: 'Brick Chimney', type: 'house_custom', zone: 'house_facade', section: 'chimney' },
+        { id: 'stone_chimney', name: 'Stone Chimney', type: 'house_custom', zone: 'house_facade', section: 'chimney' },
+        { id: 'no_chimney', name: 'No Chimney', type: 'house_custom', zone: 'house_facade', section: 'chimney' },
+
+        // Welcome Mat Section
+        { id: 'no_mat', name: 'No Mat', type: 'house_custom', zone: 'house_facade', section: 'welcome_mat', isDefault: true },
+        { id: 'plain_mat', name: 'Plain Mat', type: 'house_custom', zone: 'house_facade', section: 'welcome_mat' },
+        { id: 'floral_mat', name: 'Floral Mat', type: 'house_custom', zone: 'house_facade', section: 'welcome_mat' },
+        { id: 'welcome_text_mat', name: 'Welcome Mat', type: 'house_custom', zone: 'house_facade', section: 'welcome_mat' },
+        { id: 'custom_text_mat', name: 'Custom Text Mat', type: 'house_custom', zone: 'house_facade', section: 'welcome_mat' },
+
+        // House Number Section
+        { id: 'no_house_number', name: 'No Number', type: 'house_custom', zone: 'house_facade', section: 'house_number', isDefault: true },
+        { id: 'classic_house_number', name: 'Classic Number', type: 'house_custom', zone: 'house_facade', section: 'house_number' },
+        { id: 'modern_house_number', name: 'Modern Number', type: 'house_custom', zone: 'house_facade', section: 'house_number' },
+        { id: 'rustic_house_number', name: 'Rustic Number', type: 'house_custom', zone: 'house_facade', section: 'house_number' },
+
+        // Exterior Lights Section
+        { id: 'no_exterior_lights', name: 'No Lights', type: 'house_custom', zone: 'house_facade', section: 'exterior_lights', isDefault: true },
+        { id: 'lantern_lights', name: 'Lanterns', type: 'house_custom', zone: 'house_facade', section: 'exterior_lights' },
+        { id: 'modern_lights', name: 'Modern Sconces', type: 'house_custom', zone: 'house_facade', section: 'exterior_lights' },
+        { id: 'string_exterior_lights', name: 'String Lights', type: 'house_custom', zone: 'house_facade', section: 'exterior_lights' }
     ],
     templates: [
         { id: 'cottage_v1', name: 'Cottage', type: 'house_template', zone: 'house_facade' },
@@ -166,5 +221,12 @@ export const TERRAIN_TILES: TerrainTile[] = [
     { id: 'brick_path', name: 'Brick Path', color: '#A52A2A' },
     { id: 'water', name: 'Water', color: '#4682B4' },
     { id: 'sand', name: 'Sand', color: '#F4A460' },
-    { id: 'gravel', name: 'Gravel', color: '#708090' }
+    { id: 'gravel', name: 'Gravel', color: '#708090' },
+    // New terrain types
+    { id: 'flower_bed', name: 'Flower Bed', color: '#3D2314' },
+    { id: 'mulch', name: 'Mulch', color: '#5D4037' },
+    { id: 'moss', name: 'Moss', color: '#7CB342' },
+    { id: 'pebbles', name: 'Pebbles', color: '#90A4AE' },
+    { id: 'cobblestone', name: 'Cobblestone', color: '#9E9E9E' },
+    { id: 'wood_deck', name: 'Wood Deck', color: '#A1887F' }
 ]

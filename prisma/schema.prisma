@@ -155,6 +155,8 @@ model UserHomeConfig {
   houseDescription    String? // Custom description text shown below house (max 200 characters)
   houseBoardText      String? // Custom text shown on house board/sign (max 30 characters)
   terrain             Json?   // Grid-based terrain map { "x,y": "terrainId" }
+  // Custom pixel art assets (user-uploaded)
+  customAssets        Json?   // Array of {slot: 0-4, url: string} for up to 5 custom pixel art images
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

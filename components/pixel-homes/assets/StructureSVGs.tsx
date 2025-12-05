@@ -15,6 +15,10 @@ export const StructureSVGs = ({ id, variant, scale, className, text }: AssetProp
     else if (id.startsWith('gazebo')) normalizedId = 'gazebo'
     else if (id.startsWith('trellis')) normalizedId = 'trellis'
     else if (id.startsWith('garden_arch')) normalizedId = 'garden_arch'
+    else if (id.startsWith('picket_fence_white')) normalizedId = 'picket_fence_white'
+    else if (id.startsWith('picket_fence_natural')) normalizedId = 'picket_fence_natural'
+    else if (id.startsWith('rustic_fence')) normalizedId = 'rustic_fence'
+    else if (id.startsWith('stone_wall')) normalizedId = 'stone_wall'
 
     switch (normalizedId) {
         case 'sign_post':
@@ -92,6 +96,127 @@ export const StructureSVGs = ({ id, variant, scale, className, text }: AssetProp
                     <rect x="17" y="6" width="6" height="6" fill="#FF69B4" opacity="0.8" />
                 </svg>
             )
+
+        case 'picket_fence_white':
+            return (
+                <svg width={48 * scale} height={24 * scale} viewBox="0 0 48 24" className={className} shapeRendering="crispEdges">
+                    {/* Horizontal rails */}
+                    <rect x="0" y="8" width="48" height="3" fill="#E5E7EB" />
+                    <rect x="0" y="16" width="48" height="3" fill="#E5E7EB" />
+                    {/* Pickets */}
+                    <rect x="2" y="4" width="4" height="18" fill="#F9FAFB" />
+                    <rect x="2" y="2" width="4" height="3" fill="#F9FAFB" />
+                    <polygon points="2,2 4,0 6,2" fill="#F9FAFB" />
+
+                    <rect x="10" y="4" width="4" height="18" fill="#F9FAFB" />
+                    <rect x="10" y="2" width="4" height="3" fill="#F9FAFB" />
+                    <polygon points="10,2 12,0 14,2" fill="#F9FAFB" />
+
+                    <rect x="18" y="4" width="4" height="18" fill="#F9FAFB" />
+                    <rect x="18" y="2" width="4" height="3" fill="#F9FAFB" />
+                    <polygon points="18,2 20,0 22,2" fill="#F9FAFB" />
+
+                    <rect x="26" y="4" width="4" height="18" fill="#F9FAFB" />
+                    <rect x="26" y="2" width="4" height="3" fill="#F9FAFB" />
+                    <polygon points="26,2 28,0 30,2" fill="#F9FAFB" />
+
+                    <rect x="34" y="4" width="4" height="18" fill="#F9FAFB" />
+                    <rect x="34" y="2" width="4" height="3" fill="#F9FAFB" />
+                    <polygon points="34,2 36,0 38,2" fill="#F9FAFB" />
+
+                    <rect x="42" y="4" width="4" height="18" fill="#F9FAFB" />
+                    <rect x="42" y="2" width="4" height="3" fill="#F9FAFB" />
+                    <polygon points="42,2 44,0 46,2" fill="#F9FAFB" />
+
+                    {/* Shadow lines */}
+                    <rect x="3" y="5" width="1" height="16" fill="#D1D5DB" opacity="0.5" />
+                    <rect x="11" y="5" width="1" height="16" fill="#D1D5DB" opacity="0.5" />
+                    <rect x="19" y="5" width="1" height="16" fill="#D1D5DB" opacity="0.5" />
+                    <rect x="27" y="5" width="1" height="16" fill="#D1D5DB" opacity="0.5" />
+                    <rect x="35" y="5" width="1" height="16" fill="#D1D5DB" opacity="0.5" />
+                    <rect x="43" y="5" width="1" height="16" fill="#D1D5DB" opacity="0.5" />
+                </svg>
+            )
+
+        case 'picket_fence_natural':
+            return (
+                <svg width={48 * scale} height={24 * scale} viewBox="0 0 48 24" className={className} shapeRendering="crispEdges">
+                    {/* Horizontal rails */}
+                    <rect x="0" y="8" width="48" height="3" fill="#92400E" />
+                    <rect x="0" y="16" width="48" height="3" fill="#92400E" />
+                    {/* Pickets */}
+                    <rect x="2" y="4" width="4" height="18" fill="#D2B48C" />
+                    <polygon points="2,4 4,1 6,4" fill="#D2B48C" />
+
+                    <rect x="10" y="4" width="4" height="18" fill="#DEB887" />
+                    <polygon points="10,4 12,1 14,4" fill="#DEB887" />
+
+                    <rect x="18" y="4" width="4" height="18" fill="#D2B48C" />
+                    <polygon points="18,4 20,1 22,4" fill="#D2B48C" />
+
+                    <rect x="26" y="4" width="4" height="18" fill="#DEB887" />
+                    <polygon points="26,4 28,1 30,4" fill="#DEB887" />
+
+                    <rect x="34" y="4" width="4" height="18" fill="#D2B48C" />
+                    <polygon points="34,4 36,1 38,4" fill="#D2B48C" />
+
+                    <rect x="42" y="4" width="4" height="18" fill="#DEB887" />
+                    <polygon points="42,4 44,1 46,4" fill="#DEB887" />
+
+                    {/* Wood grain */}
+                    <rect x="3" y="6" width="1" height="14" fill="#8B4513" opacity="0.3" />
+                    <rect x="11" y="6" width="1" height="14" fill="#8B4513" opacity="0.3" />
+                    <rect x="19" y="6" width="1" height="14" fill="#8B4513" opacity="0.3" />
+                    <rect x="27" y="6" width="1" height="14" fill="#8B4513" opacity="0.3" />
+                    <rect x="35" y="6" width="1" height="14" fill="#8B4513" opacity="0.3" />
+                    <rect x="43" y="6" width="1" height="14" fill="#8B4513" opacity="0.3" />
+                </svg>
+            )
+
+        case 'rustic_fence':
+            return (
+                <svg width={48 * scale} height={24 * scale} viewBox="0 0 48 24" className={className} shapeRendering="crispEdges">
+                    {/* Posts */}
+                    <rect x="2" y="4" width="5" height="18" fill="#6B4423" />
+                    <rect x="20" y="4" width="5" height="18" fill="#5D3A1A" />
+                    <rect x="40" y="4" width="5" height="18" fill="#6B4423" />
+                    {/* Horizontal logs */}
+                    <rect x="0" y="8" width="48" height="4" fill="#8B4513" rx="2" />
+                    <rect x="0" y="15" width="48" height="4" fill="#A0522D" rx="2" />
+                    {/* Wood texture/knots */}
+                    <circle cx="10" cy="10" r="1" fill="#5D3A1A" />
+                    <circle cx="30" cy="17" r="1" fill="#654321" />
+                    <circle cx="42" cy="9" r="1" fill="#5D3A1A" />
+                    {/* Grain lines */}
+                    <rect x="5" y="9" width="8" height="1" fill="#654321" opacity="0.4" />
+                    <rect x="25" y="16" width="10" height="1" fill="#654321" opacity="0.4" />
+                </svg>
+            )
+
+        case 'stone_wall':
+            return (
+                <svg width={48 * scale} height={20 * scale} viewBox="0 0 48 20" className={className} shapeRendering="crispEdges">
+                    {/* Base layer of stones */}
+                    <rect x="0" y="12" width="10" height="8" fill="#6B7280" rx="1" />
+                    <rect x="11" y="10" width="8" height="10" fill="#9CA3AF" rx="1" />
+                    <rect x="20" y="12" width="12" height="8" fill="#6B7280" rx="1" />
+                    <rect x="33" y="10" width="7" height="10" fill="#9CA3AF" rx="1" />
+                    <rect x="41" y="12" width="7" height="8" fill="#6B7280" rx="1" />
+                    {/* Top layer */}
+                    <rect x="2" y="4" width="8" height="9" fill="#9CA3AF" rx="1" />
+                    <rect x="11" y="2" width="10" height="9" fill="#6B7280" rx="1" />
+                    <rect x="22" y="4" width="7" height="9" fill="#9CA3AF" rx="1" />
+                    <rect x="30" y="2" width="9" height="9" fill="#6B7280" rx="1" />
+                    <rect x="40" y="4" width="8" height="9" fill="#9CA3AF" rx="1" />
+                    {/* Highlights */}
+                    <rect x="3" y="5" width="4" height="1" fill="#D1D5DB" opacity="0.5" />
+                    <rect x="13" y="3" width="5" height="1" fill="#D1D5DB" opacity="0.5" />
+                    <rect x="32" y="3" width="4" height="1" fill="#D1D5DB" opacity="0.5" />
+                    {/* Shadows */}
+                    <rect x="1" y="18" width="46" height="2" fill="#374151" opacity="0.3" />
+                </svg>
+            )
+
         default:
             return (
                 <svg width={32 * scale} height={32 * scale} viewBox="0 0 32 32" className={className} shapeRendering="crispEdges">
