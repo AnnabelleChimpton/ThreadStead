@@ -281,86 +281,38 @@ export const HouseCustomSVGs = ({ id, variant, scale, className }: AssetProps) =
         case 'floral_mat':
             return (
                 <svg width={36 * scale} height={20 * scale} viewBox="0 0 36 20" className={className} shapeRendering="crispEdges">
-                    {/* Mat body */}
-                    <rect x="2" y="4" width="32" height="12" fill="#2E8B57" stroke="#1E6B47" strokeWidth="1" />
-                    {/* Flowers */}
-                    <rect x="6" y="8" width="4" height="4" fill="#FF69B4" />
-                    <rect x="7" y="9" width="2" height="2" fill="#FFB6C1" />
-                    <rect x="14" y="8" width="4" height="4" fill="#FFD700" />
-                    <rect x="15" y="9" width="2" height="2" fill="#FFF8DC" />
-                    <rect x="22" y="8" width="4" height="4" fill="#FF6347" />
-                    <rect x="23" y="9" width="2" height="2" fill="#FFA07A" />
-                    {/* Leaves */}
-                    <rect x="10" y="10" width="2" height="2" fill="#228B22" />
-                    <rect x="18" y="10" width="2" height="2" fill="#228B22" />
-                    <rect x="26" y="10" width="2" height="2" fill="#228B22" />
+                    {/* Mat body - brown like actual render */}
+                    <rect x="2" y="4" width="32" height="12" fill="#8B4513" stroke="#654321" strokeWidth="1" />
+                    {/* Border pattern */}
+                    <rect x="4" y="6" width="28" height="8" fill="none" stroke="#A0522D" strokeWidth="1" />
+                    {/* Corner flowers - pink like actual */}
+                    <circle cx="8" cy="10" r="2" fill="#FF69B4" opacity="0.8" />
+                    <circle cx="28" cy="10" r="2" fill="#FF69B4" opacity="0.8" />
+                    {/* Leaf accents - green like actual */}
+                    <ellipse cx="12" cy="10" rx="2" ry="1" fill="#4FAF6D" opacity="0.7" />
+                    <ellipse cx="24" cy="10" rx="2" ry="1" fill="#4FAF6D" opacity="0.7" />
                 </svg>
             )
         case 'welcome_text_mat':
             return (
-                <svg width={44 * scale} height={20 * scale} viewBox="0 0 44 20" className={className} shapeRendering="crispEdges">
-                    {/* Mat body */}
-                    <rect x="2" y="4" width="40" height="12" fill="#4A4A4A" stroke="#333333" strokeWidth="1" />
-                    {/* Border */}
-                    <rect x="4" y="6" width="36" height="8" fill="none" stroke="#666666" strokeWidth="1" />
-                    {/* WELCOME text - pixel letters */}
-                    {/* W */}
-                    <rect x="6" y="8" width="1" height="4" fill="#FFFFFF" />
-                    <rect x="7" y="11" width="1" height="1" fill="#FFFFFF" />
-                    <rect x="8" y="10" width="1" height="1" fill="#FFFFFF" />
-                    <rect x="9" y="11" width="1" height="1" fill="#FFFFFF" />
-                    <rect x="10" y="8" width="1" height="4" fill="#FFFFFF" />
-                    {/* E */}
-                    <rect x="12" y="8" width="3" height="1" fill="#FFFFFF" />
-                    <rect x="12" y="9" width="1" height="3" fill="#FFFFFF" />
-                    <rect x="12" y="10" width="2" height="1" fill="#FFFFFF" />
-                    <rect x="12" y="11" width="3" height="1" fill="#FFFFFF" />
-                    {/* L */}
-                    <rect x="16" y="8" width="1" height="4" fill="#FFFFFF" />
-                    <rect x="16" y="11" width="3" height="1" fill="#FFFFFF" />
-                    {/* C */}
-                    <rect x="20" y="8" width="3" height="1" fill="#FFFFFF" />
-                    <rect x="20" y="9" width="1" height="2" fill="#FFFFFF" />
-                    <rect x="20" y="11" width="3" height="1" fill="#FFFFFF" />
-                    {/* O */}
-                    <rect x="24" y="8" width="3" height="1" fill="#FFFFFF" />
-                    <rect x="24" y="9" width="1" height="2" fill="#FFFFFF" />
-                    <rect x="26" y="9" width="1" height="2" fill="#FFFFFF" />
-                    <rect x="24" y="11" width="3" height="1" fill="#FFFFFF" />
-                    {/* M */}
-                    <rect x="28" y="8" width="1" height="4" fill="#FFFFFF" />
-                    <rect x="29" y="9" width="1" height="1" fill="#FFFFFF" />
-                    <rect x="30" y="10" width="1" height="1" fill="#FFFFFF" />
-                    <rect x="31" y="9" width="1" height="1" fill="#FFFFFF" />
-                    <rect x="32" y="8" width="1" height="4" fill="#FFFFFF" />
-                    {/* E */}
-                    <rect x="34" y="8" width="3" height="1" fill="#FFFFFF" />
-                    <rect x="34" y="9" width="1" height="3" fill="#FFFFFF" />
-                    <rect x="34" y="10" width="2" height="1" fill="#FFFFFF" />
-                    <rect x="34" y="11" width="3" height="1" fill="#FFFFFF" />
+                <svg width={36 * scale} height={20 * scale} viewBox="0 0 36 20" className={className} shapeRendering="crispEdges">
+                    {/* Mat body - brown like actual render */}
+                    <rect x="2" y="4" width="32" height="12" fill="#8B4513" stroke="#654321" strokeWidth="1" />
+                    {/* Border pattern */}
+                    <rect x="4" y="6" width="28" height="8" fill="none" stroke="#A0522D" strokeWidth="1" />
+                    {/* WELCOME text - simplified */}
+                    <text x="18" y="12" textAnchor="middle" fontSize="5" fill="#C4A574" fontFamily="monospace" fontWeight="bold">WELCOME</text>
                 </svg>
             )
         case 'custom_text_mat':
             return (
-                <svg width={44 * scale} height={20 * scale} viewBox="0 0 44 20" className={className} shapeRendering="crispEdges">
-                    {/* Mat body */}
-                    <rect x="2" y="4" width="40" height="12" fill="#800020" stroke="#5C0015" strokeWidth="1" />
-                    {/* Border */}
-                    <rect x="4" y="6" width="36" height="8" fill="none" stroke="#A00028" strokeWidth="1" />
-                    {/* ABC... text indicator */}
-                    <rect x="8" y="8" width="6" height="1" fill="#FFD700" />
-                    <rect x="8" y="9" width="1" height="2" fill="#FFD700" />
-                    <rect x="13" y="9" width="1" height="2" fill="#FFD700" />
-                    <rect x="8" y="10" width="6" height="1" fill="#FFD700" />
-                    <rect x="8" y="11" width="1" height="1" fill="#FFD700" />
-                    <rect x="13" y="11" width="1" height="1" fill="#FFD700" />
-                    {/* Pencil icon */}
-                    <rect x="28" y="7" width="2" height="6" fill="#FFD700" />
-                    <rect x="27" y="13" width="4" height="1" fill="#FFA500" />
-                    <rect x="28" y="14" width="2" height="1" fill="#333333" />
-                    {/* Dots */}
-                    <rect x="18" y="10" width="2" height="2" fill="#FFD700" />
-                    <rect x="22" y="10" width="2" height="2" fill="#FFD700" />
+                <svg width={36 * scale} height={20 * scale} viewBox="0 0 36 20" className={className} shapeRendering="crispEdges">
+                    {/* Mat body - brown like actual render */}
+                    <rect x="2" y="4" width="32" height="12" fill="#8B4513" stroke="#654321" strokeWidth="1" />
+                    {/* Border pattern */}
+                    <rect x="4" y="6" width="28" height="8" fill="none" stroke="#A0522D" strokeWidth="1" />
+                    {/* Custom text indicator - ABC... */}
+                    <text x="18" y="12" textAnchor="middle" fontSize="5" fill="#C4A574" fontFamily="monospace" fontWeight="bold">ABC...</text>
                 </svg>
             )
 
@@ -378,59 +330,56 @@ export const HouseCustomSVGs = ({ id, variant, scale, className }: AssetProps) =
         case 'classic_house_number':
             return (
                 <svg width={28 * scale} height={24 * scale} viewBox="0 0 28 24" className={className} shapeRendering="crispEdges">
-                    {/* Classic oval plate */}
-                    <rect x="2" y="4" width="24" height="16" fill="#1E3A5F" stroke="#0F1F33" strokeWidth="1" rx="2" />
-                    <rect x="4" y="6" width="20" height="12" fill="none" stroke="#4A6B8A" strokeWidth="1" />
-                    {/* Number 42 */}
-                    <rect x="7" y="8" width="1" height="8" fill="#FFFFFF" />
-                    <rect x="7" y="8" width="4" height="1" fill="#FFFFFF" />
-                    <rect x="10" y="8" width="1" height="4" fill="#FFFFFF" />
-                    <rect x="7" y="11" width="4" height="1" fill="#FFFFFF" />
+                    {/* Classic white plate with dark border */}
+                    <rect x="2" y="6" width="24" height="12" fill="#FAFAFA" stroke="#2C3E50" strokeWidth="1" rx="1" />
+                    {/* Number 42 in dark text */}
+                    <rect x="7" y="8" width="1" height="8" fill="#2C3E50" />
+                    <rect x="7" y="8" width="4" height="1" fill="#2C3E50" />
+                    <rect x="10" y="8" width="1" height="4" fill="#2C3E50" />
+                    <rect x="7" y="11" width="4" height="1" fill="#2C3E50" />
                     {/* 2 */}
-                    <rect x="14" y="8" width="4" height="1" fill="#FFFFFF" />
-                    <rect x="17" y="8" width="1" height="4" fill="#FFFFFF" />
-                    <rect x="14" y="11" width="4" height="1" fill="#FFFFFF" />
-                    <rect x="14" y="11" width="1" height="4" fill="#FFFFFF" />
-                    <rect x="14" y="15" width="4" height="1" fill="#FFFFFF" />
+                    <rect x="14" y="8" width="4" height="1" fill="#2C3E50" />
+                    <rect x="17" y="8" width="1" height="4" fill="#2C3E50" />
+                    <rect x="14" y="11" width="4" height="1" fill="#2C3E50" />
+                    <rect x="14" y="11" width="1" height="4" fill="#2C3E50" />
+                    <rect x="14" y="15" width="4" height="1" fill="#2C3E50" />
                 </svg>
             )
         case 'modern_house_number':
             return (
                 <svg width={32 * scale} height={20 * scale} viewBox="0 0 32 20" className={className} shapeRendering="crispEdges">
-                    {/* Modern sleek backing */}
-                    <rect x="2" y="2" width="28" height="16" fill="#2C2C2C" stroke="#1A1A1A" strokeWidth="1" />
-                    {/* LED-style numbers - 123 */}
-                    <rect x="6" y="6" width="1" height="8" fill="#00FF00" />
+                    {/* Modern dark backing */}
+                    <rect x="2" y="4" width="28" height="12" fill="#333333" rx="1" />
+                    {/* White numbers - 42 */}
+                    <rect x="8" y="6" width="1" height="8" fill="#FFFFFF" />
+                    <rect x="8" y="6" width="4" height="1" fill="#FFFFFF" />
+                    <rect x="11" y="6" width="1" height="4" fill="#FFFFFF" />
+                    <rect x="8" y="9" width="4" height="1" fill="#FFFFFF" />
                     {/* 2 */}
-                    <rect x="10" y="6" width="4" height="1" fill="#00FF00" />
-                    <rect x="13" y="6" width="1" height="4" fill="#00FF00" />
-                    <rect x="10" y="9" width="4" height="1" fill="#00FF00" />
-                    <rect x="10" y="9" width="1" height="4" fill="#00FF00" />
-                    <rect x="10" y="13" width="4" height="1" fill="#00FF00" />
-                    {/* 3 */}
-                    <rect x="17" y="6" width="4" height="1" fill="#00FF00" />
-                    <rect x="20" y="6" width="1" height="8" fill="#00FF00" />
-                    <rect x="17" y="9" width="4" height="1" fill="#00FF00" />
-                    <rect x="17" y="13" width="4" height="1" fill="#00FF00" />
+                    <rect x="15" y="6" width="4" height="1" fill="#FFFFFF" />
+                    <rect x="18" y="6" width="1" height="4" fill="#FFFFFF" />
+                    <rect x="15" y="9" width="4" height="1" fill="#FFFFFF" />
+                    <rect x="15" y="9" width="1" height="4" fill="#FFFFFF" />
+                    <rect x="15" y="13" width="4" height="1" fill="#FFFFFF" />
                 </svg>
             )
         case 'rustic_house_number':
             return (
                 <svg width={30 * scale} height={26 * scale} viewBox="0 0 30 26" className={className} shapeRendering="crispEdges">
-                    {/* Wooden plaque */}
-                    <rect x="2" y="4" width="26" height="18" fill="#8B4513" stroke="#654321" strokeWidth="1" />
-                    {/* Wood grain */}
-                    <rect x="4" y="8" width="22" height="1" fill="#654321" opacity="0.5" />
-                    <rect x="4" y="14" width="22" height="1" fill="#654321" opacity="0.5" />
-                    {/* Carved numbers - 7 */}
-                    <rect x="8" y="8" width="5" height="1" fill="#3D2817" />
-                    <rect x="12" y="8" width="1" height="10" fill="#3D2817" />
-                    {/* 8 */}
-                    <rect x="16" y="8" width="5" height="1" fill="#3D2817" />
-                    <rect x="16" y="8" width="1" height="10" fill="#3D2817" />
-                    <rect x="20" y="8" width="1" height="10" fill="#3D2817" />
-                    <rect x="16" y="12" width="5" height="1" fill="#3D2817" />
-                    <rect x="16" y="17" width="5" height="1" fill="#3D2817" />
+                    {/* Brown wooden plaque */}
+                    <rect x="2" y="6" width="26" height="14" fill="#5C4033" rx="1" />
+                    <rect x="3" y="7" width="24" height="12" fill="none" stroke="#8B4513" strokeWidth="1" rx="1" />
+                    {/* Cream numbers - 42 */}
+                    <rect x="7" y="9" width="1" height="8" fill="#F5E9D4" />
+                    <rect x="7" y="9" width="4" height="1" fill="#F5E9D4" />
+                    <rect x="10" y="9" width="1" height="4" fill="#F5E9D4" />
+                    <rect x="7" y="12" width="4" height="1" fill="#F5E9D4" />
+                    {/* 2 */}
+                    <rect x="14" y="9" width="4" height="1" fill="#F5E9D4" />
+                    <rect x="17" y="9" width="1" height="4" fill="#F5E9D4" />
+                    <rect x="14" y="12" width="4" height="1" fill="#F5E9D4" />
+                    <rect x="14" y="12" width="1" height="4" fill="#F5E9D4" />
+                    <rect x="14" y="16" width="4" height="1" fill="#F5E9D4" />
                 </svg>
             )
 

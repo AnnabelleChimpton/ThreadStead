@@ -30,6 +30,14 @@ interface UserHomeConfig {
     houseTitle?: string
     houseDescription?: string
     houseBoardText?: string
+    houseNumber?: string
+    houseNumberStyle?: string
+    welcomeMat?: string
+    welcomeMatText?: string
+    welcomeMatColor?: string
+    chimneyStyle?: string
+    exteriorLights?: string
+    windowTreatments?: string
     terrain?: Record<string, string>
   }
 }
@@ -183,6 +191,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             houseTitle: homeConfig.houseTitle,
             houseDescription: homeConfig.houseDescription,
             houseBoardText: homeConfig.houseBoardText,
+            houseNumber: homeConfig.houseNumber,
+            houseNumberStyle: homeConfig.houseNumberStyle,
+            welcomeMat: homeConfig.welcomeMat,
+            welcomeMatText: homeConfig.welcomeMatText,
+            welcomeMatColor: homeConfig.welcomeMatColor,
+            chimneyStyle: homeConfig.chimneyStyle,
+            exteriorLights: homeConfig.exteriorLights,
+            windowTreatments: homeConfig.windowTreatments,
             terrain: (homeConfig.terrain as Record<string, string>) || {}
           }
         },

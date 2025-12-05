@@ -32,6 +32,14 @@ interface HouseCustomizations {
   houseTitle?: string;
   houseDescription?: string;
   houseBoardText?: string;
+  houseNumber?: string;
+  houseNumberStyle?: string;
+  welcomeMat?: string;
+  welcomeMatText?: string;
+  welcomeMatColor?: string;
+  chimneyStyle?: string;
+  exteriorLights?: string;
+  windowTreatments?: string;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -55,6 +63,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!Array.isArray(decorations)) {
     return res.status(400).json({ error: "Decorations must be an array" });
+  }
+
+  const MAX_DECORATIONS = 100;
+  if (decorations.length > MAX_DECORATIONS) {
+    return res.status(400).json({
+      error: `Too many decorations. Maximum is ${MAX_DECORATIONS}.`
+    });
   }
 
   try {
@@ -83,6 +98,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       configUpdate.houseTitle = houseCustomizations.houseTitle;
       configUpdate.houseDescription = houseCustomizations.houseDescription;
       configUpdate.houseBoardText = houseCustomizations.houseBoardText;
+      configUpdate.houseNumber = houseCustomizations.houseNumber;
+      configUpdate.houseNumberStyle = houseCustomizations.houseNumberStyle;
+      configUpdate.welcomeMat = houseCustomizations.welcomeMat;
+      configUpdate.welcomeMatText = houseCustomizations.welcomeMatText;
+      configUpdate.welcomeMatColor = houseCustomizations.welcomeMatColor;
+      configUpdate.chimneyStyle = houseCustomizations.chimneyStyle;
+      configUpdate.exteriorLights = houseCustomizations.exteriorLights;
+      configUpdate.windowTreatments = houseCustomizations.windowTreatments;
     }
     if (terrain) {
       configUpdate.terrain = terrain;
@@ -111,6 +134,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         houseTitle: houseCustomizations?.houseTitle,
         houseDescription: houseCustomizations?.houseDescription,
         houseBoardText: houseCustomizations?.houseBoardText,
+        houseNumber: houseCustomizations?.houseNumber,
+        houseNumberStyle: houseCustomizations?.houseNumberStyle,
+        welcomeMat: houseCustomizations?.welcomeMat,
+        welcomeMatText: houseCustomizations?.welcomeMatText,
+        welcomeMatColor: houseCustomizations?.welcomeMatColor,
+        chimneyStyle: houseCustomizations?.chimneyStyle,
+        exteriorLights: houseCustomizations?.exteriorLights,
+        windowTreatments: houseCustomizations?.windowTreatments,
         terrain: terrain || {}
       }
     });

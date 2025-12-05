@@ -36,6 +36,14 @@ interface UserHomeConfig {
     houseTitle?: string
     houseDescription?: string
     houseBoardText?: string
+    houseNumber?: string
+    houseNumberStyle?: string
+    welcomeMat?: string
+    welcomeMatText?: string
+    welcomeMatColor?: string
+    chimneyStyle?: string
+    exteriorLights?: string
+    windowTreatments?: string
     terrain?: Record<string, string>
   }
 }

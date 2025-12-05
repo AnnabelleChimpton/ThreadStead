@@ -10,6 +10,9 @@ import { PixelIcon } from '../ui/PixelIcon'
 import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
 import { retroSFX } from '../../lib/audio/retro-sfx'
 
+// Maximum number of decorations allowed per home
+const MAX_DECORATIONS = 100
+
 interface DecorationModeProps {
   template: HouseTemplate
   palette: ColorPalette
@@ -411,9 +414,18 @@ export default function DecorationMode({
       else if (item.id === 'custom_text_mat') customizationUpdate.welcomeMat = 'custom_text'
       else if (item.id === 'no_mat') customizationUpdate.welcomeMat = 'none'
       // House Number
-      else if (item.id === 'classic_house_number') customizationUpdate.houseNumberStyle = 'classic'
-      else if (item.id === 'modern_house_number') customizationUpdate.houseNumberStyle = 'modern'
-      else if (item.id === 'rustic_house_number') customizationUpdate.houseNumberStyle = 'rustic'
+      else if (item.id === 'classic_house_number') {
+        customizationUpdate.houseNumberStyle = 'classic'
+        if (!houseCustomizations.houseNumber) customizationUpdate.houseNumber = '42'
+      }
+      else if (item.id === 'modern_house_number') {
+        customizationUpdate.houseNumberStyle = 'modern'
+        if (!houseCustomizations.houseNumber) customizationUpdate.houseNumber = '42'
+      }
+      else if (item.id === 'rustic_house_number') {
+        customizationUpdate.houseNumberStyle = 'rustic'
+        if (!houseCustomizations.houseNumber) customizationUpdate.houseNumber = '42'
+      }
       else if (item.id === 'no_house_number') {
         customizationUpdate.houseNumber = undefined
         customizationUpdate.houseNumberStyle = undefined
@@ -531,6 +543,11 @@ export default function DecorationMode({
       setIsDragging(false)
       retroSFX.playPlaceItem()
     } else {
+      // Check decoration limit before adding
+      if (placedDecorations.length >= MAX_DECORATIONS) {
+        retroSFX.playError?.() // Play error sound if available
+        return
+      }
       addDecoration(newDecoration)
       retroSFX.playPlaceItem()
       // Don't clear selection or placement mode to allow rapid placement
@@ -710,7 +727,16 @@ export default function DecorationMode({
     >
       {/* Header */}
       <div className="h-14 border-b border-thread-sage/30 flex items-center justify-between px-4 bg-thread-paper shrink-0">
-        <div className="font-headline font-bold text-lg text-thread-pine">Decorate Home</div>
+        <div className="flex items-center gap-3">
+          <span className="font-headline font-bold text-lg text-thread-pine">Decorate Home</span>
+          <span className={`text-sm px-2 py-0.5 rounded ${
+            placedDecorations.length >= MAX_DECORATIONS
+              ? 'bg-thread-sunset/20 text-thread-sunset'
+              : 'bg-thread-sage/20 text-thread-sage'
+          }`}>
+            {placedDecorations.length}/{MAX_DECORATIONS}
+          </span>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => {

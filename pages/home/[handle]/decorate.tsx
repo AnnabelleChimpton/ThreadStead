@@ -232,7 +232,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           detailColor: homeConfig.detailColor || null,
           houseTitle: homeConfig.houseTitle || null,
           houseDescription: homeConfig.houseDescription || null,
-          houseBoardText: homeConfig.houseBoardText || null
+          houseBoardText: homeConfig.houseBoardText || null,
+          houseNumber: homeConfig.houseNumber || null,
+          houseNumberStyle: homeConfig.houseNumberStyle || null,
+          welcomeMat: homeConfig.welcomeMat || null,
+          welcomeMatText: homeConfig.welcomeMatText || null,
+          welcomeMatColor: homeConfig.welcomeMatColor || null,
+          chimneyStyle: homeConfig.chimneyStyle || null,
+          exteriorLights: homeConfig.exteriorLights || null,
+          windowTreatments: homeConfig.windowTreatments || null
         },
         initialAtmosphere: {
           sky: homeConfig.atmosphereSky || 'sunny',

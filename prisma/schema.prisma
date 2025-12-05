@@ -154,6 +154,15 @@ model UserHomeConfig {
   houseTitle          String? // Custom title text shown above house description (max 50 characters)
   houseDescription    String? // Custom description text shown below house (max 200 characters)
   houseBoardText      String? // Custom text shown on house board/sign (max 30 characters)
+  // House accessory customizations
+  houseNumber         String?  // House number text (e.g. "42")
+  houseNumberStyle    String?  // classic, modern, rustic
+  welcomeMat          String?  // simple, ornate, seasonal
+  welcomeMatText      String?  // Custom welcome mat text
+  welcomeMatColor     String?  // Welcome mat color
+  chimneyStyle        String?  // none, brick, stone
+  exteriorLights      String?  // none, lantern, string
+  windowTreatments    String?  // none, curtains, shutters
   terrain             Json?   // Grid-based terrain map { "x,y": "terrainId" }
   // Custom pixel art assets (user-uploaded)
   customAssets        Json?   // Array of {slot: 0-4, url: string} for up to 5 custom pixel art images

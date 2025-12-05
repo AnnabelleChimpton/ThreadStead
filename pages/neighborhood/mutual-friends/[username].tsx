@@ -15,6 +15,27 @@ interface MutualFriend {
     houseTemplate: HouseTemplate
     palette: ColorPalette
     seasonalOptIn: boolean
+    houseCustomizations?: {
+      windowStyle?: string | null
+      doorStyle?: string | null
+      roofTrim?: string | null
+      wallColor?: string | null
+      roofColor?: string | null
+      trimColor?: string | null
+      windowColor?: string | null
+      detailColor?: string | null
+      houseTitle?: string | null
+      houseDescription?: string | null
+      houseBoardText?: string | null
+      houseNumber?: string | null
+      houseNumberStyle?: string | null
+      welcomeMat?: string | null
+      welcomeMatText?: string | null
+      welcomeMatColor?: string | null
+      chimneyStyle?: string | null
+      exteriorLights?: string | null
+      windowTreatments?: string | null
+    }
   }
   connectionType: 'mutual_friend' | 'friend_of_friend' | 'mutual_ring'
   mutualConnections: number
@@ -313,7 +334,28 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         homeConfig: {
           houseTemplate: config.houseTemplate as HouseTemplate,
           palette: config.palette as ColorPalette,
-          seasonalOptIn: config.seasonalOptIn
+          seasonalOptIn: config.seasonalOptIn,
+          houseCustomizations: {
+            windowStyle: config.windowStyle,
+            doorStyle: config.doorStyle,
+            roofTrim: config.roofTrim,
+            wallColor: config.wallColor,
+            roofColor: config.roofColor,
+            trimColor: config.trimColor,
+            windowColor: config.windowColor,
+            detailColor: config.detailColor,
+            houseTitle: config.houseTitle,
+            houseDescription: config.houseDescription,
+            houseBoardText: config.houseBoardText,
+            houseNumber: config.houseNumber,
+            houseNumberStyle: config.houseNumberStyle,
+            welcomeMat: config.welcomeMat,
+            welcomeMatText: config.welcomeMatText,
+            welcomeMatColor: config.welcomeMatColor,
+            chimneyStyle: config.chimneyStyle,
+            exteriorLights: config.exteriorLights,
+            windowTreatments: config.windowTreatments
+          }
         },
         connectionType: 'mutual_friend',
         mutualConnections: 1,

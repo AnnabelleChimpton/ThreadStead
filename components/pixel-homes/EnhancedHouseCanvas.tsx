@@ -195,8 +195,8 @@ export default function EnhancedHouseCanvas({
               style={{
                 left: gridX * DEFAULT_DECORATION_GRID.cellSize,
                 top: gridY * DEFAULT_DECORATION_GRID.cellSize,
-                width: DEFAULT_DECORATION_GRID.cellSize,
-                height: DEFAULT_DECORATION_GRID.cellSize,
+                width: DEFAULT_DECORATION_GRID.cellSize + 1,  // +1px overlap to prevent sub-pixel gaps
+                height: DEFAULT_DECORATION_GRID.cellSize + 1, // +1px overlap to prevent sub-pixel gaps
                 backgroundColor: tile.color,
               }}
               title={tile.name}

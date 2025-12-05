@@ -1,0 +1,9 @@
+-- Add house customization fields to UserHomeConfig
+ALTER TABLE "UserHomeConfig" ADD COLUMN "houseNumber" TEXT;
+ALTER TABLE "UserHomeConfig" ADD COLUMN "houseNumberStyle" TEXT;
+ALTER TABLE "UserHomeConfig" ADD COLUMN "welcomeMat" TEXT;
+ALTER TABLE "UserHomeConfig" ADD COLUMN "welcomeMatText" TEXT;
+ALTER TABLE "UserHomeConfig" ADD COLUMN "welcomeMatColor" TEXT;
+ALTER TABLE "UserHomeConfig" ADD COLUMN "chimneyStyle" TEXT;
+ALTER TABLE "UserHomeConfig" ADD COLUMN "exteriorLights" TEXT;
+ALTER TABLE "UserHomeConfig" ADD COLUMN "windowTreatments" TEXT;

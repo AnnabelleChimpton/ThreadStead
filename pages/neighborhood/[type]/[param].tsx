@@ -55,6 +55,14 @@ interface NeighborhoodMember {
       houseTitle?: string | null
       houseDescription?: string | null
       houseBoardText?: string | null
+      houseNumber?: string | null
+      houseNumberStyle?: string | null
+      welcomeMat?: string | null
+      welcomeMatText?: string | null
+      welcomeMatColor?: string | null
+      chimneyStyle?: string | null
+      exteriorLights?: string | null
+      windowTreatments?: string | null
     }
     atmosphere?: {
       sky: string
@@ -983,7 +991,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   ...(config.detailColor && { detailColor: config.detailColor }),
                   ...(config.houseTitle && { houseTitle: config.houseTitle }),
                   ...(config.houseDescription && { houseDescription: config.houseDescription }),
-                  ...(config.houseBoardText && { houseBoardText: config.houseBoardText })
+                  ...(config.houseBoardText && { houseBoardText: config.houseBoardText }),
+                  ...(config.houseNumber && { houseNumber: config.houseNumber }),
+                  ...(config.houseNumberStyle && { houseNumberStyle: config.houseNumberStyle }),
+                  ...(config.welcomeMat && { welcomeMat: config.welcomeMat }),
+                  ...(config.welcomeMatText && { welcomeMatText: config.welcomeMatText }),
+                  ...(config.welcomeMatColor && { welcomeMatColor: config.welcomeMatColor }),
+                  ...(config.chimneyStyle && { chimneyStyle: config.chimneyStyle }),
+                  ...(config.exteriorLights && { exteriorLights: config.exteriorLights }),
+                  ...(config.windowTreatments && { windowTreatments: config.windowTreatments })
                 },
                 atmosphere: {
                   sky: config.atmosphereSky,
@@ -1095,7 +1111,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   ...(config.detailColor && { detailColor: config.detailColor }),
                   ...(config.houseTitle && { houseTitle: config.houseTitle }),
                   ...(config.houseDescription && { houseDescription: config.houseDescription }),
-                  ...(config.houseBoardText && { houseBoardText: config.houseBoardText })
+                  ...(config.houseBoardText && { houseBoardText: config.houseBoardText }),
+                  ...(config.houseNumber && { houseNumber: config.houseNumber }),
+                  ...(config.houseNumberStyle && { houseNumberStyle: config.houseNumberStyle }),
+                  ...(config.welcomeMat && { welcomeMat: config.welcomeMat }),
+                  ...(config.welcomeMatText && { welcomeMatText: config.welcomeMatText }),
+                  ...(config.welcomeMatColor && { welcomeMatColor: config.welcomeMatColor }),
+                  ...(config.chimneyStyle && { chimneyStyle: config.chimneyStyle }),
+                  ...(config.exteriorLights && { exteriorLights: config.exteriorLights }),
+                  ...(config.windowTreatments && { windowTreatments: config.windowTreatments })
                 },
                 atmosphere: {
                   sky: config.atmosphereSky,
@@ -1227,7 +1251,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   ...(config.detailColor && { detailColor: config.detailColor }),
                   ...(config.houseTitle && { houseTitle: config.houseTitle }),
                   ...(config.houseDescription && { houseDescription: config.houseDescription }),
-                  ...(config.houseBoardText && { houseBoardText: config.houseBoardText })
+                  ...(config.houseBoardText && { houseBoardText: config.houseBoardText }),
+                  ...(config.houseNumber && { houseNumber: config.houseNumber }),
+                  ...(config.houseNumberStyle && { houseNumberStyle: config.houseNumberStyle }),
+                  ...(config.welcomeMat && { welcomeMat: config.welcomeMat }),
+                  ...(config.welcomeMatText && { welcomeMatText: config.welcomeMatText }),
+                  ...(config.welcomeMatColor && { welcomeMatColor: config.welcomeMatColor }),
+                  ...(config.chimneyStyle && { chimneyStyle: config.chimneyStyle }),
+                  ...(config.exteriorLights && { exteriorLights: config.exteriorLights }),
+                  ...(config.windowTreatments && { windowTreatments: config.windowTreatments })
                 },
                 atmosphere: {
                   sky: config.atmosphereSky,

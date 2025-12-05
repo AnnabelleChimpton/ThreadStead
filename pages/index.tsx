@@ -102,6 +102,14 @@ const sanitizeCustomizations = (customizations: any): HouseCustomizations | unde
     houseTitle: typeof customizations.houseTitle === 'string' ? customizations.houseTitle : undefined,
     houseDescription: typeof customizations.houseDescription === 'string' ? customizations.houseDescription : undefined,
     houseBoardText: typeof customizations.houseBoardText === 'string' ? customizations.houseBoardText : undefined,
+    houseNumber: typeof customizations.houseNumber === 'string' ? customizations.houseNumber : undefined,
+    houseNumberStyle: typeof customizations.houseNumberStyle === 'string' ? customizations.houseNumberStyle : undefined,
+    welcomeMat: typeof customizations.welcomeMat === 'string' ? customizations.welcomeMat : undefined,
+    welcomeMatText: typeof customizations.welcomeMatText === 'string' ? customizations.welcomeMatText : undefined,
+    welcomeMatColor: typeof customizations.welcomeMatColor === 'string' ? customizations.welcomeMatColor : undefined,
+    chimneyStyle: typeof customizations.chimneyStyle === 'string' ? customizations.chimneyStyle : undefined,
+    exteriorLights: typeof customizations.exteriorLights === 'string' ? customizations.exteriorLights : undefined,
+    windowTreatments: typeof customizations.windowTreatments === 'string' ? customizations.windowTreatments : undefined,
   };
 };
 

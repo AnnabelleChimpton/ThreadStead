@@ -37,6 +37,14 @@ interface NeighborhoodMember {
       houseTitle?: string | null;
       houseDescription?: string | null;
       houseBoardText?: string | null;
+      houseNumber?: string | null;
+      houseNumberStyle?: string | null;
+      welcomeMat?: string | null;
+      welcomeMatText?: string | null;
+      welcomeMatColor?: string | null;
+      chimneyStyle?: string | null;
+      exteriorLights?: string | null;
+      windowTreatments?: string | null;
     };
     atmosphere?: {
       sky: string;

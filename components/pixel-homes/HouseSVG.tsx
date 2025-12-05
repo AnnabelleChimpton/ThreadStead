@@ -597,11 +597,11 @@ const renderHouseNumber = (x: number, y: number, number: string | undefined, sty
     );
   }
 
-  // Classic style (default)
+  // Classic style (default) - white plaque with dark text
   return (
     <g>
-      <rect x={x - width / 2} y={y} width={width} height={10} fill={colors.base} stroke={colors.secondary} strokeWidth="1" rx="1" />
-      <text x={x} y={y + 7} textAnchor="middle" fontSize="6" fill={colors.secondary} fontFamily="serif" fontWeight="bold" style={{ userSelect: 'none' }}>
+      <rect x={x - width / 2} y={y} width={width} height={10} fill="#FAFAFA" stroke="#2C3E50" strokeWidth="1" rx="1" />
+      <text x={x} y={y + 7} textAnchor="middle" fontSize="6" fill="#2C3E50" fontFamily="serif" fontWeight="bold" style={{ userSelect: 'none' }}>
         {displayNumber}
       </text>
     </g>
@@ -853,7 +853,7 @@ const TownhouseTemplate: React.FC<{ colors: any, customizations: HouseCustomizat
       )}
 
       {/* Welcome Mat - on the steps */}
-      {renderWelcomeMat(100, 178, customizations.welcomeMat, customizations.welcomeMatText, customizations.welcomeMatColor, simplified)}
+      {renderWelcomeMat(100, 168, customizations.welcomeMat, customizations.welcomeMatText, customizations.welcomeMatColor, simplified)}
 
       {/* House Number */}
       {renderHouseNumber(100, 86, customizations.houseNumber, customizations.houseNumberStyle, colors, simplified)}

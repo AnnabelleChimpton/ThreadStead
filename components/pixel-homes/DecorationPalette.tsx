@@ -476,6 +476,31 @@ export default function DecorationPalette({
                   {(houseCustomizations.houseBoardText || '').length}/20
                 </div>
               </div>
+
+              {/* House Number */}
+              <div>
+                <label className="block text-sm font-medium text-thread-pine mb-2 flex items-center gap-1">
+                  <PixelIcon name="home" size={16} className="inline-block align-middle" /> House Number
+                  <span className="text-xs text-thread-sage ml-2">(Max 8 chars)</span>
+                </label>
+                <input
+                  type="text"
+                  value={houseCustomizations.houseNumber || ''}
+                  onChange={(e) => onHouseCustomizationChange({ houseNumber: e.target.value.slice(0, 8) })}
+                  placeholder="e.g., '42' or '123A'"
+                  maxLength={8}
+                  className="w-full px-4 py-3 border border-thread-sage rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sage focus:border-transparent text-gray-900 bg-white touch-manipulation"
+                  style={{ minHeight: '48px' }}
+                />
+                <div className="text-xs text-gray-700 text-right mt-1">
+                  {(houseCustomizations.houseNumber || '').length}/8
+                </div>
+                {houseCustomizations.houseNumber && !houseCustomizations.houseNumberStyle && (
+                  <div className="text-xs text-thread-sunset mt-1">
+                    Select a house number style in House → House Number to display
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

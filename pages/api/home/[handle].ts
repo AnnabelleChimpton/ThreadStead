@@ -73,6 +73,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             houseTitle: homeConfig.houseTitle,
             houseDescription: homeConfig.houseDescription,
             houseBoardText: homeConfig.houseBoardText,
+            houseNumber: homeConfig.houseNumber,
+            houseNumberStyle: homeConfig.houseNumberStyle,
+            welcomeMat: homeConfig.welcomeMat,
+            welcomeMatText: homeConfig.welcomeMatText,
+            welcomeMatColor: homeConfig.welcomeMatColor,
+            chimneyStyle: homeConfig.chimneyStyle,
+            exteriorLights: homeConfig.exteriorLights,
+            windowTreatments: homeConfig.windowTreatments,
             terrain: (homeConfig.terrain as Record<string, string>) || {}
           },
           updatedAt: homeConfig.updatedAt
