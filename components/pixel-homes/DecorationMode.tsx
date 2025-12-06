@@ -6,6 +6,7 @@ import { HouseCustomizations, HouseTemplate, ColorPalette, AtmosphereSettings } 
 import { useDecorationState } from '../../hooks/useDecorationState'
 import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping'
 import { DEFAULT_DECORATION_GRID, getDecorationGridSize, pixelToGrid, isValidGridPosition } from '../../lib/pixel-homes/decoration-grid-utils'
+import { getDecorationDimensions } from '../../lib/pixel-homes/decoration-dimensions'
 import { PixelIcon } from '../ui/PixelIcon'
 import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
 import { retroSFX } from '../../lib/audio/retro-sfx'
@@ -511,19 +512,22 @@ export default function DecorationMode({
 
     // Determine z-index layer based on type and Y position for depth sorting
     // Base layers separate categories:
-    // Paths: 1000+ (Bottom)
-    // Water: 2000+ (Middle)
-    // Objects: 3000+ (Top)
-    let baseLayer = 3000
-    if (itemToPlace.type === 'path') baseLayer = 1000
-    else if (itemToPlace.type === 'water') baseLayer = 2000
+    // Paths: 100000+ (Bottom)
+    // Water: 200000+ (Middle)
+    // Objects: 300000+ (Top)
+    let baseLayer = 300000
+    if (itemToPlace.type === 'path') baseLayer = 100000
+    else if (itemToPlace.type === 'water') baseLayer = 200000
 
-    // Calculate item height in pixels to sort by "feet" (bottom Y)
-    const size = getDecorationGridSize(itemToPlace.type, itemToPlace.id, itemToPlace.size || 'medium')
-    const pixelHeight = size.height * gridConfig.cellSize
+    // Calculate actual item height in pixels to sort by "feet" (bottom Y)
+    const dimensions = getDecorationDimensions(itemToPlace.id, itemToPlace.type, itemToPlace.size || 'medium')
+    const pixelHeight = dimensions.height
 
     // Add bottom Y position to base layer for Y-sorting (items lower on screen appear in front)
-    const layer = baseLayer + Math.round(snapResult.position.pixelY + pixelHeight)
+    // Multiply Y by 1000 to ensure it's the primary sort factor
+    // Add X position as tie-breaker for decorations at same Y position
+    const bottomY = Math.round(snapResult.position.pixelY + pixelHeight)
+    const layer = baseLayer + (bottomY * 1000) + Math.round(snapResult.position.pixelX)
 
     const newDecoration: DecorationItem = {
       ...itemToPlace,

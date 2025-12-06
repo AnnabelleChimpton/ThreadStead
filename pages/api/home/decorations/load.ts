@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
+import { getDecorationDimensions } from "@/lib/pixel-homes/decoration-dimensions";
 
 interface DecorationItem {
   id: string;
@@ -75,7 +76,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const decorationItemMap = new Map(decorationItemsFromCatalog.map(item => [item.itemId, item.renderSvg]));
 
     // Transform to the format expected by the frontend
+    // Recalculate layers for proper y-sorting (fixes legacy decorations with incorrect layer values)
     const decorationItems: DecorationItem[] = decorations.map(decoration => {
+      // Calculate the correct layer based on actual decoration dimensions
+      const decorationType = decoration.decorationType;
+      const size = (decoration.size || 'medium') as 'small' | 'medium' | 'large';
+      const dimensions = getDecorationDimensions(decoration.decorationId, decorationType, size);
+
+      // Base layers separate categories:
+      // Paths: 100000+ (Bottom)
+      // Water: 200000+ (Middle)
+      // Objects: 300000+ (Top)
+      let baseLayer = 300000;
+      if (decorationType === 'path') baseLayer = 100000;
+      else if (decorationType === 'water') baseLayer = 200000;
+
+      // Calculate bottom Y position for depth sorting
+      const bottomY = Math.round(decoration.positionY + dimensions.height);
+      const calculatedLayer = baseLayer + (bottomY * 1000) + Math.round(decoration.positionX);
+
       const baseItem: DecorationItem = {
         id: `${decoration.decorationId}_${decoration.id}`,
         decorationId: decoration.decorationId, // Base decoration ID for matching hardcoded SVGs
@@ -84,7 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         position: {
           x: decoration.positionX,
           y: decoration.positionY,
-          layer: decoration.layer
+          layer: calculatedLayer
         },
         variant: decoration.variant || 'default',
         size: decoration.size || 'medium',

@@ -4,6 +4,7 @@ import DecorationSVG from './DecorationSVG'
 import AnimatedDecoration from './DecorationAnimations'
 import { DecorationItem, TERRAIN_TILES, TerrainTile } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID, getDecorationGridSize } from '@/lib/pixel-homes/decoration-grid-utils'
+import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
 
 interface EnhancedHouseCanvasProps {
   template: HouseTemplate
@@ -217,10 +218,10 @@ export default function EnhancedHouseCanvas({
             selectedDecorations?.has(item.id) ? 'select' :
               animatedDecorations?.get(item.id) || undefined
 
-          // Calculate grid size for alignment
-          const gridSize = getDecorationGridSize(item.type, item.id, item.size || 'medium')
-          const pixelWidth = gridSize.width * DEFAULT_DECORATION_GRID.cellSize
-          const pixelHeight = gridSize.height * DEFAULT_DECORATION_GRID.cellSize
+          // Calculate actual dimensions for proper alignment and sizing
+          const dimensions = getDecorationDimensions(item.decorationId || item.id, item.type, item.size || 'medium')
+          const pixelWidth = dimensions.width
+          const pixelHeight = dimensions.height
 
           // Wrapper style for bottom alignment
           const wrapperStyle: React.CSSProperties = {
@@ -358,23 +359,24 @@ export default function EnhancedHouseCanvas({
                 left: previewPosition.x,
                 top: previewPosition.y,
                 width: (() => {
-                  const gridSize = getDecorationGridSize(previewItem.type, previewItem.id, previewItem.size || 'medium')
-                  return gridSize.width * DEFAULT_DECORATION_GRID.cellSize
+                  const dimensions = getDecorationDimensions(previewItem.id, previewItem.type, previewItem.size || 'medium')
+                  return dimensions.width
                 })(),
                 height: (() => {
-                  const gridSize = getDecorationGridSize(previewItem.type, previewItem.id, previewItem.size || 'medium')
-                  return gridSize.height * DEFAULT_DECORATION_GRID.cellSize
+                  const dimensions = getDecorationDimensions(previewItem.id, previewItem.type, previewItem.size || 'medium')
+                  return dimensions.height
                 })(),
                 zIndex: (() => {
-                  let baseLayer = 3000
-                  if (previewItem.type === 'path') baseLayer = 1000
-                  else if (previewItem.type === 'water') baseLayer = 2000
+                  let baseLayer = 300000
+                  if (previewItem.type === 'path') baseLayer = 100000
+                  else if (previewItem.type === 'water') baseLayer = 200000
 
-                  // Calculate height for sorting
-                  const gridSize = getDecorationGridSize(previewItem.type, previewItem.id, previewItem.size || 'medium')
-                  const pixelHeight = gridSize.height * DEFAULT_DECORATION_GRID.cellSize
+                  // Calculate actual height for sorting
+                  const dimensions = getDecorationDimensions(previewItem.id, previewItem.type, previewItem.size || 'medium')
+                  const pixelHeight = dimensions.height
+                  const bottomY = Math.round(previewPosition.y + pixelHeight)
 
-                  return baseLayer + Math.round(previewPosition.y + pixelHeight)
+                  return baseLayer + (bottomY * 1000) + Math.round(previewPosition.x)
                 })(),
                 display: 'flex',
                 alignItems: 'flex-end',
@@ -383,7 +385,7 @@ export default function EnhancedHouseCanvas({
             >
               <DecorationSVG
                 decorationType={previewItem.type}
-                decorationId={previewItem.id}
+                decorationId={previewItem.decorationId || previewItem.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')}
                 variant={previewItem.variant}
                 size={previewItem.size}
                 className="block max-w-none"
