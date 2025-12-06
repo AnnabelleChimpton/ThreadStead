@@ -7,6 +7,7 @@ import { trackNavigation } from '../../lib/analytics/pixel-homes'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import { TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID } from '../../lib/pixel-homes/decoration-grid-utils'
+import { SkyDitherDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount } from './DitherPatternDefs'
 
 interface HomeDecoration {
   id: string
@@ -72,23 +73,62 @@ interface NeighborhoodStreetViewProps {
   neighborhoodType: string
 }
 
+// Map time of day to sky pattern type
+const getSkyTypeForTime = (timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night'): 'sunny' | 'cloudy' | 'sunset' | 'night' => {
+  switch (timeOfDay) {
+    case 'morning': return 'sunny'
+    case 'afternoon': return 'sunny'
+    case 'evening': return 'sunset'
+    case 'night': return 'night'
+  }
+}
+
 // Layer components for depth
 const SkyLayer: React.FC<{ timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night'; totalWidth: number }> = ({ timeOfDay, totalWidth }) => {
-  const skyColors = {
-    morning: 'bg-[#E0F7FA]', // Light cyan
-    afternoon: 'bg-[#87CEEB]', // Sky blue
-    evening: 'bg-[#FFCC80]', // Sunset orange/peach
-    night: 'bg-[#1a1a2e]'  // Dark blue
-  }
-
   // Static mode when totalWidth is 0
   const isStatic = totalWidth === 0
+  const width = isStatic ? '100%' : `${totalWidth}px`
+
+  // Get sky pattern info
+  const skyType = getSkyTypeForTime(timeOfDay)
+  const patternCount = getSkyPatternCount(skyType)
+  const skyPrefix = `street-sky-${skyType}`
+  const patterns = Array.from({ length: patternCount }, (_, i) => `${skyPrefix}-${i}`)
 
   return (
     <div
-      className={`absolute top-0 left-0 h-full ${skyColors[timeOfDay]} pointer-events-none`}
-      style={{ width: isStatic ? '100%' : `${totalWidth}px` }}
+      className="absolute top-0 left-0 h-full pointer-events-none"
+      style={{ width }}
     >
+      {/* Dithered sky gradient */}
+      <svg
+        className="absolute inset-0 w-full h-full"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        shapeRendering="crispEdges"
+      >
+        <SkyDitherDefs prefix="street" />
+        {/* Solid fallback in case patterns fail */}
+        <rect x={0} y={0} width={100} height={100} fill={
+          timeOfDay === 'night' ? '#151550' :
+          timeOfDay === 'evening' ? '#FF7060' : '#87CEEB'
+        } />
+        {/* Dithered sky bands - using absolute coords matching viewBox */}
+        {patterns.map((pattern, i) => {
+          const bandHeight = 100 / patternCount
+          return (
+            <rect
+              key={i}
+              x={0}
+              y={i * bandHeight}
+              width={100}
+              height={bandHeight + 0.5}
+              fill={`url(#${pattern})`}
+            />
+          )
+        })}
+      </svg>
+
       {/* Clouds - only show when scrollable */}
       {!isStatic && (
         <div className="absolute inset-0 overflow-hidden">
@@ -140,38 +180,66 @@ const SkyLayer: React.FC<{ timeOfDay: 'morning' | 'afternoon' | 'evening' | 'nig
 
 
 const StreetLayer: React.FC<{ scrollOffset: number; totalWidth: number }> = ({ scrollOffset, totalWidth }) => {
+  // Get ground pattern info for dithered grass
+  const groundPatternCount = getGroundPatternCount()
+  const groundPatterns = Array.from({ length: groundPatternCount }, (_, i) => `street-ground-${i}`)
+
   return (
     <div
-      className="street-layer"
+      className="street-layer relative"
       style={{
         width: `${totalWidth}px`
       }}
     >
       {/* Grass/Ground behind houses - extends to full scrollable width */}
       <div
-        className="absolute bottom-20 left-0 h-[220px] bg-[#4ade80]" // Solid green
-        style={{ width: `${totalWidth}px` }}
+        className="absolute left-0 h-[220px]"
+        style={{ width: `${totalWidth}px`, bottom: '80px' }}
       >
-        {/* Pixel Art Grass Texture */}
-        <div className="absolute inset-0 opacity-40">
-          {/* Random grass pixels */}
-          {Array.from({ length: Math.ceil(totalWidth / 40) }).map((_, i) => (
-            <div key={`patch-${i}`} className="absolute">
-              <div
-                className="grass-pixel"
-                style={{
-                  left: `${i * 40 + (i % 3) * 10}px`,
-                  top: `${10 + (i % 4) * 20}px`,
-                  width: '4px',
-                  height: '4px',
-                  backgroundColor: i % 2 === 0 ? '#22c55e' : '#16a34a', // Darker green pixels
-                  boxShadow: '4px 0 #22c55e, -4px 4px #16a34a', // Pixel art cluster
-                }}
+        {/* Dithered grass gradient */}
+        <svg
+          className="absolute inset-0 w-full h-full"
+          viewBox={`0 0 ${Math.max(100, totalWidth)} 220`}
+          preserveAspectRatio="none"
+          shapeRendering="crispEdges"
+        >
+          <SkyDitherDefs prefix="street" />
+          <GrassTextureDefs prefix="street" />
+          {/* Solid fallback in case patterns fail */}
+          <rect x="0" y="0" width="100%" height="100%" fill="#4ade80" />
+          {/* Grass gradient bands */}
+          {groundPatterns.map((pattern, i) => {
+            const bandHeight = 220 / groundPatternCount
+            return (
+              <rect
+                key={i}
+                x={0}
+                y={Math.floor(i * bandHeight)}
+                width={Math.max(100, totalWidth)}
+                height={Math.ceil(bandHeight) + 1}
+                fill={`url(#${pattern})`}
               />
-            </div>
-          ))}
+            )
+          })}
+          {/* Grass blade texture overlay - sparse at back, dense at front */}
+          <rect
+            x={0}
+            y={0}
+            width={Math.max(100, totalWidth)}
+            height={110}
+            fill="url(#street-grass-blades)"
+          />
+          <rect
+            x={0}
+            y={110}
+            width={Math.max(100, totalWidth)}
+            height={110}
+            fill="url(#street-grass-blades-dense)"
+          />
+        </svg>
 
-          {/* Small flowers scattered - pixel style */}
+        {/* Small flowers scattered - pixel style */}
+        <div className="absolute inset-0 pointer-events-none">
           {Array.from({ length: Math.ceil(totalWidth / 100) }).map((_, i) => (
             <div
               key={`flower-${i}`}
