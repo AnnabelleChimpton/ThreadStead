@@ -313,6 +313,37 @@ export const PlantSVGs = ({ id, variant, scale, className }: AssetProps) => {
                 </svg>
             )
 
+        case 'potted_herbs':
+            return (
+                <svg width={16 * scale} height={16 * scale} viewBox="0 0 16 16" className={className} shapeRendering="crispEdges">
+                    {/* Terracotta pot */}
+                    <rect x="3" y="10" width="10" height="5" fill="#C2410C" />
+                    <rect x="2" y="10" width="12" height="2" fill="#EA580C" />
+                    <rect x="4" y="12" width="8" height="1" fill="#9A3412" />
+                    <rect x="5" y="14" width="6" height="1" fill="#9A3412" />
+                    {/* Soil */}
+                    <rect x="4" y="9" width="8" height="2" fill="#4A3728" />
+                    {/* Basil - left herb */}
+                    <rect x="4" y="6" width="3" height="3" fill="#22C55E" />
+                    <rect x="5" y="5" width="1" height="1" fill="#22C55E" />
+                    <rect x="3" y="7" width="1" height="1" fill="#16A34A" />
+                    <rect x="5" y="7" width="1" height="1" fill="#4ADE80" />
+                    {/* Rosemary - middle tall */}
+                    <rect x="7" y="4" width="2" height="5" fill="#16A34A" />
+                    <rect x="7" y="3" width="1" height="1" fill="#22C55E" />
+                    <rect x="8" y="2" width="1" height="2" fill="#22C55E" />
+                    <rect x="6" y="5" width="1" height="2" fill="#15803D" />
+                    <rect x="9" y="4" width="1" height="2" fill="#15803D" />
+                    {/* Mint - right herb */}
+                    <rect x="9" y="6" width="3" height="3" fill="#4ADE80" />
+                    <rect x="10" y="5" width="1" height="1" fill="#4ADE80" />
+                    <rect x="12" y="7" width="1" height="1" fill="#22C55E" />
+                    <rect x="10" y="7" width="1" height="1" fill="#86EFAC" />
+                    {/* Pot highlight */}
+                    <rect x="3" y="11" width="1" height="2" fill="#FB923C" opacity="0.5" />
+                </svg>
+            )
+
         default:
             return (
                 <svg width={16 * scale} height={16 * scale} viewBox="0 0 16 16" className={className} shapeRendering="crispEdges">

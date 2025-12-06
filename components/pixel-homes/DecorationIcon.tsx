@@ -38,42 +38,119 @@ export default function DecorationIcon({
   }
 
   if (type === 'sky') {
-    // Special handling for atmosphere/sky items
+    // Special handling for atmosphere/sky items - pixel art style with dithering
     switch (id) {
       case 'sunny_sky':
         return (
-          <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
-            <circle cx="12" cy="12" r="5" fill="#FCD34D" />
-            <g stroke="#F59E0B" strokeWidth="2" strokeLinecap="round">
-              <path d="M12 1v2" />
-              <path d="M12 21v2" />
-              <path d="M4.22 4.22l1.42 1.42" />
-              <path d="M18.36 18.36l1.42 1.42" />
-              <path d="M1 12h2" />
-              <path d="M21 12h2" />
-              <path d="M4.22 19.78l1.42-1.42" />
-              <path d="M18.36 5.64l1.42-1.42" />
+          <svg width={size} height={size} viewBox="0 0 24 24" className={className} shapeRendering="crispEdges">
+            {/* Sky gradient bands */}
+            <rect x="0" y="0" width="24" height="6" fill="#5BA3D0" />
+            <rect x="0" y="6" width="24" height="6" fill="#6BB5DC" />
+            <rect x="0" y="12" width="24" height="6" fill="#87CEEB" />
+            <rect x="0" y="18" width="24" height="6" fill="#A8E4F0" />
+            {/* Dither transitions */}
+            <g fill="#6BB5DC">
+              <rect x="1" y="5" width="1" height="1" /><rect x="3" y="5" width="1" height="1" />
+              <rect x="5" y="5" width="1" height="1" /><rect x="7" y="5" width="1" height="1" />
+            </g>
+            {/* Pixel sun */}
+            <rect x="14" y="4" width="6" height="6" fill="#FFD93D" />
+            <rect x="15" y="5" width="4" height="4" fill="#FFF176" />
+            {/* Sun rays */}
+            <rect x="16" y="2" width="2" height="1" fill="#FFD93D" />
+            <rect x="16" y="11" width="2" height="1" fill="#FFD93D" />
+            <rect x="12" y="6" width="1" height="2" fill="#FFD93D" />
+            <rect x="21" y="6" width="1" height="2" fill="#FFD93D" />
+          </svg>
+        )
+      case 'cloudy_sky':
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" className={className} shapeRendering="crispEdges">
+            {/* Overcast sky gradient */}
+            <rect x="0" y="0" width="24" height="6" fill="#8899AA" />
+            <rect x="0" y="6" width="24" height="6" fill="#9DAAB8" />
+            <rect x="0" y="12" width="24" height="6" fill="#B0C4DE" />
+            <rect x="0" y="18" width="24" height="6" fill="#C8D4E8" />
+            {/* Dither between bands */}
+            <g fill="#9DAAB8">
+              <rect x="0" y="5" width="1" height="1" /><rect x="2" y="5" width="1" height="1" />
+              <rect x="4" y="5" width="1" height="1" /><rect x="6" y="5" width="1" height="1" />
+            </g>
+            {/* Pixel clouds */}
+            <g fill="#E8E8E8">
+              <rect x="3" y="8" width="8" height="4" />
+              <rect x="5" y="6" width="4" height="2" />
+              <rect x="14" y="12" width="6" height="3" />
+              <rect x="15" y="10" width="4" height="2" />
+            </g>
+            <g fill="#FFFFFF">
+              <rect x="4" y="9" width="6" height="2" />
+              <rect x="15" y="12" width="4" height="2" />
             </g>
           </svg>
         )
       case 'sunset_sky':
         return (
-          <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
-            <defs>
-              <linearGradient id="sunsetGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style={{ stopColor: '#FF6B6B', stopOpacity: 1 }} />
-                <stop offset="50%" style={{ stopColor: '#FFB347', stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: '#4ECDC4', stopOpacity: 1 }} />
-              </linearGradient>
-            </defs>
-            <rect width="24" height="24" fill="url(#sunsetGrad)" rx="2" />
-            <circle cx="6" cy="8" r="3" fill="#FF4444" opacity="0.8" />
+          <svg width={size} height={size} viewBox="0 0 24 24" className={className} shapeRendering="crispEdges">
+            {/* Sunset gradient bands */}
+            <rect x="0" y="0" width="24" height="4" fill="#4A3070" />
+            <rect x="0" y="4" width="24" height="4" fill="#7B4090" />
+            <rect x="0" y="8" width="24" height="4" fill="#C85A80" />
+            <rect x="0" y="12" width="24" height="4" fill="#FF7060" />
+            <rect x="0" y="16" width="24" height="4" fill="#FFB060" />
+            <rect x="0" y="20" width="24" height="4" fill="#FFD090" />
+            {/* Dither transitions */}
+            <g fill="#7B4090">
+              <rect x="1" y="3" width="1" height="1" /><rect x="3" y="3" width="1" height="1" />
+              <rect x="5" y="3" width="1" height="1" /><rect x="7" y="3" width="1" height="1" />
+            </g>
+            <g fill="#FF7060">
+              <rect x="0" y="11" width="1" height="1" /><rect x="2" y="11" width="1" height="1" />
+              <rect x="4" y="11" width="1" height="1" /><rect x="6" y="11" width="1" height="1" />
+            </g>
+            {/* Setting sun */}
+            <rect x="2" y="14" width="6" height="4" fill="#FF4444" />
+            <rect x="3" y="15" width="4" height="2" fill="#FF6B6B" />
+          </svg>
+        )
+      case 'night_sky':
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" className={className} shapeRendering="crispEdges">
+            {/* Night sky gradient */}
+            <rect x="0" y="0" width="24" height="6" fill="#050510" />
+            <rect x="0" y="6" width="24" height="6" fill="#0A0A20" />
+            <rect x="0" y="12" width="24" height="6" fill="#101035" />
+            <rect x="0" y="18" width="24" height="6" fill="#151550" />
+            {/* Dither transitions */}
+            <g fill="#0A0A20">
+              <rect x="1" y="5" width="1" height="1" /><rect x="3" y="5" width="1" height="1" />
+              <rect x="5" y="5" width="1" height="1" /><rect x="7" y="5" width="1" height="1" />
+            </g>
+            {/* Pixel stars */}
+            <g fill="#FFFFFF">
+              <rect x="3" y="3" width="1" height="1" />
+              <rect x="8" y="7" width="1" height="1" />
+              <rect x="15" y="2" width="1" height="1" />
+              <rect x="20" y="5" width="1" height="1" />
+              <rect x="5" y="12" width="1" height="1" />
+              <rect x="12" y="9" width="1" height="1" />
+              <rect x="18" y="14" width="1" height="1" />
+            </g>
+            {/* Brighter stars */}
+            <g fill="#FFFFAA">
+              <rect x="10" y="4" width="2" height="2" />
+              <rect x="19" y="10" width="2" height="2" />
+            </g>
+            {/* Moon */}
+            <rect x="16" y="16" width="5" height="5" fill="#E8E8C8" />
+            <rect x="17" y="17" width="3" height="3" fill="#FFFFD0" />
+            <rect x="18" y="16" width="2" height="1" fill="#101035" />
           </svg>
         )
       default:
         return (
-          <svg width={size} height={size} viewBox="0 0 24 24" className={className}>
-            <circle cx="12" cy="12" r="10" fill="#87CEEB" />
+          <svg width={size} height={size} viewBox="0 0 24 24" className={className} shapeRendering="crispEdges">
+            <rect x="0" y="0" width="24" height="24" fill="#87CEEB" />
             <text x="12" y="16" textAnchor="middle" fontSize="12" fill="white">?</text>
           </svg>
         )

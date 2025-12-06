@@ -25,15 +25,31 @@ export const PathSVGs = ({ id, variant, scale, className }: AssetProps) => {
         case 'brick_path':
             return (
                 <svg width={48 * scale} height={12 * scale} viewBox="0 0 48 12" className={className} shapeRendering="crispEdges">
-                    <rect x="0" y="0" width="12" height="6" fill="#DC2626" stroke="#B91C1C" strokeWidth="1" />
-                    <rect x="12" y="0" width="12" height="6" fill="#EF4444" stroke="#DC2626" strokeWidth="1" />
-                    <rect x="24" y="0" width="12" height="6" fill="#DC2626" stroke="#B91C1C" strokeWidth="1" />
-                    <rect x="36" y="0" width="12" height="6" fill="#EF4444" stroke="#DC2626" strokeWidth="1" />
-                    <rect x="-6" y="6" width="12" height="6" fill="#EF4444" stroke="#DC2626" strokeWidth="1" />
-                    <rect x="6" y="6" width="12" height="6" fill="#DC2626" stroke="#B91C1C" strokeWidth="1" />
-                    <rect x="18" y="6" width="12" height="6" fill="#EF4444" stroke="#DC2626" strokeWidth="1" />
-                    <rect x="30" y="6" width="12" height="6" fill="#DC2626" stroke="#B91C1C" strokeWidth="1" />
-                    <rect x="42" y="6" width="12" height="6" fill="#EF4444" stroke="#DC2626" strokeWidth="1" />
+                    {/* Top row of bricks */}
+                    <rect x="0" y="0" width="12" height="6" fill="#DC2626" />
+                    <rect x="0" y="0" width="12" height="1" fill="#B91C1C" />
+                    <rect x="0" y="5" width="12" height="1" fill="#B91C1C" />
+                    <rect x="12" y="0" width="12" height="6" fill="#EF4444" />
+                    <rect x="12" y="0" width="12" height="1" fill="#DC2626" />
+                    <rect x="12" y="5" width="12" height="1" fill="#DC2626" />
+                    <rect x="24" y="0" width="12" height="6" fill="#DC2626" />
+                    <rect x="24" y="0" width="12" height="1" fill="#B91C1C" />
+                    <rect x="24" y="5" width="12" height="1" fill="#B91C1C" />
+                    <rect x="36" y="0" width="12" height="6" fill="#EF4444" />
+                    <rect x="36" y="0" width="12" height="1" fill="#DC2626" />
+                    <rect x="36" y="5" width="12" height="1" fill="#DC2626" />
+                    {/* Bottom row of bricks - offset */}
+                    <rect x="0" y="6" width="6" height="6" fill="#EF4444" />
+                    <rect x="6" y="6" width="12" height="6" fill="#DC2626" />
+                    <rect x="6" y="6" width="12" height="1" fill="#B91C1C" />
+                    <rect x="6" y="11" width="12" height="1" fill="#B91C1C" />
+                    <rect x="18" y="6" width="12" height="6" fill="#EF4444" />
+                    <rect x="18" y="6" width="12" height="1" fill="#DC2626" />
+                    <rect x="18" y="11" width="12" height="1" fill="#DC2626" />
+                    <rect x="30" y="6" width="12" height="6" fill="#DC2626" />
+                    <rect x="30" y="6" width="12" height="1" fill="#B91C1C" />
+                    <rect x="30" y="11" width="12" height="1" fill="#B91C1C" />
+                    <rect x="42" y="6" width="6" height="6" fill="#EF4444" />
                 </svg>
             )
 

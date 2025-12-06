@@ -76,7 +76,8 @@ export const BETA_ITEMS = {
         { id: 'sunflowers', name: 'Sunflowers', type: 'plant', zone: 'front_yard' },
         { id: 'lavender', name: 'Lavender', type: 'plant', zone: 'front_yard' },
         { id: 'flower_pot', name: 'Flower Pot', type: 'plant', zone: 'front_yard' },
-        { id: 'planter_box', name: 'Planter Box', type: 'furniture', zone: 'front_yard' }
+        { id: 'planter_box', name: 'Planter Box', type: 'furniture', zone: 'front_yard' },
+        { id: 'potted_herbs', name: 'Potted Herbs', type: 'plant', zone: 'front_yard' }
     ],
     // Paths are now handled by the terrain system
     // paths: [
@@ -98,7 +99,14 @@ export const BETA_ITEMS = {
         { id: 'garden_gnome_reading', name: 'Reading Gnome', type: 'feature', zone: 'front_yard' },
         { id: 'watering_can', name: 'Watering Can', type: 'feature', zone: 'front_yard' },
         { id: 'garden_tools', name: 'Garden Tools', type: 'feature', zone: 'front_yard' },
-        { id: 'wheelbarrow', name: 'Wheelbarrow', type: 'feature', zone: 'front_yard' }
+        { id: 'wheelbarrow', name: 'Wheelbarrow', type: 'feature', zone: 'front_yard' },
+        // Cozy additions
+        { id: 'sleeping_cat', name: 'Sleeping Cat', type: 'feature', zone: 'front_yard' },
+        { id: 'sleeping_dog', name: 'Sleeping Dog', type: 'feature', zone: 'front_yard' },
+        { id: 'bird_feeder', name: 'Bird Feeder', type: 'feature', zone: 'front_yard' },
+        { id: 'firewood_stack', name: 'Firewood Stack', type: 'feature', zone: 'front_yard' },
+        { id: 'clothesline', name: 'Clothesline', type: 'feature', zone: 'front_yard' },
+        { id: 'welcome_sign', name: 'Welcome Sign', type: 'feature', zone: 'front_yard' }
     ],
     furniture: [
         { id: 'garden_bench', name: 'Garden Bench', type: 'furniture', zone: 'front_yard' },
@@ -109,7 +117,11 @@ export const BETA_ITEMS = {
         // New garden furniture
         { id: 'raised_bed', name: 'Raised Garden Bed', type: 'furniture', zone: 'front_yard' },
         { id: 'compost_bin', name: 'Compost Bin', type: 'furniture', zone: 'front_yard' },
-        { id: 'garden_cart', name: 'Garden Cart', type: 'furniture', zone: 'front_yard' }
+        { id: 'garden_cart', name: 'Garden Cart', type: 'furniture', zone: 'front_yard' },
+        // Cozy additions
+        { id: 'rocking_chair', name: 'Rocking Chair', type: 'furniture', zone: 'front_yard' },
+        { id: 'garden_swing', name: 'Garden Swing', type: 'furniture', zone: 'front_yard' },
+        { id: 'cozy_blanket', name: 'Cozy Blanket', type: 'furniture', zone: 'front_yard' }
     ],
     fencing: [
         { id: 'picket_fence_white', name: 'White Picket Fence', type: 'structure', zone: 'front_yard' },
@@ -134,7 +146,8 @@ export const BETA_ITEMS = {
         { id: 'gazebo', name: 'Garden Gazebo', type: 'structure', zone: 'front_yard' },
         { id: 'trellis', name: 'Garden Trellis', type: 'structure', zone: 'front_yard' },
         { id: 'garden_arch', name: 'Garden Arch', type: 'structure', zone: 'front_yard' },
-        { id: 'sign_post', name: 'Sign Post', type: 'structure', zone: 'front_yard' }
+        { id: 'sign_post', name: 'Sign Post', type: 'structure', zone: 'front_yard' },
+        { id: 'wishing_well', name: 'Wishing Well', type: 'structure', zone: 'front_yard' }
     ],
     atmosphere: [
         { id: 'sunny_sky', name: 'Sunny Day', type: 'sky', zone: 'background' },

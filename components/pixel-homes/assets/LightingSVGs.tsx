@@ -23,12 +23,21 @@ export const LightingSVGs = ({ id, variant, scale, className }: AssetProps) => {
         case 'string_lights':
             return (
                 <svg width={64 * scale} height={16 * scale} viewBox="0 0 64 16" className={className} shapeRendering="crispEdges">
-                    <path d="M2 8 Q16 4 32 8 Q48 4 62 8" stroke="#2F2F2F" strokeWidth="1" fill="none" />
-                    <rect x="7" y="5" width="2" height="2" fill="#FFD700" />
-                    <rect x="19" y="8" width="2" height="2" fill="#FF6347" />
-                    <rect x="31" y="5" width="2" height="2" fill="#32CD32" />
-                    <rect x="43" y="8" width="2" height="2" fill="#87CEEB" />
-                    <rect x="55" y="5" width="2" height="2" fill="#DA70D6" />
+                    {/* Wire - pixel art stepped curve */}
+                    <rect x="2" y="8" width="8" height="1" fill="#2F2F2F" />
+                    <rect x="10" y="7" width="6" height="1" fill="#2F2F2F" />
+                    <rect x="16" y="6" width="8" height="1" fill="#2F2F2F" />
+                    <rect x="24" y="7" width="8" height="1" fill="#2F2F2F" />
+                    <rect x="32" y="8" width="8" height="1" fill="#2F2F2F" />
+                    <rect x="40" y="7" width="6" height="1" fill="#2F2F2F" />
+                    <rect x="46" y="6" width="8" height="1" fill="#2F2F2F" />
+                    <rect x="54" y="7" width="8" height="1" fill="#2F2F2F" />
+                    {/* Bulbs */}
+                    <rect x="7" y="8" width="2" height="3" fill="#FFD700" />
+                    <rect x="19" y="7" width="2" height="3" fill="#FF6347" />
+                    <rect x="31" y="8" width="2" height="3" fill="#32CD32" />
+                    <rect x="43" y="7" width="2" height="3" fill="#87CEEB" />
+                    <rect x="55" y="7" width="2" height="3" fill="#DA70D6" />
                 </svg>
             )
         case 'torch':
@@ -54,7 +63,10 @@ export const LightingSVGs = ({ id, variant, scale, className }: AssetProps) => {
         default:
             return (
                 <svg width={16 * scale} height={16 * scale} viewBox="0 0 16 16" className={className} shapeRendering="crispEdges">
-                    <circle cx="8" cy="8" r="6" fill="#FFD700" />
+                    {/* Pixel art circle glow */}
+                    <rect x="4" y="4" width="8" height="8" fill="#FFD700" />
+                    <rect x="3" y="5" width="10" height="6" fill="#FFD700" />
+                    <rect x="5" y="3" width="6" height="10" fill="#FFD700" />
                     {/* Simple lightbulb shape fallback */}
                     <rect x="6" y="4" width="4" height="5" fill="#FFF8DC" />
                     <rect x="7" y="9" width="2" height="2" fill="#A9A9A9" />

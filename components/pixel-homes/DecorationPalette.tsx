@@ -7,6 +7,209 @@ import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon'
 import { DECORATION_CATEGORY_ICONS, getCategoryIcon } from '@/lib/pixel-homes/category-icons'
 import { retroSFX } from '../../lib/audio/retro-sfx'
 
+/**
+ * Renders a terrain tile icon with dithered pattern matching the actual terrain
+ */
+function TerrainTileIcon({ tileId, size = 32 }: { tileId: string; size?: number }) {
+  const getTerrainPattern = () => {
+    switch (tileId) {
+      case 'grass':
+        return (
+          <>
+            <rect width={size} height={size} fill="#7CCD7C" />
+            {/* Grass blades */}
+            <rect x={2} y={4} width={1} height={3} fill="#5AAF5A" />
+            <rect x={6} y={2} width={1} height={4} fill="#5AAF5A" />
+            <rect x={10} y={5} width={1} height={3} fill="#5AAF5A" />
+            <rect x={14} y={3} width={1} height={4} fill="#5AAF5A" />
+            <rect x={4} y={10} width={1} height={3} fill="#5AAF5A" />
+            <rect x={8} y={8} width={1} height={4} fill="#5AAF5A" />
+            <rect x={12} y={11} width={1} height={3} fill="#5AAF5A" />
+            {/* Highlights */}
+            <rect x={3} y={6} width={1} height={2} fill="#90EE90" />
+            <rect x={9} y={4} width={1} height={2} fill="#90EE90" />
+          </>
+        )
+      case 'dirt':
+        return (
+          <>
+            <rect width={size} height={size} fill="#8B4513" />
+            {/* Dither texture */}
+            <rect x={2} y={2} width={2} height={2} fill="#6B3410" />
+            <rect x={8} y={4} width={2} height={2} fill="#A0522D" />
+            <rect x={4} y={8} width={2} height={2} fill="#6B3410" />
+            <rect x={10} y={10} width={2} height={2} fill="#A0522D" />
+            <rect x={0} y={6} width={1} height={1} fill="#6B3410" />
+            <rect x={6} y={0} width={1} height={1} fill="#A0522D" />
+            <rect x={12} y={6} width={1} height={1} fill="#6B3410" />
+          </>
+        )
+      case 'stone_path':
+        return (
+          <>
+            <rect width={size} height={size} fill="#808080" />
+            {/* Stone pattern */}
+            <rect x={1} y={1} width={5} height={4} fill="#909090" />
+            <rect x={8} y={2} width={5} height={3} fill="#707070" />
+            <rect x={2} y={7} width={4} height={5} fill="#707070" />
+            <rect x={8} y={8} width={5} height={4} fill="#909090" />
+            {/* Gaps */}
+            <rect x={0} y={5} width={14} height={1} fill="#606060" opacity={0.5} />
+            <rect x={6} y={0} width={1} height={14} fill="#606060" opacity={0.5} />
+          </>
+        )
+      case 'brick_path':
+        return (
+          <>
+            <rect width={size} height={size} fill="#A52A2A" />
+            {/* Brick pattern */}
+            <rect x={0} y={0} width={6} height={4} fill="#B83030" />
+            <rect x={8} y={0} width={6} height={4} fill="#983030" />
+            <rect x={0} y={4} width={14} height={1} fill="#6B1F1F" />
+            <rect x={4} y={6} width={6} height={4} fill="#B83030" />
+            <rect x={12} y={6} width={2} height={4} fill="#983030" />
+            <rect x={0} y={6} width={3} height={4} fill="#983030" />
+            <rect x={0} y={10} width={14} height={1} fill="#6B1F1F" />
+          </>
+        )
+      case 'water':
+        return (
+          <>
+            <rect width={size} height={size} fill="#4682B4" />
+            {/* Water ripples */}
+            <rect x={1} y={3} width={3} height={1} fill="#5A9ECF" />
+            <rect x={8} y={1} width={4} height={1} fill="#5A9ECF" />
+            <rect x={2} y={8} width={4} height={1} fill="#5A9ECF" />
+            <rect x={10} y={10} width={3} height={1} fill="#5A9ECF" />
+            {/* Sparkle */}
+            <rect x={5} y={5} width={1} height={1} fill="#6BAFDF" />
+            <rect x={11} y={7} width={1} height={1} fill="#6BAFDF" />
+          </>
+        )
+      case 'sand':
+        return (
+          <>
+            <rect width={size} height={size} fill="#F4A460" />
+            {/* Sand texture */}
+            <rect x={2} y={2} width={1} height={1} fill="#E8C080" />
+            <rect x={6} y={4} width={1} height={1} fill="#D49040" />
+            <rect x={10} y={2} width={1} height={1} fill="#E8C080" />
+            <rect x={4} y={8} width={1} height={1} fill="#D49040" />
+            <rect x={8} y={10} width={1} height={1} fill="#E8C080" />
+            <rect x={12} y={6} width={1} height={1} fill="#D49040" />
+            <rect x={0} y={6} width={1} height={1} fill="#E8C080" />
+          </>
+        )
+      case 'gravel':
+        return (
+          <>
+            <rect width={size} height={size} fill="#708090" />
+            {/* Gravel stones */}
+            <rect x={1} y={1} width={3} height={2} fill="#808898" />
+            <rect x={6} y={2} width={3} height={2} fill="#606878" />
+            <rect x={10} y={0} width={3} height={2} fill="#808898" />
+            <rect x={2} y={5} width={2} height={3} fill="#606878" />
+            <rect x={7} y={6} width={3} height={2} fill="#808898" />
+            <rect x={0} y={9} width={3} height={2} fill="#606878" />
+            <rect x={5} y={10} width={3} height={2} fill="#808898" />
+            <rect x={10} y={8} width={3} height={3} fill="#606878" />
+          </>
+        )
+      case 'flower_bed':
+        return (
+          <>
+            <rect width={size} height={size} fill="#3D2314" />
+            {/* Soil texture */}
+            <rect x={2} y={2} width={2} height={2} fill="#4D3324" />
+            <rect x={8} y={4} width={2} height={2} fill="#2D1304" />
+            <rect x={4} y={8} width={2} height={2} fill="#4D3324" />
+            <rect x={10} y={10} width={2} height={2} fill="#2D1304" />
+            <rect x={0} y={6} width={1} height={1} fill="#4D3324" />
+          </>
+        )
+      case 'mulch':
+        return (
+          <>
+            <rect width={size} height={size} fill="#5D4037" />
+            <rect x={1} y={1} width={3} height={2} fill="#6D5047" />
+            <rect x={6} y={3} width={4} height={2} fill="#4D3027" />
+            <rect x={2} y={7} width={3} height={2} fill="#4D3027" />
+            <rect x={8} y={9} width={4} height={2} fill="#6D5047" />
+          </>
+        )
+      case 'moss':
+        return (
+          <>
+            <rect width={size} height={size} fill="#7CB342" />
+            <rect x={2} y={2} width={2} height={2} fill="#8BC34A" />
+            <rect x={8} y={4} width={2} height={2} fill="#689F38" />
+            <rect x={4} y={8} width={2} height={2} fill="#8BC34A" />
+            <rect x={10} y={10} width={2} height={2} fill="#689F38" />
+            <rect x={6} y={6} width={1} height={1} fill="#9CCC65" />
+          </>
+        )
+      case 'pebbles':
+        return (
+          <>
+            <rect width={size} height={size} fill="#90A4AE" />
+            <rect x={1} y={1} width={2} height={2} fill="#B0BEC5" />
+            <rect x={5} y={2} width={2} height={2} fill="#78909C" />
+            <rect x={9} y={1} width={3} height={2} fill="#B0BEC5" />
+            <rect x={2} y={5} width={2} height={2} fill="#78909C" />
+            <rect x={7} y={6} width={2} height={2} fill="#B0BEC5" />
+            <rect x={11} y={5} width={2} height={2} fill="#78909C" />
+            <rect x={0} y={9} width={3} height={2} fill="#B0BEC5" />
+            <rect x={5} y={10} width={2} height={2} fill="#78909C" />
+            <rect x={9} y={9} width={3} height={2} fill="#B0BEC5" />
+          </>
+        )
+      case 'cobblestone':
+        return (
+          <>
+            <rect width={size} height={size} fill="#9E9E9E" />
+            <rect x={0} y={0} width={5} height={5} fill="#AEAEAE" />
+            <rect x={6} y={0} width={6} height={5} fill="#8E8E8E" />
+            <rect x={0} y={6} width={6} height={6} fill="#8E8E8E" />
+            <rect x={7} y={6} width={5} height={6} fill="#AEAEAE" />
+            {/* Gaps */}
+            <rect x={5} y={0} width={1} height={12} fill="#7E7E7E" opacity={0.5} />
+            <rect x={0} y={5} width={12} height={1} fill="#7E7E7E" opacity={0.5} />
+          </>
+        )
+      case 'wood_deck':
+        return (
+          <>
+            <rect width={size} height={size} fill="#A1887F" />
+            {/* Planks */}
+            <rect x={0} y={3} width={14} height={1} fill="#8B7060" />
+            <rect x={0} y={7} width={14} height={1} fill="#8B7060" />
+            <rect x={0} y={11} width={14} height={1} fill="#8B7060" />
+            {/* Wood grain */}
+            <rect x={3} y={1} width={2} height={1} fill="#8B7060" opacity={0.4} />
+            <rect x={9} y={5} width={2} height={1} fill="#8B7060" opacity={0.4} />
+            <rect x={5} y={9} width={2} height={1} fill="#8B7060" opacity={0.4} />
+          </>
+        )
+      default:
+        // Fallback - use tile color
+        const tile = TERRAIN_TILES.find(t => t.id === tileId)
+        return <rect width={size} height={size} fill={tile?.color || '#888888'} />
+    }
+  }
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size < 20 ? 14 : size} ${size < 20 ? 14 : size}`}
+      shapeRendering="crispEdges"
+      style={{ imageRendering: 'pixelated' }}
+    >
+      {getTerrainPattern()}
+    </svg>
+  )
+}
+
 interface DecorationPaletteProps {
   items: Record<string, DecorationItem[]>
   selectedItem: DecorationItem | null
@@ -397,10 +600,9 @@ export default function DecorationPalette({
                   }
                 `}
               >
-                <div
-                  className="w-8 h-8 rounded border border-thread-sage/50 mb-1 shadow-sm"
-                  style={{ backgroundColor: tile.color }}
-                />
+                <div className="w-8 h-8 rounded border border-thread-sage/50 mb-1 shadow-sm overflow-hidden">
+                  <TerrainTileIcon tileId={tile.id} size={32} />
+                </div>
                 <span className="text-xs text-center font-medium text-thread-pine">{tile.name}</span>
               </button>
             ))}

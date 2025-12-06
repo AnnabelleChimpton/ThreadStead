@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
 import AnimatedDecoration from './DecorationAnimations'
+import { SkyDitherDefs, TerrainDitherDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount } from './DitherPatternDefs'
 import { DecorationItem, TERRAIN_TILES, TerrainTile } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID, getDecorationGridSize } from '@/lib/pixel-homes/decoration-grid-utils'
 import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
@@ -126,85 +127,168 @@ export default function EnhancedHouseCanvas({
   const renderBackground = () => {
     const zone = DECORATION_ZONES.background
 
-    // Sky gradient based on atmosphere
-    const skyGradients = {
-      sunny: 'linear-gradient(to bottom, #87CEEB 0%, #98D8E8 100%)',
-      cloudy: 'linear-gradient(to bottom, #B0C4DE 0%, #D3D3D3 100%)',
-      sunset: 'linear-gradient(to bottom, #FFB347 0%, #FF6B6B 50%, #4ECDC4 100%)',
-      night: 'linear-gradient(to bottom, #191970 0%, #000080 100%)'
-    }
+    // Get the number of pattern bands for this sky type
+    const patternCount = getSkyPatternCount(atmosphere.sky)
+    const bandHeight = zone.height / patternCount
+
+    // Generate pattern IDs (sky-sunny-0, sky-sunny-1, etc.)
+    const skyPrefix = `sky-${atmosphere.sky}`
+    const patterns = Array.from({ length: patternCount }, (_, i) => `${skyPrefix}-${i}`)
 
     return (
-      <div
+      <svg
         className="absolute"
         style={{
           left: zone.x,
           top: zone.y,
           width: zone.width,
           height: zone.height,
-          background: skyGradients[atmosphere.sky],
-          borderRadius: '8px 8px 0 0',
           zIndex: 1
         }}
+        viewBox={`0 0 ${zone.width} ${zone.height}`}
+        preserveAspectRatio="none"
+        shapeRendering="crispEdges"
       >
-        {/* Future: Cloud SVGs, stars, sun/moon */}
+        <SkyDitherDefs />
+        {/* Dithered sky bands with smooth gradient transitions */}
+        {patterns.map((pattern, i) => (
+          <rect
+            key={i}
+            x="0"
+            y={Math.floor(i * bandHeight)}
+            width={zone.width}
+            height={Math.ceil(bandHeight) + 1}
+            fill={`url(#${pattern})`}
+          />
+        ))}
+        {/* Stars for night sky */}
         {atmosphere.sky === 'night' && (
-          <div className="absolute inset-0">
-            {/* Simple stars */}
-            <div className="absolute top-4 left-8 w-1 h-1 bg-white rounded-full opacity-80"></div>
-            <div className="absolute top-8 right-12 w-1 h-1 bg-white rounded-full opacity-60"></div>
-            <div className="absolute top-12 left-1/3 w-1 h-1 bg-white rounded-full opacity-90"></div>
-            <div className="absolute top-6 right-1/4 w-1 h-1 bg-white rounded-full opacity-70"></div>
-          </div>
+          <g>
+            <rect x="32" y="16" width="2" height="2" fill="#FFFFFF" opacity="0.8" />
+            <rect x="120" y="32" width="2" height="2" fill="#FFFFFF" opacity="0.6" />
+            <rect x="200" y="12" width="2" height="2" fill="#FFFFFF" opacity="0.9" />
+            <rect x="350" y="24" width="2" height="2" fill="#FFFFFF" opacity="0.7" />
+            <rect x="420" y="48" width="2" height="2" fill="#FFFFFF" opacity="0.8" />
+            <rect x="80" y="60" width="1" height="1" fill="#FFFFFF" opacity="0.5" />
+            <rect x="280" y="40" width="1" height="1" fill="#FFFFFF" opacity="0.6" />
+            <rect x="380" y="8" width="1" height="1" fill="#FFFFFF" opacity="0.7" />
+          </g>
         )}
-      </div>
+      </svg>
     )
   }
 
   const renderFrontYard = () => {
     const zone = DECORATION_ZONES.front_yard
 
+    // Get the number of pattern bands for ground gradient
+    const patternCount = getGroundPatternCount()
+    const bandHeight = zone.height / patternCount
+
+    // Generate pattern IDs (ground-0, ground-1, etc.)
+    const patterns = Array.from({ length: patternCount }, (_, i) => `ground-${i}`)
+
     return (
-      <div
+      <svg
         className="absolute"
         style={{
           left: zone.x,
           top: zone.y,
           width: zone.width,
           height: zone.height,
-          background: 'linear-gradient(to bottom, #90EE90 0%, #228B22 100%)', // Grass gradient
           zIndex: 2
         }}
-      />
+        viewBox={`0 0 ${zone.width} ${zone.height}`}
+        preserveAspectRatio="none"
+        shapeRendering="crispEdges"
+      >
+        <SkyDitherDefs />
+        <GrassTextureDefs />
+        {/* Dithered grass bands with smooth gradient transitions */}
+        {patterns.map((pattern, i) => (
+          <rect
+            key={i}
+            x="0"
+            y={Math.floor(i * bandHeight)}
+            width={zone.width}
+            height={Math.ceil(bandHeight) + 1}
+            fill={`url(#${pattern})`}
+          />
+        ))}
+        {/* Grass blade texture overlay - sparse at horizon, denser in foreground */}
+        <rect
+          x="0"
+          y="0"
+          width={zone.width}
+          height={zone.height * 0.5}
+          fill="url(#grass-blades)"
+        />
+        <rect
+          x="0"
+          y={zone.height * 0.5}
+          width={zone.width}
+          height={zone.height * 0.5}
+          fill="url(#grass-blades-dense)"
+        />
+      </svg>
     )
   }
 
   const renderTerrain = () => {
     if (!terrain || Object.keys(terrain).length === 0) return null
 
+    // Map terrain IDs to dither pattern IDs
+    const terrainPatternMap: Record<string, string> = {
+      'dirt': 'terrain-dirt',
+      'stone_path': 'terrain-stone',
+      'brick_path': 'terrain-brick',
+      'water': 'terrain-water',
+      'sand': 'terrain-sand',
+      'gravel': 'terrain-gravel',
+      'flower_bed': 'terrain-flowerbed',
+      'wood_deck': 'terrain-wood',
+      'cobblestone': 'terrain-cobble',
+      'mulch': 'terrain-dirt',
+      'moss': 'terrain-flowerbed',
+      'pebbles': 'terrain-gravel'
+    }
+
     return (
-      <div className="absolute inset-0" style={{ zIndex: 3 }}>
+      <svg
+        className="absolute inset-0"
+        style={{ zIndex: 3 }}
+        viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+        preserveAspectRatio="none"
+        shapeRendering="crispEdges"
+      >
+        <TerrainDitherDefs />
         {Object.entries(terrain).map(([key, tileId]) => {
           const [gridX, gridY] = key.split(',').map(Number)
           const tile = TERRAIN_TILES.find(t => t.id === tileId)
           if (!tile) return null
 
+          const patternId = terrainPatternMap[tileId]
+          const x = gridX * DEFAULT_DECORATION_GRID.cellSize
+          const y = gridY * DEFAULT_DECORATION_GRID.cellSize
+          const size = DEFAULT_DECORATION_GRID.cellSize + 1
+
+          // Skip grass tiles - they're already in the ground layer
+          if (tileId === 'grass') return null
+
           return (
-            <div
+            <rect
               key={key}
-              className="absolute"
-              style={{
-                left: gridX * DEFAULT_DECORATION_GRID.cellSize,
-                top: gridY * DEFAULT_DECORATION_GRID.cellSize,
-                width: DEFAULT_DECORATION_GRID.cellSize + 1,  // +1px overlap to prevent sub-pixel gaps
-                height: DEFAULT_DECORATION_GRID.cellSize + 1, // +1px overlap to prevent sub-pixel gaps
-                backgroundColor: tile.color,
-              }}
-              title={tile.name}
-            />
+              x={x}
+              y={y}
+              width={size}
+              height={size}
+              fill={patternId ? `url(#${patternId})` : tile.color}
+            >
+              <title>{tile.name}</title>
+            </rect>
           )
         })}
-      </div>
+      </svg>
     )
   }
 

@@ -1,5 +1,56 @@
 /* Pixel Homes specific animations and styles */
 
+/* ============================================
+   PIXEL-PERFECT RENDERING
+   ============================================ */
+
+/* Ensure crisp pixel art rendering for all pixel home elements */
+.pixel-home-canvas,
+.pixel-home-canvas *,
+.pixel-home-scene,
+.pixel-home-scene *,
+.decoration-svg,
+.house-svg {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+
+/* Integer scaling classes for sharp pixel art */
+.pixel-scale-1x {
+  transform: scale(1);
+  transform-origin: top left;
+}
+
+.pixel-scale-2x {
+  transform: scale(2);
+  transform-origin: top left;
+}
+
+.pixel-scale-3x {
+  transform: scale(3);
+  transform-origin: top left;
+}
+
+/* Prevent sub-pixel anti-aliasing on transforms */
+.pixel-home-canvas {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Ensure SVGs render with crisp edges */
+.pixel-home-canvas svg,
+.pixel-home-scene svg,
+.decoration-palette svg {
+  shape-rendering: crispEdges;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
 /* Badge sparkle animations */
 @keyframes sparkle {
   0%, 100% { 

@@ -34,6 +34,7 @@ export const DECORATION_DIMENSIONS: Record<string, DecorationDimensions> = {
   'flower_pot': { width: 18, height: 22 },
   'hedge': { width: 48, height: 24 },
   'hedge_round': { width: 32, height: 32 },
+  'potted_herbs': { width: 16, height: 16 },
 
   // === Features ===
   'bird_bath': { width: 24, height: 32 },
@@ -48,6 +49,13 @@ export const DECORATION_DIMENSIONS: Record<string, DecorationDimensions> = {
   'watering_can': { width: 24, height: 20 },
   'garden_tools': { width: 20, height: 28 },
   'wheelbarrow': { width: 32, height: 24 },
+  // Cozy additions
+  'sleeping_cat': { width: 16, height: 12 },
+  'sleeping_dog': { width: 20, height: 14 },
+  'bird_feeder': { width: 16, height: 28 },
+  'firewood_stack': { width: 24, height: 16 },
+  'clothesline': { width: 48, height: 24 },
+  'welcome_sign': { width: 20, height: 24 },
 
   // === Furniture ===
   'garden_bench': { width: 48, height: 24 },
@@ -59,6 +67,10 @@ export const DECORATION_DIMENSIONS: Record<string, DecorationDimensions> = {
   'raised_bed': { width: 40, height: 24 },
   'compost_bin': { width: 24, height: 28 },
   'garden_cart': { width: 36, height: 24 },
+  // Cozy additions
+  'rocking_chair': { width: 24, height: 28 },
+  'garden_swing': { width: 32, height: 36 },
+  'cozy_blanket': { width: 24, height: 12 },
 
   // === Paths ===
   'stone_path': { width: 48, height: 16 },
@@ -86,6 +98,7 @@ export const DECORATION_DIMENSIONS: Record<string, DecorationDimensions> = {
   'picket_fence_natural': { width: 48, height: 24 },
   'rustic_fence': { width: 48, height: 24 },
   'stone_wall': { width: 48, height: 20 },
+  'wishing_well': { width: 28, height: 32 },
 
   // === Seasonal ===
   'pumpkin': { width: 20, height: 20 },

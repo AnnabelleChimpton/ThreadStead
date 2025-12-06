@@ -19,6 +19,7 @@ export const StructureSVGs = ({ id, variant, scale, className, text }: AssetProp
     else if (id.startsWith('picket_fence_natural')) normalizedId = 'picket_fence_natural'
     else if (id.startsWith('rustic_fence')) normalizedId = 'rustic_fence'
     else if (id.startsWith('stone_wall')) normalizedId = 'stone_wall'
+    else if (id.startsWith('wishing_well')) normalizedId = 'wishing_well'
 
     switch (normalizedId) {
         case 'sign_post':
@@ -28,8 +29,14 @@ export const StructureSVGs = ({ id, variant, scale, className, text }: AssetProp
                     <rect x="14" y="12" width="4" height="20" fill="#8B4513" />
 
                     {/* Sign Board */}
-                    <rect x="2" y="4" width="28" height="12" fill="#DEB887" stroke="#8B4513" strokeWidth="1" />
-                    <rect x="4" y="6" width="24" height="8" fill="none" stroke="#8B4513" strokeWidth="0.5" opacity="0.5" />
+                    <rect x="2" y="4" width="28" height="12" fill="#DEB887" />
+                    <rect x="2" y="4" width="28" height="1" fill="#8B4513" />
+                    <rect x="2" y="15" width="28" height="1" fill="#8B4513" />
+                    <rect x="2" y="4" width="1" height="12" fill="#8B4513" />
+                    <rect x="29" y="4" width="1" height="12" fill="#8B4513" />
+                    {/* Inner border */}
+                    <rect x="4" y="6" width="24" height="1" fill="#8B4513" opacity="0.3" />
+                    <rect x="4" y="13" width="24" height="1" fill="#8B4513" opacity="0.3" />
 
                     {/* Text */}
                     {text && (
@@ -56,8 +63,17 @@ export const StructureSVGs = ({ id, variant, scale, className, text }: AssetProp
                     <rect x="4" y="24" width="40" height="2" fill="#A0522D" />
                     <rect x="4" y="42" width="40" height="2" fill="#A0522D" />
                     <rect x="6" y="24" width="36" height="18" fill="#FFFFFF" opacity="0.3" />
-                    <path d="M4 24 L24 4 L44 24" fill="#8B4513" />
-                    <path d="M8 24 L24 8 L40 24" fill="#A0522D" />
+                    {/* Pixel art roof - stepped triangle */}
+                    <rect x="22" y="4" width="4" height="4" fill="#8B4513" />
+                    <rect x="18" y="8" width="12" height="4" fill="#8B4513" />
+                    <rect x="14" y="12" width="20" height="4" fill="#8B4513" />
+                    <rect x="10" y="16" width="28" height="4" fill="#8B4513" />
+                    <rect x="6" y="20" width="36" height="4" fill="#8B4513" />
+                    {/* Inner roof */}
+                    <rect x="20" y="8" width="8" height="4" fill="#A0522D" />
+                    <rect x="16" y="12" width="16" height="4" fill="#A0522D" />
+                    <rect x="12" y="16" width="24" height="4" fill="#A0522D" />
+                    <rect x="8" y="20" width="32" height="4" fill="#A0522D" />
                 </svg>
             )
         case 'trellis':
@@ -81,19 +97,33 @@ export const StructureSVGs = ({ id, variant, scale, className, text }: AssetProp
         case 'garden_arch':
             return (
                 <svg width={40 * scale} height={48 * scale} viewBox="0 0 40 48" className={className} shapeRendering="crispEdges">
-                    <rect x="6" y="16" width="4" height="32" fill="#FFFFFF" stroke="#D1D5DB" strokeWidth="1" />
-                    <rect x="30" y="16" width="4" height="32" fill="#FFFFFF" stroke="#D1D5DB" strokeWidth="1" />
-                    <path d="M6 16 Q20 0 34 16" fill="none" stroke="#FFFFFF" strokeWidth="4" />
-                    <path d="M8 16 Q20 4 32 16" fill="none" stroke="#D1D5DB" strokeWidth="2" />
+                    {/* Left pillar */}
+                    <rect x="6" y="16" width="4" height="32" fill="#FFFFFF" />
+                    <rect x="6" y="16" width="1" height="32" fill="#D1D5DB" />
+                    <rect x="9" y="16" width="1" height="32" fill="#D1D5DB" />
+                    {/* Right pillar */}
+                    <rect x="30" y="16" width="4" height="32" fill="#FFFFFF" />
+                    <rect x="30" y="16" width="1" height="32" fill="#D1D5DB" />
+                    <rect x="33" y="16" width="1" height="32" fill="#D1D5DB" />
+                    {/* Pixel art arch - stepped */}
+                    <rect x="6" y="12" width="4" height="4" fill="#FFFFFF" />
+                    <rect x="10" y="8" width="4" height="8" fill="#FFFFFF" />
+                    <rect x="14" y="4" width="4" height="12" fill="#FFFFFF" />
+                    <rect x="18" y="2" width="4" height="14" fill="#FFFFFF" />
+                    <rect x="22" y="4" width="4" height="12" fill="#FFFFFF" />
+                    <rect x="26" y="8" width="4" height="8" fill="#FFFFFF" />
+                    <rect x="30" y="12" width="4" height="4" fill="#FFFFFF" />
+                    {/* Cross bars */}
                     <rect x="4" y="20" width="8" height="2" fill="#D1D5DB" />
                     <rect x="28" y="20" width="8" height="2" fill="#D1D5DB" />
                     <rect x="4" y="30" width="8" height="2" fill="#D1D5DB" />
                     <rect x="28" y="30" width="8" height="2" fill="#D1D5DB" />
                     <rect x="4" y="40" width="8" height="2" fill="#D1D5DB" />
                     <rect x="28" y="40" width="8" height="2" fill="#D1D5DB" />
+                    {/* Flowers */}
                     <rect x="4" y="14" width="6" height="6" fill="#FF69B4" opacity="0.8" />
                     <rect x="30" y="14" width="6" height="6" fill="#FF69B4" opacity="0.8" />
-                    <rect x="17" y="6" width="6" height="6" fill="#FF69B4" opacity="0.8" />
+                    <rect x="17" y="2" width="6" height="6" fill="#FF69B4" opacity="0.8" />
                 </svg>
             )
 
@@ -180,13 +210,13 @@ export const StructureSVGs = ({ id, variant, scale, className, text }: AssetProp
                     <rect x="2" y="4" width="5" height="18" fill="#6B4423" />
                     <rect x="20" y="4" width="5" height="18" fill="#5D3A1A" />
                     <rect x="40" y="4" width="5" height="18" fill="#6B4423" />
-                    {/* Horizontal logs */}
-                    <rect x="0" y="8" width="48" height="4" fill="#8B4513" rx="2" />
-                    <rect x="0" y="15" width="48" height="4" fill="#A0522D" rx="2" />
-                    {/* Wood texture/knots */}
-                    <circle cx="10" cy="10" r="1" fill="#5D3A1A" />
-                    <circle cx="30" cy="17" r="1" fill="#654321" />
-                    <circle cx="42" cy="9" r="1" fill="#5D3A1A" />
+                    {/* Horizontal logs - pixel art */}
+                    <rect x="0" y="8" width="48" height="4" fill="#8B4513" />
+                    <rect x="0" y="15" width="48" height="4" fill="#A0522D" />
+                    {/* Wood texture/knots - pixel art */}
+                    <rect x="9" y="9" width="2" height="2" fill="#5D3A1A" />
+                    <rect x="29" y="16" width="2" height="2" fill="#654321" />
+                    <rect x="41" y="8" width="2" height="2" fill="#5D3A1A" />
                     {/* Grain lines */}
                     <rect x="5" y="9" width="8" height="1" fill="#654321" opacity="0.4" />
                     <rect x="25" y="16" width="10" height="1" fill="#654321" opacity="0.4" />
@@ -196,24 +226,71 @@ export const StructureSVGs = ({ id, variant, scale, className, text }: AssetProp
         case 'stone_wall':
             return (
                 <svg width={48 * scale} height={20 * scale} viewBox="0 0 48 20" className={className} shapeRendering="crispEdges">
-                    {/* Base layer of stones */}
-                    <rect x="0" y="12" width="10" height="8" fill="#6B7280" rx="1" />
-                    <rect x="11" y="10" width="8" height="10" fill="#9CA3AF" rx="1" />
-                    <rect x="20" y="12" width="12" height="8" fill="#6B7280" rx="1" />
-                    <rect x="33" y="10" width="7" height="10" fill="#9CA3AF" rx="1" />
-                    <rect x="41" y="12" width="7" height="8" fill="#6B7280" rx="1" />
+                    {/* Base layer of stones - pixel art */}
+                    <rect x="0" y="12" width="10" height="8" fill="#6B7280" />
+                    <rect x="11" y="10" width="8" height="10" fill="#9CA3AF" />
+                    <rect x="20" y="12" width="12" height="8" fill="#6B7280" />
+                    <rect x="33" y="10" width="7" height="10" fill="#9CA3AF" />
+                    <rect x="41" y="12" width="7" height="8" fill="#6B7280" />
                     {/* Top layer */}
-                    <rect x="2" y="4" width="8" height="9" fill="#9CA3AF" rx="1" />
-                    <rect x="11" y="2" width="10" height="9" fill="#6B7280" rx="1" />
-                    <rect x="22" y="4" width="7" height="9" fill="#9CA3AF" rx="1" />
-                    <rect x="30" y="2" width="9" height="9" fill="#6B7280" rx="1" />
-                    <rect x="40" y="4" width="8" height="9" fill="#9CA3AF" rx="1" />
+                    <rect x="2" y="4" width="8" height="9" fill="#9CA3AF" />
+                    <rect x="11" y="2" width="10" height="9" fill="#6B7280" />
+                    <rect x="22" y="4" width="7" height="9" fill="#9CA3AF" />
+                    <rect x="30" y="2" width="9" height="9" fill="#6B7280" />
+                    <rect x="40" y="4" width="8" height="9" fill="#9CA3AF" />
                     {/* Highlights */}
                     <rect x="3" y="5" width="4" height="1" fill="#D1D5DB" opacity="0.5" />
                     <rect x="13" y="3" width="5" height="1" fill="#D1D5DB" opacity="0.5" />
                     <rect x="32" y="3" width="4" height="1" fill="#D1D5DB" opacity="0.5" />
                     {/* Shadows */}
                     <rect x="1" y="18" width="46" height="2" fill="#374151" opacity="0.3" />
+                </svg>
+            )
+
+        case 'wishing_well':
+            return (
+                <svg width={28 * scale} height={32 * scale} viewBox="0 0 28 32" className={className} shapeRendering="crispEdges">
+                    {/* Stone base */}
+                    <rect x="2" y="20" width="24" height="10" fill="#6B7280" />
+                    <rect x="4" y="18" width="20" height="12" fill="#9CA3AF" />
+                    {/* Stone texture */}
+                    <rect x="5" y="19" width="6" height="4" fill="#6B7280" />
+                    <rect x="13" y="19" width="5" height="4" fill="#6B7280" />
+                    <rect x="20" y="19" width="4" height="4" fill="#6B7280" />
+                    <rect x="6" y="24" width="5" height="4" fill="#6B7280" />
+                    <rect x="14" y="24" width="6" height="4" fill="#6B7280" />
+                    {/* Inner well darkness */}
+                    <rect x="8" y="18" width="12" height="2" fill="#374151" />
+                    <rect x="10" y="16" width="8" height="2" fill="#1F2937" />
+                    {/* Water shimmer */}
+                    <rect x="11" y="17" width="2" height="1" fill="#60A5FA" opacity="0.5" />
+                    <rect x="14" y="17" width="1" height="1" fill="#93C5FD" opacity="0.5" />
+                    {/* Wooden posts */}
+                    <rect x="4" y="8" width="3" height="14" fill="#8B4513" />
+                    <rect x="21" y="8" width="3" height="14" fill="#8B4513" />
+                    {/* Wood grain */}
+                    <rect x="5" y="10" width="1" height="10" fill="#654321" opacity="0.4" />
+                    <rect x="22" y="10" width="1" height="10" fill="#654321" opacity="0.4" />
+                    {/* Roof */}
+                    <rect x="12" y="0" width="4" height="2" fill="#8B4513" />
+                    <rect x="10" y="2" width="8" height="2" fill="#8B4513" />
+                    <rect x="8" y="4" width="12" height="2" fill="#8B4513" />
+                    <rect x="6" y="6" width="16" height="2" fill="#8B4513" />
+                    <rect x="4" y="8" width="20" height="2" fill="#8B4513" />
+                    {/* Roof shading */}
+                    <rect x="12" y="2" width="4" height="2" fill="#A0522D" />
+                    <rect x="10" y="4" width="8" height="2" fill="#A0522D" />
+                    <rect x="8" y="6" width="12" height="2" fill="#A0522D" />
+                    {/* Rope/handle */}
+                    <rect x="13" y="10" width="2" height="6" fill="#D2B48C" />
+                    {/* Bucket */}
+                    <rect x="11" y="14" width="6" height="4" fill="#8B4513" />
+                    <rect x="12" y="15" width="4" height="2" fill="#A0522D" />
+                    {/* Stone highlights */}
+                    <rect x="5" y="20" width="3" height="1" fill="#D1D5DB" opacity="0.5" />
+                    <rect x="16" y="25" width="3" height="1" fill="#D1D5DB" opacity="0.5" />
+                    {/* Ground shadow */}
+                    <rect x="2" y="30" width="24" height="2" fill="#000" opacity="0.2" />
                 </svg>
             )
 

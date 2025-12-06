@@ -1,4 +1,5 @@
 import React from 'react'
+import DitherPatternDefs from './DitherPatternDefs'
 
 export type HouseTemplate = 'cottage_v1' | 'townhouse_v1' | 'loft_v1' | 'cabin_v1'
 export type ColorPalette = 'thread_sage' | 'charcoal_nights' | 'pixel_petals' | 'crt_glow' | 'classic_linen'
@@ -85,6 +86,129 @@ const seededRandom = (x: number, y: number) => {
   const n = x * 12.9898 + y * 78.233;
   return (Math.sin(n) * 43758.5453123) % 1;
 }
+
+// --- DITHER PATTERN DEFS FOR HOUSE ---
+
+interface HouseDitherDefsProps {
+  roofColor: string;
+  wallColor: string;
+  foundationColor?: string;
+}
+
+const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor, foundationColor = '#777777' }) => {
+  const roofDark = darken(roofColor, 15);
+  const roofLight = lighten(roofColor, 10);
+  const wallDark = darken(wallColor, 12);
+  const wallLight = lighten(wallColor, 8);
+  const foundDark = darken(foundationColor, 20);
+  const foundLight = lighten(foundationColor, 15);
+
+  return (
+    <defs>
+      {/* Roof shingle pattern */}
+      <pattern id="roof-shingle" width="8" height="4" patternUnits="userSpaceOnUse">
+        <rect width="8" height="4" fill={roofColor} />
+        <rect x="0" y="3" width="8" height="1" fill={roofDark} />
+        <rect x="4" y="0" width="1" height="4" fill={roofDark} opacity="0.4" />
+        <rect x="0" y="1" width="1" height="2" fill={roofLight} opacity="0.3" />
+      </pattern>
+
+      {/* Roof tile pattern */}
+      <pattern id="roof-tile" width="6" height="6" patternUnits="userSpaceOnUse">
+        <rect width="6" height="6" fill={roofColor} />
+        <rect x="0" y="0" width="3" height="3" fill={roofLight} opacity="0.3" />
+        <rect x="3" y="3" width="3" height="3" fill={roofLight} opacity="0.3" />
+        <rect x="0" y="2" width="6" height="1" fill={roofDark} opacity="0.4" />
+        <rect x="0" y="5" width="6" height="1" fill={roofDark} opacity="0.4" />
+      </pattern>
+
+      {/* Roof thatch pattern */}
+      <pattern id="roof-thatch" width="8" height="8" patternUnits="userSpaceOnUse">
+        <rect width="8" height="8" fill={roofColor} />
+        <rect x="1" y="0" width="1" height="4" fill={roofDark} opacity="0.5" />
+        <rect x="3" y="2" width="1" height="5" fill={roofDark} opacity="0.4" />
+        <rect x="5" y="0" width="1" height="6" fill={roofDark} opacity="0.5" />
+        <rect x="7" y="1" width="1" height="4" fill={roofDark} opacity="0.4" />
+        <rect x="0" y="6" width="2" height="1" fill={roofLight} opacity="0.3" />
+        <rect x="4" y="7" width="2" height="1" fill={roofLight} opacity="0.3" />
+      </pattern>
+
+      {/* Wall wood siding pattern */}
+      <pattern id="wall-wood" width="16" height="5" patternUnits="userSpaceOnUse">
+        <rect width="16" height="5" fill={wallColor} />
+        <rect x="0" y="4" width="16" height="1" fill={wallDark} />
+        <rect x="3" y="1" width="2" height="1" fill={wallDark} opacity="0.2" />
+        <rect x="10" y="2" width="3" height="1" fill={wallDark} opacity="0.2" />
+      </pattern>
+
+      {/* Wall shingle pattern */}
+      <pattern id="wall-shingle" width="8" height="6" patternUnits="userSpaceOnUse">
+        <rect width="8" height="6" fill={wallColor} />
+        <rect x="0" y="5" width="8" height="1" fill={wallDark} />
+        <rect x="4" y="0" width="1" height="6" fill={wallDark} opacity="0.3" />
+        <rect x="0" y="2" width="1" height="1" fill={wallLight} opacity="0.4" />
+        <rect x="5" y="3" width="1" height="1" fill={wallLight} opacity="0.4" />
+      </pattern>
+
+      {/* Wall brick pattern */}
+      <pattern id="wall-brick" width="8" height="6" patternUnits="userSpaceOnUse">
+        <rect width="8" height="6" fill={wallColor} />
+        <rect x="0" y="2" width="8" height="1" fill={wallDark} />
+        <rect x="0" y="5" width="8" height="1" fill={wallDark} />
+        <rect x="4" y="0" width="1" height="3" fill={wallDark} />
+        <rect x="0" y="3" width="1" height="3" fill={wallDark} />
+        <rect x="1" y="0" width="2" height="1" fill={wallLight} opacity="0.3" />
+        <rect x="5" y="3" width="2" height="1" fill={wallLight} opacity="0.3" />
+      </pattern>
+
+      {/* Wall stone pattern */}
+      <pattern id="wall-stone" width="10" height="8" patternUnits="userSpaceOnUse">
+        <rect width="10" height="8" fill={wallColor} />
+        <rect x="0" y="3" width="4" height="1" fill={wallDark} />
+        <rect x="6" y="3" width="4" height="1" fill={wallDark} />
+        <rect x="2" y="7" width="5" height="1" fill={wallDark} />
+        <rect x="5" y="0" width="1" height="4" fill={wallDark} />
+        <rect x="1" y="4" width="1" height="4" fill={wallDark} />
+        <rect x="8" y="4" width="1" height="3" fill={wallDark} />
+        <rect x="1" y="1" width="2" height="1" fill={wallLight} opacity="0.4" />
+        <rect x="7" y="5" width="2" height="1" fill={wallLight} opacity="0.4" />
+      </pattern>
+
+      {/* Foundation stone pattern */}
+      <pattern id="foundation-stone" width="10" height="8" patternUnits="userSpaceOnUse">
+        <rect width="10" height="8" fill={foundationColor} />
+        <rect x="0" y="3" width="4" height="1" fill={foundDark} />
+        <rect x="6" y="3" width="4" height="1" fill={foundDark} />
+        <rect x="2" y="7" width="5" height="1" fill={foundDark} />
+        <rect x="5" y="0" width="1" height="4" fill={foundDark} />
+        <rect x="1" y="4" width="1" height="4" fill={foundDark} />
+        <rect x="8" y="4" width="1" height="3" fill={foundDark} />
+        <rect x="1" y="1" width="2" height="1" fill={foundLight} opacity="0.5" />
+        <rect x="7" y="5" width="2" height="1" fill={foundLight} opacity="0.5" />
+      </pattern>
+
+      {/* Foundation brick pattern */}
+      <pattern id="foundation-brick" width="8" height="6" patternUnits="userSpaceOnUse">
+        <rect width="8" height="6" fill="#8B4513" />
+        <rect x="0" y="2" width="8" height="1" fill="#6B3410" />
+        <rect x="0" y="5" width="8" height="1" fill="#6B3410" />
+        <rect x="4" y="0" width="1" height="3" fill="#6B3410" />
+        <rect x="0" y="3" width="1" height="3" fill="#6B3410" />
+        <rect x="1" y="0" width="2" height="1" fill="#A0522D" opacity="0.4" />
+        <rect x="5" y="3" width="2" height="1" fill="#A0522D" opacity="0.4" />
+      </pattern>
+
+      {/* Log cabin pattern */}
+      <pattern id="wall-logs" width="20" height="8" patternUnits="userSpaceOnUse">
+        <rect width="20" height="8" fill={wallColor} />
+        <rect x="0" y="6" width="20" height="2" fill={wallDark} opacity="0.4" />
+        <rect x="0" y="0" width="20" height="1" fill={wallLight} opacity="0.3" />
+        <rect x="3" y="2" width="2" height="1" fill={wallDark} opacity="0.2" />
+        <rect x="12" y="4" width="3" height="1" fill={wallDark} opacity="0.2" />
+      </pattern>
+    </defs>
+  );
+};
 
 // --- ADVANCED TEXTURE HELPERS ---
 
@@ -702,27 +826,50 @@ const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizatio
   const wallColor = customizations.wallColor || colors.base;
   const roofColor = customizations.roofColor || colors.primary;
 
+  // Determine which pattern to use based on material settings
+  const getRoofPattern = () => {
+    if (simplified) return roofColor;
+    switch (customizations.roofMaterial) {
+      case 'tile': return 'url(#roof-tile)';
+      case 'thatch': return 'url(#roof-thatch)';
+      case 'shingles':
+      default: return 'url(#roof-shingle)';
+    }
+  };
+
+  const getWallPattern = () => {
+    if (simplified) return wallColor;
+    switch (customizations.wallPattern) {
+      case 'shingles': return 'url(#wall-shingle)';
+      case 'board_batten': return 'url(#wall-wood)';
+      case 'stone_veneer': return 'url(#wall-stone)';
+      case 'brick': return 'url(#wall-brick)';
+      default: return 'url(#wall-wood)';
+    }
+  };
+
+  const getFoundationPattern = () => {
+    if (simplified) return '#777';
+    switch (customizations.foundationStyle) {
+      case 'brick': return 'url(#foundation-brick)';
+      case 'stone':
+      default: return 'url(#foundation-stone)';
+    }
+  };
+
   return (
     <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
+      {/* Dither pattern definitions */}
+      {!simplified && <HouseDitherDefs roofColor={roofColor} wallColor={wallColor} />}
+
       {/* Shadow under house */}
-      <rect x="40" y="165" width="120" height="5" fill="black" opacity="0.2" rx="2" />
+      <rect x="40" y="165" width="120" height="5" fill="black" opacity="0.2" />
 
-      {/* Foundation */}
-      <rect x="40" y="150" width="120" height="20" fill="#777" />
-      {customizations.foundationStyle === 'brick' && renderBrickTexture(40, 150, 120, 20, "#8B4513", simplified)}
-      {(customizations.foundationStyle === 'stone' || !customizations.foundationStyle) && renderStoneTexture(40, 150, 120, 20, "#888", simplified)}
+      {/* Foundation with dither pattern */}
+      <rect x="40" y="150" width="120" height="20" fill={getFoundationPattern()} />
 
-      {/* Walls */}
-      <rect x="45" y="110" width="110" height="40" fill={wallColor} />
-      {customizations.wallPattern === 'shingles' && renderWoodSiding(45, 110, 110, 40, wallColor, simplified)}
-      {customizations.wallPattern === 'stone_veneer' && renderStoneTexture(45, 110, 110, 40, wallColor, simplified)}
-
-      {/* Wall texture noise (default) */}
-      {(!customizations.wallPattern || customizations.wallPattern === 'default') && !simplified && Array.from({ length: 50 }).map((_, i) => {
-        const r1 = Math.abs(seededRandom(i, 110));
-        const r2 = Math.abs(seededRandom(i, 150));
-        return <rect key={i} x={45 + r1 * 110} y={110 + r2 * 40} width={1} height={1} fill={darken(wallColor, 10)} opacity="0.3" />
-      })}
+      {/* Walls with dither pattern */}
+      <rect x="45" y="110" width="110" height="40" fill={getWallPattern()} />
 
       {/* Timber Framing (Tudor style) */}
       <rect x="45" y="110" width="5" height="40" fill={colors.secondary} />
@@ -732,29 +879,20 @@ const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizatio
       {/* Diagonal beams */}
       <path d="M50 114 L98 150 M150 114 L102 150" stroke={colors.secondary} strokeWidth="4" />
 
-      {/* Chimney */}
+      {/* Chimney with dither pattern */}
       {customizations.chimneyStyle !== 'none' && (
         <>
-          <rect x="130" y="60" width="15" height="40" fill="#8B4513" />
-          {customizations.chimneyStyle === 'stone'
-            ? renderStoneTexture(130, 60, 15, 40, "#777", simplified)
-            : renderBrickTexture(130, 60, 15, 40, "#8B4513", simplified)
-          }
+          <rect x="130" y="60" width="15" height="40" fill={customizations.chimneyStyle === 'stone' ? 'url(#foundation-stone)' : 'url(#foundation-brick)'} />
           <rect x="128" y="58" width="19" height="4" fill="#555" />
         </>
       )}
 
-      {/* Roof */}
+      {/* Roof with dither pattern */}
       {/* Gable Fill (Behind roof trim) */}
-      <path d="M30 110 Q100 50 170 110 Z" fill={wallColor} />
-      {/* Roof Trim */}
-      <path d="M25 110 Q100 40 175 110 L165 115 Q100 55 35 115 Z" fill={roofColor} />
+      <path d="M30 110 Q100 50 170 110 Z" fill={getWallPattern()} />
+      {/* Roof Trim with pattern */}
+      <path d="M25 110 Q100 40 175 110 L165 115 Q100 55 35 115 Z" fill={getRoofPattern()} />
       <path d="M25 110 Q100 40 175 110" stroke={darken(roofColor, 20)} strokeWidth="2" fill="none" />
-
-      {/* Roof Texture */}
-      {customizations.roofMaterial === 'tile' && !simplified && (
-        <path d="M35 110 Q100 50 165 110" stroke={darken(roofColor, 10)} strokeWidth="2" strokeDasharray="5,5" fill="none" opacity="0.5" />
-      )}
 
       {/* Roof Trim Decoration */}
       {renderRoofTrim(30, 110, 140, customizations.roofTrim || 'default', colors.secondary, simplified)}
@@ -794,19 +932,28 @@ const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizatio
 
 const TownhouseTemplate: React.FC<{ colors: any, customizations: HouseCustomizations, simplified: boolean }> = ({ colors, customizations, simplified }) => {
   const wallColor = customizations.wallColor || colors.base;
+  const roofColor = customizations.roofColor || colors.primary;
+
+  const getWallPattern = () => {
+    if (simplified) return wallColor;
+    switch (customizations.wallPattern) {
+      case 'stone_veneer': return 'url(#wall-stone)';
+      case 'board_batten': return 'url(#wall-wood)';
+      case 'brick':
+      default: return 'url(#wall-brick)';
+    }
+  };
 
   return (
     <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
+      {/* Dither pattern definitions */}
+      {!simplified && <HouseDitherDefs roofColor={roofColor} wallColor={wallColor} />}
+
       {/* Shadow */}
       <rect x="40" y="170" width="120" height="5" fill="black" opacity="0.2" />
 
-      {/* Main Structure */}
-      <rect x="40" y="80" width="120" height="90" fill={wallColor} />
-
-      {/* Wall Patterns */}
-      {(customizations.wallPattern === 'default' || !customizations.wallPattern) && renderBrickTexture(40, 80, 120, 90, wallColor, simplified)}
-      {customizations.wallPattern === 'stone_veneer' && renderStoneTexture(40, 80, 120, 90, wallColor, simplified)}
-      {customizations.wallPattern === 'board_batten' && renderWoodSiding(40, 80, 120, 90, wallColor, simplified)}
+      {/* Main Structure with dither pattern */}
+      <rect x="40" y="80" width="120" height="90" fill={getWallPattern()} />
 
       {/* Cornice / Roof Trim */}
       <rect x="35" y="75" width="130" height="8" fill={colors.secondary} />
@@ -869,9 +1016,22 @@ const TownhouseTemplate: React.FC<{ colors: any, customizations: HouseCustomizat
 
 const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations, simplified: boolean }> = ({ colors, customizations, simplified }) => {
   const wallColor = customizations.wallColor || colors.base;
+  const roofColor = customizations.roofColor || colors.primary;
+
+  const getWallPattern = () => {
+    if (simplified) return wallColor;
+    switch (customizations.wallPattern) {
+      case 'brick': return 'url(#wall-brick)';
+      case 'stone_veneer': return 'url(#wall-stone)';
+      default: return wallColor; // Loft uses concrete by default
+    }
+  };
 
   return (
     <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
+      {/* Dither pattern definitions */}
+      {!simplified && <HouseDitherDefs roofColor={roofColor} wallColor={wallColor} />}
+
       {/* Shadow */}
       <rect x="40" y="170" width="120" height="5" fill="black" opacity="0.2" />
 
@@ -880,14 +1040,12 @@ const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations,
       <rect x="148" y="38" width="10" height="4" fill="#666" />
       {!simplified && <path d="M153 38 Q160 30 165 25" stroke="#DDD" strokeWidth="2" opacity="0.3" />}
 
-      {/* Main Block - Concrete/Industrial */}
-      <rect x="40" y="70" width="120" height="100" fill={wallColor} />
+      {/* Main Block - Concrete/Industrial with dither pattern */}
+      <rect x="40" y="70" width="120" height="100" fill={getWallPattern()} />
 
-      {/* Wall Patterns */}
-      {customizations.wallPattern === 'brick' && renderBrickTexture(40, 70, 120, 100, wallColor, simplified)}
-      {(customizations.wallPattern === 'default' || !customizations.wallPattern) && (
+      {/* Concrete seams for default concrete look */}
+      {(customizations.wallPattern === 'default' || !customizations.wallPattern) && !simplified && (
         <>
-          {/* Concrete seams */}
           <rect x="40" y="100" width="120" height="1" fill={darken(wallColor, 10)} />
           <rect x="40" y="135" width="120" height="1" fill={darken(wallColor, 10)} />
           <rect x="100" y="70" width="1" height="100" fill={darken(wallColor, 10)} />
@@ -947,58 +1105,70 @@ const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations,
 
 const CabinTemplate: React.FC<{ colors: any, customizations: HouseCustomizations, simplified: boolean }> = ({ colors, customizations, simplified }) => {
   const wallColor = customizations.wallColor || colors.base;
+  const roofColor = customizations.roofColor || colors.primary;
+
+  const getRoofPattern = () => {
+    if (simplified) return roofColor;
+    switch (customizations.roofMaterial) {
+      case 'tile': return 'url(#roof-tile)';
+      case 'thatch': return 'url(#roof-thatch)';
+      case 'metal': return roofColor; // Metal is solid
+      case 'shingles':
+      default: return 'url(#roof-shingle)';
+    }
+  };
+
+  const getWallPattern = () => {
+    if (simplified) return wallColor;
+    switch (customizations.wallPattern) {
+      case 'shingles': return 'url(#wall-shingle)';
+      case 'stone_veneer': return 'url(#wall-stone)';
+      default: return 'url(#wall-logs)';
+    }
+  };
+
+  const getFoundationPattern = () => {
+    if (simplified) return '#555';
+    switch (customizations.foundationStyle) {
+      case 'brick': return 'url(#foundation-brick)';
+      case 'stone':
+      default: return 'url(#foundation-stone)';
+    }
+  };
 
   return (
     <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
+      {/* Dither pattern definitions */}
+      {!simplified && <HouseDitherDefs roofColor={roofColor} wallColor={wallColor} />}
+
       {/* Shadow */}
       <rect x="35" y="165" width="130" height="5" fill="black" opacity="0.2" />
 
-      {/* Foundation */}
-      <rect x="40" y="150" width="120" height="20" fill="#555" />
-      {(customizations.foundationStyle === 'stone' || !customizations.foundationStyle) && renderStoneTexture(40, 150, 120, 20, "#666", simplified)}
-      {customizations.foundationStyle === 'brick' && renderBrickTexture(40, 150, 120, 20, "#8B4513", simplified)}
+      {/* Foundation with dither pattern */}
+      <rect x="40" y="150" width="120" height="20" fill={getFoundationPattern()} />
 
-      {/* Chimney */}
+      {/* Chimney with dither pattern */}
       {customizations.chimneyStyle !== 'none' && (
-        <>
-          <rect x="135" y="50" width="12" height="50" fill="#777" />
-          {customizations.chimneyStyle === 'brick'
-            ? renderBrickTexture(135, 50, 12, 50, "#8B4513", simplified)
-            : renderStoneTexture(135, 50, 12, 50, "#888", simplified)
-          }
-        </>
+        <rect x="135" y="50" width="12" height="50" fill={customizations.chimneyStyle === 'brick' ? 'url(#foundation-brick)' : 'url(#foundation-stone)'} />
       )}
 
-      {/* Walls */}
-      <rect x="40" y="100" width="120" height="50" fill={wallColor} />
+      {/* Walls with dither pattern */}
+      <rect x="40" y="100" width="120" height="50" fill={getWallPattern()} />
 
-      {/* Logs (Default) */}
-      {(customizations.wallPattern === 'default' || !customizations.wallPattern) && Array.from({ length: 6 }).map((_, i) => (
+      {/* Log ends for default log style */}
+      {(customizations.wallPattern === 'default' || !customizations.wallPattern) && !simplified && Array.from({ length: 6 }).map((_, i) => (
         <g key={i}>
-          <rect x="38" y={100 + i * 8} width="124" height="7" fill={wallColor} rx="3" />
-          <rect x="38" y={100 + i * 8 + 4} width="124" height="2" fill={darken(wallColor, 15)} opacity="0.5" />
-          {/* Log Ends */}
-          {!simplified && (
-            <>
-              <circle cx="42" cy={100 + i * 8 + 3.5} r="3" fill="#DEB887" />
-              <circle cx="158" cy={100 + i * 8 + 3.5} r="3" fill="#DEB887" />
-            </>
-          )}
+          {/* Log Ends - pixel art rectangles */}
+          <rect x="38" y={100 + i * 8 + 1} width="6" height="5" fill="#DEB887" />
+          <rect x="39" y={100 + i * 8 + 2} width="4" height="3" fill="#C4A063" />
+          <rect x="156" y={100 + i * 8 + 1} width="6" height="5" fill="#DEB887" />
+          <rect x="157" y={100 + i * 8 + 2} width="4" height="3" fill="#C4A063" />
         </g>
       ))}
 
-      {/* Alternative Wall Patterns */}
-      {customizations.wallPattern === 'shingles' && renderWoodSiding(40, 100, 120, 50, wallColor, simplified)}
-      {customizations.wallPattern === 'stone_veneer' && renderStoneTexture(40, 100, 120, 50, wallColor, simplified)}
-
-      {/* Roof */}
-      <path d="M30 100 L100 40 L170 100 Z" fill={colors.primary} />
-      <path d="M30 100 L100 40 L170 100" stroke={darken(colors.primary, 20)} strokeWidth="2" fill="none" />
-
-      {/* Roof Texture */}
-      {customizations.roofMaterial === 'metal' && !simplified && (
-        <path d="M30 100 L100 40 L170 100" stroke={lighten(colors.primary, 20)} strokeWidth="1" fill="none" opacity="0.3" />
-      )}
+      {/* Roof with dither pattern */}
+      <path d="M30 100 L100 40 L170 100 Z" fill={getRoofPattern()} />
+      <path d="M30 100 L100 40 L170 100" stroke={darken(roofColor, 20)} strokeWidth="2" fill="none" />
 
       {/* Roof Trim */}
       {renderRoofTrim(30, 100, 140, customizations.roofTrim || 'default', colors.primary, simplified)}

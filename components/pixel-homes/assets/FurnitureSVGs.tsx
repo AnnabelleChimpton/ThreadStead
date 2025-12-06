@@ -131,9 +131,9 @@ export const FurnitureSVGs = ({ id, variant, scale, className }: AssetProps) => 
                     <rect x="25" y="4" width="4" height="3" fill="#2E8B57" />
                     <rect x="32" y="7" width="2" height="4" fill="#228B22" />
                     <rect x="31" y="5" width="4" height="3" fill="#32CD32" />
-                    {/* Tomatoes/vegetables */}
-                    <circle cx="21" cy="4" r="2" fill="#DC2626" />
-                    <circle cx="9" cy="5" r="1.5" fill="#EF4444" />
+                    {/* Tomatoes/vegetables - pixel art */}
+                    <rect x="19" y="2" width="4" height="4" fill="#DC2626" />
+                    <rect x="7" y="3" width="3" height="3" fill="#EF4444" />
                 </svg>
             )
 
@@ -164,11 +164,13 @@ export const FurnitureSVGs = ({ id, variant, scale, className }: AssetProps) => 
         case 'garden_cart':
             return (
                 <svg width={36 * scale} height={24 * scale} viewBox="0 0 36 24" className={className} shapeRendering="crispEdges">
-                    {/* Wheels */}
-                    <circle cx="8" cy="18" r="4" fill="#374151" />
-                    <circle cx="8" cy="18" r="2" fill="#6B7280" />
-                    <circle cx="28" cy="18" r="4" fill="#374151" />
-                    <circle cx="28" cy="18" r="2" fill="#6B7280" />
+                    {/* Wheels - pixel art */}
+                    <rect x="5" y="15" width="6" height="6" fill="#374151" />
+                    <rect x="4" y="16" width="8" height="4" fill="#374151" />
+                    <rect x="6" y="16" width="4" height="4" fill="#6B7280" />
+                    <rect x="25" y="15" width="6" height="6" fill="#374151" />
+                    <rect x="24" y="16" width="8" height="4" fill="#374151" />
+                    <rect x="26" y="16" width="4" height="4" fill="#6B7280" />
                     {/* Cart body */}
                     <rect x="4" y="6" width="28" height="10" fill="#22C55E" />
                     <rect x="5" y="7" width="26" height="8" fill="#16A34A" />
@@ -186,15 +188,104 @@ export const FurnitureSVGs = ({ id, variant, scale, className }: AssetProps) => 
                     <rect x="10" y="2" width="3" height="4" fill="#228B22" />
                     <rect x="18" y="3" width="4" height="3" fill="#32CD32" />
                     <rect x="26" y="2" width="3" height="4" fill="#2E8B57" />
-                    <circle cx="12" cy="3" r="2" fill="#F472B6" />
-                    <circle cx="20" cy="2" r="2" fill="#FBBF24" />
+                    {/* Flowers - pixel art */}
+                    <rect x="10" y="1" width="4" height="4" fill="#F472B6" />
+                    <rect x="18" y="0" width="4" height="4" fill="#FBBF24" />
+                </svg>
+            )
+
+        case 'rocking_chair':
+            return (
+                <svg width={24 * scale} height={28 * scale} viewBox="0 0 24 28" className={className} shapeRendering="crispEdges">
+                    {/* Rockers */}
+                    <rect x="2" y="24" width="20" height="2" fill="#654321" />
+                    <rect x="1" y="25" width="22" height="2" fill="#8B4513" />
+                    <rect x="0" y="26" width="24" height="2" fill="#654321" />
+                    {/* Legs */}
+                    <rect x="4" y="16" width="2" height="10" fill="#8B4513" />
+                    <rect x="18" y="16" width="2" height="10" fill="#8B4513" />
+                    {/* Seat */}
+                    <rect x="3" y="14" width="18" height="4" fill="#DEB887" />
+                    <rect x="4" y="15" width="16" height="2" fill="#D2B48C" />
+                    {/* Back */}
+                    <rect x="3" y="4" width="2" height="12" fill="#8B4513" />
+                    <rect x="19" y="4" width="2" height="12" fill="#8B4513" />
+                    {/* Back slats */}
+                    <rect x="5" y="4" width="14" height="2" fill="#A0522D" />
+                    <rect x="5" y="8" width="14" height="2" fill="#A0522D" />
+                    <rect x="5" y="12" width="14" height="2" fill="#A0522D" />
+                    {/* Arm rests */}
+                    <rect x="2" y="10" width="4" height="2" fill="#8B4513" />
+                    <rect x="18" y="10" width="4" height="2" fill="#8B4513" />
+                    {/* Cushion (optional cozy detail) */}
+                    <rect x="5" y="13" width="14" height="3" fill="#B91C1C" />
+                    <rect x="6" y="14" width="12" height="1" fill="#DC2626" />
+                </svg>
+            )
+
+        case 'garden_swing':
+            return (
+                <svg width={32 * scale} height={36 * scale} viewBox="0 0 32 36" className={className} shapeRendering="crispEdges">
+                    {/* Frame - A-frame structure */}
+                    <rect x="2" y="4" width="2" height="30" fill="#8B4513" />
+                    <rect x="28" y="4" width="2" height="30" fill="#8B4513" />
+                    {/* Cross bar */}
+                    <rect x="2" y="4" width="28" height="2" fill="#654321" />
+                    {/* Top decoration */}
+                    <rect x="14" y="2" width="4" height="4" fill="#A0522D" />
+                    {/* Chains */}
+                    <rect x="8" y="6" width="1" height="14" fill="#4B5563" />
+                    <rect x="23" y="6" width="1" height="14" fill="#4B5563" />
+                    {/* Seat */}
+                    <rect x="6" y="20" width="20" height="4" fill="#D2B48C" />
+                    <rect x="7" y="21" width="18" height="2" fill="#DEB887" />
+                    {/* Back */}
+                    <rect x="6" y="14" width="20" height="6" fill="#D2B48C" />
+                    <rect x="8" y="15" width="16" height="4" fill="#DEB887" />
+                    {/* Arm rests */}
+                    <rect x="4" y="18" width="4" height="2" fill="#8B4513" />
+                    <rect x="24" y="18" width="4" height="2" fill="#8B4513" />
+                    {/* Seat cushion */}
+                    <rect x="8" y="19" width="16" height="3" fill="#22C55E" />
+                    <rect x="9" y="20" width="14" height="1" fill="#16A34A" />
+                    {/* Ground base */}
+                    <rect x="1" y="34" width="4" height="2" fill="#654321" />
+                    <rect x="27" y="34" width="4" height="2" fill="#654321" />
+                </svg>
+            )
+
+        case 'cozy_blanket':
+            return (
+                <svg width={24 * scale} height={12 * scale} viewBox="0 0 24 12" className={className} shapeRendering="crispEdges">
+                    {/* Folded blanket */}
+                    <rect x="2" y="4" width="20" height="6" fill="#E11D48" />
+                    <rect x="3" y="5" width="18" height="4" fill="#F43F5E" />
+                    {/* Fold line */}
+                    <rect x="4" y="6" width="16" height="1" fill="#BE123C" />
+                    {/* Pattern - checkered */}
+                    <rect x="5" y="5" width="2" height="2" fill="#FDA4AF" />
+                    <rect x="9" y="5" width="2" height="2" fill="#FDA4AF" />
+                    <rect x="13" y="5" width="2" height="2" fill="#FDA4AF" />
+                    <rect x="17" y="5" width="2" height="2" fill="#FDA4AF" />
+                    <rect x="7" y="7" width="2" height="2" fill="#FDA4AF" />
+                    <rect x="11" y="7" width="2" height="2" fill="#FDA4AF" />
+                    <rect x="15" y="7" width="2" height="2" fill="#FDA4AF" />
+                    {/* Fringe edge */}
+                    <rect x="2" y="10" width="20" height="1" fill="#9F1239" />
+                    <rect x="3" y="10" width="1" height="2" fill="#E11D48" />
+                    <rect x="6" y="10" width="1" height="2" fill="#E11D48" />
+                    <rect x="9" y="10" width="1" height="2" fill="#E11D48" />
+                    <rect x="12" y="10" width="1" height="2" fill="#E11D48" />
+                    <rect x="15" y="10" width="1" height="2" fill="#E11D48" />
+                    <rect x="18" y="10" width="1" height="2" fill="#E11D48" />
+                    <rect x="21" y="10" width="1" height="2" fill="#E11D48" />
                 </svg>
             )
 
         default:
             return (
                 <svg width={24 * scale} height={24 * scale} viewBox="0 0 24 24" className={className} shapeRendering="crispEdges">
-                    <rect x="4" y="4" width="16" height="16" fill="#8B4513" rx="2" />
+                    <rect x="4" y="4" width="16" height="16" fill="#8B4513" />
                     {/* Simple chair shape fallback */}
                     <rect x="8" y="8" width="8" height="2" fill="white" />
                     <rect x="8" y="10" width="2" height="6" fill="white" />
