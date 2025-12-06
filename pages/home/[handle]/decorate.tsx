@@ -3,12 +3,10 @@ import { useRouter } from 'next/router'
 import { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import { getSessionUser } from '@/lib/auth/server'
-import { PrismaClient } from '@prisma/client'
+import { db } from '@/lib/config/database/connection'
 import Layout from '@/components/ui/layout/Layout'
 import DecorationMode from '@/components/pixel-homes/DecorationMode'
 import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from '@/components/pixel-homes/HouseSVG'
-
-const prisma = new PrismaClient()
 
 interface DecorationPageProps {
   handle: string
@@ -140,7 +138,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const cleanHandle = (handle as string).startsWith('@') ? (handle as string).slice(1) : (handle as string)
 
     // Find user by handle
-    const userHandle = await prisma.handle.findFirst({
+    const userHandle = await db.handle.findFirst({
       where: { handle: cleanHandle.toLowerCase() },
       include: {
         user: true
@@ -159,7 +157,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const isOwnHome = viewer?.id === user.id
 
     // Get home configuration
-    const homeConfig = await prisma.userHomeConfig.findUnique({
+    const homeConfig = await db.userHomeConfig.findUnique({
       where: { userId: user.id },
       include: {
         decorations: {

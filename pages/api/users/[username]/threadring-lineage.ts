@@ -1,7 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { db } from '@/lib/config/database/connection'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -16,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Find user by handle
-    const userHandle = await prisma.handle.findFirst({
+    const userHandle = await db.handle.findFirst({
       where: { handle: username.toLowerCase() },
       include: { user: true }
     })
@@ -28,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const user = userHandle.user
 
     // Get user's ThreadRing memberships with lineage information
-    const memberships = await prisma.threadRingMember.findMany({
+    const memberships = await db.threadRingMember.findMany({
       where: { userId: user.id },
       include: {
         threadRing: {
@@ -90,7 +88,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('ThreadRing lineage API error:', error)
     return res.status(500).json({ error: 'Internal server error' })
-  } finally {
-    await prisma.$disconnect()
   }
 }

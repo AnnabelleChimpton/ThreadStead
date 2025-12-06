@@ -1,11 +1,9 @@
 import { GetServerSideProps } from 'next'
-import { PrismaClient } from '@prisma/client'
+import { db } from '@/lib/config/database/connection'
 import Head from 'next/head'
 import Layout from '../../components/ui/layout/Layout'
 import PixelHomePage from '../../components/pixel-homes/PixelHomePage'
 import { HouseTemplate, ColorPalette } from '../../components/pixel-homes/HouseSVG'
-
-const prisma = new PrismaClient()
 
 interface UserHomeConfig {
   houseTemplate: HouseTemplate
@@ -119,7 +117,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle
 
     // Find user by handle
-    const userHandle = await prisma.handle.findFirst({
+    const userHandle = await db.handle.findFirst({
       where: { handle: cleanHandle.toLowerCase() },
       include: {
         user: {
@@ -142,12 +140,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const isOwner = currentUser?.id === user.id
 
     // Get or create home configuration
-    let homeConfig = await prisma.userHomeConfig.findUnique({
+    let homeConfig = await db.userHomeConfig.findUnique({
       where: { userId: user.id }
     })
 
     if (!homeConfig) {
-      homeConfig = await prisma.userHomeConfig.create({
+      homeConfig = await db.userHomeConfig.create({
         data: {
           userId: user.id,
           houseTemplate: 'cottage_v1',
@@ -212,6 +210,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     console.error('Pixel Home SSR error:', error)
     return { notFound: true }
   } finally {
-    await prisma.$disconnect()
+    await db.$disconnect()
   }
 }

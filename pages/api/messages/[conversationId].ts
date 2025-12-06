@@ -1,8 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { db } from '@/lib/config/database/connection';
 import { getSessionUser } from '../../../lib/auth/server';
-
-const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const user = await getSessionUser(req);
@@ -17,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verify participation
-    const participant = await prisma.conversationParticipant.findUnique({
+    const participant = await db.conversationParticipant.findUnique({
         where: {
             conversationId_userId: {
                 conversationId,
@@ -32,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'GET') {
         try {
-            const messages = await prisma.directMessage.findMany({
+            const messages = await db.directMessage.findMany({
                 where: { conversationId },
                 orderBy: { createdAt: 'desc' },
                 take: 50, // Pagination limit

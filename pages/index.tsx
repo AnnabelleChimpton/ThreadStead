@@ -3,7 +3,7 @@ import CustomPageLayout from "../components/ui/layout/CustomPageLayout";
 import Head from "next/head";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import Link from "next/link";
 import { WidgetContainer } from "@/components/widgets";
@@ -20,9 +20,6 @@ import { getOgImageUrl } from "@/lib/utils/og-image-url";
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import CommunityTicker from "@/components/CommunityTicker";
 import HomeHero from "@/components/home/HomeHero";
-import CommunityPulse from "@/components/widgets/CommunityPulse";
-
-const db = new PrismaClient();
 
 interface HomeProps {
   siteConfig: SiteConfig;
@@ -795,7 +792,6 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                 layout="stack"
                 maxColumns={1}
               />
-              {!user && <CommunityPulse />}
             </div>
           </div>
         </div>
@@ -885,8 +881,6 @@ function UnifiedHomepage({ siteConfig, ogImageUrl, userCount }: { siteConfig: Si
             </div>
 
             <div className="lg:col-span-4 lg:order-2 space-y-4">
-              <CommunityPulse />
-
               <SimpleCard title="Join the Neighborhood">
                 <div className="text-center py-2">
                   <p className="mb-4 text-sm text-gray-600">Ready to claim your plot?</p>

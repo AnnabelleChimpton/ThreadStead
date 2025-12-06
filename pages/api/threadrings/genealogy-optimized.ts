@@ -1,8 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
-
-const prisma = new PrismaClient();
 
 interface CompactThreadRingNode {
   id: string;
@@ -41,7 +39,7 @@ export default async function handler(
     // Strategy 2: For very deep paths, only load the path + siblings
     if (expandIds.length > 0) {
       // Load specific path with siblings at each level
-      const pathRings = await prisma.threadRing.findMany({
+      const pathRings = await db.threadRing.findMany({
         where: {
           OR: [
             // The expanded path
@@ -90,7 +88,7 @@ export default async function handler(
     }
 
     // Strategy 3: For initial load, only load to shallow depth
-    const rings = await prisma.threadRing.findMany({
+    const rings = await db.threadRing.findMany({
       where: {
         AND: [
           // Depth limit for initial load
@@ -123,7 +121,7 @@ export default async function handler(
     });
 
     // Get total count for stats
-    const totalCount = await prisma.threadRing.count({
+    const totalCount = await db.threadRing.count({
       where: {
         OR: [
           { visibility: "public" },
@@ -159,8 +157,6 @@ export default async function handler(
       error: "Failed to fetch genealogy data",
       message: error instanceof Error ? error.message : "Unknown error"
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

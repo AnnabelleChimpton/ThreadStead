@@ -3,9 +3,7 @@ import { GetServerSideProps } from "next";
 import Layout from "@/components/ui/layout/Layout";
 import CustomPageLayout from "@/components/ui/layout/CustomPageLayout";
 import RetroCard from "@/components/ui/layout/RetroCard";
-import { PrismaClient } from "@prisma/client";
-
-const db = new PrismaClient();
+import { db } from "@/lib/config/database/connection";
 
 type Props = {
   page: {

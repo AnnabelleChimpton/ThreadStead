@@ -1,7 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { db } from '@/lib/config/database/connection';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -11,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Get all policy documents
-    const policies = await prisma.siteConfig.findMany({
+    const policies = await db.siteConfig.findMany({
       where: {
         key: {
           in: ['terms_simple', 'terms_full', 'privacy_simple', 'privacy_full']

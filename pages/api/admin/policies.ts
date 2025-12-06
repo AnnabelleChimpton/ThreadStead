@@ -1,11 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
-import { PrismaClient } from '@prisma/client';
+import { db } from '@/lib/config/database/connection';
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
-
-
-const prisma = new PrismaClient();
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   const user = await getSessionUser(req);
@@ -17,7 +14,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     try {
       // Get all policy documents
-      const policies = await prisma.siteConfig.findMany({
+      const policies = await db.siteConfig.findMany({
         where: {
           key: {
             in: ['terms_simple', 'terms_full', 'privacy_simple', 'privacy_full']
@@ -59,7 +56,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       // Update each policy document
       for (const [key, value] of Object.entries(policies)) {
         if (requiredKeys.includes(key)) {
-          await prisma.siteConfig.upsert({
+          await db.siteConfig.upsert({
             where: { key },
             update: { value: value as string, updatedAt: new Date() },
             create: { key, value: value as string }

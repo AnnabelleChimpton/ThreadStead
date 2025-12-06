@@ -1,10 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
-
-const prisma = new PrismaClient();
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest, 
@@ -48,7 +46,7 @@ export default withThreadRingSupport(async function handler(
 
     // Original local database logic
     // Find the ThreadRing
-    const ring = await prisma.threadRing.findUnique({
+    const ring = await db.threadRing.findUnique({
       where: { slug },
       include: {
         members: {
@@ -84,7 +82,7 @@ export default withThreadRingSupport(async function handler(
 
     // Check if ThreadRing is accessible to viewer
     if (ring.visibility === "private") {
-      const viewerMembership = await prisma.threadRingMember.findUnique({
+      const viewerMembership = await db.threadRingMember.findUnique({
         where: {
           threadRingId_userId: {
             threadRingId: ring.id,
@@ -107,14 +105,14 @@ export default withThreadRingSupport(async function handler(
       familyRingIds.push(ring.id); // Include current ring
 
       // Also get direct children
-      const childRings = await prisma.threadRing.findMany({
+      const childRings = await db.threadRing.findMany({
         where: { parentId: ring.id },
         select: { id: true }
       });
       familyRingIds.push(...childRings.map(r => r.id));
 
       // Get all family members
-      const familyMembers = await prisma.threadRingMember.findMany({
+      const familyMembers = await db.threadRingMember.findMany({
         where: {
           threadRingId: { in: familyRingIds }
         },
@@ -234,7 +232,5 @@ export default withThreadRingSupport(async function handler(
       error: "Failed to discover random member",
       message: error instanceof Error ? error.message : "Unknown error"
     });
-  } finally {
-    await prisma.$disconnect();
   }
 });
