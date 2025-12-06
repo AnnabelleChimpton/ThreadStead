@@ -24,6 +24,7 @@ interface DecorationModeProps {
   initialHouseCustomizations?: HouseCustomizations
   initialAtmosphere?: AtmosphereSettings
   initialTerrain?: Record<string, string>
+  isSaving?: boolean
 }
 
 export default function DecorationMode({
@@ -35,7 +36,8 @@ export default function DecorationMode({
   initialDecorations = [],
   initialHouseCustomizations,
   initialAtmosphere,
-  initialTerrain = {}
+  initialTerrain = {},
+  isSaving = false
 }: DecorationModeProps) {
   // Mobile detection
   const isMobile = useIsMobile(768)
@@ -73,6 +75,20 @@ export default function DecorationMode({
   const [isDeleting, setIsDeleting] = useState(false)
   const [currentTemplate, setCurrentTemplate] = useState<HouseTemplate>(initialTemplate)
   const [currentPalette, setCurrentPalette] = useState<ColorPalette>(initialPalette)
+
+  // Toast notification state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+    setToast({ message, type })
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null)
+    }, 3000)
+  }, [])
 
   // House & Atmosphere State
   const [atmosphere, setAtmosphere] = useState<AtmosphereSettings>(
@@ -140,6 +156,83 @@ export default function DecorationMode({
       localStorage.setItem('pixelHomeSfxMuted', String(sfxMuted))
     }
   }, [sfxMuted])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in input fields
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+      const modKey = isMac ? e.metaKey : e.ctrlKey
+
+      // Ctrl/Cmd+Z - Undo
+      if (modKey && !e.shiftKey && e.key === 'z') {
+        e.preventDefault()
+        if (canUndo) {
+          undo()
+          retroSFX.playUndo()
+        }
+        return
+      }
+
+      // Ctrl/Cmd+Shift+Z - Redo
+      if (modKey && e.shiftKey && e.key === 'z') {
+        e.preventDefault()
+        if (canRedo) {
+          redo()
+          retroSFX.playRedo()
+        }
+        return
+      }
+
+      // Delete/Backspace - Remove selected decoration(s)
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedDecorations.size > 0) {
+        e.preventDefault()
+        removeDecorations(selectedDecorations)
+        retroSFX.playRemoveItem()
+        return
+      }
+
+      // Escape - Exit current mode / clear selection
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        if (selectedDecorations.size > 0) {
+          clearSelection()
+        }
+        if (isPlacing) {
+          setIsPlacing(false)
+          setSelectedItem(null)
+        }
+        if (isDeleting) {
+          setIsDeleting(false)
+        }
+        if (paintBrush !== undefined) {
+          setPaintBrush(undefined)
+        }
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [canUndo, canRedo, undo, redo, selectedDecorations, removeDecorations, clearSelection, isPlacing, isDeleting, paintBrush])
+
+  // Warn about unsaved changes when leaving the page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (canUndo) {
+        e.preventDefault()
+        e.returnValue = '' // Required for Chrome
+        return '' // Required for some browsers
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [canUndo])
 
   // Load custom asset slots
   useEffect(() => {
@@ -549,7 +642,8 @@ export default function DecorationMode({
     } else {
       // Check decoration limit before adding
       if (placedDecorations.length >= MAX_DECORATIONS) {
-        retroSFX.playError?.() // Play error sound if available
+        showToast(`Decoration limit reached (${MAX_DECORATIONS} max)`, 'warning')
+        retroSFX.playError()
         return
       }
       addDecoration(newDecoration)
@@ -729,6 +823,18 @@ export default function DecorationMode({
       className="fixed left-0 right-0 bottom-0 z-50 bg-white flex flex-col"
       style={{ top: 'var(--nav-height, 64px)' }}
     >
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-lg shadow-lg transition-all duration-300 animate-in fade-in slide-in-from-top-2 ${
+          toast.type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' :
+          toast.type === 'error' ? 'bg-red-100 text-red-800 border border-red-300' :
+          toast.type === 'warning' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+          'bg-blue-100 text-blue-800 border border-blue-300'
+        }`}>
+          <span className="text-sm font-medium">{toast.message}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="h-14 border-b border-thread-sage/30 flex items-center justify-between px-4 bg-thread-paper shrink-0">
         <div className="flex items-center gap-3">
@@ -750,7 +856,8 @@ export default function DecorationMode({
               }
             }}
             disabled={!canUndo}
-            className={`p-2 rounded hover:bg-thread-cream ${!canUndo ? 'opacity-30' : ''}`}
+            className={`p-2 rounded hover:bg-thread-cream ${!canUndo ? 'opacity-30 cursor-not-allowed' : ''}`}
+            title="Undo (Ctrl+Z)"
           >
             <PixelIcon name="arrow-left" className="w-5 h-5" />
           </button>
@@ -762,7 +869,8 @@ export default function DecorationMode({
               }
             }}
             disabled={!canRedo}
-            className={`p-2 rounded hover:bg-thread-cream ${!canRedo ? 'opacity-30' : ''}`}
+            className={`p-2 rounded hover:bg-thread-cream ${!canRedo ? 'opacity-30 cursor-not-allowed' : ''}`}
+            title="Redo (Ctrl+Shift+Z)"
           >
             <PixelIcon name="arrow-right" className="w-5 h-5" />
           </button>
@@ -776,16 +884,34 @@ export default function DecorationMode({
           </button>
           <div className="w-px h-6 bg-thread-sage/40 mx-1" />
           <button
-            onClick={onCancel}
+            onClick={() => {
+              if (canUndo && !confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                return
+              }
+              onCancel()
+            }}
             className="px-4 py-1.5 text-sm font-medium text-thread-sage hover:bg-thread-cream rounded"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-1.5 text-sm font-medium bg-thread-pine text-white hover:bg-thread-pine/90 rounded shadow-cozy"
+            disabled={isSaving}
+            className={`px-4 py-1.5 text-sm font-medium bg-thread-pine text-white rounded shadow-cozy flex items-center gap-2 ${
+              isSaving ? 'opacity-70 cursor-not-allowed' : 'hover:bg-thread-pine/90'
+            }`}
           >
-            Save Changes
+            {isSaving ? (
+              <>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
           </button>
         </div>
       </div>
@@ -815,15 +941,15 @@ export default function DecorationMode({
             <div className="flex gap-2 pointer-events-auto">
               {/* Delete Mode Indicator */}
               {isDeleting && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border-2 border-red-300 rounded-lg shadow-sm">
-                  <PixelIcon name="trash" size={18} className="text-red-500" />
-                  <span className="text-sm font-medium text-red-700">Delete Mode</span>
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-red-100 border-2 border-red-400 rounded-lg shadow-lg animate-pulse">
+                  <PixelIcon name="trash" size={20} className="text-red-600" />
+                  <span className="text-sm font-bold text-red-700">Click items to delete</span>
                   <button
                     onClick={() => setIsDeleting(false)}
-                    className="ml-1 p-0.5 hover:bg-red-100 rounded"
-                    title="Exit delete mode"
+                    className="ml-2 p-1 hover:bg-red-200 rounded transition-colors"
+                    title="Exit delete mode (Esc)"
                   >
-                    <PixelIcon name="close" size={14} className="text-red-400" />
+                    <PixelIcon name="close" size={16} className="text-red-500" />
                   </button>
                 </div>
               )}

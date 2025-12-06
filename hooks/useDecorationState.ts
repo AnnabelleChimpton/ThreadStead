@@ -31,7 +31,7 @@ export function useDecorationState(initialDecorations: DecorationItem[] = []) {
     const addToHistory = useCallback((newDecorations: DecorationItem[]) => {
         setHistory(curr => {
             const newPast = [...curr.past, curr.present]
-            if (newPast.length > 20) newPast.shift() // Limit history size
+            if (newPast.length > 50) newPast.shift() // Limit history size
 
             return {
                 past: newPast,

@@ -67,7 +67,7 @@ export default function MobileItemPalette({
     <div className={`mobile-item-palette flex flex-col h-full ${className}`}>
       {/* Category Tabs - Horizontal scrolling on mobile */}
       <div className="category-tabs border-b border-gray-200 bg-white">
-        <div className="flex overflow-x-auto px-2 py-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div className="flex overflow-x-auto px-2 py-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
           {categories.map(category => (
             <button
               key={category}
@@ -94,7 +94,7 @@ export default function MobileItemPalette({
       </div>
 
       {/* Items Grid - Touch-optimized */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="grid grid-cols-3 gap-3">
           {activeItems.map(item => (
             <button

@@ -5,6 +5,7 @@ import { HouseCustomizations, HouseTemplate, ColorPalette } from './HouseSVG'
 import { DecorationItem, TERRAIN_TILES, TerrainTile } from '../../lib/pixel-homes/decoration-data'
 import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon'
 import { DECORATION_CATEGORY_ICONS, getCategoryIcon } from '@/lib/pixel-homes/category-icons'
+import { retroSFX } from '../../lib/audio/retro-sfx'
 
 interface DecorationPaletteProps {
   items: Record<string, DecorationItem[]>
@@ -223,6 +224,7 @@ export default function DecorationPalette({
   const handlePrimaryChange = (category: string) => {
     setPrimaryCategory(category)
     setSearchQuery('')
+    retroSFX.playModeChange()
 
     // Set default secondary category
     const subcategories = PRIMARY_CATEGORIES[category as keyof typeof PRIMARY_CATEGORIES]?.subcategories
@@ -762,7 +764,10 @@ export default function DecorationPalette({
             {Object.entries(secondaryCategories).map(([key, subcategory]) => (
               <button
                 key={key}
-                onClick={() => setSecondaryCategory(key)}
+                onClick={() => {
+                  setSecondaryCategory(key)
+                  retroSFX.playSelectItem()
+                }}
                 className={`
                   flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all touch-manipulation
                   ${secondaryCategory === key

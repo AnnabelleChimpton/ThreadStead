@@ -122,6 +122,7 @@ export default function DecoratePage({
             initialHouseCustomizations={initialHouseCustomizations}
             initialAtmosphere={initialAtmosphere}
             initialTerrain={initialTerrain}
+            isSaving={isSaving}
           />
         </div>
       </Layout>

@@ -245,7 +245,7 @@ export default function EnhancedHouseCanvas({
                 style={wrapperStyle}
               >
                 <div
-                  className={`pointer-events-auto ${isDeleting ? 'cursor-pointer hover:outline hover:outline-2 hover:outline-red-400 hover:outline-offset-2 rounded' : ''}`}
+                  className={`pointer-events-auto transition-all duration-150 ${isDeleting ? 'cursor-pointer hover:outline hover:outline-3 hover:outline-red-500 hover:outline-offset-2 rounded hover:scale-110 hover:brightness-90' : ''}`}
                   onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
                   onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
                 >
@@ -272,7 +272,7 @@ export default function EnhancedHouseCanvas({
               style={wrapperStyle}
             >
               <div
-                className={`pointer-events-auto ${onDecorationClick || onDecorationMouseDown ? 'cursor-pointer' : ''} ${isDeleting ? 'hover:outline hover:outline-2 hover:outline-red-400 hover:outline-offset-2 rounded' : ''}`}
+                className={`pointer-events-auto transition-all duration-150 ${onDecorationClick || onDecorationMouseDown ? 'cursor-pointer' : ''} ${isDeleting ? 'hover:outline hover:outline-3 hover:outline-red-500 hover:outline-offset-2 rounded hover:scale-110 hover:brightness-90' : ''}`}
                 onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
                 onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
               >
@@ -354,7 +354,7 @@ export default function EnhancedHouseCanvas({
           {/* Preview Item (Ghost) */}
           {previewPosition && previewItem && (
             <div
-              className="absolute pointer-events-none opacity-50"
+              className="absolute pointer-events-none opacity-70 animate-pulse"
               style={{
                 left: previewPosition.x,
                 top: previewPosition.y,
@@ -380,7 +380,8 @@ export default function EnhancedHouseCanvas({
                 })(),
                 display: 'flex',
                 alignItems: 'flex-end',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                filter: 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.8)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
               }}
             >
               <DecorationSVG
