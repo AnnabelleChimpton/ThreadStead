@@ -123,9 +123,9 @@ export default function DecorationMode({
   const [mousePosition, setMousePosition] = useState<{ x: number, y: number } | undefined>()
   const [canvasScale, setCanvasScale] = useState(1)
 
-  // Canvas dimensions (used for touch placement bounds)
-  const CANVAS_WIDTH = 500
-  const CANVAS_HEIGHT = 350
+  // Canvas dimensions (used for touch placement bounds) - grid-aligned
+  const CANVAS_WIDTH = 512
+  const CANVAS_HEIGHT = 352
 
   // SFX State - persisted to localStorage
   const [sfxMuted, setSfxMuted] = useState(() => {
@@ -697,13 +697,17 @@ export default function DecorationMode({
     }
   }
 
+  // Minimum grid Y for terrain painting (front yard starts at y=96, so gridY >= 6)
+  const TERRAIN_MIN_GRID_Y = 6
+
   const handleCanvasMouseDown = (x: number, y: number, event: React.MouseEvent) => {
     // Check if we're in terrain mode (painting OR erasing)
     // paintBrush is a string when painting, null when erasing, undefined when not in terrain mode
     if (paintBrush !== undefined) {
       setIsPainting(true)
       const gridPos = pixelToGrid(x, y, DEFAULT_DECORATION_GRID)
-      if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 })) {
+      // Only allow terrain in front yard zone (gridY >= 6, i.e. y >= 96px)
+      if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 }) && gridPos.gridY >= TERRAIN_MIN_GRID_Y) {
         const key = `${gridPos.gridX},${gridPos.gridY}`
         if (paintBrush === null) {
           // Eraser mode - remove the terrain tile
@@ -729,7 +733,8 @@ export default function DecorationMode({
     // Painting/Erasing Logic - paintBrush is string (paint), null (erase), or undefined (not in terrain mode)
     if (isPainting && paintBrush !== undefined) {
       const gridPos = pixelToGrid(x, y, DEFAULT_DECORATION_GRID)
-      if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 })) {
+      // Only allow terrain in front yard zone (gridY >= 6, i.e. y >= 96px)
+      if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 }) && gridPos.gridY >= TERRAIN_MIN_GRID_Y) {
         const key = `${gridPos.gridX},${gridPos.gridY}`
         if (paintBrush === null) {
           // Eraser mode - remove the terrain tile if it exists

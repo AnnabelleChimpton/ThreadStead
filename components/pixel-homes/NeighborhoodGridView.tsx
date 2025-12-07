@@ -134,12 +134,12 @@ export default function NeighborhoodGridView({ members, ringSlug }: Neighborhood
                       const tile = TERRAIN_TILES.find(t => t.id === tileId)
                       if (!tile) return null
 
-                      // Convert grid coords to percentage (500x350 canvas)
+                      // Convert grid coords to percentage (512x352 canvas)
                       const cellSize = DEFAULT_DECORATION_GRID.cellSize
-                      const leftPct = (gridX * cellSize / 500) * 100
-                      const topPct = (gridY * cellSize / 350) * 100
-                      const widthPct = (cellSize / 500) * 100
-                      const heightPct = (cellSize / 350) * 100
+                      const leftPct = (gridX * cellSize / 512) * 100
+                      const topPct = (gridY * cellSize / 352) * 100
+                      const widthPct = (cellSize / 512) * 100
+                      const heightPct = (cellSize / 352) * 100
 
                       return (
                         <div

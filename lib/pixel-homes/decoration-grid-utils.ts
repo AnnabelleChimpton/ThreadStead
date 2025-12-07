@@ -12,14 +12,14 @@ export interface DecorationGridConfig {
   canvasHeight: number;    // Canvas height in pixels
 }
 
-// Default grid configuration for decoration canvas
+// Default grid configuration for decoration canvas (grid-aligned dimensions)
 export const DEFAULT_DECORATION_GRID: DecorationGridConfig = {
   cellSize: 16,              // 16px grid cells (standard pixel art tile size)
   snapDistance: 8,           // 8px magnetic snap zone
   showGrid: true,            // Enabled by default
   magneticSnapping: true,    // Enabled by default
-  canvasWidth: 500,          // Standard canvas width
-  canvasHeight: 350          // Standard canvas height
+  canvasWidth: 512,          // 32 cells wide (512 / 16 = 32)
+  canvasHeight: 352          // 22 cells tall (352 / 16 = 22)
 }
 
 export interface GridPosition {

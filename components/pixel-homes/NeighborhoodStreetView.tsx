@@ -298,13 +298,13 @@ const getVisibleDecorations = (decorations: HomeDecoration[] | undefined): HomeD
 
   // Since we're now showing a proportionally scaled version of the full canvas,
   // we can show all decorations that are within the canvas bounds
-  // Original canvas: 500x350
+  // Canvas: 512x352 (grid-aligned)
 
   return decorations.filter(decoration =>
     decoration.x >= 0 &&
-    decoration.x <= 500 &&
+    decoration.x <= 512 &&
     decoration.y >= 0 &&
-    decoration.y <= 350
+    decoration.y <= 352
   )
 }
 
@@ -516,8 +516,8 @@ export default function NeighborhoodStreetView({
                       />
 
                       {/* House with decorations container - matches canvas proportions */}
-                      <div className="house-wrapper interactive relative" style={{ width: '285px', height: '200px', zIndex: 2 }}>
-                        {/* Mini canvas that matches the original 500x350 proportions - scaled to 285x200 */}
+                      <div className="house-wrapper interactive relative" style={{ width: '285px', height: '196px', zIndex: 2 }}>
+                        {/* Mini canvas that matches the 512x352 proportions - scaled to 285x196 (0.556 scale) */}
                         <div className="relative w-full h-full">
                           {/* Terrain Layer - below decorations and house */}
                           {member.homeConfig.terrain && Object.entries(member.homeConfig.terrain).map(([key, tileId]) => {
@@ -525,7 +525,7 @@ export default function NeighborhoodStreetView({
                             const tile = TERRAIN_TILES.find(t => t.id === tileId)
                             if (!tile) return null
 
-                            const scale = 0.57
+                            const scale = 0.556
                             const cellSize = DEFAULT_DECORATION_GRID.cellSize
 
                             return (
@@ -546,8 +546,8 @@ export default function NeighborhoodStreetView({
 
                           {/* Decorations */}
                           {visibleDecorations.map((decoration) => {
-                            // Scale from 500x350 canvas to 285x200 (0.57 scale)
-                            const scale = 0.57
+                            // Scale from 512x352 canvas to 285x196 (0.556 scale)
+                            const scale = 0.556
                             const scaledX = decoration.x * scale
                             const scaledY = decoration.y * scale
 
@@ -558,7 +558,7 @@ export default function NeighborhoodStreetView({
                                 style={{
                                   left: `${scaledX}px`,
                                   top: `${scaledY}px`,
-                                  transform: 'scale(0.57)',
+                                  transform: 'scale(0.556)',
                                   transformOrigin: 'top left',
                                   zIndex: decoration.layer <= 5 ? 1 : 10 // Behind house (z-index 5) or in front
                                 }}
@@ -579,10 +579,10 @@ export default function NeighborhoodStreetView({
                           <div
                             className="absolute"
                             style={{
-                              left: `${150 * 0.57}px`, // 85.5px - scaled from original x=150
-                              top: `${40 * 0.57}px`,   // 22.8px - scaled from original y=40
-                              width: `${200 * 0.57}px`, // 114px - scaled from original 200px
-                              height: `${180 * 0.57}px`, // 102.6px - scaled from original 180px
+                              left: `${156 * 0.556}px`, // 87px - scaled from x=156
+                              top: `${32 * 0.556}px`,   // 18px - scaled from y=32
+                              width: `${200 * 0.556}px`, // 111px - scaled from 200px
+                              height: `${180 * 0.556}px`, // 100px - scaled from 180px
                               zIndex: 5
                             }}
                           >

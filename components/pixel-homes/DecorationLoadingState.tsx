@@ -27,7 +27,7 @@ export default function DecorationLoadingState({ isMobile = false }: DecorationL
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="relative">
           {/* House Canvas Skeleton */}
-          <div className="skeleton-loader w-[500px] h-[350px] rounded-lg">
+          <div className="skeleton-loader w-[512px] h-[352px] rounded-lg">
             <div className="flex items-center justify-center h-full">
               <div className="loading-spinner" />
             </div>

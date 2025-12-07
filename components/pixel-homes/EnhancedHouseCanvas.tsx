@@ -35,33 +35,33 @@ interface EnhancedHouseCanvasProps {
   onScaleChange?: (scale: number) => void
 }
 
-// Enhanced canvas dimensions - much larger than original 200x180
-const CANVAS_WIDTH = 500
-const CANVAS_HEIGHT = 350
+// Enhanced canvas dimensions - grid-aligned (divisible by 16px cell size)
+const CANVAS_WIDTH = 512
+const CANVAS_HEIGHT = 352
 
-// Zone definitions for decoration placement
+// Zone definitions for decoration placement (grid-aligned to 16px)
 const DECORATION_ZONES = {
   background: {
     x: 0, y: 0,
-    width: CANVAS_WIDTH, height: 100, // A bit more sky area
+    width: CANVAS_WIDTH, height: 96, // 6 grid cells, sky area
     label: 'Background & Sky'
   },
   front_yard: {
-    x: 0, y: 100,
-    width: CANVAS_WIDTH, height: 250, // Decoration area to bottom
+    x: 0, y: 96,
+    width: CANVAS_WIDTH, height: 256, // 16 grid cells, decoration area to bottom
     label: 'Front Yard'
   },
   house_facade: {
-    x: 150, y: 160,
+    x: 156, y: 152,
     width: 200, height: 120, // House area
     label: 'House'
   }
 }
 
-// House positioning within the larger canvas
+// House positioning within the larger canvas (centered for 512px width)
 const HOUSE_POSITION = {
-  x: 150, // Centered for larger house: (500 - 200) / 2 = 150
-  y: 40, // Very high in the viewing area
+  x: 156, // Centered: (512 - 200) / 2 = 156
+  y: 32, // 2 grid cells from top
   width: 200, // Larger house
   height: 180 // Proportional height - back to original house proportions
 }
@@ -129,11 +129,29 @@ export default function EnhancedHouseCanvas({
 
     // Get the number of pattern bands for this sky type
     const patternCount = getSkyPatternCount(atmosphere.sky)
-    const bandHeight = zone.height / patternCount
 
-    // Generate pattern IDs (sky-sunny-0, sky-sunny-1, etc.)
+    // Calculate pixel-perfect band heights (distribute remainder evenly)
+    const baseHeight = Math.floor(zone.height / patternCount)
+    const extraPixels = zone.height % patternCount
+
+    // Generate pattern IDs with calculated positions
     const skyPrefix = `sky-${atmosphere.sky}`
-    const patterns = Array.from({ length: patternCount }, (_, i) => `${skyPrefix}-${i}`)
+    const bands: Array<{ pattern: string; y: number; height: number }> = []
+    let currentY = 0
+    for (let i = 0; i < patternCount; i++) {
+      // Distribute extra pixels to first N bands for even distribution
+      const height = baseHeight + (i < extraPixels ? 1 : 0)
+      bands.push({ pattern: `${skyPrefix}-${i}`, y: currentY, height })
+      currentY += height
+    }
+
+    // Base sky colors for fallback fill (last/bottom color of each sky type)
+    const baseSkyColors: Record<string, string> = {
+      sunny: '#C8F0FF',
+      cloudy: '#E0E8F0',
+      sunset: '#FFD090',
+      night: '#1A1A60'
+    }
 
     return (
       <svg
@@ -150,15 +168,17 @@ export default function EnhancedHouseCanvas({
         shapeRendering="crispEdges"
       >
         <SkyDitherDefs />
-        {/* Dithered sky bands with smooth gradient transitions */}
-        {patterns.map((pattern, i) => (
+        {/* Base fill to prevent any gaps */}
+        <rect x="0" y="0" width={zone.width} height={zone.height} fill={baseSkyColors[atmosphere.sky] || '#87CEEB'} />
+        {/* Dithered sky bands with pixel-perfect heights */}
+        {bands.map((band, i) => (
           <rect
             key={i}
             x="0"
-            y={Math.floor(i * bandHeight)}
+            y={band.y}
             width={zone.width}
-            height={Math.ceil(bandHeight) + 1}
-            fill={`url(#${pattern})`}
+            height={band.height}
+            fill={`url(#${band.pattern})`}
           />
         ))}
         {/* Stars for night sky */}
@@ -183,10 +203,23 @@ export default function EnhancedHouseCanvas({
 
     // Get the number of pattern bands for ground gradient
     const patternCount = getGroundPatternCount()
-    const bandHeight = zone.height / patternCount
 
-    // Generate pattern IDs (ground-0, ground-1, etc.)
-    const patterns = Array.from({ length: patternCount }, (_, i) => `ground-${i}`)
+    // Calculate pixel-perfect band heights (distribute remainder evenly)
+    const baseHeight = Math.floor(zone.height / patternCount)
+    const extraPixels = zone.height % patternCount
+
+    // Generate pattern IDs with calculated positions
+    const bands: Array<{ pattern: string; y: number; height: number }> = []
+    let currentY = 0
+    for (let i = 0; i < patternCount; i++) {
+      // Distribute extra pixels to first N bands for even distribution
+      const height = baseHeight + (i < extraPixels ? 1 : 0)
+      bands.push({ pattern: `ground-${i}`, y: currentY, height })
+      currentY += height
+    }
+
+    // Calculate grass texture overlay positions (integer division)
+    const halfHeight = Math.floor(zone.height / 2)
 
     return (
       <svg
@@ -204,15 +237,17 @@ export default function EnhancedHouseCanvas({
       >
         <SkyDitherDefs />
         <GrassTextureDefs />
-        {/* Dithered grass bands with smooth gradient transitions */}
-        {patterns.map((pattern, i) => (
+        {/* Base fill to prevent any gaps (top grass color) */}
+        <rect x="0" y="0" width={zone.width} height={zone.height} fill="#90EE90" />
+        {/* Dithered grass bands with pixel-perfect heights */}
+        {bands.map((band, i) => (
           <rect
             key={i}
             x="0"
-            y={Math.floor(i * bandHeight)}
+            y={band.y}
             width={zone.width}
-            height={Math.ceil(bandHeight) + 1}
-            fill={`url(#${pattern})`}
+            height={band.height}
+            fill={`url(#${band.pattern})`}
           />
         ))}
         {/* Grass blade texture overlay - sparse at horizon, denser in foreground */}
@@ -220,14 +255,14 @@ export default function EnhancedHouseCanvas({
           x="0"
           y="0"
           width={zone.width}
-          height={zone.height * 0.5}
+          height={halfHeight}
           fill="url(#grass-blades)"
         />
         <rect
           x="0"
-          y={zone.height * 0.5}
+          y={halfHeight}
           width={zone.width}
-          height={zone.height * 0.5}
+          height={zone.height - halfHeight}
           fill="url(#grass-blades-dense)"
         />
       </svg>
