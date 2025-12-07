@@ -1318,7 +1318,5 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   } catch (error) {
     console.error('Neighborhood SSR error:', error)
     return { notFound: true }
-  } finally {
-    await db.$disconnect()
   }
 }
