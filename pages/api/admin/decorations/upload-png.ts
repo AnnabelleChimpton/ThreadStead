@@ -141,7 +141,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       CacheControl: 'public, max-age=31536000', // 1 year cache
     }));
 
-    const pngUrl = `${getCdnUrl()}/${r2Key}`;
+    const pngUrl = `${getCdnUrl()}/${r2Key}?v=${Date.now()}`;
 
     // Update database if this is a decoration item (not house template)
     if (!isHouseTemplate && itemId) {

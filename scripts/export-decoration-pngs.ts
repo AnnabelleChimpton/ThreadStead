@@ -33,6 +33,7 @@ import { WaterSVGs } from '../components/pixel-homes/assets/WaterSVGs'
 import { StructureSVGs } from '../components/pixel-homes/assets/StructureSVGs'
 import { SeasonalSVGs } from '../components/pixel-homes/assets/SeasonalSVGs'
 import { HouseCustomSVGs } from '../components/pixel-homes/assets/HouseCustomSVGs'
+import { PathSVGs } from '../components/pixel-homes/assets/PathSVGs'
 import HouseSVG, { HouseTemplate, ColorPalette } from '../components/pixel-homes/HouseSVG'
 
 // Import data
@@ -73,6 +74,7 @@ const SVG_COMPONENT_MAP: Record<string, React.FC<AssetProps>> = {
   structure: StructureSVGs,
   seasonal: SeasonalSVGs,
   house_custom: HouseCustomSVGs,
+  path: PathSVGs,
 }
 
 // Default dimensions by type if not found in lookup table
@@ -85,6 +87,7 @@ const DEFAULT_TYPE_DIMENSIONS: Record<string, { width: number; height: number }>
   structure: { width: 48, height: 32 },
   seasonal: { width: 24, height: 24 },
   house_custom: { width: 40, height: 30 },
+  path: { width: 48, height: 16 },
 }
 
 interface DecorationInfo {
@@ -142,6 +145,18 @@ function getAllDecorations(): DecorationInfo[] {
         variant,
       })
     }
+  }
+
+  // Add paths separately (they're not in BETA_ITEMS yet)
+  const pathIds = ['stone_path', 'brick_path', 'stepping_stones', 'gravel_path']
+  for (const pathId of pathIds) {
+    decorations.push({
+      id: pathId,
+      name: pathId.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      type: 'path',
+      category: 'paths',
+      variant: 'default',
+    })
   }
 
   return decorations
