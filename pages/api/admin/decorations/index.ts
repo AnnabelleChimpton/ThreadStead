@@ -10,13 +10,14 @@ interface CreateDecorationRequest {
   type: string;
   category: string;
   zone: string;
+  section?: string;
   iconSvg?: string;
   renderSvg?: string;
   imagePath?: string;
   gridWidth?: number;
   gridHeight?: number;
   description?: string;
-  releaseType?: 'PUBLIC' | 'LIMITED_TIME' | 'CLAIM_CODE' | 'ADMIN_ONLY' | 'BETA_USERS';
+  releaseType?: 'DEFAULT' | 'PUBLIC' | 'LIMITED_TIME' | 'CLAIM_CODE' | 'ADMIN_ONLY' | 'BETA_USERS';
   releaseStartAt?: string;
   releaseEndAt?: string;
   maxClaims?: number;
@@ -89,13 +90,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         type,
         category,
         zone,
+        section,
         iconSvg,
         renderSvg,
         imagePath,
         gridWidth = 1,
         gridHeight = 1,
         description,
-        releaseType = 'PUBLIC',
+        releaseType = 'DEFAULT',
         releaseStartAt,
         releaseEndAt,
         maxClaims
@@ -152,6 +154,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           type,
           category,
           zone,
+          section: section || null,
           iconSvg,
           renderSvg,
           imagePath,

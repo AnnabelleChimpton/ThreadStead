@@ -11,6 +11,7 @@ interface DecorationIconProps {
   iconSvg?: string  // Custom icon SVG from database
   palette?: ColorPalette
   customAssetUrl?: string  // URL to user's uploaded custom pixel art
+  pngUrl?: string  // PNG URL from database (preferred over SVG)
 }
 
 export default function DecorationIcon({
@@ -21,7 +22,8 @@ export default function DecorationIcon({
   color,
   iconSvg,
   palette = 'thread_sage',
-  customAssetUrl
+  customAssetUrl,
+  pngUrl
 }: DecorationIconProps) {
   // If custom icon SVG is provided from database, use it
   // BUT ignore it for types that we have fully refactored to pixel art
@@ -196,6 +198,7 @@ export default function DecorationIcon({
           className={className}
           renderSvg={iconSvg}
           customAssetUrl={customAssetUrl}
+          pngUrl={pngUrl}
         />
       )
   }

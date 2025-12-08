@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { PlantSVGs } from './assets/PlantSVGs'
 import { PathSVGs } from './assets/PathSVGs'
 import { FeatureSVGs } from './assets/FeatureSVGs'
@@ -8,6 +8,13 @@ import { WaterSVGs } from './assets/WaterSVGs'
 import { StructureSVGs } from './assets/StructureSVGs'
 import { SeasonalSVGs } from './assets/SeasonalSVGs'
 import { HouseCustomSVGs } from './assets/HouseCustomSVGs'
+import {
+  getDecorationPngUrl,
+  isPngLoadingEnabled,
+  hasPngFailed,
+  markPngFailed,
+} from '@/lib/pixel-homes/decoration-assets'
+import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
 
 interface DecorationSVGProps {
   decorationType: 'plant' | 'path' | 'feature' | 'seasonal' | 'house_custom' | 'furniture' | 'lighting' | 'water' | 'structure' | 'sky' | 'house_template' | 'house_color' | 'custom'
@@ -19,6 +26,7 @@ interface DecorationSVGProps {
   customScale?: number
   text?: string
   customAssetUrl?: string  // URL to user's uploaded custom pixel art
+  pngUrl?: string  // Direct PNG URL from database (overrides R2 lookup)
 }
 
 // Size multipliers for different decoration sizes
@@ -27,6 +35,12 @@ const SIZE_SCALES = {
   medium: 1.0,
   large: 1.4
 }
+
+// Decoration types that support PNG loading from R2
+const PNG_SUPPORTED_TYPES = new Set([
+  'plant', 'path', 'feature', 'furniture', 'lighting',
+  'water', 'structure', 'seasonal', 'house_custom'
+])
 
 export default function DecorationSVG({
   decorationType,
@@ -37,10 +51,54 @@ export default function DecorationSVG({
   renderSvg,
   customScale,
   text,
-  customAssetUrl
+  customAssetUrl,
+  pngUrl
 }: DecorationSVGProps) {
   const scale = customScale || SIZE_SCALES[size]
   const props = { id: decorationId, variant, scale, className, text }
+
+  // Track whether PNG failed to load (triggers SVG fallback)
+  const [pngError, setPngError] = useState(false)
+
+  // Reset error state when decorationId changes
+  useEffect(() => {
+    setPngError(false)
+  }, [decorationId])
+
+  // Determine if we should try PNG loading
+  const shouldTryPng = (
+    PNG_SUPPORTED_TYPES.has(decorationType) &&
+    !pngError &&
+    !hasPngFailed(decorationId) &&
+    (pngUrl || isPngLoadingEnabled())
+  )
+
+  // Get PNG URL (direct URL takes priority over R2 lookup)
+  const resolvedPngUrl = pngUrl || getDecorationPngUrl(decorationId)
+
+  // Try PNG first if supported
+  if (shouldTryPng && resolvedPngUrl) {
+    const dimensions = getDecorationDimensions(decorationId, decorationType, size)
+
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={resolvedPngUrl}
+        alt=""
+        width={dimensions.width}
+        height={dimensions.height}
+        className={className}
+        style={{
+          imageRendering: 'pixelated',
+          display: 'block',
+        }}
+        onError={() => {
+          markPngFailed(decorationId)
+          setPngError(true)
+        }}
+      />
+    )
+  }
 
   switch (decorationType) {
     case 'plant':

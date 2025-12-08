@@ -53,9 +53,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         type: true,
         category: true,
         zone: true,
+        section: true,
         iconSvg: true,
         renderSvg: true,
         imagePath: true,
+        pngUrl: true,
         gridWidth: true,
         gridHeight: true,
         description: true,
@@ -79,30 +81,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     availableDecorations.forEach(decoration => {
       const { userClaims, ...decorationData } = decoration;
 
-      // Determine section for house items based on itemId
-      let section: string | undefined;
-      if (decoration.type === 'house_custom') {
-        if (decoration.itemId.includes('door')) {
-          section = 'doors';
-        } else if (decoration.itemId.includes('window')) {
-          section = 'windows';
-        } else if (decoration.itemId.includes('trim')) {
-          section = 'roof';
-        }
-      }
-
       const transformedDecoration = {
         id: decoration.itemId, // Use itemId as the main ID for frontend compatibility
         name: decoration.name,
         type: decoration.type,
         zone: decoration.zone,
-        ...(section && { section }), // Add section for house items
+        ...(decoration.section && { section: decoration.section }), // Use section from database
         gridWidth: decoration.gridWidth,
         gridHeight: decoration.gridHeight,
         description: decoration.description,
         iconSvg: decoration.iconSvg,
         renderSvg: decoration.renderSvg,
         imagePath: decoration.imagePath,
+        pngUrl: decoration.pngUrl,
         isUserClaimed: userClaims.length > 0,
         claimedAt: userClaims[0]?.claimedAt || null,
         claimMethod: userClaims[0]?.claimMethod || null,

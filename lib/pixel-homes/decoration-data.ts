@@ -16,6 +16,7 @@ export interface DecorationItem {
     customAssetUrl?: string  // URL to user's uploaded custom pixel art
     slot?: number            // For custom assets: which slot (0-4)
     isEmpty?: boolean        // For custom assets: whether slot is empty (show upload UI)
+    pngUrl?: string          // R2 CDN URL for PNG asset (from database)
     [key: string]: any
 }
 

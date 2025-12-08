@@ -1431,11 +1431,13 @@ model DecorationItem {
   type     String // plant, furniture, etc.
   category String // plants, paths, etc.
   zone     String // front_yard, house_facade, etc.
+  section  String? // doors, windows, roof, chimney (for house_custom type)
 
   // Visual assets
   iconSvg   String? // SVG code for palette icon
   renderSvg String? // SVG code for canvas rendering
   imagePath String? // Path to uploaded image asset
+  pngUrl    String? // R2 CDN URL for PNG asset
 
   // Grid behavior
   gridWidth  Int @default(1)

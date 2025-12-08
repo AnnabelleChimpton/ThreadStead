@@ -885,6 +885,7 @@ export default function DecorationPalette({
                         : item.color
                     }
                     iconSvg={item.iconSvg}
+                    pngUrl={item.pngUrl}
                     palette={palette}
                   />
                 </div>

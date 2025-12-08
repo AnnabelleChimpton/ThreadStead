@@ -404,6 +404,7 @@ export default function EnhancedHouseCanvas({
                   renderSvg={item.renderSvg}
                   text={item.text || item.data?.text}
                   customAssetUrl={item.customAssetUrl}
+                  pngUrl={item.pngUrl}
                 />
               </div>
             </div>
@@ -510,6 +511,7 @@ export default function EnhancedHouseCanvas({
                 size={previewItem.size}
                 className="block max-w-none"
                 customAssetUrl={previewItem.customAssetUrl}
+                pngUrl={previewItem.pngUrl}
               />
             </div>
           )}

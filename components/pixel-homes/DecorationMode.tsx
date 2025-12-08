@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import DecorationPalette from './DecorationPalette'
-import { DecorationItem, BETA_ITEMS, TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
+import { DecorationItem, TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
+
+// House color picker items - these are UI triggers for the color picker, not actual decorations
+// Kept as constants since they don't need to be managed via admin
+const HOUSE_COLOR_ITEMS: DecorationItem[] = [
+  { id: 'wall_color', name: 'Wall Color', type: 'house_color', zone: 'house_facade', color: '#F5E9D4' },
+  { id: 'roof_color', name: 'Roof Color', type: 'house_color', zone: 'house_facade', color: '#A18463' },
+  { id: 'trim_color', name: 'Trim Color', type: 'house_color', zone: 'house_facade', color: '#2E4B3F' },
+  { id: 'window_color', name: 'Window Color', type: 'house_color', zone: 'house_facade', color: '#8EC5E8' },
+  { id: 'detail_color', name: 'Detail Color', type: 'house_color', zone: 'house_facade', color: '#4FAF6D' }
+]
 import { HouseCustomizations, HouseTemplate, ColorPalette, AtmosphereSettings } from './HouseSVG'
 import { useDecorationState } from '../../hooks/useDecorationState'
 import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping'
@@ -252,44 +262,32 @@ export default function DecorationMode({
     loadCustomAssets()
   }, [])
 
-  // Load available decorations
+  // Load available decorations from database
   useEffect(() => {
     const loadDecorations = async () => {
       try {
         const response = await fetch('/api/decorations/available')
         if (response.ok) {
           const data = await response.json()
-          // Merge API data with local BETA_ITEMS to ensure new dev items appear
-          const mergedDecorations = { ...data.decorations }
-
-          // Helper to merge categories
-          Object.keys(BETA_ITEMS).forEach(category => {
-            if (category === 'house' || category === 'atmosphere') return // Skip these as they are handled differently
-
-            const betaList = (BETA_ITEMS as any)[category] || []
-            const apiList = mergedDecorations[category] || []
-
-            // Add beta items that aren't in API data (deduplicate by ID)
-            const uniqueBetaItems = betaList.filter((betaItem: DecorationItem) =>
-              !apiList.some((apiItem: DecorationItem) => apiItem.id === betaItem.id)
-            )
-
-            mergedDecorations[category] = [...apiList, ...uniqueBetaItems]
-          })
-
+          // Use API data directly - database is the source of truth
+          // Only add colors since they're UI triggers for the color picker
           setAvailableDecorations({
-            ...mergedDecorations,
-            colors: BETA_ITEMS.colors,
-            house: BETA_ITEMS.house,
-            atmosphere: BETA_ITEMS.atmosphere
+            ...data.decorations,
+            colors: HOUSE_COLOR_ITEMS
           })
         } else {
-          console.warn('Failed to load decorations from API, using fallback')
-          setAvailableDecorations(BETA_ITEMS as unknown as Record<string, DecorationItem[]>)
+          console.warn('Failed to load decorations from API')
+          // Fallback to just colors - decorations require the database
+          setAvailableDecorations({
+            colors: HOUSE_COLOR_ITEMS
+          })
         }
       } catch (error) {
         console.error('Error loading decorations:', error)
-        setAvailableDecorations(BETA_ITEMS as unknown as Record<string, DecorationItem[]>)
+        // Fallback to just colors on error
+        setAvailableDecorations({
+          colors: HOUSE_COLOR_ITEMS
+        })
       } finally {
         setDecorationsLoading(false)
       }

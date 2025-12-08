@@ -18,6 +18,7 @@ interface HomeDecoration {
   y: number
   layer: number
   renderSvg?: string | null
+  pngUrl?: string | null
   data?: any // Custom data for decorations (e.g. sign text)
 }
 
@@ -354,8 +355,8 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
                 palette={member.homeConfig.palette as any}
                 houseCustomizations={(member.homeConfig.houseCustomizations || {}) as HouseCustomizations}
                 decorations={(() => {
-                  return decorations.map(dec => ({
-                    id: dec.decorationId + '_' + Date.now(),
+                  return decorations.map((dec, index) => ({
+                    id: dec.id || `${dec.decorationId}_${index}`,
                     name: dec.decorationId,
                     decorationId: dec.decorationId,
                     type: dec.decorationType,
@@ -364,6 +365,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
                     variant: dec.variant,
                     size: dec.size,
                     renderSvg: dec.renderSvg ?? undefined,
+                    pngUrl: dec.pngUrl ?? undefined,
                     data: dec.data // Include custom data for sign text
                   }))
                 })()}

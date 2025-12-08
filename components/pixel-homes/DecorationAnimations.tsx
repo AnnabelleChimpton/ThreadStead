@@ -10,6 +10,7 @@ interface AnimatedDecorationProps {
   animationType?: 'place' | 'remove' | 'select' | 'hover' | 'pulse' | 'bounce'
   onAnimationComplete?: () => void
   className?: string
+  pngUrl?: string
 }
 
 interface PlacementEffect {
@@ -29,7 +30,8 @@ export default function AnimatedDecoration({
   position,
   animationType = 'place',
   onAnimationComplete,
-  className = ''
+  className = '',
+  pngUrl
 }: AnimatedDecorationProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [effects, setEffects] = useState<PlacementEffect[]>([])
@@ -117,6 +119,7 @@ export default function AnimatedDecoration({
           variant={variant}
           size={size}
           className="filter drop-shadow-sm"
+          pngUrl={pngUrl}
         />
       </div>
 

@@ -177,6 +177,20 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       }
     })
 
+    // Get pngUrls for all decorations from DecorationItem table
+    const decorationIds = homeConfig?.decorations?.map(d => d.decorationId) || []
+    const decorationItems = decorationIds.length > 0
+      ? await db.decorationItem.findMany({
+          where: { itemId: { in: decorationIds } },
+          select: { itemId: true, pngUrl: true, renderSvg: true }
+        })
+      : []
+
+    // Create lookup map for pngUrls
+    const pngUrlMap = new Map<string, { pngUrl: string | null; renderSvg: string | null }>(
+      decorationItems.map(d => [d.itemId, { pngUrl: d.pngUrl, renderSvg: d.renderSvg }])
+    )
+
     if (!homeConfig) {
       return {
         notFound: true
@@ -185,6 +199,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     // Transform decorations to match component interface
     const transformedDecorations = homeConfig.decorations?.map((decoration, i) => {
+      // Get pngUrl and renderSvg from lookup map
+      const decorationData = pngUrlMap.get(decoration.decorationId)
+
       const baseDecoration = {
         id: `${decoration.decorationId}_${Date.now()}_${i}`,
         decorationId: decoration.decorationId,
@@ -198,7 +215,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
         variant: decoration.variant || 'default',
         size: decoration.size || 'medium',
-        data: decoration.data
+        data: decoration.data,
+        pngUrl: decorationData?.pngUrl || null,
+        renderSvg: decorationData?.renderSvg || null
       }
 
       // For custom type decorations, extract customAssetUrl and slot from data

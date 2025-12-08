@@ -3,83 +3,7 @@ import { getSessionUser } from "@/lib/auth/server";
 import { db } from "@/lib/config/database/connection";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
-
-// Import the existing BETA_ITEMS for migration
-const BETA_ITEMS = {
-  plants: [
-    { id: 'roses_red', name: 'Red Roses', type: 'plant', zone: 'front_yard' },
-    { id: 'roses_pink', name: 'Pink Roses', type: 'plant', zone: 'front_yard' },
-    { id: 'roses_white', name: 'White Roses', type: 'plant', zone: 'front_yard' },
-    { id: 'daisies_white', name: 'White Daisies', type: 'plant', zone: 'front_yard' },
-    { id: 'daisies_yellow', name: 'Yellow Daisies', type: 'plant', zone: 'front_yard' },
-    { id: 'small_tree', name: 'Small Tree', type: 'plant', zone: 'front_yard' },
-    { id: 'tree_oak', name: 'Oak Tree', type: 'plant', zone: 'front_yard' },
-    { id: 'tree_pine', name: 'Pine Tree', type: 'plant', zone: 'front_yard' },
-    { id: 'sunflowers', name: 'Sunflowers', type: 'plant', zone: 'front_yard' },
-    { id: 'lavender', name: 'Lavender', type: 'plant', zone: 'front_yard' },
-    { id: 'flower_pot', name: 'Flower Pot', type: 'plant', zone: 'front_yard' },
-    { id: 'planter_box', name: 'Planter Box', type: 'furniture', zone: 'front_yard' }
-  ],
-  paths: [
-    { id: 'stone_path', name: 'Stone Path', type: 'path', zone: 'front_yard' },
-    { id: 'brick_path', name: 'Brick Path', type: 'path', zone: 'front_yard' },
-    { id: 'stepping_stones', name: 'Stepping Stones', type: 'path', zone: 'front_yard' },
-    { id: 'gravel_path', name: 'Gravel Path', type: 'path', zone: 'front_yard' }
-  ],
-  features: [
-    { id: 'bird_bath', name: 'Bird Bath', type: 'feature', zone: 'front_yard' },
-    { id: 'garden_gnome', name: 'Garden Gnome', type: 'feature', zone: 'front_yard' },
-    { id: 'decorative_fence', name: 'Decorative Fence', type: 'feature', zone: 'front_yard' },
-    { id: 'wind_chimes', name: 'Wind Chimes', type: 'feature', zone: 'front_yard' }
-  ],
-  furniture: [
-    { id: 'garden_bench', name: 'Garden Bench', type: 'furniture', zone: 'front_yard' },
-    { id: 'outdoor_table', name: 'Outdoor Table', type: 'furniture', zone: 'front_yard' },
-    { id: 'mailbox', name: 'Mailbox', type: 'furniture', zone: 'front_yard' },
-    { id: 'picnic_table', name: 'Picnic Table', type: 'furniture', zone: 'front_yard' }
-  ],
-  lighting: [
-    { id: 'garden_lantern', name: 'Garden Lantern', type: 'lighting', zone: 'front_yard' },
-    { id: 'string_lights', name: 'String Lights', type: 'lighting', zone: 'front_yard' },
-    { id: 'torch', name: 'Garden Torch', type: 'lighting', zone: 'front_yard' },
-    { id: 'spotlight', name: 'Spotlight', type: 'lighting', zone: 'front_yard' }
-  ],
-  water: [
-    { id: 'fountain', name: 'Garden Fountain', type: 'water', zone: 'front_yard' },
-    { id: 'pond', name: 'Small Pond', type: 'water', zone: 'front_yard' },
-    { id: 'sprinkler', name: 'Sprinkler System', type: 'water', zone: 'front_yard' }
-  ],
-  structures: [
-    { id: 'gazebo', name: 'Garden Gazebo', type: 'structure', zone: 'front_yard' },
-    { id: 'pergola', name: 'Pergola', type: 'structure', zone: 'front_yard' },
-    { id: 'shed', name: 'Garden Shed', type: 'structure', zone: 'front_yard' }
-  ],
-  atmosphere: [
-    { id: 'sunny_sky', name: 'Sunny Day', type: 'sky', zone: 'background' },
-    { id: 'sunset_sky', name: 'Sunset', type: 'sky', zone: 'background' },
-    { id: 'cloudy_sky', name: 'Cloudy', type: 'sky', zone: 'background' },
-    { id: 'night_sky', name: 'Night Sky', type: 'sky', zone: 'background' }
-  ],
-  house: [
-    // Doors Section
-    { id: 'default_door', name: 'Default Door', type: 'house_custom', zone: 'house_facade', section: 'doors', isDefault: true },
-    { id: 'arched_door', name: 'Arched Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
-    { id: 'double_door', name: 'Double Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
-    { id: 'cottage_door', name: 'Cottage Door', type: 'house_custom', zone: 'house_facade', section: 'doors' },
-
-    // Windows Section
-    { id: 'default_windows', name: 'Default Windows', type: 'house_custom', zone: 'house_facade', section: 'windows', isDefault: true },
-    { id: 'round_windows', name: 'Round Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
-    { id: 'arched_windows', name: 'Arched Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
-    { id: 'bay_windows', name: 'Bay Windows', type: 'house_custom', zone: 'house_facade', section: 'windows' },
-
-    // Roof Trim Section
-    { id: 'default_trim', name: 'Default Trim', type: 'house_custom', zone: 'house_facade', section: 'roof', isDefault: true },
-    { id: 'ornate_trim', name: 'Ornate Roof Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
-    { id: 'scalloped_trim', name: 'Scalloped Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' },
-    { id: 'gabled_trim', name: 'Gabled Trim', type: 'house_custom', zone: 'house_facade', section: 'roof' }
-  ]
-};
+import { BETA_ITEMS } from "@/lib/pixel-homes/decoration-data";
 
 // Basic SVG templates for each type
 const getSVGTemplate = (type: string, itemId: string) => {
@@ -159,8 +83,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       errors: [] as string[]
     };
 
+    // Categories to skip - these are handled differently (templates use HouseSVG, colors use picker)
+    const SKIP_CATEGORIES = ['templates', 'colors'];
+
     // Migrate all BETA_ITEMS to database
     for (const [category, items] of Object.entries(BETA_ITEMS)) {
+      // Skip categories that aren't actual decorations
+      if (SKIP_CATEGORIES.includes(category)) {
+        continue;
+      }
+
       for (const item of items) {
         try {
           // Check if item already exists
@@ -177,6 +109,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           const iconSvg = getSVGTemplate(item.type, item.id);
           const renderSvg = iconSvg; // Use same SVG for both for now
 
+          // Determine grid size based on type
+          let gridWidth = 1;
+          let gridHeight = 1;
+          if (item.type === 'structure') {
+            gridWidth = 3;
+            gridHeight = 3;
+          } else if (item.type === 'water') {
+            gridWidth = 2;
+            gridHeight = 2;
+          } else if (item.type === 'furniture') {
+            gridWidth = 2;
+            gridHeight = 1;
+          } else if (item.type === 'feature') {
+            gridHeight = 2;
+          }
+
           // Create decoration item
           await db.decorationItem.create({
             data: {
@@ -184,11 +132,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               name: item.name,
               type: item.type,
               category: category,
-              zone: item.zone,
+              zone: item.zone || 'front_yard',
+              section: (item as any).section || null, // House items have sections (doors, windows, etc.)
               iconSvg,
               renderSvg,
-              gridWidth: item.type === 'structure' ? 3 : item.type === 'water' ? 2 : item.type === 'furniture' ? 2 : 1,
-              gridHeight: item.type === 'structure' ? 3 : item.type === 'water' ? 2 : item.type === 'feature' ? 2 : 1,
+              gridWidth,
+              gridHeight,
               isActive: true,
               releaseType: (item as any).isDefault ? 'DEFAULT' : 'PUBLIC', // Use DEFAULT for default items
               createdBy: user.id

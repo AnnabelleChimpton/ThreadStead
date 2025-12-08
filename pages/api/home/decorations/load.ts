@@ -12,6 +12,7 @@ interface DecorationItem {
   size?: string;
   data?: any;
   renderSvg?: string | null;
+  pngUrl?: string | null;
   customAssetUrl?: string;
   slot?: number;
 }
@@ -62,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     ]);
 
-    // Fetch decoration items for renderSvg
+    // Fetch decoration items for renderSvg and pngUrl
     const allDecorationIds = new Set(decorations.map(d => d.decorationId));
     const decorationItemsFromCatalog = await db.decorationItem.findMany({
       where: {
@@ -70,10 +71,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       select: {
         itemId: true,
-        renderSvg: true
+        renderSvg: true,
+        pngUrl: true
       }
     });
-    const decorationItemMap = new Map(decorationItemsFromCatalog.map(item => [item.itemId, item.renderSvg]));
+    const decorationItemMap = new Map<string, { renderSvg: string | null; pngUrl: string | null }>(
+      decorationItemsFromCatalog.map(item => [item.itemId, { renderSvg: item.renderSvg, pngUrl: item.pngUrl }])
+    );
 
     // Transform to the format expected by the frontend
     // Recalculate layers for proper y-sorting (fixes legacy decorations with incorrect layer values)
@@ -95,6 +99,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const bottomY = Math.round(decoration.positionY + dimensions.height);
       const calculatedLayer = baseLayer + (bottomY * 1000) + Math.round(decoration.positionX);
 
+      // Get catalog item data for renderSvg and pngUrl
+      const catalogItem = decorationItemMap.get(decoration.decorationId);
+
       const baseItem: DecorationItem = {
         id: `${decoration.decorationId}_${decoration.id}`,
         decorationId: decoration.decorationId, // Base decoration ID for matching hardcoded SVGs
@@ -108,7 +115,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         variant: decoration.variant || 'default',
         size: decoration.size || 'medium',
         data: decoration.data,
-        ...(decorationItemMap.has(decoration.decorationId) && { renderSvg: decorationItemMap.get(decoration.decorationId) })
+        ...(catalogItem?.renderSvg && { renderSvg: catalogItem.renderSvg }),
+        ...(catalogItem?.pngUrl && { pngUrl: catalogItem.pngUrl })
       };
 
       // For custom type decorations, extract customAssetUrl and slot from data

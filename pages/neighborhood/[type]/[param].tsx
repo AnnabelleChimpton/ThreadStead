@@ -81,6 +81,7 @@ interface NeighborhoodMember {
       y: number
       layer: number
       renderSvg?: string | null
+      pngUrl?: string | null
       data?: any // Custom data for decorations (e.g. sign text)
     }[]
     terrain?: Record<string, string>
@@ -942,17 +943,20 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           })
         })
 
-        // Fetch decoration items for renderSvg
+        // Fetch decoration items for renderSvg and pngUrl
         const decorationItems = await db.decorationItem.findMany({
           where: {
             itemId: { in: Array.from(allDecorationIds) }
           },
           select: {
             itemId: true,
-            renderSvg: true
+            renderSvg: true,
+            pngUrl: true
           }
         })
-        const decorationItemMap = new Map(decorationItems.map(item => [item.itemId, item.renderSvg]))
+        const decorationItemMap = new Map<string, { renderSvg: string | null; pngUrl: string | null }>(
+          decorationItems.map(item => [item.itemId, { renderSvg: item.renderSvg, pngUrl: item.pngUrl }])
+        )
 
         const homeConfigMap = new Map(homeConfigs.map(c => [c.userId, c]))
 
@@ -1017,7 +1021,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   x: d.positionX,
                   y: d.positionY,
                   layer: d.layer,
-                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) }),
+                  ...(decorationItemMap.has(d.decorationId) && {
+                    renderSvg: decorationItemMap.get(d.decorationId)?.renderSvg,
+                    pngUrl: decorationItemMap.get(d.decorationId)?.pngUrl
+                  }),
                   ...(d.data && { data: d.data })
                 })) : [],
                 terrain: (config.terrain as Record<string, string>) || {}
@@ -1071,17 +1078,20 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           })
         })
 
-        // Fetch decoration items for renderSvg
+        // Fetch decoration items for renderSvg and pngUrl
         const decorationItems = await db.decorationItem.findMany({
           where: {
             itemId: { in: Array.from(allDecorationIds) }
           },
           select: {
             itemId: true,
-            renderSvg: true
+            renderSvg: true,
+            pngUrl: true
           }
         })
-        const decorationItemMap = new Map(decorationItems.map(item => [item.itemId, item.renderSvg]))
+        const decorationItemMap = new Map<string, { renderSvg: string | null; pngUrl: string | null }>(
+          decorationItems.map(item => [item.itemId, { renderSvg: item.renderSvg, pngUrl: item.pngUrl }])
+        )
 
         members = homeConfigs
           .filter(config => config.user.handles.length > 0)
@@ -1137,7 +1147,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   x: d.positionX,
                   y: d.positionY,
                   layer: d.layer,
-                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) }),
+                  ...(decorationItemMap.has(d.decorationId) && {
+                    renderSvg: decorationItemMap.get(d.decorationId)?.renderSvg,
+                    pngUrl: decorationItemMap.get(d.decorationId)?.pngUrl
+                  }),
                   ...(d.data && { data: d.data })
                 })) : [],
                 terrain: (config.terrain as Record<string, string>) || {}
@@ -1211,17 +1224,20 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           })
         })
 
-        // Fetch decoration items for renderSvg
+        // Fetch decoration items for renderSvg and pngUrl
         const decorationItems = await db.decorationItem.findMany({
           where: {
             itemId: { in: Array.from(allDecorationIds) }
           },
           select: {
             itemId: true,
-            renderSvg: true
+            renderSvg: true,
+            pngUrl: true
           }
         })
-        const decorationItemMap = new Map(decorationItems.map(item => [item.itemId, item.renderSvg]))
+        const decorationItemMap = new Map<string, { renderSvg: string | null; pngUrl: string | null }>(
+          decorationItems.map(item => [item.itemId, { renderSvg: item.renderSvg, pngUrl: item.pngUrl }])
+        )
 
         let processedMembers = homeConfigs
           .filter(config => config.user.handles.length > 0)
@@ -1277,7 +1293,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   x: d.positionX,
                   y: d.positionY,
                   layer: d.layer,
-                  ...(decorationItemMap.has(d.decorationId) && { renderSvg: decorationItemMap.get(d.decorationId) }),
+                  ...(decorationItemMap.has(d.decorationId) && {
+                    renderSvg: decorationItemMap.get(d.decorationId)?.renderSvg,
+                    pngUrl: decorationItemMap.get(d.decorationId)?.pngUrl
+                  }),
                   ...(d.data && { data: d.data })
                 })) : [],
                 terrain: (config.terrain as Record<string, string>) || {}

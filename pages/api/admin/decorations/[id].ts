@@ -9,6 +9,7 @@ interface UpdateDecorationRequest {
   type?: string;
   category?: string;
   zone?: string;
+  section?: string | null;
   iconSvg?: string;
   renderSvg?: string;
   imagePath?: string;
@@ -16,7 +17,7 @@ interface UpdateDecorationRequest {
   gridHeight?: number;
   description?: string;
   isActive?: boolean;
-  releaseType?: 'PUBLIC' | 'LIMITED_TIME' | 'CLAIM_CODE' | 'ADMIN_ONLY' | 'BETA_USERS';
+  releaseType?: 'DEFAULT' | 'PUBLIC' | 'LIMITED_TIME' | 'CLAIM_CODE' | 'ADMIN_ONLY' | 'BETA_USERS';
   releaseStartAt?: string | null;
   releaseEndAt?: string | null;
   maxClaims?: number | null;
@@ -63,6 +64,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         type,
         category,
         zone,
+        section,
         iconSvg,
         renderSvg,
         imagePath,
@@ -100,6 +102,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       if (type !== undefined) updateData.type = type;
       if (category !== undefined) updateData.category = category;
       if (zone !== undefined) updateData.zone = zone;
+      if (section !== undefined) updateData.section = section || null;
       if (iconSvg !== undefined) updateData.iconSvg = iconSvg;
       if (renderSvg !== undefined) updateData.renderSvg = renderSvg;
       if (imagePath !== undefined) updateData.imagePath = imagePath;
