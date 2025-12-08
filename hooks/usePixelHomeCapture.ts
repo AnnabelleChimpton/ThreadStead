@@ -6,6 +6,74 @@ interface UsePixelHomeCaptureOptions {
     filename?: string;
 }
 
+/**
+ * Convert a cross-origin image to a data URL by fetching through a proxy
+ */
+async function imageToDataUrl(imgSrc: string): Promise<string | null> {
+    try {
+        // Use our proxy endpoint to fetch the image
+        const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(imgSrc)}`;
+        const response = await fetch(proxyUrl);
+        if (!response.ok) return null;
+
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+        });
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Pre-process all cross-origin images in an element by converting them to data URLs
+ */
+async function convertCrossOriginImages(element: HTMLElement): Promise<Map<HTMLImageElement, string>> {
+    const originalSrcs = new Map<HTMLImageElement, string>();
+    const images = element.querySelectorAll('img');
+
+    const conversions = Array.from(images).map(async (img) => {
+        const src = img.src;
+        // Skip data URLs and blob URLs - they're already local
+        if (src.startsWith('data:') || src.startsWith('blob:') || !src) {
+            return;
+        }
+
+        // Check if it's a cross-origin URL
+        try {
+            const imgUrl = new URL(src);
+            const currentUrl = new URL(window.location.href);
+            if (imgUrl.origin === currentUrl.origin) {
+                return; // Same origin, no conversion needed
+            }
+        } catch {
+            return; // Invalid URL
+        }
+
+        // Convert to data URL
+        const dataUrl = await imageToDataUrl(src);
+        if (dataUrl) {
+            originalSrcs.set(img, src);
+            img.src = dataUrl;
+        }
+    });
+
+    await Promise.all(conversions);
+    return originalSrcs;
+}
+
+/**
+ * Restore original image sources after capture
+ */
+function restoreImageSources(originalSrcs: Map<HTMLImageElement, string>): void {
+    originalSrcs.forEach((src, img) => {
+        img.src = src;
+    });
+}
+
 export function usePixelHomeCapture(options: UsePixelHomeCaptureOptions = {}) {
     const {
         filename = 'my-pixel-home.png'
@@ -24,12 +92,20 @@ export function usePixelHomeCapture(options: UsePixelHomeCaptureOptions = {}) {
         setIsCapturing(true);
         setError(null);
 
+        let originalSrcs: Map<HTMLImageElement, string> | null = null;
+
         try {
             // Wait for fonts to load
             await document.fonts.ready;
 
             // Small delay to ensure all rendering is complete
             await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Convert cross-origin images to data URLs
+            originalSrcs = await convertCrossOriginImages(captureRef.current);
+
+            // Another small delay after image conversion
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const dataUrl = await toPng(captureRef.current, {
                 cacheBust: true,
@@ -46,11 +122,22 @@ export function usePixelHomeCapture(options: UsePixelHomeCaptureOptions = {}) {
             const byteArray = new Uint8Array(byteNumbers);
             const blob = new Blob([byteArray], { type: 'image/png' });
 
+            // Restore original image sources
+            if (originalSrcs) {
+                restoreImageSources(originalSrcs);
+            }
+
             setIsCapturing(false);
             return blob;
         } catch (err) {
             console.error('Failed to capture pixel home:', err);
             setError(err instanceof Error ? err.message : 'Failed to capture image');
+
+            // Restore original image sources on error
+            if (originalSrcs) {
+                restoreImageSources(originalSrcs);
+            }
+
             setIsCapturing(false);
             return null;
         }
