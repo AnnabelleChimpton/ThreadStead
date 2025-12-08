@@ -47,6 +47,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         handles: user.handles.map(h => `${h.handle}@${h.host}`),
         postCount: user._count.posts,
         commentCount: user._count.comments,
+
+        emailVerifiedAt: user.emailVerifiedAt,
+
+        hasEmail: !!user.encryptedEmail,
       }));
 
       res.json({ users: formattedUsers });

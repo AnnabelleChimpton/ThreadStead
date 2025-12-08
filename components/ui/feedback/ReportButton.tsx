@@ -1,5 +1,24 @@
 import React, { useState } from "react";
-import { ReportType, ReportReason } from "@prisma/client";
+// Removed import to avoid build errors when client is out of sync
+// import { ReportType, ReportReason } from "@prisma/client";
+
+export type ReportType =
+  | "user"
+  | "post"
+  | "comment"
+  | "threadring"
+  | "guestbook_entry"
+  | "photo_comment";
+
+export type ReportReason =
+  | "spam"
+  | "harassment"
+  | "hate_speech"
+  | "violence"
+  | "misinformation"
+  | "sexual_content"
+  | "copyright"
+  | "other";
 import Modal from "@/components/ui/feedback/Modal";
 
 interface ReportButtonProps {
@@ -22,10 +41,10 @@ const REPORT_REASONS: { value: ReportReason; label: string; description: string 
   { value: "other", label: "Other", description: "Another reason not listed above" },
 ];
 
-export default function ReportButton({ 
-  reportType, 
-  targetId, 
-  reportedUserId, 
+export default function ReportButton({
+  reportType,
+  targetId,
+  reportedUserId,
   contentPreview,
   className = "",
   size = "normal"
@@ -39,7 +58,7 @@ export default function ReportButton({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedReason) {
       alert("Please select a reason for reporting");
       return;
@@ -90,8 +109,8 @@ export default function ReportButton({
   const buttonClasses = size === "dropdown"
     ? "flex items-center gap-2 w-full text-sm text-left hover:bg-gray-100"
     : size === "desktop"
-    ? ""
-    : "comment-button";
+      ? ""
+      : "comment-button";
 
   return (
     <>
@@ -105,9 +124,9 @@ export default function ReportButton({
       </button>
 
       {showModal && (
-        <Modal 
+        <Modal
           isOpen={showModal}
-          onClose={() => setShowModal(false)} 
+          onClose={() => setShowModal(false)}
           title="Report Content"
         >
           {submitted ? (

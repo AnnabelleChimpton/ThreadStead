@@ -55,15 +55,15 @@ function CollapsibleSection({
 }
 
 // Page Form Component
-function PageForm({ 
-  page, 
-  onSave, 
+function PageForm({
+  page,
+  onSave,
   onCancel,
   saving = false
-}: { 
-  page: CustomPage | null; 
-  onSave: (pageData: Partial<CustomPage>) => void; 
-  onCancel: () => void; 
+}: {
+  page: CustomPage | null;
+  onSave: (pageData: Partial<CustomPage>) => void;
+  onCancel: () => void;
   saving?: boolean;
 }) {
   const [formData, setFormData] = useState({
@@ -115,20 +115,20 @@ function PageForm({
               type="text"
               className="w-full border border-black p-2 bg-white text-sm"
               value={formData.slug}
-              onChange={(e) => setFormData({...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")})}
+              onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
               placeholder="about"
               required
             />
             <p className="text-xs text-gray-500 mt-1">Letters, numbers, and hyphens only</p>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium mb-1">Title</label>
             <input
               type="text"
               className="w-full border border-black p-2 bg-white text-sm"
               value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="About Us"
               required
             />
@@ -141,7 +141,7 @@ function PageForm({
             className="w-full border border-black p-2 bg-white text-sm font-mono"
             rows={12}
             value={formData.content}
-            onChange={(e) => setFormData({...formData, content: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
             placeholder="<div style='min-height: 100vh; padding: 2rem; background: linear-gradient(45deg, #ff6b6b, #4ecdc4);'>
   <h1 style='color: white; text-align: center; font-size: 3rem;'>Welcome</h1>
   <p style='color: white; text-align: center;'>You have complete control over this page!</p>
@@ -165,30 +165,30 @@ function PageForm({
               <input
                 type="checkbox"
                 checked={formData.published}
-                onChange={(e) => setFormData({...formData, published: e.target.checked})}
+                onChange={(e) => setFormData({ ...formData, published: e.target.checked })}
               />
               <span className="text-sm">Published</span>
             </label>
             <p className="text-xs text-gray-500">Make page publicly accessible</p>
           </div>
-          
+
           <div>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={formData.showInNav}
-                onChange={(e) => setFormData({...formData, showInNav: e.target.checked})}
+                onChange={(e) => setFormData({ ...formData, showInNav: e.target.checked })}
               />
               <span className="text-sm">Show in Navigation</span>
             </label>
             <p className="text-xs text-gray-500">Add to main navigation menu</p>
-            
+
             {formData.showInNav && (
               <div className="mt-2 ml-6">
                 <label className="block text-sm font-medium mb-1">Navigation Placement</label>
                 <select
                   value={formData.navDropdown || ''}
-                  onChange={(e) => setFormData({...formData, navDropdown: e.target.value || null})}
+                  onChange={(e) => setFormData({ ...formData, navDropdown: e.target.value || null })}
                   className="w-full px-2 py-1 border border-black"
                 >
                   <option value="">Top Level (no dropdown)</option>
@@ -199,25 +199,25 @@ function PageForm({
               </div>
             )}
           </div>
-          
+
           <div>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={formData.hideNavbar}
-                onChange={(e) => setFormData({...formData, hideNavbar: e.target.checked})}
+                onChange={(e) => setFormData({ ...formData, hideNavbar: e.target.checked })}
               />
               <span className="text-sm">Hide Navigation Bar</span>
             </label>
             <p className="text-xs text-gray-500">Remove navbar for full-screen design</p>
           </div>
-          
+
           <div>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={formData.isHomepage}
-                onChange={(e) => setFormData({...formData, isHomepage: e.target.checked})}
+                onChange={(e) => setFormData({ ...formData, isHomepage: e.target.checked })}
               />
               <span className="text-sm font-bold text-orange-700"><PixelIcon name="home" className="inline-block align-middle" /> Use as Homepage</span>
             </label>
@@ -229,7 +229,7 @@ function PageForm({
               <input
                 type="checkbox"
                 checked={formData.isLandingPage}
-                onChange={(e) => setFormData({...formData, isLandingPage: e.target.checked})}
+                onChange={(e) => setFormData({ ...formData, isLandingPage: e.target.checked })}
               />
               <span className="text-sm font-bold text-green-700"><PixelIcon name="bookmark" className="inline-block align-middle" /> Use as Landing Page</span>
             </label>
@@ -242,7 +242,7 @@ function PageForm({
               type="number"
               className="w-full border border-black p-2 bg-white text-sm"
               value={formData.navOrder}
-              onChange={(e) => setFormData({...formData, navOrder: parseInt(e.target.value) || 0})}
+              onChange={(e) => setFormData({ ...formData, navOrder: parseInt(e.target.value) || 0 })}
               min="0"
             />
             <p className="text-xs text-gray-500">Lower numbers appear first</p>
@@ -281,6 +281,8 @@ type User = {
   handles: string[];
   postCount: number;
   commentCount: number;
+  emailVerifiedAt: string | null;
+  hasEmail: boolean;
 };
 
 type SiteConfig = {
@@ -347,25 +349,26 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [generatingKey, setGeneratingKey] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [resendingEmailUserId, setResendingEmailUserId] = useState<string | null>(null);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [configMessage, setConfigMessage] = useState<string | null>(null);
-  
+
   // Custom pages state
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [loadingPages, setLoadingPages] = useState(false);
   const [editingPage, setEditingPage] = useState<CustomPage | null>(null);
   const [showPageForm, setShowPageForm] = useState(false);
   const [savingPage, setSavingPage] = useState(false);
-  
+
   // Site CSS state
   const [siteCSS, setSiteCSS] = useState("");
   const [loadingCSS, setLoadingCSS] = useState(false);
   const [savingCSS, setSavingCSS] = useState(false);
   const [cssMessage, setCSSMessage] = useState<string | null>(null);
   const [showCSSTemplates, setShowCSSTemplates] = useState(false);
-  
+
   // Default homepage state
   const [disableDefaultHome, setDisableDefaultHome] = useState(false);
   const [loadingHomeSetting, setLoadingHomeSetting] = useState(false);
@@ -377,17 +380,17 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   const [loadingLandingSetting, setLoadingLandingSetting] = useState(false);
   const [savingLandingSetting, setSavingLandingSetting] = useState(false);
   const [landingMessage, setLandingMessage] = useState<string | null>(null);
-  
+
   // Default profile CSS state
   const [defaultProfileCSS, setDefaultProfileCSS] = useState("");
   const [loadingDefaultProfileCSS, setLoadingDefaultProfileCSS] = useState(false);
   const [savingDefaultProfileCSS, setSavingDefaultProfileCSS] = useState(false);
   const [defaultProfileMessage, setDefaultProfileMessage] = useState<string | null>(null);
   const [showDefaultProfileTemplates, setShowDefaultProfileTemplates] = useState(false);
-  
+
   // Seed phrase generation state
   const [generatedSeedPhrase, setGeneratedSeedPhrase] = useState<string | null>(null);
-  const [generatedSeedUser, setGeneratedSeedUser] = useState<{id: string, displayName: string | null, primaryHandle: string | null} | null>(null);
+  const [generatedSeedUser, setGeneratedSeedUser] = useState<{ id: string, displayName: string | null, primaryHandle: string | null } | null>(null);
   const [generatingSeed, setGeneratingSeed] = useState<string | null>(null);
 
   // Policy documents state
@@ -483,6 +486,32 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
     }
   }
 
+  async function resendVerification(userId: string, displayName: string | null) {
+    if (!confirm(`Are you sure you want to resend the verification email to "${displayName || 'Unknown'}"?`)) return;
+
+    setResendingEmailUserId(userId);
+    try {
+      const res = await csrfFetch("/api/admin/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (res.ok) {
+        alert("Verification email sent successfully");
+        // Optionally refresh users to update status if backend updated it immediately (likely not changed until user verifies)
+      } else {
+        const error = await res.json();
+        alert(error.error || "Failed to send verification email");
+      }
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+      alert("Failed to send verification email");
+    } finally {
+      setResendingEmailUserId(null);
+    }
+  }
+
   async function loadSiteConfig() {
     setLoadingConfig(true);
     try {
@@ -501,7 +530,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
   async function saveSiteConfig() {
     if (!siteConfig) return;
-    
+
     setSavingConfig(true);
     setConfigMessage(null);
     try {
@@ -553,29 +582,29 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
   async function saveCustomPage(pageData: Partial<CustomPage>) {
     if (savingPage) return; // Prevent multiple submissions
-    
+
     setSavingPage(true);
     try {
-      const url = editingPage 
+      const url = editingPage
         ? `/api/admin/custom-pages/${editingPage.id}`
         : "/api/admin/custom-pages";
       const method = editingPage ? "PUT" : "POST";
-      
+
       // Saving page data
-      
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
+
       const res = await fetch(url, {
         method,
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
         body: JSON.stringify(pageData),
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
 
       // Response received
@@ -678,10 +707,10 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
     if (type !== 'clear') {
       newCSS = getSiteTemplate(type);
     }
-    
+
     setSiteCSS(newCSS);
     setShowCSSTemplates(false);
-    
+
     // Auto-save the template and refresh
     setSavingCSS(true);
     setCSSMessage("Applying template...");
@@ -717,7 +746,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
     if (confirmed) {
       const defaultCSS = getSiteTemplate('default');
       setSiteCSS(defaultCSS);
-      
+
       // Auto-save and refresh
       setSavingCSS(true);
       setCSSMessage("Restoring default template...");
@@ -771,8 +800,8 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           config: {
-            disable_default_home: disableDefaultHome ? "true" : "false" 
-          } 
+            disable_default_home: disableDefaultHome ? "true" : "false"
+          }
         }),
       });
 
@@ -858,8 +887,8 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           config: {
-            default_profile_css: defaultProfileCSS 
-          } 
+            default_profile_css: defaultProfileCSS
+          }
         }),
       });
 
@@ -882,7 +911,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
     const newCSS = getDefaultProfileTemplate(type);
     setDefaultProfileCSS(newCSS);
     setShowDefaultProfileTemplates(false);
-    
+
     // Auto-save the template
     setSavingDefaultProfileCSS(true);
     setDefaultProfileMessage("Applying template...");
@@ -893,8 +922,8 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           config: {
-            default_profile_css: newCSS 
-          } 
+            default_profile_css: newCSS
+          }
         }),
       });
 
@@ -924,7 +953,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       // API response received
-      
+
       if (res.ok) {
         const data = await res.json();
         // API response data processed
@@ -961,7 +990,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
   async function savePolicies() {
     if (!policies) return;
-    
+
     setSavingPolicies(true);
     setPolicyMessage(null);
     try {
@@ -1024,7 +1053,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newEmojiName.trim(),
-          imageUrl: newEmojiUrl.trim() 
+          imageUrl: newEmojiUrl.trim()
         }),
       });
 
@@ -1174,13 +1203,13 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
             <p className="text-sm text-gray-600 mb-4">
               Create fully customizable pages with complete design freedom. Pages appear with navbar and footer but no containers - you control everything else! Published pages can be accessed at /page/[slug].
             </p>
-            
+
             <div className="border border-blue-300 bg-blue-50 p-3 rounded mb-4">
               <h4 className="font-bold text-blue-800 mb-2"><PixelIcon name="home" className="inline-block align-middle" /> Homepage Control</h4>
               <p className="text-sm text-blue-700 mb-3">
                 Create a custom page and check &quot;Use as Homepage&quot; to override the default homepage, or use the setting below to redirect visitors directly to /feed.
               </p>
-              
+
               {loadingHomeSetting ? (
                 <div className="text-sm">Loading homepage setting...</div>
               ) : (
@@ -1274,7 +1303,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
               >
                 {showPageForm ? "Cancel" : "Add New Page"}
               </button>
-              
+
               <button
                 onClick={loadCustomPages}
                 disabled={loadingPages}
@@ -1354,7 +1383,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
               </div>
             )}
           </div>
-          
+
           {/* Site Configuration */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
@@ -1363,7 +1392,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
             <p className="text-sm text-gray-600 mb-4">
               Customize your site&apos;s branding and messaging. Changes will appear site-wide.
             </p>
-            
+
             {loadingConfig ? (
               <div>Loading configuration...</div>
             ) : siteConfig ? (
@@ -1380,7 +1409,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     />
                     <p className="text-xs text-gray-500 mt-1">Main site name in header</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">Site Tagline</label>
                     <input
@@ -1392,7 +1421,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     />
                     <p className="text-xs text-gray-500 mt-1">Appears under site name</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">User Status Text</label>
                     <input
@@ -1404,7 +1433,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     />
                     <p className="text-xs text-gray-500 mt-1">Default status on user profiles</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">Welcome Message</label>
                     <input
@@ -1416,7 +1445,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     />
                     <p className="text-xs text-gray-500 mt-1">Main page headline</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">Directory Title</label>
                     <input
@@ -1428,7 +1457,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     />
                     <p className="text-xs text-gray-500 mt-1">User directory page title</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">Footer Text</label>
                     <input
@@ -1441,7 +1470,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     <p className="text-xs text-gray-500 mt-1">Copyright text in footer</p>
                   </div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium mb-1">Directory Empty Message</label>
@@ -1454,7 +1483,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     />
                     <p className="text-xs text-gray-500 mt-1">Shown when no users exist</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">Feed Empty Message</label>
                     <textarea
@@ -1466,7 +1495,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     />
                     <p className="text-xs text-gray-500 mt-1">Shown when feed is empty</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">Welcome Dialog Title</label>
                     <input
@@ -1478,7 +1507,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     />
                     <p className="text-xs text-gray-500 mt-1">Title for first-time user dialog</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">Guestbook Prompt</label>
                     <input
@@ -1490,7 +1519,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     />
                     <p className="text-xs text-gray-500 mt-1">Placeholder text for guestbook messages</p>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">Site Description</label>
                     <textarea
@@ -1503,7 +1532,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                     <p className="text-xs text-gray-500 mt-1">General site description for meta tags</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
                   <button
                     onClick={saveSiteConfig}
@@ -1521,7 +1550,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
               <div>Failed to load configuration</div>
             )}
           </div>
-          
+
           {/* Policy Documents */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
@@ -1530,7 +1559,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
             <p className="text-sm text-gray-600 mb-4">
               Manage your site&apos;s Terms and Conditions and Privacy Policy. Users will see the simple versions during signup with links to the full versions. Both versions are required for legal compliance.
             </p>
-            
+
             {loadingPolicies ? (
               <div>Loading policy documents...</div>
             ) : policies ? (
@@ -1612,7 +1641,7 @@ We collect information you provide when creating an account..."
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3 pt-3 border-t border-gray-200">
                   <button
                     onClick={savePolicies}
@@ -1641,7 +1670,7 @@ We collect information you provide when creating an account..."
               <div>Failed to load policy documents</div>
             )}
           </div>
-          
+
           {/* Emoji Management */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
@@ -1650,12 +1679,12 @@ We collect information you provide when creating an account..."
             <p className="text-sm text-gray-600 mb-4">
               Upload and manage custom emojis that users can use in posts and comments with the :emojiName: format.
             </p>
-            
+
             <div className="space-y-4">
               {/* Add New Emoji Form */}
               <div className="border border-blue-300 bg-blue-50 p-4 rounded">
                 <h4 className="font-bold mb-3">Add New Emoji</h4>
-                
+
                 {/* Upload Mode Toggle */}
                 <div className="mb-4">
                   <div className="flex gap-2 mb-2">
@@ -1759,7 +1788,7 @@ We collect information you provide when creating an account..."
                     <span className="text-sm">{emojiMessage}</span>
                   </div>
                 )}
-                
+
                 <div className="text-xs text-gray-600 bg-yellow-50 border border-yellow-200 rounded p-2">
                   <strong>Tips:</strong> Emojis will be automatically resized to 64x64 pixels. PNG format with transparency recommended. Emoji names must be unique.
                 </div>
@@ -1778,7 +1807,7 @@ We collect information you provide when creating an account..."
                     {loadingEmojis ? "Loading..." : "Refresh"}
                   </button>
                 </div>
-                
+
                 {loadingEmojis ? (
                   <div className="text-center p-4">Loading emojis...</div>
                 ) : emojis.length === 0 ? (
@@ -1790,8 +1819,8 @@ We collect information you provide when creating an account..."
                     {emojis.map(emoji => (
                       <div key={emoji.id} className="border border-black p-3 bg-white flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <img 
-                            src={emoji.imageUrl} 
+                          <img
+                            src={emoji.imageUrl}
                             alt={emoji.name}
                             className="w-8 h-8 object-contain"
                             onError={(e) => {
@@ -1801,7 +1830,7 @@ We collect information you provide when creating an account..."
                           <div>
                             <div className="font-bold">:{emoji.name}:</div>
                             <div className="text-xs text-gray-500">
-                              Created by {emoji.creator.profile?.displayName || emoji.creator.handles[0]?.handle || 'Unknown'} 
+                              Created by {emoji.creator.profile?.displayName || emoji.creator.handles[0]?.handle || 'Unknown'}
                               on {new Date(emoji.createdAt).toLocaleDateString()}
                             </div>
                           </div>
@@ -1842,7 +1871,7 @@ We collect information you provide when creating an account..."
             <p className="text-sm text-gray-600 mb-4">
               Add custom CSS that will be applied across the entire site. Use this to customize the look and feel beyond the built-in themes.
             </p>
-            
+
             {/* Header with controls */}
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium">
@@ -1883,7 +1912,7 @@ We collect information you provide when creating an account..."
                 </div>
               </div>
             )}
-            
+
             {loadingCSS ? (
               <div>Loading CSS...</div>
             ) : (
@@ -1908,7 +1937,7 @@ We collect information you provide when creating an account..."
                     {siteCSS.length} characters
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <button
                     onClick={saveSiteCSS}
@@ -1921,7 +1950,7 @@ We collect information you provide when creating an account..."
                     <span className="text-sm">{cssMessage}</span>
                   )}
                 </div>
-                
+
                 <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded p-3">
                   <div className="flex items-start gap-2">
                     <PixelIcon name="lightbulb" />
@@ -1934,7 +1963,7 @@ We collect information you provide when creating an account..."
               </div>
             )}
           </div>
-          
+
           {/* Default Profile CSS */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
@@ -1943,7 +1972,7 @@ We collect information you provide when creating an account..."
             <p className="text-sm text-gray-600 mb-4">
               Set a default CSS theme for user profiles when they haven&apos;t customized their own. This provides visual cohesion while respecting user choice.
             </p>
-            
+
             {loadingDefaultProfileCSS ? (
               <div>Loading default profile CSS...</div>
             ) : (
@@ -1981,7 +2010,7 @@ We collect information you provide when creating an account..."
                     </div>
                   </div>
                 )}
-                
+
                 <div className="relative">
                   <textarea
                     className="w-full border border-black p-3 bg-white text-sm font-mono"
@@ -2004,7 +2033,7 @@ We collect information you provide when creating an account..."
                     {defaultProfileCSS.length} characters
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <button
                     onClick={saveDefaultProfileCSS}
@@ -2017,7 +2046,7 @@ We collect information you provide when creating an account..."
                     <span className="text-sm">{defaultProfileMessage}</span>
                   )}
                 </div>
-                
+
                 <div className="text-xs text-gray-500 bg-blue-50 border border-blue-200 rounded p-3">
                   <div className="flex items-start gap-2">
                     <PixelIcon name="info-box" />
@@ -2034,7 +2063,7 @@ We collect information you provide when creating an account..."
 
           {/* Signup Audio Section */}
           <SignupAudioSection />
-          
+
           {/* Founder's Note Section */}
           <div className="mt-8 border-t pt-8">
             <FoundersNoteSection />
@@ -2141,7 +2170,7 @@ We collect information you provide when creating an account..."
               >
                 {generatingKey ? "Generating..." : "Generate New Beta Key"}
               </button>
-              
+
               {generatedKey && (
                 <div className="p-3 border border-black bg-yellow-100">
                   <strong>New Beta Key:</strong>
@@ -2155,90 +2184,113 @@ We collect information you provide when creating an account..."
               )}
             </div>
           </div>
-          
+
           {/* User Management */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="font-bold mb-3 flex items-center gap-2">
               <PixelIcon name="user" /> User Management
             </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold">Users ({users.length})</h3>
-              <button
-                onClick={loadUsers}
-                disabled={loadingUsers}
-                className="border border-black px-2 py-1 bg-blue-200 hover:bg-blue-100 shadow-[1px_1px_0_#000] text-sm disabled:opacity-50"
-              >
-                {loadingUsers ? "Loading..." : "Refresh"}
-              </button>
-            </div>
-
-            {loadingUsers ? (
-              <div>Loading users...</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border border-black text-sm">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-black p-2 text-left">User</th>
-                      <th className="border border-black p-2 text-left">Handle</th>
-                      <th className="border border-black p-2 text-left">Role</th>
-                      <th className="border border-black p-2 text-left">Posts</th>
-                      <th className="border border-black p-2 text-left">Comments</th>
-                      <th className="border border-black p-2 text-left">Joined</th>
-                      <th className="border border-black p-2 text-left">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map(user => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="border border-black p-2">
-                          {user.displayName || "No display name"}
-                        </td>
-                        <td className="border border-black p-2">
-                          {user.primaryHandle || user.handles[0] || "No handle"}
-                        </td>
-                        <td className="border border-black p-2">
-                          <span className={`px-2 py-1 text-xs rounded ${
-                            user.role === "admin" 
-                              ? "bg-red-200 text-red-800" 
-                              : "bg-blue-200 text-blue-800"
-                          }`}>
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="border border-black p-2">{user.postCount}</td>
-                        <td className="border border-black p-2">{user.commentCount}</td>
-                        <td className="border border-black p-2">
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="border border-black p-2">
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => generateSeedPhraseForUser(user.id)}
-                              disabled={generatingSeed === user.id}
-                              className="border border-black px-2 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
-                              title="Generate new seed phrase for user recovery"
-                            >
-                              {generatingSeed === user.id ? "Generating..." : <><PixelIcon name="lock" className="inline-block align-middle" /> Seed</>}
-                            </button>
-                            {user.role !== "admin" && (
-                              <button
-                                onClick={() => deleteUser(user.id, user.displayName)}
-                                disabled={deletingUserId === user.id}
-                                className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
-                              >
-                                {deletingUserId === user.id ? "Deleting..." : "Delete"}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold">Users ({users.length})</h3>
+                <button
+                  onClick={loadUsers}
+                  disabled={loadingUsers}
+                  className="border border-black px-2 py-1 bg-blue-200 hover:bg-blue-100 shadow-[1px_1px_0_#000] text-sm disabled:opacity-50"
+                >
+                  {loadingUsers ? "Loading..." : "Refresh"}
+                </button>
               </div>
-            )}
+
+              {loadingUsers ? (
+                <div>Loading users...</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border border-black text-sm">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border border-black p-2 text-left">User</th>
+                        <th className="border border-black p-2 text-left">Handle</th>
+                        <th className="border border-black p-2 text-left">Role</th>
+                        <th className="border border-black p-2 text-left">Posts</th>
+                        <th className="border border-black p-2 text-left">Comments</th>
+                        <th className="border border-black p-2 text-left">Email Status</th>
+                        <th className="border border-black p-2 text-left">Joined</th>
+                        <th className="border border-black p-2 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map(user => (
+                        <tr key={user.id} className="hover:bg-gray-50">
+                          <td className="border border-black p-2">
+                            {user.displayName || "No display name"}
+                          </td>
+                          <td className="border border-black p-2">
+                            {user.primaryHandle || user.handles[0] || "No handle"}
+                          </td>
+                          <td className="border border-black p-2">
+                            <span className={`px-2 py-1 text-xs rounded ${user.role === "admin"
+                                ? "bg-red-200 text-red-800"
+                                : "bg-blue-200 text-blue-800"
+                              }`}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="border border-black p-2">{user.postCount}</td>
+                          <td className="border border-black p-2">{user.commentCount}</td>
+                          <td className="border border-black p-2">
+                            {user.emailVerifiedAt ? (
+                              <span className="text-green-600 font-bold flex items-center gap-1">
+                                <PixelIcon name="check" size={12} /> Verified
+                              </span>
+                            ) : user.hasEmail ? (
+                              <span className="text-orange-600 font-bold flex items-center gap-1">
+                                <PixelIcon name="clock" size={12} /> Pending
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 italic">No Email</span>
+                            )}
+                          </td>
+                          <td className="border border-black p-2">
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="border border-black p-2">
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => generateSeedPhraseForUser(user.id)}
+                                disabled={generatingSeed === user.id}
+                                className="border border-black px-2 py-1 bg-yellow-200 hover:bg-yellow-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
+                                title="Generate new seed phrase for user recovery"
+                              >
+                                {generatingSeed === user.id ? "Generating..." : <><PixelIcon name="lock" className="inline-block align-middle" /> Seed</>}
+                              </button>
+                              {!user.emailVerifiedAt && user.hasEmail && (
+                                <button
+                                  onClick={() => resendVerification(user.id, user.displayName)}
+                                  disabled={resendingEmailUserId === user.id}
+                                  className="border border-black px-2 py-1 bg-blue-100 hover:bg-blue-50 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
+                                  title="Resend verification email"
+                                >
+                                  {resendingEmailUserId === user.id ? "Sending..." : "Resend Email"}
+                                </button>
+                              )}
+                              {user.role !== "admin" && (
+                                <button
+                                  onClick={() => deleteUser(user.id, user.displayName)}
+                                  disabled={deletingUserId === user.id}
+                                  className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
+                                >
+                                  {deletingUserId === user.id ? "Deleting..." : "Delete"}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </CollapsibleSection>
