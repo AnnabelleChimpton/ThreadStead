@@ -655,7 +655,7 @@ export default function DecorationMode({
   }
 
   const handleDecorationMouseDown = (decorationId: string, event: React.MouseEvent) => {
-    if (isPlacing || isDeleting) return
+    if (isPlacing || isDeleting || paintBrush !== undefined) return
 
     event.stopPropagation()
     const decoration = placedDecorations.find(d => d.id === decorationId)
@@ -663,7 +663,7 @@ export default function DecorationMode({
       setDraggedItem(decoration)
       setDraggedDecorationId(decorationId)
       setIsDragging(true)
-      selectDecoration(decorationId)
+      clearSelection()  // Don't highlight when dragging - preview ghost shows intent
 
       // Calculate offset from mouse to decoration top-left
       // We need to use the scaled coordinates from the canvas
@@ -1014,7 +1014,7 @@ export default function DecorationMode({
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleMouseMove}
               onDecorationClick={(id, e) => {
-                if (isPlacing) return
+                if (isPlacing || paintBrush !== undefined) return
                 e.stopPropagation()
                 if (isDeleting) {
                   removeDecorations(new Set([id]))

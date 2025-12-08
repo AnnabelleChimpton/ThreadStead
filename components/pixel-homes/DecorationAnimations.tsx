@@ -131,7 +131,7 @@ export default function AnimatedDecoration({
 
       {/* Selection highlight ring */}
       {animationType === 'select' && (
-        <div className="absolute inset-0 -m-2 border-2 border-blue-400 rounded-full animate-ping opacity-75" />
+        <div className="absolute inset-0 border-2 border-blue-400 rounded-lg pointer-events-none opacity-60" />
       )}
 
       {/* Hover glow effect */}
