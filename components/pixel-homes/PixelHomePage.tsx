@@ -62,6 +62,7 @@ interface ProfileBadge {
 
 interface PixelHomePageProps {
   username: string
+  displayName?: string
   homeConfig?: UserHomeConfig
   isOwner?: boolean
   className?: string
@@ -69,10 +70,12 @@ interface PixelHomePageProps {
 
 export default function PixelHomePage({
   username,
+  displayName,
   homeConfig,
   isOwner = false,
   className = ''
 }: PixelHomePageProps) {
+  const nameToShow = displayName || username
   const router = useRouter()
   const [showShareModal, setShowShareModal] = useState(false)
   const [badges, setBadges] = useState<ProfileBadge[]>([])
@@ -243,10 +246,10 @@ export default function PixelHomePage({
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-3xl font-headline font-bold text-thread-pine mb-3 flex items-center justify-center gap-3">
-            {username}&apos;s Pixel Home
+            {nameToShow}&apos;s Pixel Home
           </h1>
           <div className="text-thread-sage text-lg mb-6 max-w-2xl mx-auto">
-            Welcome to the neighborhood! This is {username}&apos;s interactive pixel home.
+            Welcome to the neighborhood! This is {nameToShow}&apos;s interactive pixel home.
           </div>
         </div>
 
@@ -258,7 +261,7 @@ export default function PixelHomePage({
             <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-6 shadow-cozy">
               <div className="text-center space-y-4">
                 <div className="text-2xl font-headline font-bold text-thread-pine">
-                  @{username}
+                  {nameToShow}
                 </div>
                 {badges.length > 0 && (
                   <div className="flex justify-center">
@@ -474,7 +477,7 @@ export default function PixelHomePage({
                 </div>
                 <div className="text-thread-sage max-w-lg mx-auto leading-relaxed">
                   {config.houseCustomizations?.houseDescription ||
-                    `This is @${username}'s pixel home - a personalized space for connection and discovery. Use the interactive menu on the left to explore their profile, leave messages, and learn more about their ThreadRing community.`}
+                    `This is ${nameToShow}'s pixel home - a personalized space for connection and discovery. Use the interactive menu on the left to explore their profile, leave messages, and learn more about their ThreadRing community.`}
                 </div>
               </div>
             </div>
@@ -499,7 +502,7 @@ export default function PixelHomePage({
           <div className="text-sm text-thread-sage bg-thread-cream bg-opacity-30 p-3 rounded-md border border-thread-sage border-opacity-20">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg">🏠</span>
-              <span className="font-medium">Writing from @{username}&apos;s Pixel Home</span>
+              <span className="font-medium">Writing from {nameToShow}&apos;s Pixel Home</span>
             </div>
             <div className="text-xs">
               Messages posted here appear on their main profile guestbook too!

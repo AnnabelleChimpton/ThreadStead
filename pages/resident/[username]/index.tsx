@@ -382,6 +382,7 @@ export default function ProfilePage({
         <RetroCard>
           <ProfileHeader
             username={username}
+            displayName={displayName}
             ownerUserId={ownerUserId}
             photoUrl={photoUrl}
             bio={bio}

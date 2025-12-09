@@ -12,6 +12,7 @@ import { useChat } from "@/contexts/ChatContext";
 
 interface ProfileHeaderProps {
   username: string;
+  displayName?: string;
   ownerUserId?: string;
   photoUrl?: string;
   bio?: string;
@@ -21,12 +22,14 @@ interface ProfileHeaderProps {
 
 export default function ProfileHeader({
   username,
+  displayName,
   ownerUserId,
   photoUrl = "/assets/default-avatar.gif",
   bio,
   relStatus,
   onRelStatusChange
 }: ProfileHeaderProps) {
+  const nameToShow = displayName || username;
   const { config } = useSiteConfig();
   const { user: currentUser } = useCurrentUser();
   const { openDM } = useChat();
@@ -42,7 +45,7 @@ export default function ProfileHeader({
         <div className="ts-profile-info-section flex-1">
           <div className="ts-profile-identity mb-4">
             <h2 className="ts-profile-display-name thread-headline text-3xl font-bold text-thread-pine mb-1">
-              {username}
+              {nameToShow}
             </h2>
             <span className="ts-profile-status thread-label">
               {config.user_status_text}

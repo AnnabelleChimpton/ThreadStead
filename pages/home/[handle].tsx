@@ -97,6 +97,7 @@ export default function PixelHome({
       <Layout>
         <PixelHomePage
           username={username}
+          displayName={userDisplayName}
           homeConfig={homeConfig}
           isOwner={isOwner}
         />
