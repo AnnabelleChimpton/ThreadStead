@@ -10,6 +10,7 @@ datasource db {
 model User {
   id                        String                        @id @default(cuid())
   did                       String                        @unique
+  originalDid               String?                       @unique // Original did:key (Seed Phrase) if migrated to did:web
   createdAt                 DateTime                      @default(now())
   primaryHandle             String?
   publicBaseUrl             String?
@@ -752,6 +753,7 @@ enum CommentStatus {
 enum EmailTokenType {
   login
   verification
+  password_reset
 }
 
 enum NotificationType {

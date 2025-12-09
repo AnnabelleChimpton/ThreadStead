@@ -411,6 +411,12 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadMode, setUploadMode] = useState<'url' | 'file'>('url');
 
+  // Set Email Modal state
+  const [emailModalUser, setEmailModalUser] = useState<{ id: string, name: string } | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [shouldVerifyEmail, setShouldVerifyEmail] = useState(true);
+  const [settingEmail, setSettingEmail] = useState(false);
+
   useEffect(() => {
     if (me?.loggedIn && me.user?.role === "admin") {
       loadUsers();
@@ -509,6 +515,40 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       alert("Failed to send verification email");
     } finally {
       setResendingEmailUserId(null);
+    }
+  }
+
+  async function handleSetEmail() {
+    if (!emailModalUser) return;
+
+    setSettingEmail(true);
+    try {
+      // Use verified: false to allow sendVerification to work if email is new/changed
+      const res = await csrfFetch("/api/admin/set-user-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: emailModalUser.id,
+          email: emailInput,
+          verified: false,
+          sendVerification: shouldVerifyEmail
+        }),
+      });
+
+      if (res.ok) {
+        alert("Email updated successfully");
+        setEmailModalUser(null);
+        setEmailInput("");
+        loadUsers();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Failed to set email");
+      }
+    } catch (error) {
+      console.error("Failed to set email:", error);
+      alert("Failed to set email");
+    } finally {
+      setSettingEmail(false);
     }
   }
 
@@ -2230,8 +2270,8 @@ We collect information you provide when creating an account..."
                           </td>
                           <td className="border border-black p-2">
                             <span className={`px-2 py-1 text-xs rounded ${user.role === "admin"
-                                ? "bg-red-200 text-red-800"
-                                : "bg-blue-200 text-blue-800"
+                              ? "bg-red-200 text-red-800"
+                              : "bg-blue-200 text-blue-800"
                               }`}>
                               {user.role}
                             </span>
@@ -2283,6 +2323,19 @@ We collect information you provide when creating an account..."
                                   {deletingUserId === user.id ? "Deleting..." : "Delete"}
                                 </button>
                               )}
+                            </div>
+                            <div className="flex gap-1 mt-1">
+                              <button
+                                onClick={() => {
+                                  setEmailModalUser({ id: user.id, name: user.displayName || user.primaryHandle || 'User' });
+                                  setEmailInput(""); // Reset input
+                                  setShouldVerifyEmail(true);
+                                }}
+                                className="border border-black px-2 py-1 bg-purple-200 hover:bg-purple-100 shadow-[1px_1px_0_#000] text-xs"
+                                title="Set or update user email"
+                              >
+                                <PixelIcon name="mail" className="inline-block align-middle" /> Set Email
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -2368,6 +2421,60 @@ We collect information you provide when creating an account..."
                     Close
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Set Email Modal */}
+        {emailModalUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white border-2 border-black rounded-lg max-w-md w-full p-6 space-y-4">
+              <div className="text-center">
+                <h2 className="font-bold text-xl mb-2"><PixelIcon name="mail" className="inline-block align-middle" /> Set User Email</h2>
+                <p className="text-gray-600 text-sm">
+                  Setting email for: <strong>{emailModalUser.name}</strong>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-1">New Email Address</label>
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="user@example.com"
+                  className="w-full border border-black p-2 bg-white"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="sendVerification"
+                  checked={shouldVerifyEmail}
+                  onChange={(e) => setShouldVerifyEmail(e.target.checked)}
+                />
+                <label htmlFor="sendVerification" className="text-sm cursor-pointer select-none">
+                  Send verification email
+                </label>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleSetEmail}
+                  disabled={settingEmail || !emailInput}
+                  className="flex-1 px-4 py-2 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-medium disabled:opacity-50"
+                >
+                  {settingEmail ? "Saving..." : "Save Email"}
+                </button>
+                <button
+                  onClick={() => setEmailModalUser(null)}
+                  disabled={settingEmail}
+                  className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-black font-medium"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>

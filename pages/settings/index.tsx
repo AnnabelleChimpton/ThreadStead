@@ -22,8 +22,8 @@ import MidiManager from "@/components/ui/media/MidiManager";
 import ThemePicker from "@/components/pixel-homes/ThemePicker";
 import ConsentManager from "@/components/features/auth/ConsentManager";
 // Full identity management imports
-import { 
-  getExistingDid, 
+import {
+  getExistingDid,
   createNewIdentityWithSeedPhrase,
   recoverFromSeedPhrase,
   getSeedPhrase,
@@ -107,14 +107,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
   const [showEmailSection, setShowEmailSection] = useState(false);
   const [emailInput, setEmailInput] = useState<string>('');
   const [isEmailLoading, setIsEmailLoading] = useState(false);
-  
+
   // Pixel Home state
   const [pixelHomeLoading, setPixelHomeLoading] = useState(false);
 
   // Handle pixel home theme updates
   const handlePixelHomeUpdate = async (template: string, palette: string) => {
     if (!currentUser?.primaryHandle) return;
-    
+
     setPixelHomeLoading(true);
     try {
       const response = await fetch(`/api/home/${username}`, {
@@ -122,7 +122,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ houseTemplate: template, palette })
       });
-      
+
       if (response.ok) {
         setSaveMessage("Pixel Home updated successfully!");
         setTimeout(() => setSaveMessage(null), 3000);
@@ -137,13 +137,19 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     }
   };
 
+  // Hydration fix: ensure we only render client-specific auth state after mount
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Password auth state
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const [hasPasswordAuth, setHasPasswordAuth] = useState(false);
-  
+
   // Password change state
   const [showPasswordChangeSection, setShowPasswordChangeSection] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -151,8 +157,37 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
   const [confirmNewPasswordChange, setConfirmNewPasswordChange] = useState('');
   const [changePasswordErrors, setChangePasswordErrors] = useState<string[]>([]);
 
+  // Password reset state
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetSeedPhrase, setResetSeedPhrase] = useState('');
+  const [resetMode, setResetMode] = useState<'seed' | 'email'>('seed');
+  const [resetEmail, setResetEmail] = useState('');
+  const [emailResetStatus, setEmailResetStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [emailResetMessage, setEmailResetMessage] = useState('');
+
   const isAdmin = initialUser.role === "admin";
   const username = React.useMemo(() => initialUser.primaryHandle?.split("@")[0] || "", [initialUser.primaryHandle]);
+
+  const handleRequestEmailReset = async () => {
+    if (!resetEmail) return;
+    setEmailResetStatus('sending');
+    setEmailResetMessage('');
+    try {
+      const res = await fetch('/api/auth/request-password-reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: resetEmail })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send');
+      setEmailResetStatus('sent');
+    } catch (err: any) {
+      setEmailResetStatus('error');
+      setEmailResetMessage(err.message || "Failed to send reset email");
+    }
+  };
 
   const handlePhotoUploadSuccess = (urls: { thumbnailUrl: string; mediumUrl: string; fullUrl: string }) => {
     setAvatarUrl(urls.mediumUrl);
@@ -222,13 +257,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       const seedData = getSeedPhrase();
       setCurrentSeedPhrase(seedData);
       setHasPasswordAuth(isPasswordAuth());
-      
+
       // Also check if user has password auth enabled by checking if they have encrypted seed phrase
       const encryptedSeed = localStorage.getItem('retro_encrypted_seed_v1');
       if (encryptedSeed && !hasPasswordAuth) {
         setHasPasswordAuth(true);
       }
-      
+
       await loadUserEmail();
     } catch {
       // Identity loading failed silently
@@ -237,7 +272,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
   async function loadUserEmail() {
     if (!initialUser) return;
-    
+
     try {
       const response = await fetch('/api/user/email');
       if (response.ok) {
@@ -271,9 +306,9 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
   }
 
   async function handleRegenerateSeedPhrase() {
-    const passwordWarning = (hasPasswordAuth || isPasswordAuth()) ? 
+    const passwordWarning = (hasPasswordAuth || isPasswordAuth()) ?
       '• You\'ll be asked for your password to keep password login working\n' : '';
-    
+
     const confirmed = confirm(
       'Are you sure you want to generate a new seed phrase?\n\n' +
       'This will:\n' +
@@ -290,10 +325,10 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     try {
       setIsLoading(true);
       setSaveMessage("Generating new seed phrase and updating your account...");
-      
+
       const newSeed = await generateSeedPhrase();
       await updateIdentityWithSeedPhrase(newSeed, true);
-      
+
       // If user has password auth, we need to update their encrypted seed phrase too
       if (hasPasswordAuth || isPasswordAuth()) {
         try {
@@ -302,14 +337,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           if (userPassword) {
             const { encryptSeedPhraseWithPassword } = await import('@/lib/auth/password');
             const newEncryptedSeed = encryptSeedPhraseWithPassword(newSeed, userPassword);
-            
+
             // Update the encrypted seed phrase on server
             const response = await fetch('/api/auth/update-encrypted-seed', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ encryptedSeedPhrase: newEncryptedSeed })
             });
-            
+
             if (!response.ok) {
               console.error('Failed to update encrypted seed phrase on server');
             } else {
@@ -322,7 +357,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           setSaveMessage("Warning: New seed phrase generated but password login may not work. Please add password authentication again if needed.");
         }
       }
-      
+
       setSeedPhrase(newSeed);
       setSaveMessage("New recovery seed phrase generated! Please save it securely.");
       await loadCurrentIdentity();
@@ -343,7 +378,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       setIsLoading(true);
       setSaveMessage("Recovering account from seed phrase...");
       await recoverFromSeedPhrase(recoveryPhrase.trim());
-      
+
       // If user has password auth, we need to update their encrypted seed phrase too
       if (hasPasswordAuth || isPasswordAuth()) {
         try {
@@ -351,14 +386,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           if (userPassword) {
             const { encryptSeedPhraseWithPassword } = await import('@/lib/auth/password');
             const newEncryptedSeed = encryptSeedPhraseWithPassword(recoveryPhrase.trim(), userPassword);
-            
+
             // Update the encrypted seed phrase on server
             const response = await fetch('/api/auth/update-encrypted-seed', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ encryptedSeedPhrase: newEncryptedSeed })
             });
-            
+
             if (response.ok) {
               localStorage.setItem('retro_encrypted_seed_v1', newEncryptedSeed);
             }
@@ -367,7 +402,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           console.error('Failed to update password encryption:', error);
         }
       }
-      
+
       await loadCurrentIdentity();
       setRecoveryPhrase("");
       setShowRecovery(false);
@@ -425,18 +460,18 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     try {
       setIsLoading(true);
       setSaveMessage("Changing password...");
-      
+
       // Import and use the changePassword function from did-client
       const { changePassword } = await import('@/lib/api/did/did-client');
       await changePassword(currentPassword, newPasswordChange);
-      
+
       // Reset form
       setCurrentPassword('');
       setNewPasswordChange('');
       setConfirmNewPasswordChange('');
       setShowPasswordChangeSection(false);
       setChangePasswordErrors([]);
-      
+
       setSaveMessage("Password changed successfully!");
     } catch (e: unknown) {
       setSaveMessage(`Error: ${(e as Error).message || 'Failed to change password'}`);
@@ -560,7 +595,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 placeholder="Your display name"
               />
             </div>
-            
+
             <div>
               <label className="block mb-2">
                 <span className="font-bold text-black">Bio</span>
@@ -654,29 +689,29 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             </div>
 
             <div className="border-t border-black pt-6">
-              <ProfilePhotoUpload 
+              <ProfilePhotoUpload
                 currentAvatarUrl={avatarUrl}
                 onUploadSuccess={handlePhotoUploadSuccess}
                 disabled={saving}
               />
             </div>
-            
+
             <div className="border-t border-black pt-6">
-              <WebsiteManager 
-                websites={websites} 
+              <WebsiteManager
+                websites={websites}
                 onChange={setWebsites}
                 maxWebsites={10}
               />
             </div>
-            
+
             <div className="border-t border-black pt-6">
-              <FriendManager 
-                selectedFriends={featuredFriends} 
+              <FriendManager
+                selectedFriends={featuredFriends}
                 onChange={setFeaturedFriends}
                 maxFriends={8}
               />
             </div>
-            
+
             <button
               onClick={handleSaveProfile}
               disabled={saving}
@@ -918,7 +953,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 <p className="text-sm text-purple-600">Upload and manage your profile&apos;s background music</p>
               </div>
             </div>
-            
+
             <MidiManager username={username} />
           </div>
 
@@ -965,7 +1000,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             <p className="text-gray-600 mb-4">
               Your seed phrase is a 12-word backup that can recover your account if you lose access.
             </p>
-            
+
             {!currentSeedPhrase ? (
               <div className="bg-amber-50 border border-amber-200 p-4 rounded mb-4">
                 <p className="text-amber-800 font-medium mb-2"><PixelIcon name="alert" /> No seed phrase recovery set</p>
@@ -1089,14 +1124,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             <p className="text-gray-600 mb-4">
               Add password login as an alternative to your seed phrase. You&apos;ll be able to sign in with either method.
             </p>
-            
-            {!hasPasswordAuth && !isPasswordAuth() ? (
+
+            {!hasPasswordAuth || !mounted ? (
               <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4">
                 <p className="text-blue-800 font-medium mb-2"><PixelIcon name="lightbulb" /> Enable password login</p>
                 <p className="text-blue-700 text-sm mb-3">
                   Add a password to your account for easier login. Your seed phrase will still work and remains the most secure option.
                 </p>
-                
+
                 {!showPasswordSection ? (
                   <button
                     onClick={() => setShowPasswordSection(true)}
@@ -1121,7 +1156,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                         disabled={isLoading}
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-bold mb-2">Confirm Password</label>
                       <input
@@ -1183,7 +1218,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 <p className="text-green-700 text-sm mb-4">
                   You can now sign in using either your password or your seed phrase.
                 </p>
-                
+
                 {/* Change Password Section */}
                 {!showPasswordChangeSection ? (
                   <button
@@ -1194,91 +1229,309 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   </button>
                 ) : (
                   <div className="bg-white border border-gray-200 rounded p-4 space-y-4">
-                    <h4 className="font-bold text-gray-800 text-gray-900">Change Password</h4>
-                    
-                    <div>
-                      <label className="block text-sm font-bold mb-2">Current Password</label>
-                      <input
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="Enter current password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        disabled={isLoading}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-bold mb-2">New Password</label>
-                      <input
-                        type="password"
-                        value={newPasswordChange}
-                        onChange={(e) => {
-                          setNewPasswordChange(e.target.value);
-                          const validation = validatePasswordStrength(e.target.value);
-                          setChangePasswordErrors(validation.errors);
-                        }}
-                        placeholder="Enter new password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        disabled={isLoading}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-bold mb-2">Confirm New Password</label>
-                      <input
-                        type="password"
-                        value={confirmNewPasswordChange}
-                        onChange={(e) => setConfirmNewPasswordChange(e.target.value)}
-                        placeholder="Confirm new password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        disabled={isLoading}
-                      />
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-bold text-gray-800 text-gray-900">
+                        {showForgotPassword ? "Reset Password with Seed Phrase" : "Change Password"}
+                      </h4>
+                      {!showForgotPassword ? (
+                        <button
+                          onClick={() => setShowForgotPassword(true)}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Forgot Password?
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setShowForgotPassword(false)}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Back to Change Password
+                        </button>
+                      )}
                     </div>
 
-                    {/* Password Requirements for Change */}
-                    {newPasswordChange && (
-                      <div className="bg-gray-50 border border-gray-200 rounded p-3">
-                        <p className="text-sm font-bold text-gray-700 mb-2">Password Requirements:</p>
-                        <ul className="text-sm space-y-1">
-                          <li className={newPasswordChange.length >= 8 ? "text-green-600" : "text-gray-500"}>
-                            {newPasswordChange.length >= 8 ? "✓" : "○"} At least 8 characters
-                          </li>
-                          <li className={/[a-z]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
-                            {/[a-z]/.test(newPasswordChange) ? "✓" : "○"} One lowercase letter
-                          </li>
-                          <li className={/[A-Z]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
-                            {/[A-Z]/.test(newPasswordChange) ? "✓" : "○"} One uppercase letter
-                          </li>
-                          <li className={/[0-9]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
-                            {/[0-9]/.test(newPasswordChange) ? "✓" : "○"} One number
-                          </li>
-                        </ul>
-                      </div>
+                    {showForgotPassword ? (
+                      // RESET PASSWORD FORM
+                      <>
+                        <div className="flex gap-4 mb-4 border-b border-gray-200">
+                          <button
+                            className={`px-3 py-2 ${resetMode === 'seed' ? 'font-bold border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            onClick={() => setResetMode('seed')}
+                          >
+                            Use Seed Phrase
+                          </button>
+                          <button
+                            className={`px-3 py-2 ${resetMode === 'email' ? 'font-bold border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            onClick={() => setResetMode('email')}
+                          >
+                            Use Email
+                          </button>
+                        </div>
+
+                        {resetMode === 'seed' ? (
+                          <>
+                            <div className="bg-amber-50 border border-amber-200 p-3 rounded text-sm text-amber-800 mb-2">
+                              <PixelIcon name="lock" className="inline-block mr-1" />
+                              To reset your password, please enter your 12-word recovery seed phrase.
+                              This proves you own the account.
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-bold mb-2">Recovery Seed Phrase</label>
+                              <textarea
+                                value={resetSeedPhrase}
+                                onChange={(e) => setResetSeedPhrase(e.target.value)}
+                                placeholder="alert angry ... (12 words)"
+                                className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 font-mono text-sm"
+                                disabled={isLoading}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-bold mb-2">New Password</label>
+                              <input
+                                type="password"
+                                value={newPasswordChange}
+                                onChange={(e) => {
+                                  setNewPasswordChange(e.target.value);
+                                  const validation = validatePasswordStrength(e.target.value);
+                                  setChangePasswordErrors(validation.errors);
+                                }}
+                                placeholder="Enter new password"
+                                className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={isLoading}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-bold mb-2">Confirm New Password</label>
+                              <input
+                                type="password"
+                                value={confirmNewPasswordChange}
+                                onChange={(e) => setConfirmNewPasswordChange(e.target.value)}
+                                placeholder="Confirm new password"
+                                className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={isLoading}
+                              />
+                            </div>
+
+                            {/* Reusing existing password requirements display logic */}
+                            {newPasswordChange && (
+                              <div className="bg-gray-50 border border-gray-200 rounded p-3">
+                                <p className="text-sm font-bold text-gray-700 mb-2">Password Requirements:</p>
+                                <ul className="text-sm space-y-1">
+                                  <li className={newPasswordChange.length >= 8 ? "text-green-600" : "text-gray-500"}>
+                                    {newPasswordChange.length >= 8 ? "✓" : "○"} At least 8 characters
+                                  </li>
+                                  <li className={/[a-z]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                                    {/[a-z]/.test(newPasswordChange) ? "✓" : "○"} One lowercase letter
+                                  </li>
+                                  <li className={/[A-Z]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                                    {/[A-Z]/.test(newPasswordChange) ? "✓" : "○"} One uppercase letter
+                                  </li>
+                                  <li className={/[0-9]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                                    {/[0-9]/.test(newPasswordChange) ? "✓" : "○"} One number
+                                  </li>
+                                </ul>
+                              </div>
+                            )}
+
+                            <div className="flex gap-3 flex-wrap">
+                              <button
+                                onClick={async () => {
+                                  setIsLoading(true);
+                                  try {
+                                    const res = await fetch('/api/auth/add-password', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        password: newPasswordChange,
+                                        seedPhrase: resetSeedPhrase
+                                      })
+                                    });
+
+                                    if (!res.ok) {
+                                      const data = await res.json();
+                                      throw new Error(data.error || 'Failed to reset password');
+                                    }
+
+                                    // Success!
+                                    setSaveMessage("Password reset successfully! You can now login with your new password.");
+                                    setShowPasswordChangeSection(false);
+                                    setShowForgotPassword(false);
+                                    setResetSeedPhrase('');
+                                    setNewPasswordChange('');
+                                    setConfirmNewPasswordChange('');
+
+                                    // Reload identity to ensure local state is consistent if needed
+                                    // (Actually, we should probably update local storage encrypted seed too, 
+                                    // but for now, the server state is correct, and next login will sync)
+
+                                  } catch (err) {
+                                    setSaveMessage(`Error: ${err instanceof Error ? err.message : 'Failed to reset password'}`);
+                                  } finally {
+                                    setIsLoading(false);
+                                  }
+                                }}
+                                disabled={isLoading || !resetSeedPhrase || !newPasswordChange || !confirmNewPasswordChange || changePasswordErrors.length > 0}
+                                className="px-4 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all disabled:opacity-50 min-h-[48px]"
+                              >
+                                {isLoading ? "Resetting..." : "Reset Password"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowPasswordChangeSection(false);
+                                  setShowForgotPassword(false);
+                                }}
+                                disabled={isLoading}
+                                className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          // EMAIL FORM
+                          <div className="space-y-4 pt-2">
+                            <div className="bg-blue-50 border border-blue-200 p-3 rounded text-sm text-blue-800">
+                              <PixelIcon name="mail" className="inline-block mr-1" />
+                              Enter your verified email address. We&apos;ll send you a link to reset your password.
+                            </div>
+
+                            {emailResetStatus === 'sent' ? (
+                              <div className="text-center p-4 bg-green-50 rounded border border-green-200">
+                                <p className="text-green-700 font-bold mb-2">Email Sent!</p>
+                                <p className="text-sm">Check {resetEmail} for the reset link.</p>
+                                <button onClick={() => { setEmailResetStatus('idle'); setResetMode('seed'); setShowForgotPassword(false); setShowPasswordChangeSection(false); }} className="mt-4 text-blue-600 hover:underline text-sm">Close</button>
+                              </div>
+                            ) : (
+                              <>
+                                <div>
+                                  <label className="block text-sm font-bold mb-2">Email Address</label>
+                                  <input
+                                    type="email"
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                    placeholder="name@example.com"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                                    disabled={emailResetStatus === 'sending'}
+                                  />
+                                </div>
+                                {emailResetStatus === 'error' && (
+                                  <div className="text-red-500 text-sm mb-2">Error: {emailResetMessage}</div>
+                                )}
+                                <div className="flex gap-3">
+                                  <button
+                                    onClick={handleRequestEmailReset}
+                                    disabled={!resetEmail || emailResetStatus === 'sending'}
+                                    className="px-4 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 font-medium min-h-[48px]"
+                                  >
+                                    {emailResetStatus === 'sending' ? "Sending..." : "Send Reset Link"}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setShowPasswordChangeSection(false);
+                                      setShowForgotPassword(false);
+                                    }}
+                                    disabled={emailResetStatus === 'sending'}
+                                    className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      // STANDARD CHANGE PASSWORD FORM
+                      <>
+                        <div>
+                          <label className="block text-sm font-bold mb-2">Current Password</label>
+                          <input
+                            type="password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="Enter current password"
+                            className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isLoading}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-bold mb-2">New Password</label>
+                          <input
+                            type="password"
+                            value={newPasswordChange}
+                            onChange={(e) => {
+                              setNewPasswordChange(e.target.value);
+                              const validation = validatePasswordStrength(e.target.value);
+                              setChangePasswordErrors(validation.errors);
+                            }}
+                            placeholder="Enter new password"
+                            className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isLoading}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-bold mb-2">Confirm New Password</label>
+                          <input
+                            type="password"
+                            value={confirmNewPasswordChange}
+                            onChange={(e) => setConfirmNewPasswordChange(e.target.value)}
+                            placeholder="Confirm new password"
+                            className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={isLoading}
+                          />
+                        </div>
+
+                        {/* Password Requirements for Change */}
+                        {newPasswordChange && (
+                          <div className="bg-gray-50 border border-gray-200 rounded p-3">
+                            <p className="text-sm font-bold text-gray-700 mb-2">Password Requirements:</p>
+                            <ul className="text-sm space-y-1">
+                              <li className={newPasswordChange.length >= 8 ? "text-green-600" : "text-gray-500"}>
+                                {newPasswordChange.length >= 8 ? "✓" : "○"} At least 8 characters
+                              </li>
+                              <li className={/[a-z]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                                {/[a-z]/.test(newPasswordChange) ? "✓" : "○"} One lowercase letter
+                              </li>
+                              <li className={/[A-Z]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                                {/[A-Z]/.test(newPasswordChange) ? "✓" : "○"} One uppercase letter
+                              </li>
+                              <li className={/[0-9]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                                {/[0-9]/.test(newPasswordChange) ? "✓" : "○"} One number
+                              </li>
+                            </ul>
+                          </div>
+                        )}
+
+                        <div className="flex gap-3 flex-wrap">
+                          <button
+                            onClick={handleChangePassword}
+                            disabled={isLoading || !currentPassword || !newPasswordChange || !confirmNewPasswordChange || changePasswordErrors.length > 0}
+                            className="px-4 py-3 bg-blue-200 hover:bg-blue-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 min-h-[48px]"
+                          >
+                            {isLoading ? "Changing..." : "Change Password"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowPasswordChangeSection(false);
+                              setCurrentPassword('');
+                              setNewPasswordChange('');
+                              setConfirmNewPasswordChange('');
+                              setChangePasswordErrors([]);
+                            }}
+                            disabled={isLoading}
+                            className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all disabled:opacity-50 min-h-[48px]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
                     )}
-
-                    <div className="flex gap-3 flex-wrap">
-                      <button
-                        onClick={handleChangePassword}
-                        disabled={isLoading || !currentPassword || !newPasswordChange || !confirmNewPasswordChange || changePasswordErrors.length > 0}
-                        className="px-4 py-3 bg-blue-200 hover:bg-blue-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 min-h-[48px]"
-                      >
-                        {isLoading ? "Changing..." : "Change Password"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowPasswordChangeSection(false);
-                          setCurrentPassword('');
-                          setNewPasswordChange('');
-                          setConfirmNewPasswordChange('');
-                          setChangePasswordErrors([]);
-                        }}
-                        disabled={isLoading}
-                        className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all disabled:opacity-50 min-h-[48px]"
-                      >
-                        Cancel
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
@@ -1396,7 +1649,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             </p>
           </div>
 
-          <ProfileBadgeSelector 
+          <ProfileBadgeSelector
             onSave={(preferences) => {
               setSaveMessage("Badge preferences saved successfully!");
               setTimeout(() => setSaveMessage(null), 3000);
@@ -1556,6 +1809,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     });
   }
 
+
+
   return (
     <>
       <Head>
@@ -1576,11 +1831,10 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           </div>
 
           {saveMessage && (
-            <div className={`mb-4 p-3 rounded mx-4 sm:mx-0 ${
-              saveMessage.includes("Error")
-                ? "bg-red-100 text-red-700 border border-red-300"
-                : "bg-green-100 text-green-700 border border-green-300"
-            }`}>
+            <div className={`mb-4 p-3 rounded mx-4 sm:mx-0 ${saveMessage.includes("Error")
+              ? "bg-red-100 text-red-700 border border-red-300"
+              : "bg-green-100 text-green-700 border border-green-300"
+              }`}>
               {saveMessage}
             </div>
           )}
@@ -1608,7 +1862,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
   // Fetch user profile data
   try {
     const { db } = await import('@/lib/config/database/connection');
-    
+
     const userData = await db.user.findUnique({
       where: { id: user.id },
       include: {

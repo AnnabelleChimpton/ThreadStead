@@ -37,8 +37,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     include: {
       user: {
         select: {
+          id: true,
           authMethod: true,
-          encryptedSeedPhrase: true
+          encryptedSeedPhrase: true,
+          did: true,
+          originalDid: true
         }
       }
     }
@@ -50,22 +53,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const user = session.user;
 
-  // Only allow adding password to seed phrase users who don't already have one
-  if (user.authMethod !== 'SEED_PHRASE') {
-    return res.status(400).json({ error: "This user already uses password authentication" });
-  }
+  // Check if we are in "Overwrite/Reset" mode
+  const isResetMode = user.authMethod === 'PASSWORD' || !!user.encryptedSeedPhrase;
 
-  if (user.encryptedSeedPhrase) {
-    return res.status(400).json({ error: "This user already has password authentication enabled" });
+  if (isResetMode) {
+    // CRITICAL SECURITY CHECK:
+    // If resetting password, we MUST verify the provided seed phrase matches the user's identity.
+    // This allows "Recover from Seed" to overwrite a forgotten password.
+    try {
+      // Dynamic import to avoid build issues if these deps have issues in specific envs
+      const bip39 = await import("bip39");
+      const ed = await import("@noble/ed25519");
+      const { toBase64Url } = await import("@/lib/utils/encoding/base64url");
+
+      if (!bip39.validateMnemonic(seedPhrase)) {
+        return res.status(400).json({ error: "Invalid seed phrase" });
+      }
+
+      // 1. Derive Keypair (Logic mirrored from did-client.ts)
+      const seed = await bip39.mnemonicToSeed(seedPhrase);
+      const secret = seed.slice(0, 32);
+      const publicKey = await ed.getPublicKeyAsync(secret);
+      const pkb64u = toBase64Url(publicKey);
+      const derivedDid = `did:key:ed25519:${pkb64u}`;
+
+      // 2. Compare against stored identity
+      // Match against current DID OR the original DID (if migrated to RingHub)
+      const matchesId = derivedDid === user.did || derivedDid === user.originalDid;
+
+      if (!matchesId) {
+        return res.status(403).json({ error: "Seed phrase does not match this account. Password reset denied." });
+      }
+
+      // Verification Passed: Allow execution to proceed (overwriting password)
+
+    } catch (err) {
+      console.error("Verification failed:", err);
+      return res.status(500).json({ error: "Failed to verify identity for reset" });
+    }
   }
 
   try {
     // Import encryption functions
     const { encryptSeedPhraseWithPassword } = await import('@/lib/auth/password');
-    
+
     // Encrypt the seed phrase with the new password
     const encryptedSeedPhrase = encryptSeedPhraseWithPassword(seedPhrase, password);
-    
+
     // Hash the password
     const passwordHash = await hashPassword(password);
 
