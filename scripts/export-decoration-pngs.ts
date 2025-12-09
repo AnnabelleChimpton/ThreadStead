@@ -37,8 +37,106 @@ import { PathSVGs } from '../components/pixel-homes/assets/PathSVGs'
 import HouseSVG, { HouseTemplate, ColorPalette } from '../components/pixel-homes/HouseSVG'
 
 // Import data
-import { BETA_ITEMS } from '../lib/pixel-homes/decoration-data'
 import { DECORATION_DIMENSIONS } from '../lib/pixel-homes/decoration-dimensions'
+
+// Note: BETA_ITEMS has been migrated to the database.
+// This script uses a local definition for standalone operation.
+// For new decorations, manage via /admin/decorations
+const DECORATION_ITEMS: Record<string, { id: string; name: string; type: string }[]> = {
+  plants: [
+    { id: 'roses_red', name: 'Red Roses', type: 'plant' },
+    { id: 'roses_pink', name: 'Pink Roses', type: 'plant' },
+    { id: 'roses_white', name: 'White Roses', type: 'plant' },
+    { id: 'daisies_white', name: 'White Daisies', type: 'plant' },
+    { id: 'daisies_yellow', name: 'Yellow Daisies', type: 'plant' },
+    { id: 'small_tree', name: 'Small Tree', type: 'plant' },
+    { id: 'tree_oak', name: 'Oak Tree', type: 'plant' },
+    { id: 'tree_pine', name: 'Pine Tree', type: 'plant' },
+    { id: 'sunflowers', name: 'Sunflowers', type: 'plant' },
+    { id: 'lavender', name: 'Lavender', type: 'plant' },
+    { id: 'flower_pot', name: 'Flower Pot', type: 'plant' },
+    { id: 'potted_herbs', name: 'Potted Herbs', type: 'plant' },
+    { id: 'hedge', name: 'Garden Hedge', type: 'plant' },
+    { id: 'hedge_round', name: 'Round Hedge', type: 'plant' }
+  ],
+  features: [
+    { id: 'bird_bath', name: 'Bird Bath', type: 'feature' },
+    { id: 'garden_gnome', name: 'Garden Gnome', type: 'feature' },
+    { id: 'decorative_fence', name: 'Decorative Fence', type: 'feature' },
+    { id: 'wind_chimes', name: 'Wind Chimes', type: 'feature' },
+    { id: 'flamingo', name: 'Pink Flamingo', type: 'feature' },
+    { id: 'garden_sphere', name: 'Gazing Ball', type: 'feature' },
+    { id: 'sundial', name: 'Sundial', type: 'feature' },
+    { id: 'garden_gnome_fishing', name: 'Fishing Gnome', type: 'feature' },
+    { id: 'garden_gnome_reading', name: 'Reading Gnome', type: 'feature' },
+    { id: 'watering_can', name: 'Watering Can', type: 'feature' },
+    { id: 'garden_tools', name: 'Garden Tools', type: 'feature' },
+    { id: 'wheelbarrow', name: 'Wheelbarrow', type: 'feature' },
+    { id: 'sleeping_cat', name: 'Sleeping Cat', type: 'feature' },
+    { id: 'sleeping_dog', name: 'Sleeping Dog', type: 'feature' },
+    { id: 'bird_feeder', name: 'Bird Feeder', type: 'feature' },
+    { id: 'firewood_stack', name: 'Firewood Stack', type: 'feature' },
+    { id: 'clothesline', name: 'Clothesline', type: 'feature' },
+    { id: 'welcome_sign', name: 'Welcome Sign', type: 'feature' }
+  ],
+  furniture: [
+    { id: 'garden_bench', name: 'Garden Bench', type: 'furniture' },
+    { id: 'outdoor_table', name: 'Outdoor Table', type: 'furniture' },
+    { id: 'mailbox', name: 'Mailbox', type: 'furniture' },
+    { id: 'planter_box', name: 'Planter Box', type: 'furniture' },
+    { id: 'picnic_table', name: 'Picnic Table', type: 'furniture' },
+    { id: 'raised_bed', name: 'Raised Garden Bed', type: 'furniture' },
+    { id: 'compost_bin', name: 'Compost Bin', type: 'furniture' },
+    { id: 'garden_cart', name: 'Garden Cart', type: 'furniture' },
+    { id: 'rocking_chair', name: 'Rocking Chair', type: 'furniture' },
+    { id: 'garden_swing', name: 'Garden Swing', type: 'furniture' },
+    { id: 'cozy_blanket', name: 'Cozy Blanket', type: 'furniture' }
+  ],
+  lighting: [
+    { id: 'garden_lantern', name: 'Garden Lantern', type: 'lighting' },
+    { id: 'string_lights', name: 'String Lights', type: 'lighting' },
+    { id: 'torch', name: 'Garden Torch', type: 'lighting' },
+    { id: 'spotlight', name: 'Spotlight', type: 'lighting' }
+  ],
+  water: [
+    { id: 'fountain', name: 'Garden Fountain', type: 'water' },
+    { id: 'pond', name: 'Small Pond', type: 'water' },
+    { id: 'rain_barrel', name: 'Rain Barrel', type: 'water' }
+  ],
+  structures: [
+    { id: 'gazebo', name: 'Garden Gazebo', type: 'structure' },
+    { id: 'trellis', name: 'Garden Trellis', type: 'structure' },
+    { id: 'garden_arch', name: 'Garden Arch', type: 'structure' },
+    { id: 'sign_post', name: 'Sign Post', type: 'structure' },
+    { id: 'wishing_well', name: 'Wishing Well', type: 'structure' },
+    { id: 'picket_fence_white', name: 'White Picket Fence', type: 'structure' },
+    { id: 'picket_fence_natural', name: 'Natural Picket Fence', type: 'structure' },
+    { id: 'rustic_fence', name: 'Rustic Fence', type: 'structure' },
+    { id: 'stone_wall', name: 'Low Stone Wall', type: 'structure' }
+  ],
+  house: [
+    { id: 'arched_door', name: 'Arched Door', type: 'house_custom' },
+    { id: 'double_door', name: 'Double Door', type: 'house_custom' },
+    { id: 'cottage_door', name: 'Cottage Door', type: 'house_custom' },
+    { id: 'round_windows', name: 'Round Windows', type: 'house_custom' },
+    { id: 'arched_windows', name: 'Arched Windows', type: 'house_custom' },
+    { id: 'bay_windows', name: 'Bay Windows', type: 'house_custom' },
+    { id: 'shutters', name: 'Shutters', type: 'house_custom' },
+    { id: 'flower_boxes', name: 'Flower Boxes', type: 'house_custom' },
+    { id: 'awnings', name: 'Awnings', type: 'house_custom' },
+    { id: 'ornate_trim', name: 'Ornate Roof Trim', type: 'house_custom' },
+    { id: 'scalloped_trim', name: 'Scalloped Trim', type: 'house_custom' },
+    { id: 'gabled_trim', name: 'Gabled Trim', type: 'house_custom' },
+    { id: 'brick_chimney', name: 'Brick Chimney', type: 'house_custom' },
+    { id: 'stone_chimney', name: 'Stone Chimney', type: 'house_custom' }
+  ],
+  paths: [
+    { id: 'stone_path', name: 'Stone Path', type: 'path' },
+    { id: 'brick_path', name: 'Brick Path', type: 'path' },
+    { id: 'stepping_stones', name: 'Stepping Stones', type: 'path' },
+    { id: 'gravel_path', name: 'Gravel Path', type: 'path' }
+  ]
+}
 
 // House templates to export
 const HOUSE_TEMPLATES: { id: HouseTemplate; name: string }[] = [
@@ -110,53 +208,33 @@ function extractVariant(id: string): string {
   return 'default'
 }
 
-// Get all decorations from BETA_ITEMS
+// Get all decorations from local definition
 function getAllDecorations(): DecorationInfo[] {
   const decorations: DecorationInfo[] = []
 
-  // Categories to skip (not actual SVG decorations)
-  const skipCategories = ['atmosphere', 'templates', 'colors']
-
-  for (const [category, items] of Object.entries(BETA_ITEMS)) {
-    if (skipCategories.includes(category)) continue
-    if (!Array.isArray(items)) continue
-
+  for (const [category, items] of Object.entries(DECORATION_ITEMS)) {
     for (const item of items) {
       // Skip items that don't have SVG components
-      const itemType = (item as any).type as string
-      if (!SVG_COMPONENT_MAP[itemType]) {
+      if (!SVG_COMPONENT_MAP[item.type]) {
         continue
       }
 
       // Skip default/no items (they don't render anything)
-      if ((item as any).id.startsWith('default_') ||
-          (item as any).id.startsWith('no_') ||
-          (item as any).isDefault) {
+      if (item.id.startsWith('default_') ||
+          item.id.startsWith('no_')) {
         continue
       }
 
-      const variant = extractVariant((item as any).id)
+      const variant = extractVariant(item.id)
 
       decorations.push({
-        id: (item as any).id,
-        name: (item as any).name,
-        type: itemType,
+        id: item.id,
+        name: item.name,
+        type: item.type,
         category,
         variant,
       })
     }
-  }
-
-  // Add paths separately (they're not in BETA_ITEMS yet)
-  const pathIds = ['stone_path', 'brick_path', 'stepping_stones', 'gravel_path']
-  for (const pathId of pathIds) {
-    decorations.push({
-      id: pathId,
-      name: pathId.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-      type: 'path',
-      category: 'paths',
-      variant: 'default',
-    })
   }
 
   return decorations
