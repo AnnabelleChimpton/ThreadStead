@@ -9,8 +9,10 @@ import { componentRegistry } from '@/lib/templates/core/template-registry';
  */
 export function isContainerComponent(componentType: string): boolean {
   // PHASE 4.3: Explicit list of known container components (defensive check)
+  // Note: Tabs is included because it has relationship.type='parent' (not 'container')
+  // but still needs to accept Tab children in the Visual Builder
   const knownContainers = ['FlexContainer', 'GridLayout', 'Grid', 'GridItem', 'SplitLayout', 'CenteredBox',
-                           'GradientBox', 'NeonBorder', 'RetroTerminal', 'PolaroidFrame'];
+                           'GradientBox', 'NeonBorder', 'RetroTerminal', 'PolaroidFrame', 'Tabs'];
 
   if (knownContainers.includes(componentType)) {
     return true;

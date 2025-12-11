@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, type RefObject } from 'react';
+import { useState, useCallback, useEffect, useRef, type RefObject } from 'react';
 import type { ComponentItem } from '@/hooks/useCanvasState';
 import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { SmartSnapping, type SnapResult } from '@/lib/templates/visual-builder/snapping-utils';
@@ -115,6 +115,10 @@ export function useDragAndDrop(deps: UseDragAndDropDeps): UseDragAndDropResult {
     targetContainer: null,
     dropAction: 'normal',
   });
+
+  // RAF throttling for smooth drag performance
+  const rafId = useRef<number | null>(null);
+  const pendingMouseEvent = useRef<MouseEvent | null>(null);
 
   // ============================================
   // HTML5 Drag Handlers (Palette → Canvas)
@@ -421,14 +425,10 @@ export function useDragAndDrop(deps: UseDragAndDropDeps): UseDragAndDropResult {
   }, [placedComponents, canvasRef, selectedComponentIds, selectComponent]);
 
   /**
-   * handleComponentMouseMove - Handles component dragging with snapping and container detection
-   * Complex logic for:
-   * - Container detection priority
-   * - Smart snapping
-   * - Multi-component dragging
-   * - Alignment guides
+   * processMouseMove - Internal function that does the actual drag calculations
+   * Separated from the event handler for RAF throttling
    */
-  const handleComponentMouseMove = useCallback((event: MouseEvent) => {
+  const processMouseMove = useCallback((event: MouseEvent) => {
     if (!draggedComponentId || !canvasRef.current) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
@@ -688,7 +688,27 @@ export function useDragAndDrop(deps: UseDragAndDropDeps): UseDragAndDropResult {
 
     // Container detection and drop zone state is now handled at the beginning of this function
 
-  }, [draggedComponentId, dragOffset, updatePositionForActiveBreakpoint, activeBreakpoint, placedComponents, setDropZoneState, setPreviewPosition, smartSnapping, alignmentGuides, positionIndicator, canvasSize.width, canvasSize.height, selectedComponentIds]);
+  }, [draggedComponentId, dragOffset, updatePositionForActiveBreakpoint, activeBreakpoint, placedComponents, setDropZoneState, setPreviewPosition, smartSnapping, alignmentGuides, positionIndicator, canvasSize.width, canvasSize.height, selectedComponentIds, canvasRef, snapToGrid]);
+
+  /**
+   * handleComponentMouseMove - Handles component dragging with snapping and container detection
+   * Uses requestAnimationFrame throttling for smooth 60fps performance
+   */
+  const handleComponentMouseMove = useCallback((event: MouseEvent) => {
+    // Store the latest event
+    pendingMouseEvent.current = event;
+
+    // Skip if RAF is already scheduled
+    if (rafId.current !== null) return;
+
+    // Schedule processing for next animation frame
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = null;
+      if (pendingMouseEvent.current) {
+        processMouseMove(pendingMouseEvent.current);
+      }
+    });
+  }, [processMouseMove]);
 
   /**
    * handleComponentMouseUp - Handles drop of dragged component onto containers
@@ -767,6 +787,13 @@ export function useDragAndDrop(deps: UseDragAndDropDeps): UseDragAndDropResult {
 
     setDraggedComponentId(null);
 
+    // Cancel any pending RAF
+    if (rafId.current !== null) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+    pendingMouseEvent.current = null;
+
     // Clear guides and indicators
     alignmentGuides.hideGuides();
     positionIndicator.hidePosition();
@@ -799,6 +826,11 @@ export function useDragAndDrop(deps: UseDragAndDropDeps): UseDragAndDropResult {
       return () => {
         document.removeEventListener('mousemove', handleComponentMouseMove);
         document.removeEventListener('mouseup', handleComponentMouseUp);
+        // Clean up RAF on unmount
+        if (rafId.current !== null) {
+          cancelAnimationFrame(rafId.current);
+          rafId.current = null;
+        }
       };
     }
   }, [draggedComponentId, handleComponentMouseMove, handleComponentMouseUp]);

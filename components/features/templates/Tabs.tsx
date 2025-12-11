@@ -4,6 +4,7 @@ import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConfl
 interface TabsProps extends UniversalCSSProps {
   children: React.ReactNode;
   className?: string;
+  _isInVisualBuilder?: boolean;
 }
 
 interface TabProps {
@@ -19,7 +20,7 @@ export function Tab({ title, children }: TabProps) {
 
 export default function Tabs(props: TabsProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
-  const { children, className: customClassName } = componentProps;
+  const { children, className: customClassName, _isInVisualBuilder } = componentProps;
   // Handle both direct Tab components and children from Islands rendering
   const childArray = React.Children.toArray(children);
   
@@ -92,6 +93,30 @@ export default function Tabs(props: TabsProps) {
   const wrapperClassName = customClassName
     ? `${filteredClasses} ${customClassName}`
     : filteredClasses;
+
+  // Visual Builder preview mode - show placeholder tabs when no children
+  if (tabs.length === 0 && _isInVisualBuilder) {
+    return (
+      <div className={wrapperClassName} style={style}>
+        <div className="profile-tabs thread-module p-0 overflow-hidden">
+          <div className="profile-tab-list flex border-b border-thread-sage/30">
+            <div className="px-4 py-3 bg-thread-cream font-medium text-thread-pine border-r border-thread-sage/20">
+              Tab 1
+            </div>
+            <div className="px-4 py-3 bg-thread-paper text-thread-sage border-r border-thread-sage/20">
+              Tab 2
+            </div>
+            <div className="px-4 py-3 bg-thread-paper text-thread-sage border-r border-thread-sage/20">
+              Tab 3
+            </div>
+          </div>
+          <div className="p-6 text-thread-sage/60 italic text-center text-sm">
+            Add Tab children to customize
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (tabs.length === 0) {
     return (

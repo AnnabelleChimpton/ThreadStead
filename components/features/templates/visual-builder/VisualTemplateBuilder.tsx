@@ -115,6 +115,10 @@ export default function VisualTemplateBuilder({
     componentCount: 0,
   });
 
+  // Save status indicator
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saveStatusTimeout = useRef<NodeJS.Timeout | null>(null);
+
   // Detect if template is a flow-based layout (like glassmorphism)
   const isFlowTemplate = useMemo(() => {
     if (!initialTemplate || initialTemplate.trim() === '') {
@@ -1157,6 +1161,9 @@ ${combinedCSS}
       clearTimeout(pendingTemplateChange.current);
     }
 
+    // Show saving indicator
+    setSaveStatus('saving');
+
     // Debounce the template change call
     pendingTemplateChange.current = setTimeout(() => {
       if (onTemplateChange && html !== lastGeneratedHTML.current) {
@@ -1164,12 +1171,26 @@ ${combinedCSS}
         lastGeneratedHTML.current = html;
         onTemplateChange(html);
 
+        // Show saved status
+        setSaveStatus('saved');
+
+        // Clear saved status after a short delay
+        if (saveStatusTimeout.current) {
+          clearTimeout(saveStatusTimeout.current);
+        }
+        saveStatusTimeout.current = setTimeout(() => {
+          setSaveStatus('idle');
+        }, 2000);
+
         // Reset internal change flag after a short delay
         setTimeout(() => {
           isInternalChange.current = false;
         }, 100);
+      } else {
+        // No changes to save
+        setSaveStatus('idle');
       }
-    }, 150); // 150ms debounce
+    }, 300); // 300ms debounce for snappier feel
   }, [onTemplateChange]);
 
   // Store previous components for deep comparison to avoid unnecessary template generation
@@ -1196,15 +1217,13 @@ ${combinedCSS}
       // Generate HTML with new settings
       const html = generateFlowTemplateHTML();
 
-      // Trigger save
-      if (onTemplateChange) {
-        onTemplateChange(html);
-      }
+      // Trigger save with debounce for smooth UX
+      debouncedTemplateChange(html);
 
       // Update ref
       prevGlobalSettingsRef.current = globalSettings;
     }
-  }, [globalSettings, isFlowTemplate, generateFlowTemplateHTML, onTemplateChange, initialGlobalSettingsState]);
+  }, [globalSettings, isFlowTemplate, generateFlowTemplateHTML, debouncedTemplateChange, initialGlobalSettingsState]);
 
   React.useEffect(() => {
     // CRITICAL: Skip this entire useEffect for flow templates
@@ -1427,6 +1446,24 @@ ${combinedCSS}
           activeBreakpoint={activeBreakpoint}
           onBreakpointChange={setActiveBreakpoint}
         />
+
+        {/* Save Status Indicator */}
+        <div className="flex items-center gap-2 ml-4 text-xs">
+          {saveStatus === 'saving' && (
+            <span className="flex items-center gap-1.5 text-amber-600">
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-amber-600"></div>
+              Saving...
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="flex items-center gap-1.5 text-green-600 animate-fade-in">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Saved
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Template Loading Status */}
@@ -1519,7 +1556,12 @@ ${combinedCSS}
       >
         <div
           className={`min-h-full flex items-start ${activeBreakpoint === 'desktop' ? '' : 'justify-center'}`}
-          style={{ padding: activeBreakpoint === 'desktop' ? '24px 24px' : '24px' }}
+          style={{
+            // Minimal padding for flow templates (true WYSIWYG), normal padding for positioned mode
+            padding: isFlowTemplate
+              ? (activeBreakpoint === 'desktop' ? '0' : '16px')
+              : (activeBreakpoint === 'desktop' ? '24px 24px' : '24px')
+          }}
         >
           <div style={{ position: 'relative', width: '100%' }}>
             {/* Navigation overlay - shown when hideNavigation is false, but NOT included in generated HTML */}
@@ -2099,18 +2141,23 @@ const DirectTemplateRenderer = React.forwardRef<HTMLDivElement, DirectTemplateRe
     }
   }, [htmlWithoutCSS]);
 
-  // Calculate responsive width
+  // Calculate responsive width - match live profile behavior
   const canvasWidth = activeBreakpoint === 'desktop' ? '100%' :
                       activeBreakpoint === 'tablet' ? '768px' : '375px';
 
   return (
     <div
       ref={ref || containerRef}
-      className={`shadow-2xl rounded-xl border border-gray-200 overflow-hidden ${globalCSS.classNames.join(' ')}`}
+      className={`profile-template-root ${globalCSS.classNames.join(' ')}`}
       style={{
         width: canvasWidth,
-        maxWidth: '100%',
-        minHeight: '600px'
+        minHeight: '100vh',
+        position: 'relative',
+        // Match live profile - no artificial constraints
+        ...(activeBreakpoint !== 'desktop' && {
+          margin: '0 auto',
+          boxShadow: '0 0 0 1px rgba(0,0,0,0.1)' // Subtle border for mobile/tablet preview
+        })
       }}
     >
       {/* Inject CSS */}
